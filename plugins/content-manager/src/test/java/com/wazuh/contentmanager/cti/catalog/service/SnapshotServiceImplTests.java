@@ -456,6 +456,157 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Assert.assertEquals("TID-123", request.id());
     }
 
+    /**
+     * Builds an NDJSON snapshot of {@code count} kvdb documents, each padded to roughly {@code
+     * approxBytesPerDoc} so the byte-based flush trigger can be exercised deterministically.
+     */
+    private String buildPaddedNdjson(int count, int approxBytesPerDoc) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            String filler = "x".repeat(Math.max(0, approxBytesPerDoc));
+            sb.append("{\"name\": \"doc-")
+                    .append(i)
+                    .append("\", \"offset\": ")
+                    .append(i + 1)
+                    .append(", \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"doc-")
+                    .append(i)
+                    .append("\", \"title\": \"")
+                    .append(filler)
+                    .append("\"}}}");
+            if (i < count - 1) {
+                sb.append('\n');
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Re-initializes the {@link PluginSettings} singleton with the given {@code max_bulk_bytes} and
+     * returns a fresh {@link SnapshotServiceImpl} bound to it (the service captures the singleton at
+     * construction time). The caller is responsible for resetting the singleton when done.
+     */
+    private SnapshotServiceImpl serviceWithMaxBulkBytes(long maxBulkBytes) {
+        PluginSettings.resetForTesting();
+        Settings settings =
+                Settings.builder()
+                        .put("path.home", this.tempDir.toString())
+                        .put("plugins.content_manager.max_bulk_bytes", maxBulkBytes)
+                        .build();
+        PluginSettings.getInstance(settings);
+
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put("kvdb", this.contentIndexMock);
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
+        service.setSnapshotClient(this.snapshotClient);
+        return service;
+    }
+
+    /**
+     * The byte-size cap forces more flushes than the document-count cap alone. With a small {@code
+     * max_bulk_bytes} and several large documents (all below {@code max_items_per_bulk}), {@code
+     * executeBulk} must be invoked more than once.
+     */
+    public void testInitialize_ByteCapForcesAdditionalFlushes() throws Exception {
+        // Cap at the 1 MB floor; 10 docs of ~512 KB each => several flushes, well under the 999-doc
+        // count cap (the minimum allowed cap is 1 MB, so docs must be sized accordingly).
+        long maxBulkBytes = 1L * 1024 * 1024;
+        SnapshotServiceImpl service = serviceWithMaxBulkBytes(maxBulkBytes);
+        try {
+            String url = "http://example.com/bytecap.zip";
+            when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+            when(this.contentIndexMock.getWriteIndex()).thenReturn(".test-context-test-consumer-kvdb");
+
+            Path zipPath =
+                    this.createZipFileWithContent("data.json", this.buildPaddedNdjson(10, 512 * 1024));
+            when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+            service.initialize(this.remoteConsumer);
+
+            ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+            verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
+
+            Assert.assertTrue(
+                    "Byte cap should force more than one flush", bulkCaptor.getAllValues().size() > 1);
+            int totalActions =
+                    bulkCaptor.getAllValues().stream().mapToInt(BulkRequest::numberOfActions).sum();
+            Assert.assertEquals("All 10 documents should be indexed", 10, totalActions);
+        } finally {
+            PluginSettings.resetForTesting();
+        }
+    }
+
+    /**
+     * Every flushed bulk request stays within the byte cap, except that a single document may push
+     * the final accumulated request slightly over (the cap is checked after the doc is added). This
+     * directly validates that per-request heap is bounded.
+     */
+    public void testInitialize_ByteCapBoundsPerBulkSize() throws Exception {
+        long maxBulkBytes = 1L * 1024 * 1024;
+        int docPadding = 512 * 1024;
+        SnapshotServiceImpl service = serviceWithMaxBulkBytes(maxBulkBytes);
+        try {
+            String url = "http://example.com/bytecap2.zip";
+            when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+            when(this.contentIndexMock.getWriteIndex()).thenReturn(".test-context-test-consumer-kvdb");
+
+            Path zipPath =
+                    this.createZipFileWithContent("data.json", this.buildPaddedNdjson(12, docPadding));
+            when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+            service.initialize(this.remoteConsumer);
+
+            ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+            verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
+
+            // The cap is checked AFTER each doc is added, so a single doc can push one bulk over the
+            // cap. Allow one doc's worth of headroom; this proves no bulk grows unbounded.
+            long upperBound = maxBulkBytes + docPadding + 512;
+            for (BulkRequest request : bulkCaptor.getAllValues()) {
+                Assert.assertTrue(
+                        "Each bulk request must stay within the byte cap (+ one document of headroom): "
+                                + request.estimatedSizeInBytes()
+                                + " <= "
+                                + upperBound,
+                        request.estimatedSizeInBytes() <= upperBound);
+            }
+        } finally {
+            PluginSettings.resetForTesting();
+        }
+    }
+
+    /**
+     * When document sizes stay far below {@code max_bulk_bytes}, the byte trigger never fires and the
+     * count-based behavior is preserved: a handful of small docs produce a single flush.
+     */
+    public void testInitialize_CountPathUnaffectedWhenUnderByteCap() throws Exception {
+        // Generous 16 MB cap; tiny docs => byte trigger never fires, single flush as before.
+        long maxBulkBytes = 16L * 1024 * 1024;
+        SnapshotServiceImpl service = serviceWithMaxBulkBytes(maxBulkBytes);
+        try {
+            String url = "http://example.com/smalldocs.zip";
+            when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+            when(this.contentIndexMock.getWriteIndex()).thenReturn(".test-context-test-consumer-kvdb");
+
+            Path zipPath = this.createZipFileWithContent("data.json", this.buildPaddedNdjson(3, 8));
+            when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+            service.initialize(this.remoteConsumer);
+
+            ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+            verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
+
+            Assert.assertEquals(
+                    "Small docs under the byte cap should produce a single count-based flush",
+                    1,
+                    bulkCaptor.getAllValues().size());
+            Assert.assertEquals(3, bulkCaptor.getValue().numberOfActions());
+        } finally {
+            PluginSettings.resetForTesting();
+        }
+    }
+
     /** Helper to create a temporary ZIP file containing a single file with specific content. */
     private Path createZipFileWithContent(String fileName, String content) throws IOException {
         Path zipPath = this.tempDir.resolve("test_" + System.nanoTime() + ".zip");

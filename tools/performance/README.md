@@ -5,16 +5,21 @@ share one measurement layer:
 
 | Scenario | Topology | Load source | Purpose |
 |----------|----------|-------------|---------|
+| **isolated** *(default)* | single indexer + monitor VM | Steady-rate system-activity events → findings | Indexer in isolation, watched from **boot** (node_exporter + JMX → Prometheus/Grafana) incl. cold start, with the detection pipeline producing findings |
 | **real-world** | AIO + 2 agents | Agents' FIM + Logcollector loops | Realistic SIEM ingest, hardware requirements |
-| **isolated** | single indexer + monitor VM | OpenSearch Benchmark | Indexer in isolation, watched from **boot** (node_exporter → Prometheus/Grafana) incl. cold start |
 
-Pick **real-world** for hardware sizing under realistic agent load, and **isolated** for
-indexer peak throughput and cold-start cost.
+`isolated` is the default: it installs a single indexer, captures cold start, then for
+`--duration` seconds indexes a fixed system-activity event into the
+`wazuh-events-v5-system-activity` data stream at `--rate` events/sec while monitoring. The
+indexer's **own detection pipeline** (the content-manager syncs the CTI catalog on start and
+auto-creates the real detectors) turns the event into **findings**. Pick **real-world** for
+hardware sizing under realistic agent load.
 
 The **measurement layer** ([metrics/sampler.py](metrics/sampler.py)) polls the
 indexer's `_nodes/stats` + `_cluster/stats` (and, on the host, CPU/RAM/disk) and
-emits per-minute CSV/NDJSON. The `isolated` scenario adds **node_exporter +
-Prometheus** for continuous, from-boot host metrics so the cold start is captured.
+emits per-minute CSV/NDJSON. The `isolated` scenario adds **node_exporter + a JMX
+exporter + Prometheus** for continuous, from-boot host **and JVM** metrics so the cold
+start is captured.
 
 > **Topology note:** `isolated` installs a **single standalone wazuh-indexer**
 > (no manager, no dashboard) to measure the indexer alone, `real-world` uses the
@@ -26,12 +31,11 @@ Prometheus** for continuous, from-boot host metrics so the cold start is capture
 
 ## Prerequisites
 
-- Vagrant + a provider (VirtualBox / Parallels / libvirt) for Method 1, on a host with ~20 GB free RAM and 12 vCPU
+- Vagrant + a provider (VirtualBox / Parallels / libvirt) for Method 1, on a host with ~14 GB free RAM and ~10 vCPU (real-world is the heavier topology; isolated needs ~11 GB / 6 vCPU)
 - Python 3.9+
 - `requests`
 - `psutil`
 - `matplotlib`
-- `opensearch-benchmark` (isolated scenario)
 - Docker (isolated scenario monitor: Prometheus + Grafana)
 
 Install the Python dependencies in a virtual environment:
@@ -40,10 +44,10 @@ Install the Python dependencies in a virtual environment:
 cd tools/performance
 python3 -m venv .venv
 source .venv/bin/activate
-pip install requests psutil matplotlib opensearch-benchmark
+pip install requests psutil matplotlib
 ```
 
-> Method 1 (Vagrant) installs the guest-side dependencies (`psutil`, `opensearch-benchmark`, Docker) inside the VMs automatically, so on the host you only need Python with `requests` and `matplotlib`. For Method 2 (manual), install the requirements on each host yourself.
+> Method 1 (Vagrant) installs the guest-side dependencies (`psutil`, Docker) inside the VMs automatically, so on the host you only need Python with `requests` and `matplotlib`. For Method 2 (manual), install the requirements on each host yourself.
 
 ## Running
 
@@ -60,36 +64,86 @@ One entrypoint owns the whole lifecycle:
 
 ```bash
 cd tools/performance
+./run.sh                                       # DEFAULT: isolated — indexer + findings load, from cold start
 ./run.sh --scenario real-world                 # AIO + 2 agents (torn down on success)
-./run.sh --scenario isolated                   # single indexer + monitor + OSB, from cold start
-./run.sh --scenario real-world --version 4.14  # install + measure 4.x instead of 5.x
-./run.sh --scenario isolated --destroy         # tear down a kept isolated env when done
+./run.sh --version 4.14                        # install + measure 4.x instead of 5.x
+./run.sh --rate 2000 --duration 900            # 2000 events/s for 15 min (longer active-load window)
+./run.sh --destroy                             # tear down a kept isolated env when done
+./run.sh --package ~/wazuh-indexer_5.0.0_amd64.deb            # benchmark a local build (indexer only)
+./run.sh --scenario real-world --package ~/...amd64.deb       # AIO, then overwrite the indexer
+./run.sh --tune-config ./my-perf-tune.yml                     # override heap / detection / memlock / swap
 ```
+
+> **Findings load (isolated):** the run indexes a fixed system-activity event into
+> `wazuh-events-v5-system-activity` at `--rate` events/sec for `--duration` seconds
+> ([benchmark/event-loader.py](benchmark/event-loader.py)). Findings come from the indexer's
+> **own detection pipeline**: the content-manager syncs the CTI catalog on start and
+> auto-creates the real detectors (incl. system-activity), whose monitors match the event and
+> write into `wazuh-findings-v5-*`. This build has no security-analytics REST API to create
+> detectors manually, so the pipeline must be enabled — `config/perf-tune.yml` sets
+> `enriched_findings_index_enabled`, `catalog_update_on_start` and `catalog_create_detectors`
+> to true. **The indexer therefore needs network access to the CTI API.** Detectors default to
+> a ~2-minute schedule, so keep `--duration` at least a few minutes. The run reports the
+> findings count; **zero findings is a warning, not a failure** (the perf metrics are still
+> saved) — check the indexer's CTI connectivity if it happens.
+
+> **Custom indexer build:** `--package FILE` benchmarks a specific local `.deb`/`.rpm`
+> instead of resolving by version. `run.sh` stages the file into the synced folder so the
+> guest can read it. **isolated** installs it directly; **real-world** installs the AIO
+> normally, then overwrites only the `wazuh-indexer` package with it — keeping the AIO's
+> generated admin password, security index, and certs (the package's own
+> `opensearch.yml` is not applied; the AIO's is kept). `--version` still selects the
+> certificate flow, so match it to the package (e.g. `--version 4.14 --package
+> wazuh-indexer_4.14.x.deb`). The run is labeled with the package's own installed version,
+> so a build sharing a stock version string lands in the same `runs/<scenario>-<ver>/` dir.
 
 > **Teardown:** `real-world` is torn down automatically on success. **`isolated`
 > leaves the VMs up** so the Grafana/Prometheus cold-start timeline (which lives on
-> the monitor VM) stays reachable — explore it, then run `--scenario isolated
-> --destroy` (or just start another run; leftovers are cleaned up first). `--keep`
-> forces real-world to stay up too.
+> the monitor VM) stays reachable — explore it, then run `--destroy` (or just start
+> another run; leftovers are cleaned up first). `--keep` forces real-world to stay up too.
 
 Results land in `tools/performance/runs/<scenario>-<version>/`, named after the
 **actual installed** Wazuh version, so `--version 4.14` lands in
-`runs/real-world-4.14.1/` (the resolved patch) and runs of different versions never
+`runs/isolated-4.14.1/` (the resolved patch) and runs of different versions never
 overwrite each other and can be compared (see [Output](#output)). Tune load with
-`--duration` / `--interval` /
-`--rate` (real-world) or `--docs` (isolated). Topologies ([vagrant/Vagrantfile](vagrant/Vagrantfile)):
+`--duration` / `--interval` / `--rate`. Topologies ([vagrant/Vagrantfile](vagrant/Vagrantfile)):
 
-- **real-world**: `aio` (16 GB/8 vCPU) + `agent-1`/`agent-2` (2 GB/2 vCPU) - 192.168.60.20–22.
-- **isolated**: `indexer` (16 GB/8 vCPU, node_exporter from boot) + `monitor`
-  (2 GB/2 vCPU, Prometheus/Grafana/OSB) - 192.168.60.20 / .30, restarts the indexer
-  to capture its cold start, drives OSB from the monitor, and opens Grafana on the
-  auto-provisioned **Host Overview** dashboard (`uid wazuh-host-overview`) for the timeline.
+- **isolated**: `indexer` (8 GB/4 vCPU, node_exporter + JMX exporter from boot) + `monitor`
+  (3 GB/2 vCPU, Prometheus/Grafana/image-renderer) - 192.168.60.20 / .30. Restarts the indexer to capture
+  its cold start, drives the findings load from the monitor (the indexer's CTI-synced detectors
+  generate the findings), and
+  opens Grafana on the auto-provisioned **Host Overview** (`uid wazuh-host-overview`) and
+  **JVM Overview** (`uid wazuh-jvm-overview`) dashboards.
+- **real-world**: `aio` (10 GB/6 vCPU) + `agent-1`/`agent-2` (2 GB/2 vCPU) - 192.168.60.20–22.
 
-> **Host:** ~20 GB free RAM, 12 vCPU. Box defaults to `bento/ubuntu-24.04`
+> **Host:** ~14 GB free RAM, ~10 vCPU (real-world; isolated needs ~11 GB / 6 vCPU). Box defaults to `bento/ubuntu-24.04`
 > (VirtualBox/Parallels/VMware, incl. Apple Silicon). For libvirt use a
-> libvirt-capable box: `PERF_BOX=cloud-image/ubuntu-24.04 ./run.sh --scenario real-world`.
+> libvirt-capable box: `PERF_BOX=cloud-image/ubuntu-24.04 ./run.sh`.
 > All host↔guest transfer is over `vagrant ssh`, the synced folder is only used to
 > deliver scripts at `vagrant up` (vagrant-libvirt syncs one way).
+
+### Tuning config
+
+Indexer tuning is declared in [config/perf-tune.yml](config/perf-tune.yml), applied at
+provision time by [scripts/perf-tune-indexer.sh](scripts/perf-tune-indexer.sh):
+
+```yaml
+heap_size: 4g                          # JVM -Xms/-Xmx — ALWAYS applied (permanent)
+
+enriched_findings_index_enabled: true  # 5.x findings enrichment (needed for findings)
+catalog_update_on_start: true          # CTI catalog sync on start  ┐ on — the pipeline
+catalog_update_on_schedule: false      # CTI catalog sync on schedule│   builds the real
+catalog_create_detectors: true         # auto detector creation     ┘   detectors (needs CTI net)
+telemetry_enabled: false               # content-manager telemetry
+
+memory_lock: false                     # on-demand: bootstrap.memory_lock + systemd LimitMEMLOCK
+disable_swap: false                    # on-demand: swapoff -a (this boot only)
+```
+
+The YAML is the single source of truth — every key is required (no code-side defaults) and
+its value is written verbatim into `opensearch.yml` (the 5.x plugin keys are skipped on 4.x).
+The heap is a permanent setting; the `memory_lock` / `disable_swap` toggles are off by
+default and enabled on demand. Override per-run with `--tune-config FILE`.
 
 ### Method 2 - manual (bare hosts, e.g. AWS EC2)
 
@@ -112,6 +166,10 @@ Use the instances' **private IPs** for inter-host traffic.
 # AIO instance - install + capture the admin password:
 VERSION=5.0   # or 4.14  (MAJOR.MINOR; latest patch of the line is installed)
 sudo ./scripts/setup-aio.sh --version "$VERSION" --password-out ./runs/admin-password.txt
+# ...or benchmark a specific indexer build: install the AIO, then overwrite the indexer
+# (--version still selects the cert flow; the AIO password/certs are preserved):
+#   sudo ./scripts/setup-aio.sh --version "$VERSION" --package ./wazuh-indexer_5.0.0_amd64.deb \
+#        --password-out ./runs/admin-password.txt
 
 # each agent instance - enroll against the AIO and start the load loop:
 sudo ./scripts/setup-agent.sh --version "$VERSION" --manager <aio-private-ip>
@@ -130,69 +188,84 @@ Results stay in `./runs/$VERSION` on the AIO instance - `scp` them off.
 ```bash
 # indexer instance:
 sudo ./scripts/setup-indexer.sh --version 5.0 --password-out ./runs/admin-password.txt
+# ...or benchmark a specific build (--version still selects the cert flow):
+#   sudo ./scripts/setup-indexer.sh --version 5.0 --package ./wazuh-indexer_5.0.0_amd64.deb
 sudo ./monitoring/setup-node-exporter.sh                                    # from boot
+sudo ./monitoring/setup-jmx-exporter.sh                                     # JVM metrics on :9404
 
-# monitor instance (needs Docker + opensearch-benchmark, the corpus generator needs the full repo):
+# monitor instance (needs Docker):
 sudo ./monitoring/setup-monitor.sh --indexer-host <indexer-private-ip>      # Prometheus :9090, Grafana :3000
-python3 benchmark/gen-corpora.py --docs 1000000
 
-# indexer instance - capture cold start, then drive load from the monitor:
+# indexer instance - capture cold start, then drive the findings load from the monitor:
 sudo systemctl restart wazuh-indexer
 # monitor instance:
-./benchmark/run-osb.sh --target https://<indexer-private-ip>:9200 --user admin --password <pass> \
-  --no-host --node-exporter <indexer-private-ip>:9100
+./benchmark/run-load.sh --target https://<indexer-private-ip>:9200 --user admin --password <pass> \
+  --rate 1000 --duration 600 --no-host --node-exporter <indexer-private-ip>:9100
 ```
 
-`--no-host` skips local psutil (the sampler runs off the indexer host). `--node-exporter`
-reads the indexer's host metrics (CPU, RAM, disk, load) from node_exporter into the CSV,
-so `report.md` / `compare.md` / `timeline.png` include them. The same series also stay in
-Prometheus/Grafana for the from-boot cold-start view. Per-process splits are not available
-from node_exporter, but in isolation the indexer is effectively the whole host.
+`run-load.sh` indexes the system-activity event at `--rate` events/sec for `--duration`
+seconds, samples the indexer, and reports the findings count (the indexer's CTI-synced
+detectors generate them; zero is a warning, not a failure). `--no-host` skips local psutil (the sampler runs
+off the indexer host). `--node-exporter` reads the indexer's host metrics (CPU, RAM, disk, load)
+from node_exporter into the CSV, so `report.md` / `compare.md` / `timeline.png` include them. The
+same series (plus JVM metrics from the JMX exporter) stay in Prometheus/Grafana for the from-boot
+cold-start view.
 
 > **AWS notes:** open the security-group ports between instances, 9200 (indexer),
 > 1514/1515 (agent→manager, real-world), 9100 (node_exporter→Prometheus, isolated),
-> 9090/3000 (Prometheus/Grafana). Retrieve artifacts with `scp -r <host>:.../runs ./`.
+> 9404 (JMX exporter→Prometheus, isolated), 9090/3000 (Prometheus/Grafana). Retrieve
+> artifacts with `scp -r <host>:.../runs ./`.
 
 ## Layout
 
 ```
 tools/performance/
-├── run.sh                          # One-liner entrypoint - up → measure → destroy
-├── analyze.sh                      # one-shot: build <scenario>-compare.md + -timeline.png from runs/
+├── run.sh                          # One-liner entrypoint - up → measure → destroy (default: isolated)
+├── analyze.sh                      # one-shot: build <scenario>-compare.md + -timeline.png + -averages.png
+├── config/perf-tune.yml            # indexer tuning: permanent heap + on-demand toggles
 ├── metrics/sampler.py              # per-minute host + indexer sampler → CSV/NDJSON
 ├── analyze/report.py               # aggregates a run → labeled hardware-utilization report.md
 ├── analyze/compare.py              # diffs two+ runs side by side → compare.md (e.g. 4.x vs 5.x)
-├── analyze/plot.py                 # timeline charts overlaying runs → timeline.png (spikes)
+├── analyze/plot.py                 # --kind timeline → timeline.png (spikes) | --kind average → averages.png (moving-average line)
 ├── vagrant/
-│   ├── Vagrantfile                 # PERF_SCENARIO=real-world (aio+agents) | isolated (indexer+monitor)
+│   ├── Vagrantfile                 # PERF_SCENARIO=isolated (indexer+monitor) | real-world (aio+agents)
 │   ├── lib.sh                      # shared helpers (rsync, password/version detect, results pull)
 │   ├── run-real-world.sh           # Vagrant measurement helper (invoked by run.sh)
-│   └── run-isolated.sh             # Vagrant measurement helper, cold-start + OSB (invoked by run.sh)
+│   └── run-isolated.sh             # Vagrant measurement helper, cold-start + findings load (invoked by run.sh)
 ├── scripts/                        # guest-side install/measurement scripts (run directly in Method 2)
 │   ├── setup-aio.sh                # install AIO (real-world) - official assistant by --version
 │   ├── setup-indexer.sh            # install single-node indexer (isolated) by --version
 │   ├── setup-agent.sh              # install + enroll an agent, configure FIM/Logcollector paths
+│   ├── perf-tune-indexer.sh        # apply config/perf-tune.yml (heap + toggles) to the indexer
 │   ├── run-scenario.sh             # measurement window: marks window, runs sampler + report
 │   └── agent-load.sh               # runs on each agent: FIM + Logcollector loops
 ├── monitoring/                     # isolated-scenario continuous monitoring
 │   ├── setup-node-exporter.sh      # node_exporter systemd on the indexer host (from boot)
+│   ├── setup-jmx-exporter.sh       # JMX Prometheus exporter (javaagent) on the indexer JVM (:9404)
+│   ├── jmx-exporter-config.yaml    # JMX exporter MBean rules
 │   ├── setup-monitor.sh            # Prometheus + Grafana on the monitor host
 │   ├── compose.yml                 # Prometheus + Grafana containers
-│   ├── prometheus.yml              # scrape config (node_exporter on the indexer)
+│   ├── prometheus.yml              # scrape config (node_exporter :9100 + JMX exporter :9404)
 │   ├── grafana-datasource.yml      # auto-provision Prometheus as Grafana's datasource
-│   └── grafana/                    # auto-provisioned dashboard
+│   └── grafana/                    # auto-provisioned dashboards
 │       ├── dashboard-provider.yml  # tells Grafana to load JSON dashboards at start
-│       └── host-overview.json      # Host Overview dashboard (node_exporter PromQL)
-└── benchmark/                      # OSB synthetic workload (used by the isolated scenario)
-    ├── gen-corpora.py              # builds OSB index.json + corpus from the real template + WCS generator
-    ├── run-osb.sh                  # runs opensearch-benchmark with the custom workload
-    └── workloads/wazuh-events/workload.json
+│       ├── host-overview.json      # Host Overview dashboard (node_exporter PromQL)
+│       └── jvm-overview.json       # JVM Overview dashboard (JMX exporter PromQL)
+└── benchmark/                      # isolated-scenario findings load
+    ├── event-loader.py             # steady-rate loader: TEST_EVENT → wazuh-events-v5-system-activity
+    └── run-load.sh                 # loader + sampler, then reports the findings count
 ```
 
 ## Output
 
 Each run writes `runs/<scenario>-<version>/` with per-minute `metrics.csv`
-(+ `.ndjson`), `run-metadata.json`, and a `report.md` like:
+(+ `.ndjson`), `run-metadata.json` (includes `events_indexed` + `findings` for isolated),
+a `report.md`, two charts — `timeline.png` (per-sample spikes) and `averages.png` (a trailing
+moving-average line per metric that smooths the spikes, raw series faint behind it) — and, for
+isolated, `grafana-host-overview.png`
+and `grafana-jvm-overview.png` rendered from the live Grafana dashboards (via the
+[grafana-image-renderer](https://grafana.com/grafana/plugins/grafana-image-renderer) sidecar
+in [monitoring/compose.yml](monitoring/compose.yml)):
 
 ```
 # Performance report - wazuh-5.0.0
@@ -203,8 +276,10 @@ Each run writes `runs/<scenario>-<version>/` with per-minute `metrics.csv`
 | Ingest rate (docs/s)| 121.8 | 133.5 |
 ```
 
-Timing: provisioning ~10–15 min, then the measurement window (`--duration`, default
-60 min for real-world, OSB ~10–15 min for isolated).
+So the default flow is: run `./run.sh`, wait for completion, then check
+`runs/isolated-<version>/metrics.csv` + `timeline.png` (and the findings count printed at
+the end). Timing: provisioning ~10–15 min, then the load + sampler window (`--duration`,
+default 60 min for real-world, 10 min for isolated).
 
 ## Comparing versions (4.x vs 5.x)
 
@@ -220,11 +295,12 @@ generate the comparison + timeline in one shot from `tools/performance/`:
 ```
 
 It groups runs by scenario (never mixing real-world with isolated) and writes
-`<scenario>-compare.md` (side-by-side avg/peak diff, needs ≥2 versions) and
+`<scenario>-compare.md` (side-by-side avg/peak diff, needs ≥2 versions),
 `<scenario>-timeline.png` (overlaid minutes-since-start lines showing *when* spikes
-happen - cold start, GC, ingest dips). Each run also keeps its own `report.md`,
-all of these include **every sample**, pass `--warmup N` to drop the first N.
-Under the hood `analyze.sh` calls the two tools, which you can also run directly:
+happen - cold start, GC, ingest dips) and `<scenario>-averages.png` (a trailing moving-average
+line per run — smooths the spikes so the trend/level is easy to compare). Each run also keeps its
+own `report.md`, all of these include **every sample**, pass `--warmup N` to drop the first N.
+Under the hood `analyze.sh` calls the tools, which you can also run directly:
 
 ```bash
 python3 analyze/compare.py \
@@ -232,7 +308,8 @@ python3 analyze/compare.py \
   wazuh-5.0.0=./runs/real-world-5.0.0/metrics.csv          # → compare.md
 python3 analyze/plot.py \
   wazuh-4.14.1=./runs/real-world-4.14.1/metrics.csv \
-  wazuh-5.0.0=./runs/real-world-5.0.0/metrics.csv --out timeline.png   # needs matplotlib
+  wazuh-5.0.0=./runs/real-world-5.0.0/metrics.csv \
+  --kind timeline --out timeline.png   # or --kind average --out averages.png (needs matplotlib)
 ```
 
 > For the delta to mean "version cost", the two runs must be **comparable**:
