@@ -26,7 +26,6 @@
 - plugin:content_manager/promote/preview
 - plugin:content_manager/rule/create
 - plugin:content_manager/rule/delete
-- plugin:content_manager/rule/get
 - plugin:content_manager/rule/update
 - plugin:content_manager/space/delete
 - plugin:content_manager/subscription/delete
@@ -48,3 +47,4 @@
 - cluster:admin/wazuh/securityanalytics/rule/write
 - cluster:admin/wazuh/securityanalytics/rules/evaluate
 - cluster:admin/wazuh/securityanalytics/space/delete
+- plugin:security_analytics/findings/_update
