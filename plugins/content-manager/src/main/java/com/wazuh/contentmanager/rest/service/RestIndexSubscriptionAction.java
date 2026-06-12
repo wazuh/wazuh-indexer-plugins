@@ -57,7 +57,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestIndexSubscriptionAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestIndexSubscriptionAction.class);
     private static final String ENDPOINT_NAME = "content_manager_subscription_post";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_post";
     private static final String ACCESS_TOKEN_FIELD = "access_token";
 
     /** Return a short identifier for this handler. */

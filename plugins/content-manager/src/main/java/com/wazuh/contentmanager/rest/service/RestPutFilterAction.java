@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.rest.service;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.util.List;
@@ -53,7 +52,6 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
 public class RestPutFilterAction extends AbstractUpdateActionSpaces {
 
     private static final String ENDPOINT_NAME = "content_manager_filter_update";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/filter_update";
 
     private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
 
@@ -93,12 +91,7 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.FILTERS_URI + "/{id}")
-                        .method(PUT)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+        return List.of(new Route(PUT, PluginSettings.FILTERS_URI + "/{id}"));
     }
 
     @Override

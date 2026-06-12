@@ -53,7 +53,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostUpdateAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPostUpdateAction.class);
     private static final String ENDPOINT_NAME = "content_manager_subscription_update";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_update";
 
     /** Return a short identifier for this handler. */
     @Override
@@ -68,12 +67,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.UPDATE_URI)
-                        .method(POST)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+        return List.of(new Route(POST, PluginSettings.UPDATE_URI));
     }
 
     /**

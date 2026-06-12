@@ -22,10 +22,10 @@ import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -55,7 +55,6 @@ import com.wazuh.contentmanager.utils.Constants;
 public class RestPostPromoteAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPostPromoteAction.class);
     private static final String ENDPOINT_NAME = "content_manager_promote";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/promote";
 
     /** All resource types in the order they should be processed during consolidation. */
     private static final List<String> APPLY_RESOURCE_TYPES =
@@ -110,12 +109,7 @@ public class RestPostPromoteAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.PROMOTE_URI)
-                        .method(RestRequest.Method.POST)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+        return List.of(new Route(RestRequest.Method.POST, PluginSettings.PROMOTE_URI));
     }
 
     /**
@@ -215,10 +209,18 @@ public class RestPostPromoteAction extends BaseRestHandler {
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (IOException e) {
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
             log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "IO", e.getMessage());
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         } catch (Exception e) {
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
             log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "space", e.getMessage());
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
