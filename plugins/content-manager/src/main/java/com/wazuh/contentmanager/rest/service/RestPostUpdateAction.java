@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.rest.service;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -37,12 +36,12 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  *
  * <p>Triggers a CTI content update operation.
  *
- * <p>Possible HTTP responses: - 202 Accepted: Update request accepted for processing. - 409 Conflict: A content
- * update is already in progress. - 500 Internal Server Error: Unexpected error during processing.
+ * <p>Possible HTTP responses: - 202 Accepted: Update request accepted for processing. - 409
+ * Conflict: A content update is already in progress. - 500 Internal Server Error: Unexpected error
+ * during processing.
  */
 public class RestPostUpdateAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_update";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_update";
 
     private final CatalogSyncJob catalogSyncJob;
 
@@ -68,12 +67,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.UPDATE_URI)
-                        .method(POST)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+        return List.of(new Route(POST, PluginSettings.UPDATE_URI));
     }
 
     @Override

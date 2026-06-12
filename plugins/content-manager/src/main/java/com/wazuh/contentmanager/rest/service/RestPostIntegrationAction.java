@@ -20,9 +20,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -57,7 +57,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostIntegrationAction extends AbstractCreateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_integration_create";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_create";
 
     public RestPostIntegrationAction(EngineService engine) {
         super(engine);
@@ -76,12 +75,7 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.INTEGRATIONS_URI)
-                        .method(POST)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+        return List.of(new Route(POST, PluginSettings.INTEGRATIONS_URI));
     }
 
     @Override
@@ -158,6 +152,10 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
         try {
             this.securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, POST);
         } catch (Exception e) {
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
             return new RestResponse(
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());

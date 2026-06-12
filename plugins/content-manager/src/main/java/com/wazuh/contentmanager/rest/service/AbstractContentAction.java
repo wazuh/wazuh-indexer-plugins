@@ -16,10 +16,9 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.XContentType;
@@ -58,7 +57,6 @@ import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 public abstract class AbstractContentAction extends BaseRestHandler {
 
     private static final Logger log = LogManager.getLogger(AbstractContentAction.class);
-    protected static final ObjectMapper CONTENT_MAPPER = new ObjectMapper();
     protected final EngineService engine;
     protected SpaceService spaceService;
     protected SecurityAnalyticsService securityAnalyticsService;
@@ -140,10 +138,10 @@ public abstract class AbstractContentAction extends BaseRestHandler {
                 return;
             }
             try {
-                RestResponse result = executeRequest(request, client);
+                RestResponse result = this.executeRequest(request, client);
                 channel.sendResponse(result.toBytesRestResponse());
             } catch (Exception e) {
-                sendErrorResponse(channel, e);
+                this.sendErrorResponse(channel, e);
             }
         };
     }
@@ -190,8 +188,27 @@ public abstract class AbstractContentAction extends BaseRestHandler {
                         Constants.E_500_MISSING_DRAFT_POLICY, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
         } catch (Exception ex) {
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(ex);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
             return new RestResponse(
                     "Draft policy check failed: " + ex.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
+    /**
+     * Walks the exception cause chain looking for an {@link OpenSearchSecurityException}. Returns it
+     * if found, or {@code null} otherwise.
+     */
+    protected static OpenSearchSecurityException extractSecurityException(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            if (cause instanceof OpenSearchSecurityException) {
+                return (OpenSearchSecurityException) cause;
+            }
+            cause = cause.getCause();
         }
         return null;
     }
@@ -202,8 +219,14 @@ public abstract class AbstractContentAction extends BaseRestHandler {
      * @param channel The REST channel.
      * @param e The exception.
      */
-    private static void sendErrorResponse(RestChannel channel, Exception e) {
+    private void sendErrorResponse(RestChannel channel, Exception e) {
         try {
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
+            if (secEx != null) {
+                channel.sendResponse(
+                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()).toBytesRestResponse());
+                return;
+            }
             log.error(Constants.E_LOG_PROCESS_REQUEST_FAILED, e.getMessage(), e);
             RestResponse error =
                     new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
