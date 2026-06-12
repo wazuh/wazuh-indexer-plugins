@@ -33,6 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
@@ -181,15 +182,15 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString());
             RestResponse response = this.engineService.promote(payload);
             if (response.getStatus() == RestStatus.OK.getStatus()) {
-                log.info("Engine load for standard space completed successfully.");
+                log.info(Constants.I_LOG_ENGINE_STANDARD_LOADED);
             } else {
                 log.warn(
-                        "Engine load for standard space returned status [{}]: {}",
+                        Constants.W_LOG_ENGINE_STANDARD_LOAD_STATUS,
                         response.getStatus(),
                         response.getMessage());
             }
         } catch (Exception e) {
-            log.error("Failed to load standard space into Engine: {}", e.getMessage());
+            log.error(Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage());
         }
     }
 
@@ -199,8 +200,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void syncIntegrations() {
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
-            log.error(
-                    "Integrations index is missing. Cannot sync integrations to Security Analytics Plugin.");
+            log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Integrations", "integrations");
             return;
         }
 
@@ -208,11 +208,13 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             Map<String, Map<String, Object>> integrations =
                     this.spaceService.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
             if (integrations.isEmpty()) {
-                log.warn("No integrations to synchronize with the Security Analytics plugin");
+                log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "integrations");
                 return;
             }
 
             CountDownLatch latch = new CountDownLatch(integrations.size());
+            AtomicInteger sent = new AtomicInteger();
+            List<String> failed = Collections.synchronizedList(new ArrayList<>());
 
             integrations.forEach(
                     (id, sourceMap) -> {
@@ -228,25 +230,39 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                                 Space.STANDARD,
                                 RestRequest.Method.POST,
                                 ActionListener.wrap(
-                                        response -> latch.countDown(),
+                                        response -> {
+                                            sent.incrementAndGet();
+                                            latch.countDown();
+                                        },
                                         e -> {
-                                            log.error("Failed to sync integration {}: {}", id, e.getMessage());
+                                            failed.add(id);
+                                            log.debug(Constants.D_LOG_SAP_ITEM_FAILED, "Integration", id, e.getMessage());
                                             latch.countDown();
                                         }));
                     });
 
             if (!latch.await(60, TimeUnit.SECONDS)) {
-                log.warn("Timed out waiting for integrations sync");
+                log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "integrations");
+            }
+            // One INFO summary instead of one line per item (per-item sends are at
+            // DEBUG); skipped entirely when nothing was sent to keep no-op syncs quiet.
+            if (sent.get() > 0) {
+                log.info(
+                        Constants.I_LOG_SAP_SUMMARY,
+                        sent.get(),
+                        integrations.size(),
+                        "integrations",
+                        Space.STANDARD);
+            }
+            if (!failed.isEmpty()) {
+                log.warn(
+                        Constants.W_LOG_SAP_PARTIAL, failed.size(), "integrations", Space.STANDARD, failed);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error(
-                    "Interrupted while sending integrations to the Security Analytics plugin: {}",
-                    e.getMessage());
+            log.error(Constants.E_LOG_SAP_SYNC_INTERRUPTED, "integrations", e.getMessage());
         } catch (Exception e) {
-            log.error(
-                    "Unexpected error sending integrations to the Security Analytics plugin: {}",
-                    e.getMessage());
+            log.error(Constants.E_LOG_SAP_SYNC_UNEXPECTED, "integrations", e.getMessage());
         }
     }
 
@@ -256,7 +272,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void syncRules() {
         if (this.indexIsMissing(Constants.INDEX_RULES)) {
-            log.error("Rules index is missing. Cannot sync rules to Security Analytics Plugin.");
+            log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Rules", "rules");
             return;
         }
 
@@ -264,11 +280,13 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             Map<String, Map<String, Object>> rules =
                     this.spaceService.getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD);
             if (rules.isEmpty()) {
-                log.warn("No rules to synchronize with the Security Analytics plugin");
+                log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "rules");
                 return;
             }
 
             CountDownLatch latch = new CountDownLatch(rules.size());
+            AtomicInteger sent = new AtomicInteger();
+            List<String> failed = Collections.synchronizedList(new ArrayList<>());
 
             rules.forEach(
                     (id, sourceMap) -> {
@@ -284,23 +302,33 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                                 Space.STANDARD,
                                 RestRequest.Method.POST,
                                 ActionListener.wrap(
-                                        response -> latch.countDown(),
+                                        response -> {
+                                            sent.incrementAndGet();
+                                            latch.countDown();
+                                        },
                                         e -> {
-                                            log.error("Failed to sync rule {}: {}", id, e.getMessage());
+                                            failed.add(id);
+                                            log.debug(Constants.D_LOG_SAP_ITEM_FAILED, "Rule", id, e.getMessage());
                                             latch.countDown();
                                         }));
                     });
 
             if (!latch.await(60, TimeUnit.SECONDS)) {
-                log.warn("Timed out waiting for rules sync");
+                log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "rules");
+            }
+            // One INFO summary instead of one line per item (per-item sends are at
+            // DEBUG); skipped entirely when nothing was sent to keep no-op syncs quiet.
+            if (sent.get() > 0) {
+                log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), rules.size(), "rules", Space.STANDARD);
+            }
+            if (!failed.isEmpty()) {
+                log.warn(Constants.W_LOG_SAP_PARTIAL, failed.size(), "rules", Space.STANDARD, failed);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error(
-                    "Interrupted while sending rules to the Security Analytics plugin: {}", e.getMessage());
+            log.error(Constants.E_LOG_SAP_SYNC_INTERRUPTED, "rules", e.getMessage());
         } catch (Exception e) {
-            log.error(
-                    "Unexpected error sending rules to the Security Analytics plugin: {}", e.getMessage());
+            log.error(Constants.E_LOG_SAP_SYNC_UNEXPECTED, "rules", e.getMessage());
         }
     }
 
@@ -311,8 +339,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void syncDetectors() throws IOException {
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
-            log.error(
-                    "Integrations index is missing. Cannot sync detectors to Security Analytics Plugin.");
+            log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Integrations", "detectors");
             return;
         }
 
@@ -334,35 +361,41 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
 
-        log.info(
-                "Syncing {} detectors ({} sequentially, {} in parallel)", docs.size(), 1, docs.size() - 1);
+        log.debug(Constants.D_LOG_SAP_DETECTORS_SYNCING, docs.size(), 1, docs.size() - 1);
+
+        AtomicInteger sent = new AtomicInteger();
+        List<String> failed = Collections.synchronizedList(new ArrayList<>());
 
         // Process the first detector sequentially to ensure the config index is created
         CountDownLatch firstLatch = new CountDownLatch(1);
         JsonNode firstDoc = docs.getFirst();
-        String firstName =
-                firstDoc.has("metadata") && firstDoc.get("metadata").has("title")
-                        ? firstDoc.get("metadata").get("title").asText()
-                        : "unknown";
+        String firstName = this.detectorTitle(firstDoc);
         this.securityAnalyticsService.upsertDetectorAsync(
                 firstDoc,
                 true,
                 RestRequest.Method.POST,
                 ActionListener.wrap(
-                        response -> firstLatch.countDown(),
+                        response -> {
+                            sent.incrementAndGet();
+                            firstLatch.countDown();
+                        },
                         e -> {
-                            log.error(
-                                    "Failed to sync detector for integration [{}]: {}", firstName, e.getMessage());
+                            failed.add(firstName);
+                            log.debug(
+                                    Constants.D_LOG_SAP_ITEM_FAILED,
+                                    "Detector for integration",
+                                    firstName,
+                                    e.getMessage());
                             firstLatch.countDown();
                         }));
 
         try {
             if (!firstLatch.await(30, TimeUnit.SECONDS)) {
-                log.warn("Timed out waiting for first detector creation");
+                log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "detectors");
                 return;
             }
         } catch (InterruptedException e) {
-            log.error("Interrupted waiting for first detector", e);
+            log.error(Constants.E_LOG_DETECTOR_WAIT_INTERRUPTED, e);
             Thread.currentThread().interrupt();
             return;
         }
@@ -372,32 +405,58 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             CountDownLatch parallelLatch = new CountDownLatch(docs.size() - 1);
             for (int i = 1; i < docs.size(); i++) {
                 JsonNode doc = docs.get(i);
-                String name =
-                        doc.has("metadata") && doc.get("metadata").has("title")
-                                ? doc.get("metadata").get("title").asText()
-                                : "unknown";
+                String name = this.detectorTitle(doc);
                 this.securityAnalyticsService.upsertDetectorAsync(
                         doc,
                         true,
                         RestRequest.Method.POST,
                         ActionListener.wrap(
-                                response -> parallelLatch.countDown(),
+                                response -> {
+                                    sent.incrementAndGet();
+                                    parallelLatch.countDown();
+                                },
                                 e -> {
-                                    log.error(
-                                            "Failed to sync detector for integration [{}]: {}", name, e.getMessage());
+                                    failed.add(name);
+                                    log.debug(
+                                            Constants.D_LOG_SAP_ITEM_FAILED,
+                                            "Detector for integration",
+                                            name,
+                                            e.getMessage());
                                     parallelLatch.countDown();
                                 }));
             }
 
             try {
                 if (!parallelLatch.await(60, TimeUnit.SECONDS)) {
-                    log.warn("Timed out waiting for parallel detectors sync");
+                    log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "detectors");
                 }
             } catch (InterruptedException e) {
-                log.error("Interrupted waiting for detectors sync", e);
+                log.error(Constants.E_LOG_DETECTOR_WAIT_INTERRUPTED, e);
                 Thread.currentThread().interrupt();
             }
         }
+
+        // One INFO summary instead of one line per item (per-item sends are at
+        // DEBUG); skipped entirely when nothing was sent to keep no-op syncs quiet.
+        if (sent.get() > 0) {
+            log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), docs.size(), "detectors", Space.STANDARD);
+        }
+        if (!failed.isEmpty()) {
+            log.warn(Constants.W_LOG_SAP_PARTIAL, failed.size(), "detectors", Space.STANDARD, failed);
+        }
+    }
+
+    /**
+     * Extracts the detector title from a document's metadata.
+     *
+     * @param doc The detector document.
+     * @return The detector title, or "unknown" if it is not present.
+     */
+    private String detectorTitle(JsonNode doc) {
+        return doc.has(Constants.KEY_METADATA)
+                        && doc.get(Constants.KEY_METADATA).has(Constants.KEY_TITLE)
+                ? doc.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText()
+                : "unknown";
     }
 
     /**
@@ -432,7 +491,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private JsonNode extractDocument(JsonNode source, String hitId) {
         if (!source.has(Constants.KEY_DOCUMENT)) {
-            log.warn("Hit [{}] missing 'document' field, skipping", hitId);
+            log.warn(Constants.W_LOG_HIT_MISSING_DOCUMENT, hitId);
             return null;
         }
         return source.get(Constants.KEY_DOCUMENT);
