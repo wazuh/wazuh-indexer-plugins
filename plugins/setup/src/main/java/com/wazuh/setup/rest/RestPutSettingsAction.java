@@ -87,7 +87,7 @@ public class RestPutSettingsAction extends BaseRestHandler {
     public void handleRequest(RestRequest request, RestChannel channel) {
         // 1. Validate content presence
         if (!request.hasContent()) {
-            sendResponse(
+            this.sendResponse(
                     channel,
                     new RestResponse(
                             SettingsIndex.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus()));
@@ -100,7 +100,7 @@ public class RestPutSettingsAction extends BaseRestHandler {
         try {
             root = MAPPER.readTree(payload);
         } catch (Exception e) {
-            sendResponse(
+            this.sendResponse(
                     channel,
                     new RestResponse(
                             SettingsIndex.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus()));
@@ -110,33 +110,35 @@ public class RestPutSettingsAction extends BaseRestHandler {
         // 3. Validate structure using model method
         String validationError = WazuhSettings.validate(root);
         if (validationError != null) {
-            sendResponse(channel, new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus()));
+            this.sendResponse(
+                    channel, new RestResponse(validationError, RestStatus.BAD_REQUEST.getStatus()));
             return;
         }
 
         // 4. Parse into model and persist asynchronously
         WazuhSettings settings = WazuhSettings.fromPayload(root);
+        var self = this;
         this.settingsIndex.indexDocument(
                 settings,
                 new ActionListener<>() {
                     @Override
                     public void onResponse(IndexResponse indexResponse) {
                         log.info("Wazuh settings updated: {}", settings);
-                        sendResponse(
+                        self.sendResponse(
                                 channel,
                                 new RestResponse(SettingsIndex.S_200_SETTINGS_UPDATED, RestStatus.OK.getStatus()));
                     }
 
                     @Override
                     public void onFailure(Exception e) {
-                        OpenSearchSecurityException secEx = extractSecurityException(e);
+                        OpenSearchSecurityException secEx = RestPutSettingsAction.extractSecurityException(e);
                         if (secEx != null) {
-                            sendResponse(
+                            self.sendResponse(
                                     channel, new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
                             return;
                         }
                         log.error("Failed to persist settings: {}", e.getMessage(), e);
-                        sendResponse(
+                        self.sendResponse(
                                 channel,
                                 new RestResponse(
                                         SettingsIndex.E_500_INTERNAL_SERVER_ERROR,
@@ -145,6 +147,10 @@ public class RestPutSettingsAction extends BaseRestHandler {
                 });
     }
 
+    /**
+     * Walks the exception cause chain looking for an {@link OpenSearchSecurityException}. Returns it
+     * if found, or {@code null} otherwise.
+     */
     private static OpenSearchSecurityException extractSecurityException(Throwable throwable) {
         Throwable cause = throwable;
         while (cause != null) {
@@ -162,7 +168,7 @@ public class RestPutSettingsAction extends BaseRestHandler {
      * @param channel the REST channel
      * @param response the response to send
      */
-    private static void sendResponse(RestChannel channel, RestResponse response) {
+    private void sendResponse(RestChannel channel, RestResponse response) {
         try {
             channel.sendResponse(response.toBytesRestResponse());
         } catch (Exception e) {

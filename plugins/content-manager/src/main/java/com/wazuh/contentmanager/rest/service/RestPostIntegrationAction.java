@@ -152,8 +152,7 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
         try {
             this.securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, POST);
         } catch (Exception e) {
-            OpenSearchSecurityException secEx =
-                    AbstractContentAction.extractSecurityException(e);
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
             if (secEx != null) {
                 return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
             }

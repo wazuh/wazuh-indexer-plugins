@@ -120,8 +120,7 @@ public class RestPutRuleAction extends AbstractUpdateAction {
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
-            OpenSearchSecurityException secEx =
-                    AbstractContentAction.extractSecurityException(e);
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
             if (secEx != null) {
                 return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
             }

@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
@@ -59,7 +57,6 @@ import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 public abstract class AbstractContentAction extends BaseRestHandler {
 
     private static final Logger log = LogManager.getLogger(AbstractContentAction.class);
-    protected static final ObjectMapper CONTENT_MAPPER = new ObjectMapper();
     protected final EngineService engine;
     protected SpaceService spaceService;
     protected SecurityAnalyticsService securityAnalyticsService;
@@ -141,10 +138,10 @@ public abstract class AbstractContentAction extends BaseRestHandler {
                 return;
             }
             try {
-                RestResponse result = executeRequest(request, client);
+                RestResponse result = this.executeRequest(request, client);
                 channel.sendResponse(result.toBytesRestResponse());
             } catch (Exception e) {
-                AbstractContentAction.sendErrorResponse(channel, e);
+                this.sendErrorResponse(channel, e);
             }
         };
     }
@@ -222,7 +219,7 @@ public abstract class AbstractContentAction extends BaseRestHandler {
      * @param channel The REST channel.
      * @param e The exception.
      */
-    private static void sendErrorResponse(RestChannel channel, Exception e) {
+    private void sendErrorResponse(RestChannel channel, Exception e) {
         try {
             OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
             if (secEx != null) {

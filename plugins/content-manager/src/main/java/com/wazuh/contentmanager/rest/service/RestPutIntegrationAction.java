@@ -182,8 +182,7 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
         try {
             this.securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, PUT);
         } catch (Exception e) {
-            OpenSearchSecurityException secEx =
-                    AbstractContentAction.extractSecurityException(e);
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
             if (secEx != null) {
                 return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
             }
