@@ -272,8 +272,14 @@ public class SnapshotServiceImpl implements SnapshotService {
                     bulkRequest.add(indexRequest);
                     docCount++;
 
-                    // Execute Bulk if limit reached
-                    if (docCount >= this.pluginSettings.getMaxItemsPerBulk()) {
+                    // Flush when EITHER the document count OR the estimated byte size cap is reached.
+                    // estimatedSizeInBytes() is maintained incrementally by BulkRequest.add(...), so
+                    // this adds no per-doc work. The byte trigger bounds per-request heap regardless
+                    // of individual document size (e.g. large CVE documents); the count trigger still
+                    // governs small docs. Worst-case in-flight heap = MAX_CONCURRENT_BULKS *
+                    // MAX_BULK_BYTES.
+                    if (docCount >= this.pluginSettings.getMaxItemsPerBulk()
+                            || bulkRequest.estimatedSizeInBytes() >= this.pluginSettings.getMaxBulkBytes()) {
                         executorIndex.executeBulk(bulkRequest);
                         bulkRequest = new BulkRequest();
                         docCount = 0;
@@ -424,6 +430,33 @@ public class SnapshotServiceImpl implements SnapshotService {
             }
         } catch (Exception e) {
             log.warn("Failed to delete local snapshot file [{}]: {}", snapshot, e.getMessage());
+        }
+    }
+
+    /**
+     * Deletes every local snapshot zip file found directly under the given snapshots directory,
+     * delegating each deletion to {@link #deleteSnapshot(Path)}. Safe to call when the directory does
+     * not exist (e.g. development environments). Only the plugin's local snapshots directory should
+     * be passed in — remote snapshots are managed by the CTI service.
+     *
+     * @param snapshotsDir The plugin's local snapshots directory.
+     */
+    public static void deleteSnapshots(Path snapshotsDir) {
+        try {
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        if (!Files.isDirectory(snapshotsDir)) {
+                            return null;
+                        }
+                        try (DirectoryStream<Path> stream = Files.newDirectoryStream(snapshotsDir, "*.zip")) {
+                            for (Path snapshot : stream) {
+                                deleteSnapshot(snapshot);
+                            }
+                        }
+                        return null;
+                    });
+        } catch (Exception e) {
+            log.warn("Failed to delete local snapshots in [{}]: {}", snapshotsDir, e.getMessage());
         }
     }
 

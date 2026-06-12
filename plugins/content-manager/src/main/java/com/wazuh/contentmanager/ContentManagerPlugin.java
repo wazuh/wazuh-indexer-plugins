@@ -70,6 +70,7 @@ import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
@@ -240,6 +241,31 @@ public class ContentManagerPlugin extends Plugin
             this.start(
                     () -> {
                         if (PluginSettings.getInstance().isUpdateOnStart()) {
+
+                            // Pre-deployment
+                            // -------------
+                            // 1. Register key from environment variable
+                            String accessToken = ContentManagerPlugin.preDeploymentKey();
+                            if (!accessToken.isBlank()) {
+                                try {
+                                    log.info("Pre-registered environment detected.");
+                                    this.subscriptionService.register(accessToken);
+                                } catch (Exception e) {
+                                    log.fatal("Unexpected error pre-registering environment: {}", e.getMessage());
+                                    throw new RuntimeException(e);
+                                }
+
+                                // 2. Delete local snapshots (only for pre-registered environments).
+                                Path pluginsDir = this.environment.pluginsDir();
+                                if (pluginsDir != null) {
+                                    SnapshotServiceImpl.deleteSnapshots(
+                                            pluginsDir
+                                                    .resolve(Constants.PLUGIN_DIR_NAME)
+                                                    .resolve(Constants.CTI_SNAPSHOTS_DIR));
+                                }
+                            }
+
+                            // 3. Initialize
                             this.catalogSyncJob.trigger();
                         } else {
                             log.info("Skipping catalog sync job trigger");
@@ -680,6 +706,7 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.CTI_API_URL,
                 PluginSettings.MAX_CONCURRENT_BULKS,
                 PluginSettings.MAX_ITEMS_PER_BULK,
+                PluginSettings.MAX_BULK_BYTES,
                 PluginSettings.CATALOG_SYNC_INTERVAL,
                 PluginSettings.UPDATE_ON_START,
                 PluginSettings.UPDATE_ON_SCHEDULE,
@@ -791,5 +818,15 @@ public class ContentManagerPlugin extends Plugin
      */
     public static boolean isTestEnvironment() {
         return "true".equals(System.getProperty("INDEXER_TEST_ENV"));
+    }
+
+    /**
+     * Returns the value of the "DEPLOY_KEY" environment variable, if it exists.
+     *
+     * @return value of the "DEPLOY_KEY" environment variable, of an empty string if it does not
+     *     exist.
+     */
+    public static String preDeploymentKey() {
+        return System.getProperty("DEPLOY_KEY", "");
     }
 }
