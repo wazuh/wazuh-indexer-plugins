@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.rest.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.transport.client.Client;
 
@@ -181,7 +182,11 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
         try {
             this.securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, PUT);
         } catch (Exception e) {
-            if (AbstractContentAction.extractSecurityException(e) != null) throw e;
+            OpenSearchSecurityException secEx =
+                    AbstractContentAction.extractSecurityException(e);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
             return new RestResponse(
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());

@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.transport.client.Client;
@@ -151,7 +152,11 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
         try {
             this.securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, POST);
         } catch (Exception e) {
-            if (AbstractContentAction.extractSecurityException(e) != null) throw e;
+            OpenSearchSecurityException secEx =
+                    AbstractContentAction.extractSecurityException(e);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
             return new RestResponse(
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());

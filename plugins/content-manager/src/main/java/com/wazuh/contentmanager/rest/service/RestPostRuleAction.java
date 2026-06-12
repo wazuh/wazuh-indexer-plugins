@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest.Method;
@@ -159,7 +160,11 @@ public class RestPostRuleAction extends AbstractCreateAction {
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                     RestStatus.BAD_REQUEST.getStatus());
         } catch (Exception e) {
-            if (AbstractContentAction.extractSecurityException(e) != null) throw e;
+            OpenSearchSecurityException secEx =
+                    AbstractContentAction.extractSecurityException(e);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
             String msg = e.getMessage() != null ? e.getMessage() : "Unknown error";
             return new RestResponse(
                     Constants.E_SECURITY_ANALYTICS_ERROR + " " + msg,
