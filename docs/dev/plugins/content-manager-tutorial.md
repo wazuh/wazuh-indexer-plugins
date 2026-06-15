@@ -46,7 +46,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.NamedRoute;
+import org.opensearch.rest.RestHandler.Route;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -69,9 +69,6 @@ public class RestGetRuleAction extends BaseRestHandler {
     // A short identifier for log output and debugging.
     private static final String ENDPOINT_NAME = "content_manager_rule_get";
 
-    // A unique name used by OpenSearch's named route system for access control.
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_get";
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;
@@ -84,11 +81,7 @@ public class RestGetRuleAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.RULES_URI + "/{id}")
-                        .method(RestRequest.Method.GET)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+                new Route(RestRequest.Method.GET, PluginSettings.RULES_URI + "/{id}"));
     }
 
     /**
@@ -149,7 +142,7 @@ public class RestGetRuleAction extends BaseRestHandler {
 ### Key Concepts
 
 - **`getName()`** — Returns a short identifier used in logs and debugging.
-- **`routes()`** — Defines the HTTP method and URI pattern. Uses `NamedRoute.Builder` which requires a `uniqueName` for OpenSearch's access control system.
+- **`routes()`** — Defines the HTTP method and URI pattern. Uses `Route` to register the endpoint with OpenSearch's REST framework.
 - **`prepareRequest()`** — The core method. Returns a `RestChannelConsumer` lambda that executes asynchronously and writes the response to the channel.
 - **Path parameters** — `{id}` in the route path is automatically parsed. Access it with `request.param("id")`.
 
@@ -275,7 +268,7 @@ Run:
 To add a new REST endpoint to the Content Manager plugin:
 
 1. **Create the handler class** — Extend `BaseRestHandler` (for simple endpoints) or one of the abstract classes (`AbstractCreateAction`, `AbstractUpdateAction`, `AbstractDeleteAction`) for standard CUD.
-2. **Define routes** — Use `NamedRoute.Builder` with a unique name.
+2. **Define routes** — Use `Route` to declare the HTTP method and URI pattern.
 3. **Implement logic** — Override `prepareRequest()` (or `executeRequest()` if extending the abstract hierarchy).
 4. **Register** — Add the instance to `ContentManagerPlugin.getRestHandlers()`.
 5. **Build and test** — `./gradlew :wazuh-indexer-content-manager:compileJava` then `./gradlew :wazuh-indexer-content-manager:test`.
