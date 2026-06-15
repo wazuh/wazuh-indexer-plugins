@@ -234,3 +234,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## Prior versions
 
 There are no prior versions. This is the initial release of Wazuh Indexer.
+
+[Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/205f222d0d246129917fa211766e1735aae13ed7...main
