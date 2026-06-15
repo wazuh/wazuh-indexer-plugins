@@ -16,51 +16,48 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.opensearch.core.rest.RestStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
-import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.action.IndexSubscriptionAction;
+import com.wazuh.contentmanager.action.IndexSubscriptionRequest;
+import com.wazuh.contentmanager.action.IndexSubscriptionResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * POST /_plugins/_content_manager/subscription
  *
- * <p>Stores the provided CTI access token by delegating to {@link
- * SubscriptionService#register(String)}.
+ * <p>Parses the {@code access_token} field from the JSON body and delegates to the transport
+ * action, which calls {@link
+ * com.wazuh.contentmanager.cti.catalog.service.SubscriptionService#register(String)}.
  *
  * <p>Possible HTTP responses:
  *
  * <ul>
  *   <li>201 Created: Credentials stored successfully.
  *   <li>400 Bad Request: Missing or empty access_token field.
+ *   <li>412 Precondition Failed: Credentials index is not a system index.
  *   <li>500 Internal Server Error: Unexpected error during processing.
  * </ul>
  */
 public class RestPostSubscriptionAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestPostSubscriptionAction.class);
     private static final String ENDPOINT_NAME = "content_manager_subscription_post";
     private static final String ACCESS_TOKEN_FIELD = "access_token";
-
-    private final SubscriptionService subscriptionService;
-
-    /**
-     * Constructs the REST handler.
-     *
-     * @param subscriptionService the service used to register credentials
-     */
-    public RestPostSubscriptionAction(SubscriptionService subscriptionService) {
-        this.subscriptionService = subscriptionService;
-    }
 
     /** Return a short identifier for this handler. */
     @Override
@@ -79,31 +76,21 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Handles incoming requests by delegating to {@link #handleRequest(RestRequest)}.
+     * Parses the {@code access_token} field from the request body and delegates to the transport
+     * action via {@link IndexSubscriptionAction}.
      *
      * @param request the incoming REST request
      * @param client the node client
      * @return a consumer that sends the subscription registration response
      */
     @Override
-    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        RestResponse response = this.handleRequest(request);
-        return channel ->
-                channel.sendResponse(
-                        new BytesRestResponse(
-                                RestStatus.fromCode(response.getStatus()), response.toXContent()));
-    }
 
-    /**
-     * Parses the request payload, validates the access_token field, and delegates to {@link
-     * SubscriptionService#register(String)}.
-     *
-     * @param request the incoming REST request
-     * @return a BytesRestResponse representing the operation result
-     * @throws IOException if an I/O error occurs while building the response
-     */
-    public RestResponse handleRequest(RestRequest request) throws IOException {
+        log.debug(
+                String.format(
+                        Locale.getDefault(), "%s %s", request.method(), PluginSettings.SUBSCRIPTION_URI));
+
         String accessToken = null;
         try (XContentParser parser = request.contentParser()) {
             XContentParser.Token token;
@@ -118,27 +105,25 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
             }
         }
 
-        if (accessToken == null || accessToken.isBlank()) {
-            return new RestResponse(
-                    "Missing [" + ACCESS_TOKEN_FIELD + "] field.", RestStatus.BAD_REQUEST.getStatus());
-        }
+        IndexSubscriptionRequest subscriptionRequest =
+                new IndexSubscriptionRequest(request.method(), accessToken);
+        return channel ->
+                client.execute(
+                        IndexSubscriptionAction.INSTANCE,
+                        subscriptionRequest,
+                        createSubscriptionResponse(channel));
+    }
 
-        try {
-            this.subscriptionService.register(accessToken);
-
-            return new RestResponse(
-                    Constants.S_201_ACCESS_TOKEN_RECEIVED, RestStatus.CREATED.getStatus());
-        } catch (IllegalStateException e) {
-            if (e.getMessage().equals(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX)) {
-                return new RestResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED.getStatus());
+    private RestResponseListener<IndexSubscriptionResponse> createSubscriptionResponse(
+            RestChannel channel) {
+        return new RestResponseListener<>(channel) {
+            @Override
+            public org.opensearch.rest.RestResponse buildResponse(IndexSubscriptionResponse response)
+                    throws Exception {
+                return new BytesRestResponse(
+                        response.getStatus(),
+                        response.toXContent(channel.newBuilder(), ToXContent.EMPTY_PARAMS));
             }
-            throw e;
-        } catch (Exception e) {
-            return new RestResponse(
-                    e.getMessage() != null
-                            ? e.getMessage()
-                            : "An unexpected error occurred while processing your request.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
+        };
     }
 }

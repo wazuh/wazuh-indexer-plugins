@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
@@ -32,6 +33,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.*;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -66,6 +68,8 @@ import java.util.List;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
+import com.wazuh.contentmanager.action.IndexSubscriptionAction;
+import com.wazuh.contentmanager.action.TriggerUpdateAction;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
@@ -85,6 +89,8 @@ import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.transport.TransportIndexSubscriptionAction;
+import com.wazuh.contentmanager.transport.TransportTriggerUpdateAction;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
@@ -217,7 +223,7 @@ public class ContentManagerPlugin extends Plugin
                 .addSettingsUpdateConsumer(
                         PluginSettings.TELEMETRY_ENABLED, this::onTelemetrySettingChanged);
 
-        return Collections.emptyList();
+        return List.of(this.subscriptionService, this.catalogSyncJob);
     }
 
     /**
@@ -308,10 +314,10 @@ public class ContentManagerPlugin extends Plugin
             Supplier<DiscoveryNodes> nodesInCluster) {
         return List.of(
                 // CTI subscription endpoints
-                new RestPostSubscriptionAction(this.subscriptionService),
+                new RestPostSubscriptionAction(),
                 new RestGetSubscriptionAction(this.subscriptionService),
                 new RestDeleteSubscriptionAction(this.subscriptionService),
-                new RestPostUpdateAction(this.catalogSyncJob),
+                new RestPostUpdateAction(),
                 // Version check endpoint
                 new RestGetVersionCheckAction(this.environment, this.clusterService),
                 // User-generated content endpoints
@@ -705,6 +711,15 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS);
+    }
+
+    @Override
+    public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
+        return List.of(
+                new ActionPlugin.ActionHandler<>(
+                        IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
+                new ActionPlugin.ActionHandler<>(
+                        TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class));
     }
 
     /**
