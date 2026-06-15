@@ -5,12 +5,17 @@ permissions:
   contents: read
 
 on:
-  push:
+  schedule:
+    - cron: "00 8 * * 5"
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
     paths:
       - "plugins/**"
 
 jobs:
   branches:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     outputs:
       security_analytics_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}
