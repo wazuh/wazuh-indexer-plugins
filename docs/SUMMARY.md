@@ -11,6 +11,8 @@
 - [Build from Sources](dev/build-sources.md)
 - [Run from Sources](dev/run-sources.md)
 - [Run Tests](dev/run-tests.md)
+- [Workflows Naming Convention](dev/naming-convention.md)
+- [Pull Requests](dev/pull-requests.md)
 - [Plugins]()
   - [Setup](dev/plugins/setup.md)
   - [Security](dev/plugins/security.md)
