@@ -558,6 +558,7 @@ public class Constants {
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
+    public static final String KEY_MESSAGE = "message";
     public static final String KEY_STATUS = "status";
     public static final String KEY_INPUT = "input";
     public static final String KEY_YAML = "yaml";

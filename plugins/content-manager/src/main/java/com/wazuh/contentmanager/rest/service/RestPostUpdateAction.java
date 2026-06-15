@@ -16,17 +16,21 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.opensearch.core.rest.RestStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.action.TriggerUpdateAction;
+import com.wazuh.contentmanager.action.TriggerUpdateRequest;
+import com.wazuh.contentmanager.action.TriggerUpdateResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -34,25 +38,20 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 /**
  * POST /_plugins/_content_manager/update
  *
- * <p>Triggers a CTI content update operation.
+ * <p>Triggers a CTI content update operation by delegating to the transport action, which calls
+ * {@link com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob#trigger()}.
  *
- * <p>Possible HTTP responses: - 202 Accepted: Update request accepted for processing. - 409
- * Conflict: A content update is already in progress. - 500 Internal Server Error: Unexpected error
- * during processing.
+ * <p>Possible HTTP responses:
+ *
+ * <ul>
+ *   <li>202 Accepted: Update request accepted for processing.
+ *   <li>409 Conflict: A content update is already in progress.
+ *   <li>500 Internal Server Error: Unexpected error during processing.
+ * </ul>
  */
 public class RestPostUpdateAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestPostUpdateAction.class);
     private static final String ENDPOINT_NAME = "content_manager_subscription_update";
-
-    private final CatalogSyncJob catalogSyncJob;
-
-    /**
-     * Constructs a new RestPostUpdateAction.
-     *
-     * @param catalogSyncJob the catalog synchronization job to trigger updates.
-     */
-    public RestPostUpdateAction(CatalogSyncJob catalogSyncJob) {
-        this.catalogSyncJob = catalogSyncJob;
-    }
 
     /** Return a short identifier for this handler. */
     @Override
@@ -70,42 +69,33 @@ public class RestPostUpdateAction extends BaseRestHandler {
         return List.of(new Route(POST, PluginSettings.UPDATE_URI));
     }
 
+    /**
+     * Delegates to the transport action via {@link TriggerUpdateAction}.
+     *
+     * @param request the incoming REST request
+     * @param client the node client
+     * @return a consumer that sends the update trigger response
+     */
     @Override
-    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        return channel -> channel.sendResponse(this.handleRequest());
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
+        log.debug("{} {}", request.method(), PluginSettings.UPDATE_URI);
+
+        TriggerUpdateRequest triggerRequest = new TriggerUpdateRequest(request.method());
+        return channel ->
+                client.execute(
+                        TriggerUpdateAction.INSTANCE, triggerRequest, createTriggerUpdateResponse(channel));
     }
 
-    /**
-     * Executes the update operation.
-     *
-     * @return a BytesRestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
-     */
-    public BytesRestResponse handleRequest() throws IOException {
-        try {
-            // 1. Conflict check, reject if a sync is already running (409 Conflict)
-            if (this.catalogSyncJob.isRunning()) {
-                RestResponse error =
-                        new RestResponse(
-                                "A content update is already in progress.", RestStatus.CONFLICT.getStatus());
-                return new BytesRestResponse(RestStatus.CONFLICT, error.toXContent());
+    private RestResponseListener<TriggerUpdateResponse> createTriggerUpdateResponse(
+            RestChannel channel) {
+        return new RestResponseListener<>(channel) {
+            @Override
+            public org.opensearch.rest.RestResponse buildResponse(TriggerUpdateResponse response)
+                    throws Exception {
+                return new BytesRestResponse(
+                        response.getStatus(),
+                        response.toXContent(channel.newBuilder(), ToXContent.EMPTY_PARAMS));
             }
-
-            // 2. Trigger the catalog sync and return 202 Accepted
-            this.catalogSyncJob.trigger();
-            RestResponse response =
-                    new RestResponse(
-                            "The update request has been accepted for processing.",
-                            RestStatus.ACCEPTED.getStatus());
-            return new BytesRestResponse(RestStatus.ACCEPTED, response.toXContent());
-        } catch (Exception e) {
-            RestResponse error =
-                    new RestResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
-        }
+        };
     }
 }
