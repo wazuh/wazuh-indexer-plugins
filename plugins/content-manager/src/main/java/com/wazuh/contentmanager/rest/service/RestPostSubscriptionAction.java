@@ -54,8 +54,8 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  *   <li>500 Internal Server Error: Unexpected error during processing.
  * </ul>
  */
-public class RestIndexSubscriptionAction extends BaseRestHandler {
-    private static final Logger log = LogManager.getLogger(RestIndexSubscriptionAction.class);
+public class RestPostSubscriptionAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestPostSubscriptionAction.class);
     private static final String ENDPOINT_NAME = "content_manager_subscription_post";
     private static final String ACCESS_TOKEN_FIELD = "access_token";
 

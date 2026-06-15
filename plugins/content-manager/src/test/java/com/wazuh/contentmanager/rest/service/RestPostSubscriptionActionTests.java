@@ -23,14 +23,14 @@ import org.junit.Before;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 
-public class RestIndexSubscriptionActionTests extends OpenSearchTestCase {
-    private RestIndexSubscriptionAction action;
+public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
+    private RestPostSubscriptionAction action;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.action = new RestIndexSubscriptionAction();
+        this.action = new RestPostSubscriptionAction();
     }
 
     public void testRouteMethod() {
