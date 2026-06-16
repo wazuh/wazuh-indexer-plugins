@@ -182,6 +182,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update Active Response template to include wazuh.rule object [(#1207)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1207)
 - Add configuration to documentation [(#1223)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1223)
 - Improve sigma rules documentation [(#1228)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1228)
+- Improve Content Manager logging clarity and reduce redundant log output [(#1237)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1237)
 
 ### Deprecated
 -
@@ -225,6 +226,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change `threat.enrichments` and `wazuh.threat.enrichments` type from `nested` to `object` and remove root-level `enrichments` field set [(#1210)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1210)
 - Fix malformed signed CTI token-exchange request [(#1206)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1206)
 - Fix SLF4J startup warning in setup plugin by replacing 1.x bridge with correct 2.x provider [(#1245)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1245)
+- Fix race condition between Content Manager and Setup plugin initialization [(#1262)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1262)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

@@ -1,9 +1,11 @@
 name: (5.x) Check links
 on:
-  push:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
 
 jobs:
   linkchecker:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read

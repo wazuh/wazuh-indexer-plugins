@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.index.query.TermQueryBuilder;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.util.List;
@@ -56,7 +55,6 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 public class RestDeleteFilterAction extends AbstractDeleteActionSpaces {
 
     private static final String ENDPOINT_NAME = "content_manager_filter_delete";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/filter_delete";
 
     private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
 
@@ -92,12 +90,7 @@ public class RestDeleteFilterAction extends AbstractDeleteActionSpaces {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.FILTERS_URI + "/{id}")
-                        .method(DELETE)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+        return List.of(new Route(DELETE, PluginSettings.FILTERS_URI + "/{id}"));
     }
 
     @Override

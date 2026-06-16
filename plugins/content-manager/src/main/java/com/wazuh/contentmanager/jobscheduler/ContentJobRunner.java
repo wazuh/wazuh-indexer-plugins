@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -24,6 +24,8 @@ import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * The main runner class that acts as a router. It implements ScheduledJobRunner and delegates
@@ -61,7 +63,7 @@ public class ContentJobRunner implements ScheduledJobRunner {
      */
     public void registerExecutor(String jobType, JobExecutor executor) {
         this.executors.put(jobType, executor);
-        log.info("Job registered: [{}] -> class [{}]", jobType, executor.getClass().getSimpleName());
+        log.info(Constants.I_LOG_JOB_HANDLER_REGISTERED, jobType);
     }
 
     /**
@@ -74,7 +76,7 @@ public class ContentJobRunner implements ScheduledJobRunner {
     public void runJob(ScheduledJobParameter job, JobExecutionContext context) {
         // Validate that the job parameter is of the expected type
         if (!(job instanceof ContentJobParameter contentJob)) {
-            log.warn("Received job is not an instance of ContentJobParameter");
+            log.warn(Constants.W_LOG_JOB_UNEXPECTED_TYPE);
             return;
         }
 
@@ -85,13 +87,13 @@ public class ContentJobRunner implements ScheduledJobRunner {
 
         if (executor != null) {
             try {
-                log.info("Router: Delegating work for type [{}]", type);
+                log.debug(Constants.D_LOG_JOB_DELEGATING, type);
                 executor.execute(context);
             } catch (Exception e) {
-                log.error("Error executing job [{}]: {}", type, e.getMessage(), e);
+                log.error(Constants.E_LOG_JOB_EXECUTION_FAILED, type, e.getMessage(), e);
             }
         } else {
-            log.warn("Router: No registered executor for type [{}]", type);
+            log.warn(Constants.W_LOG_JOB_NO_HANDLER, type);
         }
     }
 }

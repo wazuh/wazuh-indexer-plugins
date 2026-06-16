@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.core.common.Strings;
@@ -199,6 +200,10 @@ public abstract class AbstractDeleteActionSpaces extends AbstractContentAction {
             return new RestResponse(id, RestStatus.OK.getStatus());
 
         } catch (Exception e) {
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
             log.error(Constants.E_LOG_UNEXPECTED, "deleting", this.getResourceType(), id, e.getMessage());
             return new RestResponse(
                     "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());

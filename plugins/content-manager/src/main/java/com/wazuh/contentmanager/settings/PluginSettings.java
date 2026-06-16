@@ -51,6 +51,7 @@ public class PluginSettings {
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
 
+    private static final long DEFAULT_MAX_BULK_BYTES = 5L * 1024 * 1024;
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
     private static final int DEFAULT_CATALOG_SYNC_INTERVAL = 60;
@@ -93,6 +94,22 @@ public class PluginSettings {
                     DEFAULT_MAX_ITEMS_PER_BULK,
                     10,
                     999,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /**
+     * The maximum estimated size, in bytes, of an accumulated bulk request before it is flushed
+     * during the initialization from a snapshot. Bounds peak heap regardless of individual document
+     * size (e.g. large CVE documents): worst-case in-flight payload is {@code MAX_CONCURRENT_BULKS *
+     * MAX_BULK_BYTES}. The 100 MB ceiling stays under the OpenSearch default {@code
+     * http.max_content_length}.
+     */
+    public static final Setting<Long> MAX_BULK_BYTES =
+            Setting.longSetting(
+                    "plugins.content_manager.max_bulk_bytes",
+                    DEFAULT_MAX_BULK_BYTES,
+                    1L * 1024 * 1024,
+                    100L * 1024 * 1024,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
@@ -204,6 +221,7 @@ public class PluginSettings {
 
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
+    private final long maximumBulkBytes;
     private final int maximumConcurrentBulks;
     private final long clientTimeout;
     private final int catalogSyncInterval;
@@ -227,6 +245,7 @@ public class PluginSettings {
     private PluginSettings(@NonNull final Settings settings) {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
         this.maximumItemsPerBulk = MAX_ITEMS_PER_BULK.get(settings);
+        this.maximumBulkBytes = MAX_BULK_BYTES.get(settings);
         this.maximumConcurrentBulks = MAX_CONCURRENT_BULKS.get(settings);
         this.clientTimeout = CLIENT_TIMEOUT.get(settings);
         this.catalogSyncInterval = CATALOG_SYNC_INTERVAL.get(settings);
@@ -354,6 +373,16 @@ public class PluginSettings {
      */
     public Integer getMaxItemsPerBulk() {
         return this.maximumItemsPerBulk;
+    }
+
+    /**
+     * Retrieves the maximum estimated size, in bytes, of an accumulated bulk request before it is
+     * flushed during snapshot indexing.
+     *
+     * @return a long representing the maximum bulk request size in bytes.
+     */
+    public long getMaxBulkBytes() {
+        return this.maximumBulkBytes;
     }
 
     /**
@@ -493,6 +522,9 @@ public class PluginSettings {
                 + "', "
                 + "maximumItemsPerBulk="
                 + this.maximumItemsPerBulk
+                + ", "
+                + "maximumBulkBytes="
+                + this.maximumBulkBytes
                 + ", "
                 + "maximumConcurrentBulks="
                 + this.maximumConcurrentBulks

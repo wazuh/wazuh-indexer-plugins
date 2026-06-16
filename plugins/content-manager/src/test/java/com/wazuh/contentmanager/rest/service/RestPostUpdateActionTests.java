@@ -16,75 +16,33 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.opensearch.common.SuppressForbidden;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
-
-import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
-import static org.mockito.Mockito.*;
-
 public class RestPostUpdateActionTests extends OpenSearchTestCase {
-    private CatalogSyncJob catalogSyncJob;
     private RestPostUpdateAction action;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        clearPluginSettingsInstance();
-        PluginSettings.getInstance(Settings.EMPTY);
-        this.catalogSyncJob = mock(CatalogSyncJob.class);
-        this.action = new RestPostUpdateAction(this.catalogSyncJob);
+        this.action = new RestPostUpdateAction();
     }
 
-    @After
-    public void tearDown() throws Exception {
-        clearPluginSettingsInstance();
-        super.tearDown();
+    public void testRouteMethod() {
+        Assert.assertEquals(1, this.action.routes().size());
+        Assert.assertEquals(RestRequest.Method.POST, this.action.routes().get(0).getMethod());
     }
 
-    @SuppressForbidden(reason = "Unit test reset")
-    private static void clearPluginSettingsInstance() throws Exception {
-        Field instance = PluginSettings.class.getDeclaredField("INSTANCE");
-        instance.setAccessible(true);
-        instance.set(null, null);
+    public void testRoutePath() {
+        Assert.assertEquals(PluginSettings.UPDATE_URI, this.action.routes().get(0).getPath());
     }
 
-    /** access_token set and no job running → 202 with exact success message */
-    public void testHandleRequest_Accepted() throws IOException {
-        PluginSettings.getInstance().setAccessToken("valid-token");
-        when(this.catalogSyncJob.isRunning()).thenReturn(false);
-
-        BytesRestResponse response = this.action.handleRequest();
-
-        Assert.assertEquals(RestStatus.ACCEPTED, response.status());
-        String body = response.content().utf8ToString();
-        Assert.assertTrue(body.contains("The update request has been accepted for processing."));
-        verify(this.catalogSyncJob, times(1)).trigger();
-    }
-
-    /**
-     * access_token set but job already running → 409 with exact conflict message, trigger NOT called
-     */
-    public void testHandleRequest_Conflict() throws IOException {
-        PluginSettings.getInstance().setAccessToken("valid-token");
-        when(this.catalogSyncJob.isRunning()).thenReturn(true);
-
-        BytesRestResponse response = this.action.handleRequest();
-
-        Assert.assertEquals(RestStatus.CONFLICT, response.status());
-        String body = response.content().utf8ToString();
-        Assert.assertTrue(body.contains("A content update is already in progress."));
-        verify(this.catalogSyncJob, never()).trigger();
+    public void testName() {
+        Assert.assertEquals("content_manager_subscription_update", this.action.getName());
     }
 }
