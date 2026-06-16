@@ -83,6 +83,25 @@ A Wazuh fork of the OpenSearch Common Utils library. It provides the shared mode
 
 The Security plugin provides role-based access control (RBAC), user authentication, and TLS encryption for both the REST API and inter-node transport layers. Wazuh 5.0 ships with a new set of reserved users and roles aligned with the new plugins (Content Manager, Alerting, Notifications, Reporting, Security Analytics). See [Access Control](security/access-control.md) for details.
 
+### Removed upstream plugins
+
+The following upstream OpenSearch plugins are **not** included in the Wazuh Indexer distribution. They are not required by any Wazuh functionality and have been removed to reduce RAM and disk footprint:
+
+| Plugin | Reason for removal |
+| --- | --- |
+| `opensearch-anomaly-detection` | Not used by Wazuh. Threat detection is handled by the Security Analytics plugin. |
+| `opensearch-asynchronous-search` | Not used by any Wazuh feature. |
+| `opensearch-cross-cluster-replication` | Not required. Wazuh does not use cross-cluster replication. |
+| `opensearch-geospatial` | Not used by any Wazuh feature. |
+| `opensearch-knn` | Not used by any Wazuh feature. Removed in [wazuh/wazuh-indexer#1577](https://github.com/wazuh/wazuh-indexer/issues/1577). |
+| `opensearch-ml` | Not used by any Wazuh feature. |
+| `opensearch-neural-search` | Not used by any Wazuh feature. Removed in [wazuh/wazuh-indexer#1577](https://github.com/wazuh/wazuh-indexer/issues/1577). |
+| `opensearch-observability` | Not used by any Wazuh feature. |
+| `opensearch-performance-analyzer` | Not used by any Wazuh feature. |
+| `opensearch-sql` | Not used by any Wazuh feature. Removed in [wazuh/wazuh-indexer#1611](https://github.com/wazuh/wazuh-indexer/pull/1611). |
+
+> **Note:** If your `opensearch.yml` from a previous version references settings for any of the above plugins, remove those entries before starting the Wazuh Indexer 5.x service. A node that defines settings for a missing plugin **will not boot**. See the [Migration Guide](../guide/migration/index.md) for details.
+
 ## Bundled Wazuh Engine
 
 The Wazuh Engine is shipped inside the Wazuh Indexer packages and Docker images. It is responsible for:

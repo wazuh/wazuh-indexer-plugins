@@ -79,6 +79,13 @@ The following 4.x settings have changed in 5.x and must be reviewed before reuse
 | 4.x setting | 5.x replacement | Notes |
 | --- | --- | --- |
 | `opensearch_performance_analyzer.*` | _Removed_ | The `opensearch-performance-analyzer` plugin is no longer shipped. Remove any related entries. |
+| `plugins.anomaly_detection.*` | _Removed_ | The `opensearch-anomaly-detection` plugin is no longer shipped. Remove any related entries. |
+| `plugins.asynchronous_search.*` | _Removed_ | The `opensearch-asynchronous-search` plugin is no longer shipped. Remove any related entries. |
+| `plugins.replication.*` | _Removed_ | The `opensearch-cross-cluster-replication` plugin is no longer shipped. Remove any related entries. |
+| `plugins.ml_commons.*` | _Removed_ | The `opensearch-ml` plugin is no longer shipped. Remove any related entries. |
+| `plugins.query.datasources.*` | _Removed_ | The `opensearch-sql` plugin is no longer shipped. Remove any related entries. |
+| `plugins.neural_search.*` | _Removed_ | The `opensearch-neural-search` plugin is no longer shipped. Remove any related entries. |
+| `knn.*` | _Removed_ | The `opensearch-knn` plugin is no longer shipped. Remove any related entries. |
 | `compatibility.override_main_response_version` | _Removed_ | Present in 4.x `opensearch.yml` for legacy Filebeat compatibility. Removed in OpenSearch 3.0; a node that still defines it **will not boot**. Delete the setting. |
 | Multi-tenancy settings | _Disabled by default_ | Dashboard multi-tenancy is off by default in 5.x. |
 
