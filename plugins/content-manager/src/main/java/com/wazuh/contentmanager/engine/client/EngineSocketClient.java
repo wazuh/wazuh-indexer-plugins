@@ -26,15 +26,18 @@ import org.opensearch.common.SuppressForbidden;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.SocketTimeoutException;
 import java.net.StandardProtocolFamily;
 import java.net.UnixDomainSocketAddress;
 import java.nio.channels.Channels;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Client for communicating with the Wazuh Engine through a Unix domain socket.
@@ -78,9 +81,9 @@ public class EngineSocketClient {
         Path socketFile = Path.of(this.socketPath);
 
         if (!Files.exists(socketFile)) {
-            String errorMsg = "Socket file not found at " + this.socketPath;
-            logger.error(errorMsg);
-            return new RestResponse(errorMsg, 500);
+            logger.error(Constants.E_LOG_ENGINE_SOCKET_UNAVAILABLE);
+            logger.debug(Constants.D_LOG_ENGINE_SOCKET_NOT_FOUND, this.socketPath);
+            return new RestResponse("Socket file not found at " + this.socketPath, 500);
         }
 
         try {
@@ -121,14 +124,18 @@ public class EngineSocketClient {
                 return this.parseResponse(rawResponse);
             }
 
+        } catch (SocketTimeoutException e) {
+            logger.error(Constants.E_LOG_ENGINE_TIMEOUT, e.getMessage());
+            return new RestResponse("Timed out communicating with the Engine.", 500);
+        } catch (AccessDeniedException e) {
+            logger.error(Constants.E_LOG_ENGINE_PERMISSION_DENIED);
+            return new RestResponse("Permission denied accessing the Engine.", 500);
         } catch (IOException e) {
-            String errorMsg = "Error communicating with Engine socket: " + e.getMessage();
-            logger.error(errorMsg, e);
-            return new RestResponse(errorMsg, 500);
+            logger.error(Constants.E_LOG_ENGINE_COMMUNICATION_FAILED, e.getMessage(), e);
+            return new RestResponse("Failed to communicate with the Engine.", 500);
         } catch (Exception e) {
-            String errorMsg = "Failed to connect to Engine socket: " + e.getMessage();
-            logger.error(errorMsg, e);
-            return new RestResponse(errorMsg, 500);
+            logger.error(Constants.E_LOG_ENGINE_UNEXPECTED_ERROR, e.getMessage(), e);
+            return new RestResponse("Unexpected error communicating with the Engine.", 500);
         }
     }
 
@@ -175,7 +182,8 @@ public class EngineSocketClient {
                 httpStatus = Integer.parseInt(statusParts[1]);
             }
         } catch (Exception e) {
-            logger.warn("Failed to parse HTTP status line: {}", headers);
+            logger.warn(Constants.W_LOG_ENGINE_STATUS_LINE_PARSE_FAILED);
+            logger.debug(Constants.D_LOG_ENGINE_RESPONSE_HEADERS, headers);
         }
 
         // 3. Parse JSON Body
@@ -198,7 +206,8 @@ public class EngineSocketClient {
             return new RestResponse(message, httpStatus);
 
         } catch (Exception e) {
-            logger.warn("Failed to parse Engine JSON. Raw body: {}", body);
+            logger.warn(Constants.W_LOG_ENGINE_JSON_PARSE_FAILED);
+            logger.debug(Constants.D_LOG_ENGINE_RESPONSE_BODY, body);
             return new RestResponse(body, httpStatus);
         }
     }

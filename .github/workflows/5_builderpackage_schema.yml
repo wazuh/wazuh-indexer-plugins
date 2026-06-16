@@ -2,7 +2,7 @@ name: (5.x) Build Wazuh Common Schema
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, synchronize, ready_for_review]
     paths:
       - "wcs/**/*.json"
       - "wcs/**/*.yml"
@@ -14,7 +14,7 @@ concurrency:
 jobs:
   build-wcs:
     name: Build Wazuh Common Schema
-    if: github.repository == 'wazuh/wazuh-indexer-plugins'
+    if: ${{ !github.event.pull_request.draft && github.repository == 'wazuh/wazuh-indexer-plugins' }}
     runs-on: ubuntu-24.04
     permissions:
       actions: read

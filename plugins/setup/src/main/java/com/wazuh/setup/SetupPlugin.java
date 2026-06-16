@@ -48,6 +48,7 @@ import java.util.function.Supplier;
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.SettingsIndex;
+import com.wazuh.setup.index.SetupStatusIndex;
 import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
 import com.wazuh.setup.rest.RestPutSettingsAction;
@@ -68,6 +69,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private ClusterService clusterService;
     private ThreadPool threadPool;
     private SettingsIndex settingsIndex;
+    private SetupStatusIndex setupStatusIndex;
     // spotless:off
     private final String[] categories = {
         "access-management", // No integration in this category yet
@@ -156,6 +158,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.settingsIndex = new SettingsIndex(".wazuh-settings", "templates/settings");
         this.indices.add(this.settingsIndex);
 
+        // Setup status index - Holds the initialization marker read by other plugins
+        // (e.g. Content Manager) to defer their startup work until setup completes.
+        this.setupStatusIndex = new SetupStatusIndex(SetupStatusIndex.INDEX_NAME, "templates/setup-status");
+        this.indices.add(this.setupStatusIndex);
+
         // spotless:on
 
         // Inject dependencies
@@ -178,6 +185,10 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                     .generic()
                     .execute(
                             () -> {
+                                // Invalidate any setup status marker left over from a previous boot, so
+                                // consumers of the marker wait for this run to finish.
+                                this.setupStatusIndex.markInitializing();
+
                                 // Apply cluster.default_number_of_replicas from opensearch.yml settings if present
                                 try {
                                     String defaultNumberOfReplicas =
@@ -202,6 +213,10 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                                 }
 
                                 this.indices.forEach(Index::initialize);
+
+                                // Signal that all indices are ready. Consumers of this marker may now start working
+                                // with them.
+                                this.setupStatusIndex.markComplete();
                             });
         }
     }

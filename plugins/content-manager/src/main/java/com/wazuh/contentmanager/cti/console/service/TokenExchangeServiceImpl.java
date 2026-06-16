@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.utils.Constants;
 
 /** Implementation of the {@link TokenExchangeService} interface. */
 public class TokenExchangeServiceImpl extends AbstractService implements TokenExchangeService {
@@ -46,11 +47,11 @@ public class TokenExchangeServiceImpl extends AbstractService implements TokenEx
     @Override
     public String getResourceToken(String resource, String accessToken) {
         if (resource == null || resource.isEmpty()) {
-            log.warn("Resource must not be null or empty");
+            log.warn(Constants.W_LOG_RESOURCE_NULL_OR_EMPTY);
             return null;
         }
         if (accessToken == null || accessToken.isEmpty()) {
-            log.warn("Access token must not be null or empty");
+            log.warn(Constants.W_LOG_ACCESS_TOKEN_NULL_OR_EMPTY);
             return null;
         }
 
@@ -63,15 +64,18 @@ public class TokenExchangeServiceImpl extends AbstractService implements TokenEx
                 Token resourceToken = this.mapper.readValue(response.getBodyText(), Token.class);
                 return resourceToken.getAccessToken();
             } else {
-                log.warn(
-                        "Operation to fetch a resource token failed: { \"status_code\": {}, \"message\": {} }",
+                log.warn(Constants.W_LOG_CTI_RESOURCE_TOKEN_FAILED);
+                log.debug(
+                        Constants.D_LOG_CTI_RESOURCE_TOKEN_RESPONSE_DETAIL,
                         response.getCode(),
                         response.getBodyText());
             }
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            log.error("Couldn't obtain resource token from CTI: {}", e.getMessage());
+            log.error(Constants.E_LOG_CTI_RESOURCE_TOKEN_FAILED);
+            log.debug(Constants.D_LOG_CTI_RESOURCE_TOKEN_DETAIL, e.getMessage());
         } catch (IOException e) {
-            log.error("Failed to parse resource token response: {}", e.getMessage());
+            log.error(Constants.E_LOG_CTI_RESOURCE_TOKEN_PARSE_FAILED);
+            log.debug(Constants.D_LOG_CTI_RESOURCE_TOKEN_DETAIL, e.getMessage());
         }
         return null;
     }

@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -58,7 +57,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostFilterAction extends AbstractCreateActionSpaces {
 
     private static final String ENDPOINT_NAME = "content_manager_filter_create";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/filter_create";
 
     private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
     private String spaceName = "";
@@ -84,12 +82,7 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
      */
     @Override
     public List<Route> routes() {
-        return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.FILTERS_URI)
-                        .method(POST)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+        return List.of(new Route(POST, PluginSettings.FILTERS_URI));
     }
 
     @Override
