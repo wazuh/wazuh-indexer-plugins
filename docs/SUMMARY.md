@@ -11,6 +11,7 @@
 - [Build from Sources](dev/build-sources.md)
 - [Run from Sources](dev/run-sources.md)
 - [Run Tests](dev/run-tests.md)
+- [GitHub Actions Cost](dev/github-actions-cost.md)
 - [Plugins]()
   - [Setup](dev/plugins/setup.md)
   - [Security](dev/plugins/security.md)
