@@ -83,7 +83,6 @@ A Wazuh fork of the OpenSearch Common Utils library. It provides the shared mode
 
 The Security plugin provides role-based access control (RBAC), user authentication, and TLS encryption for both the REST API and inter-node transport layers. Wazuh 5.0 ships with a new set of reserved users and roles aligned with the new plugins (Content Manager, Alerting, Notifications, Reporting, Security Analytics). See [Access Control](security/access-control.md) for details.
 
-
 ## Bundled Wazuh Engine
 
 The Wazuh Engine is shipped inside the Wazuh Indexer packages and Docker images. It is responsible for:
