@@ -227,6 +227,10 @@ public class ContentManagerPlugin extends Plugin
                 .addSettingsUpdateConsumer(
                         PluginSettings.MAX_INTEGRATIONS,
                         v -> PluginSettings.getInstance().setMaxIntegrations(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.MAX_DECODERS, v -> PluginSettings.getInstance().setMaxDecoders(v));
 
         return List.of(this.subscriptionService, this.catalogSyncJob);
     }
@@ -716,7 +720,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS,
-                PluginSettings.MAX_INTEGRATIONS);
+                PluginSettings.MAX_INTEGRATIONS,
+                PluginSettings.MAX_DECODERS);
     }
 
     @Override

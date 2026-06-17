@@ -289,6 +289,36 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
     }
 
     /**
+     * Test that creating a decoder when the limit has been reached returns 400.
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostDecoder400_maxDecodersExceeded() throws IOException {
+        PluginSettings.getInstance().setMaxDecoders(0);
+        try {
+            // Integration exists in draft space so the space check passes.
+            this.mockIntegrationInSpace("integration-1", "draft", true);
+
+            // Count search returns 0 hits; with maxDecoders = 0, 0 >= 0 → rejected.
+            SearchResponse countResponse = mock(SearchResponse.class);
+            when(countResponse.getHits())
+                    .thenReturn(
+                            new SearchHits(
+                                    new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 1.0f));
+            PlainActionFuture<SearchResponse> cFuture = PlainActionFuture.newFuture();
+            cFuture.onResponse(countResponse);
+            when(this.client.search(any(SearchRequest.class))).thenReturn(cFuture);
+
+            RestRequest request = this.buildRequest(DECODER_PAYLOAD);
+            RestResponse response = this.action.executeRequest(request, this.client);
+            Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+            Assert.assertTrue(response.getMessage().contains("allowed decoders [0]"));
+        } finally {
+            PluginSettings.getInstance().setMaxDecoders(PluginSettings.DEFAULT_MAX_DECODERS);
+        }
+    }
+
+    /**
      * Test the {@link RestPostDecoderAction#executeRequest(RestRequest, Client)} method when the
      * integration is not found in the index. The expected response is: {400, RestResponse}
      *

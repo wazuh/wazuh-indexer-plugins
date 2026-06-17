@@ -52,6 +52,7 @@ public class PluginSettings {
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
 
     public static final int DEFAULT_MAX_INTEGRATIONS = 100;
+    public static final int DEFAULT_MAX_DECODERS = 100;
 
     private static final long DEFAULT_MAX_BULK_BYTES = 5L * 1024 * 1024;
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
@@ -233,6 +234,18 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
+    /**
+     * Maximum number of user-created decoders allowed in the draft space. Requests that would exceed
+     * this limit are rejected with a 400 error.
+     */
+    public static final Setting<Integer> MAX_DECODERS =
+            Setting.intSetting(
+                    "plugins.content_manager.max_decoders",
+                    DEFAULT_MAX_DECODERS,
+                    0,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
@@ -249,6 +262,7 @@ public class PluginSettings {
     private final boolean createDetectors;
     private volatile boolean isTelemetryEnabled;
     private volatile int maxIntegrations;
+    private volatile int maxDecoders;
     private volatile String accessToken;
     private String version;
 
@@ -274,6 +288,7 @@ public class PluginSettings {
         this.createDetectors = CREATE_DETECTORS.get(settings);
         this.isTelemetryEnabled = TELEMETRY_ENABLED.get(settings);
         this.maxIntegrations = MAX_INTEGRATIONS.get(settings);
+        this.maxDecoders = MAX_DECODERS.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -323,6 +338,14 @@ public class PluginSettings {
 
     public void setMaxIntegrations(int maxIntegrations) {
         this.maxIntegrations = maxIntegrations;
+    }
+
+    public int getMaxDecoders() {
+        return this.maxDecoders;
+    }
+
+    public void setMaxDecoders(int maxDecoders) {
+        this.maxDecoders = maxDecoders;
     }
 
     /**
