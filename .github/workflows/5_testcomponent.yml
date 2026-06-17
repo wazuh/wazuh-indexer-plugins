@@ -31,11 +31,10 @@ permissions:
   actions: read
 
 env:
-  # Credentials used for both the container's admin bootstrap and the test run.
-  # NOTE: confirm on first run whether the image expects OPENSEARCH_INITIAL_ADMIN_PASSWORD
-  # or ships demo admin/admin certs; adjust ADMIN_PASSWORD accordingly.
+  # The wazuh-indexer image ships the demo security config (admin/admin) and
+  # ignores OPENSEARCH_INITIAL_ADMIN_PASSWORD — verified by running it locally.
   ADMIN_USER: admin
-  ADMIN_PASSWORD: "Wazuh-Component-Tests-0!"
+  ADMIN_PASSWORD: admin
 
 jobs:
   get-version:
@@ -95,7 +94,6 @@ jobs:
           docker run -d --name wazuh-indexer \
             -p 9200:9200 \
             -e "discovery.type=single-node" \
-            -e "OPENSEARCH_INITIAL_ADMIN_PASSWORD=${ADMIN_PASSWORD}" \
             -e "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g" \
             "${IMAGE}"
 
@@ -120,6 +118,11 @@ jobs:
           # Remove the version bundled in the image, install the PR build, then restart.
           docker exec wazuh-indexer "${plugin_bin}" remove --purge wazuh-indexer-content-manager
           docker exec wazuh-indexer "${plugin_bin}" install -b file:///tmp/content-manager.zip
+          # Align the distribution version with the repo under test. The image's baked
+          # VERSION.json may be older (e.g. a different beta stage), which would make
+          # /version/check query the CTI API for the wrong tag. Using the repo's
+          # VERSION.json keeps behaviour consistent with the source being tested.
+          docker cp VERSION.json wazuh-indexer:/usr/share/wazuh-indexer/VERSION.json
           docker restart wazuh-indexer
 
       - name: Wait for the indexer to be healthy (after restart)
@@ -138,22 +141,34 @@ jobs:
           echo "--- Installed plugins ---"
           docker exec wazuh-indexer /usr/share/wazuh-indexer/bin/opensearch-plugin list
 
-      - name: Trigger content sync and wait for the draft policy
+      - name: Trigger content sync and wait for readiness
         run: |
-          # The plugin self-syncs on start (update_on_start); trigger an update too, then
-          # poll until the draft policy exists (the suite's readiness precondition).
-          curl -sk -u "${ADMIN_USER}:${ADMIN_PASSWORD}" -X POST \
-            "https://localhost:9200/_plugins/_content_manager/update" || true
+          base="https://localhost:9200"; auth="${ADMIN_USER}:${ADMIN_PASSWORD}"
+          # The plugin self-syncs on start (update_on_start); trigger an update too.
+          curl -sk -u "$auth" -X POST "$base/_plugins/_content_manager/update" || true
+
+          # 1) Content Manager readiness: the draft policy must exist.
+          ok=""
           for i in $(seq 1 60); do
-            hits=$(curl -sk -u "${ADMIN_USER}:${ADMIN_PASSWORD}" \
-              "https://localhost:9200/wazuh-threatintel-policies/_search" \
+            hits=$(curl -sk -u "$auth" "$base/wazuh-threatintel-policies/_search" \
               -H 'Content-Type: application/json' \
               -d '{"size":0,"track_total_hits":true,"query":{"term":{"space.name":{"value":"draft"}}}}' \
               | grep -oE '"value":[0-9]+' | head -1 | grep -oE '[0-9]+' || echo 0)
-            if [ "${hits:-0}" -gt 0 ]; then echo "Draft policy present."; exit 0; fi
+            if [ "${hits:-0}" -gt 0 ]; then ok=1; echo "Draft policy present."; break; fi
             sleep 5
           done
-          echo "Draft policy not created in time (CTI sync may have failed)."; docker logs wazuh-indexer | tail -120; exit 1
+          [ -n "$ok" ] || { echo "Draft policy not created in time (CTI sync may have failed)."; docker logs wazuh-indexer | tail -120; exit 1; }
+
+          # 2) Security Analytics readiness: the findings test creates a detector, which
+          # requires the pre-packaged rules config index (created during the SAP sync).
+          ok=""
+          for i in $(seq 1 60); do
+            code=$(curl -sk -o /dev/null -w '%{http_code}' -u "$auth" \
+              "$base/.opensearch-sap-pre-packaged-rules-config")
+            if [ "$code" = "200" ]; then ok=1; echo "Security Analytics rules config present."; break; fi
+            sleep 5
+          done
+          [ -n "$ok" ] || { echo "SAP rules config not created in time."; docker logs wazuh-indexer | tail -120; exit 1; }
 
       - name: Run component tests
         run: |

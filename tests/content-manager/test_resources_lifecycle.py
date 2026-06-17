@@ -190,12 +190,14 @@ class TestRuleLifecycle:
 @pytest.mark.crud
 class TestFilterLifecycle:
     def test_create_and_delete(self, client, reset_draft):
+        # Filters are keyed by OpenSearch _id and carry no document.id field,
+        # so existence is checked by _id rather than a document.id search.
         fid = client.create(C.FILTERS, P.make_filter(space=C.SPACE_DRAFT))
-        A.assert_in_index(client, C.INDEX_FILTERS, fid, space=C.SPACE_DRAFT)
+        assert client.exists_by_id(C.INDEX_FILTERS, fid), f"filter {fid} not stored"
 
         resp = client.delete(f"{C.FILTERS}/{fid}")
         assert resp.status_code == 200, resp.text
-        A.assert_not_in_index(client, C.INDEX_FILTERS, fid)
+        assert not client.exists_by_id(C.INDEX_FILTERS, fid), f"filter {fid} still present"
 
     def test_create_missing_title_rejected(self, client, reset_draft):
         body = P.make_filter(space=C.SPACE_DRAFT)

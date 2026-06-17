@@ -8,12 +8,20 @@ pytestmark = [pytest.mark.smoke]
 
 
 class TestSubscription:
+    """Subscription endpoints, asserted against the source-of-truth VM contract
+    (GET/POST/DELETE all supported)."""
+
     def test_get_subscription(self, client):
         resp = client.get(C.SUBSCRIPTION)
         assert resp.status_code == 200, resp.text
         message = resp.json()["message"]
         assert "is_registered" in message
         assert "plan" in message
+
+    def test_post_requires_access_token(self, client):
+        resp = client.post(C.SUBSCRIPTION, json={})
+        assert resp.status_code == 400, resp.text
+        assert "access_token" in resp.text
 
     def test_post_then_delete_credentials(self, client):
         """Round-trip credential storage, only when unregistered (never clobber a

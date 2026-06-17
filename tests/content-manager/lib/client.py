@@ -105,6 +105,13 @@ class CMClient:
         hits = body["hits"]["hits"]
         return hits[0]["_source"] if hits else None
 
+    def exists_by_id(self, index, doc_id):
+        """Whether a document exists by its OpenSearch ``_id`` (used for filters,
+        which are keyed by ``_id`` and carry no ``document.id`` field)."""
+        self.refresh(index)
+        resp = self.get(f"/{index}/_doc/{doc_id}")
+        return resp.status_code == 200 and resp.json().get("found", False)
+
     def get_doc_in_space(self, index, doc_id, space):
         """Return the ``_source`` for a resource id within a specific space, or ``None``.
 
