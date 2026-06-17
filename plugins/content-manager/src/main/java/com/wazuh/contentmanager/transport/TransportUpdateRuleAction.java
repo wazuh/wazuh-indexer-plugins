@@ -61,8 +61,7 @@ public class TransportUpdateRuleAction extends AbstractTransportUpdateAction {
     @Override
     protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
         RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_ENABLED));
+                this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_ENABLED));
         if (fieldValidation != null) return fieldValidation;
 
         RestResponse metadataValidation =
@@ -74,12 +73,7 @@ public class TransportUpdateRuleAction extends AbstractTransportUpdateAction {
         String id = resource.get(Constants.KEY_ID).asText();
 
         return this.documentValidations.validateDuplicateTitle(
-                client,
-                Constants.INDEX_RULES,
-                Space.DRAFT.toString(),
-                title,
-                id,
-                Constants.KEY_RULE);
+                client, Constants.INDEX_RULES, Space.DRAFT.toString(), title, id, Constants.KEY_RULE);
     }
 
     @Override

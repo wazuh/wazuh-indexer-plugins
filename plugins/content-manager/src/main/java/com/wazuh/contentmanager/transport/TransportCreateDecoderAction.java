@@ -42,12 +42,7 @@ public class TransportCreateDecoderAction extends AbstractTransportCreateAction 
             ActionFilters actionFilters,
             Client client,
             EngineService engine) {
-        super(
-                CreateDecoderAction.NAME,
-                transportService,
-                actionFilters,
-                client,
-                engine);
+        super(CreateDecoderAction.NAME, transportService, actionFilters, client, engine);
     }
 
     @Override
@@ -72,8 +67,7 @@ public class TransportCreateDecoderAction extends AbstractTransportCreateAction 
         String spaceError =
                 this.documentValidations.validateDocumentInSpace(
                         client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
-        if (spaceError != null)
-            return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
+        if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
         return null;
     }
 

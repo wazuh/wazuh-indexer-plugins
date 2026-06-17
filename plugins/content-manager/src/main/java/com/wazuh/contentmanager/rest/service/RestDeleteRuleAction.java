@@ -31,10 +31,6 @@ public class RestDeleteRuleAction extends AbstractDeleteAction {
 
     private static final String ENDPOINT_NAME = "content_manager_rule_delete";
 
-    public RestDeleteRuleAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

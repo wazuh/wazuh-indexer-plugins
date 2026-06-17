@@ -715,8 +715,7 @@ public class ContentManagerPlugin extends Plugin
                 new AbstractModule() {
                     @Override
                     protected void configure() {
-                        bind(EngineService.class)
-                                .toProvider(() -> ContentManagerPlugin.this.engine);
+                        bind(EngineService.class).toProvider(() -> ContentManagerPlugin.this.engine);
                         bind(SecurityAnalyticsService.class)
                                 .toProvider(() -> ContentManagerPlugin.this.securityAnalyticsService);
                     }
@@ -727,11 +726,13 @@ public class ContentManagerPlugin extends Plugin
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return List.of(
                 // Existing
-                new ActionHandler<>(IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
+                new ActionHandler<>(
+                        IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
                 new ActionHandler<>(TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class),
                 // Group 2: Subscription GET/DELETE + Space DELETE
                 new ActionHandler<>(GetSubscriptionAction.INSTANCE, TransportGetSubscriptionAction.class),
-                new ActionHandler<>(DeleteSubscriptionAction.INSTANCE, TransportDeleteSubscriptionAction.class),
+                new ActionHandler<>(
+                        DeleteSubscriptionAction.INSTANCE, TransportDeleteSubscriptionAction.class),
                 new ActionHandler<>(DeleteSpaceAction.INSTANCE, TransportDeleteSpaceAction.class),
                 // Group 3: Promote
                 new ActionHandler<>(GetPromoteAction.INSTANCE, TransportGetPromoteAction.class),
@@ -739,7 +740,8 @@ public class ContentManagerPlugin extends Plugin
                 // Group 4: Logtest
                 new ActionHandler<>(LogtestAction.INSTANCE, TransportLogtestAction.class),
                 new ActionHandler<>(LogtestDetectionAction.INSTANCE, TransportLogtestDetectionAction.class),
-                new ActionHandler<>(LogtestNormalizationAction.INSTANCE, TransportLogtestNormalizationAction.class),
+                new ActionHandler<>(
+                        LogtestNormalizationAction.INSTANCE, TransportLogtestNormalizationAction.class),
                 // Group 5: Version Check
                 new ActionHandler<>(VersionCheckAction.INSTANCE, TransportVersionCheckAction.class),
                 // Group 6: Policy
@@ -753,9 +755,12 @@ public class ContentManagerPlugin extends Plugin
                 new ActionHandler<>(UpdateKvdbAction.INSTANCE, TransportUpdateKvdbAction.class),
                 new ActionHandler<>(DeleteKvdbAction.INSTANCE, TransportDeleteKvdbAction.class),
                 // Phase 2: CRUD - Integrations
-                new ActionHandler<>(CreateIntegrationAction.INSTANCE, TransportCreateIntegrationAction.class),
-                new ActionHandler<>(UpdateIntegrationAction.INSTANCE, TransportUpdateIntegrationAction.class),
-                new ActionHandler<>(DeleteIntegrationAction.INSTANCE, TransportDeleteIntegrationAction.class),
+                new ActionHandler<>(
+                        CreateIntegrationAction.INSTANCE, TransportCreateIntegrationAction.class),
+                new ActionHandler<>(
+                        UpdateIntegrationAction.INSTANCE, TransportUpdateIntegrationAction.class),
+                new ActionHandler<>(
+                        DeleteIntegrationAction.INSTANCE, TransportDeleteIntegrationAction.class),
                 // Phase 2: CRUD - Rules
                 new ActionHandler<>(CreateRuleAction.INSTANCE, TransportCreateRuleAction.class),
                 new ActionHandler<>(UpdateRuleAction.INSTANCE, TransportUpdateRuleAction.class),

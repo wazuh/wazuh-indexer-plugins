@@ -77,25 +77,19 @@ public class TransportDeleteIntegrationAction extends AbstractTransportDeleteAct
             if (isListNotEmpty(document.get(Constants.KEY_DECODERS))) {
                 return new RestResponse(
                         String.format(
-                                Locale.ROOT,
-                                Constants.E_400_INTEGRATION_HAS_RESOURCES,
-                                Constants.KEY_DECODERS),
+                                Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_DECODERS),
                         RestStatus.BAD_REQUEST.getStatus());
             }
             if (isListNotEmpty(document.get(Constants.KEY_RULES))) {
                 return new RestResponse(
                         String.format(
-                                Locale.ROOT,
-                                Constants.E_400_INTEGRATION_HAS_RESOURCES,
-                                Constants.KEY_RULES),
+                                Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_RULES),
                         RestStatus.BAD_REQUEST.getStatus());
             }
             if (isListNotEmpty(document.get(Constants.KEY_KVDBS))) {
                 return new RestResponse(
                         String.format(
-                                Locale.ROOT,
-                                Constants.E_400_INTEGRATION_HAS_RESOURCES,
-                                Constants.KEY_KVDBS),
+                                Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_KVDBS),
                         RestStatus.BAD_REQUEST.getStatus());
             }
         }
@@ -109,8 +103,8 @@ public class TransportDeleteIntegrationAction extends AbstractTransportDeleteAct
     }
 
     @Override
-    protected void unlinkFromParent(
-            Client client, String id, IntegrationService integrationService) throws java.io.IOException {
+    protected void unlinkFromParent(Client client, String id, IntegrationService integrationService)
+            throws java.io.IOException {
         ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
         TermQueryBuilder queryBuilder =
                 new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());

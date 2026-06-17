@@ -25,20 +25,25 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
-import org.opensearch.transport.client.Client;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
+import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.UpdatePolicyAction;
 import com.wazuh.contentmanager.action.UpdatePolicyRequest;
-import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
@@ -47,7 +52,6 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -86,8 +90,7 @@ public class TransportUpdatePolicyAction
         String body = request.getBody();
         if (body == null || body.isBlank()) {
             listener.onResponse(
-                    new MessageStatusResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
+                    new MessageStatusResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
             return;
         }
 
@@ -120,8 +123,7 @@ public class TransportUpdatePolicyAction
             if (!jsonContent.has(Constants.KEY_RESOURCE)) {
                 listener.onResponse(
                         new MessageStatusResponse(
-                                String.format(
-                                        Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
+                                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_RESOURCE),
                                 RestStatus.BAD_REQUEST));
                 return;
             }
@@ -174,9 +176,7 @@ public class TransportUpdatePolicyAction
                 listener.onResponse(
                         new MessageStatusResponse(
                                 String.format(
-                                        Locale.ROOT,
-                                        Constants.E_400_MISSING_FIELD,
-                                        String.join(", ", missingFields)),
+                                        Locale.ROOT, Constants.E_400_MISSING_FIELD, String.join(", ", missingFields)),
                                 RestStatus.BAD_REQUEST));
                 return;
             }
@@ -216,15 +216,10 @@ public class TransportUpdatePolicyAction
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             listener.onResponse(
                     new MessageStatusResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY + " " + e.getMessage(),
-                            RestStatus.BAD_REQUEST));
+                            Constants.E_400_INVALID_REQUEST_BODY + " " + e.getMessage(), RestStatus.BAD_REQUEST));
         } catch (Exception e) {
             log.error(
-                    Constants.E_LOG_OPERATION_FAILED,
-                    "updating",
-                    Constants.KEY_POLICY,
-                    e.getMessage(),
-                    e);
+                    Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);
             listener.onResponse(
                     new MessageStatusResponse(
                             Constants.E_500_INTERNAL_SERVER_ERROR + " " + e.getMessage(),
@@ -240,8 +235,7 @@ public class TransportUpdatePolicyAction
                 (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
         if (currentPolicyDoc == null) {
             throw new IllegalStateException(
-                    Constants.E_500_INTERNAL_SERVER_ERROR
-                            + " Policy document not found in standard space.");
+                    Constants.E_500_INTERNAL_SERVER_ERROR + " Policy document not found in standard space.");
         }
 
         List<String> currentFilters =
@@ -350,8 +344,7 @@ public class TransportUpdatePolicyAction
                 (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
         if (currentPolicyDoc == null) {
             throw new IllegalStateException(
-                    Constants.E_500_INTERNAL_SERVER_ERROR
-                            + " Policy document not found in draft space.");
+                    Constants.E_500_INTERNAL_SERVER_ERROR + " Policy document not found in draft space.");
         }
 
         List<String> currentIntegrations =
@@ -417,8 +410,7 @@ public class TransportUpdatePolicyAction
             hashNode.put(Constants.KEY_SHA256, hash);
             document.set(Constants.KEY_HASH, hashNode);
             String draftPolicyId =
-                    this.spaceService.findDocumentId(
-                            Constants.INDEX_POLICIES, Space.DRAFT.toString(), docId);
+                    this.spaceService.findDocumentId(Constants.INDEX_POLICIES, Space.DRAFT.toString(), docId);
             IndexResponse indexResponse = index.create(draftPolicyId, document);
             return indexResponse.getId();
         } catch (Exception e) {

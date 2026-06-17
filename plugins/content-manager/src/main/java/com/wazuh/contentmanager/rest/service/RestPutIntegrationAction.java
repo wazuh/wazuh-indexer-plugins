@@ -31,10 +31,6 @@ public class RestPutIntegrationAction extends AbstractUpdateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_integration_update";
 
-    public RestPutIntegrationAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

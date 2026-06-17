@@ -24,6 +24,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -63,16 +64,13 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
         VersionCheckRequest versionCheckRequest = new VersionCheckRequest();
         return channel ->
                 client.execute(
-                        VersionCheckAction.INSTANCE,
-                        versionCheckRequest,
-                        createResponseListener(channel));
+                        VersionCheckAction.INSTANCE, versionCheckRequest, createResponseListener(channel));
     }
 
     private RestResponseListener<VersionCheckResponse> createResponseListener(RestChannel channel) {
         return new RestResponseListener<>(channel) {
             @Override
-            public org.opensearch.rest.RestResponse buildResponse(VersionCheckResponse response)
-                    throws Exception {
+            public RestResponse buildResponse(VersionCheckResponse response) throws Exception {
                 return new BytesRestResponse(
                         response.getStatus(),
                         response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));

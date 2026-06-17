@@ -31,10 +31,6 @@ public class RestPostDecoderAction extends AbstractCreateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_decoder_create";
 
-    public RestPostDecoderAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

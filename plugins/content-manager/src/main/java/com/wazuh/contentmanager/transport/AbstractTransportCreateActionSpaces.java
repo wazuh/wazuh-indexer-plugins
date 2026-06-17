@@ -56,14 +56,13 @@ import com.wazuh.contentmanager.utils.YamlUtils;
 /**
  * Abstract transport action for creating content resources (Spaces variant).
  *
- * <p>Mirrors the business logic from {@code AbstractCreateActionSpaces.executeRequest()}.
- * Resources can be created in any valid space (not just DRAFT).
+ * <p>Mirrors the business logic from {@code AbstractCreateActionSpaces.executeRequest()}. Resources
+ * can be created in any valid space (not just DRAFT).
  */
 public abstract class AbstractTransportCreateActionSpaces
         extends HandledTransportAction<ContentCreateRequest, ContentResponse> {
 
-    private static final Logger log =
-            LogManager.getLogger(AbstractTransportCreateActionSpaces.class);
+    private static final Logger log = LogManager.getLogger(AbstractTransportCreateActionSpaces.class);
     protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected final PayloadValidations documentValidations = new PayloadValidations();
     protected final Client client;
@@ -82,9 +81,7 @@ public abstract class AbstractTransportCreateActionSpaces
 
     @Override
     protected void doExecute(
-            Task task,
-            ContentCreateRequest request,
-            ActionListener<ContentResponse> listener) {
+            Task task, ContentCreateRequest request, ActionListener<ContentResponse> listener) {
         SecurityAnalyticsService securityAnalyticsService;
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             securityAnalyticsService = new MockSecurityAnalyticsService();
@@ -97,18 +94,20 @@ public abstract class AbstractTransportCreateActionSpaces
             RestResponse policyError = TransportActionHelper.validateDraftPolicyExists(client);
             if (policyError != null) {
                 listener.onResponse(
-                        new ContentResponse(policyError.getMessage(), policyError.getStatus()));
+                        new ContentResponse(
+                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
                 return;
             }
 
             RestResponse result =
                     executeCreateWorkflow(request, client, spaceService, securityAnalyticsService);
-            listener.onResponse(new ContentResponse(result.getMessage(), result.getStatus()));
+            listener.onResponse(
+                    new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
         } catch (Exception e) {
             listener.onResponse(
                     new ContentResponse(
                             e.getMessage() != null ? e.getMessage() : "Unexpected error",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                            RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -273,8 +272,7 @@ public abstract class AbstractTransportCreateActionSpaces
                     this.getResourceType(),
                     "Reason: " + e.getMessage());
             return new RestResponse(
-                    "Internal Server Error. " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 
@@ -296,11 +294,9 @@ public abstract class AbstractTransportCreateActionSpaces
 
     protected abstract String getSpaceName();
 
-    protected abstract RestResponse validatePayload(
-            Client client, JsonNode root, JsonNode resource);
+    protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
 
     protected abstract RestResponse syncExternalServices(String id, JsonNode resource);
 
-    protected abstract void linkToParent(Client client, String id, JsonNode root)
-            throws IOException;
+    protected abstract void linkToParent(Client client, String id, JsonNode root) throws IOException;
 }

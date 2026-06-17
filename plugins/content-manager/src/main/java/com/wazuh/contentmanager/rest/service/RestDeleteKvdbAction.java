@@ -31,10 +31,6 @@ public class RestDeleteKvdbAction extends AbstractDeleteAction {
 
     private static final String ENDPOINT_NAME = "content_manager_kvdb_delete";
 
-    public RestDeleteKvdbAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

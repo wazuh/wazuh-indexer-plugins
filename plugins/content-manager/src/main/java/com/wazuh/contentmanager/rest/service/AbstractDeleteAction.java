@@ -23,6 +23,7 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -41,10 +42,6 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
 
     private static final Logger log = LogManager.getLogger(AbstractDeleteAction.class);
 
-    public AbstractDeleteAction() {
-        super();
-    }
-
     protected abstract ActionType<ContentResponse> getActionType();
 
     @Override
@@ -62,14 +59,10 @@ public abstract class AbstractDeleteAction extends AbstractContentAction {
                         deleteRequest,
                         new RestResponseListener<ContentResponse>(channel) {
                             @Override
-                            public org.opensearch.rest.RestResponse buildResponse(
-                                    ContentResponse response) throws Exception {
+                            public RestResponse buildResponse(ContentResponse response) throws Exception {
                                 return new BytesRestResponse(
-                                        org.opensearch.core.rest.RestStatus.fromCode(
-                                                response.getStatus()),
-                                        response.toXContent(
-                                                XContentFactory.jsonBuilder(),
-                                                ToXContent.EMPTY_PARAMS));
+                                        response.getStatus(),
+                                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
                             }
                         });
     }

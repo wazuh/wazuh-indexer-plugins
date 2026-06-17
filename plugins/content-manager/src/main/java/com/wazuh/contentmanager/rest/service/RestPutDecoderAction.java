@@ -31,10 +31,6 @@ public class RestPutDecoderAction extends AbstractUpdateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_decoder_update";
 
-    public RestPutDecoderAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

@@ -21,12 +21,12 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
-import org.opensearch.transport.client.Client;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.Client;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
@@ -52,14 +52,8 @@ public class TransportDeleteSpaceAction
 
     @Inject
     public TransportDeleteSpaceAction(
-            TransportService transportService,
-            ActionFilters actionFilters,
-            Client client) {
-        super(
-                DeleteSpaceAction.NAME,
-                transportService,
-                actionFilters,
-                DeleteSpaceRequest::new);
+            TransportService transportService, ActionFilters actionFilters, Client client) {
+        super(DeleteSpaceAction.NAME, transportService, actionFilters, DeleteSpaceRequest::new);
         this.spaceService = new SpaceService(client);
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             this.securityAnalyticsService = new MockSecurityAnalyticsService();
@@ -70,9 +64,7 @@ public class TransportDeleteSpaceAction
 
     @Override
     protected void doExecute(
-            Task task,
-            DeleteSpaceRequest request,
-            ActionListener<MessageStatusResponse> listener) {
+            Task task, DeleteSpaceRequest request, ActionListener<MessageStatusResponse> listener) {
         String spaceParam = request.getSpaceName();
 
         Space space;
@@ -113,8 +105,7 @@ public class TransportDeleteSpaceAction
             Throwable cause = e;
             while (cause != null) {
                 if (cause instanceof OpenSearchSecurityException secEx) {
-                    listener.onResponse(
-                            new MessageStatusResponse(secEx.getMessage(), secEx.status()));
+                    listener.onResponse(new MessageStatusResponse(secEx.getMessage(), secEx.status()));
                     return;
                 }
                 cause = cause.getCause();
@@ -122,8 +113,7 @@ public class TransportDeleteSpaceAction
             log.error("Failed to reset space [{}]: {}", space, e.getMessage());
             listener.onResponse(
                     new MessageStatusResponse(
-                            "Internal Server Error: " + e.getMessage(),
-                            RestStatus.INTERNAL_SERVER_ERROR));
+                            "Internal Server Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
 }

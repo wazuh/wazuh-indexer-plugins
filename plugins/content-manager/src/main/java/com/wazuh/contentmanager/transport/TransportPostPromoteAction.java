@@ -34,11 +34,20 @@ import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
+import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.PostPromoteAction;
 import com.wazuh.contentmanager.action.PostPromoteRequest;
-import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -108,8 +117,7 @@ public class TransportPostPromoteAction
         String body = request.getBody();
         if (body == null || body.isBlank()) {
             listener.onResponse(
-                    new MessageStatusResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
+                    new MessageStatusResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
             return;
         }
 
@@ -137,8 +145,7 @@ public class TransportPostPromoteAction
                             mapper.writeValueAsString(context.enginePayload));
                     listener.onResponse(
                             new MessageStatusResponse(
-                                    engineResponse.getMessage(),
-                                    RestStatus.fromCode(engineResponse.getStatus())));
+                                    engineResponse.getMessage(), RestStatus.fromCode(engineResponse.getStatus())));
                     return;
                 }
                 log.debug(Constants.D_LOG_ENGINE_VALIDATION_COMPLETE, targetSpace);
@@ -154,13 +161,11 @@ public class TransportPostPromoteAction
                     new MessageStatusResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK));
         } catch (IllegalArgumentException e) {
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
-            listener.onResponse(
-                    new MessageStatusResponse(e.getMessage(), RestStatus.BAD_REQUEST));
+            listener.onResponse(new MessageStatusResponse(e.getMessage(), RestStatus.BAD_REQUEST));
         } catch (ValueInstantiationException e) {
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-            listener.onResponse(
-                    new MessageStatusResponse(message, RestStatus.BAD_REQUEST));
+            listener.onResponse(new MessageStatusResponse(message, RestStatus.BAD_REQUEST));
         } catch (IndexNotFoundException e) {
             log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "index", e.getMessage());
             listener.onResponse(
@@ -169,8 +174,7 @@ public class TransportPostPromoteAction
         } catch (IOException e) {
             OpenSearchSecurityException secEx = extractSecurityException(e);
             if (secEx != null) {
-                listener.onResponse(
-                        new MessageStatusResponse(secEx.getMessage(), secEx.status()));
+                listener.onResponse(new MessageStatusResponse(secEx.getMessage(), secEx.status()));
                 return;
             }
             log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "IO", e.getMessage());
@@ -180,8 +184,7 @@ public class TransportPostPromoteAction
         } catch (Exception e) {
             OpenSearchSecurityException secEx = extractSecurityException(e);
             if (secEx != null) {
-                listener.onResponse(
-                        new MessageStatusResponse(secEx.getMessage(), secEx.status()));
+                listener.onResponse(new MessageStatusResponse(secEx.getMessage(), secEx.status()));
                 return;
             }
             log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "space", e.getMessage());
@@ -266,23 +269,47 @@ public class TransportPostPromoteAction
         Set<String> rulesToDelete = new HashSet<>();
 
         this.processResourceChanges(
-                changes.getPolicy(), Constants.KEY_POLICY, policyToApply,
-                HashSet.newHashSet(0), sourceSpace.toString(), targetSpace.toString());
+                changes.getPolicy(),
+                Constants.KEY_POLICY,
+                policyToApply,
+                HashSet.newHashSet(0),
+                sourceSpace.toString(),
+                targetSpace.toString());
         this.processResourceChanges(
-                changes.getIntegrations(), Constants.KEY_INTEGRATIONS, integrationsToApply,
-                integrationsToDelete, sourceSpace.toString(), targetSpace.toString());
+                changes.getIntegrations(),
+                Constants.KEY_INTEGRATIONS,
+                integrationsToApply,
+                integrationsToDelete,
+                sourceSpace.toString(),
+                targetSpace.toString());
         this.processResourceChanges(
-                changes.getKvdbs(), Constants.KEY_KVDBS, kvdbsToApply,
-                kvdbsToDelete, sourceSpace.toString(), targetSpace.toString());
+                changes.getKvdbs(),
+                Constants.KEY_KVDBS,
+                kvdbsToApply,
+                kvdbsToDelete,
+                sourceSpace.toString(),
+                targetSpace.toString());
         this.processResourceChanges(
-                changes.getDecoders(), Constants.KEY_DECODERS, decodersToApply,
-                decodersToDelete, sourceSpace.toString(), targetSpace.toString());
+                changes.getDecoders(),
+                Constants.KEY_DECODERS,
+                decodersToApply,
+                decodersToDelete,
+                sourceSpace.toString(),
+                targetSpace.toString());
         this.processResourceChanges(
-                changes.getFilters(), Constants.KEY_FILTERS, filtersToApply,
-                filtersToDelete, sourceSpace.toString(), targetSpace.toString());
+                changes.getFilters(),
+                Constants.KEY_FILTERS,
+                filtersToApply,
+                filtersToDelete,
+                sourceSpace.toString(),
+                targetSpace.toString());
         this.processResourceChanges(
-                changes.getRules(), Constants.KEY_RULES, rulesToApply,
-                rulesToDelete, sourceSpace.toString(), targetSpace.toString());
+                changes.getRules(),
+                Constants.KEY_RULES,
+                rulesToApply,
+                rulesToDelete,
+                sourceSpace.toString(),
+                targetSpace.toString());
 
         JsonNode enginePayload =
                 this.spaceService.buildEnginePayload(
@@ -407,8 +434,7 @@ public class TransportPostPromoteAction
 
                     @SuppressWarnings("unchecked")
                     Map<String, String> sourceDocSpace =
-                            (Map<String, String>)
-                                    sourceDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                            (Map<String, String>) sourceDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
                     String docSpace = sourceDocSpace.get(Constants.KEY_NAME);
                     if (!sourceSpace.equals(docSpace)) {
                         throw new IllegalArgumentException(
@@ -426,8 +452,7 @@ public class TransportPostPromoteAction
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
-                                (Map<String, String>)
-                                        targetDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                                (Map<String, String>) targetDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
                         String targetDocSpaceName = targetDocSpace.get(Constants.KEY_NAME);
                         if (targetSpace.equals(targetDocSpaceName)) {
                             throw new IllegalArgumentException(
@@ -459,8 +484,7 @@ public class TransportPostPromoteAction
 
                     @SuppressWarnings("unchecked")
                     Map<String, String> sourceDocSpace =
-                            (Map<String, String>)
-                                    sourceDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                            (Map<String, String>) sourceDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
                     String docSpace = sourceDocSpace.get(Constants.KEY_NAME);
                     if (!sourceSpace.equals(docSpace)) {
                         throw new IllegalArgumentException(
@@ -480,8 +504,7 @@ public class TransportPostPromoteAction
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
-                                (Map<String, String>)
-                                        targetDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                                (Map<String, String>) targetDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
                         String targetDocSpaceName = targetDocSpace.get(Constants.KEY_NAME);
                         if (!targetSpace.equals(targetDocSpaceName)) {
                             log.warn(
@@ -516,9 +539,7 @@ public class TransportPostPromoteAction
             throws IOException {
         if (!resources.isEmpty()) {
             this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(resourceType),
-                    resources,
-                    context.targetSpace);
+                    this.spaceService.getIndexForResourceType(resourceType), resources, context.targetSpace);
             context.rollbackSteps.add(new RollbackStep(RollbackStep.Kind.APPLY, resourceType));
         }
     }
@@ -639,10 +660,12 @@ public class TransportPostPromoteAction
                 String index = this.spaceService.getIndexForResourceType(step.resourceType);
                 Collection<String> ids =
                         (step.kind == RollbackStep.Kind.APPLY)
-                                ? context.oldVersions
+                                ? context
+                                        .oldVersions
                                         .getOrDefault(step.resourceType, Collections.emptyMap())
                                         .keySet()
-                                : context.deleteSnapshots
+                                : context
+                                        .deleteSnapshots
                                         .getOrDefault(step.resourceType, Collections.emptyMap())
                                         .keySet();
                 log.error(Constants.E_LOG_ROLLBACK_STEP_FAILED, step, index, ids, e.getMessage());
@@ -769,8 +792,7 @@ public class TransportPostPromoteAction
             try {
                 if (snapshot != null && snapshot.containsKey(Constants.KEY_DOCUMENT)) {
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> document =
-                            (Map<String, Object>) snapshot.get(Constants.KEY_DOCUMENT);
+                    Map<String, Object> document = (Map<String, Object>) snapshot.get(Constants.KEY_DOCUMENT);
                     JsonNode docNode = mapper.valueToTree(document);
                     if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
                         this.securityAnalyticsService.upsertIntegration(
@@ -780,17 +802,11 @@ public class TransportPostPromoteAction
                                 docNode, targetSpaceEnum, RestRequest.Method.POST);
                     }
                     log.debug(
-                            Constants.D_LOG_SAP_ROLLBACK_RESTORED_DELETED,
-                            resourceType,
-                            id,
-                            targetSpaceEnum);
+                            Constants.D_LOG_SAP_ROLLBACK_RESTORED_DELETED, resourceType, id, targetSpaceEnum);
                 }
             } catch (Exception e) {
                 log.warn(
-                        Constants.W_LOG_SAP_ROLLBACK_RESTORE_DELETED_FAILED,
-                        resourceType,
-                        id,
-                        e.getMessage());
+                        Constants.W_LOG_SAP_ROLLBACK_RESTORE_DELETED_FAILED, resourceType, id, e.getMessage());
             }
         }
     }

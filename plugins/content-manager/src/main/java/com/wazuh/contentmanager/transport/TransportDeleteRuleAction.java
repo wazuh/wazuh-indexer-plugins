@@ -59,8 +59,8 @@ public class TransportDeleteRuleAction extends AbstractTransportDeleteAction {
     }
 
     @Override
-    protected void unlinkFromParent(
-            Client client, String id, IntegrationService integrationService) throws IOException {
+    protected void unlinkFromParent(Client client, String id, IntegrationService integrationService)
+            throws IOException {
         integrationService.unlinkResourceFromIntegrations(id, Constants.KEY_RULES);
     }
 }

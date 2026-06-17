@@ -44,12 +44,7 @@ public class TransportDeleteDecoderAction extends AbstractTransportDeleteAction 
             ActionFilters actionFilters,
             Client client,
             EngineService engine) {
-        super(
-                DeleteDecoderAction.NAME,
-                transportService,
-                actionFilters,
-                client,
-                engine);
+        super(DeleteDecoderAction.NAME, transportService, actionFilters, client, engine);
     }
 
     @Override
@@ -80,8 +75,7 @@ public class TransportDeleteDecoderAction extends AbstractTransportDeleteAction 
             }
         } catch (Exception e) {
             return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR,
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
         return null;
     }
@@ -93,8 +87,8 @@ public class TransportDeleteDecoderAction extends AbstractTransportDeleteAction 
     }
 
     @Override
-    protected void unlinkFromParent(
-            Client client, String id, IntegrationService integrationService) throws IOException {
+    protected void unlinkFromParent(Client client, String id, IntegrationService integrationService)
+            throws IOException {
         integrationService.unlinkResourceFromIntegrations(id, Constants.KEY_DECODERS);
     }
 }

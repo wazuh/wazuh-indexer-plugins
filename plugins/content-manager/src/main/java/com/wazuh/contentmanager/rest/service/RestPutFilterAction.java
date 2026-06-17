@@ -31,10 +31,6 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
 
     private static final String ENDPOINT_NAME = "content_manager_filter_update";
 
-    public RestPutFilterAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

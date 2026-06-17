@@ -31,10 +31,6 @@ public class RestDeleteDecoderAction extends AbstractDeleteAction {
 
     private static final String ENDPOINT_NAME = "content_manager_decoder_delete";
 
-    public RestDeleteDecoderAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

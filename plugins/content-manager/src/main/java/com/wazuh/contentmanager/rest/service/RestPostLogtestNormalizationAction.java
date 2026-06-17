@@ -24,11 +24,11 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.util.List;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.action.LogtestNormalizationAction;
 import com.wazuh.contentmanager.action.LogtestNormalizationRequest;
@@ -44,8 +44,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * com.wazuh.contentmanager.transport.TransportLogtestNormalizationAction} via the transport layer.
  */
 public class RestPostLogtestNormalizationAction extends BaseRestHandler {
-    private static final Logger log =
-            LogManager.getLogger(RestPostLogtestNormalizationAction.class);
+    private static final Logger log = LogManager.getLogger(RestPostLogtestNormalizationAction.class);
     private static final String ENDPOINT_NAME = "content_manager_logtest_normalization";
 
     /** Return a short identifier for this handler. */
@@ -73,12 +72,7 @@ public class RestPostLogtestNormalizationAction extends BaseRestHandler {
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        log.debug(
-                String.format(
-                        Locale.getDefault(),
-                        "%s %s",
-                        request.method(),
-                        PluginSettings.LOGTEST_NORMALIZATION_URI));
+        log.debug("{} {}", request.method(), PluginSettings.LOGTEST_NORMALIZATION_URI);
 
         String body = request.content().utf8ToString();
         LogtestNormalizationRequest normalizationRequest = new LogtestNormalizationRequest(body);
@@ -90,12 +84,10 @@ public class RestPostLogtestNormalizationAction extends BaseRestHandler {
                         createResponseListener(channel));
     }
 
-    private RestResponseListener<LogtestResponse> createResponseListener(
-            RestChannel channel) {
+    private RestResponseListener<LogtestResponse> createResponseListener(RestChannel channel) {
         return new RestResponseListener<>(channel) {
             @Override
-            public org.opensearch.rest.RestResponse buildResponse(
-                    LogtestResponse response) throws Exception {
+            public RestResponse buildResponse(LogtestResponse response) throws Exception {
                 return new BytesRestResponse(
                         response.getStatus(),
                         response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));

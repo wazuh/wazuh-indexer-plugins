@@ -50,9 +50,7 @@ public class TransportIndexSubscriptionAction
 
     @Override
     protected void doExecute(
-            Task task,
-            IndexSubscriptionRequest request,
-            ActionListener<MessageStatusResponse> listener) {
+            Task task, IndexSubscriptionRequest request, ActionListener<MessageStatusResponse> listener) {
         String accessToken = request.getToken();
         try {
             this.subscriptionService.register(accessToken);

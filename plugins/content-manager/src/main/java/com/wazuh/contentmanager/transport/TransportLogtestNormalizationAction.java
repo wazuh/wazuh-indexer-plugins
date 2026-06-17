@@ -62,9 +62,7 @@ public class TransportLogtestNormalizationAction
 
     @Override
     protected void doExecute(
-            Task task,
-            LogtestNormalizationRequest request,
-            ActionListener<LogtestResponse> listener) {
+            Task task, LogtestNormalizationRequest request, ActionListener<LogtestResponse> listener) {
         try {
             // 1. Parse JSON
             ObjectMapper mapper = new ObjectMapper();
@@ -73,20 +71,17 @@ public class TransportLogtestNormalizationAction
                 jsonNode = mapper.readTree(request.getBody());
             } catch (Exception ex) {
                 listener.onResponse(
-                        new LogtestResponse(
-                                Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
+                        new LogtestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
                 return;
             }
 
             // 2. Validate required field: space
             RestResponse validationError =
-                    this.payloadValidations.validateRequiredFields(
-                            jsonNode, List.of(Constants.KEY_SPACE));
+                    this.payloadValidations.validateRequiredFields(jsonNode, List.of(Constants.KEY_SPACE));
             if (validationError != null) {
                 listener.onResponse(
                         new LogtestResponse(
-                                validationError.getMessage(),
-                                RestStatus.fromCode(validationError.getStatus())));
+                                validationError.getMessage(), RestStatus.fromCode(validationError.getStatus())));
                 return;
             }
 
@@ -116,12 +111,10 @@ public class TransportLogtestNormalizationAction
             enginePayload.remove(Constants.KEY_INTEGRATION);
 
             // 5. Delegate execution to Service
-            RestResponse serviceResponse =
-                    this.logtestService.executeNormalization(enginePayload);
+            RestResponse serviceResponse = this.logtestService.executeNormalization(enginePayload);
             listener.onResponse(
                     new LogtestResponse(
-                            serviceResponse.getMessage(),
-                            RestStatus.fromCode(serviceResponse.getStatus())));
+                            serviceResponse.getMessage(), RestStatus.fromCode(serviceResponse.getStatus())));
         } catch (Exception e) {
             listener.onResponse(
                     new LogtestResponse(

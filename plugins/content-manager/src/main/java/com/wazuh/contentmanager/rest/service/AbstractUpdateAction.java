@@ -23,13 +23,14 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 
-import com.wazuh.contentmanager.action.ContentUpdateRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
+import com.wazuh.contentmanager.action.ContentUpdateRequest;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -40,10 +41,6 @@ import com.wazuh.contentmanager.utils.Constants;
 public abstract class AbstractUpdateAction extends AbstractContentAction {
 
     private static final Logger log = LogManager.getLogger(AbstractUpdateAction.class);
-
-    public AbstractUpdateAction() {
-        super();
-    }
 
     protected abstract ActionType<ContentResponse> getActionType();
 
@@ -66,14 +63,10 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
                         updateRequest,
                         new RestResponseListener<ContentResponse>(channel) {
                             @Override
-                            public org.opensearch.rest.RestResponse buildResponse(
-                                    ContentResponse response) throws Exception {
+                            public RestResponse buildResponse(ContentResponse response) throws Exception {
                                 return new BytesRestResponse(
-                                        org.opensearch.core.rest.RestStatus.fromCode(
-                                                response.getStatus()),
-                                        response.toXContent(
-                                                XContentFactory.jsonBuilder(),
-                                                ToXContent.EMPTY_PARAMS));
+                                        response.getStatus(),
+                                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
                             }
                         });
     }

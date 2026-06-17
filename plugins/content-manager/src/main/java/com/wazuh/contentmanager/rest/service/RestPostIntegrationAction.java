@@ -31,10 +31,6 @@ public class RestPostIntegrationAction extends AbstractCreateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_integration_create";
 
-    public RestPostIntegrationAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

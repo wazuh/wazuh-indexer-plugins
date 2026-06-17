@@ -20,12 +20,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -116,8 +116,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
             RestChannel channel) {
         return new RestResponseListener<>(channel) {
             @Override
-            public org.opensearch.rest.RestResponse buildResponse(MessageStatusResponse response)
-                    throws Exception {
+            public RestResponse buildResponse(MessageStatusResponse response) throws Exception {
                 return new BytesRestResponse(
                         response.getStatus(),
                         response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));

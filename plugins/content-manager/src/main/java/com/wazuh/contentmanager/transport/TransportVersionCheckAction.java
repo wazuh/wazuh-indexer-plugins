@@ -100,8 +100,7 @@ public class TransportVersionCheckAction
                                 ? RestStatus.fromCode(ctiStatusCode)
                                 : RestStatus.BAD_GATEWAY;
                 listener.onResponse(
-                        new VersionCheckResponse(ctiResponse.getBodyText(), status)
-                                .parseMessageAsJson());
+                        new VersionCheckResponse(ctiResponse.getBodyText(), status).parseMessageAsJson());
                 return;
             }
 
@@ -127,8 +126,7 @@ public class TransportVersionCheckAction
 
             // Serialize message as JSON string but pass parsed object for structured output
             String messageJson = this.mapper.writeValueAsString(messageMap);
-            listener.onResponse(
-                    new VersionCheckResponse(messageJson, RestStatus.OK, messageMap));
+            listener.onResponse(new VersionCheckResponse(messageJson, RestStatus.OK, messageMap));
 
         } catch (Exception e) {
             log.error("Unexpected error during version check: {}", e.getMessage(), e);

@@ -42,8 +42,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import com.wazuh.contentmanager.action.ContentUpdateRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
+import com.wazuh.contentmanager.action.ContentUpdateRequest;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -66,8 +66,7 @@ import com.wazuh.contentmanager.utils.YamlUtils;
 public abstract class AbstractTransportUpdateActionSpaces
         extends HandledTransportAction<ContentUpdateRequest, ContentResponse> {
 
-    private static final Logger log =
-            LogManager.getLogger(AbstractTransportUpdateActionSpaces.class);
+    private static final Logger log = LogManager.getLogger(AbstractTransportUpdateActionSpaces.class);
     protected static final ObjectMapper MAPPER = new ObjectMapper();
     protected final PayloadValidations documentValidations = new PayloadValidations();
     protected final Client client;
@@ -86,9 +85,7 @@ public abstract class AbstractTransportUpdateActionSpaces
 
     @Override
     protected void doExecute(
-            Task task,
-            ContentUpdateRequest request,
-            ActionListener<ContentResponse> listener) {
+            Task task, ContentUpdateRequest request, ActionListener<ContentResponse> listener) {
         SecurityAnalyticsService securityAnalyticsService;
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             securityAnalyticsService = new MockSecurityAnalyticsService();
@@ -101,17 +98,19 @@ public abstract class AbstractTransportUpdateActionSpaces
             RestResponse policyError = TransportActionHelper.validateDraftPolicyExists(client);
             if (policyError != null) {
                 listener.onResponse(
-                        new ContentResponse(policyError.getMessage(), policyError.getStatus()));
+                        new ContentResponse(
+                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
                 return;
             }
 
             RestResponse result = executeUpdateWorkflow(request, client, spaceService);
-            listener.onResponse(new ContentResponse(result.getMessage(), result.getStatus()));
+            listener.onResponse(
+                    new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
         } catch (Exception e) {
             listener.onResponse(
                     new ContentResponse(
                             e.getMessage() != null ? e.getMessage() : "Unexpected error",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                            RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -172,12 +171,10 @@ public abstract class AbstractTransportUpdateActionSpaces
                             id,
                             "Invalid YAML format");
                     return new RestResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY,
-                            RestStatus.BAD_REQUEST.getStatus());
+                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
                 }
 
-                validationError =
-                        this.documentValidations.validateResourcePayload(rootNode, false);
+                validationError = this.documentValidations.validateResourcePayload(rootNode, false);
                 if (validationError != null) {
                     log.warn(
                             Constants.W_LOG_OPERATION_FAILED_ID,
@@ -200,12 +197,10 @@ public abstract class AbstractTransportUpdateActionSpaces
                             id,
                             "Invalid JSON format");
                     return new RestResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY,
-                            RestStatus.BAD_REQUEST.getStatus());
+                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
                 }
 
-                validationError =
-                        this.documentValidations.validateResourcePayload(rootNode, false);
+                validationError = this.documentValidations.validateResourcePayload(rootNode, false);
                 if (validationError != null) {
                     log.warn(
                             Constants.W_LOG_OPERATION_FAILED_ID,
@@ -243,11 +238,7 @@ public abstract class AbstractTransportUpdateActionSpaces
                             spaceName);
             if (spaceError != null) {
                 log.warn(
-                        Constants.W_LOG_OPERATION_FAILED_ID,
-                        "Update",
-                        this.getResourceType(),
-                        id,
-                        spaceError);
+                        Constants.W_LOG_OPERATION_FAILED_ID, "Update", this.getResourceType(), id, spaceError);
                 return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
             }
 
@@ -302,16 +293,13 @@ public abstract class AbstractTransportUpdateActionSpaces
             if (secEx != null) {
                 return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
             }
-            log.error(
-                    Constants.E_LOG_UNEXPECTED, "updating", this.getResourceType(), id, e.getMessage());
+            log.error(Constants.E_LOG_UNEXPECTED, "updating", this.getResourceType(), id, e.getMessage());
             return new RestResponse(
-                    "Internal Server Error. " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 
-    protected RestResponse preserveMetadata(
-            ContentIndex index, String id, ObjectNode resourceNode) {
+    protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
         JsonNode existingDoc = index.getDocument(id);
         if (existingDoc == null || !existingDoc.has(Constants.KEY_DOCUMENT)) return null;
 
@@ -330,8 +318,7 @@ public abstract class AbstractTransportUpdateActionSpaces
 
         if (!resourceNode.has(Constants.KEY_ENABLED)) {
             if (doc.has(Constants.KEY_ENABLED)) {
-                resourceNode.put(
-                        Constants.KEY_ENABLED, doc.get(Constants.KEY_ENABLED).asBoolean());
+                resourceNode.put(Constants.KEY_ENABLED, doc.get(Constants.KEY_ENABLED).asBoolean());
             } else {
                 resourceNode.put(Constants.KEY_ENABLED, true);
             }
@@ -369,10 +356,8 @@ public abstract class AbstractTransportUpdateActionSpaces
 
         if (this.getAllowedSpaces() != null
                 && spaceNameFromRequest != null
-                && !this.getAllowedSpaces()
-                        .contains(Space.fromValue(spaceNameFromRequest))) {
-            return String.format(
-                    Locale.ROOT, Constants.E_400_RESOURCE_SPACE_MISMATCH, validSpaces);
+                && !this.getAllowedSpaces().contains(Space.fromValue(spaceNameFromRequest))) {
+            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_SPACE_MISMATCH, validSpaces);
         }
 
         if (spaceNameFromRequest != null
@@ -397,8 +382,7 @@ public abstract class AbstractTransportUpdateActionSpaces
 
     protected abstract Set<Space> getAllowedSpaces();
 
-    protected abstract RestResponse validatePayload(
-            Client client, JsonNode root, JsonNode resource);
+    protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
 
     protected abstract RestResponse syncExternalServices(String id, JsonNode resource);
 }

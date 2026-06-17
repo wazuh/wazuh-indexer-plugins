@@ -37,8 +37,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-import com.wazuh.contentmanager.action.ContentUpdateRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
+import com.wazuh.contentmanager.action.ContentUpdateRequest;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -56,8 +56,8 @@ import com.wazuh.contentmanager.utils.YamlUtils;
 /**
  * Abstract transport action for updating content resources (non-Spaces variant).
  *
- * <p>Mirrors the business logic from {@code AbstractUpdateAction.executeRequest()}.
- * Resources are always updated in the DRAFT space.
+ * <p>Mirrors the business logic from {@code AbstractUpdateAction.executeRequest()}. Resources are
+ * always updated in the DRAFT space.
  */
 public abstract class AbstractTransportUpdateAction
         extends HandledTransportAction<ContentUpdateRequest, ContentResponse> {
@@ -81,9 +81,7 @@ public abstract class AbstractTransportUpdateAction
 
     @Override
     protected void doExecute(
-            Task task,
-            ContentUpdateRequest request,
-            ActionListener<ContentResponse> listener) {
+            Task task, ContentUpdateRequest request, ActionListener<ContentResponse> listener) {
         SecurityAnalyticsService securityAnalyticsService;
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             securityAnalyticsService = new MockSecurityAnalyticsService();
@@ -96,18 +94,20 @@ public abstract class AbstractTransportUpdateAction
             RestResponse policyError = TransportActionHelper.validateDraftPolicyExists(client);
             if (policyError != null) {
                 listener.onResponse(
-                        new ContentResponse(policyError.getMessage(), policyError.getStatus()));
+                        new ContentResponse(
+                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
                 return;
             }
 
             RestResponse result =
                     executeUpdateWorkflow(request, client, spaceService, securityAnalyticsService);
-            listener.onResponse(new ContentResponse(result.getMessage(), result.getStatus()));
+            listener.onResponse(
+                    new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
         } catch (Exception e) {
             listener.onResponse(
                     new ContentResponse(
                             e.getMessage() != null ? e.getMessage() : "Unexpected error",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                            RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -186,12 +186,10 @@ public abstract class AbstractTransportUpdateAction
                             id,
                             "Invalid YAML format");
                     return new RestResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY,
-                            RestStatus.BAD_REQUEST.getStatus());
+                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
                 }
 
-                validationError =
-                        this.documentValidations.validateResourcePayload(rootNode, false);
+                validationError = this.documentValidations.validateResourcePayload(rootNode, false);
                 if (validationError != null) {
                     log.warn(
                             Constants.W_LOG_OPERATION_FAILED_ID,
@@ -214,13 +212,11 @@ public abstract class AbstractTransportUpdateAction
                             id,
                             "Invalid JSON format");
                     return new RestResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY,
-                            RestStatus.BAD_REQUEST.getStatus());
+                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
                 }
 
                 // 4. Validate Payload
-                validationError =
-                        this.documentValidations.validateResourcePayload(rootNode, false);
+                validationError = this.documentValidations.validateResourcePayload(rootNode, false);
                 if (validationError != null) {
                     log.warn(
                             Constants.W_LOG_OPERATION_FAILED_ID,
@@ -262,8 +258,7 @@ public abstract class AbstractTransportUpdateAction
             }
 
             // 7. External Sync
-            validationError =
-                    this.syncExternalServices(id, resourceNode, securityAnalyticsService);
+            validationError = this.syncExternalServices(id, resourceNode, securityAnalyticsService);
             if (validationError != null) {
                 log.error(
                         Constants.E_LOG_FAILED_TO,
@@ -275,8 +270,7 @@ public abstract class AbstractTransportUpdateAction
             }
 
             // 8. Indexing
-            ObjectNode ctiWrapper =
-                    new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
+            ObjectNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
 
             if (this.supportsYamlField()) {
                 if (rawYaml != null) {
@@ -299,19 +293,14 @@ public abstract class AbstractTransportUpdateAction
             if (secEx != null) {
                 return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
             }
-            log.error(
-                    Constants.E_LOG_UNEXPECTED, "updating", this.getResourceType(), id, e.getMessage());
+            log.error(Constants.E_LOG_UNEXPECTED, "updating", this.getResourceType(), id, e.getMessage());
             return new RestResponse(
-                    "Internal Server Error. " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 
-    /**
-     * Preserves creation date and other immutable fields from the existing document.
-     */
-    protected RestResponse preserveMetadata(
-            ContentIndex index, String id, ObjectNode resourceNode) {
+    /** Preserves creation date and other immutable fields from the existing document. */
+    protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
         JsonNode existingDoc = index.getDocument(id);
         if (existingDoc == null || !existingDoc.has(Constants.KEY_DOCUMENT)) return null;
 
@@ -331,8 +320,7 @@ public abstract class AbstractTransportUpdateAction
 
         if (!resourceNode.has(Constants.KEY_ENABLED)) {
             if (doc.has(Constants.KEY_ENABLED)) {
-                resourceNode.put(
-                        Constants.KEY_ENABLED, doc.get(Constants.KEY_ENABLED).asBoolean());
+                resourceNode.put(Constants.KEY_ENABLED, doc.get(Constants.KEY_ENABLED).asBoolean());
             } else {
                 resourceNode.put(Constants.KEY_ENABLED, true);
             }
@@ -352,8 +340,7 @@ public abstract class AbstractTransportUpdateAction
 
     protected abstract String getResourceType();
 
-    protected abstract RestResponse validatePayload(
-            Client client, JsonNode root, JsonNode resource);
+    protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
 
     protected abstract RestResponse syncExternalServices(
             String id, JsonNode resource, SecurityAnalyticsService securityAnalyticsService);

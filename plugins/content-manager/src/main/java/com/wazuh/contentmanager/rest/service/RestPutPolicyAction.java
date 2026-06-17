@@ -24,14 +24,15 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.util.List;
 
+import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.UpdatePolicyAction;
 import com.wazuh.contentmanager.action.UpdatePolicyRequest;
-import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -65,17 +66,13 @@ public class RestPutPolicyAction extends BaseRestHandler {
         String body = request.hasContent() ? request.content().utf8ToString() : null;
         UpdatePolicyRequest policyRequest = new UpdatePolicyRequest(space, body);
         return channel ->
-                client.execute(
-                        UpdatePolicyAction.INSTANCE,
-                        policyRequest,
-                        createResponseListener(channel));
+                client.execute(UpdatePolicyAction.INSTANCE, policyRequest, createResponseListener(channel));
     }
 
     private RestResponseListener<MessageStatusResponse> createResponseListener(RestChannel channel) {
         return new RestResponseListener<>(channel) {
             @Override
-            public org.opensearch.rest.RestResponse buildResponse(MessageStatusResponse response)
-                    throws Exception {
+            public RestResponse buildResponse(MessageStatusResponse response) throws Exception {
                 return new BytesRestResponse(
                         response.getStatus(),
                         response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));

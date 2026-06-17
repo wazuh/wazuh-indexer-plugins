@@ -24,11 +24,11 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.util.List;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.action.DeleteSubscriptionAction;
 import com.wazuh.contentmanager.action.DeleteSubscriptionRequest;
@@ -80,9 +80,7 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        log.debug(
-                String.format(
-                        Locale.getDefault(), "%s %s", request.method(), PluginSettings.SUBSCRIPTION_URI));
+        log.debug("{} {}", request.method(), PluginSettings.SUBSCRIPTION_URI);
 
         DeleteSubscriptionRequest subscriptionRequest = new DeleteSubscriptionRequest();
         return channel ->
@@ -92,12 +90,10 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
                         createResponseListener(channel));
     }
 
-    private RestResponseListener<MessageStatusResponse> createResponseListener(
-            RestChannel channel) {
+    private RestResponseListener<MessageStatusResponse> createResponseListener(RestChannel channel) {
         return new RestResponseListener<>(channel) {
             @Override
-            public org.opensearch.rest.RestResponse buildResponse(MessageStatusResponse response)
-                    throws Exception {
+            public RestResponse buildResponse(MessageStatusResponse response) throws Exception {
                 return new BytesRestResponse(
                         response.getStatus(),
                         response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));

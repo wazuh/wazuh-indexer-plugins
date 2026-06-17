@@ -27,8 +27,8 @@ import java.io.IOException;
 /**
  * Transport request for content resource creation operations.
  *
- * <p>Carries the raw request body and content type information needed to create
- * a new content resource (Decoder, KVDB, Integration, Rule, or Filter).
+ * <p>Carries the raw request body and content type information needed to create a new content
+ * resource (Decoder, KVDB, Integration, Rule, or Filter).
  */
 public class ContentCreateRequest extends ActionRequest {
 

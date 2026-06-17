@@ -39,12 +39,7 @@ public class TransportUpdateDecoderAction extends AbstractTransportUpdateAction 
             ActionFilters actionFilters,
             Client client,
             EngineService engine) {
-        super(
-                UpdateDecoderAction.NAME,
-                transportService,
-                actionFilters,
-                client,
-                engine);
+        super(UpdateDecoderAction.NAME, transportService, actionFilters, client, engine);
     }
 
     @Override

@@ -31,10 +31,6 @@ public class RestPostKvdbAction extends AbstractCreateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_kvdb_create";
 
-    public RestPostKvdbAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

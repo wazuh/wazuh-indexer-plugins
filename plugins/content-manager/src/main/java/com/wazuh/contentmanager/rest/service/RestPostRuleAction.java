@@ -31,10 +31,6 @@ public class RestPostRuleAction extends AbstractCreateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_rule_create";
 
-    public RestPostRuleAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

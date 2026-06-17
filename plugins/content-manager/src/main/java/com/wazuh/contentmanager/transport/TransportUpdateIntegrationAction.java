@@ -63,8 +63,7 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
     }
 
     @Override
-    protected RestResponse preserveMetadata(
-            ContentIndex index, String id, ObjectNode resourceNode) {
+    protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
         RestResponse response = super.preserveMetadata(index, id, resourceNode);
         if (response != null) return response;
 

@@ -31,10 +31,6 @@ public class RestPutRuleAction extends AbstractUpdateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_rule_update";
 
-    public RestPutRuleAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

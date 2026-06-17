@@ -88,8 +88,7 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
         }
 
         RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_NAME));
+                this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_NAME));
         if (fieldValidation != null) return fieldValidation;
 
         RestResponse metadataValidation =

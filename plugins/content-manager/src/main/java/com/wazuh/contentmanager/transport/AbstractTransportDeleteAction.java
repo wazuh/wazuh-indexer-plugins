@@ -49,8 +49,8 @@ import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 /**
  * Abstract transport action for deleting content resources (non-Spaces variant).
  *
- * <p>Mirrors the business logic from {@code AbstractDeleteAction.executeRequest()}.
- * Resources are always deleted from the DRAFT space.
+ * <p>Mirrors the business logic from {@code AbstractDeleteAction.executeRequest()}. Resources are
+ * always deleted from the DRAFT space.
  */
 public abstract class AbstractTransportDeleteAction
         extends HandledTransportAction<ContentDeleteRequest, ContentResponse> {
@@ -73,9 +73,7 @@ public abstract class AbstractTransportDeleteAction
 
     @Override
     protected void doExecute(
-            Task task,
-            ContentDeleteRequest request,
-            ActionListener<ContentResponse> listener) {
+            Task task, ContentDeleteRequest request, ActionListener<ContentResponse> listener) {
         SecurityAnalyticsService securityAnalyticsService;
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             securityAnalyticsService = new MockSecurityAnalyticsService();
@@ -89,19 +87,21 @@ public abstract class AbstractTransportDeleteAction
             RestResponse policyError = TransportActionHelper.validateDraftPolicyExists(client);
             if (policyError != null) {
                 listener.onResponse(
-                        new ContentResponse(policyError.getMessage(), policyError.getStatus()));
+                        new ContentResponse(
+                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
                 return;
             }
 
             RestResponse result =
                     executeDeleteWorkflow(
                             request, client, spaceService, securityAnalyticsService, integrationService);
-            listener.onResponse(new ContentResponse(result.getMessage(), result.getStatus()));
+            listener.onResponse(
+                    new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
         } catch (Exception e) {
             listener.onResponse(
                     new ContentResponse(
                             e.getMessage() != null ? e.getMessage() : "Unexpected error",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                            RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -217,11 +217,9 @@ public abstract class AbstractTransportDeleteAction
             if (secEx != null) {
                 return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
             }
-            log.error(
-                    Constants.E_LOG_UNEXPECTED, "deleting", this.getResourceType(), id, e.getMessage());
+            log.error(Constants.E_LOG_UNEXPECTED, "deleting", this.getResourceType(), id, e.getMessage());
             return new RestResponse(
-                    "Internal Server Error. " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 

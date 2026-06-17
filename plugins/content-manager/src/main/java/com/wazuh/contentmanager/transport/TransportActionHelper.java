@@ -48,8 +48,7 @@ public final class TransportActionHelper {
         try {
             SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
             SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-            sourceBuilder.query(
-                    QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
+            sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
             sourceBuilder.size(0);
             searchRequest.source(sourceBuilder);
 
@@ -58,8 +57,7 @@ public final class TransportActionHelper {
             if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
                 log.error(Constants.E_500_MISSING_DRAFT_POLICY);
                 return new RestResponse(
-                        Constants.E_500_MISSING_DRAFT_POLICY,
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                        Constants.E_500_MISSING_DRAFT_POLICY, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
         } catch (Exception ex) {
             OpenSearchSecurityException secEx = extractSecurityException(ex);
@@ -67,15 +65,12 @@ public final class TransportActionHelper {
                 return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
             }
             return new RestResponse(
-                    "Draft policy check failed: " + ex.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
+                    "Draft policy check failed: " + ex.getMessage(), RestStatus.BAD_REQUEST.getStatus());
         }
         return null;
     }
 
-    /**
-     * Walks the exception cause chain looking for an OpenSearchSecurityException.
-     */
+    /** Walks the exception cause chain looking for an OpenSearchSecurityException. */
     public static OpenSearchSecurityException extractSecurityException(Throwable throwable) {
         Throwable cause = throwable;
         while (cause != null) {

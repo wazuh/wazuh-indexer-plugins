@@ -58,8 +58,8 @@ import com.wazuh.contentmanager.utils.YamlUtils;
 /**
  * Abstract transport action for creating content resources (non-Spaces variant).
  *
- * <p>Mirrors the business logic from {@code AbstractCreateAction.executeRequest()}.
- * Resources are always created in the DRAFT space.
+ * <p>Mirrors the business logic from {@code AbstractCreateAction.executeRequest()}. Resources are
+ * always created in the DRAFT space.
  */
 public abstract class AbstractTransportCreateAction
         extends HandledTransportAction<ContentCreateRequest, ContentResponse> {
@@ -83,9 +83,7 @@ public abstract class AbstractTransportCreateAction
 
     @Override
     protected void doExecute(
-            Task task,
-            ContentCreateRequest request,
-            ActionListener<ContentResponse> listener) {
+            Task task, ContentCreateRequest request, ActionListener<ContentResponse> listener) {
         SecurityAnalyticsService securityAnalyticsService;
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             securityAnalyticsService = new MockSecurityAnalyticsService();
@@ -100,19 +98,21 @@ public abstract class AbstractTransportCreateAction
             RestResponse policyError = TransportActionHelper.validateDraftPolicyExists(client);
             if (policyError != null) {
                 listener.onResponse(
-                        new ContentResponse(policyError.getMessage(), policyError.getStatus()));
+                        new ContentResponse(
+                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
                 return;
             }
 
             RestResponse result =
                     executeCreateWorkflow(
                             request, client, spaceService, securityAnalyticsService, integrationService);
-            listener.onResponse(new ContentResponse(result.getMessage(), result.getStatus()));
+            listener.onResponse(
+                    new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
         } catch (Exception e) {
             listener.onResponse(
                     new ContentResponse(
                             e.getMessage() != null ? e.getMessage() : "Unexpected error",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                            RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -225,8 +225,7 @@ public abstract class AbstractTransportCreateAction
             }
 
             // 6. External Sync
-            validationError =
-                    this.syncExternalServices(id, resourceNode, securityAnalyticsService);
+            validationError = this.syncExternalServices(id, resourceNode, securityAnalyticsService);
             if (validationError != null) {
                 log.error(
                         Constants.E_LOG_FAILED_TO,
@@ -239,8 +238,7 @@ public abstract class AbstractTransportCreateAction
 
             // 7. Indexing
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
-            ObjectNode ctiWrapper =
-                    new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
+            ObjectNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
 
             // Populate yaml field for resource types that support it
             if (this.supportsYamlField()) {
@@ -285,8 +283,7 @@ public abstract class AbstractTransportCreateAction
                     this.getResourceType(),
                     "Reason: " + e.getMessage());
             return new RestResponse(
-                    "Internal Server Error. " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 

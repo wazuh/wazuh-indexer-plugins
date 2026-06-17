@@ -31,10 +31,6 @@ public class RestPostFilterAction extends AbstractCreateActionSpaces {
 
     private static final String ENDPOINT_NAME = "content_manager_filter_create";
 
-    public RestPostFilterAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

@@ -27,8 +27,8 @@ import java.io.IOException;
 /**
  * Transport request for content resource update operations.
  *
- * <p>Carries the resource ID, raw request body, and content type information needed
- * to update an existing content resource.
+ * <p>Carries the resource ID, raw request body, and content type information needed to update an
+ * existing content resource.
  */
 public class ContentUpdateRequest extends ActionRequest {
 

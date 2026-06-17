@@ -24,9 +24,9 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
+import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.TriggerUpdateAction;
 import com.wazuh.contentmanager.action.TriggerUpdateRequest;
-import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 
 public class TransportTriggerUpdateAction

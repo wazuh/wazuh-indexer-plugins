@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 
@@ -29,9 +30,9 @@ import com.wazuh.contentmanager.utils.Constants;
 public class ContentResponse extends ActionResponse implements ToXContent {
 
     private final String message;
-    private final int status;
+    private final RestStatus status;
 
-    public ContentResponse(String message, int status) {
+    public ContentResponse(String message, RestStatus status) {
         super();
         this.message = message;
         this.status = status;
@@ -39,13 +40,13 @@ public class ContentResponse extends ActionResponse implements ToXContent {
 
     public ContentResponse(StreamInput sin) throws IOException {
         this.message = sin.readString();
-        this.status = sin.readInt();
+        this.status = sin.readEnum(RestStatus.class);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(message);
-        out.writeInt(status);
+        out.writeEnum(status);
     }
 
     @Override
@@ -53,7 +54,7 @@ public class ContentResponse extends ActionResponse implements ToXContent {
         return builder
                 .startObject()
                 .field(Constants.KEY_MESSAGE, message)
-                .field(Constants.KEY_STATUS, status)
+                .field(Constants.KEY_STATUS, status.getStatus())
                 .endObject();
     }
 
@@ -61,7 +62,7 @@ public class ContentResponse extends ActionResponse implements ToXContent {
         return message;
     }
 
-    public int getStatus() {
+    public RestStatus getStatus() {
         return status;
     }
 }

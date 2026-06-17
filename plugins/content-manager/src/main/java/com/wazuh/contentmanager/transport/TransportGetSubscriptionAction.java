@@ -41,28 +41,20 @@ public class TransportGetSubscriptionAction
             TransportService transportService,
             ActionFilters actionFilters,
             SubscriptionServiceImpl subscriptionService) {
-        super(
-                GetSubscriptionAction.NAME,
-                transportService,
-                actionFilters,
-                GetSubscriptionRequest::new);
+        super(GetSubscriptionAction.NAME, transportService, actionFilters, GetSubscriptionRequest::new);
         this.subscriptionService = subscriptionService;
     }
 
     @Override
     protected void doExecute(
-            Task task,
-            GetSubscriptionRequest request,
-            ActionListener<GetSubscriptionResponse> listener) {
+            Task task, GetSubscriptionRequest request, ActionListener<GetSubscriptionResponse> listener) {
         try {
             Plan plan = this.subscriptionService.getPlan();
             boolean isRegistered = PluginSettings.getInstance().getAccessToken() != null;
 
             listener.onResponse(
                     new GetSubscriptionResponse(
-                            plan != null ? plan.getName() : null,
-                            plan != null && plan.isPublic(),
-                            isRegistered));
+                            plan != null ? plan.getName() : null, plan != null && plan.isPublic(), isRegistered));
         } catch (Exception e) {
             listener.onResponse(
                     new GetSubscriptionResponse(

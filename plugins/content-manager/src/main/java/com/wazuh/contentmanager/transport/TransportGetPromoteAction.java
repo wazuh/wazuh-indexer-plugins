@@ -26,7 +26,11 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import com.wazuh.contentmanager.action.GetPromoteAction;
 import com.wazuh.contentmanager.action.GetPromoteRequest;
@@ -48,9 +52,7 @@ public class TransportGetPromoteAction
 
     @Inject
     public TransportGetPromoteAction(
-            TransportService transportService,
-            ActionFilters actionFilters,
-            SpaceService spaceService) {
+            TransportService transportService, ActionFilters actionFilters, SpaceService spaceService) {
         super(GetPromoteAction.NAME, transportService, actionFilters, GetPromoteRequest::new);
         this.spaceService = spaceService;
     }
@@ -64,8 +66,7 @@ public class TransportGetPromoteAction
             if (spaceParam == null || spaceParam.isBlank()) {
                 listener.onResponse(
                         new GetPromoteResponse(
-                                String.format(
-                                        Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_SPACE),
+                                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_SPACE),
                                 RestStatus.BAD_REQUEST));
                 return;
             }
@@ -76,8 +77,7 @@ public class TransportGetPromoteAction
             if (targetSpace == sourceSpace) {
                 listener.onResponse(
                         new GetPromoteResponse(
-                                String.format(
-                                        Locale.ROOT, Constants.E_400_UNPROMOTABLE_SPACE, sourceSpace),
+                                String.format(Locale.ROOT, Constants.E_400_UNPROMOTABLE_SPACE, sourceSpace),
                                 RestStatus.BAD_REQUEST));
                 return;
             }
@@ -96,10 +96,8 @@ public class TransportGetPromoteAction
                     continue;
                 }
 
-                Map<String, String> sourceItems =
-                        sourceContent.getOrDefault(resourceType, new HashMap<>());
-                Map<String, String> targetItems =
-                        targetContent.getOrDefault(resourceType, new HashMap<>());
+                Map<String, String> sourceItems = sourceContent.getOrDefault(resourceType, new HashMap<>());
+                Map<String, String> targetItems = targetContent.getOrDefault(resourceType, new HashMap<>());
 
                 List<Map<String, String>> resourceChanges;
                 if (Constants.KEY_POLICY.equals(resourceType)) {
@@ -118,11 +116,7 @@ public class TransportGetPromoteAction
             listener.onResponse(new GetPromoteResponse(e.getMessage(), RestStatus.BAD_REQUEST));
         } catch (Exception e) {
             log.error(
-                    Constants.E_LOG_OPERATION_FAILED,
-                    "processing",
-                    "promote preview",
-                    e.getMessage(),
-                    e);
+                    Constants.E_LOG_OPERATION_FAILED, "processing", "promote preview", e.getMessage(), e);
             listener.onResponse(
                     new GetPromoteResponse(
                             Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
@@ -142,8 +136,7 @@ public class TransportGetPromoteAction
             } else {
                 String targetHash = targetItems.get(id);
                 if (!sourceHash.equals(targetHash)) {
-                    changes.add(
-                            Map.of(Constants.KEY_OPERATION, Constants.OP_UPDATE, Constants.KEY_ID, id));
+                    changes.add(Map.of(Constants.KEY_OPERATION, Constants.OP_UPDATE, Constants.KEY_ID, id));
                 }
             }
         }

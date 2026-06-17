@@ -31,10 +31,6 @@ public class RestDeleteFilterAction extends AbstractDeleteActionSpaces {
 
     private static final String ENDPOINT_NAME = "content_manager_filter_delete";
 
-    public RestDeleteFilterAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

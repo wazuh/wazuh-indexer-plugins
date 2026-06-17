@@ -24,11 +24,11 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.util.List;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.action.DeleteSpaceAction;
 import com.wazuh.contentmanager.action.DeleteSpaceRequest;
@@ -69,28 +69,19 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        log.debug(
-                String.format(
-                        Locale.getDefault(),
-                        "%s %s",
-                        request.method(),
-                        PluginSettings.SPACE_URI + "/{space}"));
-
         String spaceName = request.param(Constants.KEY_SPACE);
+        log.debug("{} {}/{}", request.method(), PluginSettings.SPACE_URI, spaceName);
         DeleteSpaceRequest deleteSpaceRequest = new DeleteSpaceRequest(spaceName);
 
         return channel ->
                 client.execute(
-                        DeleteSpaceAction.INSTANCE,
-                        deleteSpaceRequest,
-                        createResponseListener(channel));
+                        DeleteSpaceAction.INSTANCE, deleteSpaceRequest, createResponseListener(channel));
     }
 
     private RestResponseListener<MessageStatusResponse> createResponseListener(RestChannel channel) {
         return new RestResponseListener<>(channel) {
             @Override
-            public org.opensearch.rest.RestResponse buildResponse(MessageStatusResponse response)
-                    throws Exception {
+            public RestResponse buildResponse(MessageStatusResponse response) throws Exception {
                 return new BytesRestResponse(
                         response.getStatus(),
                         response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));

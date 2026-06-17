@@ -16,32 +16,17 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 
-import com.wazuh.contentmanager.utils.Constants;
-
 /**
  * Base abstract class for Content Manager REST actions.
  *
- * <p>This class provides the foundational structure for handling CTI content requests.
- * Business logic has been moved to transport actions; REST handlers now delegate
- * to the transport layer via {@code client.execute()}.
+ * <p>Business logic has been moved to transport actions; REST handlers now delegate to the
+ * transport layer via {@code client.execute()}.
  */
 public abstract class AbstractContentAction extends BaseRestHandler {
-
-    private static final Logger log = LogManager.getLogger(AbstractContentAction.class);
-
-    /**
-     * Constructor for AbstractContentAction.
-     *
-     */
-    public AbstractContentAction() {
-    }
 
     /**
      * Checks whether the incoming request uses {@code application/yaml} content type.
@@ -55,30 +40,6 @@ public abstract class AbstractContentAction extends BaseRestHandler {
         } catch (Exception e) {
             return false;
         }
-    }
-
-    /**
-     * Indicates if this resource type supports YAML field storage.
-     *
-     * @return false by default. Override to return true for Decoders, KVDBs, and Filters.
-     */
-    protected boolean supportsYamlField() {
-        return false;
-    }
-
-    /**
-     * Walks the exception cause chain looking for an {@link OpenSearchSecurityException}. Returns it
-     * if found, or {@code null} otherwise.
-     */
-    protected static OpenSearchSecurityException extractSecurityException(Throwable throwable) {
-        Throwable cause = throwable;
-        while (cause != null) {
-            if (cause instanceof OpenSearchSecurityException) {
-                return (OpenSearchSecurityException) cause;
-            }
-            cause = cause.getCause();
-        }
-        return null;
     }
 
     /**

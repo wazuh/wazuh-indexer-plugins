@@ -67,20 +67,17 @@ public class TransportLogtestAction
                 jsonNode = mapper.readTree(request.getBody());
             } catch (Exception ex) {
                 listener.onResponse(
-                        new LogtestResponse(
-                                Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
+                        new LogtestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
                 return;
             }
 
             // 2. Validate required field: space
             RestResponse validationError =
-                    this.payloadValidations.validateRequiredFields(
-                            jsonNode, List.of(Constants.KEY_SPACE));
+                    this.payloadValidations.validateRequiredFields(jsonNode, List.of(Constants.KEY_SPACE));
             if (validationError != null) {
                 listener.onResponse(
                         new LogtestResponse(
-                                validationError.getMessage(),
-                                RestStatus.fromCode(validationError.getStatus())));
+                                validationError.getMessage(), RestStatus.fromCode(validationError.getStatus())));
                 return;
             }
 
@@ -121,8 +118,7 @@ public class TransportLogtestAction
                     this.logtestService.executeLogtest(integrationId, spaceEnum, enginePayload);
             listener.onResponse(
                     new LogtestResponse(
-                            serviceResponse.getMessage(),
-                            RestStatus.fromCode(serviceResponse.getStatus())));
+                            serviceResponse.getMessage(), RestStatus.fromCode(serviceResponse.getStatus())));
         } catch (Exception e) {
             listener.onResponse(
                     new LogtestResponse(

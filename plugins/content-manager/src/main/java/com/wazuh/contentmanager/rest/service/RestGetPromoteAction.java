@@ -24,6 +24,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -64,17 +65,13 @@ public class RestGetPromoteAction extends BaseRestHandler {
         String space = request.param(Constants.KEY_SPACE);
         GetPromoteRequest promoteRequest = new GetPromoteRequest(space);
         return channel ->
-                client.execute(
-                        GetPromoteAction.INSTANCE,
-                        promoteRequest,
-                        createResponseListener(channel));
+                client.execute(GetPromoteAction.INSTANCE, promoteRequest, createResponseListener(channel));
     }
 
     private RestResponseListener<GetPromoteResponse> createResponseListener(RestChannel channel) {
         return new RestResponseListener<>(channel) {
             @Override
-            public org.opensearch.rest.RestResponse buildResponse(GetPromoteResponse response)
-                    throws Exception {
+            public RestResponse buildResponse(GetPromoteResponse response) throws Exception {
                 return new BytesRestResponse(
                         response.getStatus(),
                         response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));

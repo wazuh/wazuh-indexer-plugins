@@ -31,10 +31,6 @@ public class RestPutKvdbAction extends AbstractUpdateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_kvdb_update";
 
-    public RestPutKvdbAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

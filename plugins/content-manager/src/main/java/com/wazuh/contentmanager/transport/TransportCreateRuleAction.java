@@ -72,20 +72,14 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
         String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
         RestResponse duplicateValidation =
                 this.documentValidations.validateDuplicateTitle(
-                        client,
-                        Constants.INDEX_RULES,
-                        Space.DRAFT.toString(),
-                        title,
-                        null,
-                        Constants.KEY_RULE);
+                        client, Constants.INDEX_RULES, Space.DRAFT.toString(), title, null, Constants.KEY_RULE);
         if (duplicateValidation != null) return duplicateValidation;
 
         String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
         String spaceError =
                 this.documentValidations.validateDocumentInSpace(
                         client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
-        if (spaceError != null)
-            return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
+        if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
 
         // Validate that logsource.product matches the integration's metadata.title
         GetResponse integrationResponse =
@@ -94,24 +88,17 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
             Map<String, Object> source = integrationResponse.getSourceAsMap();
             if (source != null && source.containsKey(Constants.KEY_DOCUMENT)) {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> doc =
-                        (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+                Map<String, Object> doc = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
                 if (doc != null && doc.containsKey(Constants.KEY_METADATA)) {
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> metadata =
-                            (Map<String, Object>) doc.get(Constants.KEY_METADATA);
+                    Map<String, Object> metadata = (Map<String, Object>) doc.get(Constants.KEY_METADATA);
                     String integrationTitle =
                             metadata != null ? (String) metadata.get(Constants.KEY_TITLE) : null;
 
                     String ruleProduct = null;
                     if (resource.has(Constants.KEY_LOGSOURCE)
-                            && resource
-                                    .get(Constants.KEY_LOGSOURCE)
-                                    .has(Constants.KEY_PRODUCT)) {
-                        ruleProduct =
-                                resource.get(Constants.KEY_LOGSOURCE)
-                                        .get(Constants.KEY_PRODUCT)
-                                        .asText();
+                            && resource.get(Constants.KEY_LOGSOURCE).has(Constants.KEY_PRODUCT)) {
+                        ruleProduct = resource.get(Constants.KEY_LOGSOURCE).get(Constants.KEY_PRODUCT).asText();
                     }
 
                     if (integrationTitle == null || !integrationTitle.equals(ruleProduct)) {

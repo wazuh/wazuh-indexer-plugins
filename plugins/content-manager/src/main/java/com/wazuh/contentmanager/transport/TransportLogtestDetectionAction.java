@@ -51,19 +51,14 @@ public class TransportLogtestDetectionAction
             ActionFilters actionFilters,
             LogtestService logtestService) {
         super(
-                LogtestDetectionAction.NAME,
-                transportService,
-                actionFilters,
-                LogtestDetectionRequest::new);
+                LogtestDetectionAction.NAME, transportService, actionFilters, LogtestDetectionRequest::new);
         this.logtestService = logtestService;
         this.payloadValidations = new PayloadValidations();
     }
 
     @Override
     protected void doExecute(
-            Task task,
-            LogtestDetectionRequest request,
-            ActionListener<LogtestResponse> listener) {
+            Task task, LogtestDetectionRequest request, ActionListener<LogtestResponse> listener) {
         try {
             // 1. Parse JSON
             ObjectMapper mapper = new ObjectMapper();
@@ -72,8 +67,7 @@ public class TransportLogtestDetectionAction
                 jsonNode = mapper.readTree(request.getBody());
             } catch (Exception ex) {
                 listener.onResponse(
-                        new LogtestResponse(
-                                Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
+                        new LogtestResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
                 return;
             }
 
@@ -81,15 +75,11 @@ public class TransportLogtestDetectionAction
             RestResponse validationError =
                     this.payloadValidations.validateRequiredFields(
                             jsonNode,
-                            List.of(
-                                    Constants.KEY_SPACE,
-                                    Constants.KEY_INTEGRATION,
-                                    Constants.KEY_INPUT));
+                            List.of(Constants.KEY_SPACE, Constants.KEY_INTEGRATION, Constants.KEY_INPUT));
             if (validationError != null) {
                 listener.onResponse(
                         new LogtestResponse(
-                                validationError.getMessage(),
-                                RestStatus.fromCode(validationError.getStatus())));
+                                validationError.getMessage(), RestStatus.fromCode(validationError.getStatus())));
                 return;
             }
 
@@ -123,9 +113,7 @@ public class TransportLogtestDetectionAction
                 listener.onResponse(
                         new LogtestResponse(
                                 String.format(
-                                        Locale.ROOT,
-                                        Constants.E_400_INVALID_FIELD_FORMAT,
-                                        Constants.KEY_INPUT),
+                                        Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_INPUT),
                                 RestStatus.BAD_REQUEST));
                 return;
             }
@@ -135,8 +123,7 @@ public class TransportLogtestDetectionAction
                     this.logtestService.executeDetection(integrationId, spaceEnum, inputEvent);
             listener.onResponse(
                     new LogtestResponse(
-                            serviceResponse.getMessage(),
-                            RestStatus.fromCode(serviceResponse.getStatus())));
+                            serviceResponse.getMessage(), RestStatus.fromCode(serviceResponse.getStatus())));
         } catch (Exception e) {
             listener.onResponse(
                     new LogtestResponse(

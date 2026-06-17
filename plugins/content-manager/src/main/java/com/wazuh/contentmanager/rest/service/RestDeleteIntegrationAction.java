@@ -31,10 +31,6 @@ public class RestDeleteIntegrationAction extends AbstractDeleteAction {
 
     private static final String ENDPOINT_NAME = "content_manager_integration_delete";
 
-    public RestDeleteIntegrationAction() {
-        super();
-    }
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;

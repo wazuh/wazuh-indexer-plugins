@@ -74,8 +74,7 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
     protected RestResponse validatePayload(
             Client client, JsonNode root, JsonNode resource, IntegrationService integrationService) {
         RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_CATEGORY));
+                this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_CATEGORY));
         if (fieldValidation != null) return fieldValidation;
 
         RestResponse metadataValidation =

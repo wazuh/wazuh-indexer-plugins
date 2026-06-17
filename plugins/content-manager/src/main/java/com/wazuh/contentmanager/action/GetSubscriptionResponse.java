@@ -109,7 +109,8 @@ public class GetSubscriptionResponse extends ActionResponse implements ToXConten
         if (isError) {
             builder.field(Constants.KEY_MESSAGE, message);
         } else {
-            builder.startObject(Constants.KEY_MESSAGE)
+            builder
+                    .startObject(Constants.KEY_MESSAGE)
                     .startObject("plan")
                     .field("name", planName)
                     .field("is_public", planIsPublic)

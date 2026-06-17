@@ -54,8 +54,7 @@ public class TransportDeleteSubscriptionAction
             ActionListener<MessageStatusResponse> listener) {
         try {
             this.subscriptionService.unregister();
-            listener.onResponse(
-                    new MessageStatusResponse("Credentials removed", RestStatus.OK));
+            listener.onResponse(new MessageStatusResponse("Credentials removed", RestStatus.OK));
         } catch (Exception e) {
             listener.onResponse(
                     new MessageStatusResponse(

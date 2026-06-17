@@ -24,11 +24,11 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
 import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.util.List;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.action.LogtestDetectionAction;
 import com.wazuh.contentmanager.action.LogtestDetectionRequest;
@@ -72,29 +72,20 @@ public class RestPostLogtestDetectionAction extends BaseRestHandler {
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        log.debug(
-                String.format(
-                        Locale.getDefault(),
-                        "%s %s",
-                        request.method(),
-                        PluginSettings.LOGTEST_DETECTION_URI));
+        log.debug("{} {}", request.method(), PluginSettings.LOGTEST_DETECTION_URI);
 
         String body = request.content().utf8ToString();
         LogtestDetectionRequest detectionRequest = new LogtestDetectionRequest(body);
 
         return channel ->
                 client.execute(
-                        LogtestDetectionAction.INSTANCE,
-                        detectionRequest,
-                        createResponseListener(channel));
+                        LogtestDetectionAction.INSTANCE, detectionRequest, createResponseListener(channel));
     }
 
-    private RestResponseListener<LogtestResponse> createResponseListener(
-            RestChannel channel) {
+    private RestResponseListener<LogtestResponse> createResponseListener(RestChannel channel) {
         return new RestResponseListener<>(channel) {
             @Override
-            public org.opensearch.rest.RestResponse buildResponse(
-                    LogtestResponse response) throws Exception {
+            public RestResponse buildResponse(LogtestResponse response) throws Exception {
                 return new BytesRestResponse(
                         response.getStatus(),
                         response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
