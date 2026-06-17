@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.rest.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -30,7 +31,7 @@ import java.util.List;
 
 import com.wazuh.contentmanager.action.TriggerUpdateAction;
 import com.wazuh.contentmanager.action.TriggerUpdateRequest;
-import com.wazuh.contentmanager.action.TriggerUpdateResponse;
+import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -80,21 +81,21 @@ public class RestPostUpdateAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         log.debug("{} {}", request.method(), PluginSettings.UPDATE_URI);
 
-        TriggerUpdateRequest triggerRequest = new TriggerUpdateRequest(request.method());
+        TriggerUpdateRequest triggerRequest = new TriggerUpdateRequest();
         return channel ->
                 client.execute(
-                        TriggerUpdateAction.INSTANCE, triggerRequest, createTriggerUpdateResponse(channel));
+                        TriggerUpdateAction.INSTANCE, triggerRequest, createMessageStatusResponse(channel));
     }
 
-    private RestResponseListener<TriggerUpdateResponse> createTriggerUpdateResponse(
+    private RestResponseListener<MessageStatusResponse> createMessageStatusResponse(
             RestChannel channel) {
         return new RestResponseListener<>(channel) {
             @Override
-            public org.opensearch.rest.RestResponse buildResponse(TriggerUpdateResponse response)
+            public org.opensearch.rest.RestResponse buildResponse(MessageStatusResponse response)
                     throws Exception {
                 return new BytesRestResponse(
                         response.getStatus(),
-                        response.toXContent(channel.newBuilder(), ToXContent.EMPTY_PARAMS));
+                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
             }
         };
     }

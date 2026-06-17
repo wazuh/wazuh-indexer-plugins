@@ -16,17 +16,23 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.opensearch.core.rest.RestStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
-import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.action.DeleteSubscriptionAction;
+import com.wazuh.contentmanager.action.DeleteSubscriptionRequest;
+import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
@@ -34,9 +40,9 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 /**
  * DELETE /_plugins/_content_manager/subscription
  *
- * <p>Removes stored CTI credentials by delegating to {@link SubscriptionService#unregister()},
- * which clears both the credentials document in {@code .wazuh-internal-state} and the in-memory
- * token in {@link PluginSettings}.
+ * <p>Removes stored CTI credentials by delegating to the transport action {@link
+ * DeleteSubscriptionAction}, which calls {@link
+ * com.wazuh.contentmanager.cti.catalog.service.SubscriptionService#unregister()}.
  *
  * <p>Possible HTTP responses:
  *
@@ -46,17 +52,8 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  * </ul>
  */
 public class RestDeleteSubscriptionAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestDeleteSubscriptionAction.class);
     private static final String ENDPOINT_NAME = "content_manager_subscription_delete";
-    private final SubscriptionService subscriptionService;
-
-    /**
-     * Create a new REST action.
-     *
-     * @param subscriptionService the service used to remove stored credentials
-     */
-    public RestDeleteSubscriptionAction(SubscriptionService subscriptionService) {
-        this.subscriptionService = subscriptionService;
-    }
 
     /** Return a short identifier for this handler. */
     @Override
@@ -75,36 +72,36 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Handles incoming requests by delegating to {@link #handleRequest()}.
+     * Delegates to the transport action via {@link DeleteSubscriptionAction}.
      *
      * @param request the incoming REST request
      * @param client the node client
      * @return a consumer that sends the credential removal response
      */
     @Override
-    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        return channel -> channel.sendResponse(this.handleRequest());
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
+        log.debug(
+                String.format(
+                        Locale.getDefault(), "%s %s", request.method(), PluginSettings.SUBSCRIPTION_URI));
+
+        DeleteSubscriptionRequest subscriptionRequest = new DeleteSubscriptionRequest();
+        return channel ->
+                client.execute(
+                        DeleteSubscriptionAction.INSTANCE,
+                        subscriptionRequest,
+                        createResponseListener(channel));
     }
 
-    /**
-     * Delegates to {@link SubscriptionService#unregister()} and returns the appropriate response.
-     *
-     * @return a {@link BytesRestResponse} representing the operation result
-     * @throws IOException if an I/O error occurs while building the response
-     */
-    public BytesRestResponse handleRequest() throws IOException {
-        try {
-            this.subscriptionService.unregister();
-            RestResponse response = new RestResponse("Credentials removed", RestStatus.OK.getStatus());
-            return new BytesRestResponse(RestStatus.OK, response.toXContent());
-        } catch (Exception e) {
-            RestResponse error =
-                    new RestResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
-        }
+    private RestResponseListener<MessageStatusResponse> createResponseListener(
+            RestChannel channel) {
+        return new RestResponseListener<>(channel) {
+            @Override
+            public org.opensearch.rest.RestResponse buildResponse(MessageStatusResponse response)
+                    throws Exception {
+                return new BytesRestResponse(
+                        response.getStatus(),
+                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
+            }
+        };
     }
 }

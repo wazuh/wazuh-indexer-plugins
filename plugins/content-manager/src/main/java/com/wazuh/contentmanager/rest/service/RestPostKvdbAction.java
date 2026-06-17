@@ -16,127 +16,37 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.opensearch.action.ActionType;
 
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.transport.client.Client;
-
-import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.action.ContentResponse;
+import com.wazuh.contentmanager.action.CreateKvdbAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
-/**
- * POST /_plugins/content-manager/kvdbs
- *
- * <p>Creates a new KVDB in the draft space.
- *
- * <p>This action ensures that:
- *
- * <ul>
- *   <li>The payload contains all mandatory fields (title, author, content).
- *   <li>The parent integration exists and is in the draft space.
- *   <li>A new UUID and creation timestamps are generated.
- *   <li>The KVDB content is validated by the Engine.
- *   <li>The KVDB is indexed in the draft space.
- *   <li>The new KVDB is linked to the parent Integration.
- * </ul>
- *
- * <p>Possible HTTP responses:
- *
- * <ul>
- *   <li>201 Created: KVDB created successfully.
- *   <li>400 Bad Request: Missing fields, invalid payload, or Engine validation failure.
- *   <li>500 Internal Server Error: Engine unavailable or unexpected error.
- * </ul>
- */
+/** REST handler for creating KVDB resources. Delegates to transport layer. */
 public class RestPostKvdbAction extends AbstractCreateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_kvdb_create";
 
-    public RestPostKvdbAction(EngineService engine) {
-        super(engine);
+    public RestPostKvdbAction() {
+        super();
     }
 
-    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
-    /**
-     * Return the route configuration for this handler.
-     *
-     * @return route configuration for the delete endpoint
-     */
     @Override
     public List<Route> routes() {
         return List.of(new Route(POST, PluginSettings.KVDBS_URI));
     }
 
     @Override
-    protected boolean supportsYamlField() {
-        return true;
-    }
-
-    @Override
-    protected String getIndexName() {
-        return Constants.INDEX_KVDBS;
-    }
-
-    @Override
-    protected String getResourceType() {
-        return Constants.KEY_KVDB;
-    }
-
-    @Override
-    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
-        RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(resource, List.of("content"));
-
-        if (fieldValidation != null) {
-            return fieldValidation;
-        }
-
-        RestResponse metadataValidation =
-                this.documentValidations.validateMetadataFields(
-                        resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
-
-        if (metadataValidation != null) {
-            return metadataValidation;
-        }
-
-        String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
-        String spaceError =
-                this.documentValidations.validateDocumentInSpace(
-                        client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
-
-        if (spaceError != null) {
-            return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        return null;
-    }
-
-    @Override
-    protected RestResponse syncExternalServices(String id, JsonNode resource) {
-        RestResponse engineValidation = this.engine.validateResource(Constants.KEY_KVDB, resource);
-        if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(
-                    Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineValidation.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
-    @Override
-    protected void linkToParent(Client client, String id, JsonNode root) throws IOException {
-        String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
-        this.integrationService.linkResourceToIntegration(integrationId, id, Constants.KEY_KVDBS);
+    protected ActionType<ContentResponse> getActionType() {
+        return CreateKvdbAction.INSTANCE;
     }
 }

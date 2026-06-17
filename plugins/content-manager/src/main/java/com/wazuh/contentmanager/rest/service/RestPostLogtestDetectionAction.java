@@ -16,50 +16,36 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.opensearch.core.rest.RestStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.rest.utils.PayloadValidations;
+import com.wazuh.contentmanager.action.LogtestDetectionAction;
+import com.wazuh.contentmanager.action.LogtestDetectionRequest;
+import com.wazuh.contentmanager.action.LogtestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * POST /_plugins/_content_manager/logtest/detection
  *
- * <p>Validates the incoming request, ensures the required {@code space}, {@code integration}, and
- * {@code input} fields are present and valid, then delegates execution to {@link
- * LogtestService#executeDetection(String, Space, JsonNode)}. The response contains only the
- * Security Analytics Plugin (SAP) Sigma rule evaluation results.
+ * <p>Thin REST layer that delegates to {@link
+ * com.wazuh.contentmanager.transport.TransportLogtestDetectionAction} via the transport layer.
  */
 public class RestPostLogtestDetectionAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestPostLogtestDetectionAction.class);
     private static final String ENDPOINT_NAME = "content_manager_logtest_detection";
-
-    private final LogtestService logtestService;
-    private final PayloadValidations payloadValidations;
-
-    /**
-     * Constructs a new RestPostLogtestDetectionAction.
-     *
-     * @param logtestService the service that orchestrates SA evaluation
-     */
-    public RestPostLogtestDetectionAction(LogtestService logtestService) {
-        this.logtestService = logtestService;
-        this.payloadValidations = new PayloadValidations();
-    }
 
     /** Return a short identifier for this handler. */
     @Override
@@ -78,7 +64,7 @@ public class RestPostLogtestDetectionAction extends BaseRestHandler {
     }
 
     /**
-     * Handles incoming requests by delegating to {@link #handleRequest(RestRequest)}.
+     * Parses the request body and delegates to the transport action.
      *
      * @param request the incoming REST request
      * @param client the node client
@@ -86,76 +72,33 @@ public class RestPostLogtestDetectionAction extends BaseRestHandler {
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        RestResponse response = this.handleRequest(request);
-        return channel -> channel.sendResponse(response.toBytesRestResponse());
+        log.debug(
+                String.format(
+                        Locale.getDefault(),
+                        "%s %s",
+                        request.method(),
+                        PluginSettings.LOGTEST_DETECTION_URI));
+
+        String body = request.content().utf8ToString();
+        LogtestDetectionRequest detectionRequest = new LogtestDetectionRequest(body);
+
+        return channel ->
+                client.execute(
+                        LogtestDetectionAction.INSTANCE,
+                        detectionRequest,
+                        createResponseListener(channel));
     }
 
-    /**
-     * Validates the request and delegates detection execution to {@link LogtestService}.
-     *
-     * <p>Validation steps:
-     *
-     * <ol>
-     *   <li>Request has content
-     *   <li>Content is valid JSON
-     *   <li>Required fields {@code space}, {@code integration}, and {@code input} are present
-     *   <li>Space value is {@code "test"} or {@code "standard"}
-     *   <li>Input is a JSON object
-     * </ol>
-     *
-     * @param request the incoming REST request
-     * @return a {@link RestResponse} with the SAP detection result, or an error response
-     */
-    public RestResponse handleRequest(RestRequest request) {
-        // 1. Check request's payload exists
-        RestResponse validationError = this.payloadValidations.validateRequestHasContent(request);
-        if (validationError != null) return validationError;
-
-        // 2. Parse JSON
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode jsonNode;
-        try {
-            jsonNode = mapper.readTree(request.content().streamInput());
-        } catch (IOException ex) {
-            return new RestResponse(
-                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // 3. Validate required fields: space, integration, input
-        validationError =
-                this.payloadValidations.validateRequiredFields(
-                        jsonNode, List.of(Constants.KEY_SPACE, Constants.KEY_INTEGRATION, Constants.KEY_INPUT));
-        if (validationError != null) return validationError;
-
-        String space = jsonNode.get(Constants.KEY_SPACE).asText();
-
-        // 4. Validate space is "test" or "standard"
-        Space spaceEnum;
-        try {
-            spaceEnum = Space.fromValue(space);
-        } catch (IllegalArgumentException e) {
-            return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-        if (spaceEnum != Space.TEST && spaceEnum != Space.STANDARD) {
-            return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // 5. Extract integration and input
-        String integrationId = jsonNode.get(Constants.KEY_INTEGRATION).asText();
-        JsonNode inputEvent = jsonNode.get(Constants.KEY_INPUT);
-
-        // 6. Validate input is a JSON object
-        if (!inputEvent.isObject()) {
-            return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_INVALID_FIELD_FORMAT, Constants.KEY_INPUT),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // 7. Delegate execution to Service
-        return this.logtestService.executeDetection(integrationId, spaceEnum, inputEvent);
+    private RestResponseListener<LogtestResponse> createResponseListener(
+            RestChannel channel) {
+        return new RestResponseListener<>(channel) {
+            @Override
+            public org.opensearch.rest.RestResponse buildResponse(
+                    LogtestResponse response) throws Exception {
+                return new BytesRestResponse(
+                        response.getStatus(),
+                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
+            }
+        };
     }
 }

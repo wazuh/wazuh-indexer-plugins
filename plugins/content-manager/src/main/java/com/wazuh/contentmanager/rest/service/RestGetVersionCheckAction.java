@@ -16,87 +16,35 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.env.Environment;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
-import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
-import com.wazuh.contentmanager.cti.catalog.model.Release;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.rest.model.VersionCheckResponse;
+import com.wazuh.contentmanager.action.VersionCheckAction;
+import com.wazuh.contentmanager.action.VersionCheckRequest;
+import com.wazuh.contentmanager.action.VersionCheckResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
 /**
  * GET /_plugins/_content_manager/version/check
  *
- * <p>Returns available Wazuh version updates by querying the CTI API. The response includes the
- * latest available major, minor, and patch updates.
- *
- * <p>Possible HTTP responses:
- *
- * <ul>
- *   <li>200 OK: Updates retrieved successfully
- *   <li>500 Internal Server Error: Unable to determine version or unexpected error
- *   <li>502 Bad Gateway: CTI API returned an error
- * </ul>
+ * <p>Returns available Wazuh version updates. Delegates to the transport action {@link
+ * com.wazuh.contentmanager.transport.TransportVersionCheckAction}.
  */
 public class RestGetVersionCheckAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestGetVersionCheckAction.class);
     private static final String ENDPOINT_NAME = "content_manager_version_check_get";
-
-    private final Environment environment;
-    private final ClusterService clusterService;
-    private final ApiClient apiClient;
-    private final ObjectMapper mapper;
-
-    /**
-     * Constructs a new RestGetVersionCheckAction.
-     *
-     * @param environment the node environment for reading VERSION.json
-     * @param clusterService the cluster service for retrieving the cluster UUID
-     */
-    public RestGetVersionCheckAction(Environment environment, ClusterService clusterService) {
-        this.environment = environment;
-        this.clusterService = clusterService;
-        this.apiClient = new ApiClient();
-        this.mapper = new ObjectMapper();
-    }
-
-    /**
-     * Package-private constructor for dependency injection during unit tests.
-     *
-     * @param environment the node environment
-     * @param clusterService the cluster service
-     * @param apiClient the API client (can be mocked)
-     */
-    RestGetVersionCheckAction(
-            Environment environment, ClusterService clusterService, ApiClient apiClient) {
-        this.environment = environment;
-        this.clusterService = clusterService;
-        this.apiClient = apiClient;
-        this.mapper = new ObjectMapper();
-    }
 
     @Override
     public String getName() {
@@ -109,89 +57,26 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
     }
 
     @Override
-    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        return channel -> channel.sendResponse(this.handleRequest());
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
+        log.debug("{} {}", request.method(), PluginSettings.VERSION_CHECK_URI);
+
+        VersionCheckRequest versionCheckRequest = new VersionCheckRequest();
+        return channel ->
+                client.execute(
+                        VersionCheckAction.INSTANCE,
+                        versionCheckRequest,
+                        createResponseListener(channel));
     }
 
-    /**
-     * Executes the version check operation.
-     *
-     * @return a BytesRestResponse containing the available updates or error
-     * @throws IOException if an I/O error occurs while building the response
-     */
-    public BytesRestResponse handleRequest() throws IOException {
-        try {
-            String version = ContentManagerPlugin.getVersion(this.environment);
-            if (version == null || version.isBlank()) {
-                log.error(Constants.E_500_VERSION_NOT_FOUND);
-                return new RestResponse(
-                                Constants.E_500_VERSION_NOT_FOUND, RestStatus.INTERNAL_SERVER_ERROR.getStatus())
-                        .toBytesRestResponse();
+    private RestResponseListener<VersionCheckResponse> createResponseListener(RestChannel channel) {
+        return new RestResponseListener<>(channel) {
+            @Override
+            public org.opensearch.rest.RestResponse buildResponse(VersionCheckResponse response)
+                    throws Exception {
+                return new BytesRestResponse(
+                        response.getStatus(),
+                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
             }
-
-            String tag = "v" + version;
-            SimpleHttpResponse ctiResponse = this.apiClient.getReleaseUpdates(tag);
-
-            int ctiStatusCode = ctiResponse.getCode();
-            if (ctiStatusCode < 200 || ctiStatusCode >= 300) {
-                log.error(
-                        "CTI API returned error for version check: status={}, body={}",
-                        ctiStatusCode,
-                        ctiResponse.getBodyText());
-                RestStatus status =
-                        RestStatus.fromCode(ctiStatusCode) != null
-                                ? RestStatus.fromCode(ctiStatusCode)
-                                : RestStatus.BAD_GATEWAY;
-                return new RestResponse(ctiResponse.getBodyText(), status.getStatus())
-                        .parseMessageAsJson()
-                        .toBytesRestResponse();
-            }
-
-            JsonNode root = this.mapper.readTree(ctiResponse.getBodyText());
-            JsonNode data = root.get("data");
-
-            Release lastMajor = this.getLastRelease(data, "major");
-            Release lastMinor = this.getLastRelease(data, "minor");
-            Release lastPatch = this.getLastRelease(data, "patch");
-
-            String uuid = this.clusterService.state().metadata().clusterUUID();
-            String lastCheckDate =
-                    OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-
-            return new VersionCheckResponse(
-                            uuid, lastCheckDate, tag, lastMajor, lastMinor, lastPatch, RestStatus.OK.getStatus())
-                    .toBytesRestResponse();
-
-        } catch (Exception e) {
-            log.error("Unexpected error during version check: {}", e.getMessage(), e);
-            return new RestResponse(
-                            Constants.E_500_CTI_UNREACHABLE, RestStatus.INTERNAL_SERVER_ERROR.getStatus())
-                    .toBytesRestResponse();
-        }
-    }
-
-    /**
-     * Extracts the last (most recent) release from a category array in the CTI response.
-     *
-     * @param data the "data" node from the CTI API response
-     * @param category the category name ("major", "minor", or "patch")
-     * @return the last Release in the array, or null if the array is empty or missing
-     */
-    private Release getLastRelease(JsonNode data, String category) {
-        if (data == null || !data.has(category)) {
-            return null;
-        }
-        JsonNode array = data.get(category);
-        if (!array.isArray() || array.isEmpty()) {
-            return null;
-        }
-        try {
-            List<Release> releases =
-                    this.mapper.readValue(array.toString(), new TypeReference<List<Release>>() {});
-            return releases.getLast();
-        } catch (Exception e) {
-            log.warn("Failed to parse {} releases: {}", category, e.getMessage());
-            return null;
-        }
+        };
     }
 }

@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 
@@ -27,24 +26,26 @@ import java.io.IOException;
 
 import com.wazuh.contentmanager.utils.Constants;
 
-public class TriggerUpdateResponse extends ActionResponse implements ToXContent {
-    private final String message;
-    private final RestStatus status;
+public class ContentResponse extends ActionResponse implements ToXContent {
 
-    public TriggerUpdateResponse(String message, RestStatus status) {
+    private final String message;
+    private final int status;
+
+    public ContentResponse(String message, int status) {
         super();
         this.message = message;
         this.status = status;
     }
 
-    public TriggerUpdateResponse(StreamInput sin) throws IOException {
-        this(sin.readString(), sin.readEnum(RestStatus.class));
+    public ContentResponse(StreamInput sin) throws IOException {
+        this.message = sin.readString();
+        this.status = sin.readInt();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(message);
-        out.writeEnum(status);
+        out.writeInt(status);
     }
 
     @Override
@@ -52,7 +53,7 @@ public class TriggerUpdateResponse extends ActionResponse implements ToXContent 
         return builder
                 .startObject()
                 .field(Constants.KEY_MESSAGE, message)
-                .field(Constants.KEY_STATUS, status.getStatus())
+                .field(Constants.KEY_STATUS, status)
                 .endObject();
     }
 
@@ -60,7 +61,7 @@ public class TriggerUpdateResponse extends ActionResponse implements ToXContent 
         return message;
     }
 
-    public RestStatus getStatus() {
+    public int getStatus() {
         return status;
     }
 }

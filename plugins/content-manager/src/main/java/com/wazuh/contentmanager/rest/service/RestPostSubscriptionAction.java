@@ -18,7 +18,9 @@ package com.wazuh.contentmanager.rest.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -29,11 +31,10 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.action.IndexSubscriptionAction;
 import com.wazuh.contentmanager.action.IndexSubscriptionRequest;
-import com.wazuh.contentmanager.action.IndexSubscriptionResponse;
+import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -87,9 +88,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
 
-        log.debug(
-                String.format(
-                        Locale.getDefault(), "%s %s", request.method(), PluginSettings.SUBSCRIPTION_URI));
+        log.debug("{} {}", request.method(), PluginSettings.SUBSCRIPTION_URI);
 
         String accessToken = null;
         try (XContentParser parser = request.contentParser()) {
@@ -105,8 +104,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
             }
         }
 
-        IndexSubscriptionRequest subscriptionRequest =
-                new IndexSubscriptionRequest(request.method(), accessToken);
+        IndexSubscriptionRequest subscriptionRequest = new IndexSubscriptionRequest(accessToken);
         return channel ->
                 client.execute(
                         IndexSubscriptionAction.INSTANCE,
@@ -114,15 +112,15 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
                         createSubscriptionResponse(channel));
     }
 
-    private RestResponseListener<IndexSubscriptionResponse> createSubscriptionResponse(
+    private RestResponseListener<MessageStatusResponse> createSubscriptionResponse(
             RestChannel channel) {
         return new RestResponseListener<>(channel) {
             @Override
-            public org.opensearch.rest.RestResponse buildResponse(IndexSubscriptionResponse response)
+            public org.opensearch.rest.RestResponse buildResponse(MessageStatusResponse response)
                     throws Exception {
                 return new BytesRestResponse(
                         response.getStatus(),
-                        response.toXContent(channel.newBuilder(), ToXContent.EMPTY_PARAMS));
+                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
             }
         };
     }

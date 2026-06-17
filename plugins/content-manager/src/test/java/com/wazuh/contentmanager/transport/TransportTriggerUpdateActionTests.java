@@ -21,7 +21,6 @@ import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.RestRequest;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.TransportService;
@@ -32,7 +31,7 @@ import org.junit.Before;
 import java.lang.reflect.Field;
 
 import com.wazuh.contentmanager.action.TriggerUpdateRequest;
-import com.wazuh.contentmanager.action.TriggerUpdateResponse;
+import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -69,10 +68,10 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
 
     public void testDoExecute_Accepted() {
         when(this.catalogSyncJob.isRunning()).thenReturn(false);
-        TriggerUpdateRequest request = new TriggerUpdateRequest(RestRequest.Method.POST);
+        TriggerUpdateRequest request = new TriggerUpdateRequest();
 
         @SuppressWarnings("unchecked")
-        ActionListener<TriggerUpdateResponse> listener = mock(ActionListener.class);
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
         verify(listener)
@@ -90,10 +89,10 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
 
     public void testDoExecute_Conflict() {
         when(this.catalogSyncJob.isRunning()).thenReturn(true);
-        TriggerUpdateRequest request = new TriggerUpdateRequest(RestRequest.Method.POST);
+        TriggerUpdateRequest request = new TriggerUpdateRequest();
 
         @SuppressWarnings("unchecked")
-        ActionListener<TriggerUpdateResponse> listener = mock(ActionListener.class);
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
         verify(listener)
@@ -110,10 +109,10 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
 
     public void testDoExecute_Exception() {
         when(this.catalogSyncJob.isRunning()).thenThrow(new RuntimeException("Unexpected failure"));
-        TriggerUpdateRequest request = new TriggerUpdateRequest(RestRequest.Method.POST);
+        TriggerUpdateRequest request = new TriggerUpdateRequest();
 
         @SuppressWarnings("unchecked")
-        ActionListener<TriggerUpdateResponse> listener = mock(ActionListener.class);
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
         verify(listener)
