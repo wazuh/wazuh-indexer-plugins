@@ -30,16 +30,17 @@ import org.junit.Before;
 
 import java.lang.reflect.Field;
 
-import com.wazuh.contentmanager.action.MessageStatusResponse;
-import com.wazuh.contentmanager.action.TriggerUpdateRequest;
-import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
+import com.wazuh.contentmanager.action.GetSubscriptionRequest;
+import com.wazuh.contentmanager.action.GetSubscriptionResponse;
+import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
+import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.mockito.Mockito.*;
 
-public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
-    private CatalogSyncJob catalogSyncJob;
-    private TransportTriggerUpdateAction action;
+public class TransportGetSubscriptionActionTests extends OpenSearchTestCase {
+    private SubscriptionServiceImpl subscriptionService;
+    private TransportGetSubscriptionAction action;
 
     @Before
     @Override
@@ -47,10 +48,10 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
         super.setUp();
         clearPluginSettingsInstance();
         PluginSettings.getInstance(Settings.EMPTY);
-        this.catalogSyncJob = mock(CatalogSyncJob.class);
+        this.subscriptionService = mock(SubscriptionServiceImpl.class);
         this.action =
-                new TransportTriggerUpdateAction(
-                        mock(TransportService.class), mock(ActionFilters.class), this.catalogSyncJob);
+                new TransportGetSubscriptionAction(
+                        mock(TransportService.class), mock(ActionFilters.class), this.subscriptionService);
     }
 
     @After
@@ -66,53 +67,52 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
         instance.set(null, null);
     }
 
-    public void testDoExecute_Accepted() {
-        when(this.catalogSyncJob.isRunning()).thenReturn(false);
-        TriggerUpdateRequest request = new TriggerUpdateRequest();
+    public void testDoExecute_SuccessWithPlan() throws Exception {
+        Plan plan = mock(Plan.class);
+        when(plan.getName()).thenReturn("premium");
+        when(plan.isPublic()).thenReturn(false);
+        when(this.subscriptionService.getPlan()).thenReturn(plan);
+
+        GetSubscriptionRequest request = new GetSubscriptionRequest();
 
         @SuppressWarnings("unchecked")
-        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        ActionListener<GetSubscriptionResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
         verify(listener)
                 .onResponse(
                         argThat(
                                 response -> {
-                                    Assert.assertEquals(RestStatus.ACCEPTED, response.getStatus());
-                                    Assert.assertEquals(
-                                            "The update request has been accepted for processing.",
-                                            response.getMessage());
+                                    Assert.assertEquals(RestStatus.OK, response.getStatus());
                                     return true;
                                 }));
-        verify(this.catalogSyncJob, times(1)).trigger();
     }
 
-    public void testDoExecute_Conflict() {
-        when(this.catalogSyncJob.isRunning()).thenReturn(true);
-        TriggerUpdateRequest request = new TriggerUpdateRequest();
+    public void testDoExecute_SuccessNullPlan() throws Exception {
+        when(this.subscriptionService.getPlan()).thenReturn(null);
+
+        GetSubscriptionRequest request = new GetSubscriptionRequest();
 
         @SuppressWarnings("unchecked")
-        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        ActionListener<GetSubscriptionResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
         verify(listener)
                 .onResponse(
                         argThat(
                                 response -> {
-                                    Assert.assertEquals(RestStatus.CONFLICT, response.getStatus());
-                                    Assert.assertEquals(
-                                            "A content update is already in progress.", response.getMessage());
+                                    Assert.assertEquals(RestStatus.OK, response.getStatus());
                                     return true;
                                 }));
-        verify(this.catalogSyncJob, never()).trigger();
     }
 
-    public void testDoExecute_Exception() {
-        when(this.catalogSyncJob.isRunning()).thenThrow(new RuntimeException("Unexpected failure"));
-        TriggerUpdateRequest request = new TriggerUpdateRequest();
+    public void testDoExecute_Exception() throws Exception {
+        when(this.subscriptionService.getPlan()).thenThrow(new RuntimeException("Service error"));
+
+        GetSubscriptionRequest request = new GetSubscriptionRequest();
 
         @SuppressWarnings("unchecked")
-        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        ActionListener<GetSubscriptionResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
         verify(listener)
@@ -120,7 +120,6 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                         argThat(
                                 response -> {
                                     Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
-                                    Assert.assertEquals("Unexpected failure", response.getMessage());
                                     return true;
                                 }));
     }

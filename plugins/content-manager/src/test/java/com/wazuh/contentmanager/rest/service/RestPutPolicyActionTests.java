@@ -39,7 +39,8 @@ public class RestPutPolicyActionTests extends OpenSearchTestCase {
     }
 
     public void testRoutePath() {
-        Assert.assertEquals(PluginSettings.POLICY_URI + "/{space}", this.action.routes().get(0).getPath());
+        Assert.assertEquals(
+                PluginSettings.POLICY_URI + "/{space}", this.action.routes().get(0).getPath());
     }
 
     public void testName() {

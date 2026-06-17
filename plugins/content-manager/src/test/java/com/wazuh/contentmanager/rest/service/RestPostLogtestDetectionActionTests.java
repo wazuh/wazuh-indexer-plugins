@@ -39,7 +39,8 @@ public class RestPostLogtestDetectionActionTests extends OpenSearchTestCase {
     }
 
     public void testRoutePath() {
-        Assert.assertEquals(PluginSettings.LOGTEST_DETECTION_URI, this.action.routes().get(0).getPath());
+        Assert.assertEquals(
+                PluginSettings.LOGTEST_DETECTION_URI, this.action.routes().get(0).getPath());
     }
 
     public void testName() {

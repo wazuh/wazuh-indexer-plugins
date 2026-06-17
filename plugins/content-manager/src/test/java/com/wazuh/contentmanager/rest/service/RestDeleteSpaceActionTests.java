@@ -39,7 +39,8 @@ public class RestDeleteSpaceActionTests extends OpenSearchTestCase {
     }
 
     public void testRoutePath() {
-        Assert.assertEquals(PluginSettings.SPACE_URI + "/{space}", this.action.routes().get(0).getPath());
+        Assert.assertEquals(
+                PluginSettings.SPACE_URI + "/{space}", this.action.routes().get(0).getPath());
     }
 
     public void testName() {

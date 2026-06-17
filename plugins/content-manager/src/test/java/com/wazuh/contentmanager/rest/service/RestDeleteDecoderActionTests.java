@@ -39,7 +39,8 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
     }
 
     public void testRoutePath() {
-        Assert.assertEquals(PluginSettings.DECODERS_URI + "/{id}", this.action.routes().get(0).getPath());
+        Assert.assertEquals(
+                PluginSettings.DECODERS_URI + "/{id}", this.action.routes().get(0).getPath());
     }
 
     public void testName() {

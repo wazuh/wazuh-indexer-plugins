@@ -22,8 +22,8 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.TransportService;
-import org.junit.Before;
 import org.junit.Assert;
+import org.junit.Before;
 
 import com.wazuh.contentmanager.action.IndexSubscriptionRequest;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
@@ -43,9 +43,7 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
         this.subscriptionService = mock(SubscriptionServiceImpl.class);
         this.action =
                 new TransportIndexSubscriptionAction(
-                        mock(TransportService.class),
-                        mock(ActionFilters.class),
-                        this.subscriptionService);
+                        mock(TransportService.class), mock(ActionFilters.class), this.subscriptionService);
     }
 
     public void testDoExecute_Created() throws Exception {
@@ -61,8 +59,7 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
                         argThat(
                                 response -> {
                                     Assert.assertEquals(RestStatus.CREATED, response.getStatus());
-                                    Assert.assertEquals(
-                                            Constants.S_201_ACCESS_TOKEN_RECEIVED, response.getMessage());
+                                    Assert.assertEquals(Constants.S_201_ACCESS_TOKEN_RECEIVED, response.getMessage());
                                     return true;
                                 }));
     }
@@ -83,8 +80,7 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
                                 response -> {
                                     Assert.assertEquals(RestStatus.PRECONDITION_FAILED, response.getStatus());
                                     Assert.assertEquals(
-                                            Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX,
-                                            response.getMessage());
+                                            Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX, response.getMessage());
                                     return true;
                                 }));
     }
@@ -116,8 +112,7 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
                 .onResponse(
                         argThat(
                                 response -> {
-                                    Assert.assertEquals(
-                                            RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
+                                    Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
                                     Assert.assertEquals("Unexpected failure", response.getMessage());
                                     return true;
                                 }));

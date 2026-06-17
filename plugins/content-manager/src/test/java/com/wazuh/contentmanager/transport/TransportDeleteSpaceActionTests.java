@@ -24,33 +24,33 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
 import java.lang.reflect.Field;
 
+import com.wazuh.contentmanager.action.DeleteSpaceRequest;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
-import com.wazuh.contentmanager.action.TriggerUpdateRequest;
-import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.mockito.Mockito.*;
 
-public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
-    private CatalogSyncJob catalogSyncJob;
-    private TransportTriggerUpdateAction action;
+public class TransportDeleteSpaceActionTests extends OpenSearchTestCase {
+    private TransportDeleteSpaceAction action;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
         clearPluginSettingsInstance();
-        PluginSettings.getInstance(Settings.EMPTY);
-        this.catalogSyncJob = mock(CatalogSyncJob.class);
+        // Enable engine mock so constructor uses MockSecurityAnalyticsService
+        Settings settings = Settings.builder().put("plugins.content_manager.engine.mock", true).build();
+        PluginSettings.getInstance(settings);
         this.action =
-                new TransportTriggerUpdateAction(
-                        mock(TransportService.class), mock(ActionFilters.class), this.catalogSyncJob);
+                new TransportDeleteSpaceAction(
+                        mock(TransportService.class), mock(ActionFilters.class), mock(Client.class));
     }
 
     @After
@@ -66,9 +66,8 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
         instance.set(null, null);
     }
 
-    public void testDoExecute_Accepted() {
-        when(this.catalogSyncJob.isRunning()).thenReturn(false);
-        TriggerUpdateRequest request = new TriggerUpdateRequest();
+    public void testDoExecute_InvalidSpace() {
+        DeleteSpaceRequest request = new DeleteSpaceRequest("invalid_space");
 
         @SuppressWarnings("unchecked")
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
@@ -78,18 +77,14 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                 .onResponse(
                         argThat(
                                 response -> {
-                                    Assert.assertEquals(RestStatus.ACCEPTED, response.getStatus());
-                                    Assert.assertEquals(
-                                            "The update request has been accepted for processing.",
-                                            response.getMessage());
+                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+                                    Assert.assertTrue(response.getMessage().contains("Invalid space"));
                                     return true;
                                 }));
-        verify(this.catalogSyncJob, times(1)).trigger();
     }
 
-    public void testDoExecute_Conflict() {
-        when(this.catalogSyncJob.isRunning()).thenReturn(true);
-        TriggerUpdateRequest request = new TriggerUpdateRequest();
+    public void testDoExecute_NonDraftSpace() {
+        DeleteSpaceRequest request = new DeleteSpaceRequest("standard");
 
         @SuppressWarnings("unchecked")
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
@@ -99,17 +94,14 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                 .onResponse(
                         argThat(
                                 response -> {
-                                    Assert.assertEquals(RestStatus.CONFLICT, response.getStatus());
-                                    Assert.assertEquals(
-                                            "A content update is already in progress.", response.getMessage());
+                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+                                    Assert.assertTrue(response.getMessage().contains("Cannot reset"));
                                     return true;
                                 }));
-        verify(this.catalogSyncJob, never()).trigger();
     }
 
-    public void testDoExecute_Exception() {
-        when(this.catalogSyncJob.isRunning()).thenThrow(new RuntimeException("Unexpected failure"));
-        TriggerUpdateRequest request = new TriggerUpdateRequest();
+    public void testDoExecute_TestSpaceNotAllowed() {
+        DeleteSpaceRequest request = new DeleteSpaceRequest("test");
 
         @SuppressWarnings("unchecked")
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
@@ -119,8 +111,8 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                 .onResponse(
                         argThat(
                                 response -> {
-                                    Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
-                                    Assert.assertEquals("Unexpected failure", response.getMessage());
+                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+                                    Assert.assertTrue(response.getMessage().contains("Cannot reset"));
                                     return true;
                                 }));
     }
