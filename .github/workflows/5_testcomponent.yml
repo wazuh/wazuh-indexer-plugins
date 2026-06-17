@@ -1,0 +1,186 @@
+name: (5.x) Run Wazuh Indexer Plugins component tests
+
+# Builds the Wazuh Indexer plugins, starts the full Wazuh Indexer Docker image
+# (which already bundles the Wazuh Engine and every plugin), swaps in the freshly
+# built package, lets it sync content from the public CTI API, and
+# runs the Python component test suite under tests/content-manager/.
+#
+# See tests/content-manager/README.md and the plan for the rationale. The Wazuh
+# Indexer image is the FULL distribution, so only the plugin under test is swapped.
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    paths:
+      - "plugins/content-manager/**"
+      - "tests/content-manager/**"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "wazuh-indexer image tag to pull (defaults to the version from VERSION.json)."
+        type: string
+        required: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+  actions: read
+
+env:
+  # Credentials used for both the container's admin bootstrap and the test run.
+  # NOTE: confirm on first run whether the image expects OPENSEARCH_INITIAL_ADMIN_PASSWORD
+  # or ships demo admin/admin certs; adjust ADMIN_PASSWORD accordingly.
+  ADMIN_USER: admin
+  ADMIN_PASSWORD: "Wazuh-Component-Tests-0!"
+
+jobs:
+  get-version:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      image_tag: ${{ steps.version.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            VERSION.json
+      - name: Resolve version and image tag
+        id: version
+        run: |
+          version=$(jq -r .version < VERSION.json)
+          stage=$(jq -r '.stage // ""' < VERSION.json)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          override="${{ inputs.image_tag }}"
+          if [ -n "${override}" ]; then
+            tag="${override}"
+          elif [ -n "${stage}" ] && [ "${stage}" != "null" ]; then
+            tag="${version}-${stage}"
+          else
+            tag="${version}"
+          fi
+          echo "image_tag=${tag}" >> "$GITHUB_OUTPUT"
+
+  # Reuse the existing reusable builder to produce the Content Manager plugin ZIP.
+  build:
+    needs: get-version
+    uses: ./.github/workflows/5_builderpackage_plugins.yml
+    with:
+      plugin: content-manager
+      revision: "0"
+    secrets: inherit
+
+  component-tests:
+    needs: [get-version, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download Content Manager package
+        uses: actions/download-artifact@v7
+        with:
+          name: content-manager-${{ needs.get-version.outputs.version }}.0.zip
+          path: ./pkg
+
+      - name: Start Wazuh Indexer container
+        env:
+          IMAGE: quay.io/wazuh/wazuh-indexer:${{ needs.get-version.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          echo "Pulling ${IMAGE}"
+          docker pull "${IMAGE}"
+          docker run -d --name wazuh-indexer \
+            -p 9200:9200 \
+            -e "discovery.type=single-node" \
+            -e "OPENSEARCH_INITIAL_ADMIN_PASSWORD=${ADMIN_PASSWORD}" \
+            -e "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g" \
+            "${IMAGE}"
+
+      - name: Wait for the indexer to be healthy
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sk -u "${ADMIN_USER}:${ADMIN_PASSWORD}" "https://localhost:9200/_cluster/health" \
+                 | grep -qE '"status":"(green|yellow)"'; then
+              echo "Indexer is healthy."; exit 0
+            fi
+            sleep 5
+          done
+          echo "Indexer did not become healthy in time."; docker logs wazuh-indexer | tail -100; exit 1
+
+      - name: Swap in the freshly built Content Manager plugin
+        run: |
+          set -euo pipefail
+          plugin_bin=/usr/share/wazuh-indexer/bin/opensearch-plugin
+          zip=$(ls pkg/wazuh-indexer-content-manager-*.zip | head -1)
+          echo "Installing ${zip}"
+          docker cp "${zip}" wazuh-indexer:/tmp/content-manager.zip
+          # Remove the version bundled in the image, install the PR build, then restart.
+          docker exec wazuh-indexer "${plugin_bin}" remove --purge wazuh-indexer-content-manager
+          docker exec wazuh-indexer "${plugin_bin}" install -b file:///tmp/content-manager.zip
+          docker restart wazuh-indexer
+
+      - name: Wait for the indexer to be healthy (after restart)
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sk -u "${ADMIN_USER}:${ADMIN_PASSWORD}" "https://localhost:9200/_cluster/health" \
+                 | grep -qE '"status":"(green|yellow)"'; then
+              echo "Indexer is healthy."; break
+            fi
+            sleep 5
+          done
+          # Informational: confirm the Engine socket and the installed plugins are present.
+          echo "--- Engine socket ---"
+          docker exec wazuh-indexer ls -l /usr/share/wazuh-indexer/engine/sockets/ \
+            || echo "WARNING: engine socket dir missing — logtest/findings tests need a running Engine."
+          echo "--- Installed plugins ---"
+          docker exec wazuh-indexer /usr/share/wazuh-indexer/bin/opensearch-plugin list
+
+      - name: Trigger content sync and wait for the draft policy
+        run: |
+          # The plugin self-syncs on start (update_on_start); trigger an update too, then
+          # poll until the draft policy exists (the suite's readiness precondition).
+          curl -sk -u "${ADMIN_USER}:${ADMIN_PASSWORD}" -X POST \
+            "https://localhost:9200/_plugins/_content_manager/update" || true
+          for i in $(seq 1 60); do
+            hits=$(curl -sk -u "${ADMIN_USER}:${ADMIN_PASSWORD}" \
+              "https://localhost:9200/wazuh-threatintel-policies/_search" \
+              -H 'Content-Type: application/json' \
+              -d '{"size":0,"track_total_hits":true,"query":{"term":{"space.name":{"value":"draft"}}}}' \
+              | grep -oE '"value":[0-9]+' | head -1 | grep -oE '[0-9]+' || echo 0)
+            if [ "${hits:-0}" -gt 0 ]; then echo "Draft policy present."; exit 0; fi
+            sleep 5
+          done
+          echo "Draft policy not created in time (CTI sync may have failed)."; docker logs wazuh-indexer | tail -120; exit 1
+
+      - name: Run component tests
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/content-manager/requirements.txt
+          pytest tests/content-manager \
+            --base-url "https://localhost:9200" \
+            --user "${ADMIN_USER}" --password "${ADMIN_PASSWORD}" -v
+
+      - name: Collect indexer logs on failure
+        if: failure()
+        run: docker logs wazuh-indexer > wazuh-indexer.log 2>&1 || true
+
+      - name: Upload indexer logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: wazuh-indexer-logs
+          path: wazuh-indexer.log
+          if-no-files-found: ignore
+
+      - name: Tear down container
+        if: always()
+        run: docker rm -f wazuh-indexer || true
