@@ -17,6 +17,11 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 | `plugins.content_manager.catalog.vulnerabilities`    | String    | `""`                                     | Full CTI consumer URL for vulnerabilities content                               |
 | `plugins.content_manager.catalog.create_detectors`   | Boolean   | `true`                                   | Automatically create Security Analytics detectors from CTI content              |
 | `plugins.content_manager.telemetry.enabled`          | Boolean   | `true`                                   | Enable or disable the daily Update check service ping. This setting is dynamic. |
+| `plugins.content_manager.max_integrations`           | Integer   | `100`                                    | Maximum number of integrations that can be created. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
+| `plugins.content_manager.max_decoders`               | Integer   | `100`                                    | Maximum number of decoders that can be created. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
+| `plugins.content_manager.max_rules`                  | Integer   | `100`                                    | Maximum number of rules that can be created. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
+| `plugins.content_manager.max_kvdbs`                  | Integer   | `100`                                    | Maximum number of KVDBs that can be created. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
+| `plugins.content_manager.max_filters`                | Integer   | `100`                                    | Maximum number of filters that can be created per space. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
 
 <!-- // ANCHOR_END: settings-table -->
 
@@ -131,6 +136,28 @@ curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 
   }
 }'
 ```
+
+#### Resource creation limits
+
+The plugin enforces configurable upper bounds on the number of resources that can be created. Each limit applies to POST (creation) requests only — existing resources are not affected when a limit is lowered. The count is checked against the relevant index at request time; if the index does not yet exist, the check is skipped and creation proceeds.
+
+All limit settings are dynamic and can be changed at runtime:
+
+```bash
+curl -X PUT "https://localhost:9200/_cluster/settings" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "persistent": {
+      "plugins.content_manager.max_integrations": 50,
+      "plugins.content_manager.max_decoders": 200,
+      "plugins.content_manager.max_rules": 200,
+      "plugins.content_manager.max_kvdbs": 50,
+      "plugins.content_manager.max_filters": 50
+    }
+  }'
+```
+
+Setting a limit to `0` blocks all new creation of that resource type.
 
 ### Notes
 
