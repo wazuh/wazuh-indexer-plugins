@@ -91,8 +91,6 @@ The following upstream OpenSearch plugins are **not** included in the Wazuh Inde
 | --- | --- |
 | `opensearch-anomaly-detection` | Not used by Wazuh. Threat detection is handled by the Security Analytics plugin. |
 | `opensearch-asynchronous-search` | Not used by any Wazuh feature. |
-| `opensearch-cross-cluster-replication` | Not required. Wazuh does not use cross-cluster replication. |
-| `opensearch-geospatial` | Not used by any Wazuh feature. |
 | `opensearch-knn` | Not used by any Wazuh feature. Removed in [wazuh/wazuh-indexer#1577](https://github.com/wazuh/wazuh-indexer/issues/1577). |
 | `opensearch-ml` | Not used by any Wazuh feature. |
 | `opensearch-neural-search` | Not used by any Wazuh feature. Removed in [wazuh/wazuh-indexer#1577](https://github.com/wazuh/wazuh-indexer/issues/1577). |

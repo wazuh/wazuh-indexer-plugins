@@ -25,6 +25,7 @@ plugins.security.system_indices.indices:
     ".opendistro-alerting-alert*",
     ".opendistro-reports-*",
     ".opendistro-notifications-*",
+    ".replication-metadata-store",
   ]
 plugins.security.allow_default_init_securityindex: true
 cluster.routing.allocation.disk.threshold_enabled: false
