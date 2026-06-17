@@ -258,6 +258,34 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     }
 
     /**
+     * Test that creating an integration when the limit has been reached returns 400.
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostIntegration400_maxIntegrationsExceeded() throws IOException {
+        // Set limit to 0 so the very first creation attempt is rejected.
+        PluginSettings.getInstance().setMaxIntegrations(0);
+        try {
+            RestRequest request = mock(RestRequest.class);
+            when(request.hasContent()).thenReturn(true);
+
+            // mockSearchBehavior returns 0 hits for the integrations index.
+            // With maxIntegrations = 0, count (0) >= limit (0) → rejected.
+            this.mockSearchBehavior();
+
+            String jsonPayload =
+                    "{\"resource\": {\"metadata\": {\"author\": \"Wazuh\", \"title\": \"aws-fargate\"}, \"category\": \"cloud\"}}";
+            when(request.content()).thenReturn(new BytesArray(jsonPayload));
+
+            RestResponse response = this.action.executeRequest(request, this.client);
+            Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+            Assert.assertTrue(response.getMessage().contains("allowed integrations [0]"));
+        } finally {
+            PluginSettings.getInstance().setMaxIntegrations(PluginSettings.DEFAULT_MAX_INTEGRATIONS);
+        }
+    }
+
+    /**
      * Test the {@link RestPostIntegrationAction#executeRequest(RestRequest, Client)} method when the
      * payload contains ignored fields like 'date'. These are now allowed but skipped. The expected
      * response is: {201, RestResponse}

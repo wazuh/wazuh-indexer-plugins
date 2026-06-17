@@ -217,11 +217,16 @@ public class ContentManagerPlugin extends Plugin
         this.logtestService =
                 new LogtestService(this.engine, this.securityAnalyticsService, this.client);
 
-        // Register hot-reload settings consumer
+        // Register hot-reload settings consumers
         clusterService
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
                         PluginSettings.TELEMETRY_ENABLED, this::onTelemetrySettingChanged);
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.MAX_INTEGRATIONS,
+                        v -> PluginSettings.getInstance().setMaxIntegrations(v));
 
         return List.of(this.subscriptionService, this.catalogSyncJob);
     }
@@ -710,7 +715,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.TELEMETRY_ENABLED,
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
-                PluginSettings.CREATE_DETECTORS);
+                PluginSettings.CREATE_DETECTORS,
+                PluginSettings.MAX_INTEGRATIONS);
     }
 
     @Override

@@ -51,6 +51,8 @@ public class PluginSettings {
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
 
+    public static final int DEFAULT_MAX_INTEGRATIONS = 100;
+
     private static final long DEFAULT_MAX_BULK_BYTES = 5L * 1024 * 1024;
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
@@ -219,6 +221,18 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
+    /**
+     * Maximum number of user-created integrations allowed in the draft space. Requests that would
+     * exceed this limit are rejected with a 400 error.
+     */
+    public static final Setting<Integer> MAX_INTEGRATIONS =
+            Setting.intSetting(
+                    "plugins.content_manager.max_integrations",
+                    DEFAULT_MAX_INTEGRATIONS,
+                    0,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
@@ -234,6 +248,7 @@ public class PluginSettings {
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
     private volatile boolean isTelemetryEnabled;
+    private volatile int maxIntegrations;
     private volatile String accessToken;
     private String version;
 
@@ -258,6 +273,7 @@ public class PluginSettings {
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
         this.isTelemetryEnabled = TELEMETRY_ENABLED.get(settings);
+        this.maxIntegrations = MAX_INTEGRATIONS.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -299,6 +315,14 @@ public class PluginSettings {
 
     public void setTelemetryEnabled(boolean isTelemetryEnabled) {
         this.isTelemetryEnabled = isTelemetryEnabled;
+    }
+
+    public int getMaxIntegrations() {
+        return this.maxIntegrations;
+    }
+
+    public void setMaxIntegrations(int maxIntegrations) {
+        this.maxIntegrations = maxIntegrations;
     }
 
     /**
