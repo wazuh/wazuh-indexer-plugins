@@ -35,6 +35,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
@@ -87,55 +90,68 @@ public class EngineSocketClient {
         }
 
         try {
-            UnixDomainSocketAddress address = UnixDomainSocketAddress.of(socketFile);
-
-            try (SocketChannel channel = SocketChannel.open(StandardProtocolFamily.UNIX)) {
-                channel.connect(address);
-
-                // Serialize the payload
-                String safeEndpoint = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
-                String jsonPayload = objectMapper.writeValueAsString(payload);
-                byte[] payloadBytes = jsonPayload.getBytes(StandardCharsets.UTF_8);
-
-                // Build HTTP request
-                String request =
-                        method
-                                + " "
-                                + safeEndpoint
-                                + " HTTP/1.1\r\n"
-                                + "Host: localhost\r\n"
-                                + "Accept: application/json\r\n"
-                                + "Content-Type: application/json\r\n"
-                                + "Content-Length: "
-                                + payloadBytes.length
-                                + "\r\n"
-                                + "Connection: close\r\n"
-                                + "\r\n";
-
-                OutputStream out = Channels.newOutputStream(channel);
-                out.write(request.getBytes(StandardCharsets.UTF_8));
-                out.write(payloadBytes);
-                out.flush();
-
-                // Read response
-                String rawResponse = this.readResponse(channel);
-
-                // Parse result
-                return this.parseResponse(rawResponse);
+            return AccessController.doPrivileged(
+                    (PrivilegedExceptionAction<RestResponse>)
+                            () -> executeSocketRequest(socketFile, endpoint, method, payload));
+        } catch (PrivilegedActionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof SocketTimeoutException) {
+                logger.error(Constants.E_LOG_ENGINE_TIMEOUT, cause.getMessage());
+                return new RestResponse("Timed out communicating with the Engine.", 500);
+            } else if (cause instanceof AccessDeniedException) {
+                logger.error(Constants.E_LOG_ENGINE_PERMISSION_DENIED);
+                return new RestResponse("Permission denied accessing the Engine.", 500);
+            } else if (cause instanceof IOException) {
+                logger.error(Constants.E_LOG_ENGINE_COMMUNICATION_FAILED, cause.getMessage(), cause);
+                return new RestResponse("Failed to communicate with the Engine.", 500);
+            } else {
+                logger.error(Constants.E_LOG_ENGINE_UNEXPECTED_ERROR, cause.getMessage(), cause);
+                return new RestResponse("Unexpected error communicating with the Engine.", 500);
             }
-
-        } catch (SocketTimeoutException e) {
-            logger.error(Constants.E_LOG_ENGINE_TIMEOUT, e.getMessage());
-            return new RestResponse("Timed out communicating with the Engine.", 500);
-        } catch (AccessDeniedException e) {
-            logger.error(Constants.E_LOG_ENGINE_PERMISSION_DENIED);
-            return new RestResponse("Permission denied accessing the Engine.", 500);
-        } catch (IOException e) {
-            logger.error(Constants.E_LOG_ENGINE_COMMUNICATION_FAILED, e.getMessage(), e);
-            return new RestResponse("Failed to communicate with the Engine.", 500);
         } catch (Exception e) {
             logger.error(Constants.E_LOG_ENGINE_UNEXPECTED_ERROR, e.getMessage(), e);
             return new RestResponse("Unexpected error communicating with the Engine.", 500);
+        }
+    }
+
+    /**
+     * Executes the actual socket communication within a privileged context. This is needed because
+     * transport actions may run on threads whose call stack includes other plugins that lack
+     * socket permissions.
+     */
+    @SuppressForbidden(reason = "Unix domain socket access requires privileged execution")
+    private RestResponse executeSocketRequest(
+            Path socketFile, String endpoint, String method, JsonNode payload) throws IOException {
+        UnixDomainSocketAddress address = UnixDomainSocketAddress.of(socketFile);
+
+        try (SocketChannel channel = SocketChannel.open(StandardProtocolFamily.UNIX)) {
+            channel.connect(address);
+
+            String safeEndpoint = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+            String jsonPayload = objectMapper.writeValueAsString(payload);
+            byte[] payloadBytes = jsonPayload.getBytes(StandardCharsets.UTF_8);
+
+            String request =
+                    method
+                            + " "
+                            + safeEndpoint
+                            + " HTTP/1.1\r\n"
+                            + "Host: localhost\r\n"
+                            + "Accept: application/json\r\n"
+                            + "Content-Type: application/json\r\n"
+                            + "Content-Length: "
+                            + payloadBytes.length
+                            + "\r\n"
+                            + "Connection: close\r\n"
+                            + "\r\n";
+
+            OutputStream out = Channels.newOutputStream(channel);
+            out.write(request.getBytes(StandardCharsets.UTF_8));
+            out.write(payloadBytes);
+            out.flush();
+
+            String rawResponse = this.readResponse(channel);
+            return this.parseResponse(rawResponse);
         }
     }
 
