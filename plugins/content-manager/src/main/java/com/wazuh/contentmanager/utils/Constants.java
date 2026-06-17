@@ -64,6 +64,12 @@ public class Constants {
             "This request would create more than the allowed integrations [%d].";
     public static final String E_400_TOO_MANY_DECODERS =
             "This request would create more than the allowed decoders [%d].";
+    public static final String E_400_TOO_MANY_RULES =
+            "This request would create more than the allowed rules [%d].";
+    public static final String E_400_TOO_MANY_KVDBS =
+            "This request would create more than the allowed kvdbs [%d].";
+    public static final String E_400_TOO_MANY_FILTERS =
+            "This request would create more than the allowed filters [%d].";
     public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
             "ID should not be provided in the payload.";
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine validation failed.";
@@ -92,6 +98,12 @@ public class Constants {
             "This request would create more than the allowed integrations [{}].";
     public static final String I_LOG_MAX_DECODERS_REACHED =
             "This request would create more than the allowed decoders [{}].";
+    public static final String I_LOG_MAX_RULES_REACHED =
+            "This request would create more than the allowed rules [{}].";
+    public static final String I_LOG_MAX_KVDBS_REACHED =
+            "This request would create more than the allowed kvdbs [{}].";
+    public static final String I_LOG_MAX_FILTERS_REACHED =
+            "This request would create more than the allowed filters [{}].";
     public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
     public static final String D_LOG_OPERATION = "{} {} (id={})";
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";

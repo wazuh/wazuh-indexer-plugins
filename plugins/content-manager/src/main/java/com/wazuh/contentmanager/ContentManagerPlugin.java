@@ -231,6 +231,18 @@ public class ContentManagerPlugin extends Plugin
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
                         PluginSettings.MAX_DECODERS, v -> PluginSettings.getInstance().setMaxDecoders(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.MAX_RULES, v -> PluginSettings.getInstance().setMaxRules(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.MAX_KVDBS, v -> PluginSettings.getInstance().setMaxKvdbs(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.MAX_FILTERS, v -> PluginSettings.getInstance().setMaxFilters(v));
 
         return List.of(this.subscriptionService, this.catalogSyncJob);
     }
@@ -721,7 +733,10 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.ENGINE_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS,
                 PluginSettings.MAX_INTEGRATIONS,
-                PluginSettings.MAX_DECODERS);
+                PluginSettings.MAX_DECODERS,
+                PluginSettings.MAX_RULES,
+                PluginSettings.MAX_KVDBS,
+                PluginSettings.MAX_FILTERS);
     }
 
     @Override

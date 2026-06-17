@@ -261,6 +261,32 @@ public class RestPostFilterActionTests extends OpenSearchTestCase {
         Assert.assertNotNull(actualResponse.getMessage());
     }
 
+    /**
+     * Test the {@link RestPostFilterAction#executeRequest(RestRequest, Client)} method when the max
+     * filters limit has been reached. The expected response is: {400, RestResponse}
+     */
+    public void testPostFilter400_maxFiltersExceeded() {
+        PluginSettings.getInstance().setMaxFilters(0);
+        try {
+            // Count search returns 0 hits; with maxFilters = 0, 0 >= 0 → rejected.
+            SearchResponse countResponse = mock(SearchResponse.class);
+            when(countResponse.getHits())
+                    .thenReturn(
+                            new SearchHits(
+                                    new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 1.0f));
+            PlainActionFuture<SearchResponse> cFuture = PlainActionFuture.newFuture();
+            cFuture.onResponse(countResponse);
+            when(this.client.search(any(SearchRequest.class))).thenReturn(cFuture);
+
+            RestRequest request = this.buildRequest(FILTER_PAYLOAD);
+            RestResponse response = this.action.executeRequest(request, this.client);
+            Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+            Assert.assertTrue(response.getMessage().contains("allowed filters [0]"));
+        } finally {
+            PluginSettings.getInstance().setMaxFilters(PluginSettings.DEFAULT_MAX_FILTERS);
+        }
+    }
+
     private RestRequest buildRequest(String payload) {
         return new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
                 .withContent(new BytesArray(payload), XContentType.JSON)

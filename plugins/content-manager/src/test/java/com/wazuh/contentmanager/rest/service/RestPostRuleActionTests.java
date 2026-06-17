@@ -360,6 +360,33 @@ public class RestPostRuleActionTests extends OpenSearchTestCase {
     }
 
     /**
+     * Test the {@link RestPostRuleAction#executeRequest(RestRequest, Client)} method when the max
+     * rules limit has been reached. The expected response is: {400, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs during the test
+     */
+    public void testPostRule400_maxRulesExceeded() throws IOException {
+        PluginSettings.getInstance().setMaxRules(0);
+        try {
+            String jsonRule =
+                    "{\"integration\": \"integration-1\", \"resource\": {\"metadata\":"
+                            + " {\"title\": \"Rule\"}, \"logsource\": { \"product\": \"p\" }}}";
+            RestRequest request =
+                    new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                            .withContent(new BytesArray(jsonRule), XContentType.JSON)
+                            .build();
+            // Integration exists in draft space; duplicate check returns 0 hits.
+            // Count check also returns 0 hits; with maxRules = 0, 0 >= 0 → rejected.
+            this.mockDependencyChecks(true, false);
+            RestResponse response = this.action.executeRequest(request, this.client);
+            Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+            Assert.assertTrue(response.getMessage().contains("allowed rules [0]"));
+        } finally {
+            PluginSettings.getInstance().setMaxRules(PluginSettings.DEFAULT_MAX_RULES);
+        }
+    }
+
+    /**
      * Test the {@link RestPostRuleAction#executeRequest(RestRequest, Client)} method when an
      * unexpected error occurs. The expected response is: {500, RestResponse}
      *
