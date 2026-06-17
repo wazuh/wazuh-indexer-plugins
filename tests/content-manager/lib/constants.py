@@ -50,3 +50,15 @@ SPACE_DRAFT = "draft"
 SPACE_TEST = "test"
 SPACE_CUSTOM = "custom"
 SPACE_STANDARD = "standard"
+
+# Security Analytics (SAP) + Alerting — used by the findings-generation scenario.
+SA_BASE = "/_plugins/_security_analytics"
+SA_DETECTORS = f"{SA_BASE}/detectors"
+SA_FINDINGS = f"{SA_BASE}/findings/_search"
+SA_RULES_SEARCH = f"{SA_BASE}/rules/_search"
+ALERTING = "/_plugins/_alerting"
+DETECTORS_CONFIG_INDEX = ".opensearch-sap-detectors-config"
+
+# Events data streams the detectors read (one per integration category).
+EVENTS_INDEX_PREFIX = "wazuh-events-v5-"
+

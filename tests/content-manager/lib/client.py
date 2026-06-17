@@ -137,6 +137,49 @@ class CMClient:
         """Return the draft policy ``_source`` (or ``None`` if absent)."""
         return self.get_policy(C.SPACE_DRAFT)
 
+    # ── Findings pipeline (Security Analytics + Alerting) ──────────────────
+
+    def create_detector(self, payload):
+        """Create a Security Analytics detector; returns the ``requests.Response``."""
+        return self.post(C.SA_DETECTORS, json=payload)
+
+    def delete_detector(self, detector_id):
+        return self.delete(f"{C.SA_DETECTORS}/{detector_id}")
+
+    def detector_monitor_ids(self, detector_id, attempts=10, delay=2):
+        """Poll the detectors-config index until the detector's monitor id(s) exist."""
+        for _ in range(attempts):
+            resp = self.get(f"/{C.DETECTORS_CONFIG_INDEX}/_doc/{detector_id}")
+            if resp.status_code == 200:
+                monitors = resp.json()["_source"]["detector"].get("monitor_id", [])
+                if monitors:
+                    return monitors
+            time.sleep(delay)
+        return []
+
+    def execute_monitor(self, monitor_id):
+        """Run an alerting monitor on demand (no wait for its schedule)."""
+        return self.post(f"{C.ALERTING}/monitors/{monitor_id}/_execute")
+
+    def index_event(self, index, doc):
+        """Index a single event document into an events data stream."""
+        resp = self.post(f"/{index}/_doc", json=doc)
+        assert resp.status_code in (200, 201), f"index event -> {resp.status_code}: {resp.text}"
+        return resp
+
+    def findings(self, detector_type):
+        """Return the Security Analytics findings body for a detector type."""
+        resp = self.get(C.SA_FINDINGS, params={"detectorType": detector_type})
+        assert resp.status_code == 200, f"findings search -> {resp.status_code}: {resp.text}"
+        return resp.json()
+
+    def finding_doc_ids(self, detector_type):
+        """Return the set of event doc ids referenced by this detector's findings."""
+        ids = set()
+        for finding in self.findings(detector_type).get("findings", []):
+            ids.update(finding.get("related_doc_ids", []))
+        return ids
+
 
 def matched_titles(logtest_response):
     """Extract matched rule titles from a logtest response body.

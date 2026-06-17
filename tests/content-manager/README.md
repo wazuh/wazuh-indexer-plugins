@@ -17,8 +17,11 @@ tests/content-manager/
 │   ├── payloads.py        # request-body builders (verified against the live API)
 │   ├── assertions.py      # assertions over stored documents
 │   └── constants.py       # endpoint paths + index aliases (single source of truth)
-├── test_*.py              # one module per area
-└── NN-*/*.feature         # Gherkin specs — executed by the future pytest-bdd phase
+├── test_resources_lifecycle.py  # CRUD + policy + promotion + space reset
+├── test_logtest.py              # logtest validation + Sigma-modifier detection matrix
+├── test_management.py           # subscription, update, version check
+├── test_findings_generation.py  # resources -> promote -> detector -> event -> finding
+└── NN-*/*.feature               # Gherkin specs — executed by the future pytest-bdd phase
 ```
 
 ## Prerequisites
@@ -48,10 +51,17 @@ pytest -m crud
 ## Isolation & a caveat about promotion
 
 Most tests reset the **draft** space (`DELETE /space/draft`) for a clean slate.
-The `test` and `custom` spaces are **not** API-resettable, so the `promote` and
-`logtest` tests permanently add content there; they name their resources uniquely
-per run to stay repeatable on a long-lived cluster. For fully repeatable promote
-runs, use a fresh cluster (which the CI model below provides).
+The `test` and `custom` spaces are **not** API-resettable, so the `promote`,
+`logtest` and `findings` scenarios permanently add content there; they name their
+resources uniquely per run to stay repeatable on a long-lived cluster. For fully
+repeatable runs, use a fresh cluster (which the CI model below provides).
+
+The findings scenario also reaches outside the Content Manager API: it creates a
+Security Analytics detector (deleted on teardown), indexes an event into the
+category's `wazuh-events-v5-*` data stream, and runs the detector's monitor on
+demand via the Alerting `_execute` API to avoid waiting for its schedule. The
+detector's `custom_rules` references the **CTI rule id** (not the SAP rule `_id`),
+which is how the Wazuh SAP fork resolves promoted custom rules.
 
 ## CI (planned)
 

@@ -1,4 +1,5 @@
-"""Request-body builders for the Content Manager API.
+"""Request-body builders for the Content Manager API (and a couple of SAP/event
+helpers used by the findings-generation scenario).
 
 Seeded from the ``examples:`` in ``plugins/content-manager/openapi.yml`` but
 corrected against the live API (validated on a real cluster):
@@ -219,6 +220,45 @@ def policy_body(
             "index_unclassified_events": index_unclassified_events,
             "index_discarded_events": index_discarded_events,
         }
+    }
+
+
+# ── Findings pipeline: SAP detector + event ────────────────────────────────
+
+
+def sap_detector(detector_type, events_index, cti_rule_id, name=None):
+    """Build a Security Analytics detector body for ``POST /detectors``.
+
+    ``custom_rules`` references the **CTI rule id** (the original Content Manager
+    rule id), which is how the Wazuh SAP fork resolves promoted custom rules —
+    not the SAP rule document ``_id``.
+    """
+    return {
+        "type": "detector",
+        "detector_type": detector_type,
+        "name": name or f"{detector_type}-detector",
+        "enabled": True,
+        "schedule": {"period": {"interval": 1, "unit": "MINUTES"}},
+        "inputs": [
+            {
+                "detector_input": {
+                    "description": "Component test detector",
+                    "indices": [events_index],
+                    "custom_rules": [{"id": cti_rule_id}],
+                    "pre_packaged_rules": [],
+                }
+            }
+        ],
+        "triggers": [],
+    }
+
+
+def wcs_event(action, timestamp):
+    """A minimal WCS event document for an events data stream."""
+    return {
+        "@timestamp": timestamp,
+        "event": {"action": action, "kind": "event"},
+        "agent": {"id": "000", "name": "component-test"},
     }
 
 
