@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "wazuh-indexer image tag to pull (defaults to the version from VERSION.json)."
+        description: "wazuh-indexer image tag to pull (defaults to <version>-latest, e.g. 5.0.0-latest)."
         type: string
         required: false
 
@@ -54,16 +54,10 @@ jobs:
         id: version
         run: |
           version=$(jq -r .version < VERSION.json)
-          stage=$(jq -r '.stage // ""' < VERSION.json)
           echo "version=${version}" >> "$GITHUB_OUTPUT"
+          # Default to the rolling "<version>-latest" image tag; overridable via workflow_dispatch.
           override="${{ inputs.image_tag }}"
-          if [ -n "${override}" ]; then
-            tag="${override}"
-          elif [ -n "${stage}" ] && [ "${stage}" != "null" ]; then
-            tag="${version}-${stage}"
-          else
-            tag="${version}"
-          fi
+          tag="${override:-${version}-latest}"
           echo "image_tag=${tag}" >> "$GITHUB_OUTPUT"
 
   # Reuse the existing reusable builder to produce the Content Manager plugin ZIP.
