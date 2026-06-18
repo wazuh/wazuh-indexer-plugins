@@ -184,7 +184,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 "{\"name\":\"test-consumer\",\"context\":\"test-context\","
                         + "\"type\":\"cti:catalog:consumer:ruleset\","
                         + "\"resource\":\"https://cti.example/catalog/contexts/test-context/consumers/test-consumer\","
-                        + "\"is_public\":true,\"status\":\"updating\",\"local_offset\":0,\"remote_offset\":100}";
+                        + "\"is_public\":true,\"status\":\"running\",\"local_offset\":0,\"remote_offset\":100}";
         org.opensearch.action.get.GetResponse t0Response =
                 mock(org.opensearch.action.get.GetResponse.class);
         when(t0Response.isExists()).thenReturn(true);
@@ -227,7 +227,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Assert.assertEquals("test-context", persisted.getContext());
         Assert.assertEquals("cti:catalog:consumer:ruleset", persisted.getType());
         Assert.assertTrue(persisted.isPublic());
-        Assert.assertEquals(LocalConsumer.Status.UPDATING, persisted.getStatus());
+        Assert.assertEquals(LocalConsumer.Status.RUNNING, persisted.getStatus());
     }
 
     /**
@@ -657,7 +657,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 "{\"name\":\"public-ruleset-5\",\"context\":\"t1-ruleset-5\","
                         + "\"type\":\"cti:catalog:consumer:ruleset\","
                         + "\"resource\":\"https://cti.example/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5\","
-                        + "\"is_public\":true,\"status\":\"updating\",\"local_offset\":0,\"remote_offset\":75}";
+                        + "\"is_public\":true,\"status\":\"running\",\"local_offset\":0,\"remote_offset\":75}";
         org.opensearch.action.get.GetResponse t0Response =
                 mock(org.opensearch.action.get.GetResponse.class);
         when(t0Response.isExists()).thenReturn(true);
@@ -737,7 +737,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 "{\"name\":\"public-ruleset-5\",\"context\":\"t1-ruleset-5\","
                         + "\"type\":\"cti:catalog:consumer:ruleset\","
                         + "\"resource\":\"https://example/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5\","
-                        + "\"is_public\":true,\"status\":\"updating\",\"local_offset\":0,\"remote_offset\":42}";
+                        + "\"is_public\":true,\"status\":\"running\",\"local_offset\":0,\"remote_offset\":42}";
 
         org.opensearch.action.get.GetResponse existingGetResponse =
                 mock(org.opensearch.action.get.GetResponse.class);
@@ -760,7 +760,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 "https://example/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5",
                 persisted.getResource());
         Assert.assertTrue(persisted.isPublic());
-        Assert.assertEquals(LocalConsumer.Status.UPDATING, persisted.getStatus());
+        Assert.assertEquals(LocalConsumer.Status.RUNNING, persisted.getStatus());
         Assert.assertEquals(42L, persisted.getLocalOffset());
         Assert.assertEquals(42L, persisted.getRemoteOffset());
     }
