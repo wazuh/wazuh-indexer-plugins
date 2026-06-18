@@ -27,19 +27,19 @@ public class LocalConsumerTests extends OpenSearchTestCase {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    /** Tests that the metadata constructor sets status to READY by default. */
-    public void testDefaultStatusIsReady() {
+    /** Tests that the metadata constructor sets status to RUNNING by default. */
+    public void testDefaultStatusIsRunning() {
         LocalConsumer consumer =
                 new LocalConsumer("ctx", "name", "cti:catalog:consumer:ruleset", "https://cti/rules", true);
-        Assert.assertEquals(LocalConsumer.Status.READY, consumer.getStatus());
+        Assert.assertEquals(LocalConsumer.Status.RUNNING, consumer.getStatus());
     }
 
-    /** Tests that the offsets constructor sets status to READY by default. */
-    public void testOffsetsConstructorDefaultStatusIsReady() {
+    /** Tests that the offsets constructor sets status to RUNNING by default. */
+    public void testOffsetsConstructorDefaultStatusIsRunning() {
         LocalConsumer consumer =
                 new LocalConsumer(
                         "ctx", "name", "cti:catalog:consumer:ruleset", "https://cti/rules", false, 10L, 20L);
-        Assert.assertEquals(LocalConsumer.Status.READY, consumer.getStatus());
+        Assert.assertEquals(LocalConsumer.Status.RUNNING, consumer.getStatus());
     }
 
     /** Tests that the status constructor sets the provided status. */
