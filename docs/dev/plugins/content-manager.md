@@ -835,15 +835,16 @@ GET /.wazuh-cti-consumers/_search
 
 The `status` field indicates the sync lifecycle state:
 
-- `idle` — sync complete; content is safe to read.
-- `updating` — sync in progress; content may be partially written.
+- `ready` — sync complete; content is safe to read.
+- `running` — sync in progress; content may be partially written.
+- `failed` — the previous sync cycle was interrupted by an unexpected exception.
 
-To find consumers that are currently syncing or that failed mid-sync (status stuck at `updating`):
+To find consumers that are currently syncing or that failed mid-sync:
 
 ```bash
 GET /.wazuh-cti-consumers/_search
 {
-  "query": { "term": { "status": "updating" } }
+  "query": { "terms": { "status": ["ready"] } }
 }
 ```
 
