@@ -19,8 +19,6 @@ package com.wazuh.setup.index;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.test.OpenSearchTestCase;
@@ -33,7 +31,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,8 +50,6 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
     @Mock private Client client;
     @Mock private ActionFuture<IndexResponse> indexFuture;
     @Mock private ClusterService clusterService;
-    @Mock private ClusterState clusterState;
-    @Mock private RoutingTable routingTable;
 
     @Before
     @Override
@@ -63,9 +61,6 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
                 new SetupStatusIndex(SetupStatusIndex.INDEX_NAME, "templates/setup-status");
         this.setupStatusIndex.setClient(this.client);
         this.setupStatusIndex.setClusterService(this.clusterService);
-
-        when(this.clusterService.state()).thenReturn(this.clusterState);
-        when(this.clusterState.getRoutingTable()).thenReturn(this.routingTable);
     }
 
     @After
@@ -104,18 +99,8 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
                 captured.getRefreshPolicy());
     }
 
-    /** markRunning() with no marker index -> no stale marker to invalidate; no-op. */
-    public void testMarkRunning_indexMissing_isNoOp() {
-        when(this.routingTable.hasIndex(SetupStatusIndex.INDEX_NAME)).thenReturn(false);
-
-        this.setupStatusIndex.markRunning();
-
-        verify(this.client, never()).index(any(IndexRequest.class));
-    }
-
-    /** markRunning() with an existing index -> overwrites the marker with status=running. */
-    public void testMarkRunning_indexExists_writesRunningStatus() {
-        when(this.routingTable.hasIndex(SetupStatusIndex.INDEX_NAME)).thenReturn(true);
+    /** markRunning() always overwrites the marker with status=running. */
+    public void testMarkRunning_writesRunningStatus() {
         when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexFuture);
 
         this.setupStatusIndex.markRunning();
@@ -136,6 +121,32 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
                 "The write must refresh the index immediately (periodic refresh is disabled)",
                 WriteRequest.RefreshPolicy.IMMEDIATE,
                 captured.getRefreshPolicy());
+    }
+
+    /**
+     * initialize() creates the template and index, then immediately marks the marker running —
+     * verifying the fix for the race where a separate, earlier markRunning() call could silently
+     * no-op if the cluster's routing table hadn't caught up yet after a restart.
+     */
+    public void testInitialize_createsIndexThenMarksRunning() {
+        SetupStatusIndex spyIndex = spy(this.setupStatusIndex);
+        doNothing().when(spyIndex).createTemplate(anyString());
+        doNothing().when(spyIndex).createIndex(anyString());
+        when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexFuture);
+
+        spyIndex.initialize();
+
+        verify(spyIndex).createTemplate("templates/setup-status");
+        verify(spyIndex).createIndex(SetupStatusIndex.INDEX_NAME);
+
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+        assertTrue(
+                "Payload must contain status=running",
+                captor.getValue()
+                        .source()
+                        .utf8ToString()
+                        .contains("\"status\":\"" + SetupStatusIndex.SETUP_STATUS_RUNNING + "\""));
     }
 
     /** A failure while writing the marker is swallowed; node startup must not be affected. */

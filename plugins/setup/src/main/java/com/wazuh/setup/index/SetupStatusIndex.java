@@ -30,9 +30,11 @@ import java.util.Map;
  * the state of this plugin's initialization. Other plugins (e.g. Content Manager) read this marker
  * to defer their startup work until all indices managed by this plugin have been created.
  *
- * <p>The marker transitions once per boot: {@value #SETUP_STATUS_RUNNING} at the beginning of the
- * initialization, then either {@value #SETUP_STATUS_READY} once every index has been initialized,
- * or {@value #SETUP_STATUS_FAILED} if initialization could not complete.
+ * <p>The marker transitions once per boot: {@value #SETUP_STATUS_RUNNING} as soon as this index has
+ * been created (or confirmed to already exist) by {@link #initialize()} — which {@link
+ * com.wazuh.setup.SetupPlugin} runs first, ahead of every other index, so the marker is invalidated
+ * as early as possible — then either {@value #SETUP_STATUS_READY} once every index has been
+ * initialized, or {@value #SETUP_STATUS_FAILED} if initialization could not complete.
  */
 public class SetupStatusIndex extends WazuhIndex {
     private static final Logger log = LogManager.getLogger(SetupStatusIndex.class);
@@ -69,15 +71,26 @@ public class SetupStatusIndex extends WazuhIndex {
     }
 
     /**
-     * Invalidates any setup status marker left over from a previous boot by overwriting it with
-     * {@value #SETUP_STATUS_RUNNING}. Skipped when the index does not exist yet: there is no stale
-     * marker to invalidate, and writing would auto-create the index without its template.
+     * Creates this index (or confirms it already exists) and immediately invalidates any setup
+     * status marker left over from a previous boot by overwriting it with {@value
+     * #SETUP_STATUS_RUNNING}. Doing both in the same call, on the same thread, avoids relying on
+     * {@link #indexExists(String)} — which checks the cluster's routing table and can still report
+     * "does not exist" for a brief window right after a restart, even when the index is already on
+     * disk, causing the {@code running} write to be silently skipped.
+     */
+    @Override
+    public void initialize() {
+        this.createTemplate(this.template);
+        this.createIndex(this.index);
+        this.markRunning();
+    }
+
+    /**
+     * Persists the setup status marker with {@value #SETUP_STATUS_RUNNING}. Only called from {@link
+     * #initialize()}, right after this index has been created or confirmed to already exist, so the
+     * write is always safe.
      */
     public void markRunning() {
-        if (!this.indexExists(INDEX_NAME)) {
-            log.debug("Index {} does not exist. No setup status marker to invalidate.", INDEX_NAME);
-            return;
-        }
         this.setSetupStatus(SETUP_STATUS_RUNNING);
     }
 
