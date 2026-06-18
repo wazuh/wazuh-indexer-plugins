@@ -192,7 +192,7 @@ jobs:
           # Hand the build user the workspace and the restored Maven local cache.
           cp -a "$HOME/.m2" /home/builder/.m2 2>/dev/null || true
           chown -R builder:builder "$GITHUB_WORKSPACE" /home/builder
-          runuser -u builder -- env "JAVA_HOME=$JAVA_HOME" "PATH=$PATH" \
+          runuser -u builder -- env "JAVA_HOME=$JAVA_HOME" "PATH=$PATH" "GRADLE_USER_HOME=/home/builder/.gradle" \
             ./gradlew build -Dversion=${{ needs.get-version.outputs.version }} -Drevision=${{ inputs.revision }}
 
       - name: Upload artifact
