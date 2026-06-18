@@ -53,7 +53,8 @@ on:
 
 jobs:
   branches:
-    runs-on: ubuntu-24.04
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     outputs:
       security_analytics_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}
       common_utils_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_common_utils_branch }}
@@ -67,7 +68,8 @@ jobs:
           branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
 
   get-version:
-    runs-on: ubuntu-24.04
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     needs: branches
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -82,7 +84,8 @@ jobs:
         run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
   publish-common-utils:
-    runs-on: ubuntu-24.04
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     needs: [branches, get-version]
     steps:
       - name: Publish to Maven Local
@@ -98,7 +101,8 @@ jobs:
           key: ${{ github.run_id }}-common-utils
 
   publish-alerting:
-    runs-on: ubuntu-24.04
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     needs: [branches, get-version, publish-common-utils]
     if: inputs.plugin == 'content-manager'
     steps:
@@ -120,7 +124,8 @@ jobs:
           key: ${{ github.run_id }}-alerting
 
   publish-security-analytics:
-    runs-on: ubuntu-24.04
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     needs: [branches, get-version, publish-common-utils, publish-alerting]
     if: inputs.plugin == 'content-manager'
     steps:
@@ -143,7 +148,8 @@ jobs:
 
   build:
     needs: [branches, get-version, publish-common-utils, publish-security-analytics]
-    runs-on: ubuntu-24.04
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     permissions:
       actions: read
     if: |
@@ -178,7 +184,16 @@ jobs:
 
       - name: Build with Gradle
         working-directory: ./plugins/${{ inputs.plugin }}
-        run: ./gradlew build -Dversion=${{ needs.get-version.outputs.version }} -Drevision=${{ inputs.revision }}
+        # The self-hosted runner executes as root, but OpenSearch test clusters
+        # (launched by integTest during `build`) refuse to run as root. Build as
+        # a dedicated non-root user instead.
+        run: |
+          id -u builder &>/dev/null || useradd -m builder
+          # Hand the build user the workspace and the restored Maven local cache.
+          cp -a "$HOME/.m2" /home/builder/.m2 2>/dev/null || true
+          chown -R builder:builder "$GITHUB_WORKSPACE" /home/builder
+          runuser -u builder -- env "JAVA_HOME=$JAVA_HOME" "PATH=$PATH" \
+            ./gradlew build -Dversion=${{ needs.get-version.outputs.version }} -Drevision=${{ inputs.revision }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7

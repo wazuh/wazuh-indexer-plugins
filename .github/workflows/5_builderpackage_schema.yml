@@ -15,7 +15,8 @@ jobs:
   build-wcs:
     name: Build Wazuh Common Schema
     if: ${{ !github.event.pull_request.draft && github.repository == 'wazuh/wazuh-indexer-plugins' }}
-    runs-on: ubuntu-24.04
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     permissions:
       actions: read
       contents: write
