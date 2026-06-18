@@ -8,6 +8,7 @@
     
     "mapping.nested_fields.limit": 50,
     "index": {
+      "codec": "zstd",
       "number_of_shards": "1",
       "number_of_replicas": "0",
       "auto_expand_replicas": "0-1",
