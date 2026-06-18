@@ -7,6 +7,7 @@
   "template": {
     "settings": {
       "index": {
+        "codec": "zstd",
         "number_of_replicas": "0",
         "number_of_shards": "3",
         "query.default_field": [
