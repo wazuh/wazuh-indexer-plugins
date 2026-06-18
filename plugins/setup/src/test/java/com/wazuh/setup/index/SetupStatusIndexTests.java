@@ -77,11 +77,11 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
         }
     }
 
-    /** markComplete() persists the marker document with status=complete. */
-    public void testMarkComplete_writesCompleteStatus() {
+    /** markReady() persists the marker document with status=ready. */
+    public void testMarkReady_writesReadyStatus() {
         when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexFuture);
 
-        this.setupStatusIndex.markComplete();
+        this.setupStatusIndex.markReady();
 
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.client).index(captor.capture());
@@ -90,11 +90,11 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
         assertEquals(SetupStatusIndex.INDEX_NAME, captured.index());
         assertEquals(SetupStatusIndex.SETUP_STATUS_ID, captured.id());
         assertTrue(
-                "Payload must contain status=complete",
+                "Payload must contain status=ready",
                 captured
                         .source()
                         .utf8ToString()
-                        .contains("\"status\":\"" + SetupStatusIndex.SETUP_STATUS_COMPLETE + "\""));
+                        .contains("\"status\":\"" + SetupStatusIndex.SETUP_STATUS_READY + "\""));
         assertTrue(
                 "Payload must contain a timestamp",
                 captured.source().utf8ToString().contains("\"timestamp\""));
@@ -104,23 +104,21 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
                 captured.getRefreshPolicy());
     }
 
-    /** markInitializing() with no marker index -> no stale marker to invalidate; no-op. */
-    public void testMarkInitializing_indexMissing_isNoOp() {
+    /** markRunning() with no marker index -> no stale marker to invalidate; no-op. */
+    public void testMarkRunning_indexMissing_isNoOp() {
         when(this.routingTable.hasIndex(SetupStatusIndex.INDEX_NAME)).thenReturn(false);
 
-        this.setupStatusIndex.markInitializing();
+        this.setupStatusIndex.markRunning();
 
         verify(this.client, never()).index(any(IndexRequest.class));
     }
 
-    /**
-     * markInitializing() with an existing index -> overwrites the marker with status=initializing.
-     */
-    public void testMarkInitializing_indexExists_writesInitializingStatus() {
+    /** markRunning() with an existing index -> overwrites the marker with status=running. */
+    public void testMarkRunning_indexExists_writesRunningStatus() {
         when(this.routingTable.hasIndex(SetupStatusIndex.INDEX_NAME)).thenReturn(true);
         when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexFuture);
 
-        this.setupStatusIndex.markInitializing();
+        this.setupStatusIndex.markRunning();
 
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
         verify(this.client).index(captor.capture());
@@ -129,11 +127,11 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
         assertEquals(SetupStatusIndex.INDEX_NAME, captured.index());
         assertEquals(SetupStatusIndex.SETUP_STATUS_ID, captured.id());
         assertTrue(
-                "Payload must contain status=initializing",
+                "Payload must contain status=running",
                 captured
                         .source()
                         .utf8ToString()
-                        .contains("\"status\":\"" + SetupStatusIndex.SETUP_STATUS_INITIALIZING + "\""));
+                        .contains("\"status\":\"" + SetupStatusIndex.SETUP_STATUS_RUNNING + "\""));
         assertEquals(
                 "The write must refresh the index immediately (periodic refresh is disabled)",
                 WriteRequest.RefreshPolicy.IMMEDIATE,
@@ -141,10 +139,42 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
     }
 
     /** A failure while writing the marker is swallowed; node startup must not be affected. */
-    public void testMarkComplete_exception_swallowed() {
+    public void testMarkReady_exception_swallowed() {
         when(this.client.index(any(IndexRequest.class)))
                 .thenThrow(new RuntimeException("Index unavailable"));
 
-        this.setupStatusIndex.markComplete();
+        this.setupStatusIndex.markReady();
+    }
+
+    /** markFailed() persists the marker document with status=failed. */
+    public void testMarkFailed_writesFailedStatus() {
+        when(this.client.index(any(IndexRequest.class))).thenReturn(this.indexFuture);
+
+        this.setupStatusIndex.markFailed();
+
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+
+        IndexRequest captured = captor.getValue();
+        assertEquals(SetupStatusIndex.INDEX_NAME, captured.index());
+        assertEquals(SetupStatusIndex.SETUP_STATUS_ID, captured.id());
+        assertTrue(
+                "Payload must contain status=failed",
+                captured
+                        .source()
+                        .utf8ToString()
+                        .contains("\"status\":\"" + SetupStatusIndex.SETUP_STATUS_FAILED + "\""));
+        assertEquals(
+                "The write must refresh the index immediately (periodic refresh is disabled)",
+                WriteRequest.RefreshPolicy.IMMEDIATE,
+                captured.getRefreshPolicy());
+    }
+
+    /** A failure while writing the failed marker is swallowed too. */
+    public void testMarkFailed_exception_swallowed() {
+        when(this.client.index(any(IndexRequest.class)))
+                .thenThrow(new RuntimeException("Index unavailable"));
+
+        this.setupStatusIndex.markFailed();
     }
 }

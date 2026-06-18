@@ -187,7 +187,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                             () -> {
                                 // Invalidate any setup status marker left over from a previous boot, so
                                 // consumers of the marker wait for this run to finish.
-                                this.setupStatusIndex.markInitializing();
+                                this.setupStatusIndex.markRunning();
 
                                 // Apply cluster.default_number_of_replicas from opensearch.yml settings if present
                                 try {
@@ -212,11 +212,17 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                                     log.error("Failed to update cluster.default_number_of_replicas", e);
                                 }
 
-                                this.indices.forEach(Index::initialize);
+                                try {
+                                    this.indices.forEach(Index::initialize);
+                                } catch (Exception e) {
+                                    log.error("Setup initialization failed: {}", e.getMessage(), e);
+                                    this.setupStatusIndex.markFailed();
+                                    throw e;
+                                }
 
                                 // Signal that all indices are ready. Consumers of this marker may now start working
                                 // with them.
-                                this.setupStatusIndex.markComplete();
+                                this.setupStatusIndex.markReady();
                             });
         }
     }

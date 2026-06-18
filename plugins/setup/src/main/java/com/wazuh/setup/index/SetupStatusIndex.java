@@ -30,8 +30,9 @@ import java.util.Map;
  * the state of this plugin's initialization. Other plugins (e.g. Content Manager) read this marker
  * to defer their startup work until all indices managed by this plugin have been created.
  *
- * <p>The marker transitions once per boot: {@value #SETUP_STATUS_INITIALIZING} at the beginning of
- * the initialization, {@value #SETUP_STATUS_COMPLETE} once every index has been initialized.
+ * <p>The marker transitions once per boot: {@value #SETUP_STATUS_RUNNING} at the beginning of the
+ * initialization, then either {@value #SETUP_STATUS_READY} once every index has been initialized,
+ * or {@value #SETUP_STATUS_FAILED} if initialization could not complete.
  */
 public class SetupStatusIndex extends WazuhIndex {
     private static final Logger log = LogManager.getLogger(SetupStatusIndex.class);
@@ -43,10 +44,13 @@ public class SetupStatusIndex extends WazuhIndex {
     public static final String SETUP_STATUS_ID = "setup-status";
 
     /** Marker status while index initialization is in progress. */
-    public static final String SETUP_STATUS_INITIALIZING = "initializing";
+    public static final String SETUP_STATUS_RUNNING = "running";
 
-    /** Marker status once index initialization has finished. */
-    public static final String SETUP_STATUS_COMPLETE = "complete";
+    /** Marker status once index initialization has finished successfully. */
+    public static final String SETUP_STATUS_READY = "ready";
+
+    /** Marker status when index initialization could not complete. */
+    public static final String SETUP_STATUS_FAILED = "failed";
 
     /** JSON key for the marker status field. */
     public static final String KEY_STATUS = "status";
@@ -66,23 +70,31 @@ public class SetupStatusIndex extends WazuhIndex {
 
     /**
      * Invalidates any setup status marker left over from a previous boot by overwriting it with
-     * {@value #SETUP_STATUS_INITIALIZING}. Skipped when the index does not exist yet: there is no
-     * stale marker to invalidate, and writing would auto-create the index without its template.
+     * {@value #SETUP_STATUS_RUNNING}. Skipped when the index does not exist yet: there is no stale
+     * marker to invalidate, and writing would auto-create the index without its template.
      */
-    public void markInitializing() {
+    public void markRunning() {
         if (!this.indexExists(INDEX_NAME)) {
             log.debug("Index {} does not exist. No setup status marker to invalidate.", INDEX_NAME);
             return;
         }
-        this.setSetupStatus(SETUP_STATUS_INITIALIZING);
+        this.setSetupStatus(SETUP_STATUS_RUNNING);
     }
 
     /**
-     * Persists the setup status marker with {@value #SETUP_STATUS_COMPLETE}, signaling that all
-     * indices managed by this plugin have been initialized.
+     * Persists the setup status marker with {@value #SETUP_STATUS_READY}, signaling that all indices
+     * managed by this plugin have been initialized.
      */
-    public void markComplete() {
-        this.setSetupStatus(SETUP_STATUS_COMPLETE);
+    public void markReady() {
+        this.setSetupStatus(SETUP_STATUS_READY);
+    }
+
+    /**
+     * Persists the setup status marker with {@value #SETUP_STATUS_FAILED}, signaling that index
+     * initialization could not complete during this boot.
+     */
+    public void markFailed() {
+        this.setSetupStatus(SETUP_STATUS_FAILED);
     }
 
     /**
