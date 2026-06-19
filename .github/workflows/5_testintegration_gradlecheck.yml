@@ -153,7 +153,16 @@ jobs:
 
       - name: Run Gradle check
         working-directory: ./plugins/${{ matrix.project }}
-        run: ./gradlew check
+        # The self-hosted runner executes as root, but OpenSearch test clusters
+        # (launched by integTest during `check`) refuse to run as root. Run as a
+        # dedicated non-root user instead.
+        run: |
+          id -u builder &>/dev/null || useradd -m builder
+          # Hand the build user the workspace and the restored Maven local cache.
+          cp -a "$HOME/.m2" /home/builder/.m2 2>/dev/null || true
+          chown -R builder:builder "$GITHUB_WORKSPACE" /home/builder
+          runuser -u builder -- env "JAVA_HOME=$JAVA_HOME" "PATH=$PATH" "GRADLE_USER_HOME=/home/builder/.gradle" \
+            ./gradlew check
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
