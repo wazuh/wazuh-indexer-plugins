@@ -7,6 +7,7 @@
     "plugins.index_state_management.rollover_alias": "wazuh-events-v5",
     "plugins.index_state_management.policy_id": "stream-events-policy",
     "index": {
+      "codec": "zstd",
       "number_of_shards": "3",
       "number_of_replicas": "0",
       "auto_expand_replicas": "0-1",

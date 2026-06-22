@@ -9,6 +9,7 @@
       "plugins.index_state_management.rollover_alias": "wazuh-metrics-normalization",
       "plugins.index_state_management.policy_id": "stream-metrics-policy",
       "index": {
+        "codec": "zstd",
         "number_of_shards": "1",
         "number_of_replicas": "0",
         "refresh_interval": "5s",

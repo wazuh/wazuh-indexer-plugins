@@ -44,6 +44,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
+import com.wazuh.contentmanager.utils.Constants;
 
 /** Manages the hidden .wazuh-internal-state index used to persist the CTI access token. */
 public class CredentialsIndex {
@@ -203,7 +204,11 @@ public class CredentialsIndex {
         // access.
         try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
             Settings settings =
-                    Settings.builder().put("index.number_of_replicas", 0).put("index.hidden", true).build();
+                    Settings.builder()
+                            .put("index.number_of_replicas", 0)
+                            .put("index.hidden", true)
+                            .put(Constants.KEY_INDEX_CODEC, Constants.CODEC_ZSTD)
+                            .build();
 
             String mappings;
             try {

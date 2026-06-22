@@ -10,6 +10,7 @@
       "plugins.index_state_management.policy_id": "stream-findings-policy",
       "mapping.total_fields.limit": 3000,
       "index": {
+        "codec": "zstd",
         "number_of_shards": "3",
         "number_of_replicas": "0",
         "refresh_interval": "2s",
