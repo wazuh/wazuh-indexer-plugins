@@ -3,7 +3,7 @@
   "order": 1,
   "settings": {
     "index": {
-      "codec": "best_compression",
+      "codec": "zstd",
       "number_of_shards": "1",
       "number_of_replicas": "0",
       "auto_expand_replicas": "0-1",
