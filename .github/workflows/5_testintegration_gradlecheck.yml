@@ -1,0 +1,173 @@
+name: (5.x) Run Gradle check
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    paths:
+      - "plugins/**/*.java"
+      - "plugins/**/*.gradle"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  modified-plugins:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
+    permissions:
+      contents: read
+    outputs:
+      projects: ${{ steps.detect_changes.outputs.projects }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Detect modified plugins
+        id: detect_changes
+        uses: ./.github/actions/5_codeanalysis_detect_modified_plugins
+        with:
+          base_branch: ${{ github.event.repository.default_branch }}
+
+  branches:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
+    outputs:
+      common_utils_ref: ${{ steps.branches.outputs.wazuh_indexer_common_utils_branch }}
+      alerting_ref: ${{ steps.branches.outputs.wazuh_indexer_alerting_branch }}
+      security_analytics_ref: ${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Resolve branches
+        id: branches
+        uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver@main
+        with:
+          branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+
+  get-version:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            VERSION.json
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
+
+  publish-common-utils:
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
+    needs: [branches, get-version]
+    steps:
+      - name: Publish to Maven Local
+        uses: wazuh/wazuh-indexer-common-utils/.github/actions/5_local_maven_publisher@main
+        with:
+          version: ${{ needs.get-version.outputs.version }}
+          revision: 0
+          reference: ${{ needs.branches.outputs.common_utils_ref }}
+      - name: Cache Maven Local
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ github.run_id }}-common-utils
+
+  publish-alerting:
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
+    needs: [branches, get-version, publish-common-utils]
+    steps:
+      - name: Restore Maven Local Cache (common-utils)
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ github.run_id }}-common-utils
+      - name: Publish to Maven Local
+        uses: wazuh/wazuh-indexer-alerting/.github/actions/5_local_maven_publisher@main
+        with:
+          version: ${{ needs.get-version.outputs.version }}
+          revision: 0
+          reference: ${{ needs.branches.outputs.alerting_ref }}
+      - name: Cache Maven Local
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ github.run_id }}-alerting
+
+  publish-security-analytics:
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
+    needs: [branches, get-version, publish-common-utils, publish-alerting]
+    steps:
+      - name: Restore Maven Local Cache (alerting)
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ github.run_id }}-alerting
+      - name: Publish to Maven Local
+        uses: wazuh/wazuh-indexer-security-analytics/.github/actions/5_local_maven_publisher@main
+        with:
+          version: ${{ needs.get-version.outputs.version }}
+          revision: 0
+          reference: ${{ needs.branches.outputs.security_analytics_ref }}
+      - name: Cache Maven Local
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ github.run_id }}-security-analytics
+
+  gradle-check:
+    needs: [modified-plugins, get-version, publish-common-utils, publish-security-analytics]
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
+    if: |
+      always() &&
+      needs.modified-plugins.result == 'success' &&
+      needs.get-version.result == 'success' &&
+      needs.publish-common-utils.result == 'success' &&
+      needs.publish-security-analytics.result == 'success'
+    strategy:
+      matrix:
+        project: ${{ fromJSON(needs.modified-plugins.outputs.projects) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Restore Maven Local Cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: ${{ github.run_id }}-security-analytics
+
+      - name: Run Gradle check
+        working-directory: ./plugins/${{ matrix.project }}
+        # The self-hosted runner executes as root, but OpenSearch test clusters
+        # (launched by integTest during `check`) refuse to run as root. Run as a
+        # dedicated non-root user instead.
+        run: |
+          id -u builder &>/dev/null || useradd -m builder
+          # Hand the build user the workspace and the restored Maven local cache.
+          cp -a "$HOME/.m2" /home/builder/.m2 2>/dev/null || true
+          chown -R builder:builder "$GITHUB_WORKSPACE" /home/builder
+          runuser -u builder -- env "JAVA_HOME=$JAVA_HOME" "PATH=$PATH" "GRADLE_USER_HOME=/home/builder/.gradle" \
+            ./gradlew check
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: test-results-${{ matrix.project }}
+          overwrite: 'true'
+          path: plugins/${{ matrix.project }}/build/test-results/

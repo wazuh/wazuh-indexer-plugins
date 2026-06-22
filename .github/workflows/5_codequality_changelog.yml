@@ -1,13 +1,14 @@
 name: (5.x) Check changelog
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+    types: [opened, synchronize, ready_for_review]
 
 jobs:
   # Enforces the update of a changelog file on every pull request
   verify-changelog:
-    if: github.repository == 'wazuh/wazuh-indexer-plugins'
-    runs-on: ubuntu-24.04
+    if: ${{ !github.event.pull_request.draft && github.repository == 'wazuh/wazuh-indexer-plugins' }}
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     permissions:
       contents: read
     steps:

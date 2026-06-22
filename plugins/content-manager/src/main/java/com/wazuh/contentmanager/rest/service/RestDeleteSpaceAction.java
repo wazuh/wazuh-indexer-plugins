@@ -18,9 +18,9 @@ package com.wazuh.contentmanager.rest.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -58,7 +58,6 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 public class RestDeleteSpaceAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestDeleteSpaceAction.class);
     private static final String ENDPOINT_NAME = "content_manager_space_delete";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/space_delete";
 
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
@@ -72,12 +71,7 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.SPACE_URI + "/{space}")
-                        .method(DELETE)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+        return List.of(new Route(DELETE, PluginSettings.SPACE_URI + "/{space}"));
     }
 
     @Override
@@ -149,6 +143,13 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
             log.info(message);
             return new RestResponse(message, RestStatus.OK.getStatus());
         } catch (Exception e) {
+            Throwable cause = e;
+            while (cause != null) {
+                if (cause instanceof OpenSearchSecurityException secEx) {
+                    return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+                }
+                cause = cause.getCause();
+            }
             log.error("Failed to reset space [{}]: {}", space, e.getMessage());
             return new RestResponse(
                     "Internal Server Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());

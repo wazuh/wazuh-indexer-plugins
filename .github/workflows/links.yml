@@ -1,10 +1,13 @@
 name: (5.x) Check links
 on:
-  push:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
 
 jobs:
   linkchecker:
-    runs-on: ubuntu-24.04
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     permissions:
       contents: read
     steps:

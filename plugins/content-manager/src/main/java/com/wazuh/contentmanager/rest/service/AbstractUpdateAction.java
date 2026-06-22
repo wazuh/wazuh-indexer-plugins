@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
@@ -238,6 +239,10 @@ public abstract class AbstractUpdateAction extends AbstractContentAction {
             return new RestResponse(id, RestStatus.OK.getStatus());
 
         } catch (Exception e) {
+            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
             log.error(Constants.E_LOG_UNEXPECTED, "updating", this.getResourceType(), id, e.getMessage());
             return new RestResponse(
                     Constants.E_500_INTERNAL_SERVER_ERROR + " " + e.getMessage(),
