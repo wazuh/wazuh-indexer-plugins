@@ -21,7 +21,7 @@ jobs:
     outputs:
       projects: ${{ steps.detect_changes.outputs.projects }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Detect modified plugins
         id: detect_changes
@@ -38,7 +38,7 @@ jobs:
       alerting_ref: ${{ steps.branches.outputs.wazuh_indexer_alerting_branch }}
       security_analytics_ref: ${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Resolve branches
         id: branches
         uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver@main
@@ -52,7 +52,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           sparse-checkout: |
@@ -136,7 +136,7 @@ jobs:
       matrix:
         project: ${{ fromJSON(needs.modified-plugins.outputs.projects) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
