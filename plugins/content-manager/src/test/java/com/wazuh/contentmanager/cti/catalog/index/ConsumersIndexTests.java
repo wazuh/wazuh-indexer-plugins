@@ -237,9 +237,10 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         CreateIndexRequest request = captor.getValue();
         Assert.assertEquals(ConsumersIndex.INDEX_NAME, request.index());
 
-        // Validate Settings (Hidden = true, Replicas = 0)
+        // Validate Settings (Hidden = true, Replicas = 0, Codec = zstd)
         Assert.assertEquals("true", request.settings().get("hidden"));
         Assert.assertEquals("0", request.settings().get("index.number_of_replicas"));
+        Assert.assertEquals("zstd", request.settings().get("index.codec"));
     }
 
     /**
