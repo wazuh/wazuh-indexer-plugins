@@ -13,15 +13,14 @@ tests/content-manager/
 ├── pytest.ini             # markers + config
 ├── requirements.txt
 ├── lib/                   # reusable, BDD-agnostic core (a future pytest-bdd layer calls this)
-│   ├── client.py          # HTTP client + OpenSearch read-back helpers
-│   ├── payloads.py        # request-body builders (verified against the live API)
 │   ├── assertions.py      # assertions over stored documents
-│   └── constants.py       # endpoint paths + index aliases (single source of truth)
-├── test_resources_lifecycle.py  # CRUD + policy + promotion + space reset
+│   ├── client.py          # HTTP client + OpenSearch read-back helpers
+│   ├── constants.py       # endpoint paths + index aliases (single source of truth)
+│   └── payloads.py        # request-body builders (verified against the live API)
+├── test_findings_generation.py  # resources -> promote -> detector -> event -> finding
 ├── test_logtest.py              # logtest validation + Sigma-modifier detection matrix
 ├── test_management.py           # subscription, update, version check
-├── test_findings_generation.py  # resources -> promote -> detector -> event -> finding
-└── NN-*/*.feature               # Gherkin specs — executed by the future pytest-bdd phase
+└── test_resources_lifecycle.py  # CRUD + policy + promotion + space reset
 ```
 
 ## Prerequisites
@@ -56,7 +55,7 @@ The `test` and `custom` spaces are **not** API-resettable, so the `promote`,
 resources uniquely per run to stay repeatable on a long-lived cluster. For fully
 repeatable runs, use a fresh cluster (which the CI model below provides).
 
-The findings scenario also reaches outside the Content Manager API: it creates a
+The findings' scenario also reaches outside the Content Manager API: it creates a
 Security Analytics detector (deleted on teardown), indexes an event into the
 category's `wazuh-events-v5-*` data stream, and runs the detector's monitor on
 demand via the Alerting `_execute` API to avoid waiting for its schedule. The
@@ -76,5 +75,5 @@ test/custom reset limitation above.
 
 Request/response shapes follow [`plugins/content-manager/openapi.yml`](../../plugins/content-manager/openapi.yml).
 Where the spec and the running API disagreed, the suite encodes the **live**
-behaviour and the spec was corrected to match (e.g. decoder `metadata.author` is
+behavior and the spec was corrected to match (e.g. decoder `metadata.author` is
 a string, `trace_level` is `NONE`/`ASSET_ONLY`/`ALL`).
