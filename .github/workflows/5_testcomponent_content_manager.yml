@@ -1,0 +1,194 @@
+name: (5.x) Run Wazuh Indexer Plugins component tests
+
+# Builds the Wazuh Indexer plugins, starts the full Wazuh Indexer Docker image
+# (which already bundles the Wazuh Engine and every plugin), swaps in the freshly
+# built package, lets it sync content from the public CTI API, and
+# runs the Python component test suite under tests/content-manager/.
+#
+# See tests/content-manager/README.md and the plan for the rationale. The Wazuh
+# Indexer image is the FULL distribution, so only the plugin under test is swapped.
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    paths:
+      - "plugins/content-manager/**"
+      - "tests/content-manager/**"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "wazuh-indexer image tag to pull (defaults to <version>-latest, e.g. 5.0.0-latest)."
+        type: string
+        required: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+  actions: read
+
+env:
+  # The component tests don't exercise security. The image ships no TLS certs, so
+  # the test cluster runs with the security plugin disabled → plain HTTP, no auth.
+  # Validated locally against the ECR image.
+  BASE_URL: "http://localhost:9200"
+
+jobs:
+  get-version:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      image_tag: ${{ steps.version.outputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            VERSION.json
+      - name: Resolve version and image tag
+        id: version
+        run: |
+          version=$(jq -r .version < VERSION.json)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          # Default to the rolling "<version>-latest" image tag; overridable via workflow_dispatch.
+          override="${{ inputs.image_tag }}"
+          tag="${override:-${version}-latest}"
+          echo "image_tag=${tag}" >> "$GITHUB_OUTPUT"
+
+  # Reuse the existing reusable builder to produce the Content Manager plugin ZIP.
+  build:
+    needs: get-version
+    uses: ./.github/workflows/5_builderpackage_plugins.yml
+    with:
+      plugin: content-manager
+      revision: "0"
+    secrets: inherit
+
+  component-tests:
+    needs: [get-version, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download Content Manager package
+        uses: actions/download-artifact@v7
+        with:
+          name: content-manager-${{ needs.get-version.outputs.version }}.0.zip
+          path: ./pkg
+
+      - name: Start Wazuh Indexer container
+        env:
+          IMAGE: public.ecr.aws/wazuh-cicd/wazuh/wazuh-indexer:${{ needs.get-version.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          echo "Pulling ${IMAGE}"
+          docker pull "${IMAGE}"
+          # The image already bootstraps as a single node (node-1), so do NOT pass
+          # discovery.type=single-node (it conflicts with the baked
+          # cluster.initial_cluster_manager_nodes). Disable security: the image ships
+          # no TLS certs and the component tests don't exercise auth/TLS. The entrypoint
+          # still starts the Wazuh Engine.
+          docker run -d --name wazuh-indexer \
+            -p 9200:9200 \
+            -e "plugins.security.disabled=true" \
+            -e "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g" \
+            "${IMAGE}"
+
+      - name: Wait for the indexer to be healthy
+        run: |
+          for i in $(seq 1 60); do
+            if curl -s "${BASE_URL}/_cluster/health" | grep -qE '"status":"(green|yellow)"'; then
+              echo "Indexer is healthy."; exit 0
+            fi
+            sleep 5
+          done
+          echo "Indexer did not become healthy in time."; docker logs wazuh-indexer | tail -100; exit 1
+
+      - name: Swap in the freshly built Content Manager plugin
+        run: |
+          set -euo pipefail
+          plugin_bin=/usr/share/wazuh-indexer/bin/opensearch-plugin
+          # opensearch-plugin (via opensearch-env) sources /etc/sysconfig/wazuh-indexer
+          # unless OPENSEARCH_PATH_CONF is set; that file is absent in the image, so the
+          # CLI aborts under `docker exec` without this env.
+          exec_plugin="docker exec -e OPENSEARCH_PATH_CONF=/usr/share/wazuh-indexer/config wazuh-indexer ${plugin_bin}"
+          zip=$(ls pkg/wazuh-indexer-content-manager-*.zip | head -1)
+          echo "Installing ${zip}"
+          docker cp "${zip}" wazuh-indexer:/tmp/content-manager.zip
+          # Remove the version bundled in the image, install the PR build, then restart.
+          $exec_plugin remove --purge wazuh-indexer-content-manager
+          $exec_plugin install -b file:///tmp/content-manager.zip
+          # Align the distribution version with the repo under test, so /version/check
+          # queries CTI for the source's tag even if the base image is a different stage.
+          docker cp VERSION.json wazuh-indexer:/usr/share/wazuh-indexer/VERSION.json
+          docker restart wazuh-indexer
+
+      - name: Wait for the indexer to be healthy (after restart)
+        run: |
+          for i in $(seq 1 60); do
+            if curl -s "${BASE_URL}/_cluster/health" | grep -qE '"status":"(green|yellow)"'; then
+              echo "Indexer is healthy."; break
+            fi
+            sleep 5
+          done
+          # Informational: confirm the Engine socket is present (logtest/findings need it).
+          docker exec wazuh-indexer ls -l /usr/share/wazuh-indexer/engine/sockets/ \
+            || echo "WARNING: engine socket missing — logtest/findings need a running Engine."
+
+      - name: Trigger content sync and wait for readiness
+        run: |
+          base="${BASE_URL}"
+          # The plugin self-syncs on start (update_on_start); trigger an update too.
+          curl -s -X POST "$base/_plugins/_content_manager/update" || true
+
+          # 1) Content Manager readiness: the draft policy must exist.
+          ok=""
+          for i in $(seq 1 60); do
+            hits=$(curl -s "$base/wazuh-threatintel-policies/_search" \
+              -H 'Content-Type: application/json' \
+              -d '{"size":0,"track_total_hits":true,"query":{"term":{"space.name":{"value":"draft"}}}}' \
+              | grep -oE '"value":[0-9]+' | head -1 | grep -oE '[0-9]+' || echo 0)
+            if [ "${hits:-0}" -gt 0 ]; then ok=1; echo "Draft policy present."; break; fi
+            sleep 5
+          done
+          [ -n "$ok" ] || { echo "Draft policy not created in time (CTI sync may have failed)."; docker logs wazuh-indexer | tail -120; exit 1; }
+
+          # 2) Security Analytics readiness: the findings test creates a detector, which
+          # requires the pre-packaged rules config index (created during the SAP sync).
+          ok=""
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$base/.opensearch-sap-pre-packaged-rules-config")
+            if [ "$code" = "200" ]; then ok=1; echo "Security Analytics rules config present."; break; fi
+            sleep 5
+          done
+          [ -n "$ok" ] || { echo "SAP rules config not created in time."; docker logs wazuh-indexer | tail -120; exit 1; }
+
+      - name: Run component tests
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tests/content-manager/requirements.txt
+          pytest tests/content-manager --base-url "${BASE_URL}" -v
+
+      - name: Collect indexer logs on failure
+        if: failure()
+        run: docker logs wazuh-indexer > wazuh-indexer.log 2>&1 || true
+
+      - name: Upload indexer logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: wazuh-indexer-logs
+          path: wazuh-indexer.log
+          if-no-files-found: ignore
+
+      - name: Tear down container
+        if: always()
+        run: docker rm -f wazuh-indexer || true
