@@ -166,6 +166,7 @@ Regular incremental updates (no plan change) write through the alias to the live
 5. Optionally triggers an immediate sync on start.
 6. Registers/schedules `TelemetryPingJob` (`wazuh-telemetry-ping-job`) when `plugins.content_manager.telemetry.enabled` is true.
 7. Registers a dynamic settings consumer to enable/disable telemetry at runtime.
+8. Registers dynamic settings consumers for each resource creation limit (`max_integrations`, `max_decoders`, `max_rules`, `max_kvdbs`, `max_filters`) so limits can be updated at runtime via the Cluster Settings API.
 
 ### Update Check Service internals
 
@@ -294,7 +295,7 @@ The `executeRequest()` workflow:
 
 1. **Validate request body** — ensures the request has content and valid JSON.
 2. **Validate payload structure** — checks for required `resource` key and optional `integration` key.
-3. **Resource-specific validation** — delegates to `validatePayload()` (abstract). Concrete handlers check required fields, duplicate titles, and parent integration existence.
+3. **Resource-specific validation** — delegates to `validatePayload()` (abstract). Concrete handlers check required fields, duplicate titles, parent integration existence, and the configured creation limit. The limit check counts existing Draft documents in the target index and returns HTTP 400 if the count is at or above `plugins.content_manager.max_<type>`; if the index does not exist yet, the check is skipped.
 4. **Generate ID and metadata** — creates a UUID, sets `date` and `modified` timestamps, defaults `enabled` to `true`.
 5. **External sync** — delegates to `syncExternalServices()` (abstract). Typically upserts the resource in SAP or validates via the Engine.
 6. **Index** — wraps the resource in the CTI document structure and indexes it in the Draft space.
