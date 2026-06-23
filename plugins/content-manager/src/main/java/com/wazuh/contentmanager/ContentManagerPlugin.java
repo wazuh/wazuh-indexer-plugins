@@ -25,6 +25,7 @@ import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -446,7 +447,11 @@ public class ContentManagerPlugin extends Plugin
         if (!ClusterInfo.indexExists(this.client, CONTENT_MANAGER_JOBS_INDEX_NAME)) {
             try {
                 Settings settings =
-                        Settings.builder().put("index.number_of_replicas", 0).put("index.hidden", true).build();
+                        Settings.builder()
+                                .put("index.number_of_replicas", 0)
+                                .put("index.hidden", true)
+                                .put(Constants.KEY_INDEX_REFRESH_INTERVAL, Constants.REFRESH_INTERVAL_DISABLED)
+                                .build();
 
                 this.client
                         .admin()
@@ -521,7 +526,8 @@ public class ContentManagerPlugin extends Plugin
                                     IndexRequest request =
                                             new IndexRequest(CONTENT_MANAGER_JOBS_INDEX_NAME)
                                                     .id(CATALOG_SYNC_JOB_ID)
-                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null));
+                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null))
+                                                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
                                     this.client.index(request).actionGet();
                                     log.info(Constants.I_LOG_CATALOG_SYNC_JOB_SCHEDULED);
                                 }
@@ -618,7 +624,8 @@ public class ContentManagerPlugin extends Plugin
                                     IndexRequest request =
                                             new IndexRequest(CONTENT_MANAGER_JOBS_INDEX_NAME)
                                                     .id(TELEMETRY_JOB_ID)
-                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null));
+                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null))
+                                                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
                                     this.client.index(request).actionGet();
                                     log.info(Constants.I_LOG_TELEMETRY_JOB_SCHEDULED);
@@ -673,6 +680,7 @@ public class ContentManagerPlugin extends Plugin
                                     if (jobExists) {
                                         this.client
                                                 .prepareDelete(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                                                 .get();
                                         log.info(Constants.I_LOG_TELEMETRY_JOB_REMOVED);
                                     }

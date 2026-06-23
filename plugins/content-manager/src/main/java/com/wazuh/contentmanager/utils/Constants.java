@@ -530,6 +530,8 @@ public class Constants {
     // Index settings
     public static final String KEY_INDEX_CODEC = "index.codec";
     public static final String CODEC_ZSTD = "zstd";
+    public static final String KEY_INDEX_REFRESH_INTERVAL = "index.refresh_interval";
+    public static final String REFRESH_INTERVAL_DISABLED = "-1";
 
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
