@@ -16,75 +16,20 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.transport.client.Client;
-import org.opensearch.transport.client.node.NodeClient;
-
-import java.io.IOException;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Objects;
-
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
 /**
  * Base abstract class for Content Manager REST actions.
  *
- * <p>This class provides the foundational structure for handling CTI content requests, including
- * dependency management (Engine, SpaceService, SecurityAnalyticsService) and common request
- * preparation steps like ID extraction.
+ * <p>Business logic has been moved to transport actions; REST handlers now delegate to the
+ * transport layer via {@code client.execute()}.
  */
 public abstract class AbstractContentAction extends BaseRestHandler {
 
-    private static final Logger log = LogManager.getLogger(AbstractContentAction.class);
-    protected final EngineService engine;
-    protected SpaceService spaceService;
-    protected SecurityAnalyticsService securityAnalyticsService;
-    protected IntegrationService integrationService;
-
-    /**
-     * Constructor for AbstractContentAction.
-     *
-     * @param engine The engine service used for validation and logic execution.
-     */
-    public AbstractContentAction(EngineService engine) {
-        this.engine = engine;
-    }
-
-    /**
-     * Generate current date in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).
-     *
-     * @return String representing current date.
-     */
-    protected String getCurrentDate() {
-        return Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
-    }
-
     /**
      * Checks whether the incoming request uses {@code application/yaml} content type.
-     *
-     * <p>Uses {@link RestRequest#getMediaType()} which is set by the OpenSearch framework after
-     * parsing the Content-Type header. A try-catch guards against null internal state in test mocks.
      *
      * @param request The REST request.
      * @return {@code true} if the request content type is YAML.
@@ -98,150 +43,12 @@ public abstract class AbstractContentAction extends BaseRestHandler {
     }
 
     /**
-     * Indicates if this resource type supports YAML field storage. When true, a {@code yaml} field
-     * containing the YAML representation of the resource is stored alongside the document.
+     * Returns the content type string ("json" or "yaml") from the request.
      *
-     * @return false by default. Override to return true for Decoders, KVDBs, and Filters.
+     * @param request the REST request
+     * @return "yaml" if YAML content type, "json" otherwise
      */
-    protected boolean supportsYamlField() {
-        return false;
+    protected String getContentTypeString(RestRequest request) {
+        return isYamlRequest(request) ? "yaml" : "json";
     }
-
-    /**
-     * Prepares the REST request by initializing common services and extracting path parameters.
-     *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a RestChannelConsumer that executes the specific logic of the implementing class
-     * @throws IOException if an I/O error occurs
-     */
-    @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        // Consume path ID parameter early to avoid unrecognized parameter errors
-        if (request.hasParam(Constants.KEY_ID)) {
-            request.param(Constants.KEY_ID);
-        }
-
-        if (PluginSettings.getInstance().isEngineMockEnabled()) {
-            this.securityAnalyticsService = new MockSecurityAnalyticsService();
-        } else {
-            this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
-        }
-        this.spaceService = new SpaceService(client);
-        this.integrationService = new IntegrationService(client);
-
-        return channel -> {
-            RestResponse validationError = this.validateDraftPolicyExists(client);
-            if (validationError != null) {
-                channel.sendResponse(validationError.toBytesRestResponse());
-                return;
-            }
-            try {
-                RestResponse result = this.executeRequest(request, client);
-                channel.sendResponse(result.toBytesRestResponse());
-            } catch (Exception e) {
-                this.sendErrorResponse(channel, e);
-            }
-        };
-    }
-
-    /** Sets the policy hash service (for testing). */
-    public void setPolicyHashService(SpaceService spaceService) {
-        this.spaceService = spaceService;
-    }
-
-    /** Gets the policy hash service (for testing). */
-    public SpaceService getPolicyHashService() {
-        return this.spaceService;
-    }
-
-    /** Sets the security analytics service (for testing). */
-    public void setSecurityAnalyticsService(SecurityAnalyticsService securityAnalyticsService) {
-        this.securityAnalyticsService = securityAnalyticsService;
-    }
-
-    /** Sets the integration service (for testing). */
-    public void setIntegrationService(IntegrationService integrationService) {
-        this.integrationService = integrationService;
-    }
-
-    /**
-     * Checks synchronously if the policy document for the draft space exists.
-     *
-     * @param client The OpenSearch client.
-     * @return A RestResponse with an error if the draft policy is missing, or {@code null} if valid.
-     */
-    protected RestResponse validateDraftPolicyExists(Client client) {
-        try {
-            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-            sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
-            sourceBuilder.size(0);
-            searchRequest.source(sourceBuilder);
-
-            SearchResponse response = client.search(searchRequest).actionGet();
-
-            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
-                log.error(Constants.E_500_MISSING_DRAFT_POLICY);
-                return new RestResponse(
-                        Constants.E_500_MISSING_DRAFT_POLICY, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
-        } catch (Exception ex) {
-            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(ex);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            return new RestResponse(
-                    "Draft policy check failed: " + ex.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
-    /**
-     * Walks the exception cause chain looking for an {@link OpenSearchSecurityException}. Returns it
-     * if found, or {@code null} otherwise.
-     */
-    protected static OpenSearchSecurityException extractSecurityException(Throwable throwable) {
-        Throwable cause = throwable;
-        while (cause != null) {
-            if (cause instanceof OpenSearchSecurityException) {
-                return (OpenSearchSecurityException) cause;
-            }
-            cause = cause.getCause();
-        }
-        return null;
-    }
-
-    /**
-     * Sends an error response on the channel.
-     *
-     * @param channel The REST channel.
-     * @param e The exception.
-     */
-    private void sendErrorResponse(RestChannel channel, Exception e) {
-        try {
-            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
-            if (secEx != null) {
-                channel.sendResponse(
-                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()).toBytesRestResponse());
-                return;
-            }
-            log.error(Constants.E_LOG_PROCESS_REQUEST_FAILED, e.getMessage(), e);
-            RestResponse error =
-                    new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            channel.sendResponse(error.toBytesRestResponse());
-        } catch (Exception ex) {
-            log.error(Constants.E_LOG_SEND_ERROR_RESPONSE_FAILED, ex);
-        }
-    }
-
-    /**
-     * Executes the specific business logic for the REST action.
-     *
-     * @param request The incoming REST request.
-     * @param client The OpenSearch client.
-     * @return A RestResponse indicating the result.
-     */
-    protected abstract RestResponse executeRequest(RestRequest request, Client client);
 }

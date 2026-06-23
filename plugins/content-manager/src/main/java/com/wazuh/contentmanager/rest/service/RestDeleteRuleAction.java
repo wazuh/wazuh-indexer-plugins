@@ -16,81 +16,33 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import org.opensearch.transport.client.Client;
+import org.opensearch.action.ActionType;
 
-import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.action.ContentResponse;
+import com.wazuh.contentmanager.action.DeleteRuleAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
-/**
- * DELETE /_plugins/content-manager/rules/{id}
- *
- * <p>Deletes an existing Rule from the draft space.
- *
- * <p>This action ensures that:
- *
- * <ul>
- *   <li>The rule exists and is in the draft space.
- *   <li>The rule is deleted from the Security Analytics Plugin (SAP).
- *   <li>The rule is unlinked from any integrations that reference it.
- *   <li>The rule is deleted from the index and the space hash is recalculated.
- * </ul>
- *
- * <p>Possible HTTP responses:
- *
- * <ul>
- *   <li>200 OK: Rule deleted successfully.
- *   <li>400 Bad Request: Rule is not in draft space.
- *   <li>404 Not Found: Rule with specified ID was not found.
- *   <li>500 Internal Server Error: Unexpected error during processing.
- * </ul>
- */
+/** REST handler for deleting Rule resources. Delegates to transport layer. */
 public class RestDeleteRuleAction extends AbstractDeleteAction {
 
     private static final String ENDPOINT_NAME = "content_manager_rule_delete";
 
-    public RestDeleteRuleAction() {
-        super(null);
-    }
-
-    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
-    /**
-     * Return the route configuration for this handler.
-     *
-     * @return route configuration for the update endpoint
-     */
     @Override
     public List<Route> routes() {
         return List.of(new Route(DELETE, PluginSettings.RULES_URI + "/{id}"));
     }
 
     @Override
-    protected String getIndexName() {
-        return Constants.INDEX_RULES;
-    }
-
-    @Override
-    protected String getResourceType() {
-        return Constants.KEY_RULE;
-    }
-
-    @Override
-    protected void deleteExternalServices(String id) {
-        this.securityAnalyticsService.deleteRule(id, Space.DRAFT);
-    }
-
-    @Override
-    protected void unlinkFromParent(Client client, String id) throws IOException {
-        this.integrationService.unlinkResourceFromIntegrations(id, Constants.KEY_RULES);
+    protected ActionType<ContentResponse> getActionType() {
+        return DeleteRuleAction.INSTANCE;
     }
 }

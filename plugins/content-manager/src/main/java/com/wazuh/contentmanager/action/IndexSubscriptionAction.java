@@ -18,11 +18,11 @@ package com.wazuh.contentmanager.action;
 
 import org.opensearch.action.ActionType;
 
-public class IndexSubscriptionAction extends ActionType<IndexSubscriptionResponse> {
+public class IndexSubscriptionAction extends ActionType<MessageStatusResponse> {
     public static final String NAME = "plugin:content_manager/subscription/post";
     public static final IndexSubscriptionAction INSTANCE = new IndexSubscriptionAction();
 
     public IndexSubscriptionAction() {
-        super(NAME, IndexSubscriptionResponse::new);
+        super(NAME, MessageStatusResponse::new);
     }
 }

@@ -32,7 +32,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Set up Docker Compose
-        run: sudo apt-get install docker-compose
+        run: sudo apt-get install -y docker-compose
 
       - name: Update module list
         run: bash wcs/generator/update_module_list.sh
