@@ -16,181 +16,33 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.opensearch.action.ActionType;
 
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.transport.client.Client;
-
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.action.ContentResponse;
+import com.wazuh.contentmanager.action.UpdateIntegrationAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
-/**
- * PUT /_plugins/content-manager/integrations/{id}
- *
- * <p>Updates an existing integration in the draft space.
- *
- * <p>This action ensures that:
- *
- * <ul>
- *   <li>The integration exists and is in the draft space.
- *   <li>The request body contains all mandatory fields (title, author, category).
- *   <li>The lists of linked resources (Rules, Decoders, KVDBs) match the existing document (they
- *       cannot be modified via this endpoint).
- *   <li>Immutable metadata (creation date) is preserved from the existing document.
- *   <li>The updated integration is synchronized with the Security Analytics Plugin (SAP).
- *   <li>The updated integration payload is validated by the Engine.
- *   <li>The integration is re-indexed and the space hash is recalculated.
- * </ul>
- *
- * <p>Possible HTTP responses:
- *
- * <ul>
- *   <li>200 OK: Integration updated successfully.
- *   <li>400 Bad Request: Missing fields, invalid payload, duplicate name or attempt to modify
- *       linked resource lists.
- *   <li>404 Not Found: Integration with specified ID was not found.
- *   <li>500 Internal Server Error: Unexpected error during processing or external service failure.
- * </ul>
- */
+/** REST handler for updating Integration resources. Delegates to transport layer. */
 public class RestPutIntegrationAction extends AbstractUpdateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_integration_update";
 
-    public RestPutIntegrationAction(EngineService engine) {
-        super(engine);
-    }
-
-    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
-    /**
-     * Return the route configuration for this handler.
-     *
-     * @return route configuration for the update endpoint
-     */
     @Override
     public List<Route> routes() {
         return List.of(new Route(PUT, PluginSettings.INTEGRATIONS_URI + "/{id}"));
     }
 
     @Override
-    protected String getIndexName() {
-        return Constants.INDEX_INTEGRATIONS;
-    }
-
-    @Override
-    protected String getResourceType() {
-        return Constants.KEY_INTEGRATION;
-    }
-
-    /** Preserves metadata and validates that linked resource lists have not changed. */
-    @Override
-    protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
-        RestResponse response = super.preserveMetadata(index, id, resourceNode);
-        if (response != null) {
-            return response;
-        }
-
-        JsonNode existingDoc = index.getDocument(id);
-        if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> existing =
-                    MAPPER.convertValue(existingDoc.get(Constants.KEY_DOCUMENT), Map.class);
-
-            RestResponse error;
-            error = this.checkListEquality(existing, resourceNode, Constants.KEY_RULES);
-            if (error != null) return error;
-
-            error = this.checkListEquality(existing, resourceNode, Constants.KEY_DECODERS);
-            if (error != null) return error;
-
-            error = this.checkListEquality(existing, resourceNode, Constants.KEY_KVDBS);
-            return error;
-        }
-        return null;
-    }
-
-    /**
-     * Checks if two lists are equal ot not, if not it returns a RestResponse with the error
-     *
-     * @param existing Current document
-     * @param resource New document
-     * @param key Key of the list to check if is equal or not
-     */
-    private RestResponse checkListEquality(
-            Map<String, Object> existing, JsonNode resource, String key) {
-        @SuppressWarnings("unchecked")
-        List<String> oldList = (List<String>) existing.getOrDefault(key, Collections.emptyList());
-        List<String> newList = this.documentValidations.extractStringList(resource, key);
-        return this.documentValidations.validateListEquality(oldList, newList, key);
-    }
-
-    @Override
-    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
-        RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_CATEGORY, Constants.KEY_ENABLED));
-        if (fieldValidation != null) return fieldValidation;
-
-        RestResponse metadataValidation =
-                this.documentValidations.validateMetadataFields(
-                        resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
-        if (metadataValidation != null) return metadataValidation;
-
-        String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
-        String id = resource.get(Constants.KEY_ID).asText();
-
-        return this.documentValidations.validateDuplicateTitle(
-                client,
-                Constants.INDEX_INTEGRATIONS,
-                Space.DRAFT.toString(),
-                title,
-                id,
-                Constants.KEY_INTEGRATION);
-    }
-
-    @Override
-    protected RestResponse syncExternalServices(String id, JsonNode resource) {
-        // 1. Validate using the Engine.
-        ObjectNode enginePayload = MAPPER.createObjectNode();
-        enginePayload.set(Constants.KEY_RESOURCE, resource);
-        enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
-
-        RestResponse engineResponse = this.engine.validate(enginePayload);
-        if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(
-                    Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        // 2. Send to Security Analytics.
-        try {
-            this.securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, PUT);
-        } catch (Exception e) {
-            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            return new RestResponse(
-                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        return null;
+    protected ActionType<ContentResponse> getActionType() {
+        return UpdateIntegrationAction.INSTANCE;
     }
 }
