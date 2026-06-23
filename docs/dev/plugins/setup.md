@@ -96,7 +96,7 @@ Here is an example ISM policy:
             },
             "rollover": {
               "min_doc_count": 200000000,
-              "min_primary_shard_size": "25gb"
+              "min_primary_shard_size": "20gb"
             }
           }
         ],
