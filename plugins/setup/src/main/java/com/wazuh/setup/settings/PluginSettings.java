@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -45,6 +45,26 @@ public class PluginSettings {
     public static final Setting<Integer> BACKOFF =
             Setting.intSetting(
                     "plugins.setup.backoff", DEFAULT_BACKOFF, 5, 60, Setting.Property.NodeScope);
+
+    /**
+     * When enabled, modification of sensitive Setup configuration (the {@code .wazuh-settings}
+     * document, e.g. {@code engine.index_raw_events}) is locked: the settings endpoint returns {@code
+     * 403 FORBIDDEN} for every caller, regardless of role. Intended for externally managed (e.g.
+     * Wazuh Cloud) deployments. Defaults to false.
+     */
+    public static final Setting<Boolean> SENSITIVE_CONFIG_LOCKED =
+            Setting.boolSetting(
+                    "plugins.setup.sensitive_config.locked", false, Setting.Property.NodeScope);
+
+    /**
+     * {@link PluginSettings#SENSITIVE_CONFIG_LOCKED} getter.
+     *
+     * @param settings settings of this node.
+     * @return whether modification of sensitive Setup configuration is locked.
+     */
+    public static boolean isSensitiveConfigLocked(Settings settings) {
+        return SENSITIVE_CONFIG_LOCKED.get(settings);
+    }
 
     /**
      * {@link PluginSettings#TIMEOUT} getter.

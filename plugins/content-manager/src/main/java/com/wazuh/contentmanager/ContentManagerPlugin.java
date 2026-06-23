@@ -69,6 +69,7 @@ import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.action.IndexSubscriptionAction;
+import com.wazuh.contentmanager.action.PutPolicyAction;
 import com.wazuh.contentmanager.action.TriggerUpdateAction;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
@@ -90,6 +91,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.transport.TransportIndexSubscriptionAction;
+import com.wazuh.contentmanager.transport.TransportPutPolicyAction;
 import com.wazuh.contentmanager.transport.TransportTriggerUpdateAction;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
@@ -223,7 +225,7 @@ public class ContentManagerPlugin extends Plugin
                 .addSettingsUpdateConsumer(
                         PluginSettings.TELEMETRY_ENABLED, this::onTelemetrySettingChanged);
 
-        return List.of(this.subscriptionService, this.catalogSyncJob);
+        return List.of(this.subscriptionService, this.catalogSyncJob, this.spaceService);
     }
 
     /**
@@ -710,7 +712,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.TELEMETRY_ENABLED,
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
-                PluginSettings.CREATE_DETECTORS);
+                PluginSettings.CREATE_DETECTORS,
+                PluginSettings.SENSITIVE_CONFIG_LOCKED);
     }
 
     @Override
@@ -719,7 +722,8 @@ public class ContentManagerPlugin extends Plugin
                 new ActionPlugin.ActionHandler<>(
                         IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
                 new ActionPlugin.ActionHandler<>(
-                        TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class));
+                        TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class),
+                new ActionPlugin.ActionHandler<>(PutPolicyAction.INSTANCE, TransportPutPolicyAction.class));
     }
 
     /**

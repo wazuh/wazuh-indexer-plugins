@@ -17,6 +17,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 | `plugins.content_manager.catalog.vulnerabilities`    | String    | `""`                                     | Full CTI consumer URL for vulnerabilities content                               |
 | `plugins.content_manager.catalog.create_detectors`   | Boolean   | `true`                                   | Automatically create Security Analytics detectors from CTI content              |
 | `plugins.content_manager.telemetry.enabled`          | Boolean   | `true`                                   | Enable or disable the daily Update check service ping. This setting is dynamic. |
+| `plugins.content_manager.sensitive_config.locked`    | Boolean   | `false`                                  | When `true`, lock modification of sensitive configuration (policy updates and content update triggers): the endpoints return `403 Forbidden` for every caller, regardless of role. |
 
 <!-- // ANCHOR_END: settings-table -->
 
@@ -130,6 +131,25 @@ curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 
     "plugins.content_manager.telemetry.enabled": false
   }
 }'
+```
+
+### Protecting sensitive configuration
+
+Some endpoints modify configuration with a high impact on the platform and are protected by two independent controls:
+
+| Endpoint | Method | Permission (cluster action) |
+| --- | --- | --- |
+| `/_plugins/_content_manager/policy/{space}` | `PUT` | `plugin:content_manager/policy/update` |
+| `/_plugins/_content_manager/update` | `POST` | `plugin:content_manager/update/post` |
+| `/_plugins/_setup/settings` | `PUT` | `plugin:setup/settings/write` |
+
+1. **RBAC** — each endpoint is gated by a cluster permission (the action name above), enforced by the security plugin. By default only the bundled `wazuh-admin` user (role `wazuh_admin`) and wildcard roles such as `all_access` hold these permissions; `wazuh-server` and `wazuh-dashboard` do not. See the [access control reference](../../security/access-control.md).
+2. **Lockdown setting** — set `plugins.content_manager.sensitive_config.locked: true` (and, for the setup settings endpoint, `plugins.setup.sensitive_config.locked: true`) to block modification entirely. When locked, the endpoints return `403 Forbidden` for **every** caller, including `wazuh-admin` and `all_access`. This is intended for externally managed (e.g. Wazuh Cloud) deployments.
+
+```yaml
+# opensearch.yml — lock sensitive configuration on a managed deployment
+plugins.content_manager.sensitive_config.locked: true
+plugins.setup.sensitive_config.locked: true
 ```
 
 ### Notes
