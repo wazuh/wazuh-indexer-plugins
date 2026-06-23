@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.rest.service;
 import org.opensearch.action.ActionType;
 
 import java.util.List;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.action.ContentResponse;
 import com.wazuh.contentmanager.action.CreateDecoderAction;
@@ -30,7 +29,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 /** REST handler for creating Decoder resources. Delegates to transport layer. */
 public class RestPostDecoderAction extends AbstractCreateAction {
 
-    private static final Logger log = LogManager.getLogger(RestPostDecoderAction.class);
     private static final String ENDPOINT_NAME = "content_manager_decoder_create";
 
     @Override

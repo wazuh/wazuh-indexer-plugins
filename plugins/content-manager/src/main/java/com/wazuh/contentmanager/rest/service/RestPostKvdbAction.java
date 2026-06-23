@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.rest.service;
 import org.opensearch.action.ActionType;
 
 import java.util.List;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.action.ContentResponse;
 import com.wazuh.contentmanager.action.CreateKvdbAction;
@@ -30,7 +29,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 /** REST handler for creating KVDB resources. Delegates to transport layer. */
 public class RestPostKvdbAction extends AbstractCreateAction {
 
-    private static final Logger log = LogManager.getLogger(RestPostKvdbAction.class);
     private static final String ENDPOINT_NAME = "content_manager_kvdb_create";
 
     @Override

@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.rest.service;
 import org.opensearch.action.ActionType;
 
 import java.util.List;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.action.ContentResponse;
 import com.wazuh.contentmanager.action.CreateIntegrationAction;
@@ -30,7 +29,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 /** REST handler for creating Integration resources. Delegates to transport layer. */
 public class RestPostIntegrationAction extends AbstractCreateAction {
 
-    private static final Logger log = LogManager.getLogger(RestPostIntegrationAction.class);
     private static final String ENDPOINT_NAME = "content_manager_integration_create";
 
     @Override

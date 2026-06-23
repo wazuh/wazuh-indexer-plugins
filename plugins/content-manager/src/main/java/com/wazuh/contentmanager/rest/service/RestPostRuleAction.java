@@ -29,7 +29,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 /** REST handler for creating Rule resources. Delegates to transport layer. */
 public class RestPostRuleAction extends AbstractCreateAction {
 
-    private static final Logger log = LogManager.getLogger(RestPostRuleAction.class);
     private static final String ENDPOINT_NAME = "content_manager_rule_create";
 
     @Override

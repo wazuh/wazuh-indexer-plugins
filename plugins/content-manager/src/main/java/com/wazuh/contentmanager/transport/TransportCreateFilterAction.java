@@ -20,10 +20,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
@@ -38,11 +44,13 @@ import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Transport action for creating Filter resources (Spaces variant). */
 public class TransportCreateFilterAction extends AbstractTransportCreateActionSpaces {
 
+    private static final Logger log = LogManager.getLogger(TransportCreateFilterAction.class);
     private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
     private String spaceName = "";
 
@@ -102,6 +110,31 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
                     Constants.E_400_RESOURCE_SPACE_INVALID, RestStatus.BAD_REQUEST.getStatus());
         }
         this.spaceName = spaceValue;
+
+        // Enforce max filters limit per space
+        int maxFilters = PluginSettings.getInstance().getMaxFilters();
+        SearchRequest countRequest = new SearchRequest(Constants.INDEX_FILTERS);
+        SearchSourceBuilder countSource = new SearchSourceBuilder();
+        countSource.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+        countSource.size(0);
+        countSource.trackTotalHits(true);
+        countRequest.source(countSource);
+        try {
+            SearchResponse countResponse = client.search(countRequest).actionGet();
+            long count =
+                    countResponse.getHits().getTotalHits() != null
+                            ? countResponse.getHits().getTotalHits().value()
+                            : 0;
+            if (count >= maxFilters) {
+                log.info(Constants.I_LOG_MAX_FILTERS_REACHED, maxFilters);
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_TOO_MANY_FILTERS, maxFilters),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        } catch (Exception e) {
+            // If counting fails (e.g., index does not exist yet), allow creation to proceed.
+            log.warn("Failed to count existing filters for limit check: {}", e.getMessage());
+        }
 
         return null;
     }

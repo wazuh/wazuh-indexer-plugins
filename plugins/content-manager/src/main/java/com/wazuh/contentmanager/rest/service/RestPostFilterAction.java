@@ -29,7 +29,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 /** REST handler for creating Filter resources. Delegates to transport layer. */
 public class RestPostFilterAction extends AbstractCreateActionSpaces {
 
-    private static final Logger log = LogManager.getLogger(RestPostFilterAction.class);
     private static final String ENDPOINT_NAME = "content_manager_filter_create";
 
     @Override
