@@ -25,6 +25,7 @@ import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.ActionFilter;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -69,7 +70,6 @@ import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.action.IndexSubscriptionAction;
-import com.wazuh.contentmanager.action.PutPolicyAction;
 import com.wazuh.contentmanager.action.TriggerUpdateAction;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
@@ -84,6 +84,7 @@ import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
+import com.wazuh.contentmanager.filter.SensitiveConfigActionFilter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
@@ -91,7 +92,6 @@ import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.transport.TransportIndexSubscriptionAction;
-import com.wazuh.contentmanager.transport.TransportPutPolicyAction;
 import com.wazuh.contentmanager.transport.TransportTriggerUpdateAction;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
@@ -225,7 +225,7 @@ public class ContentManagerPlugin extends Plugin
                 .addSettingsUpdateConsumer(
                         PluginSettings.TELEMETRY_ENABLED, this::onTelemetrySettingChanged);
 
-        return List.of(this.subscriptionService, this.catalogSyncJob, this.spaceService);
+        return List.of(this.subscriptionService, this.catalogSyncJob);
     }
 
     /**
@@ -722,8 +722,19 @@ public class ContentManagerPlugin extends Plugin
                 new ActionPlugin.ActionHandler<>(
                         IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
                 new ActionPlugin.ActionHandler<>(
-                        TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class),
-                new ActionPlugin.ActionHandler<>(PutPolicyAction.INSTANCE, TransportPutPolicyAction.class));
+                        TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class));
+    }
+
+    /**
+     * Registers an {@link ActionFilter} that blocks modification of sensitive configuration (policy
+     * updates and content update triggers) when {@code
+     * plugins.content_manager.sensitive_config.locked} is enabled, regardless of the caller's role.
+     *
+     * @return the list of action filters for this plugin.
+     */
+    @Override
+    public List<ActionFilter> getActionFilters() {
+        return List.of(new SensitiveConfigActionFilter());
     }
 
     /**

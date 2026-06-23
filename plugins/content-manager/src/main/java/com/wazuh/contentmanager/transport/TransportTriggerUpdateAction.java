@@ -28,8 +28,6 @@ import com.wazuh.contentmanager.action.TriggerUpdateAction;
 import com.wazuh.contentmanager.action.TriggerUpdateRequest;
 import com.wazuh.contentmanager.action.TriggerUpdateResponse;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
-import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 
 public class TransportTriggerUpdateAction
         extends HandledTransportAction<TriggerUpdateRequest, TriggerUpdateResponse> {
@@ -49,13 +47,6 @@ public class TransportTriggerUpdateAction
     protected void doExecute(
             Task task, TriggerUpdateRequest request, ActionListener<TriggerUpdateResponse> listener) {
         try {
-            // Lockdown gate: when enabled, content updates cannot be triggered by anyone.
-            if (PluginSettings.getInstance().isSensitiveConfigLocked()) {
-                listener.onResponse(
-                        new TriggerUpdateResponse(
-                                Constants.E_403_SENSITIVE_CONFIG_LOCKED, RestStatus.FORBIDDEN));
-                return;
-            }
             if (this.catalogSyncJob.isRunning()) {
                 listener.onResponse(
                         new TriggerUpdateResponse(
