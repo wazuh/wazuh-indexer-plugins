@@ -116,8 +116,8 @@ public class EngineSocketClient {
 
     /**
      * Executes the actual socket communication within a privileged context. This is needed because
-     * transport actions may run on threads whose call stack includes other plugins that lack
-     * socket permissions.
+     * transport actions may run on threads whose call stack includes other plugins that lack socket
+     * permissions.
      */
     @SuppressForbidden(reason = "Unix domain socket access requires privileged execution")
     private RestResponse executeSocketRequest(
