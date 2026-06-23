@@ -52,7 +52,6 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -87,13 +86,6 @@ public class TransportUpdatePolicyAction
     @Override
     protected void doExecute(
             Task task, UpdatePolicyRequest request, ActionListener<MessageStatusResponse> listener) {
-        // Lockdown gate: when enabled, sensitive configuration cannot be modified by anyone.
-        if (PluginSettings.getInstance().isSensitiveConfigLocked()) {
-            listener.onResponse(
-                    new MessageStatusResponse(Constants.E_403_SENSITIVE_CONFIG_LOCKED, RestStatus.FORBIDDEN));
-            return;
-        }
-
         // 1. Check request body exists
         String body = request.getBody();
         if (body == null || body.isBlank()) {

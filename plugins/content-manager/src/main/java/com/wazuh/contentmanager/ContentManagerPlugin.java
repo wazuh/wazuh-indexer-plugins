@@ -25,6 +25,7 @@ import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -85,6 +86,7 @@ import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
+import com.wazuh.contentmanager.filter.SensitiveConfigActionFilter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
@@ -778,6 +780,18 @@ public class ContentManagerPlugin extends Plugin
                 new ActionHandler<>(CreateFilterAction.INSTANCE, TransportCreateFilterAction.class),
                 new ActionHandler<>(UpdateFilterAction.INSTANCE, TransportUpdateFilterAction.class),
                 new ActionHandler<>(DeleteFilterAction.INSTANCE, TransportDeleteFilterAction.class));
+    }
+
+    /**
+     * Registers an {@link ActionFilter} that blocks modification of sensitive configuration (policy
+     * updates and content update triggers) when {@code
+     * plugins.content_manager.sensitive_config.locked} is enabled, regardless of the caller's role.
+     *
+     * @return the list of action filters for this plugin.
+     */
+    @Override
+    public List<ActionFilter> getActionFilters() {
+        return List.of(new SensitiveConfigActionFilter());
     }
 
     /**
