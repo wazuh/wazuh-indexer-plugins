@@ -75,6 +75,8 @@ public class Constants {
                     + CredentialsIndex.INDEX_NAME
                     + "' index is not configured as a system index. "
                     + "Add it to plugins.security.system_indices.indices in opensearch.yml and restart.";
+    public static final String E_403_SENSITIVE_CONFIG_LOCKED =
+            "Modification of sensitive configuration is locked on this deployment.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_SECURITY_ANALYTICS_ERROR =
             "Error in Security Analytics."; // Used for both BAD_REQUEST and INTERNAL_SERVER_ERROR

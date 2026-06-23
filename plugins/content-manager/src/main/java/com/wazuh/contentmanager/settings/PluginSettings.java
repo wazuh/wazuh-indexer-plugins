@@ -219,6 +219,19 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
+    /**
+     * When enabled, modification of sensitive Content Manager configuration (policy updates and
+     * content update triggers) is locked: the corresponding endpoints return {@code 403 FORBIDDEN}
+     * for every caller, regardless of role. Intended for externally managed (e.g. Wazuh Cloud)
+     * deployments. Defaults to false.
+     */
+    public static final Setting<Boolean> SENSITIVE_CONFIG_LOCKED =
+            Setting.boolSetting(
+                    "plugins.content_manager.sensitive_config.locked",
+                    false,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
@@ -233,6 +246,7 @@ public class PluginSettings {
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
+    private final boolean sensitiveConfigLocked;
     private volatile boolean isTelemetryEnabled;
     private volatile String accessToken;
     private String version;
@@ -257,6 +271,7 @@ public class PluginSettings {
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
+        this.sensitiveConfigLocked = SENSITIVE_CONFIG_LOCKED.get(settings);
         this.isTelemetryEnabled = TELEMETRY_ENABLED.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
@@ -442,6 +457,16 @@ public class PluginSettings {
     /** Retrieves the full ruleset catalog consumer URL. */
     public String getCatalogRuleset() {
         return this.catalogRuleset;
+    }
+
+    /**
+     * Returns whether modification of sensitive Content Manager configuration is locked on this
+     * deployment.
+     *
+     * @return true if sensitive configuration modification is locked, false otherwise.
+     */
+    public boolean isSensitiveConfigLocked() {
+        return this.sensitiveConfigLocked;
     }
 
     /**

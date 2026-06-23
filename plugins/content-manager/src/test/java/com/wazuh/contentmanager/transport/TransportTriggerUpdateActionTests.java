@@ -107,6 +107,26 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
         verify(this.catalogSyncJob, never()).trigger();
     }
 
+    public void testDoExecute_Locked_Forbidden() throws Exception {
+        clearPluginSettingsInstance();
+        PluginSettings.getInstance(
+                Settings.builder().put("plugins.content_manager.sensitive_config.locked", true).build());
+        TriggerUpdateRequest request = new TriggerUpdateRequest();
+
+        @SuppressWarnings("unchecked")
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), request, listener);
+
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.FORBIDDEN, response.getStatus());
+                                    return true;
+                                }));
+        verify(this.catalogSyncJob, never()).trigger();
+    }
+
     public void testDoExecute_Exception() {
         when(this.catalogSyncJob.isRunning()).thenThrow(new RuntimeException("Unexpected failure"));
         TriggerUpdateRequest request = new TriggerUpdateRequest();

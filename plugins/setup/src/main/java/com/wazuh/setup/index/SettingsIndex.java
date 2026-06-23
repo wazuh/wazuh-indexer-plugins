@@ -49,6 +49,8 @@ public class SettingsIndex extends WazuhIndex {
     public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body.";
     public static final String E_400_MISSING_FIELD = "Missing required field: '%s'.";
     public static final String E_400_INVALID_TYPE = "Field '%s' must be of type %s.";
+    public static final String E_403_SENSITIVE_CONFIG_LOCKED =
+            "Modification of sensitive configuration is locked on this deployment.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
 
     /**

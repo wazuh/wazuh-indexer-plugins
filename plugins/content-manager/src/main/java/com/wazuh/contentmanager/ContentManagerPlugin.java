@@ -714,7 +714,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.TELEMETRY_ENABLED,
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
-                PluginSettings.CREATE_DETECTORS);
+                PluginSettings.CREATE_DETECTORS,
+                PluginSettings.SENSITIVE_CONFIG_LOCKED);
     }
 
     @Override
