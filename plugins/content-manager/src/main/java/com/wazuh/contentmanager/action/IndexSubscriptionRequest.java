@@ -20,8 +20,6 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestRequest.Method;
 
 import java.io.IOException;
 
@@ -31,17 +29,16 @@ public class IndexSubscriptionRequest extends ActionRequest {
 
     public static final String ACCESS_TOKEN_IS_MISSING = "Access token is missing";
     private static final String ACCESS_TOKEN_FIELD = "access_token";
-    private final RestRequest.Method method;
     private final String token;
 
-    public IndexSubscriptionRequest(Method method, String token) {
+    public IndexSubscriptionRequest(String token) {
         super();
-        this.method = method;
         this.token = token;
     }
 
     public IndexSubscriptionRequest(StreamInput sin) throws IOException {
-        this(sin.readEnum(Method.class), sin.readString());
+        super(sin);
+        this.token = sin.readString();
     }
 
     @Override
@@ -59,15 +56,10 @@ public class IndexSubscriptionRequest extends ActionRequest {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeEnum(method);
         out.writeString(token);
     }
 
     public String getToken() {
         return token;
-    }
-
-    public Method getMethod() {
-        return method;
     }
 }

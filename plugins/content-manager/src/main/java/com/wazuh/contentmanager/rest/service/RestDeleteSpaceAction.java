@@ -18,33 +18,31 @@ package com.wazuh.contentmanager.rest.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.core.rest.RestStatus;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
+import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
 
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.action.DeleteSpaceAction;
+import com.wazuh.contentmanager.action.DeleteSpaceRequest;
+import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
 /**
  * DELETE /_plugins/_content_manager/space/{space}
  *
- * <p>Resets the draft user space to its initial state by deleting all associated documents and
- * re-generating the default policy.
+ * <p>Resets the draft user space to its initial state by delegating to the transport action {@link
+ * DeleteSpaceAction}.
  *
  * <p>Possible HTTP responses:
  *
@@ -59,11 +57,6 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestDeleteSpaceAction.class);
     private static final String ENDPOINT_NAME = "content_manager_space_delete";
 
-    private SpaceService spaceService;
-    private SecurityAnalyticsService securityAnalyticsService;
-
-    public RestDeleteSpaceAction() {}
-
     @Override
     public String getName() {
         return ENDPOINT_NAME;
@@ -76,103 +69,23 @@ public class RestDeleteSpaceAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        // Consume path parameter early to avoid unrecognized parameter errors
-        if (request.hasParam(Constants.KEY_SPACE)) {
-            request.param(Constants.KEY_SPACE);
-        }
+        String spaceName = request.param(Constants.KEY_SPACE);
+        log.debug("{} {}/{}", request.method(), PluginSettings.SPACE_URI, spaceName);
+        DeleteSpaceRequest deleteSpaceRequest = new DeleteSpaceRequest(spaceName);
 
-        this.spaceService = new SpaceService(client);
-
-        if (PluginSettings.getInstance().isEngineMockEnabled()) {
-            this.securityAnalyticsService = new MockSecurityAnalyticsService();
-        } else {
-            this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
-        }
-
-        return channel -> {
-            RestResponse response = this.handleRequest(request);
-            channel.sendResponse(response.toBytesRestResponse());
-        };
+        return channel ->
+                client.execute(
+                        DeleteSpaceAction.INSTANCE, deleteSpaceRequest, createResponseListener(channel));
     }
 
-    /**
-     * Handles the space reset logic: 1. Validates the space parameter and ensures it is draft. 2.
-     * Fetches current resources for the space to perform necessary external deletions in SAP. 3.
-     * Deletes all documents associated with the space across all resource indices. 4. Re-generates
-     * the default policy for the space. 5. Returns appropriate HTTP responses based on the outcome of
-     * each operation. Note: External deletions in SAP are attempted but do not block the reset
-     * process if they fail, as the primary goal is to ensure the space is reset in the content
-     * manager. Failures in external deletions are logged for monitoring and troubleshooting purposes.
-     *
-     * @param request The incoming REST request containing the space parameter.
-     * @return A RestResponse indicating the success or failure of the space reset operation, with
-     *     appropriate status codes and messages.
-     */
-    public RestResponse handleRequest(RestRequest request) {
-        String spaceParam = request.param(Constants.KEY_SPACE);
-
-        Space space;
-        try {
-            space = Space.fromValue(spaceParam);
-        } catch (IllegalArgumentException e) {
-            return new RestResponse(
-                    "Invalid space: [" + spaceParam + "].", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        if (space != Space.DRAFT) {
-            return new RestResponse(
-                    "Cannot reset the '" + space + "' space.", RestStatus.BAD_REQUEST.getStatus());
-        }
-
-        try {
-            log.info("Starting reset operation for space [{}]", space);
-
-            // Note: space is always DRAFT.
-            // 1. Remove resources belonging to the space in Security Analytics.
-            this.securityAnalyticsService.deleteSpaceResources(space);
-            // 2. Remove resources belonging to space in the wazuh-threatintel-* indices.
-            this.spaceService.deleteSpaceResources(space);
-
-            // Re-generate the default policy for the space
-            String sharedDocumentId =
-                    UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8))
-                            .toString();
-            this.spaceService.initializeSpace(space.toString(), sharedDocumentId);
-
-            String message = String.format(Locale.ROOT, "Successfully reset space [%s].", space);
-            log.info(message);
-            return new RestResponse(message, RestStatus.OK.getStatus());
-        } catch (Exception e) {
-            Throwable cause = e;
-            while (cause != null) {
-                if (cause instanceof OpenSearchSecurityException secEx) {
-                    return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-                }
-                cause = cause.getCause();
+    private RestResponseListener<MessageStatusResponse> createResponseListener(RestChannel channel) {
+        return new RestResponseListener<>(channel) {
+            @Override
+            public RestResponse buildResponse(MessageStatusResponse response) throws Exception {
+                return new BytesRestResponse(
+                        response.getStatus(),
+                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
             }
-            log.error("Failed to reset space [{}]: {}", space, e.getMessage());
-            return new RestResponse(
-                    "Internal Server Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-    }
-
-    /**
-     * Setter for spaceService to allow injection in tests.
-     *
-     * @param spaceService instance of SpaceService, for resources removal in the content manager and
-     *     policy re-generation/reload.
-     */
-    void setSpaceService(SpaceService spaceService) {
-        this.spaceService = spaceService;
-    }
-
-    /**
-     * Setter for securityAnalyticsService to allow injection in tests.
-     *
-     * @param securityAnalyticsService instance of SecurityAnalyticsService, for resources removal in
-     *     the Security Analytics plugin.
-     */
-    void setSecurityAnalyticsService(SecurityAnalyticsService securityAnalyticsService) {
-        this.securityAnalyticsService = securityAnalyticsService;
+        };
     }
 }

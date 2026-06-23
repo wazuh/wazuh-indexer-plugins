@@ -26,12 +26,12 @@ import org.opensearch.transport.TransportService;
 
 import com.wazuh.contentmanager.action.IndexSubscriptionAction;
 import com.wazuh.contentmanager.action.IndexSubscriptionRequest;
-import com.wazuh.contentmanager.action.IndexSubscriptionResponse;
+import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
 import com.wazuh.contentmanager.utils.Constants;
 
 public class TransportIndexSubscriptionAction
-        extends HandledTransportAction<IndexSubscriptionRequest, IndexSubscriptionResponse> {
+        extends HandledTransportAction<IndexSubscriptionRequest, MessageStatusResponse> {
 
     private final SubscriptionServiceImpl subscriptionService;
 
@@ -50,24 +50,22 @@ public class TransportIndexSubscriptionAction
 
     @Override
     protected void doExecute(
-            Task task,
-            IndexSubscriptionRequest request,
-            ActionListener<IndexSubscriptionResponse> listener) {
+            Task task, IndexSubscriptionRequest request, ActionListener<MessageStatusResponse> listener) {
         String accessToken = request.getToken();
         try {
             this.subscriptionService.register(accessToken);
             listener.onResponse(
-                    new IndexSubscriptionResponse(Constants.S_201_ACCESS_TOKEN_RECEIVED, RestStatus.CREATED));
+                    new MessageStatusResponse(Constants.S_201_ACCESS_TOKEN_RECEIVED, RestStatus.CREATED));
         } catch (IllegalStateException e) {
             if (e.getMessage().equals(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX)) {
                 listener.onResponse(
-                        new IndexSubscriptionResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED));
+                        new MessageStatusResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED));
                 return;
             }
             listener.onFailure(e);
         } catch (Exception e) {
             listener.onResponse(
-                    new IndexSubscriptionResponse(
+                    new MessageStatusResponse(
                             e.getMessage() != null
                                     ? e.getMessage()
                                     : "An unexpected error occurred while processing your request.",

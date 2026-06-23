@@ -16,63 +16,20 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.transport.client.Client;
+import org.opensearch.action.ActionType;
 
 import java.util.List;
-import java.util.Set;
 
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.action.ContentResponse;
+import com.wazuh.contentmanager.action.UpdateFilterAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
-/**
- * REST handler for updating Engine Filters.
- *
- * <p>Endpoint: PUT /_plugins/content-manager/filters/{filter_id}
- *
- * <p>This handler processes filter update requests. The filter is validated against the Wazuh
- * engine before being stored in the index in DRAFT space.
- *
- * <p>Possible HTTP responses:
- *
- * <ul>
- *   <li>200 OK: Filter updated successfully after engine validation.
- *   <li>400 Bad Request: Missing or invalid request body, filter ID mismatch, or validation error.
- *   <li>404 Not Found: Filter ID was not found.
- *   <li>500 Internal Server Error: Unexpected error during processing or engine unavailable.
- * </ul>
- */
+/** REST handler for updating Filter resources. Delegates to transport layer. */
 public class RestPutFilterAction extends AbstractUpdateActionSpaces {
 
     private static final String ENDPOINT_NAME = "content_manager_filter_update";
-
-    private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
-
-    public RestPutFilterAction(EngineService engine) {
-        super(engine);
-    }
-
-    @Override
-    protected boolean supportsYamlField() {
-        return true;
-    }
-
-    @Override
-    protected String getIndexName() {
-        return Constants.INDEX_FILTERS;
-    }
-
-    @Override
-    protected String getResourceType() {
-        return Constants.KEY_FILTER;
-    }
 
     @Override
     public String getName() {
@@ -80,76 +37,12 @@ public class RestPutFilterAction extends AbstractUpdateActionSpaces {
     }
 
     @Override
-    public Set<Space> getAllowedSpaces() {
-        return validSpaces;
-    }
-
-    /**
-     * Return the route configuration for this handler.
-     *
-     * @return route configuration for the update endpoint
-     */
-    @Override
     public List<Route> routes() {
         return List.of(new Route(PUT, PluginSettings.FILTERS_URI + "/{id}"));
     }
 
     @Override
-    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
-        // Validate space is either draft or standard.
-        String spaceName = root.path(Constants.KEY_SPACE).asText(null);
-
-        if (!isValidSpace(spaceName)) {
-            return createInvalidSpaceResponse();
-        }
-
-        RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_NAME, Constants.KEY_ENABLED));
-        if (fieldValidation != null) {
-            return fieldValidation;
-        }
-
-        return this.documentValidations.validateMetadataFields(
-                resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
-    }
-
-    /**
-     * Checks if the provided space value is valid.
-     *
-     * @param spaceValue the space value to validate
-     * @return true if the space value is valid, false otherwise
-     */
-    private boolean isValidSpace(String spaceValue) {
-        if (spaceValue == null) {
-            return false;
-        }
-
-        try {
-            return validSpaces.contains(Space.fromValue(spaceValue));
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    /**
-     * Creates an error response for invalid space values.
-     *
-     * @return RestResponse with error message and bad request status
-     */
-    private RestResponse createInvalidSpaceResponse() {
-        return new RestResponse(
-                Constants.E_400_RESOURCE_SPACE_INVALID, RestStatus.BAD_REQUEST.getStatus());
-    }
-
-    @Override
-    protected RestResponse syncExternalServices(String id, JsonNode resource) {
-        RestResponse engineValidation = this.engine.validateResource(Constants.KEY_FILTER, resource);
-        if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(
-                    Constants.E_400_ENGINE_VALIDATION_FAILED + engineValidation.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
+    protected ActionType<ContentResponse> getActionType() {
+        return UpdateFilterAction.INSTANCE;
     }
 }

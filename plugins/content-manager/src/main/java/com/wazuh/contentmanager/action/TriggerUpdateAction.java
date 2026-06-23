@@ -18,11 +18,11 @@ package com.wazuh.contentmanager.action;
 
 import org.opensearch.action.ActionType;
 
-public class TriggerUpdateAction extends ActionType<TriggerUpdateResponse> {
+public class TriggerUpdateAction extends ActionType<MessageStatusResponse> {
     public static final String NAME = "plugin:content_manager/update/post";
     public static final TriggerUpdateAction INSTANCE = new TriggerUpdateAction();
 
     public TriggerUpdateAction() {
-        super(NAME, TriggerUpdateResponse::new);
+        super(NAME, MessageStatusResponse::new);
     }
 }

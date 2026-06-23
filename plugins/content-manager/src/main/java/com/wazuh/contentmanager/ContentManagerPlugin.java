@@ -30,6 +30,8 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.inject.AbstractModule;
+import org.opensearch.common.inject.Module;
 import org.opensearch.common.settings.*;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -68,8 +70,7 @@ import java.util.List;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
-import com.wazuh.contentmanager.action.IndexSubscriptionAction;
-import com.wazuh.contentmanager.action.TriggerUpdateAction;
+import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
@@ -89,8 +90,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.transport.TransportIndexSubscriptionAction;
-import com.wazuh.contentmanager.transport.TransportTriggerUpdateAction;
+import com.wazuh.contentmanager.transport.*;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
@@ -223,7 +223,13 @@ public class ContentManagerPlugin extends Plugin
                 .addSettingsUpdateConsumer(
                         PluginSettings.TELEMETRY_ENABLED, this::onTelemetrySettingChanged);
 
-        return List.of(this.subscriptionService, this.catalogSyncJob);
+        return List.of(
+                this.subscriptionService,
+                this.catalogSyncJob,
+                this.engine,
+                this.logtestService,
+                this.spaceService,
+                this.securityAnalyticsService);
     }
 
     /**
@@ -315,41 +321,31 @@ public class ContentManagerPlugin extends Plugin
         return List.of(
                 // CTI subscription endpoints
                 new RestPostSubscriptionAction(),
-                new RestGetSubscriptionAction(this.subscriptionService),
-                new RestDeleteSubscriptionAction(this.subscriptionService),
+                new RestGetSubscriptionAction(),
+                new RestDeleteSubscriptionAction(),
                 new RestPostUpdateAction(),
-                // Version check endpoint
-                new RestGetVersionCheckAction(this.environment, this.clusterService),
-                // User-generated content endpoints
-                new RestPostLogtestAction(this.logtestService),
-                new RestPostLogtestNormalizationAction(this.logtestService),
-                new RestPostLogtestDetectionAction(this.logtestService),
-                // Policy endpoints
-                new RestPutPolicyAction(this.spaceService, this.engine),
-                // Rule endpoints
+                new RestGetVersionCheckAction(),
+                new RestPostLogtestAction(),
+                new RestPostLogtestNormalizationAction(),
+                new RestPostLogtestDetectionAction(),
+                new RestPutPolicyAction(),
                 new RestPostRuleAction(),
                 new RestPutRuleAction(),
                 new RestDeleteRuleAction(),
-                // Integration endpoints
-                new RestPostIntegrationAction(this.engine),
-                new RestPutIntegrationAction(this.engine),
-                new RestDeleteIntegrationAction(this.engine),
-                // Decoder endpoints
-                new RestPostDecoderAction(this.engine),
-                new RestPutDecoderAction(this.engine),
-                new RestDeleteDecoderAction(this.engine),
-                // KVDB endpoints
-                new RestPostKvdbAction(this.engine),
-                new RestPutKvdbAction(this.engine),
-                new RestDeleteKvdbAction(this.engine),
-                // Promote endpoints
-                new RestPostPromoteAction(this.engine, this.spaceService, this.securityAnalyticsService),
-                new RestGetPromoteAction(this.spaceService),
-                // Engine Filters endpoints
-                new RestPostFilterAction(this.engine),
-                new RestPutFilterAction(this.engine),
-                new RestDeleteFilterAction(this.engine),
-                // Space deletion endpoint
+                new RestPostIntegrationAction(),
+                new RestPutIntegrationAction(),
+                new RestDeleteIntegrationAction(),
+                new RestPostDecoderAction(),
+                new RestPutDecoderAction(),
+                new RestDeleteDecoderAction(),
+                new RestPostKvdbAction(),
+                new RestPutKvdbAction(),
+                new RestDeleteKvdbAction(),
+                new RestPostPromoteAction(),
+                new RestGetPromoteAction(),
+                new RestPostFilterAction(),
+                new RestPutFilterAction(),
+                new RestDeleteFilterAction(),
                 new RestDeleteSpaceAction());
     }
 
@@ -714,12 +710,65 @@ public class ContentManagerPlugin extends Plugin
     }
 
     @Override
+    public Collection<Module> createGuiceModules() {
+        return List.of(
+                new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        bind(EngineService.class).toProvider(() -> ContentManagerPlugin.this.engine);
+                        bind(SecurityAnalyticsService.class)
+                                .toProvider(() -> ContentManagerPlugin.this.securityAnalyticsService);
+                    }
+                });
+    }
+
+    @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return List.of(
-                new ActionPlugin.ActionHandler<>(
+                // Existing
+                new ActionHandler<>(
                         IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
-                new ActionPlugin.ActionHandler<>(
-                        TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class));
+                new ActionHandler<>(TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class),
+                // Group 2: Subscription GET/DELETE + Space DELETE
+                new ActionHandler<>(GetSubscriptionAction.INSTANCE, TransportGetSubscriptionAction.class),
+                new ActionHandler<>(
+                        DeleteSubscriptionAction.INSTANCE, TransportDeleteSubscriptionAction.class),
+                new ActionHandler<>(DeleteSpaceAction.INSTANCE, TransportDeleteSpaceAction.class),
+                // Group 3: Promote
+                new ActionHandler<>(GetPromoteAction.INSTANCE, TransportGetPromoteAction.class),
+                new ActionHandler<>(PostPromoteAction.INSTANCE, TransportPostPromoteAction.class),
+                // Group 4: Logtest
+                new ActionHandler<>(LogtestAction.INSTANCE, TransportLogtestAction.class),
+                new ActionHandler<>(LogtestDetectionAction.INSTANCE, TransportLogtestDetectionAction.class),
+                new ActionHandler<>(
+                        LogtestNormalizationAction.INSTANCE, TransportLogtestNormalizationAction.class),
+                // Group 5: Version Check
+                new ActionHandler<>(VersionCheckAction.INSTANCE, TransportVersionCheckAction.class),
+                // Group 6: Policy
+                new ActionHandler<>(UpdatePolicyAction.INSTANCE, TransportUpdatePolicyAction.class),
+                // Phase 2: CRUD - Decoders
+                new ActionHandler<>(CreateDecoderAction.INSTANCE, TransportCreateDecoderAction.class),
+                new ActionHandler<>(UpdateDecoderAction.INSTANCE, TransportUpdateDecoderAction.class),
+                new ActionHandler<>(DeleteDecoderAction.INSTANCE, TransportDeleteDecoderAction.class),
+                // Phase 2: CRUD - KVDBs
+                new ActionHandler<>(CreateKvdbAction.INSTANCE, TransportCreateKvdbAction.class),
+                new ActionHandler<>(UpdateKvdbAction.INSTANCE, TransportUpdateKvdbAction.class),
+                new ActionHandler<>(DeleteKvdbAction.INSTANCE, TransportDeleteKvdbAction.class),
+                // Phase 2: CRUD - Integrations
+                new ActionHandler<>(
+                        CreateIntegrationAction.INSTANCE, TransportCreateIntegrationAction.class),
+                new ActionHandler<>(
+                        UpdateIntegrationAction.INSTANCE, TransportUpdateIntegrationAction.class),
+                new ActionHandler<>(
+                        DeleteIntegrationAction.INSTANCE, TransportDeleteIntegrationAction.class),
+                // Phase 2: CRUD - Rules
+                new ActionHandler<>(CreateRuleAction.INSTANCE, TransportCreateRuleAction.class),
+                new ActionHandler<>(UpdateRuleAction.INSTANCE, TransportUpdateRuleAction.class),
+                new ActionHandler<>(DeleteRuleAction.INSTANCE, TransportDeleteRuleAction.class),
+                // Phase 2: CRUD - Filters
+                new ActionHandler<>(CreateFilterAction.INSTANCE, TransportCreateFilterAction.class),
+                new ActionHandler<>(UpdateFilterAction.INSTANCE, TransportUpdateFilterAction.class),
+                new ActionHandler<>(DeleteFilterAction.INSTANCE, TransportDeleteFilterAction.class));
     }
 
     /**
