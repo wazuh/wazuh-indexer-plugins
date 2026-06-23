@@ -27,18 +27,20 @@ import java.io.IOException;
 
 import com.wazuh.contentmanager.utils.Constants;
 
-public class TriggerUpdateResponse extends ActionResponse implements ToXContent {
+public class ContentResponse extends ActionResponse implements ToXContent {
+
     private final String message;
     private final RestStatus status;
 
-    public TriggerUpdateResponse(String message, RestStatus status) {
+    public ContentResponse(String message, RestStatus status) {
         super();
         this.message = message;
         this.status = status;
     }
 
-    public TriggerUpdateResponse(StreamInput sin) throws IOException {
-        this(sin.readString(), sin.readEnum(RestStatus.class));
+    public ContentResponse(StreamInput sin) throws IOException {
+        this.message = sin.readString();
+        this.status = sin.readEnum(RestStatus.class);
     }
 
     @Override
