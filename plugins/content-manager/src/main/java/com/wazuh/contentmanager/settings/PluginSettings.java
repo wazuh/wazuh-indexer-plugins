@@ -52,8 +52,8 @@ public class PluginSettings {
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
 
     public static final int DEFAULT_MAX_INTEGRATIONS = 100;
-    public static final int DEFAULT_MAX_DECODERS = 100;
-    public static final int DEFAULT_MAX_RULES = 100;
+    public static final int DEFAULT_MAX_DECODERS = 200;
+    public static final int DEFAULT_MAX_RULES = 200;
     public static final int DEFAULT_MAX_KVDBS = 100;
     public static final int DEFAULT_MAX_FILTERS = 100;
 
