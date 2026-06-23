@@ -27,6 +27,7 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -115,7 +116,8 @@ public class CredentialsIndex {
                                     XContentFactory.jsonBuilder()
                                             .startObject()
                                             .field(ACCESS_TOKEN_FIELD, encoded)
-                                            .endObject());
+                                            .endObject())
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
             this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         }
     }
@@ -170,7 +172,9 @@ public class CredentialsIndex {
                 log.debug("Index [{}] does not exist, nothing to delete.", INDEX_NAME);
                 return null;
             }
-            DeleteRequest request = new DeleteRequest(INDEX_NAME, DOCUMENT_ID);
+            DeleteRequest request =
+                    new DeleteRequest(INDEX_NAME, DOCUMENT_ID)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
             return this.client
                     .delete(request)
                     .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
@@ -208,6 +212,7 @@ public class CredentialsIndex {
                             .put("index.number_of_replicas", 0)
                             .put("index.hidden", true)
                             .put(Constants.KEY_INDEX_CODEC, Constants.CODEC_ZSTD)
+                            .put(Constants.KEY_INDEX_REFRESH_INTERVAL, Constants.REFRESH_INTERVAL_DISABLED)
                             .build();
 
             String mappings;
