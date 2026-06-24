@@ -20,6 +20,7 @@ import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
@@ -93,6 +94,8 @@ public class SettingsIndexTests extends OpenSearchTestCase {
         assertTrue(
                 "Payload must contain engine.index_raw_events=false",
                 captured.source().utf8ToString().contains("\"index_raw_events\":false"));
+        // Refresh is disabled on this index, so writes must refresh immediately to avoid stale reads.
+        assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, captured.getRefreshPolicy());
     }
 
     /** Document already exists -> indexDefaultValues() is a no-op; index() is never called. */
@@ -150,5 +153,7 @@ public class SettingsIndexTests extends OpenSearchTestCase {
         assertTrue(
                 "Payload must contain engine.index_raw_events",
                 captured.source().utf8ToString().contains("index_raw_events"));
+        // Refresh is disabled on this index, so writes must refresh immediately to avoid stale reads.
+        assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, captured.getRefreshPolicy());
     }
 }
