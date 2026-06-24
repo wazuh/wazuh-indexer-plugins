@@ -177,10 +177,8 @@ public abstract class AbstractConsumerService {
      */
     public void synchronize() {
         this.setConsumerStatus(LocalConsumer.Status.UPDATING);
-        // REMOVE THIS COMMENT: syncConsumerServices() wraps the swap process
         boolean isUpdated = this.syncConsumerServices();
         log.debug(Constants.D_LOG_SYNC_COMPLETED, this.getConsumerType(), isUpdated);
-        // REMOVE THIS COMMENT: onSyncComplete() creates new detectors
         this.onSyncComplete(isUpdated);
         this.setConsumerStatus(LocalConsumer.Status.IDLE);
     }

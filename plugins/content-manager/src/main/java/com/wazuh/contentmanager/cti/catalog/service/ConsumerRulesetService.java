@@ -111,20 +111,14 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     protected void onBeforeAliasSwap() {
         try {
             this.preSwapIntegrationIds =
-                    new HashSet<>(
-                            this.spaceService
-                                    .getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD)
-                                    .keySet());
+                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
         } catch (Exception e) {
             log.warn("Failed to collect pre-swap integration IDs: {}", e.getMessage());
             this.preSwapIntegrationIds = Collections.emptySet();
         }
         try {
             this.preSwapRuleIds =
-                    new HashSet<>(
-                            this.spaceService
-                                    .getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD)
-                                    .keySet());
+                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_RULES, Space.STANDARD);
         } catch (Exception e) {
             log.warn("Failed to collect pre-swap rule IDs: {}", e.getMessage());
             this.preSwapRuleIds = Collections.emptySet();
@@ -497,10 +491,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private void deleteStaleResources() {
         try {
             Set<String> currentIntegrationIds =
-                    new HashSet<>(
-                            this.spaceService
-                                    .getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD)
-                                    .keySet());
+                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
             Set<String> staleIntegrationIds = new HashSet<>(this.preSwapIntegrationIds);
             staleIntegrationIds.removeAll(currentIntegrationIds);
 
@@ -513,10 +504,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
 
             Set<String> currentRuleIds =
-                    new HashSet<>(
-                            this.spaceService
-                                    .getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD)
-                                    .keySet());
+                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_RULES, Space.STANDARD);
             Set<String> staleRuleIds = new HashSet<>(this.preSwapRuleIds);
             staleRuleIds.removeAll(currentRuleIds);
 
