@@ -103,7 +103,7 @@ public class UnzipTests extends OpenSearchTestCase {
     }
 
     /**
-     * Regression test for the CTI vulnerabilities snapshot failure (issue #1278): large snapshots are
+     * Regression test for the CTI vulnerabilities snapshot failure: large snapshots are
      * ZIP64 archives. An archive with more than {@code 0xFFFF} entries forces the writer to emit a
      * ZIP64 end-of-central-directory record, which can only be read by traversing the central
      * directory ({@link java.util.zip.ZipFile}). The previous streaming {@code ZipInputStream}
@@ -111,13 +111,20 @@ public class UnzipTests extends OpenSearchTestCase {
      * back buffer is full". This guards against a regression to a streaming reader.
      */
     public void testZip64ArchiveExtraction() throws IOException {
-        final int entryCount = 70_000; // exceeds the 0xFFFF (65535) entry limit -> forces ZIP64 EOCD
+        // Just over the 0xFFFF (65535) entry limit -> forces the writer to emit a ZIP64 EOCD record.
+        // The exact count only needs to exceed the limit, so we keep it minimal. Entries are empty
+        // except for two sentinels that carry content we assert on, to keep filesystem cost low.
+        final int entryCount = 0xFFFF + 1; // 65536
+        final int firstSentinel = 0;
+        final int lastSentinel = entryCount - 1;
         Path zip = this.tempDestinationDirectory.resolve("zip64.zip");
         try (ZipOutputStream zipOutputStream =
                 new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(zip)))) {
             for (int i = 0; i < entryCount; i++) {
                 zipOutputStream.putNextEntry(new ZipEntry("entries/file_" + i + ".txt"));
-                zipOutputStream.write(Integer.toString(i).getBytes(StandardCharsets.UTF_8));
+                if (i == firstSentinel || i == lastSentinel) {
+                    zipOutputStream.write(Integer.toString(i).getBytes(StandardCharsets.UTF_8));
+                }
                 zipOutputStream.closeEntry();
             }
         }
@@ -128,13 +135,19 @@ public class UnzipTests extends OpenSearchTestCase {
 
         Path extractedDir = out.resolve("entries");
         Assert.assertTrue("ZIP64 entries directory should exist", Files.isDirectory(extractedDir));
+        // Count only the entries we wrote: the Lucene test filesystem (ExtrasFS) randomly injects
+        // "extraN" files/dirs into new directories, so a raw count would be seed-dependent.
         try (Stream<Path> files = Files.list(extractedDir)) {
-            Assert.assertEquals("All ZIP64 entries should be extracted", entryCount, files.count());
+            long extracted =
+                    files.filter(p -> p.getFileName().toString().matches("file_\\d+\\.txt")).count();
+            Assert.assertEquals("All ZIP64 entries should be extracted", entryCount, extracted);
         }
-        Assert.assertEquals("0", Files.readString(extractedDir.resolve("file_0.txt")));
         Assert.assertEquals(
-                Integer.toString(entryCount - 1),
-                Files.readString(extractedDir.resolve("file_" + (entryCount - 1) + ".txt")));
+                Integer.toString(firstSentinel),
+                Files.readString(extractedDir.resolve("file_" + firstSentinel + ".txt")));
+        Assert.assertEquals(
+                Integer.toString(lastSentinel),
+                Files.readString(extractedDir.resolve("file_" + lastSentinel + ".txt")));
     }
 
     /** Nested directories and multiple files extract with the correct layout and content. */

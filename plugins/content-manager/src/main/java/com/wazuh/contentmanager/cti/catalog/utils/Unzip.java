@@ -48,12 +48,15 @@ public class Unzip {
             throw new FileNotFoundException("ZIP does not exist: " + source);
         }
 
+        // Resolve the destination root to its real path
+        Path destinationRoot = destination.toRealPath();
+
         try (ZipFile zipFile = new ZipFile(source.toFile())) {
             Enumeration<? extends ZipEntry> entries = zipFile.entries();
             while (entries.hasMoreElements()) {
                 ZipEntry zipEntry = entries.nextElement();
-                Path destinationFile = destination.resolve(zipEntry.getName()).normalize();
-                if (!destinationFile.startsWith(destination)) {
+                Path destinationFile = destinationRoot.resolve(zipEntry.getName()).normalize();
+                if (!destinationFile.startsWith(destinationRoot)) {
                     throw new IOException("Bad zip entry: " + zipEntry.getName());
                 }
                 if (zipEntry.isDirectory()) {
@@ -72,30 +75,33 @@ public class Unzip {
      * @param zipFile the opened ZIP file.
      * @param zipEntry the entry to extract.
      * @param destinationFile Path (file) where the entry will be written.
+     * @throws IOException if the entry cannot be read or written. Propagated so the caller can
+     *     abort/retry/cleanup instead of proceeding with a truncated or missing file.
      */
     @SuppressForbidden(reason = "ZipFile is needed for ZIP64 support; it reads via the archive path")
-    private static void extract(ZipFile zipFile, ZipEntry zipEntry, Path destinationFile) {
+    private static void extract(ZipFile zipFile, ZipEntry zipEntry, Path destinationFile)
+            throws IOException {
         byte[] buffer = new byte[1024];
-        // Ensure parent directories exist
-        try {
-            Files.createDirectories(destinationFile.getParent());
-        } catch (IOException e) {
-            log.error("Destination directory does not exist: {}", e.getMessage());
-        }
 
-        try (InputStream entryStream = zipFile.getInputStream(zipEntry);
-                BufferedOutputStream bufferedOutputStream =
-                        new BufferedOutputStream(
-                                Files.newOutputStream(
-                                        destinationFile,
-                                        StandardOpenOption.CREATE,
-                                        StandardOpenOption.TRUNCATE_EXISTING))) {
-            int size;
-            while ((size = entryStream.read(buffer)) > 0) {
-                bufferedOutputStream.write(buffer, 0, size);
+        try {
+            // Ensure parent directories exist
+            Files.createDirectories(destinationFile.getParent());
+
+            try (InputStream entryStream = zipFile.getInputStream(zipEntry);
+                    BufferedOutputStream bufferedOutputStream =
+                            new BufferedOutputStream(
+                                    Files.newOutputStream(
+                                            destinationFile,
+                                            StandardOpenOption.CREATE,
+                                            StandardOpenOption.TRUNCATE_EXISTING))) {
+                int size;
+                while ((size = entryStream.read(buffer)) > 0) {
+                    bufferedOutputStream.write(buffer, 0, size);
+                }
             }
         } catch (IOException e) {
-            log.error("Zip extraction failed: {}", e.getMessage());
+            log.error("Zip extraction failed for entry [{}]: {}", zipEntry.getName(), e.getMessage());
+            throw e;
         }
     }
 }
