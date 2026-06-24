@@ -42,7 +42,7 @@ import com.wazuh.setup.settings.PluginSettings;
 /**
  * Transport action that persists Wazuh settings to the {@code .wazuh-settings} index. The write is
  * gated here so the security plugin enforces {@link PutSettingsAction#NAME} as a cluster permission
- * and so the {@code plugins.setup.sensitive_config.locked} setting can block modification entirely.
+ * and so the {@code plugins.setup.settings_update.enabled} setting can block modification entirely.
  */
 public class TransportPutSettingsAction
         extends HandledTransportAction<PutSettingsRequest, PutSettingsResponse> {
@@ -66,11 +66,11 @@ public class TransportPutSettingsAction
     @Override
     protected void doExecute(
             Task task, PutSettingsRequest request, ActionListener<PutSettingsResponse> listener) {
-        // Lockdown gate: when enabled, sensitive configuration cannot be modified by anyone.
-        if (PluginSettings.isSensitiveConfigLocked(this.settings)) {
+        // When settings updates are disabled, the configuration cannot be modified by anyone.
+        if (!PluginSettings.isSettingsUpdateEnabled(this.settings)) {
             listener.onResponse(
                     new PutSettingsResponse(
-                            SettingsIndex.E_403_SENSITIVE_CONFIG_LOCKED, RestStatus.FORBIDDEN));
+                            SettingsIndex.E_403_SETTINGS_UPDATE_DISABLED, RestStatus.FORBIDDEN));
             return;
         }
 

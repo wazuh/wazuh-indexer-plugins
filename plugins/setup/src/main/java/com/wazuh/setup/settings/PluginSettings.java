@@ -47,23 +47,23 @@ public class PluginSettings {
                     "plugins.setup.backoff", DEFAULT_BACKOFF, 5, 60, Setting.Property.NodeScope);
 
     /**
-     * When enabled, modification of sensitive Setup configuration (the {@code .wazuh-settings}
-     * document, e.g. {@code engine.index_raw_events}) is locked: the settings endpoint returns {@code
-     * 403 FORBIDDEN} for every caller, regardless of role. Intended for externally managed (e.g.
-     * Wazuh Cloud) deployments. Defaults to false.
+     * Controls whether Setup settings can be modified through the API ({@code PUT
+     * /_plugins/_setup/settings}, e.g. {@code engine.index_raw_events}). When set to {@code false},
+     * the endpoint returns {@code 403 FORBIDDEN} for every caller, regardless of role. Intended for
+     * externally managed (e.g. Wazuh Cloud) deployments. Defaults to true.
      */
-    public static final Setting<Boolean> SENSITIVE_CONFIG_LOCKED =
+    public static final Setting<Boolean> SETTINGS_UPDATE_ENABLED =
             Setting.boolSetting(
-                    "plugins.setup.sensitive_config.locked", false, Setting.Property.NodeScope);
+                    "plugins.setup.settings_update.enabled", true, Setting.Property.NodeScope);
 
     /**
-     * {@link PluginSettings#SENSITIVE_CONFIG_LOCKED} getter.
+     * {@link PluginSettings#SETTINGS_UPDATE_ENABLED} getter.
      *
      * @param settings settings of this node.
-     * @return whether modification of sensitive Setup configuration is locked.
+     * @return whether modification of Setup settings is enabled.
      */
-    public static boolean isSensitiveConfigLocked(Settings settings) {
-        return SENSITIVE_CONFIG_LOCKED.get(settings);
+    public static boolean isSettingsUpdateEnabled(Settings settings) {
+        return SETTINGS_UPDATE_ENABLED.get(settings);
     }
 
     /**

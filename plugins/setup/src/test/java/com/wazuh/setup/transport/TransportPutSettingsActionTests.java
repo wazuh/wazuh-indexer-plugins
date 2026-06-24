@@ -44,8 +44,8 @@ import static org.mockito.Mockito.verify;
 
 /**
  * Unit tests for {@link TransportPutSettingsAction}, which validates and persists the settings
- * document gated behind the {@code plugin:setup/settings/write} permission and the lockdown
- * setting.
+ * document gated behind the {@code plugin:setup/settings/write} permission and the {@code
+ * plugins.setup.settings_update.enabled} setting.
  */
 public class TransportPutSettingsActionTests extends OpenSearchTestCase {
 
@@ -109,14 +109,14 @@ public class TransportPutSettingsActionTests extends OpenSearchTestCase {
     }
 
     @SuppressWarnings("unchecked")
-    public void testLocked_Forbidden() {
+    public void testSettingsUpdateDisabled_Forbidden() {
         this.action =
-                newAction(Settings.builder().put("plugins.setup.sensitive_config.locked", true).build());
+                newAction(Settings.builder().put("plugins.setup.settings_update.enabled", false).build());
 
         PutSettingsResponse response = this.execute("{\"engine\":{\"index_raw_events\":true}}");
 
         assertEquals(RestStatus.FORBIDDEN, response.getStatus());
-        assertEquals(SettingsIndex.E_403_SENSITIVE_CONFIG_LOCKED, response.getMessage());
+        assertEquals(SettingsIndex.E_403_SETTINGS_UPDATE_DISABLED, response.getMessage());
         verify(this.settingsIndex, never())
                 .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
     }

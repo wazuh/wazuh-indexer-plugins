@@ -22,25 +22,28 @@ import org.opensearch.action.support.ActionFilter;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 
-import java.util.Set;
-
+import com.wazuh.contentmanager.action.TriggerUpdateAction;
+import com.wazuh.contentmanager.action.UpdatePolicyAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
- * Action filter that blocks modification of sensitive Content Manager configuration when {@code
- * plugins.content_manager.sensitive_config.locked} is enabled.
+ * Action filter that blocks modification of sensitive Content Manager configuration when the
+ * corresponding per-endpoint setting is disabled:
  *
- * <p>When locked, the protected transport actions fail with {@code 403 FORBIDDEN} for every caller,
- * regardless of role. This is decoupled from the transport-action implementations: it matches them
- * by action name (the same names the security plugin enforces as cluster permissions), so it works
- * regardless of which class owns the action.
+ * <ul>
+ *   <li>{@code plugins.content_manager.catalog.update_on_demand} gates {@link TriggerUpdateAction}
+ *       (content update trigger).
+ *   <li>{@code plugins.content_manager.catalog.policy_update.enabled} gates {@link
+ *       UpdatePolicyAction} (policy updates).
+ * </ul>
+ *
+ * <p>When a protected action's setting is {@code false}, the action fails with {@code 403
+ * FORBIDDEN} for every caller, regardless of role. This is decoupled from the transport-action
+ * implementations: it matches them by action name (the same names the security plugin enforces as
+ * cluster permissions), so it works regardless of which class owns the action.
  */
 public class SensitiveConfigActionFilter extends ActionFilter.Simple {
-
-    /** Transport-action names whose modification is gated by the lockdown setting. */
-    private static final Set<String> PROTECTED_ACTIONS =
-            Set.of("plugin:content_manager/policy/put", "plugin:content_manager/update/post");
 
     @Override
     public int order() {
@@ -49,21 +52,34 @@ public class SensitiveConfigActionFilter extends ActionFilter.Simple {
 
     @Override
     protected boolean apply(String action, ActionRequest request, ActionListener<?> listener) {
-        if (PROTECTED_ACTIONS.contains(action) && isLocked()) {
-            listener.onFailure(
-                    new OpenSearchStatusException(
-                            Constants.E_403_SENSITIVE_CONFIG_LOCKED, RestStatus.FORBIDDEN));
+        String message = disabledMessage(action);
+        if (message != null) {
+            listener.onFailure(new OpenSearchStatusException(message, RestStatus.FORBIDDEN));
             return false;
         }
         return true;
     }
 
-    private static boolean isLocked() {
+    /**
+     * Returns the {@code 403} message when the given action is disabled by its setting, or {@code
+     * null} when the action is allowed (not protected, or its setting is enabled).
+     *
+     * @param action the transport-action name being executed.
+     * @return the forbidden message, or {@code null} when the action may proceed.
+     */
+    private static String disabledMessage(String action) {
         try {
-            return PluginSettings.getInstance().isSensitiveConfigLocked();
+            PluginSettings settings = PluginSettings.getInstance();
+            if (UpdatePolicyAction.NAME.equals(action) && !settings.isPolicyUpdateEnabled()) {
+                return Constants.E_403_POLICY_UPDATE_DISABLED;
+            }
+            if (TriggerUpdateAction.NAME.equals(action) && !settings.isUpdateOnDemandEnabled()) {
+                return Constants.E_403_UPDATE_ON_DEMAND_DISABLED;
+            }
+            return null;
         } catch (IllegalStateException e) {
             // Settings not initialized yet (no request can reach a protected action before then).
-            return false;
+            return null;
         }
     }
 }

@@ -717,7 +717,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS,
-                PluginSettings.SENSITIVE_CONFIG_LOCKED);
+                PluginSettings.UPDATE_ON_DEMAND,
+                PluginSettings.POLICY_UPDATE_ENABLED);
     }
 
     @Override
@@ -783,9 +784,11 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Registers an {@link ActionFilter} that blocks modification of sensitive configuration (policy
-     * updates and content update triggers) when {@code
-     * plugins.content_manager.sensitive_config.locked} is enabled, regardless of the caller's role.
+     * Registers an {@link ActionFilter} that blocks modification of sensitive configuration when the
+     * corresponding per-endpoint setting is disabled: {@code
+     * plugins.content_manager.catalog.update_on_demand} (content update trigger) and {@code
+     * plugins.content_manager.catalog.policy_update.enabled} (policy updates). When disabled, the
+     * action is rejected for every caller, regardless of role.
      *
      * @return the list of action filters for this plugin.
      */

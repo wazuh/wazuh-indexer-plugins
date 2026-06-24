@@ -247,6 +247,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     @Override
     public List<Setting<?>> getSettings() {
         return List.of(
-                PluginSettings.TIMEOUT, PluginSettings.BACKOFF, PluginSettings.SENSITIVE_CONFIG_LOCKED);
+                PluginSettings.TIMEOUT, PluginSettings.BACKOFF, PluginSettings.SETTINGS_UPDATE_ENABLED);
     }
 }

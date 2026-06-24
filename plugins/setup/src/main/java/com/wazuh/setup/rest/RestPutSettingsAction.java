@@ -40,7 +40,7 @@ import com.wazuh.setup.index.SettingsIndex;
  * <pre>{@code {"engine": {"index_raw_events": true}}}</pre>
  *
  * <p>The write is delegated to {@link PutSettingsAction} so the security plugin enforces
- * authorization, and the {@code plugins.setup.sensitive_config.locked} setting can block the
+ * authorization, and the {@code plugins.setup.settings_update.enabled} setting can block the
  * operation.
  */
 public class RestPutSettingsAction extends BaseRestHandler {

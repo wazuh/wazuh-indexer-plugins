@@ -33,6 +33,9 @@ import static org.mockito.Mockito.verify;
 /** Unit tests for {@link SensitiveConfigActionFilter}. */
 public class SensitiveConfigActionFilterTests extends OpenSearchTestCase {
 
+    private static final String POLICY_ACTION = "plugin:content_manager/policy/put";
+    private static final String UPDATE_ACTION = "plugin:content_manager/update/post";
+
     private final SensitiveConfigActionFilter filter = new SensitiveConfigActionFilter();
 
     @After
@@ -42,41 +45,60 @@ public class SensitiveConfigActionFilterTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
-    private void lock(boolean locked) {
+    private void configure(boolean updateOnDemand, boolean policyUpdate) {
         PluginSettings.resetForTesting();
         PluginSettings.getInstance(
-                Settings.builder().put("plugins.content_manager.sensitive_config.locked", locked).build());
+                Settings.builder()
+                        .put("plugins.content_manager.catalog.update_on_demand", updateOnDemand)
+                        .put("plugins.content_manager.catalog.policy_update.enabled", policyUpdate)
+                        .build());
     }
 
     @SuppressWarnings("unchecked")
-    public void testBlocksProtectedActionsWhenLocked() {
-        this.lock(true);
-        for (String action :
-                new String[] {"plugin:content_manager/policy/put", "plugin:content_manager/update/post"}) {
-            ActionListener<Object> listener = mock(ActionListener.class);
-            boolean proceed = this.filter.apply(action, mock(ActionRequest.class), listener);
-            assertFalse("expected " + action + " to be blocked", proceed);
-            verify(listener).onFailure(any(OpenSearchStatusException.class));
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public void testAllowsProtectedActionWhenUnlocked() {
-        this.lock(false);
+    private void assertBlocked(String action) {
         ActionListener<Object> listener = mock(ActionListener.class);
-        boolean proceed =
-                this.filter.apply("plugin:content_manager/policy/put", mock(ActionRequest.class), listener);
-        assertTrue(proceed);
+        boolean proceed = this.filter.apply(action, mock(ActionRequest.class), listener);
+        assertFalse("expected " + action + " to be blocked", proceed);
+        verify(listener).onFailure(any(OpenSearchStatusException.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void assertAllowed(String action) {
+        ActionListener<Object> listener = mock(ActionListener.class);
+        boolean proceed = this.filter.apply(action, mock(ActionRequest.class), listener);
+        assertTrue("expected " + action + " to be allowed", proceed);
         verify(listener, never()).onFailure(any());
     }
 
-    @SuppressWarnings("unchecked")
-    public void testIgnoresUnprotectedActionWhenLocked() {
-        this.lock(true);
-        ActionListener<Object> listener = mock(ActionListener.class);
-        boolean proceed =
-                this.filter.apply("indices:data/write/index", mock(ActionRequest.class), listener);
-        assertTrue(proceed);
-        verify(listener, never()).onFailure(any());
+    public void testBlocksUpdateWhenUpdateOnDemandDisabled() {
+        this.configure(false, true);
+        this.assertBlocked(UPDATE_ACTION);
+    }
+
+    public void testBlocksPolicyWhenPolicyUpdateDisabled() {
+        this.configure(true, false);
+        this.assertBlocked(POLICY_ACTION);
+    }
+
+    public void testAllowsActionsWhenEnabled() {
+        this.configure(true, true);
+        this.assertAllowed(UPDATE_ACTION);
+        this.assertAllowed(POLICY_ACTION);
+    }
+
+    public void testSettingsAreIndependent() {
+        // Disabling the update trigger must not affect policy updates, and vice versa.
+        this.configure(false, true);
+        this.assertBlocked(UPDATE_ACTION);
+        this.assertAllowed(POLICY_ACTION);
+
+        this.configure(true, false);
+        this.assertAllowed(UPDATE_ACTION);
+        this.assertBlocked(POLICY_ACTION);
+    }
+
+    public void testIgnoresUnprotectedAction() {
+        this.configure(false, false);
+        this.assertAllowed("indices:data/write/index");
     }
 }
