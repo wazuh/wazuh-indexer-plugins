@@ -16,252 +16,67 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.core.rest.RestStatus;
+import org.opensearch.action.ActionType;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.transport.client.Client;
+import org.opensearch.rest.RestResponse;
+import org.opensearch.rest.action.RestResponseListener;
+import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.UUID;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.rest.utils.PayloadValidations;
+import com.wazuh.contentmanager.action.ContentCreateRequest;
+import com.wazuh.contentmanager.action.ContentResponse;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.YamlUtils;
 
 /**
- * Abstract handler for creating new content resources.
+ * Abstract handler for creating new content resources (non-Spaces variant).
  *
- * <p>Implements the standard workflow for creation:
- *
- * <ol>
- *   <li>Validates request body and structure.
- *   <li>Validates resource-specific constraints.
- *   <li>Generates ID and metadata (timestamps).
- *   <li>Synchronizes with external services (Engine/SAP).
- *   <li>Indexes the document in the Draft space.
- *   <li>Links the resource to its parent (e.g., Integration).
- *   <li>Updates the policy hash.
- * </ol>
+ * <p>Delegates to the transport layer via {@code client.execute()} with the appropriate ActionType
+ * provided by each concrete subclass.
  */
 public abstract class AbstractCreateAction extends AbstractContentAction {
 
     private static final Logger log = LogManager.getLogger(AbstractCreateAction.class);
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
-    protected final PayloadValidations documentValidations = new PayloadValidations();
 
-    public AbstractCreateAction(EngineService engine) {
-        super(engine);
-    }
+    /**
+     * Returns the ActionType for this create action.
+     *
+     * @return the ActionType instance for transport delegation
+     */
+    protected abstract ActionType<ContentResponse> getActionType();
 
     @Override
-    protected RestResponse executeRequest(RestRequest request, Client client) {
-        // 1. Validate Request Content
-        RestResponse validationError = this.documentValidations.validateRequestHasContent(request);
-        if (validationError != null) {
-            log.warn(
-                    Constants.W_LOG_OPERATION_FAILED,
-                    "Creation",
-                    this.getResourceType(),
-                    "Request body is missing");
-            return validationError;
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
+            throws IOException {
+        // Consume path ID parameter early to avoid unrecognized parameter errors
+        if (request.hasParam(Constants.KEY_ID)) {
+            request.param(Constants.KEY_ID);
         }
 
-        try {
-            String rawYaml = null;
-            JsonNode rootNode;
-            ObjectNode resourceNode;
+        log.debug("{} {}", request.method(), request.path());
 
-            if (this.isYamlRequest(request) && this.supportsYamlField()) {
-                // YAML Request
-                try {
-                    String yamlBody = request.content().utf8ToString();
-                    rootNode = YamlUtils.fromYaml(yamlBody);
-                } catch (IOException e) {
-                    log.warn(
-                            Constants.W_LOG_OPERATION_FAILED,
-                            "Creation",
-                            this.getResourceType(),
-                            "Invalid YAML format. Reason: " + e.getMessage());
-                    return new RestResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(),
-                            RestStatus.BAD_REQUEST.getStatus());
-                }
+        byte[] body = request.hasContent() ? request.content().streamInput().readAllBytes() : null;
+        String contentType = getContentTypeString(request);
 
-                // Validate structure
-                validationError =
-                        this.documentValidations.validateResourcePayload(
-                                rootNode, this.requiresIntegrationId());
-                if (validationError != null) {
-                    log.warn(
-                            Constants.W_LOG_OPERATION_FAILED,
-                            "Payload structure validation",
-                            this.getResourceType(),
-                            validationError.getMessage());
-                    return validationError;
-                }
-                resourceNode = (ObjectNode) rootNode.get(Constants.KEY_RESOURCE);
-                rawYaml = YamlUtils.toYaml(resourceNode);
-            } else {
-                // JSON Request
-                try {
-                    rootNode = MAPPER.readTree(request.content().streamInput());
-                } catch (IOException e) {
-                    log.warn(
-                            Constants.W_LOG_OPERATION_FAILED,
-                            "Creation",
-                            this.getResourceType(),
-                            "Invalid JSON format. Reason: " + e.getMessage());
-                    return new RestResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(),
-                            RestStatus.BAD_REQUEST.getStatus());
-                }
+        ContentCreateRequest createRequest =
+                new ContentCreateRequest(request.method(), body, contentType);
 
-                // 2. Validate Payload Structure
-                validationError =
-                        this.documentValidations.validateResourcePayload(
-                                rootNode, this.requiresIntegrationId());
-                if (validationError != null) {
-                    log.warn(
-                            Constants.W_LOG_OPERATION_FAILED,
-                            "Payload structure validation",
-                            this.getResourceType(),
-                            validationError.getMessage());
-                    return validationError;
-                }
-                resourceNode = (ObjectNode) rootNode.get(Constants.KEY_RESOURCE);
-            }
-
-            // 3. Resource Specific Validation
-            validationError = this.validatePayload(client, rootNode, resourceNode);
-            if (validationError != null) {
-                log.warn(
-                        Constants.W_LOG_OPERATION_FAILED,
-                        "Validation",
-                        this.getResourceType(),
-                        validationError.getMessage());
-                return validationError;
-            }
-
-            // 4. Generate ID and Metadata
-            String id = UUID.randomUUID().toString();
-            resourceNode.put(Constants.KEY_ID, id);
-
-            String currentTimestamp = this.getCurrentDate();
-            Resource.setCreationTime(resourceNode, currentTimestamp);
-            Resource.setLastModificationTime(resourceNode, currentTimestamp);
-            Resource.nestMetadataFields(resourceNode);
-
-            if (!resourceNode.has(Constants.KEY_ENABLED)) {
-                resourceNode.put(Constants.KEY_ENABLED, true);
-            }
-
-            // 6. External Sync
-            validationError = this.syncExternalServices(id, resourceNode);
-            if (validationError != null) {
-                log.error(
-                        Constants.E_LOG_FAILED_TO,
-                        "sync",
-                        this.getResourceType(),
-                        id,
-                        "with external services (Engine/SAP). Reason: " + validationError.getMessage());
-                return validationError;
-            }
-
-            // 7. Indexing
-            ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
-            ObjectNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
-
-            // Populate yaml field for resource types that support it
-            if (this.supportsYamlField()) {
-                if (rawYaml != null) {
-                    ctiWrapper.put(Constants.KEY_YAML, rawYaml);
-                } else {
-                    ctiWrapper.put(Constants.KEY_YAML, YamlUtils.toYaml(resourceNode));
-                }
-            }
-
-            index.create(id, ctiWrapper);
-
-            // 8. Link to Parent
-            try {
-                this.linkToParent(client, id, rootNode);
-            } catch (Exception e) {
-                log.error(
-                        Constants.E_LOG_FAILED_TO,
-                        "link",
-                        this.getResourceType(),
-                        id,
-                        "to parent resource. Rolling back. Reason: " + e.getMessage());
-                index.delete(id);
-                this.rollbackExternalServices(id);
-                throw e;
-            }
-
-            // 9. Update Hash
-            this.spaceService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            log.info(Constants.I_LOG_SUCCESS, "Created", this.getResourceType(), id);
-            return new RestResponse(id, RestStatus.CREATED.getStatus());
-
-        } catch (Exception e) {
-            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            log.error(
-                    Constants.E_LOG_OPERATION_FAILED,
-                    "creating",
-                    this.getResourceType(),
-                    "Reason: " + e.getMessage());
-            return new RestResponse(
-                    "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
+        return channel ->
+                client.execute(
+                        getActionType(),
+                        createRequest,
+                        new RestResponseListener<ContentResponse>(channel) {
+                            @Override
+                            public RestResponse buildResponse(ContentResponse response) throws Exception {
+                                return new BytesRestResponse(
+                                        response.getStatus(),
+                                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
+                            }
+                        });
     }
-
-    /**
-     * Indicates if the creation payload requires a parent Integration ID.
-     *
-     * @return true by default (e.g., Rule, Decoder, KVDB), false if not (e.g., Integration).
-     */
-    protected boolean requiresIntegrationId() {
-        return true;
-    }
-
-    protected abstract String getIndexName();
-
-    protected abstract String getResourceType();
-
-    /**
-     * Performs resource-specific validation on the payload.
-     *
-     * @return null if valid, RestResponse with error otherwise.
-     */
-    protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
-
-    /**
-     * Synchronizes the new resource with external services (Engine validation or Security Analytics).
-     *
-     * @return null if successful, RestResponse with error otherwise.
-     */
-    protected abstract RestResponse syncExternalServices(String id, JsonNode resource);
-
-    /** Reverts external service changes if subsequent steps fail. */
-    protected void rollbackExternalServices(String id) {}
-
-    /**
-     * Links the newly created resource to its parent container (e.g., adding Rule ID to Integration).
-     */
-    protected abstract void linkToParent(Client client, String id, JsonNode root) throws IOException;
 }

@@ -20,23 +20,17 @@ import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
-import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestRequest.Method;
 
 import java.io.IOException;
 
 public class TriggerUpdateRequest extends ActionRequest {
 
-    private final RestRequest.Method method;
-
-    public TriggerUpdateRequest(Method method) {
+    public TriggerUpdateRequest() {
         super();
-        this.method = method;
     }
 
     public TriggerUpdateRequest(StreamInput sin) throws IOException {
         super(sin);
-        this.method = sin.readEnum(Method.class);
     }
 
     @Override
@@ -47,10 +41,5 @@ public class TriggerUpdateRequest extends ActionRequest {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeEnum(method);
-    }
-
-    public Method getMethod() {
-        return method;
     }
 }

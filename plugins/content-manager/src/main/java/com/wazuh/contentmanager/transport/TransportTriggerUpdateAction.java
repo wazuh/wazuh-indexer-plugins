@@ -24,13 +24,13 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
+import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.TriggerUpdateAction;
 import com.wazuh.contentmanager.action.TriggerUpdateRequest;
-import com.wazuh.contentmanager.action.TriggerUpdateResponse;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 
 public class TransportTriggerUpdateAction
-        extends HandledTransportAction<TriggerUpdateRequest, TriggerUpdateResponse> {
+        extends HandledTransportAction<TriggerUpdateRequest, MessageStatusResponse> {
 
     private final CatalogSyncJob catalogSyncJob;
 
@@ -45,21 +45,21 @@ public class TransportTriggerUpdateAction
 
     @Override
     protected void doExecute(
-            Task task, TriggerUpdateRequest request, ActionListener<TriggerUpdateResponse> listener) {
+            Task task, TriggerUpdateRequest request, ActionListener<MessageStatusResponse> listener) {
         try {
             if (this.catalogSyncJob.isRunning()) {
                 listener.onResponse(
-                        new TriggerUpdateResponse(
+                        new MessageStatusResponse(
                                 "A content update is already in progress.", RestStatus.CONFLICT));
                 return;
             }
             this.catalogSyncJob.trigger();
             listener.onResponse(
-                    new TriggerUpdateResponse(
+                    new MessageStatusResponse(
                             "The update request has been accepted for processing.", RestStatus.ACCEPTED));
         } catch (Exception e) {
             listener.onResponse(
-                    new TriggerUpdateResponse(
+                    new MessageStatusResponse(
                             e.getMessage() != null
                                     ? e.getMessage()
                                     : "An unexpected error occurred while processing your request.",

@@ -103,6 +103,9 @@ dependencies {
   zipArchive "com.wazuh:wazuh-indexer-security-analytics:$version"
   // Setup plugin (from local sibling project to avoid requiring pre-published Maven artifact)
   zipArchive "org.opensearch.plugin:opensearch-index-management:$opensearch_build"
+
+  // Provides the zstd/zstd_no_dict index codecs
+  zipArchive "org.opensearch.plugin:opensearch-custom-codecs:$opensearch_build"
 }
 
 // No need to validate license headers since spotless checks and applies it

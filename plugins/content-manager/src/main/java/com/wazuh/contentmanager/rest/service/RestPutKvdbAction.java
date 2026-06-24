@@ -16,105 +16,33 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.transport.client.Client;
+import org.opensearch.action.ActionType;
 
 import java.util.List;
 
-import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.action.ContentResponse;
+import com.wazuh.contentmanager.action.UpdateKvdbAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
-/**
- * PUT /_plugins/content-manager/kvdbs/{id}
- *
- * <p>Updates an existing KVDB in the draft space.
- *
- * <p>This action ensures that:
- *
- * <ul>
- *   <li>The KVDB exists and is in the draft space.
- *   <li>The request body contains all mandatory fields (title, content).
- *   <li>Immutable metadata (creation date) is preserved.
- *   <li>The updated KVDB content is validated by the Engine.
- *   <li>The KVDB is re-indexed and the space hash is recalculated.
- * </ul>
- *
- * <p>Possible HTTP responses:
- *
- * <ul>
- *   <li>200 OK: KVDB updated successfully.
- *   <li>400 Bad Request: Missing fields, invalid payload, or Engine validation failure.
- *   <li>404 Not Found: KVDB with specified ID was not found.
- *   <li>500 Internal Server Error: Engine unavailable or unexpected error.
- * </ul>
- */
+/** REST handler for updating KVDB resources. Delegates to transport layer. */
 public class RestPutKvdbAction extends AbstractUpdateAction {
 
     private static final String ENDPOINT_NAME = "content_manager_kvdb_update";
 
-    public RestPutKvdbAction(EngineService engine) {
-        super(engine);
-    }
-
-    /** Return a short identifier for this handler. */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
     }
 
-    /**
-     * Return the route configuration for this handler.
-     *
-     * @return route configuration for the update endpoint
-     */
     @Override
     public List<Route> routes() {
         return List.of(new Route(PUT, PluginSettings.KVDBS_URI + "/{id}"));
     }
 
     @Override
-    protected boolean supportsYamlField() {
-        return true;
-    }
-
-    @Override
-    protected String getIndexName() {
-        return Constants.INDEX_KVDBS;
-    }
-
-    @Override
-    protected String getResourceType() {
-        return Constants.KEY_KVDB;
-    }
-
-    @Override
-    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
-        RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_ENABLED, "content"));
-
-        if (fieldValidation != null) {
-            return fieldValidation;
-        }
-
-        return this.documentValidations.validateMetadataFields(
-                resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
-    }
-
-    @Override
-    protected RestResponse syncExternalServices(String id, JsonNode resource) {
-        RestResponse engineValidation = this.engine.validateResource(Constants.KEY_KVDB, resource);
-        if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(
-                    Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineValidation.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
+    protected ActionType<ContentResponse> getActionType() {
+        return UpdateKvdbAction.INSTANCE;
     }
 }
