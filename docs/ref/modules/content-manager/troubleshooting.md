@@ -104,7 +104,7 @@ Example output:
           "type": "cti:catalog:consumer:ruleset",
           "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5",
           "is_public": true,
-          "status": "idle",
+          "status": "ready",
           "local_offset": 3932,
           "remote_offset": 3932
         }
@@ -114,8 +114,9 @@ Example output:
 }
 ```
 
-- `status == idle`: Sync is complete; content is safe to read.
-- `status == updating`: Sync is in progress. If this persists after a sync should have finished, the previous sync may have failed mid-cycle.
+- `status == ready`: Sync is complete; content is safe to read.
+- `status == running`: Sync is in progress. If this persists after a sync should have finished, the node process may have been interrupted (e.g. killed) mid-cycle without a chance to record `failed`.
+- `status == failed`: The previous sync cycle was interrupted by an unexpected exception. Check the Content Manager logs around the time this consumer was last synced; the job retries automatically on its next scheduled run.
 - `local_offset == remote_offset`: Content is up-to-date.
 - `local_offset < remote_offset`: Content needs updating.
 - `local_offset == 0`: Content has never been synced (snapshot required).
