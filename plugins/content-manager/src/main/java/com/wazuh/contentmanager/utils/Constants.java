@@ -527,6 +527,10 @@ public class Constants {
     public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
 
+    // Index settings
+    public static final String KEY_INDEX_CODEC = "index.codec";
+    public static final String CODEC_ZSTD = "zstd";
+
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";

@@ -24,7 +24,7 @@ jobs:
       common_utils_sha: ${{ steps.common-utils-sha.outputs.sha }}
       security_analytics_sha: ${{ steps.security-analytics-sha.outputs.sha }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Resolve branches
         id: branches
         uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver@main
@@ -48,7 +48,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           sparse-checkout: |
@@ -192,7 +192,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up JDK
         uses: actions/setup-java@v5

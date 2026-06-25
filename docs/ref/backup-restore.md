@@ -44,7 +44,6 @@ rsync -aREz \
 /etc/wazuh-indexer/log4j2.properties \
 /etc/wazuh-indexer/opensearch.yml \
 /etc/wazuh-indexer/opensearch.keystore \
-/etc/wazuh-indexer/opensearch-observability/ \
 /etc/wazuh-indexer/opensearch-security/ \
 /etc/wazuh-indexer/wazuh-indexer-reports-scheduler/ \
 /etc/wazuh-indexer/wazuh-indexer-notifications/ \
@@ -101,7 +100,6 @@ Perform the following steps to restore the Wazuh indexer files on the new server
     cp -r etc/wazuh-indexer/jvm.options.d/ /etc/wazuh-indexer/jvm.options.d/
     cp etc/wazuh-indexer/log4j2.properties /etc/wazuh-indexer/log4j2.properties
     cp etc/wazuh-indexer/opensearch.keystore /etc/wazuh-indexer/opensearch.keystore
-    cp -r etc/wazuh-indexer/opensearch-observability/ /etc/wazuh-indexer/opensearch-observability/
     cp -r etc/wazuh-indexer/wazuh-indexer-reports-scheduler/ /etc/wazuh-indexer/wazuh-indexer-reports-scheduler/
     cp -r etc/wazuh-indexer/wazuh-indexer-notifications/ /etc/wazuh-indexer/wazuh-indexer-notifications/
     cp -r etc/wazuh-indexer/wazuh-indexer-notifications-core/ /etc/wazuh-indexer/wazuh-indexer-notifications-core/
@@ -111,7 +109,6 @@ Perform the following steps to restore the Wazuh indexer files on the new server
     chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/jvm.options.d
     chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/log4j2.properties
     chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
-    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch-observability/
     chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-reports-scheduler/
     chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-notifications/
     chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-notifications-core/
