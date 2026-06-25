@@ -126,7 +126,7 @@ public class Constants {
     public static final String D_LOG_CONSUMER_RESOURCE_READ_FAILED =
             "Could not read existing consumer resource for [{}]: {}";
     public static final String D_LOG_CONSUMER_T0_WRITTEN =
-            "Recorded initial state for consumer [{}] (status UPDATING, local offset 0, remote offset {}).";
+            "Recorded initial state for consumer [{}] (status RUNNING, local offset 0, remote offset {}).";
     public static final String W_LOG_CONSUMER_T0_FAILED =
             "Failed to write initial consumer state for [{}]: {}";
     public static final String W_LOG_REFRESH_INDICES_FAILED = "Error refreshing indices: {}";
@@ -676,7 +676,8 @@ public class Constants {
     // index templates, indices and data streams have been created).
     public static final String INDEX_SETUP_STATUS = ".wazuh-setup-status";
     public static final String SETUP_STATUS_DOC_ID = "setup-status";
-    public static final String SETUP_STATUS_COMPLETE = "complete";
+    public static final String SETUP_STATUS_READY = "ready";
+    public static final String SETUP_STATUS_FAILED = "failed";
     public static final int MAX_SETUP_WAIT_RETRIES = 3;
     public static final int SETUP_WAIT_BACKOFF_BASE_SECONDS = 5;
 }
