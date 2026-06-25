@@ -37,7 +37,7 @@ Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI
 
 ### Consumer Service
 
-Orchestrates synchronization for each catalog consumer type (ruleset, iocs, vulnerabilities). Compares local offsets (from `.wazuh-cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.wazuh-cti-consumers`: set to `updating` at the start of `synchronize()` and back to `idle` only once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete.
+Orchestrates synchronization for each catalog consumer type (ruleset, iocs, vulnerabilities). Compares local offsets (from `.wazuh-cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.wazuh-cti-consumers`: set to `running` at the start of `synchronize()`, then to `ready` once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete, or to `failed` if an unexpected exception interrupts the sync.
 
 ### Snapshot Service
 
@@ -262,7 +262,7 @@ The `.wazuh-cti-consumers` index stores one document per consumer type:
     "type": "cti:catalog:consumer:ruleset",
     "resource": "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta-2-ruleset-5/consumers/public-ruleset-5",
     "is_public": true,
-    "status": "idle",
+    "status": "ready",
     "local_offset": 3932,
     "remote_offset": 3932
   }
@@ -273,7 +273,8 @@ The `status` field reflects the consumer's synchronization lifecycle:
 
 | Value | Meaning |
 | --------- | ----------------------------------------------------------------------- |
-| `idle` | Sync is complete; content indices are up-to-date and safe to read. |
-| `updating` | Sync is in progress; content may be partially written or inconsistent. |
+| `ready` | Sync is complete; content indices are up-to-date and safe to read. |
+| `running` | Sync is in progress; content may be partially written or inconsistent. |
+| `failed` | The previous sync cycle was interrupted by an unexpected exception. |
 
-The status is set to `updating` at the very start of a sync cycle and only transitions back to `idle` after all post-sync work finishes — including hash recalculation, Security Analytics Plugin synchronization, and Engine IoC notification. If a sync fails mid-cycle, the status remains `updating` as an observable failure signal.
+The status is set to `running` at the very start of a sync cycle and transitions to `ready` after all post-sync work finishes — including hash recalculation, Security Analytics Plugin synchronization, and Engine IoC notification — or to `failed` if an unexpected exception interrupts the cycle. The Job Scheduler logs the failure and retries on the next scheduled run regardless of the consumer's status.
