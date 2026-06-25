@@ -844,7 +844,7 @@ To find consumers that are currently syncing or that failed mid-sync:
 ```bash
 GET /.wazuh-cti-consumers/_search
 {
-  "query": { "terms": { "status": ["ready"] } }
+  "query": { "terms": { "status": ["running", "failed"] } }
 }
 ```
 

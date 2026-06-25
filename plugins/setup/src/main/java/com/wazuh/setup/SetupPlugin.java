@@ -215,7 +215,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                                 } catch (Exception e) {
                                     log.error("Setup initialization failed: {}", e.getMessage(), e);
                                     this.setupStatusIndex.markFailed();
-                                    throw e;
                                 }
 
                                 // Signal that all indices are ready. Consumers of this marker may now start working

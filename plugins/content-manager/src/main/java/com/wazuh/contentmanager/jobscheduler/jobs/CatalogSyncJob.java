@@ -191,8 +191,7 @@ public class CatalogSyncJob implements JobExecutor {
             }
             if (status == SetupStatus.FAILED) {
                 log.error(
-                        "Setup plugin initialization failed. Skipping catalog synchronization; it will"
-                                + " be retried on the next scheduled run.");
+                        "Setup plugin initialization failed. Skipping catalog synchronization until Setup succeeds (typically after a node restart.");
                 return false;
             }
             if (attempt >= Constants.MAX_SETUP_WAIT_RETRIES) {

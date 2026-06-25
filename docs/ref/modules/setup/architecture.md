@@ -23,11 +23,11 @@ creating its indices, avoiding races where a dependent index template doesn't ex
 
 The marker transitions once per boot:
 
-| Value | Meaning |
-| --------- | ----------------------------------------------------------------------- |
-| `running` | Index initialization is in progress (set at the very start of `onNodeStarted()`, overwriting any marker left over from a previous boot). |
-| `ready` | All index templates, indices and data streams have been created successfully. |
-| `failed` | Index initialization could not complete (an unhandled exception was thrown while initializing one of the indices). |
+| Value     | Meaning                                                                                                                                                                          |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `running` | Index initialization is in progress (set when `SetupStatusIndex.initialize()` runs at the start of index initialization, overwriting any marker left over from a previous boot). |
+| `ready`   | All index templates, indices and data streams have been created successfully.                                                                                                    |
+| `failed`  | Index initialization could not complete (an unhandled exception was thrown while initializing one of the indices).                                                               |
 
 Writing the marker is best-effort: a failure to persist it is logged but never interrupts node
 startup.
