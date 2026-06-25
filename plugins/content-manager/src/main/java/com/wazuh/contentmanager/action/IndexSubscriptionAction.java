@@ -19,7 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.action.ActionType;
 
 public class IndexSubscriptionAction extends ActionType<MessageStatusResponse> {
-    public static final String NAME = "cluster:admin/content_manager/subscription/create";
+    public static final String NAME = "indices:data/write/content_manager/subscription/create";
     public static final IndexSubscriptionAction INSTANCE = new IndexSubscriptionAction();
 
     public IndexSubscriptionAction() {
