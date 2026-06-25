@@ -43,52 +43,16 @@ Restart the service after changing the heap size:
 systemctl restart wazuh-indexer
 ```
 
-## Disable swapping
-
-When the operating system swaps Wazuh Indexer memory to disk, performance and node stability degrade severely, and the JVM can suffer long garbage collection pauses. Disable swapping on production nodes using one of the following approaches. Disabling all swap and enabling memory locking are the preferred options.
-
-**Disable all swap files.** This is the most direct approach. To disable swap temporarily without restarting the service:
-
-```console
-swapoff -a
-```
-
-To make the change permanent, edit `/etc/fstab` and comment out any line that contains the word `swap`.
-
-**Reduce swappiness.** If you cannot disable swap entirely, reduce the kernel's tendency to swap by setting `vm.swappiness` to `1`. Add the following line to `/etc/sysctl.conf`:
-
-```
-vm.swappiness=1
-```
-
-Apply the change with `sysctl -p`.
-
 ## Memory locking
 
-As an alternative or complement to disabling swap, configure Wazuh Indexer to lock its process address space into RAM so that none of the JVM is ever swapped out.
+Configure Wazuh Indexer to lock its process address space into RAM so that none of the JVM is ever swapped out.
 
-1. Enable memory locking in the `/etc/wazuh-indexer/opensearch.yml` configuration file:
+1. `bootstrap.memory_lock: true` is enabled by default in `/etc/wazuh-indexer/opensearch.yml`. No changes are needed for package installations.
 
-   ```yaml
-   bootstrap.memory_lock: true
-   ```
+2. Grant the `wazuh-indexer` service user permission to lock unlimited memory. The RPM and Debian packages already configure this for both systemd-based and SysVinit-based systems — no additional configuration is required for package installations.
 
-2. Grant the `wazuh-indexer` service user permission to lock unlimited memory. For systemd-based systems, create a service override:
-
-   ```console
-   mkdir -p /etc/systemd/system/wazuh-indexer.service.d/
-   cat > /etc/systemd/system/wazuh-indexer.service.d/override.conf << EOF
-   [Service]
-   LimitMEMLOCK=infinity
-   EOF
-   ```
-
-   For SysVinit-based systems, add the following lines to `/etc/security/limits.conf`:
-
-   ```
-   wazuh-indexer soft memlock unlimited
-   wazuh-indexer hard memlock unlimited
-   ```
+   - **systemd**: `LimitMEMLOCK=infinity` is set in the service file.
+   - **SysVinit**: `ulimit -l unlimited` is applied by the init script before starting the process.
 
 3. Reload the service manager and restart Wazuh Indexer:
 
@@ -121,7 +85,7 @@ As an alternative or complement to disabling swap, configure Wazuh Indexer to lo
    memory locking requested for wazuh-indexer process but memory is not locked
    ```
 
-   This usually means the `wazuh-indexer` user lacks the `memlock` permission. Confirm that step 2 was applied correctly, reload with `systemctl daemon-reload`, and restart the service.
+   This usually means the `wazuh-indexer` user lacks the `memlock` permission. For systemd-based systems, confirm that `LimitMEMLOCK=infinity` is present in the service file, reload with `systemctl daemon-reload`, and restart the service. For SysVinit-based systems, confirm that step 2 was applied correctly.
 
 > **Note**: Enabling `bootstrap.memory_lock` causes the JVM to reserve all the memory it needs at startup, including native memory beyond the configured heap. Make sure the node has enough physical RAM for the heap plus this overhead, otherwise the service may fail to start.
 
