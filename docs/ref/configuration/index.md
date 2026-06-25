@@ -43,26 +43,6 @@ Restart the service after changing the heap size:
 systemctl restart wazuh-indexer
 ```
 
-## Disable swapping
-
-When the operating system swaps Wazuh Indexer memory to disk, performance and node stability degrade severely, and the JVM can suffer long garbage collection pauses. Disable swapping on production nodes using one of the following approaches. Disabling all swap and enabling memory locking are the preferred options.
-
-**Disable all swap files.** This is the most direct approach. To disable swap temporarily without restarting the service:
-
-```console
-swapoff -a
-```
-
-To make the change permanent, edit `/etc/fstab` and comment out any line that contains the word `swap`.
-
-**Reduce swappiness.** If you cannot disable swap entirely, reduce the kernel's tendency to swap by setting `vm.swappiness` to `1`. Add the following line to `/etc/sysctl.conf`:
-
-```
-vm.swappiness=1
-```
-
-Apply the change with `sysctl -p`.
-
 ## Memory locking
 
 As an alternative or complement to disabling swap, configure Wazuh Indexer to lock its process address space into RAM so that none of the JVM is ever swapped out.
