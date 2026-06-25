@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for UpdateRule transport action. */
 public class UpdateRuleAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/update/rule/put";
+    public static final String NAME = "cluster:admin/wazuh/content_manager/rule/update";
     public static final UpdateRuleAction INSTANCE = new UpdateRuleAction();
 
     public UpdateRuleAction() {

@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for DeleteIntegration transport action. */
 public class DeleteIntegrationAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/delete/integration/delete";
+    public static final String NAME = "cluster:admin/wazuh/content_manager/integration/delete";
     public static final DeleteIntegrationAction INSTANCE = new DeleteIntegrationAction();
 
     public DeleteIntegrationAction() {

@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for DeleteFilter transport action. */
 public class DeleteFilterAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/delete/filter/delete";
+    public static final String NAME = "cluster:admin/wazuh/content_manager/filter/delete";
     public static final DeleteFilterAction INSTANCE = new DeleteFilterAction();
 
     public DeleteFilterAction() {

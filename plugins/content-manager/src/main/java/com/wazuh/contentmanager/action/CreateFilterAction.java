@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for CreateFilter transport action. */
 public class CreateFilterAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/create/filter/post";
+    public static final String NAME = "cluster:admin/wazuh/content_manager/filter/create";
     public static final CreateFilterAction INSTANCE = new CreateFilterAction();
 
     public CreateFilterAction() {

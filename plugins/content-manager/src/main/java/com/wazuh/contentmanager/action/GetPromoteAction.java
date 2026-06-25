@@ -19,7 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.action.ActionType;
 
 public class GetPromoteAction extends ActionType<GetPromoteResponse> {
-    public static final String NAME = "plugin:content_manager/promote/get";
+    public static final String NAME = "cluster:admin/wazuh/content_manager/promote/get";
     public static final GetPromoteAction INSTANCE = new GetPromoteAction();
 
     public GetPromoteAction() {

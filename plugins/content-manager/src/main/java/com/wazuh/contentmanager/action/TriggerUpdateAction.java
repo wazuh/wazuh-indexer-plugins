@@ -19,7 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.action.ActionType;
 
 public class TriggerUpdateAction extends ActionType<MessageStatusResponse> {
-    public static final String NAME = "plugin:content_manager/update/post";
+    public static final String NAME = "cluster:admin/wazuh/content_manager/update/trigger";
     public static final TriggerUpdateAction INSTANCE = new TriggerUpdateAction();
 
     public TriggerUpdateAction() {

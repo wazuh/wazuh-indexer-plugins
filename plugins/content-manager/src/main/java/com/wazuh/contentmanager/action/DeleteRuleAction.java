@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for DeleteRule transport action. */
 public class DeleteRuleAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/delete/rule/delete";
+    public static final String NAME = "cluster:admin/wazuh/content_manager/rule/delete";
     public static final DeleteRuleAction INSTANCE = new DeleteRuleAction();
 
     public DeleteRuleAction() {

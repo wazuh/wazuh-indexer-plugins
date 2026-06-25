@@ -19,7 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.action.ActionType;
 
 public class DeleteSpaceAction extends ActionType<MessageStatusResponse> {
-    public static final String NAME = "plugin:content_manager/space/delete";
+    public static final String NAME = "cluster:admin/wazuh/content_manager/space/delete";
     public static final DeleteSpaceAction INSTANCE = new DeleteSpaceAction();
 
     public DeleteSpaceAction() {

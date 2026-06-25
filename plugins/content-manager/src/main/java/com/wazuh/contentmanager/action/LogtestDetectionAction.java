@@ -19,7 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.action.ActionType;
 
 public class LogtestDetectionAction extends ActionType<LogtestResponse> {
-    public static final String NAME = "plugin:content_manager/logtest_detection/post";
+    public static final String NAME = "cluster:admin/wazuh/content_manager/logtest_detection";
     public static final LogtestDetectionAction INSTANCE = new LogtestDetectionAction();
 
     public LogtestDetectionAction() {

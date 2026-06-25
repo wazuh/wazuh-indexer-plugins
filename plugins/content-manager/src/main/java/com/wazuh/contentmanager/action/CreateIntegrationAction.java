@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for CreateIntegration transport action. */
 public class CreateIntegrationAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/create/integration/post";
+    public static final String NAME = "cluster:admin/wazuh/content_manager/integration/create";
     public static final CreateIntegrationAction INSTANCE = new CreateIntegrationAction();
 
     public CreateIntegrationAction() {

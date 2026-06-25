@@ -19,7 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.action.ActionType;
 
 public class LogtestNormalizationAction extends ActionType<LogtestResponse> {
-    public static final String NAME = "plugin:content_manager/logtest_normalization/post";
+    public static final String NAME = "cluster:admin/wazuh/content_manager/logtest_normalization";
     public static final LogtestNormalizationAction INSTANCE = new LogtestNormalizationAction();
 
     public LogtestNormalizationAction() {
