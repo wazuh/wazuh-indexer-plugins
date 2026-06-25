@@ -15,10 +15,12 @@ These default users and roles definitions are stored in the `internal_users.yml`
 
 | User              | Description                                                                                                                              | Roles                                                                                                                              |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| `wazuh-server`    | User for the Wazuh Manager with read/write access to stateful indices and write-only access to stateless indices.                         | `stateless-write`, `stateful-delete`, `stateful-write`, `stateful-read`, `cm_subscription_read`                                    |
-| `wazuh-dashboard` | User for Wazuh Dashboard with read access to stateful and stateless indices, and management level permissionsfor the monitoring indices. | `sample-data-management`, `metrics-write`, `metrics-read`, `stateless-read`, `stateful-read`, `cm_update`, `cm_subscription_write` |
+| `wazuh-manager`    | User for the Wazuh Manager with read/write access to stateful indices and write-only access to stateless indices.                         | `stateless-write`, `stateful-delete`, `stateful-write`, `stateful-read`, `cm_subscription_read`                                    |
+| `wazuh-dashboard` | User for Wazuh Dashboard with read access to stateful and stateless indices, and management level permissions for the monitoring indices. | `sample-data-management`, `metrics-write`, `metrics-read`, `stateless-read`, `stateful-read`, `cm_update`, `cm_subscription_write` |
 
 ### Roles
+
+> **TODO** needs to be completely rewritten with the new roles.
 
 | Role Name                | Access Description                                                             | Index Patterns                           | Permissions                                                                              |
 |--------------------------|--------------------------------------------------------------------------------|------------------------------------------|------------------------------------------------------------------------------------------|
@@ -33,3 +35,7 @@ These default users and roles definitions are stored in the `internal_users.yml`
 | `cm_subscription_read`   | Grants permissions to retrieve subscriptions for the server.                   | N/A                                      | `plugin:content_manager/subscription_get`                                                |
 | `cm_subscription_write`  | Grants permissions to create and delete subscriptions for the content manager. | N/A                                      | `plugin:content_manager/subscription_post`, `plugin:content_manager/subscription_delete` |
 | `cm_update`              | Grants permissions to perform update operations in the content manager.        | N/A                                      | `plugin:content_manager/update`                                                          |
+
+---
+
+{{ #include ./permissions.md }}
