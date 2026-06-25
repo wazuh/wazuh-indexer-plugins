@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for UpdateFilter transport action. */
 public class UpdateFilterAction extends ActionType<ContentResponse> {
-    public static final String NAME = "cluster:admin/wazuh/content_manager/filter/update";
+    public static final String NAME = "cluster:admin/content_manager/filter/update";
     public static final UpdateFilterAction INSTANCE = new UpdateFilterAction();
 
     public UpdateFilterAction() {

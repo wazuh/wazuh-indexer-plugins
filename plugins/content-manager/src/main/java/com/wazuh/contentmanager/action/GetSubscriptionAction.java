@@ -19,7 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.action.ActionType;
 
 public class GetSubscriptionAction extends ActionType<GetSubscriptionResponse> {
-    public static final String NAME = "cluster:admin/wazuh/content_manager/subscription/get";
+    public static final String NAME = "cluster:monitor/content_manager/subscription/get";
     public static final GetSubscriptionAction INSTANCE = new GetSubscriptionAction();
 
     public GetSubscriptionAction() {
