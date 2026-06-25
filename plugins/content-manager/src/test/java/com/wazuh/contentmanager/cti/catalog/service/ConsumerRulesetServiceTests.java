@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
@@ -38,13 +39,16 @@ import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -192,5 +196,34 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
 
         Assert.assertTrue(missing.isEmpty());
         verifyNoInteractions(this.client);
+    }
+
+    /**
+     * synchronize() must transition the consumer to FAILED — not leave it stuck at RUNNING — when an
+     * unexpected exception is thrown mid-sync, and must rethrow so CatalogSyncJob's existing
+     * log-and-continue catch still fires for the next synchronizer in the list.
+     */
+    public void testSynchronize_unexpectedException_setsFailedStatusAndRethrows() throws Exception {
+        GetResponse existingConsumerResponse = mock(GetResponse.class);
+        when(existingConsumerResponse.isExists()).thenReturn(true);
+        when(existingConsumerResponse.getSourceAsString())
+                .thenReturn(
+                        "{\"name\":\"name\",\"context\":\"ctx\",\"status\":\"ready\","
+                                + "\"type\":\"cti:catalog:consumer:ruleset\","
+                                + "\"resource\":\"\",\"is_public\":true,"
+                                + "\"local_offset\":0,\"remote_offset\":0}");
+        when(this.consumersIndex.getConsumer(any())).thenReturn(existingConsumerResponse);
+
+        ConsumerService failingConsumerService = mock(ConsumerService.class);
+        when(failingConsumerService.getLocalConsumer())
+                .thenThrow(new RuntimeException("Cluster unavailable"));
+        this.synchronizer.setConsumerService(failingConsumerService);
+
+        LuceneTestCase.expectThrows(RuntimeException.class, this.synchronizer::synchronize);
+
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex, org.mockito.Mockito.atLeastOnce()).setConsumer(captor.capture());
+        LocalConsumer lastWrite = captor.getValue();
+        Assert.assertEquals(LocalConsumer.Status.FAILED, lastWrite.getStatus());
     }
 }

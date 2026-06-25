@@ -173,18 +173,26 @@ public class CatalogSyncJob implements JobExecutor {
     }
 
     /**
-     * Blocks until the Setup plugin reports its initialization as complete via the {@value
-     * Constants#SETUP_STATUS_DOC_ID} marker document in the {@value Constants#INDEX_SETUP_STATUS}
-     * index. Retries up to {@link Constants#MAX_SETUP_WAIT_RETRIES} times with exponential backoff
-     * (5s, 10s, 20s) before giving up. This method blocks the calling generic-pool thread for up to
-     * 35 seconds in the worst case.
+     * Blocks until the Setup plugin reports its initialization as {@value
+     * Constants#SETUP_STATUS_READY} via the {@value Constants#SETUP_STATUS_DOC_ID} marker document in
+     * the {@value Constants#INDEX_SETUP_STATUS} index. Retries up to {@link
+     * Constants#MAX_SETUP_WAIT_RETRIES} times with exponential backoff (5s, 10s, 20s) before giving
+     * up. If the marker already reports {@value Constants#SETUP_STATUS_FAILED}, returns immediately
+     * without retrying — a failed Setup boot will not fix itself within the same boot. This method
+     * blocks the calling generic-pool thread for up to 35 seconds in the worst case.
      *
-     * @return true if the Setup plugin completed its initialization, false otherwise.
+     * @return true if the Setup plugin reported readiness, false otherwise.
      */
     boolean waitForSetup() {
         for (int attempt = 0; ; attempt++) {
-            if (this.isSetupComplete()) {
+            SetupStatus status = this.readSetupStatus();
+            if (status == SetupStatus.READY) {
                 return true;
+            }
+            if (status == SetupStatus.FAILED) {
+                log.error(
+                        "Setup plugin initialization failed. Skipping catalog synchronization until Setup succeeds (typically after a node restart.");
+                return false;
             }
             if (attempt >= Constants.MAX_SETUP_WAIT_RETRIES) {
                 return false;
@@ -204,26 +212,38 @@ public class CatalogSyncJob implements JobExecutor {
         }
     }
 
+    /** The three states the Setup plugin's readiness marker can report. */
+    private enum SetupStatus {
+        RUNNING,
+        READY,
+        FAILED
+    }
+
     /**
      * Reads the Setup plugin's readiness marker. Any failure (index not created yet, cluster not
-     * ready) is treated as "setup not complete".
+     * ready) is treated as {@link SetupStatus#RUNNING} so the caller retries.
      *
-     * @return true if the marker document exists with status {@value
-     *     Constants#SETUP_STATUS_COMPLETE}.
+     * @return the marker's current {@link SetupStatus}.
      */
-    private boolean isSetupComplete() {
+    private SetupStatus readSetupStatus() {
         try {
             GetResponse response =
                     this.client.prepareGet(Constants.INDEX_SETUP_STATUS, Constants.SETUP_STATUS_DOC_ID).get();
             if (!response.isExists()) {
-                return false;
+                return SetupStatus.RUNNING;
             }
             Map<String, Object> source = response.getSourceAsMap();
-            return source != null
-                    && Constants.SETUP_STATUS_COMPLETE.equals(source.get(Constants.KEY_STATUS));
+            Object value = source != null ? source.get(Constants.KEY_STATUS) : null;
+            if (Constants.SETUP_STATUS_READY.equals(value)) {
+                return SetupStatus.READY;
+            }
+            if (Constants.SETUP_STATUS_FAILED.equals(value)) {
+                return SetupStatus.FAILED;
+            }
+            return SetupStatus.RUNNING;
         } catch (Exception e) {
             log.debug("Could not read setup status marker: {}", e.getMessage());
-            return false;
+            return SetupStatus.RUNNING;
         }
     }
 }
