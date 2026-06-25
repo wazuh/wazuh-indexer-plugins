@@ -36,10 +36,11 @@ import java.io.IOException;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LocalConsumer extends AbstractConsumer implements ToXContent {
 
-    /** Represents whether the consumer is safe to query or is currently being updated. */
+    /** Represents whether the consumer is safe to query, currently syncing, or failed to sync. */
     public enum Status {
-        IDLE("idle"),
-        UPDATING("updating");
+        READY("ready"),
+        RUNNING("running"),
+        FAILED("failed");
 
         private final String value;
 
@@ -88,7 +89,9 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     }
 
     /**
-     * Constructs a new LocalConsumer with a basic identity. Status defaults to {@link Status#IDLE}.
+     * Constructs a new LocalConsumer with a basic identity. Status defaults to {@link
+     * Status#RUNNING}: a consumer with no offsets yet has not actually synced anything, so it
+     * cannot be {@link Status#READY}.
      *
      * @param context The context identifier (e.g., "rules_development").
      * @param name The consumer name.
@@ -100,13 +103,15 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
         this.type = type;
         this.resource = resource;
         this.isPublic = isPublic;
-        this.status = Status.IDLE;
+        this.status = Status.RUNNING;
         this.localOffset = 0;
         this.remoteOffset = 0;
     }
 
     /**
-     * Constructs a LocalConsumer with full state details. Status defaults to {@link Status#IDLE}.
+     * Constructs a LocalConsumer with full state details. Status defaults to {@link
+     * Status#RUNNING}; callers that know the sync actually completed should use the constructor
+     * that takes an explicit {@link Status} instead.
      *
      * @param context The context identifier.
      * @param name The consumer name.
@@ -129,7 +134,7 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
         this.type = type;
         this.resource = resource;
         this.isPublic = isPublic;
-        this.status = Status.IDLE;
+        this.status = Status.RUNNING;
         this.localOffset = localOffset;
         this.remoteOffset = remoteOffset;
     }
@@ -168,7 +173,7 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     /**
      * Gets the current synchronization status of the consumer.
      *
-     * @return The {@link Status} indicating whether the consumer is idle or updating.
+     * @return The {@link Status} indicating whether the consumer is ready, running, or failed.
      */
     public Status getStatus() {
         return this.status;
@@ -260,7 +265,7 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
                 .field("type", this.type)
                 .field("resource", this.resource)
                 .field("is_public", this.isPublic)
-                .field("status", this.status != null ? this.status.toString() : Status.IDLE.toString())
+                .field("status", this.status != null ? this.status.toString() : Status.READY.toString())
                 .field("local_offset", this.localOffset)
                 .field("remote_offset", this.remoteOffset)
                 .endObject();

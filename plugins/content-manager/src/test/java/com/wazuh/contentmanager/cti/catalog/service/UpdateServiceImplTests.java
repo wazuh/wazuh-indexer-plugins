@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
@@ -228,10 +229,10 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                                 + "\"local_offset\":29,\"remote_offset\":100}");
 
         // Act
-        boolean result = this.updateService.update(29, 30);
+        LuceneTestCase.expectThrows(
+                RuntimeException.class, () -> this.updateService.update(29, 30));
 
         // Assert
-        Assert.assertFalse("update() should return false on exception", result);
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
 
@@ -242,6 +243,10 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         Assert.assertEquals(
                 "https://cti.example/api/v1/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5",
                 resetConsumer.getResource());
+        Assert.assertEquals(
+                "Reset consumer must be marked FAILED, not the default status",
+                LocalConsumer.Status.FAILED,
+                resetConsumer.getStatus());
     }
 
     /**
@@ -299,13 +304,16 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                 .thenReturn(SimpleHttpResponse.create(500, "Internal Error", ContentType.TEXT_PLAIN));
 
         // Act
-        boolean result = this.updateService.update(1, 5);
+        LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(1, 5));
 
         // Assert
-        Assert.assertFalse("update() should return false on API failure", result);
         verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
-        verify(this.consumersIndex, never()).setConsumer(any());
+        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
+        Assert.assertEquals(0, consumerCaptor.getValue().getLocalOffset());
+        Assert.assertEquals(LocalConsumer.Status.FAILED, consumerCaptor.getValue().getStatus());
     }
+
 
     /**
      * Tests that the consumer state is reset to 0 if an exception occurs during processing.
@@ -340,16 +348,17 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                 .create(anyString(), any(JsonNode.class));
 
         // Act
-        boolean result = this.updateService.update(29, 30);
+        LuceneTestCase.expectThrows(
+                RuntimeException.class, () -> this.updateService.update(29, 30));
 
         // Assert
-        Assert.assertFalse("update() should return false on exception", result);
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
 
         LocalConsumer resetConsumer = consumerCaptor.getValue();
         Assert.assertEquals(0, resetConsumer.getLocalOffset());
         Assert.assertEquals(CONSUMER, resetConsumer.getName());
+        Assert.assertEquals(LocalConsumer.Status.FAILED, resetConsumer.getStatus());
     }
 
     /**
@@ -432,10 +441,10 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.getResponse.getSourceAsString()).thenReturn("{}");
 
         // Act
-        boolean result = this.updateService.update(49, 50);
+        LuceneTestCase.expectThrows(
+                RuntimeException.class, () -> this.updateService.update(49, 50));
 
         // Assert
-        Assert.assertFalse("update() should return false when resource not found", result);
         verify(this.ruleIndex, never()).delete(anyString());
         verify(this.decoderIndex, never()).delete(anyString());
     }

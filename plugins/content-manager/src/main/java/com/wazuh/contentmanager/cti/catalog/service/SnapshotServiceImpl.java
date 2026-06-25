@@ -415,7 +415,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                             current.getType(),
                             current.getResource(),
                             current.isPublic(),
-                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
+                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.RUNNING,
                             newLocalOffset,
                             current.getRemoteOffset());
             this.consumersIndex.setConsumer(updatedConsumer);
