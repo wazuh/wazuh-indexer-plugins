@@ -49,14 +49,10 @@ Configure Wazuh Indexer to lock its process address space into RAM so that none 
 
 1. `bootstrap.memory_lock: true` is enabled by default in `/etc/wazuh-indexer/opensearch.yml`. No changes are needed for package installations.
 
-2. Grant the `wazuh-indexer` service user permission to lock unlimited memory. For systemd-based systems, `LimitMEMLOCK=infinity` is already set in the service file — no additional configuration is required for package installations.
+2. Grant the `wazuh-indexer` service user permission to lock unlimited memory. The RPM and Debian packages already configure this for both systemd-based and SysVinit-based systems — no additional configuration is required for package installations.
 
-   For SysVinit-based systems, add the following lines to `/etc/security/limits.conf`:
-
-   ```
-   wazuh-indexer soft memlock unlimited
-   wazuh-indexer hard memlock unlimited
-   ```
+   - **systemd**: `LimitMEMLOCK=infinity` is set in the service file.
+   - **SysVinit**: `ulimit -l unlimited` is applied by the init script before starting the process.
 
 3. Reload the service manager and restart Wazuh Indexer:
 
