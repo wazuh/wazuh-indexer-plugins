@@ -103,12 +103,12 @@ public class UnzipTests extends OpenSearchTestCase {
     }
 
     /**
-     * Regression test for the CTI vulnerabilities snapshot failure: large snapshots are
-     * ZIP64 archives. An archive with more than {@code 0xFFFF} entries forces the writer to emit a
-     * ZIP64 end-of-central-directory record, which can only be read by traversing the central
-     * directory ({@link java.util.zip.ZipFile}). The previous streaming {@code ZipInputStream}
-     * implementation could not handle ZIP64 metadata and failed with "invalid entry size" / "Push
-     * back buffer is full". This guards against a regression to a streaming reader.
+     * Regression test for the CTI vulnerabilities snapshot failure: large snapshots are ZIP64
+     * archives. An archive with more than {@code 0xFFFF} entries forces the writer to emit a ZIP64
+     * end-of-central-directory record, which can only be read by traversing the central directory
+     * ({@link java.util.zip.ZipFile}). The previous streaming {@code ZipInputStream} implementation
+     * could not handle ZIP64 metadata and failed with "invalid entry size" / "Push back buffer is
+     * full". This guards against a regression to a streaming reader.
      */
     public void testZip64ArchiveExtraction() throws IOException {
         // Just over the 0xFFFF (65535) entry limit -> forces the writer to emit a ZIP64 EOCD record.
