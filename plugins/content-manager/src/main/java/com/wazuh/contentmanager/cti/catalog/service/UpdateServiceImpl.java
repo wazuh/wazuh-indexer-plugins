@@ -114,10 +114,16 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             currentFromOffset,
                             currentToOffset,
                             response.getCode());
-                    if (lastAppliedOffset == fromOffset) {
-                        return false;
-                    }
-                    break;
+                    // Whether this is the first batch (no progress at all) or a later one (partial
+                    // progress already applied), a non-200 response means the consumer did not reach
+                    // toOffset. Treating partial progress as success would silently report a consumer
+                    // as up-to-date when it isn't, so this always falls through to the catch below.
+                    throw new RuntimeException(
+                            "Failed to fetch changes for consumer ["
+                                    + this.consumerType
+                                    + "] (HTTP "
+                                    + response.getCode()
+                                    + ")");
                 }
 
                 Changes changes = this.mapper.readValue(response.getBodyBytes(), Changes.class);
@@ -157,7 +163,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             this.firstNonBlank(current.getType(), this.consumerType),
                             this.firstNonBlank(current.getResource(), this.consumerUri),
                             current.isPublic(),
-                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.UPDATING,
+                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.RUNNING,
                             lastAppliedOffset,
                             toOffset);
             this.consumersIndex.setConsumer(updated);
@@ -167,7 +173,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         } catch (Exception e) {
             log.error(Constants.E_LOG_UPDATE_FAILED, e.getMessage());
             this.resetConsumer();
-            return false;
+            throw new RuntimeException(
+                    "Update failed for consumer [" + this.consumerType + "]", e);
         }
     }
 
@@ -273,7 +280,12 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 "Document with ID '" + id + "' could not be found in any ContentIndex.");
     }
 
-    /** Resets the local consumer offset to 0. */
+    /**
+     * Resets the local consumer offset to 0 and marks it {@link LocalConsumer.Status#FAILED}. Called
+     * only from the failure path of {@link #update(long, long)}, right before that method rethrows —
+     * the explicit {@code FAILED} status must not be left to the constructor's default, which reports
+     * a successfully synced consumer.
+     */
     private void resetConsumer() {
         log.warn(Constants.W_LOG_UPDATE_RESET_CONSUMER, this.consumer);
         try {
@@ -290,6 +302,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             this.firstNonBlank(current != null ? current.getType() : null, this.consumerType),
                             this.firstNonBlank(current != null ? current.getResource() : null, this.consumerUri),
                             effectiveIsPublic,
+                            LocalConsumer.Status.FAILED,
                             0,
                             0);
             this.consumersIndex.setConsumer(reset);

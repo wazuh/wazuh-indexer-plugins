@@ -159,16 +159,25 @@ public abstract class AbstractConsumerService {
      * Main synchronization entry point. Orchestrates the synchronization process by performing the
      * actual sync and calling onSyncComplete with the result.
      *
-     * <p>Marks the consumer as {@link LocalConsumer.Status#UPDATING} before sync begins so that
-     * external components can detect the in-progress state. The status is restored to {@link
-     * LocalConsumer.Status#IDLE} once synchronization completes, whether updates were applied.
+     * <p>Marks the consumer as {@link LocalConsumer.Status#RUNNING} before sync begins so that
+     * external components can detect the in-progress state. The status moves to {@link
+     * LocalConsumer.Status#READY} once synchronization completes normally, or to {@link
+     * LocalConsumer.Status#FAILED} if an unexpected exception interrupts the sync; the exception is
+     * then rethrown so the caller ({@code CatalogSyncJob}) can log it and continue with the remaining
+     * synchronizers.
      */
     public void synchronize() {
-        this.setConsumerStatus(LocalConsumer.Status.UPDATING);
-        boolean isUpdated = this.syncConsumerServices();
-        log.debug(Constants.D_LOG_SYNC_COMPLETED, this.getConsumerType(), isUpdated);
-        this.onSyncComplete(isUpdated);
-        this.setConsumerStatus(LocalConsumer.Status.IDLE);
+        this.setConsumerStatus(LocalConsumer.Status.RUNNING);
+        try {
+            boolean isUpdated = this.syncConsumerServices();
+            log.debug(Constants.D_LOG_SYNC_COMPLETED, this.getConsumerType(), isUpdated);
+            this.onSyncComplete(isUpdated);
+            this.setConsumerStatus(LocalConsumer.Status.READY);
+        } catch (Exception e) {
+            this.setConsumerStatus(LocalConsumer.Status.FAILED);
+            throw new RuntimeException(
+                    "Synchronization failed for consumer [" + this.getConsumerType() + "]", e);
+        }
     }
 
     /**
@@ -252,7 +261,7 @@ public abstract class AbstractConsumerService {
                                 consumerType,
                                 catalogUri,
                                 remoteConsumer.isPublic(),
-                                LocalConsumer.Status.UPDATING,
+                                LocalConsumer.Status.RUNNING,
                                 0,
                                 remoteConsumer.getOffset());
             } else if (manifestEntry != null) {
@@ -269,7 +278,7 @@ public abstract class AbstractConsumerService {
                                 mType,
                                 mResource,
                                 mIsPublic,
-                                LocalConsumer.Status.UPDATING,
+                                LocalConsumer.Status.RUNNING,
                                 0,
                                 mRemoteOffset);
             } else {
@@ -539,7 +548,7 @@ public abstract class AbstractConsumerService {
 
             boolean hasEffectiveCatalog = catalogUri != null && !catalogUri.isBlank();
 
-            // t0: persist the initial consumer state (status=updating, local_offset=0,
+            // t0: persist the initial consumer state (status=running, local_offset=0,
             // remote_offset=<latest known>) before snapshot loading begins, so external observers
             // can see the in-progress state. Identity fields come from the remote response when a
             // catalog URL is available (either setting or existing doc's resource), otherwise from
@@ -641,8 +650,11 @@ public abstract class AbstractConsumerService {
                             new ApiClient(urlResolver),
                             this.consumersIndex,
                             indicesMap);
-            updated = updateService.update(currentOffset, remoteConsumer.getOffset());
-            updateService.close();
+            try {
+                updated = updateService.update(currentOffset, remoteConsumer.getOffset());
+            } finally {
+                updateService.close();
+            }
         }
         return updated;
     }
@@ -837,7 +849,7 @@ public abstract class AbstractConsumerService {
                             consumerType,
                             planResource,
                             remoteConsumer.isPublic(),
-                            LocalConsumer.Status.UPDATING,
+                            LocalConsumer.Status.RUNNING,
                             snapshotOffset,
                             remoteConsumer.getOffset());
             this.consumersIndex.setConsumer(newConsumer);
