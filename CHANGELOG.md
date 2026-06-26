@@ -108,6 +108,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement registration based content [(#1138)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1138)
 - Add Data retention policies for stream indices [(#1217)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1217)
 - Add alerting documentation [(#1231)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1231)
+- Implement RBAC to safeguard sensitive configuration [(#1310)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1310)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -230,6 +231,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix malformed signed CTI token-exchange request [(#1206)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1206)
 - Fix SLF4J startup warning in setup plugin by replacing 1.x bridge with correct 2.x provider [(#1245)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1245)
 - Fix race condition between Content Manager and Setup plugin initialization [(#1262)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1262)
+- Fix invalid action name warning messages [(#1313)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1313)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

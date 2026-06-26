@@ -71,12 +71,12 @@ public class SetupStatusIndex extends WazuhIndex {
     }
 
     /**
-     * Creates this index (or confirms it already exists) and immediately invalidates any setup
-     * status marker left over from a previous boot by overwriting it with {@value
-     * #SETUP_STATUS_RUNNING}. Doing both in the same call, on the same thread, avoids relying on
-     * {@link #indexExists(String)} — which checks the cluster's routing table and can still report
-     * "does not exist" for a brief window right after a restart, even when the index is already on
-     * disk, causing the {@code running} write to be silently skipped.
+     * Creates this index (or confirms it already exists) and immediately invalidates any setup status
+     * marker left over from a previous boot by overwriting it with {@value #SETUP_STATUS_RUNNING}.
+     * Doing both in the same call, on the same thread, avoids relying on {@link #indexExists(String)}
+     * — which checks the cluster's routing table and can still report "does not exist" for a brief
+     * window right after a restart, even when the index is already on disk, causing the {@code
+     * running} write to be silently skipped.
      */
     @Override
     public void initialize() {
