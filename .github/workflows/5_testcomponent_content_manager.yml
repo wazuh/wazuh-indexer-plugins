@@ -2,11 +2,16 @@ name: (5.x) Run Wazuh Indexer Plugins component tests
 
 # Builds the Wazuh Indexer plugins, starts the full Wazuh Indexer Docker image
 # (which already bundles the Wazuh Engine and every plugin), swaps in the freshly
-# built package, lets it sync content from the public CTI API, and
-# runs the Python component test suite under tests/content-manager/.
+# built Content Manager and Setup plugins, lets it sync content from the public
+# CTI API, and runs the Python component test suite under tests/content-manager/.
+#
+# Both Content Manager and Setup are swapped because they share the setup-status
+# marker protocol: Setup writes the marker value that Content Manager reads before
+# starting its sync. Swapping only one of the two would leave a version mismatch
+# that silently prevents Content Manager from ever syncing.
 #
 # See tests/content-manager/README.md and the plan for the rationale. The Wazuh
-# Indexer image is the FULL distribution, so only the plugin under test is swapped.
+# Indexer image is the FULL distribution, so only the plugins under test are swapped.
 
 on:
   pull_request:
@@ -68,8 +73,21 @@ jobs:
       revision: "0"
     secrets: inherit
 
+  # Build the Setup plugin so that the component-tests job can swap it in together
+  # with Content Manager. Both plugins changed the setup-status marker value
+  # ("complete" → "ready") in the same commit, so the CI must run with consistent
+  # versions of both plugins rather than mixing the freshly built Content Manager
+  # with the potentially older Setup plugin bundled in the base image.
+  build-setup:
+    needs: get-version
+    uses: ./.github/workflows/5_builderpackage_plugins.yml
+    with:
+      plugin: setup
+      revision: "0"
+    secrets: inherit
+
   component-tests:
-    needs: [get-version, build]
+    needs: [get-version, build, build-setup]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -82,6 +100,12 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: content-manager-${{ needs.get-version.outputs.version }}.0.zip
+          path: ./pkg
+
+      - name: Download Setup package
+        uses: actions/download-artifact@v7
+        with:
+          name: setup-${{ needs.get-version.outputs.version }}.0.zip
           path: ./pkg
 
       - name: Start Wazuh Indexer container
@@ -112,7 +136,7 @@ jobs:
           done
           echo "Indexer did not become healthy in time."; docker logs wazuh-indexer | tail -100; exit 1
 
-      - name: Swap in the freshly built Content Manager plugin
+      - name: Swap in the freshly built Content Manager and Setup plugins
         run: |
           set -euo pipefail
           plugin_bin=/usr/share/wazuh-indexer/bin/opensearch-plugin
@@ -120,12 +144,21 @@ jobs:
           # unless OPENSEARCH_PATH_CONF is set; that file is absent in the image, so the
           # CLI aborts under `docker exec` without this env.
           exec_plugin="docker exec -e OPENSEARCH_PATH_CONF=/usr/share/wazuh-indexer/config wazuh-indexer ${plugin_bin}"
-          zip=$(ls pkg/wazuh-indexer-content-manager-*.zip | head -1)
-          echo "Installing ${zip}"
-          docker cp "${zip}" wazuh-indexer:/tmp/content-manager.zip
+          cm_zip=$(ls pkg/wazuh-indexer-content-manager-*.zip | head -1)
+          echo "Installing ${cm_zip}"
+          docker cp "${cm_zip}" wazuh-indexer:/tmp/content-manager.zip
           # Remove the version bundled in the image, install the PR build, then restart.
           $exec_plugin remove --purge wazuh-indexer-content-manager
           $exec_plugin install -b file:///tmp/content-manager.zip
+          # Swap the Setup plugin so that its setup-status marker value ("ready") is
+          # consistent with what the freshly built Content Manager expects. Mismatched
+          # plugin versions leave the marker stuck at the old "complete" value, which
+          # the new Content Manager does not recognise as ready, blocking all syncs.
+          setup_zip=$(ls pkg/wazuh-indexer-setup-*.zip | head -1)
+          echo "Installing ${setup_zip}"
+          docker cp "${setup_zip}" wazuh-indexer:/tmp/setup.zip
+          $exec_plugin remove --purge wazuh-indexer-setup
+          $exec_plugin install -b file:///tmp/setup.zip
           # Align the distribution version with the repo under test, so /version/check
           # queries CTI for the source's tag even if the base image is a different stage.
           docker cp VERSION.json wazuh-indexer:/usr/share/wazuh-indexer/VERSION.json
