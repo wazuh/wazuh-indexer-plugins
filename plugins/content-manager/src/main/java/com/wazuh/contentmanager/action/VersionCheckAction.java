@@ -19,7 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.action.ActionType;
 
 public class VersionCheckAction extends ActionType<VersionCheckResponse> {
-    public static final String NAME = "plugin:content_manager/version/check/get";
+    public static final String NAME = "cluster:monitor/content_manager/version/check";
     public static final VersionCheckAction INSTANCE = new VersionCheckAction();
 
     public VersionCheckAction() {

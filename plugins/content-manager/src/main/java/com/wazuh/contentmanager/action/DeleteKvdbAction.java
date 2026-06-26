@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for DeleteKvdb transport action. */
 public class DeleteKvdbAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/delete/kvdb/delete";
+    public static final String NAME = "indices:data/write/content_manager/kvdb/delete";
     public static final DeleteKvdbAction INSTANCE = new DeleteKvdbAction();
 
     public DeleteKvdbAction() {

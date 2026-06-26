@@ -23,7 +23,7 @@ import org.opensearch.action.ActionType;
  * permission enforced by the security plugin, restricting access to authorized roles.
  */
 public class PutSettingsAction extends ActionType<PutSettingsResponse> {
-    public static final String NAME = "plugin:setup/settings/write";
+    public static final String NAME = "cluster:admin/setup/settings/update";
     public static final PutSettingsAction INSTANCE = new PutSettingsAction();
 
     public PutSettingsAction() {

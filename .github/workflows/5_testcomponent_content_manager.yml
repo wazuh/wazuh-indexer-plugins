@@ -34,7 +34,7 @@ env:
   # The component tests don't exercise security. The image ships no TLS certs, so
   # the test cluster runs with the security plugin disabled → plain HTTP, no auth.
   # Validated locally against the ECR image.
-  BASE_URL: "http://localhost:9200"
+  BASE_URL: "https://localhost:9200"
 
 jobs:
   get-version:
@@ -129,6 +129,9 @@ jobs:
           # Align the distribution version with the repo under test, so /version/check
           # queries CTI for the source's tag even if the base image is a different stage.
           docker cp VERSION.json wazuh-indexer:/usr/share/wazuh-indexer/VERSION.json
+          cfg=/usr/share/wazuh-indexer/config/opensearch.yml
+          docker exec wazuh-indexer sh -c \
+            "grep -q '^plugins.security.disabled' ${cfg} || printf '\nplugins.security.disabled: true\n' >> ${cfg}"
           docker restart wazuh-indexer
 
       - name: Wait for the indexer to be healthy (after restart)

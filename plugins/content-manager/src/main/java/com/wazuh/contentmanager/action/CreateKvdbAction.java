@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for CreateKvdb transport action. */
 public class CreateKvdbAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/create/kvdb/post";
+    public static final String NAME = "indices:data/write/content_manager/kvdb/create";
     public static final CreateKvdbAction INSTANCE = new CreateKvdbAction();
 
     public CreateKvdbAction() {

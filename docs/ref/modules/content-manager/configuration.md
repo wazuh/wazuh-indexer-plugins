@@ -140,9 +140,9 @@ Some endpoints modify configuration with a high impact on the platform and are p
 
 | Endpoint | Method | Permission (cluster action) |
 | --- | --- | --- |
-| `/_plugins/_content_manager/policy/{space}` | `PUT` | `plugin:content_manager/policy/put` |
-| `/_plugins/_content_manager/update` | `POST` | `plugin:content_manager/update/post` |
-| `/_plugins/_setup/settings` | `PUT` | `plugin:setup/settings/write` |
+| `/_plugins/_content_manager/policy/{space}` | `PUT` | `indices:data/write/content_manager/policy/update` |
+| `/_plugins/_content_manager/update` | `POST` | `cluster:admin/content_manager/update/trigger` |
+| `/_plugins/_setup/settings` | `PUT` | `cluster:admin/setup/settings/update` |
 
 1. **RBAC** — each endpoint is gated by a cluster permission (the action name above), enforced by the security plugin. Only the superuser `admin` (role `all_access`, cluster wildcard `*`) holds these permissions; the bundled `wazuh-server` and `wazuh-dashboard` users do not. To delegate any of these actions without granting full superuser, create a dedicated role for the permission(s) above. See the [access control reference](../../security/access-control.md).
 2. **Per-endpoint disable settings** — each endpoint can be disabled independently with its own node setting; when disabled it returns `403 Forbidden` for **every** caller, including `admin` / `all_access`. This is intended for externally managed (e.g. Wazuh Cloud) deployments.

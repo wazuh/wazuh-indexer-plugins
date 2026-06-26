@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for UpdateKvdb transport action. */
 public class UpdateKvdbAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/update/kvdb/put";
+    public static final String NAME = "indices:data/write/content_manager/kvdb/update";
     public static final UpdateKvdbAction INSTANCE = new UpdateKvdbAction();
 
     public UpdateKvdbAction() {
