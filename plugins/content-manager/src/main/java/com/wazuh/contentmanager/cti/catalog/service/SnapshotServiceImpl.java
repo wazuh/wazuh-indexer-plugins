@@ -31,6 +31,7 @@ import org.opensearch.secure_sm.AccessController;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
@@ -45,13 +46,12 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
-import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
- * Service responsible for handling the download, extraction, and indexing of CTI snapshots. It
- * extracts the contents of the payload and indexes them at the root.
+ * Service responsible for handling the download and indexing of CTI snapshots. Snapshot entries are
+ * read directly from the ZIP file using streaming — no intermediate extraction to disk.
  */
 public class SnapshotServiceImpl implements SnapshotService {
     private static final Logger log = LogManager.getLogger(SnapshotServiceImpl.class);
@@ -118,8 +118,8 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
-     * Initializes the content by downloading the snapshot from the given link, unzipping it, and
-     * indexing the content into specific indices.
+     * Initializes the content by downloading the snapshot from the given link and streaming its JSON
+     * entries directly from the ZIP file without extracting to disk.
      *
      * @param consumer information from the remote consumer. Contains the snapshot link from which the
      *     initialization takes place.
@@ -136,7 +136,6 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         log.debug(Constants.D_LOG_SNAPSHOT_INIT_START, this.consumerType);
         Path snapshotZip = null;
-        Path outputDir = null;
 
         try {
             // 1. Download Snapshot
@@ -146,19 +145,8 @@ public class SnapshotServiceImpl implements SnapshotService {
                 return false;
             }
 
-            // 2. Prepare output directory
-            outputDir = this.environment.tmpDir().resolve("snapshot_" + System.currentTimeMillis());
-            Files.createDirectories(outputDir);
-
-            // 3. Unzip
-            Unzip.unzip(snapshotZip, outputDir);
-
-            // 4. Process and Index Files
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {
-                for (Path entry : stream) {
-                    this.processSnapshotFile(entry);
-                }
-            }
+            // 2. Stream and index JSON entries directly from the ZIP
+            this.processZip(snapshotZip);
 
             // Ensure all bulk requests are finished
             if (!this.indicesMap.isEmpty()) {
@@ -170,23 +158,45 @@ public class SnapshotServiceImpl implements SnapshotService {
             log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, e.getMessage());
             return false;
         } finally {
-            // Cleanup temporary files
-            this.cleanup(snapshotZip, outputDir);
+            // Cleanup downloaded ZIP
+            this.cleanup(snapshotZip);
         }
 
-        // 5. Partial update of consumer state: bump local_offset to the snapshot offset and keep
+        // 3. Partial update of consumer state: bump local_offset to the snapshot offset and keep
         // the remote_offset (set at t0 from RemoteConsumer.last_offset) so the incremental update
         // path can close the gap. Identity fields and status are preserved from the t0 write.
         return this.updateLocalOffset(consumer.getSnapshotOffset());
     }
 
     /**
-     * Reads a JSON snapshot file line by line, extracts the contents of the payload object, and
-     * indexes them directly at the root.
+     * Mounts the ZIP as a {@link FileSystem} via the JDK's built-in {@code ZipFileSystem} provider
+     * (which reads the central directory and correctly handles ZIP64 archives), then processes every
+     * {@code *.json} entry by reading it as NDJSON and bulk-indexing the documents.
      *
-     * @param filePath Path to the JSON file.
+     * @param zipPath path to the ZIP file to process.
+     * @throws IOException if the ZIP file cannot be opened or read.
      */
-    private void processSnapshotFile(Path filePath) {
+    private void processZip(Path zipPath) throws IOException {
+        URI uri = URI.create("jar:" + zipPath.toUri());
+        try (FileSystem zipFs = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
+            for (Path root : zipFs.getRootDirectories()) {
+                try (DirectoryStream<Path> entries = Files.newDirectoryStream(root, "*.json")) {
+                    for (Path entry : entries) {
+                        this.processZipEntry(entry);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Reads a single ZIP entry path as NDJSON, extracts the payload from each line, and bulk-indexes
+     * the documents into the appropriate content index.
+     *
+     * @param entryPath the {@link Path} to the entry inside the ZIP {@link FileSystem}.
+     * @throws IOException if the entry stream cannot be opened.
+     */
+    private void processZipEntry(Path entryPath) throws IOException {
         String line;
         int docCount = 0;
         int missingPayload = 0;
@@ -202,7 +212,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             return;
         }
 
-        try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
+        try (BufferedReader reader = Files.newBufferedReader(entryPath, StandardCharsets.UTF_8)) {
             while ((line = reader.readLine()) != null) {
                 try {
                     JsonNode rootJson = this.mapper.readTree(line);
@@ -311,9 +321,6 @@ public class SnapshotServiceImpl implements SnapshotService {
             if (bulkRequest.numberOfActions() > 0) {
                 executorIndex.executeBulk(bulkRequest);
             }
-
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_SNAPSHOT_READ_FILE_FAILED, filePath, e.getMessage());
         }
     }
 
@@ -334,7 +341,8 @@ public class SnapshotServiceImpl implements SnapshotService {
      * manifest (e.g., the value for {@code "ruleset.zip"}). When {@code null}, field defaults are
      * taken from the service's constructor arguments.
      *
-     * <p>After successful processing, the source zip file is permanently deleted.
+     * <p>JSON entries are streamed directly from the ZIP — no extraction to disk. After successful
+     * processing, the source zip file is permanently deleted.
      *
      * @param localZip The path to the local snapshot zip file.
      * @param manifestEntry The consumer metadata node from the external manifest, or {@code null}.
@@ -344,31 +352,18 @@ public class SnapshotServiceImpl implements SnapshotService {
     public boolean initialize(Path localZip, JsonNode manifestEntry) {
         log.debug(Constants.D_LOG_SNAPSHOT_LOCAL_INIT_START, this.consumerType, localZip.getFileName());
 
-        Path outputDir = null;
         this.maxOffsetSeen = 0;
 
         try {
-            // 1. Prepare output directory
-            outputDir = this.environment.tmpDir().resolve("snapshot_" + System.currentTimeMillis());
-            Files.createDirectories(outputDir);
-
-            // 2. Unzip local snapshot
-            final Path extractDir = outputDir;
-            AccessController.doPrivilegedChecked(
-                    () -> {
-                        Unzip.unzip(localZip, extractDir);
-                        return null;
-                    });
-
-            // 3. Clear indices
+            // 1. Clear indices
             this.indicesMap.values().forEach(ContentIndex::clear);
 
-            // 4. Process and Index Files
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {
-                for (Path entry : stream) {
-                    this.processSnapshotFile(entry);
-                }
-            }
+            // 2. Stream and index JSON entries directly from the ZIP
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        this.processZip(localZip);
+                        return null;
+                    });
 
             // Ensure all bulk requests are finished
             if (!this.indicesMap.isEmpty()) {
@@ -379,15 +374,12 @@ public class SnapshotServiceImpl implements SnapshotService {
         } catch (Exception e) {
             log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, e.getMessage());
             return false;
-        } finally {
-            // Cleanup temporary extraction directory only
-            this.cleanup(null, outputDir);
         }
 
-        // 5. Delete source zip file
+        // 3. Delete source zip file
         SnapshotServiceImpl.deleteSnapshot(localZip);
 
-        // 6. Partial update of consumer state: bump local_offset to the highest offset observed
+        // 4. Partial update of consumer state: bump local_offset to the highest offset observed
         // while indexing. Identity fields, is_public, status and remote_offset are owned by the
         // t0 write performed by AbstractConsumerService.writeInitialConsumer.
         return this.updateLocalOffset(this.maxOffsetSeen);
@@ -474,23 +466,11 @@ public class SnapshotServiceImpl implements SnapshotService {
         }
     }
 
-    /** Deletes temporary files and directories used during the process. */
-    private void cleanup(Path zipFile, Path directory) {
+    /** Deletes the downloaded snapshot ZIP from the temporary directory. */
+    private void cleanup(Path zipFile) {
         try {
             if (zipFile != null) {
                 Files.deleteIfExists(zipFile);
-            }
-            if (directory != null) {
-                Files.walk(directory)
-                        .sorted(Comparator.reverseOrder())
-                        .forEach(
-                                path -> {
-                                    try {
-                                        Files.delete(path);
-                                    } catch (IOException e) {
-                                        log.warn(Constants.W_LOG_SNAPSHOT_TEMP_FILE_DELETE_FAILED, path);
-                                    }
-                                });
             }
         } catch (IOException e) {
             log.warn(Constants.W_LOG_SNAPSHOT_CLEANUP_FAILED, e.getMessage());

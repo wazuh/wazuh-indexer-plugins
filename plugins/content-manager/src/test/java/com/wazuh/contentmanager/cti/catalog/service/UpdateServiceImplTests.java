@@ -229,8 +229,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                                 + "\"local_offset\":29,\"remote_offset\":100}");
 
         // Act
-        LuceneTestCase.expectThrows(
-                RuntimeException.class, () -> this.updateService.update(29, 30));
+        LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(29, 30));
 
         // Assert
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
@@ -314,7 +313,6 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         Assert.assertEquals(LocalConsumer.Status.FAILED, consumerCaptor.getValue().getStatus());
     }
 
-
     /**
      * Tests that the consumer state is reset to 0 if an exception occurs during processing.
      *
@@ -348,8 +346,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                 .create(anyString(), any(JsonNode.class));
 
         // Act
-        LuceneTestCase.expectThrows(
-                RuntimeException.class, () -> this.updateService.update(29, 30));
+        LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(29, 30));
 
         // Assert
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
@@ -441,8 +438,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.getResponse.getSourceAsString()).thenReturn("{}");
 
         // Act
-        LuceneTestCase.expectThrows(
-                RuntimeException.class, () -> this.updateService.update(49, 50));
+        LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(49, 50));
 
         // Assert
         verify(this.ruleIndex, never()).delete(anyString());
