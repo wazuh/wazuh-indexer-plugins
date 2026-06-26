@@ -75,6 +75,10 @@ public class Constants {
                     + CredentialsIndex.INDEX_NAME
                     + "' index is not configured as a system index. "
                     + "Add it to plugins.security.system_indices.indices in opensearch.yml and restart.";
+    public static final String E_403_UPDATE_ON_DEMAND_DISABLED =
+            "On-demand content updates are disabled on this deployment.";
+    public static final String E_403_POLICY_UPDATE_DISABLED =
+            "Policy updates are disabled on this deployment.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_SECURITY_ANALYTICS_ERROR =
             "Error in Security Analytics."; // Used for both BAD_REQUEST and INTERNAL_SERVER_ERROR
