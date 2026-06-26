@@ -112,13 +112,30 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
         Assert.assertEquals(".wazuh-setup-status", Constants.INDEX_SETUP_STATUS);
     }
 
-    /** Setup marker already complete -> waitForSetup returns true on the first check. */
-    public void testWaitForSetup_markerComplete_returnsTrue() {
+    /** Setup marker already ready -> waitForSetup returns true on the first check. */
+    public void testWaitForSetup_markerReady_returnsTrue() {
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsMap())
-                .thenReturn(Map.of(Constants.KEY_STATUS, Constants.SETUP_STATUS_COMPLETE));
+                .thenReturn(Map.of(Constants.KEY_STATUS, Constants.SETUP_STATUS_READY));
 
         Assert.assertTrue(this.catalogSyncJob.waitForSetup());
+    }
+
+    /** Setup marker reports failed -> waitForSetup returns false immediately, with no retries. */
+    public void testWaitForSetup_markerFailed_returnsFalseImmediately() {
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsMap())
+                .thenReturn(Map.of(Constants.KEY_STATUS, Constants.SETUP_STATUS_FAILED));
+
+        long start = System.nanoTime();
+        boolean result = this.catalogSyncJob.waitForSetup();
+        long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
+
+        Assert.assertFalse(result);
+        Assert.assertTrue(
+                "waitForSetup() must not sleep through the backoff when the marker already says"
+                        + " failed",
+                elapsedMillis < 1000);
     }
 
     /** When setup never completes, the synchronization pass is skipped entirely. */
