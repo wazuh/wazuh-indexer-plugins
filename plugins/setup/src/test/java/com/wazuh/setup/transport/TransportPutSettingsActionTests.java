@@ -44,7 +44,7 @@ import static org.mockito.Mockito.verify;
 
 /**
  * Unit tests for {@link TransportPutSettingsAction}, which validates and persists the settings
- * document gated behind the {@code plugin:setup/settings/write} permission and the {@code
+ * document gated behind the {@code cluster:admin/setup/settings/update} permission and the {@code
  * plugins.setup.settings_update.enabled} setting.
  */
 public class TransportPutSettingsActionTests extends OpenSearchTestCase {
