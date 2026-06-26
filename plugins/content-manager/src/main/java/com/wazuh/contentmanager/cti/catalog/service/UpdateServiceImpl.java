@@ -173,8 +173,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         } catch (Exception e) {
             log.error(Constants.E_LOG_UPDATE_FAILED, e.getMessage());
             this.resetConsumer();
-            throw new RuntimeException(
-                    "Update failed for consumer [" + this.consumerType + "]", e);
+            throw new RuntimeException("Update failed for consumer [" + this.consumerType + "]", e);
         }
     }
 

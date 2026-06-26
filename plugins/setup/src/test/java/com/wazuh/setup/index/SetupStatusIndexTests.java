@@ -143,7 +143,8 @@ public class SetupStatusIndexTests extends OpenSearchTestCase {
         verify(this.client).index(captor.capture());
         assertTrue(
                 "Payload must contain status=running",
-                captor.getValue()
+                captor
+                        .getValue()
                         .source()
                         .utf8ToString()
                         .contains("\"status\":\"" + SetupStatusIndex.SETUP_STATUS_RUNNING + "\""));

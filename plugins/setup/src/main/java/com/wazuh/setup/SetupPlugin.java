@@ -18,12 +18,14 @@ package com.wazuh.setup;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.*;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -41,10 +43,10 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import com.wazuh.setup.action.PutSettingsAction;
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.SettingsIndex;
@@ -53,6 +55,7 @@ import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
 import com.wazuh.setup.rest.RestPutSettingsAction;
 import com.wazuh.setup.settings.PluginSettings;
+import com.wazuh.setup.transport.TransportPutSettingsAction;
 import com.wazuh.setup.utils.JsonUtils;
 
 /**
@@ -176,7 +179,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                     index.setUtils(utils);
                 });
 
-        return Collections.emptyList();
+        // Expose the settings index so it can be injected into TransportPutSettingsAction.
+        return List.of(this.settingsIndex);
     }
 
     @Override
@@ -233,11 +237,19 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
             SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
-        return List.of(new RestPutSettingsAction(this.settingsIndex));
+        return List.of(new RestPutSettingsAction());
+    }
+
+    @Override
+    public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
+        return List.of(
+                new ActionPlugin.ActionHandler<>(
+                        PutSettingsAction.INSTANCE, TransportPutSettingsAction.class));
     }
 
     @Override
     public List<Setting<?>> getSettings() {
-        return List.of(PluginSettings.TIMEOUT, PluginSettings.BACKOFF);
+        return List.of(
+                PluginSettings.TIMEOUT, PluginSettings.BACKOFF, PluginSettings.SETTINGS_UPDATE_ENABLED);
     }
 }

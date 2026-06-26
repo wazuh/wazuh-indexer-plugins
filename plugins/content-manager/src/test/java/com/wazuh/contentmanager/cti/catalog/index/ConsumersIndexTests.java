@@ -26,6 +26,7 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -128,6 +129,8 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         IndexRequest request = captor.getValue();
         Assert.assertEquals(ConsumersIndex.INDEX_NAME, request.index());
         Assert.assertEquals("cti:catalog:consumer:iocs", request.id());
+        // Refresh is disabled on this index, so writes must refresh immediately to avoid stale reads.
+        Assert.assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, request.getRefreshPolicy());
     }
 
     /** Tests that setConsumer throws a RuntimeException if the cluster status is RED. */
@@ -237,10 +240,11 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         CreateIndexRequest request = captor.getValue();
         Assert.assertEquals(ConsumersIndex.INDEX_NAME, request.index());
 
-        // Validate Settings (Hidden = true, Replicas = 0, Codec = zstd)
+        // Validate Settings (Hidden = true, Replicas = 0, Codec = zstd, Refresh disabled)
         Assert.assertEquals("true", request.settings().get("hidden"));
         Assert.assertEquals("0", request.settings().get("index.number_of_replicas"));
         Assert.assertEquals("zstd", request.settings().get("index.codec"));
+        Assert.assertEquals("-1", request.settings().get("index.refresh_interval"));
     }
 
     /**

@@ -90,8 +90,8 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
 
     /**
      * Constructs a new LocalConsumer with a basic identity. Status defaults to {@link
-     * Status#RUNNING}: a consumer with no offsets yet has not actually synced anything, so it
-     * cannot be {@link Status#READY}.
+     * Status#RUNNING}: a consumer with no offsets yet has not actually synced anything, so it cannot
+     * be {@link Status#READY}.
      *
      * @param context The context identifier (e.g., "rules_development").
      * @param name The consumer name.
@@ -109,9 +109,9 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     }
 
     /**
-     * Constructs a LocalConsumer with full state details. Status defaults to {@link
-     * Status#RUNNING}; callers that know the sync actually completed should use the constructor
-     * that takes an explicit {@link Status} instead.
+     * Constructs a LocalConsumer with full state details. Status defaults to {@link Status#RUNNING};
+     * callers that know the sync actually completed should use the constructor that takes an explicit
+     * {@link Status} instead.
      *
      * @param context The context identifier.
      * @param name The consumer name.

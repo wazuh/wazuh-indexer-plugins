@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 
@@ -48,6 +49,8 @@ public class SettingsIndex extends WazuhIndex {
     public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body.";
     public static final String E_400_MISSING_FIELD = "Missing required field: '%s'.";
     public static final String E_400_INVALID_TYPE = "Field '%s' must be of type %s.";
+    public static final String E_403_SETTINGS_UPDATE_DISABLED =
+            "Setup settings updates are disabled on this deployment.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
 
     /**
@@ -82,7 +85,10 @@ public class SettingsIndex extends WazuhIndex {
 
             WazuhSettings defaults = WazuhSettings.createDefault();
             IndexRequest request =
-                    new IndexRequest(INDEX_NAME).id(SETTINGS_ID).source(defaults.toJson(), XContentType.JSON);
+                    new IndexRequest(INDEX_NAME)
+                            .id(SETTINGS_ID)
+                            .source(defaults.toJson(), XContentType.JSON)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
             this.client.index(request).actionGet();
             log.info("Default Wazuh settings initialized.");
         } catch (Exception e) {
@@ -98,7 +104,10 @@ public class SettingsIndex extends WazuhIndex {
      */
     public void indexDocument(WazuhSettings settings, ActionListener<IndexResponse> listener) {
         IndexRequest request =
-                new IndexRequest(INDEX_NAME).id(SETTINGS_ID).source(settings.toJson(), XContentType.JSON);
+                new IndexRequest(INDEX_NAME)
+                        .id(SETTINGS_ID)
+                        .source(settings.toJson(), XContentType.JSON)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
         this.client.index(request, listener);
     }
 }

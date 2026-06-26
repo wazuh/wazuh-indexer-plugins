@@ -155,8 +155,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests a successful initialization flow: 1. Download succeeds. 2. Unzip succeeds. 3. Files are
-     * parsed and indexed. 4. Consumer index is updated (check using the local consumer)
+     * Tests a successful initialization flow: 1. Download succeeds. 2. ZIP entries are streamed and
+     * parsed. 3. Consumer index is updated (check using the local consumer)
      *
      * @throws TimeoutException
      * @throws ExecutionException

@@ -27,18 +27,20 @@ import java.io.IOException;
 
 import com.wazuh.contentmanager.utils.Constants;
 
-public class IndexSubscriptionResponse extends ActionResponse implements ToXContent {
+public class MessageStatusResponse extends ActionResponse implements ToXContent {
+
     private final String message;
     private final RestStatus status;
 
-    public IndexSubscriptionResponse(String message, RestStatus status) {
+    public MessageStatusResponse(String message, RestStatus status) {
         super();
         this.message = message;
         this.status = status;
     }
 
-    public IndexSubscriptionResponse(StreamInput sin) throws IOException {
-        this(sin.readString(), sin.readEnum(RestStatus.class));
+    public MessageStatusResponse(StreamInput sin) throws IOException {
+        this.message = sin.readString();
+        this.status = sin.readEnum(RestStatus.class);
     }
 
     @Override
@@ -49,7 +51,6 @@ public class IndexSubscriptionResponse extends ActionResponse implements ToXCont
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        // builder.startObject().field(_ID, id).field(_VERSION, version);
         return builder
                 .startObject()
                 .field(Constants.KEY_MESSAGE, message)
