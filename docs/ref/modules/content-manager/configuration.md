@@ -17,6 +17,8 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 | `plugins.content_manager.catalog.vulnerabilities`    | String    | `""`                                     | Full CTI consumer URL for vulnerabilities content                               |
 | `plugins.content_manager.catalog.create_detectors`   | Boolean   | `true`                                   | Automatically create Security Analytics detectors from CTI content              |
 | `plugins.content_manager.telemetry.enabled`          | Boolean   | `true`                                   | Enable or disable the daily Update check service ping. This setting is dynamic. |
+| `plugins.content_manager.catalog.update_on_demand`   | Boolean   | `true`                                   | When `false`, on-demand content updates (`POST /update`) return `403 Forbidden` for every caller, regardless of role. |
+| `plugins.content_manager.catalog.policy_update.enabled` | Boolean | `true`                                   | When `false`, policy updates (`PUT /policy/{space}`) return `403 Forbidden` for every caller, regardless of role. |
 
 <!-- // ANCHOR_END: settings-table -->
 
@@ -130,6 +132,32 @@ curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 
     "plugins.content_manager.telemetry.enabled": false
   }
 }'
+```
+
+### Protecting sensitive configuration
+
+Some endpoints modify configuration with a high impact on the platform and are protected by two independent controls:
+
+| Endpoint | Method | Permission (cluster action) |
+| --- | --- | --- |
+| `/_plugins/_content_manager/policy/{space}` | `PUT` | `plugin:content_manager/policy/put` |
+| `/_plugins/_content_manager/update` | `POST` | `plugin:content_manager/update/post` |
+| `/_plugins/_setup/settings` | `PUT` | `plugin:setup/settings/write` |
+
+1. **RBAC** — each endpoint is gated by a cluster permission (the action name above), enforced by the security plugin. Only the superuser `admin` (role `all_access`, cluster wildcard `*`) holds these permissions; the bundled `wazuh-server` and `wazuh-dashboard` users do not. To delegate any of these actions without granting full superuser, create a dedicated role for the permission(s) above. See the [access control reference](../../security/access-control.md).
+2. **Per-endpoint disable settings** — each endpoint can be disabled independently with its own node setting; when disabled it returns `403 Forbidden` for **every** caller, including `admin` / `all_access`. This is intended for externally managed (e.g. Wazuh Cloud) deployments.
+
+   | Endpoint | Setting (set to `false` to disable) |
+   | --- | --- |
+   | `POST /_plugins/_content_manager/update` | `plugins.content_manager.catalog.update_on_demand` |
+   | `PUT /_plugins/_content_manager/policy/{space}` | `plugins.content_manager.catalog.policy_update.enabled` |
+   | `PUT /_plugins/_setup/settings` | `plugins.setup.settings_update.enabled` |
+
+```yaml
+# opensearch.yml — disable sensitive configuration endpoints on a managed deployment
+plugins.content_manager.catalog.update_on_demand: false
+plugins.content_manager.catalog.policy_update.enabled: false
+plugins.setup.settings_update.enabled: false
 ```
 
 ### Notes

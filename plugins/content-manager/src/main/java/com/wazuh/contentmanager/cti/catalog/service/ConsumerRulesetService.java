@@ -58,6 +58,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private final SpaceService spaceService;
     private final EngineService engineService;
 
+    private Set<String> preSwapIntegrationIds = Collections.emptySet();
+    private Set<String> preSwapRuleIds = Collections.emptySet();
+
     /**
      * Constructs a new UnifiedConsumerSynchronizer.
      *
@@ -102,6 +105,24 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     @Override
     protected boolean hasUserContent() {
         return true;
+    }
+
+    @Override
+    protected void onBeforeAliasSwap() {
+        try {
+            this.preSwapIntegrationIds =
+                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
+        } catch (Exception e) {
+            log.warn("Failed to collect pre-swap integration IDs: {}", e.getMessage());
+            this.preSwapIntegrationIds = Collections.emptySet();
+        }
+        try {
+            this.preSwapRuleIds =
+                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_RULES, Space.STANDARD);
+        } catch (Exception e) {
+            log.warn("Failed to collect pre-swap rule IDs: {}", e.getMessage());
+            this.preSwapRuleIds = Collections.emptySet();
+        }
     }
 
     @Override
@@ -165,6 +186,11 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 } catch (Exception e) {
                     log.error(Constants.E_LOG_SAP_SYNC_FAILED, "detectors", e.getMessage(), e);
                 }
+            }
+
+            if (this.shadowSwapPerformed) {
+                this.deleteStaleResources();
+                this.shadowSwapPerformed = false;
             }
 
             // Reload STANDARD space, as it was updated.
@@ -454,6 +480,53 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         }
         if (!failed.isEmpty()) {
             log.warn(Constants.W_LOG_SAP_PARTIAL, failed.size(), "detectors", Space.STANDARD, failed);
+        }
+    }
+
+    /**
+     * Deletes SAP integrations, detectors and rules that existed before a shadow swap but are no
+     * longer present in the new subscription content. Called after new resources have been upserted
+     * so that detectors keep running during the transition.
+     */
+    private void deleteStaleResources() {
+        try {
+            Set<String> currentIntegrationIds =
+                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
+            Set<String> staleIntegrationIds = new HashSet<>(this.preSwapIntegrationIds);
+            staleIntegrationIds.removeAll(currentIntegrationIds);
+
+            for (String id : staleIntegrationIds) {
+                try {
+                    this.securityAnalyticsService.deleteIntegration(id, Space.STANDARD);
+                } catch (Exception e) {
+                    log.warn("Failed to delete stale integration [{}]: {}", id, e.getMessage());
+                }
+            }
+
+            Set<String> currentRuleIds =
+                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_RULES, Space.STANDARD);
+            Set<String> staleRuleIds = new HashSet<>(this.preSwapRuleIds);
+            staleRuleIds.removeAll(currentRuleIds);
+
+            for (String id : staleRuleIds) {
+                try {
+                    this.securityAnalyticsService.deleteRule(id, Space.STANDARD);
+                } catch (Exception e) {
+                    log.warn("Failed to delete stale rule [{}]: {}", id, e.getMessage());
+                }
+            }
+
+            if (!staleIntegrationIds.isEmpty() || !staleRuleIds.isEmpty()) {
+                log.info(
+                        "Deleted {} stale integration(s) and {} stale rule(s) from SAP",
+                        staleIntegrationIds.size(),
+                        staleRuleIds.size());
+            }
+        } catch (Exception e) {
+            log.error("Failed to clean up stale SAP resources: {}", e.getMessage(), e);
+        } finally {
+            this.preSwapIntegrationIds = Collections.emptySet();
+            this.preSwapRuleIds = Collections.emptySet();
         }
     }
 
