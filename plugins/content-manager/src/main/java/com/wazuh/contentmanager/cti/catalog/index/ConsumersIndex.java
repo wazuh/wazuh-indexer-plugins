@@ -26,6 +26,7 @@ import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.transport.client.Client;
@@ -86,7 +87,11 @@ public class ConsumersIndex {
         }
         String id = consumer.getType();
         IndexRequest request =
-                new IndexRequest().index(INDEX_NAME).id(id).source(consumer.toXContent());
+                new IndexRequest()
+                        .index(INDEX_NAME)
+                        .id(id)
+                        .source(consumer.toXContent())
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
         return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
@@ -142,6 +147,7 @@ public class ConsumersIndex {
                         .put("index.number_of_replicas", 0)
                         .put("hidden", true)
                         .put(Constants.KEY_INDEX_CODEC, Constants.CODEC_ZSTD)
+                        .put(Constants.KEY_INDEX_REFRESH_INTERVAL, Constants.REFRESH_INTERVAL_DISABLED)
                         .build();
 
         String mappings;

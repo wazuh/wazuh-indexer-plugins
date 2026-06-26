@@ -365,6 +365,47 @@ public class SpaceService {
     }
 
     /**
+     * Fetches only the document IDs from a specific index that belong to a given space.
+     *
+     * <p>Use this instead of {@link #getResourcesBySpace} when full document content is not needed,
+     * to avoid loading large source maps into heap.
+     *
+     * @param indexName The index to search.
+     * @param space The space to filter by.
+     * @return A set of document.id values.
+     * @throws IOException If the search operation fails.
+     */
+    public Set<String> getResourceIdsBySpace(String indexName, Space space) throws IOException {
+        Set<String> ids = new HashSet<>();
+
+        try {
+            if (this.client.admin().indices().prepareExists(indexName).get().isExists()) {
+                SearchRequest searchRequest = new SearchRequest(indexName);
+                SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+                sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space));
+                sourceBuilder.size(10000);
+                sourceBuilder.fetchSource(new String[] {Constants.Q_DOCUMENT_ID}, null);
+                searchRequest.source(sourceBuilder);
+
+                SearchResponse response =
+                        this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+
+                for (SearchHit hit : response.getHits().getHits()) {
+                    String docId = this.getDocumentId(hit.getSourceAsMap());
+                    if (docId != null) {
+                        ids.add(docId);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error(Constants.E_LOG_FETCH_RESOURCES_FAILED, indexName, space, e.getMessage());
+            throw new IOException("Failed to fetch resource IDs: " + e.getMessage(), e);
+        }
+
+        return ids;
+    }
+
+    /**
      * Builds the engine payload for validation by gathering all required resources. This method
      * starts with all resources from the target space and applies the modifications from the source
      * space according to the provided resource maps.

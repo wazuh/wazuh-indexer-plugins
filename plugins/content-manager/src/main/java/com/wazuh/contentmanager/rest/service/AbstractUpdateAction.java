@@ -16,287 +16,58 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.core.rest.RestStatus;
+import org.opensearch.action.ActionType;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.transport.client.Client;
+import org.opensearch.rest.RestResponse;
+import org.opensearch.rest.action.RestResponseListener;
+import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
-import java.util.List;
 
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.rest.utils.PayloadValidations;
+import com.wazuh.contentmanager.action.ContentResponse;
+import com.wazuh.contentmanager.action.ContentUpdateRequest;
 import com.wazuh.contentmanager.utils.Constants;
-import com.wazuh.contentmanager.utils.YamlUtils;
 
 /**
- * Abstract handler for updating existing content resources.
+ * Abstract handler for updating content resources (non-Spaces variant).
  *
- * <p>Implements the standard workflow for updates:
- *
- * <ol>
- *   <li>Validates ID presence and format.
- *   <li>Ensures the resource exists and is in the Draft space.
- *   <li>Validates payload structure and fields.
- *   <li>Updates timestamps (modified date).
- *   <li>Preserves immutable metadata (creation date, author details).
- *   <li>Synchronizes/Validates with external services.
- *   <li>Re-indexes the document and updates the hash.
- * </ol>
+ * <p>Delegates to the transport layer via {@code client.execute()}.
  */
 public abstract class AbstractUpdateAction extends AbstractContentAction {
 
     private static final Logger log = LogManager.getLogger(AbstractUpdateAction.class);
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
-    protected final PayloadValidations documentValidations = new PayloadValidations();
 
-    public AbstractUpdateAction(EngineService engine) {
-        super(engine);
-    }
+    protected abstract ActionType<ContentResponse> getActionType();
 
     @Override
-    protected RestResponse executeRequest(RestRequest request, Client client) {
-        // 1. Validate Request Content
-        RestResponse validationError = this.documentValidations.validateRequestHasContent(request);
-        if (validationError != null) {
-            log.warn(
-                    Constants.W_LOG_OPERATION_FAILED,
-                    "Update",
-                    this.getResourceType(),
-                    "Request body is missing");
-            return validationError;
-        }
-
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
+            throws IOException {
         String id = request.param(Constants.KEY_ID);
 
-        try {
-            // 2. Validate ID and Space
-            validationError = this.documentValidations.validateRequiredParam(id, Constants.KEY_ID);
-            if (validationError != null) return validationError;
+        log.debug("{} {}", request.method(), request.path());
 
-            validationError = this.documentValidations.validateIdFormat(id, Constants.KEY_ID);
-            if (validationError != null) {
-                log.warn(
-                        Constants.W_LOG_OPERATION_FAILED_ID,
-                        "Update",
-                        this.getResourceType(),
-                        id,
-                        "Invalid ID format");
-                return validationError;
-            }
+        byte[] body = request.hasContent() ? request.content().streamInput().readAllBytes() : null;
+        String contentType = getContentTypeString(request);
 
-            ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
-            if (!index.exists(id)) {
-                log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, this.getResourceType(), id);
-                return new RestResponse(
-                        Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
-            }
+        ContentUpdateRequest updateRequest =
+                new ContentUpdateRequest(request.method(), id, body, contentType);
 
-            String spaceError =
-                    this.documentValidations.validateDocumentInSpace(
-                            client, this.getIndexName(), id, this.getResourceType());
-            if (spaceError != null) {
-                log.warn(
-                        Constants.W_LOG_OPERATION_FAILED_ID,
-                        "Update",
-                        this.getResourceType(),
-                        id,
-                        "Resource is not in Draft space");
-                return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
-            }
-
-            // 3. Parse Body
-            String rawYaml = null;
-            JsonNode rootNode;
-            ObjectNode resourceNode;
-
-            if (this.isYamlRequest(request) && this.supportsYamlField()) {
-                // YAML Request
-                try {
-                    String yamlBody = request.content().utf8ToString();
-                    rootNode = YamlUtils.fromYaml(yamlBody);
-                } catch (IOException e) {
-                    log.warn(
-                            Constants.W_LOG_OPERATION_FAILED_ID,
-                            "Update",
-                            this.getResourceType(),
-                            id,
-                            "Invalid YAML format");
-                    return new RestResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-                }
-
-                // Validate structure
-                validationError = this.documentValidations.validateResourcePayload(rootNode, false);
-                if (validationError != null) {
-                    log.warn(
-                            Constants.W_LOG_OPERATION_FAILED_ID,
-                            "Payload validation",
-                            this.getResourceType(),
-                            id,
-                            validationError.getMessage());
-                    return validationError;
-                }
-                resourceNode = (ObjectNode) rootNode.get(Constants.KEY_RESOURCE);
-                rawYaml = YamlUtils.toYaml(resourceNode);
-            } else {
-                // JSON Request
-                try {
-                    rootNode = MAPPER.readTree(request.content().streamInput());
-                } catch (IOException e) {
-                    log.warn(
-                            Constants.W_LOG_OPERATION_FAILED_ID,
-                            "Update",
-                            this.getResourceType(),
-                            id,
-                            "Invalid JSON format");
-                    return new RestResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
-                }
-
-                // 4. Validate Payload
-                validationError = this.documentValidations.validateResourcePayload(rootNode, false);
-                if (validationError != null) {
-                    log.warn(
-                            Constants.W_LOG_OPERATION_FAILED_ID,
-                            "Payload validation",
-                            this.getResourceType(),
-                            id,
-                            validationError.getMessage());
-                    return validationError;
-                }
-                resourceNode = (ObjectNode) rootNode.get(Constants.KEY_RESOURCE);
-            }
-            resourceNode.put(Constants.KEY_ID, id);
-
-            // 5. Resource Specific Validation
-            validationError = this.validatePayload(client, rootNode, resourceNode);
-            if (validationError != null) {
-                log.warn(
-                        Constants.W_LOG_OPERATION_FAILED_ID,
-                        "Validation",
-                        this.getResourceType(),
-                        id,
-                        validationError.getMessage());
-                return validationError;
-            }
-
-            // 6. Update Timestamps & Preserve Metadata
-            String currentTimestamp = this.getCurrentDate();
-            Resource.setLastModificationTime(resourceNode, currentTimestamp);
-            Resource.nestMetadataFields(resourceNode);
-            validationError = this.preserveMetadata(index, id, resourceNode);
-            if (validationError != null) {
-                log.warn(
-                        Constants.W_LOG_OPERATION_FAILED_ID,
-                        "Preserve metadata validation",
-                        this.getResourceType(),
-                        id,
-                        validationError.getMessage());
-                return validationError;
-            }
-
-            // 7. External Sync
-            validationError = this.syncExternalServices(id, resourceNode);
-            if (validationError != null) {
-                log.error(
-                        Constants.E_LOG_FAILED_TO,
-                        "sync updated",
-                        this.getResourceType(),
-                        id,
-                        "with external services. Reason: " + validationError.getMessage());
-                return validationError;
-            }
-
-            // 8. Indexing
-            ObjectNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
-
-            // Populate yaml field for resource types that support it
-            if (this.supportsYamlField()) {
-                if (rawYaml != null) {
-                    ctiWrapper.put(Constants.KEY_YAML, rawYaml);
-                } else {
-                    ctiWrapper.put(Constants.KEY_YAML, YamlUtils.toYaml(resourceNode));
-                }
-            }
-
-            index.create(id, ctiWrapper);
-
-            // 9. Update Hash
-            this.spaceService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            log.info(Constants.I_LOG_SUCCESS, "Updated", this.getResourceType(), id);
-            return new RestResponse(id, RestStatus.OK.getStatus());
-
-        } catch (Exception e) {
-            OpenSearchSecurityException secEx = AbstractContentAction.extractSecurityException(e);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            log.error(Constants.E_LOG_UNEXPECTED, "updating", this.getResourceType(), id, e.getMessage());
-            return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR + " " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
+        return channel ->
+                client.execute(
+                        getActionType(),
+                        updateRequest,
+                        new RestResponseListener<ContentResponse>(channel) {
+                            @Override
+                            public RestResponse buildResponse(ContentResponse response) throws Exception {
+                                return new BytesRestResponse(
+                                        response.getStatus(),
+                                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
+                            }
+                        });
     }
-
-    /**
-     * Preserves creation date and other immutable fields from the existing document. All resource
-     * types now store date/modified under {@code metadata}.
-     */
-    protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
-        JsonNode existingDoc = index.getDocument(id);
-        if (existingDoc == null || !existingDoc.has(Constants.KEY_DOCUMENT)) return null;
-
-        JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
-
-        // Preserve creation date from existing metadata
-        String date = null;
-        if (doc.has(Constants.KEY_METADATA)
-                && doc.get(Constants.KEY_METADATA).has(Constants.KEY_DATE)) {
-            date = doc.get(Constants.KEY_METADATA).get(Constants.KEY_DATE).asText();
-        }
-
-        if (date != null) {
-            ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
-            metadataNode.put(Constants.KEY_DATE, date);
-        }
-
-        if (!resourceNode.has(Constants.KEY_ENABLED)) {
-            if (doc.has(Constants.KEY_ENABLED)) {
-                resourceNode.put(Constants.KEY_ENABLED, doc.get(Constants.KEY_ENABLED).asBoolean());
-            } else {
-                resourceNode.put(Constants.KEY_ENABLED, true);
-            }
-        }
-        return null;
-    }
-
-    protected abstract String getIndexName();
-
-    protected abstract String getResourceType();
-
-    /**
-     * Performs resource-specific validation on the payload.
-     *
-     * @return null if valid, RestResponse with error otherwise.
-     */
-    protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
-
-    /**
-     * Synchronizes the new resource with external services (Engine validation or Security Analytics).
-     *
-     * @return null if successful, RestResponse with error otherwise.
-     */
-    protected abstract RestResponse syncExternalServices(String id, JsonNode resource);
 }

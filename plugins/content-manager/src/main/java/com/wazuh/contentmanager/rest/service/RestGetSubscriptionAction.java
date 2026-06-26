@@ -16,20 +16,23 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
+import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
 import java.util.List;
 
-import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
-import com.wazuh.contentmanager.cti.console.model.Plan;
-import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.action.GetSubscriptionAction;
+import com.wazuh.contentmanager.action.GetSubscriptionRequest;
+import com.wazuh.contentmanager.action.GetSubscriptionResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -37,11 +40,9 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 /**
  * GET /_plugins/_content_manager/subscription
  *
- * <p>Returns the subscription status and active plan. Delegates to {@link
- * SubscriptionService#getPlan()}, which routes to the authenticated or public CTI endpoint based on
- * whether an access token is present in {@link PluginSettings}. The registration state is read
- * after {@code getPlan()} returns so that any token invalidation performed inside the service is
- * reflected in the response.
+ * <p>Returns the subscription status and active plan. Delegates to the transport action {@link
+ * GetSubscriptionAction}, which calls {@link
+ * com.wazuh.contentmanager.cti.catalog.service.SubscriptionService#getPlan()}.
  *
  * <p>Possible HTTP responses:
  *
@@ -51,17 +52,8 @@ import static org.opensearch.rest.RestRequest.Method.GET;
  * </ul>
  */
 public class RestGetSubscriptionAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestGetSubscriptionAction.class);
     private static final String ENDPOINT_NAME = "content_manager_subscription_get";
-    private final SubscriptionService subscriptionService;
-
-    /**
-     * Construct the REST handler.
-     *
-     * @param subscriptionService the service used to retrieve the active plan
-     */
-    public RestGetSubscriptionAction(SubscriptionService subscriptionService) {
-        this.subscriptionService = subscriptionService;
-    }
 
     /** Return a short identifier for this handler. */
     @Override
@@ -80,50 +72,31 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Handles incoming requests by delegating to {@link #handleRequest()}.
+     * Delegates to the transport action via {@link GetSubscriptionAction}.
      *
      * @param request the incoming REST request
      * @param client the node client
      * @return a consumer that sends the subscription status response
      */
     @Override
-    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        return channel -> channel.sendResponse(this.handleRequest());
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
+        log.debug("{} {}", request.method(), PluginSettings.SUBSCRIPTION_URI);
+
+        GetSubscriptionRequest subscriptionRequest = new GetSubscriptionRequest();
+        return channel ->
+                client.execute(
+                        GetSubscriptionAction.INSTANCE, subscriptionRequest, createResponseListener(channel));
     }
 
-    /**
-     * Builds the subscription status response.
-     *
-     * @return a {@link BytesRestResponse} with the nested plan and registration state
-     * @throws IOException if an I/O error occurs while building the response
-     */
-    public BytesRestResponse handleRequest() throws IOException {
-        try {
-            Plan plan = this.subscriptionService.getPlan();
-            boolean isRegistered = PluginSettings.getInstance().getAccessToken() != null;
-
-            XContentBuilder builder =
-                    XContentFactory.jsonBuilder()
-                            .startObject()
-                            .startObject("message")
-                            .startObject("plan")
-                            .field("name", plan != null ? plan.getName() : null)
-                            .field("is_public", plan != null && plan.isPublic())
-                            .endObject()
-                            .field("is_registered", isRegistered)
-                            .endObject()
-                            .field("status", RestStatus.OK.getStatus())
-                            .endObject();
-
-            return new BytesRestResponse(RestStatus.OK, builder);
-        } catch (Exception e) {
-            RestResponse error =
-                    new RestResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
-        }
+    private RestResponseListener<GetSubscriptionResponse> createResponseListener(
+            RestChannel channel) {
+        return new RestResponseListener<>(channel) {
+            @Override
+            public RestResponse buildResponse(GetSubscriptionResponse response) throws Exception {
+                return new BytesRestResponse(
+                        response.getStatus(),
+                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
+            }
+        };
     }
 }

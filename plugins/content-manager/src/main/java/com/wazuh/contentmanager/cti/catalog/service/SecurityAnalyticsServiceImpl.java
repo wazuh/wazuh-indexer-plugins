@@ -123,7 +123,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     public void deleteIntegration(String id, Space space) {
         try {
             if (Space.STANDARD.equals(space)) {
-                this.deleteDetector(id);
+                try {
+                    this.deleteDetector(id);
+                } catch (Exception e) {
+                    log.debug("No detector found for integration [{}], skipping: {}", id, e.getMessage());
+                }
             }
             // Use document.id + source=<space> to find and delete
             // the document in Security Analytics.
@@ -516,7 +520,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             String message =
                     String.format(
                             Locale.ROOT, "Failed to delete %s with id [%s]: %s", "detector", id, e.getMessage());
-            log.error(message, e);
             throw new OpenSearchException(message);
         }
     }

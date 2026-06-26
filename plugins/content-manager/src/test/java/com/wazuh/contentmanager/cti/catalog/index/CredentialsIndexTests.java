@@ -17,8 +17,10 @@
 package com.wazuh.contentmanager.cti.catalog.index;
 
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
@@ -41,6 +43,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -182,7 +185,10 @@ public class CredentialsIndexTests extends OpenSearchTestCase {
         DeleteResponse result = idx.deleteDocument();
 
         Assert.assertNotNull(result);
-        verify(client, times(1)).delete(any());
+        ArgumentCaptor<DeleteRequest> captor = ArgumentCaptor.forClass(DeleteRequest.class);
+        verify(client, times(1)).delete(captor.capture());
+        // Refresh is disabled on this index, so deletes must refresh immediately to avoid stale reads.
+        Assert.assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, captor.getValue().getRefreshPolicy());
     }
 
     /** deleteDocument() returns null without calling the client when the index does not exist. */
