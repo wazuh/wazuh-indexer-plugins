@@ -126,7 +126,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                 try {
                     this.deleteDetector(id);
                 } catch (Exception e) {
-                    log.warn("No detector found for integration [{}], skipping: {}", id, e.getMessage());
+                    log.debug("No detector found for integration [{}], skipping: {}", id, e.getMessage());
                 }
             }
             // Use document.id + source=<space> to find and delete
@@ -520,7 +520,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             String message =
                     String.format(
                             Locale.ROOT, "Failed to delete %s with id [%s]: %s", "detector", id, e.getMessage());
-            log.error(message, e);
             throw new OpenSearchException(message);
         }
     }
