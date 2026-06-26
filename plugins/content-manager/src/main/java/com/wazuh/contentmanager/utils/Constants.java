@@ -282,6 +282,10 @@ public class Constants {
     public static final String W_LOG_SNAPSHOT_TEMP_FILE_DELETE_FAILED =
             "Failed to delete temp file {}";
     public static final String W_LOG_SNAPSHOT_CLEANUP_FAILED = "Error during cleanup: {}";
+    public static final String D_LOG_SNAPSHOT_ELAPSED =
+            "Snapshot [{}] processed and removed in {} ms";
+    public static final String D_LOG_SNAPSHOT_LOCAL_ELAPSED =
+            "Local snapshot [{}] processed and removed in {} ms";
     public static final String D_LOG_UPDATE_START =
             "Starting content update for consumer [{}] from [{}] to [{}]";
     public static final String E_LOG_UPDATE_FETCH_CHANGES_FAILED = "Failed to fetch changes: {} {}";

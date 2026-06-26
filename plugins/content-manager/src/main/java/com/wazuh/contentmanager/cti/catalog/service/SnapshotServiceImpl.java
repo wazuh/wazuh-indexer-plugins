@@ -136,6 +136,7 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         log.debug(Constants.D_LOG_SNAPSHOT_INIT_START, this.consumerType);
         Path snapshotZip = null;
+        long startMs = 0;
 
         try {
             // 1. Download Snapshot
@@ -146,6 +147,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             }
 
             // 2. Stream and index JSON entries directly from the ZIP
+            startMs = System.currentTimeMillis();
             this.processZip(snapshotZip);
 
             // Ensure all bulk requests are finished
@@ -160,6 +162,12 @@ public class SnapshotServiceImpl implements SnapshotService {
         } finally {
             // Cleanup downloaded ZIP
             this.cleanup(snapshotZip);
+            if (startMs != 0) {
+                log.debug(
+                        Constants.D_LOG_SNAPSHOT_ELAPSED,
+                        snapshotZip != null ? snapshotZip.getFileName() : "unknown",
+                        System.currentTimeMillis() - startMs);
+            }
         }
 
         // 3. Partial update of consumer state: bump local_offset to the snapshot offset and keep
@@ -353,6 +361,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         log.debug(Constants.D_LOG_SNAPSHOT_LOCAL_INIT_START, this.consumerType, localZip.getFileName());
 
         this.maxOffsetSeen = 0;
+        long startMs = System.currentTimeMillis();
 
         try {
             // 1. Clear indices
@@ -378,6 +387,10 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         // 3. Delete source zip file
         SnapshotServiceImpl.deleteSnapshot(localZip);
+        log.debug(
+                Constants.D_LOG_SNAPSHOT_LOCAL_ELAPSED,
+                localZip.getFileName(),
+                System.currentTimeMillis() - startMs);
 
         // 4. Partial update of consumer state: bump local_offset to the highest offset observed
         // while indexing. Identity fields, is_public, status and remote_offset are owned by the
