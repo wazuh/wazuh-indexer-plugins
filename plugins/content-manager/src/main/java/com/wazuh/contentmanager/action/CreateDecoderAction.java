@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for CreateDecoder transport action. */
 public class CreateDecoderAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/create/decoder/post";
+    public static final String NAME = "indices:data/write/content_manager/decoder/create";
     public static final CreateDecoderAction INSTANCE = new CreateDecoderAction();
 
     public CreateDecoderAction() {

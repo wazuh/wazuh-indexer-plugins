@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for UpdateFilter transport action. */
 public class UpdateFilterAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/update/filter/put";
+    public static final String NAME = "indices:data/write/content_manager/filter/update";
     public static final UpdateFilterAction INSTANCE = new UpdateFilterAction();
 
     public UpdateFilterAction() {

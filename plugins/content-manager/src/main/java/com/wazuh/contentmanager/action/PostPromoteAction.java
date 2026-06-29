@@ -19,7 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.action.ActionType;
 
 public class PostPromoteAction extends ActionType<MessageStatusResponse> {
-    public static final String NAME = "plugin:content_manager/promote/post";
+    public static final String NAME = "cluster:admin/content_manager/promote/create";
     public static final PostPromoteAction INSTANCE = new PostPromoteAction();
 
     public PostPromoteAction() {

@@ -19,7 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.action.ActionType;
 
 public class UpdatePolicyAction extends ActionType<MessageStatusResponse> {
-    public static final String NAME = "plugin:content_manager/policy/put";
+    public static final String NAME = "indices:data/write/content_manager/policy/update";
     public static final UpdatePolicyAction INSTANCE = new UpdatePolicyAction();
 
     public UpdatePolicyAction() {

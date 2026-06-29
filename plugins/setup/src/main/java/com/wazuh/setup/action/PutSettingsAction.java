@@ -14,15 +14,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.action;
+package com.wazuh.setup.action;
 
 import org.opensearch.action.ActionType;
 
-public class DeleteSubscriptionAction extends ActionType<MessageStatusResponse> {
-    public static final String NAME = "indices:data/write/content_manager/subscription/delete";
-    public static final DeleteSubscriptionAction INSTANCE = new DeleteSubscriptionAction();
+/**
+ * Transport action for persisting Wazuh settings. Its {@link #NAME} doubles as the cluster
+ * permission enforced by the security plugin, restricting access to authorized roles.
+ */
+public class PutSettingsAction extends ActionType<PutSettingsResponse> {
+    public static final String NAME = "cluster:admin/setup/settings/update";
+    public static final PutSettingsAction INSTANCE = new PutSettingsAction();
 
-    public DeleteSubscriptionAction() {
-        super(NAME, MessageStatusResponse::new);
+    public PutSettingsAction() {
+        super(NAME, PutSettingsResponse::new);
     }
 }

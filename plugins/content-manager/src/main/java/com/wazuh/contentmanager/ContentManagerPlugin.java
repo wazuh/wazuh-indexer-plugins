@@ -25,6 +25,7 @@ import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -85,6 +86,7 @@ import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
+import com.wazuh.contentmanager.filter.SensitiveConfigActionFilter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
@@ -736,6 +738,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS,
+                PluginSettings.UPDATE_ON_DEMAND,
+                PluginSettings.POLICY_UPDATE_ENABLED,
                 PluginSettings.MAX_INTEGRATIONS,
                 PluginSettings.MAX_DECODERS,
                 PluginSettings.MAX_RULES,
@@ -803,6 +807,20 @@ public class ContentManagerPlugin extends Plugin
                 new ActionHandler<>(CreateFilterAction.INSTANCE, TransportCreateFilterAction.class),
                 new ActionHandler<>(UpdateFilterAction.INSTANCE, TransportUpdateFilterAction.class),
                 new ActionHandler<>(DeleteFilterAction.INSTANCE, TransportDeleteFilterAction.class));
+    }
+
+    /**
+     * Registers an {@link ActionFilter} that blocks modification of sensitive configuration when the
+     * corresponding per-endpoint setting is disabled: {@code
+     * plugins.content_manager.catalog.update_on_demand} (content update trigger) and {@code
+     * plugins.content_manager.catalog.policy_update.enabled} (policy updates). When disabled, the
+     * action is rejected for every caller, regardless of role.
+     *
+     * @return the list of action filters for this plugin.
+     */
+    @Override
+    public List<ActionFilter> getActionFilters() {
+        return List.of(new SensitiveConfigActionFilter());
     }
 
     /**

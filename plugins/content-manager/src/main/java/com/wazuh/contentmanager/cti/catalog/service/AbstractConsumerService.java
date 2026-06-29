@@ -84,6 +84,11 @@ public abstract class AbstractConsumerService {
     private SnapshotServiceImpl snapshotServiceOverride;
 
     /**
+     * Set to {@code true} after a successful shadow swap so subclasses can clean up stale resources.
+     */
+    protected boolean shadowSwapPerformed;
+
+    /**
      * Constructs a new AbstractConsumerService.
      *
      * @param client The OpenSearch client for index operations.
@@ -144,6 +149,13 @@ public abstract class AbstractConsumerService {
      * @return The snapshot zip filename (e.g., "ruleset.zip").
      */
     protected abstract String getSnapshotFilename();
+
+    /**
+     * Hook called inside {@link #performShadowSwap} just before the atomic alias swap. Subclasses can
+     * override this to capture pre-swap state (e.g., collect resource IDs that may become stale after
+     * the swap). The default implementation is a no-op.
+     */
+    protected void onBeforeAliasSwap() {}
 
     /** Injects a {@link ConsumerService} instance, used by tests to provide a mock. */
     public void setConsumerService(ConsumerService consumerService) {
@@ -823,6 +835,9 @@ public abstract class AbstractConsumerService {
                 IndexSwapHelper.reindexUserContent(this.client, liveToShadow, timeoutSeconds);
             }
 
+            // Allow subclasses to capture pre-swap state before aliases change.
+            this.onBeforeAliasSwap();
+
             // Step 6-7: Unhide + atomic alias swap.
             log.debug(Constants.D_LOG_ATOMIC_ALIAS_SWAP, consumerType);
             IndexSwapHelper.atomicSwap(
@@ -866,6 +881,7 @@ public abstract class AbstractConsumerService {
         }
 
         log.info(Constants.I_LOG_CONTENT_UPDATED_NEW_SOURCE, consumerType);
+        this.shadowSwapPerformed = true;
         return true;
     }
 }

@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for CreateRule transport action. */
 public class CreateRuleAction extends ActionType<ContentResponse> {
-    public static final String NAME = "plugin:content_manager/create/rule/post";
+    public static final String NAME = "indices:data/write/content_manager/rule/create";
     public static final CreateRuleAction INSTANCE = new CreateRuleAction();
 
     public CreateRuleAction() {
