@@ -51,11 +51,25 @@ public class PluginSettings {
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
 
-    public static final int DEFAULT_MAX_INTEGRATIONS = 100;
-    public static final int DEFAULT_MAX_DECODERS = 200;
-    public static final int DEFAULT_MAX_RULES = 200;
-    public static final int DEFAULT_MAX_KVDBS = 100;
-    public static final int DEFAULT_MAX_FILTERS = 100;
+    private static final int MAXIMUM_MAX_INTEGRATIONS = 100;
+    public static final int DEFAULT_MAX_INTEGRATIONS = MAXIMUM_MAX_INTEGRATIONS;
+    private static final int MINIMUM_MAX_INTEGRATIONS = 0;
+
+    private static final int MAXIMUM_MAX_DECODERS = 200;
+    public static final int DEFAULT_MAX_DECODERS = MAXIMUM_MAX_DECODERS;
+    private static final int MINIMUM_MAX_DECODERS = 0;
+
+    private static final int MAXIMUM_MAX_RULES = 200;
+    public static final int DEFAULT_MAX_RULES = MAXIMUM_MAX_RULES;
+    private static final int MINIMUM_MAX_RULES = 0;
+
+    private static final int MAXIMUM_MAX_KVDBS = 100;
+    public static final int DEFAULT_MAX_KVDBS = MAXIMUM_MAX_KVDBS;
+    private static final int MINIMUM_MAX_KVDBS = 0;
+
+    private static final int MAXIMUM_MAX_FILTERS = 100;
+    public static final int DEFAULT_MAX_FILTERS = MAXIMUM_MAX_FILTERS;
+    private static final int MINIMUM_MAX_FILTERS = 0;
 
     private static final long DEFAULT_MAX_BULK_BYTES = 5L * 1024 * 1024;
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
@@ -233,7 +247,8 @@ public class PluginSettings {
             Setting.intSetting(
                     "plugins.content_manager.max_integrations",
                     DEFAULT_MAX_INTEGRATIONS,
-                    0,
+                    MINIMUM_MAX_INTEGRATIONS,
+                    MAXIMUM_MAX_INTEGRATIONS,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -245,7 +260,8 @@ public class PluginSettings {
             Setting.intSetting(
                     "plugins.content_manager.max_decoders",
                     DEFAULT_MAX_DECODERS,
-                    0,
+                    MINIMUM_MAX_DECODERS,
+                    MAXIMUM_MAX_DECODERS,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -257,7 +273,8 @@ public class PluginSettings {
             Setting.intSetting(
                     "plugins.content_manager.max_rules",
                     DEFAULT_MAX_RULES,
-                    0,
+                    MINIMUM_MAX_RULES,
+                    MAXIMUM_MAX_RULES,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -269,7 +286,8 @@ public class PluginSettings {
             Setting.intSetting(
                     "plugins.content_manager.max_kvdbs",
                     DEFAULT_MAX_KVDBS,
-                    0,
+                    MINIMUM_MAX_KVDBS,
+                    MAXIMUM_MAX_KVDBS,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -281,7 +299,8 @@ public class PluginSettings {
             Setting.intSetting(
                     "plugins.content_manager.max_filters",
                     DEFAULT_MAX_FILTERS,
-                    0,
+                    MINIMUM_MAX_FILTERS,
+                    MAXIMUM_MAX_FILTERS,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
