@@ -64,7 +64,7 @@ jobs:
     steps:
       - name: Restore Maven Local Cache
         id: cache-common-utils
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.get-version.outputs.version }}
@@ -79,7 +79,7 @@ jobs:
           reference: ${{ needs.branches.outputs.common_utils_plugin_ref }}
       - name: Cache Maven Local
         if: steps.cache-common-utils.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ~/.m2/repository
           key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.get-version.outputs.version }}
@@ -92,7 +92,7 @@ jobs:
     steps:
       - name: Restore Maven Local Cache
         id: cache-alerting
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
@@ -101,7 +101,7 @@ jobs:
             m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-
       - name: Restore Maven Local Cache (common-utils)
         if: steps.cache-alerting.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
@@ -117,7 +117,7 @@ jobs:
           reference: ${{ needs.branches.outputs.security_analytics_plugin_ref }}
       - name: Cache Maven Local
         if: steps.cache-alerting.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ~/.m2/repository
           key: m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.get-version.outputs.version }}-r${{ inputs.revision }}
@@ -129,7 +129,7 @@ jobs:
     steps:
       - name: Restore Maven Local Cache
         id: cache-security-analytics
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-${{ needs.get-version.outputs.version }}
@@ -137,7 +137,7 @@ jobs:
             m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-
       - name: Restore Maven Local Cache (common-utils)
         if: steps.cache-security-analytics.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.get-version.outputs.version }}
@@ -152,7 +152,7 @@ jobs:
           reference: ${{ needs.branches.outputs.security_analytics_plugin_ref }}
       - name: Cache Maven Local
         if: steps.cache-security-analytics.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ~/.m2/repository
           key: m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-${{ needs.get-version.outputs.version }}
@@ -201,7 +201,7 @@ jobs:
           java-version: 25
 
       - name: Restore Maven Local Cache (security-analytics with deps)
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: m2-sap-with-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-${{ needs.get-version.outputs.version }}
