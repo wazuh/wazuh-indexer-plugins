@@ -79,7 +79,7 @@ jobs:
           python-version: "3.12"
 
       - name: Download Content Manager package
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: content-manager-${{ needs.get-version.outputs.version }}.0.zip
           path: ./pkg
