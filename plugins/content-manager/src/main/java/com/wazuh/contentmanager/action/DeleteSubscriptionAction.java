@@ -19,7 +19,7 @@ package com.wazuh.contentmanager.action;
 import org.opensearch.action.ActionType;
 
 public class DeleteSubscriptionAction extends ActionType<MessageStatusResponse> {
-    public static final String NAME = "indices:data/write/content_manager/subscription/delete";
+    public static final String NAME = "cluster:admin/content_manager/subscription/delete";
     public static final DeleteSubscriptionAction INSTANCE = new DeleteSubscriptionAction();
 
     public DeleteSubscriptionAction() {
