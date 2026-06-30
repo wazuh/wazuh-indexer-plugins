@@ -16,7 +16,9 @@
  */
 package com.wazuh.contentmanager;
 
+import org.opensearch.cluster.LocalNodeClusterManagerListener;
 import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
@@ -35,6 +37,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -54,6 +57,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     private AutoCloseable closeable;
 
     @Mock private Client client;
+    @Mock private ClusterService clusterService;
     @Mock private ThreadPool threadPool;
     @Mock private DiscoveryNode discoveryNode;
     @Mock private CatalogSyncJob catalogSyncJob;
@@ -79,6 +83,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         when(this.threadPool.generic()).thenReturn(mockExecutor);
 
         this.injectField(this.plugin, "client", this.client);
+        this.injectField(this.plugin, "clusterService", this.clusterService);
         this.injectField(this.plugin, "threadPool", this.threadPool);
         this.injectField(this.plugin, "catalogSyncJob", this.catalogSyncJob);
         this.injectField(this.plugin, "telemetryPingJob", this.telemetryPingJob);
@@ -100,23 +105,18 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
 
     /** Tests that catalogSyncJob.trigger() is called when update_on_start is true (default). */
     public void testOnNodeStartedTriggerEnabled() {
-        // Initialize settings with update_on_start = true
         Settings settings =
                 Settings.builder().put("plugins.content_manager.catalog.update_on_start", true).build();
         PluginSettings.getInstance(settings);
 
-        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
-
-        // Act
         this.plugin.onNodeStarted(this.discoveryNode);
+        this.simulateClusterManagerElection();
 
-        // Assert
         verify(this.catalogSyncJob).trigger();
     }
 
     /** Tests that catalogSyncJob.trigger() is NOT called when update_on_start is false. */
     public void testOnNodeStartedTriggerDisabled() {
-        // Initialize settings with update_on_start = false
         Settings settings =
                 Settings.builder()
                         .put("plugins.content_manager.catalog.update_on_start", false)
@@ -124,12 +124,9 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                         .build();
         PluginSettings.getInstance(settings);
 
-        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
-
-        // Act
         this.plugin.onNodeStarted(this.discoveryNode);
+        this.simulateClusterManagerElection();
 
-        // Assert
         verify(this.catalogSyncJob, never()).trigger();
     }
 
@@ -145,9 +142,8 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                         .build();
         PluginSettings.getInstance(settings);
 
-        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
-
         this.plugin.onNodeStarted(this.discoveryNode);
+        this.simulateClusterManagerElection();
 
         verify(this.telemetryPingJob, never()).trigger();
     }
@@ -165,9 +161,8 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                         .build();
         PluginSettings.getInstance(settings);
 
-        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
-
         this.plugin.onNodeStarted(this.discoveryNode);
+        this.simulateClusterManagerElection();
 
         verify(this.telemetryPingJob, never()).trigger();
     }
@@ -225,19 +220,23 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                         eq(ThreadPool.Names.GENERIC));
     }
 
-    /** Tests that catalogSyncJob.trigger() is NOT called on a non-cluster-manager node. */
+    /** Tests that catalogSyncJob.trigger() is NOT called when the node is not elected leader. */
     public void testOnNodeStartedNonClusterManager() {
         Settings settings =
                 Settings.builder().put("plugins.content_manager.catalog.update_on_start", true).build();
         PluginSettings.getInstance(settings);
 
-        when(this.discoveryNode.isClusterManagerNode()).thenReturn(false);
-
-        // Act
         this.plugin.onNodeStarted(this.discoveryNode);
 
-        // Assert
         verify(this.catalogSyncJob, never()).trigger();
+    }
+
+    /** Captures the registered {@link LocalNodeClusterManagerListener} and fires onClusterManager. */
+    private void simulateClusterManagerElection() {
+        ArgumentCaptor<LocalNodeClusterManagerListener> captor =
+                ArgumentCaptor.forClass(LocalNodeClusterManagerListener.class);
+        verify(this.clusterService).addLocalNodeClusterManagerListener(captor.capture());
+        captor.getValue().onClusterManager();
     }
 
     /** Helper to inject private fields via reflection. */
