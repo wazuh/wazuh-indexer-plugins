@@ -20,7 +20,7 @@ import org.opensearch.action.ActionType;
 
 /** Action type for UpdateIntegration transport action. */
 public class UpdateIntegrationAction extends ActionType<ContentResponse> {
-    public static final String NAME = "indices:data/write/content_manager/integration/update";
+    public static final String NAME = "cluster:admin/content_manager/integration/update";
     public static final UpdateIntegrationAction INSTANCE = new UpdateIntegrationAction();
 
     public UpdateIntegrationAction() {
