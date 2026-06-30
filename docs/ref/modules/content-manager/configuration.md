@@ -145,7 +145,7 @@ Some endpoints modify configuration with a high impact on the platform and are p
 
 | Endpoint | Method | Permission (cluster action) |
 | --- | --- | --- |
-| `/_plugins/_content_manager/policy/{space}` | `PUT` | `indices:data/write/content_manager/policy/update` |
+| `/_plugins/_content_manager/policy/{space}` | `PUT` | `cluster:admin/content_manager/policy/update` |
 | `/_plugins/_content_manager/update` | `POST` | `cluster:admin/content_manager/update/trigger` |
 | `/_plugins/_setup/settings` | `PUT` | `cluster:admin/setup/settings/update` |
 
