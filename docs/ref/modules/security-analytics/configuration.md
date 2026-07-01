@@ -15,7 +15,11 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 | `plugins.security_analytics.alert_history_rollover_period`                    | Time      | `12h`         | How often the alert history rollover job runs                                                                                          |
 | `plugins.security_analytics.auto_correlations_enabled`                        | Boolean   | `false`       | Automatically generate correlation rules from new findings                                                                             |
 | `plugins.security_analytics.correlation.detector_cache_ttl`                   | Time      | `5m`          | TTL for the in-memory monitor-id to detector cache. Set to `0s` to disable the cache                                                   |
+| `plugins.security_analytics.correlation.events_backpressure.enabled`          | Boolean   | `true`        | Write-block the events indices when the correlation backlog fills, so ingestion pauses and the backlog drains instead of the node running out of memory |
+| `plugins.security_analytics.correlation.events_backpressure.high_watermark_percent` | Integer   | `100`         | Backlog level, as a percent of `correlation.max_pending_findings`, at or above which the events indices are write-blocked. Valid range: `1–100` |
+| `plugins.security_analytics.correlation.events_backpressure.low_watermark_percent` | Integer   | `60`          | Backlog level, as a percent of `correlation.max_pending_findings`, at or below which the events-index write block is lifted. Valid range: `0–99` |
 | `plugins.security_analytics.correlation.max_in_flight_findings`               | Integer   | `50`          | Maximum number of correlation pipelines running concurrently. Valid range: `1–1000`                                                    |
+| `plugins.security_analytics.correlation.max_pending_findings`                 | Integer   | `10000`       | Maximum findings waiting for a free correlation slot. When the backlog is full, new findings are shed (correlation and enrichment skipped) so the node does not run out of memory under overload. Valid range: `1–1000000` |
 | `plugins.security_analytics.correlation.metadata_cache_ttl`                   | Time      | `5m`          | TTL for the in-memory caches of log-type list and correlation rules by detector type. Set to `0s` to disable both caches               |
 | `plugins.security_analytics.correlation_history_max_age`                      | Time      | `30d`         | Maximum age of a correlation history index before rollover                                                                             |
 | `plugins.security_analytics.correlation_history_max_docs`                     | Long      | `1000`        | Maximum document count for a correlation history index before rollover. Minimum `0`                                                    |
@@ -24,7 +28,12 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 | `plugins.security_analytics.correlation_time_window`                          | Time      | `5m`          | Time window used to group findings into correlations                                                                                   |
 | `plugins.security_analytics.enable_detectors_with_dedicated_query_indices`    | Boolean   | `true`        | Create dedicated query indices for new detectors                                                                                       |
 | `plugins.security_analytics.enable_workflow_usage`                            | Boolean   | `true`        | Use Alerting composite workflows when running detectors                                                                                |
+| `plugins.security_analytics.enriched_findings_bulk_size`                      | Integer   | `100`         | Number of enriched findings buffered before a bulk index request is fired. Valid range: `10–1000`                                      |
+| `plugins.security_analytics.enriched_findings_enrich_batch_size`              | Integer   | `100`         | Findings drained per in-flight permit; their source events are fetched in one combined MultiGet instead of one request per finding. Valid range: `1–1000` |
+| `plugins.security_analytics.enriched_findings_flush_interval`                 | Integer   | `5`           | Seconds between periodic flushes of any leftover buffered enriched findings. Valid range: `1–60`                                       |
 | `plugins.security_analytics.enriched_findings_index_enabled`                  | Boolean   | `true`        | Toggle the enriched findings pipeline (see [Architecture](architecture.md))                                                            |
+| `plugins.security_analytics.enriched_findings_max_in_flight`                  | Integer   | `5`           | Maximum concurrent enrichment chains, to bound peak load on the transport layer. Valid range: `1–10`                                   |
+| `plugins.security_analytics.enriched_findings_rule_cache_max_size`            | Integer   | `10000`       | Maximum rule-metadata entries cached in memory by the enrichment service. Minimum `0`. Static; requires a node restart to change       |
 | `plugins.security_analytics.filter_by_backend_roles`                          | Boolean   | `false`       | Restrict access to detectors, rules, and findings based on the requester's backend roles                                               |
 | `plugins.security_analytics.finding_history_max_age`                          | Time      | `30d`         | Maximum age of a finding history index before rollover                                                                                 |
 | `plugins.security_analytics.finding_history_retention_period`                 | Time      | `60d`         | Retention period after which finding history indices are deleted                                                                       |
@@ -77,6 +86,35 @@ plugins.security_analytics.filter_by_backend_roles: false
 ```
 
 Setting `enriched_findings_index_enabled` to `false` disables the Wazuh enriched findings pipeline described in [Architecture](architecture.md); raw SAP findings continue to be written to `.opensearch-sap-{category}-findings-*`, but no `wazuh-findings-v5-{category}*` documents are produced.
+
+### Overload protection and enrichment throughput
+
+Under sustained load, doc-level monitors publish findings faster than correlation and enrichment can process them. These settings bound that work so the node sheds or pauses load instead of running out of memory, and tune how efficiently the enrichment pipeline writes `wazuh-findings-v5-*`.
+
+```yaml
+# opensearch.yml
+# Bound the correlation backlog
+plugins.security_analytics.correlation.max_pending_findings: 10000
+
+# Pause ingestion when the backlog fills, resume when it drains
+plugins.security_analytics.correlation.events_backpressure.enabled: true
+plugins.security_analytics.correlation.events_backpressure.high_watermark_percent: 100
+plugins.security_analytics.correlation.events_backpressure.low_watermark_percent: 60
+
+# Enrichment pipeline throughput
+plugins.security_analytics.enriched_findings_bulk_size: 100
+plugins.security_analytics.enriched_findings_enrich_batch_size: 100
+plugins.security_analytics.enriched_findings_max_in_flight: 5
+plugins.security_analytics.enriched_findings_flush_interval: 5
+plugins.security_analytics.enriched_findings_rule_cache_max_size: 10000
+```
+
+Two independent overload guards act on the correlation backlog:
+
+- `correlation.max_pending_findings` caps how many findings may wait for a free correlation slot (the slots themselves are limited by `correlation.max_in_flight_findings`). When the backlog is full and `events_backpressure` is disabled, extra findings are shed, so the node stays up.
+- With `events_backpressure.enabled`, instead of shedding findings the plugin write-blocks the events indices when the backlog reaches `high_watermark_percent`, so no new events are indexed and the backlog can drain; the block is lifted at `low_watermark_percent`.
+
+The enrichment throughput settings shape the load the pipeline puts on the cluster: `enrich_batch_size` findings are drained per in-flight permit and their source events are fetched in one combined MultiGet; enriched documents are buffered and written in bulks of `bulk_size`, flushed at least every `flush_interval` seconds; `max_in_flight` bounds the concurrent enrichment chains; and `rule_cache_max_size` bounds the in-memory rule-metadata cache.
 
 ### Updating a setting at runtime
 
