@@ -19,11 +19,11 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 | `plugins.content_manager.telemetry.enabled`          | Boolean   | `true`                                   | Enable or disable the daily Update check service ping. This setting is dynamic. |
 | `plugins.content_manager.catalog.update_on_demand`   | Boolean   | `true`                                   | When `false`, on-demand content updates (`POST /update`) return `403 Forbidden` for every caller, regardless of role. |
 | `plugins.content_manager.catalog.policy_update.enabled` | Boolean | `true`                                   | When `false`, policy updates (`PUT /policy/{space}`) return `403 Forbidden` for every caller, regardless of role. |
-| `plugins.content_manager.max_integrations`           | Integer   | `100`                                    | Maximum number of integrations that can be created. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
-| `plugins.content_manager.max_decoders`               | Integer   | `100`                                    | Maximum number of decoders that can be created. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
-| `plugins.content_manager.max_rules`                  | Integer   | `100`                                    | Maximum number of rules that can be created. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
-| `plugins.content_manager.max_kvdbs`                  | Integer   | `100`                                    | Maximum number of KVDBs that can be created. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
-| `plugins.content_manager.max_filters`                | Integer   | `100`                                    | Maximum number of filters that can be created per space. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
+| `plugins.content_manager.max_integrations`           | Integer   | `100`                                    | Maximum number of integrations that can be created. Valid range: 0–100. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
+| `plugins.content_manager.max_decoders`               | Integer   | `200`                                    | Maximum number of decoders that can be created. Valid range: 0–200. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
+| `plugins.content_manager.max_rules`                  | Integer   | `200`                                    | Maximum number of rules that can be created. Valid range: 0–200. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
+| `plugins.content_manager.max_kvdbs`                  | Integer   | `100`                                    | Maximum number of KVDBs that can be created. Valid range: 0–100. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
+| `plugins.content_manager.max_filters`                | Integer   | `100`                                    | Maximum number of filters that can be created per space. Valid range: 0–100. Requests that would exceed this limit are rejected with HTTP 400. This setting is dynamic. |
 
 <!-- // ANCHOR_END: settings-table -->
 
@@ -177,8 +177,8 @@ curl -X PUT "https://localhost:9200/_cluster/settings" \
   -d '{
     "persistent": {
       "plugins.content_manager.max_integrations": 50,
-      "plugins.content_manager.max_decoders": 200,
-      "plugins.content_manager.max_rules": 200,
+      "plugins.content_manager.max_decoders": 100,
+      "plugins.content_manager.max_rules": 100,
       "plugins.content_manager.max_kvdbs": 50,
       "plugins.content_manager.max_filters": 50
     }
