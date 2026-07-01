@@ -342,7 +342,7 @@ public class SpaceService {
             if (this.client.admin().indices().prepareExists(indexName).get().isExists()) {
                 SearchRequest searchRequest = new SearchRequest(indexName);
                 SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-                sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space));
+                sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()));
                 sourceBuilder.size(10000);
                 searchRequest.source(sourceBuilder);
 
@@ -382,7 +382,7 @@ public class SpaceService {
             if (this.client.admin().indices().prepareExists(indexName).get().isExists()) {
                 SearchRequest searchRequest = new SearchRequest(indexName);
                 SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-                sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space));
+                sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()));
                 sourceBuilder.size(10000);
                 sourceBuilder.fetchSource(new String[] {Constants.Q_DOCUMENT_ID}, null);
                 searchRequest.source(sourceBuilder);
