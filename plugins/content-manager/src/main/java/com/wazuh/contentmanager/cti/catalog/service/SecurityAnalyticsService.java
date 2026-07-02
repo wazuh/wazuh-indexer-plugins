@@ -164,6 +164,7 @@ public interface SecurityAnalyticsService {
      * given space. Sends a single bulk-delete action to SAP, which handles the deletion internally.
      *
      * @param space The space whose resources should be deleted.
+     * @param listener called with {@code null} on success or an exception on failure.
      */
-    void deleteSpaceResources(Space space);
+    void deleteSpaceResources(Space space, ActionListener<Void> listener);
 }

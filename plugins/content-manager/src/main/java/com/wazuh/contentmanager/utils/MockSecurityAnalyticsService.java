@@ -119,7 +119,8 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteSpaceResources(Space space) {
+    public void deleteSpaceResources(Space space, ActionListener<Void> listener) {
         log.debug("MockSecurityAnalyticsService.deleteSpaceResources called for space: {}", space);
+        listener.onResponse(null);
     }
 }

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.transport.client.Client;
@@ -585,9 +586,13 @@ public abstract class AbstractConsumerService {
                     try {
                         SecurityAnalyticsService securityAnalyticsService =
                                 new SecurityAnalyticsServiceImpl(this.client);
-                        securityAnalyticsService.deleteSpaceResources(Space.STANDARD);
+                        PlainActionFuture<Void> sapFuture = new PlainActionFuture<>();
+                        securityAnalyticsService.deleteSpaceResources(Space.STANDARD, sapFuture);
+                        sapFuture.actionGet();
                         SpaceService spaceService = new SpaceService(this.client);
-                        spaceService.deleteSpaceResources(Space.STANDARD);
+                        PlainActionFuture<Void> spaceFuture = new PlainActionFuture<>();
+                        spaceService.deleteSpaceResources(Space.STANDARD, spaceFuture);
+                        spaceFuture.actionGet();
                     } catch (Exception e) {
                         log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
                     }

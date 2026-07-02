@@ -35,6 +35,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilders;
@@ -101,45 +102,91 @@ public class SpaceService {
      * Deletes all documents related to a specific space across all resource indices.
      *
      * @param space The name of the space to wipe.
-     * @throws IOException If the deletion process fails.
+     * @param listener called with {@code null} on success or an exception on failure.
      */
-    public void deleteSpaceResources(Space space) throws IOException {
+    public void deleteSpaceResources(Space space, ActionListener<Void> listener) {
         String spaceName = space.toString();
+        BulkRequest bulkRequest = new BulkRequest();
+        Iterator<String> indexIterator = Constants.RESOURCE_INDICES.values().iterator();
+        deleteSpaceResourcesNext(spaceName, indexIterator, bulkRequest, listener);
+    }
+
+    private void deleteSpaceResourcesNext(
+            String spaceName,
+            Iterator<String> indexIterator,
+            BulkRequest bulkRequest,
+            ActionListener<Void> listener) {
+        if (!indexIterator.hasNext()) {
+            executeBulkDelete(bulkRequest, spaceName, listener);
+            return;
+        }
+
+        String indexName = indexIterator.next();
+        boolean exists;
         try {
-            BulkRequest bulkRequest = new BulkRequest();
+            exists =
+                    this.offloadBlocking(
+                            () -> this.client.admin().indices().prepareExists(indexName).get().isExists());
+        } catch (IOException e) {
+            log.error(Constants.E_LOG_DELETE_SPACE_RESOURCES_FAILED, spaceName, e.getMessage());
+            listener.onFailure(e);
+            return;
+        }
 
-            for (String indexName : Constants.RESOURCE_INDICES.values()) {
-                boolean exists =
-                        this.offloadBlocking(
-                                () -> this.client.admin().indices().prepareExists(indexName).get().isExists());
-                if (exists) {
-                    SearchRequest searchRequest = new SearchRequest(indexName);
-                    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-                    sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
-                    sourceBuilder.size(10000);
-                    sourceBuilder.fetchSource(false); // We only need the _id
-                    searchRequest.source(sourceBuilder);
+        if (!exists) {
+            deleteSpaceResourcesNext(spaceName, indexIterator, bulkRequest, listener);
+            return;
+        }
 
-                    SearchResponse response =
-                            this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+        SearchRequest searchRequest = new SearchRequest(indexName);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+        sourceBuilder.size(10000);
+        sourceBuilder.fetchSource(false);
+        searchRequest.source(sourceBuilder);
 
-                    for (SearchHit hit : response.getHits().getHits()) {
-                        bulkRequest.add(new DeleteRequest(indexName, hit.getId()));
+        this.client.search(
+                searchRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(SearchResponse response) {
+                        for (SearchHit hit : response.getHits().getHits()) {
+                            bulkRequest.add(new DeleteRequest(indexName, hit.getId()));
+                        }
+                        deleteSpaceResourcesNext(spaceName, indexIterator, bulkRequest, listener);
                     }
-                }
-            }
 
-            if (bulkRequest.numberOfActions() > 0) {
-                bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-                BulkResponse response =
-                        this.offloadBlocking(() -> this.client.bulk(bulkRequest).actionGet());
-                if (response.hasFailures()) {
-                    throw new IOException("Bulk deletion failed: " + response.buildFailureMessage());
-                }
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error(
+                                Constants.E_LOG_DELETE_SPACE_RESOURCES_FAILED, spaceName, e.getMessage());
+                        listener.onFailure(
+                                new IOException(
+                                        "Failed to delete space resources: " + e.getMessage(), e));
+                    }
+                });
+    }
+
+    private void executeBulkDelete(
+            BulkRequest bulkRequest, String spaceName, ActionListener<Void> listener) {
+        if (bulkRequest.numberOfActions() == 0) {
+            listener.onResponse(null);
+            return;
+        }
+        try {
+            bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+            BulkResponse response =
+                    this.offloadBlocking(() -> this.client.bulk(bulkRequest).actionGet());
+            if (response.hasFailures()) {
+                listener.onFailure(
+                        new IOException("Bulk deletion failed: " + response.buildFailureMessage()));
+            } else {
+                listener.onResponse(null);
             }
         } catch (Exception e) {
             log.error(Constants.E_LOG_DELETE_SPACE_RESOURCES_FAILED, spaceName, e.getMessage());
-            throw new IOException("Failed to delete space resources: " + e.getMessage(), e);
+            listener.onFailure(
+                    new IOException("Failed to delete space resources: " + e.getMessage(), e));
         }
     }
 
