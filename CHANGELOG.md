@@ -188,6 +188,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Unify Setup and Content Manager plugin states into running/ready/failed [(#1293)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1293)
 - Use the zstd codec by default for indices created by Wazuh plugins [(#1294)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1294)
 - Disable automatic refresh for low-activity indices [(#1304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1304)
+- Extend findings case management fields with title, description, severity, priority, tlp and a comments array [(#1338)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1338)
 
 ### Deprecated
 -

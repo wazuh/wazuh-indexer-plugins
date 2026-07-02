@@ -6,8 +6,10 @@ Case management allows analysts to track and manage the lifecycle of findings pr
 
 When a detection rule matches an event, Security Analytics creates a **finding**. By default, findings contain only detection fields. Case management extends findings with a `wazuh.case` object that supports:
 
+- **Title and description** - summarize the case content
 - **Status tracking** - move findings through a workflow (e.g., `ACTIVE` → `ACKNOWLEDGED` → `COMPLETED`)
-- **Comments** - attach free-form notes to findings
+- **Classification** - triage findings with `severity`, `priority` and `tlp` (Traffic Light Protocol)
+- **Comments** - hold a discussion thread of multiple comments, each with its own author and timestamps
 - **Tags** - organize findings with keyword labels
 - **User attribution** - record which analyst updated the finding
 - **Timestamps** - track when the case was created and last updated
@@ -18,12 +20,23 @@ The following fields are available under `wazuh.case` in the findings data strea
 
 | Field | Type | Description |
 | --- | --- | --- |
+| `wazuh.case.title` | `match_only_text` | Title summarizing the case |
+| `wazuh.case.description` | `match_only_text` | Detailed description of the case |
 | `wazuh.case.status` | `keyword` | Current status. One of: `ACTIVE`, `ACKNOWLEDGED`, `COMPLETED`, `ERROR`, `DELETED`, `AUDIT` |
-| `wazuh.case.comment` | `match_only_text` | Free-form comment attached to the finding |
+| `wazuh.case.severity` | `keyword` | Severity. One of: `INFORMATIONAL`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL` |
+| `wazuh.case.priority` | `keyword` | Priority. One of: `LOW`, `MEDIUM`, `HIGH`, `URGENT` |
+| `wazuh.case.tlp` | `keyword` | Traffic Light Protocol classification. One of: `TLP:RED`, `TLP:AMBER`, `TLP:GREEN`, `TLP:CLEAR` |
 | `wazuh.case.tags` | `keyword[]` | Tags for organization and filtering |
 | `wazuh.case.created_at` | `date` | Timestamp when the case was first created. Managed by the UI |
 | `wazuh.case.updated_at` | `date` | Timestamp of the last update. Managed by the UI |
 | `wazuh.case.user.name` | `keyword` | Name of the user who last updated the case. Managed by the UI |
+| `wazuh.case.comments` | `nested[]` | Discussion thread. Array of comment objects |
+| `wazuh.case.comments.author` | `keyword` | Name of the user that authored the comment |
+| `wazuh.case.comments.comment` | `match_only_text` | Text content of the comment |
+| `wazuh.case.comments.created_at` | `date` | Timestamp when the comment was created |
+| `wazuh.case.comments.updated_at` | `date` | Timestamp when the comment was last updated |
+
+> **Note:** All enum values are stored lowercase, except `tlp`, which is uppercase and keeps the `TLP:` prefix (e.g. `TLP:CLEAR`).
 
 ## Updating findings
 
@@ -44,21 +57,33 @@ PUT /_plugins/_security_analytics/findings/_update
       "_id": "<finding-document-id>",
       "_index": "<finding-index-name>",
       "case": {
-        "status": "ACKNOWLEDGED",
-        "comment": "Reviewed by SOC analyst",
+        "title": "Suspicious login activity",
+        "description": "Multiple failed logins followed by a success",
+        "status": "acknowledged",
+        "severity": "medium",
+        "priority": "high",
+        "tlp": "TLP:AMBER",
         "tags": ["critical", "reviewed"],
         "created_at": "2026-06-10T08:00:00.000Z",
         "updated_at": "2026-06-10T09:00:00.000Z",
         "user": {
           "name": "analyst1"
-        }
+        },
+        "comments": [
+          {
+            "author": "analyst1",
+            "comment": "Reviewed by SOC analyst",
+            "created_at": "2026-06-10T09:00:00.000Z",
+            "updated_at": "2026-06-10T09:00:00.000Z"
+          }
+        ]
       }
     }
   ]
 }
 ```
 
-> **Note:** The fields `created_at`, `updated_at`, and `user.name` are automatically managed by the Wazuh Dashboard. They should not be set manually.
+> **Note:** The fields `created_at`, `updated_at`, `user.name`, and each comment's `author`, `created_at` and `updated_at` are automatically managed by the Wazuh Dashboard. They should not be set manually.
 
 | Field | Required | Description |
 | --- | --- | --- |
@@ -106,8 +131,10 @@ curl -X PUT "https://localhost:9200/_plugins/_security_analytics/findings/_updat
       "_id": "finding-001",
       "_index": "wazuh-findings-v5-threat-000001",
       "case": {
-        "status": "ACKNOWLEDGED",
-        "comment": "Under investigation"
+        "status": "acknowledged",
+        "comments": [
+          { "author": "analyst1", "comment": "Under investigation" }
+        ]
       }
     }]
   }'
@@ -120,8 +147,10 @@ curl -X PUT "https://localhost:9200/_plugins/_security_analytics/findings/_updat
       "_id": "finding-001",
       "_index": "wazuh-findings-v5-threat-000001",
       "case": {
-        "status": "COMPLETED",
-        "comment": "False positive - benign admin activity"
+        "status": "completed",
+        "comments": [
+          { "author": "analyst1", "comment": "False positive - benign admin activity" }
+        ]
       }
     }]
   }'
