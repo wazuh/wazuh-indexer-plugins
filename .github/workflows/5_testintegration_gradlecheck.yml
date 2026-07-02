@@ -163,11 +163,3 @@ jobs:
           chown -R builder:builder "$GITHUB_WORKSPACE" /home/builder
           runuser -u builder -- env "JAVA_HOME=$JAVA_HOME" "PATH=$PATH" "GRADLE_USER_HOME=/home/builder/.gradle" \
             ./gradlew check
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v7
-        if: failure()
-        with:
-          name: test-results-${{ matrix.project }}
-          overwrite: 'true'
-          path: plugins/${{ matrix.project }}/build/test-results/
