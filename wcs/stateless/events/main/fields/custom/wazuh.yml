@@ -147,8 +147,7 @@
       type: nested
       level: custom
       description: >
-        Array of comments attached to the case. Each comment is authored and
-        timestamped independently of the case-level user and timestamps.
+        Array of comments attached to the case, each authored and timestamped independently.
       normalize:
         - array
     - name: case.comments.author
