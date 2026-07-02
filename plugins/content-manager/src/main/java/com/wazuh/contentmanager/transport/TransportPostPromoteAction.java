@@ -133,7 +133,7 @@ public class TransportPostPromoteAction
             // 3. Validation Phase - Invoke engine validation
             Space targetSpace = spaceDiff.getSpace().promote();
             if ((targetSpace == Space.TEST || targetSpace == Space.CUSTOM)
-                    && (hasEngineRelatedChanges(context)
+                    && (this.hasEngineRelatedChanges(context)
                             || this.spaceService.hasEngineResources(targetSpace))) {
                 RestResponse engineResponse = this.engine.promote(context.enginePayload);
 
