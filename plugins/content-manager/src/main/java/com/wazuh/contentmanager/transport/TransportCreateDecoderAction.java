@@ -18,23 +18,34 @@ package com.wazuh.contentmanager.transport;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import com.wazuh.contentmanager.action.CreateDecoderAction;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Transport action for creating Decoder resources. */
 public class TransportCreateDecoderAction extends AbstractTransportCreateAction {
+
+    private static final Logger log = LogManager.getLogger(TransportCreateDecoderAction.class);
 
     @Inject
     public TransportCreateDecoderAction(
@@ -68,6 +79,32 @@ public class TransportCreateDecoderAction extends AbstractTransportCreateAction 
                 this.documentValidations.validateDocumentInSpace(
                         client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
         if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
+
+        // Enforce max decoders limit
+        int maxDecoders = PluginSettings.getInstance().getMaxDecoders();
+        SearchRequest countRequest = new SearchRequest(Constants.INDEX_DECODERS);
+        SearchSourceBuilder countSource = new SearchSourceBuilder();
+        countSource.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
+        countSource.size(0);
+        countSource.trackTotalHits(true);
+        countRequest.source(countSource);
+        try {
+            SearchResponse countResponse = client.search(countRequest).actionGet();
+            long count =
+                    countResponse.getHits().getTotalHits() != null
+                            ? countResponse.getHits().getTotalHits().value()
+                            : 0;
+            if (count >= maxDecoders) {
+                log.info(Constants.I_LOG_MAX_DECODERS_REACHED, maxDecoders);
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_TOO_MANY_DECODERS, maxDecoders),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        } catch (Exception e) {
+            // If counting fails (e.g., index does not exist yet), allow creation to proceed.
+            log.warn("Failed to count existing decoders for limit check: {}", e.getMessage());
+        }
+
         return null;
     }
 

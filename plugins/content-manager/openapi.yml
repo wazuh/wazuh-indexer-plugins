@@ -2358,6 +2358,7 @@ components:
         - Resource not in draft space (only draft resources can be modified)
         - Resource has dependent resources that must be deleted first
         - Cannot remove decoder as it is set as root decoder
+        - Resource creation limit reached (configurable via `plugins.content_manager.max_<type>` settings; default 100 per type)
       content:
         application/json:
           schema:

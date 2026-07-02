@@ -17,6 +17,8 @@
 package com.wazuh.contentmanager.transport;
 
 import org.apache.lucene.search.TotalHits;
+import org.opensearch.action.get.GetRequestBuilder;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.SuppressForbidden;
@@ -25,6 +27,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
@@ -35,12 +38,20 @@ import org.junit.Assert;
 import org.junit.Before;
 
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.wazuh.contentmanager.action.ContentCreateRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.Answers;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
@@ -178,6 +189,72 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
                                     Assert.assertTrue(response.getMessage().contains("Draft policy"));
                                     return true;
                                 }));
+    }
+
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_maxDecodersReached() {
+        PluginSettings.getInstance().setMaxDecoders(0);
+        try {
+            SearchResponse policyResp = mock(SearchResponse.class);
+            when(policyResp.getHits())
+                    .thenReturn(
+                            new SearchHits(
+                                    new SearchHit[0], new TotalHits(1, TotalHits.Relation.EQUAL_TO), 0.0f));
+            ActionFuture<SearchResponse> policyFuture = mock(ActionFuture.class);
+            when(policyFuture.actionGet()).thenReturn(policyResp);
+            when(this.client.search(
+                            argThat(
+                                    r ->
+                                            r != null
+                                                    && r.indices().length > 0
+                                                    && Constants.INDEX_POLICIES.equals(r.indices()[0]))))
+                    .thenReturn(policyFuture);
+
+            GetResponse integResp = mock(GetResponse.class);
+            when(integResp.isExists()).thenReturn(true);
+            Map<String, Object> source = new HashMap<>();
+            source.put(Constants.KEY_SPACE, Map.of(Constants.KEY_NAME, "draft"));
+            when(integResp.getSourceAsMap()).thenReturn(source);
+            GetRequestBuilder getBuilder = mock(GetRequestBuilder.class, Answers.RETURNS_SELF);
+            when(this.client.prepareGet(eq(Constants.INDEX_INTEGRATIONS), anyString()))
+                    .thenReturn(getBuilder);
+            when(getBuilder.get()).thenReturn(integResp);
+
+            SearchResponse countResp = mock(SearchResponse.class);
+            when(countResp.getHits())
+                    .thenReturn(
+                            new SearchHits(
+                                    new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f));
+            ActionFuture<SearchResponse> countFuture = mock(ActionFuture.class);
+            when(countFuture.actionGet()).thenReturn(countResp);
+            when(this.client.search(
+                            argThat(
+                                    r ->
+                                            r != null
+                                                    && r.indices().length > 0
+                                                    && Constants.INDEX_DECODERS.equals(r.indices()[0]))))
+                    .thenReturn(countFuture);
+
+            ContentCreateRequest request =
+                    new ContentCreateRequest(
+                            RestRequest.Method.POST,
+                            "{\"integration\":\"int-1\",\"resource\":{}}".getBytes(StandardCharsets.UTF_8),
+                            "json");
+
+            ActionListener<ContentResponse> listener = mock(ActionListener.class);
+            this.action.doExecute(mock(Task.class), request, listener);
+
+            verify(listener)
+                    .onResponse(
+                            argThat(
+                                    response -> {
+                                        Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+                                        Assert.assertTrue(response.getMessage().contains("allowed decoders [0]"));
+                                        return true;
+                                    }));
+        } finally {
+            PluginSettings.getInstance().setMaxDecoders(PluginSettings.DEFAULT_MAX_DECODERS);
+        }
     }
 
     public void testDoExecute_DraftPolicyCheckException() {

@@ -20,16 +20,23 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import com.wazuh.contentmanager.action.CreateIntegrationAction;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -39,12 +46,15 @@ import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /** Transport action for creating Integration resources. */
 public class TransportCreateIntegrationAction extends AbstractTransportCreateAction {
+
+    private static final Logger log = LogManager.getLogger(TransportCreateIntegrationAction.class);
 
     @Inject
     public TransportCreateIntegrationAction(
@@ -93,6 +103,31 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
                         null,
                         Constants.KEY_INTEGRATION);
         if (duplicateValidation != null) return duplicateValidation;
+
+        // Enforce max integrations limit
+        int maxIntegrations = PluginSettings.getInstance().getMaxIntegrations();
+        SearchRequest countRequest = new SearchRequest(Constants.INDEX_INTEGRATIONS);
+        SearchSourceBuilder countSource = new SearchSourceBuilder();
+        countSource.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
+        countSource.size(0);
+        countSource.trackTotalHits(true);
+        countRequest.source(countSource);
+        try {
+            SearchResponse countResponse = client.search(countRequest).actionGet();
+            long count =
+                    countResponse.getHits().getTotalHits() != null
+                            ? countResponse.getHits().getTotalHits().value()
+                            : 0;
+            if (count >= maxIntegrations) {
+                log.info(Constants.I_LOG_MAX_INTEGRATIONS_REACHED, maxIntegrations);
+                return new RestResponse(
+                        String.format(Locale.ROOT, Constants.E_400_TOO_MANY_INTEGRATIONS, maxIntegrations),
+                        RestStatus.BAD_REQUEST.getStatus());
+            }
+        } catch (Exception e) {
+            // If counting fails (e.g., index does not exist yet), allow creation to proceed.
+            log.warn("Failed to count existing integrations for limit check: {}", e.getMessage());
+        }
 
         ((ObjectNode) resource).set(Constants.KEY_RULES, MAPPER.createArrayNode());
         ((ObjectNode) resource).set(Constants.KEY_DECODERS, MAPPER.createArrayNode());
