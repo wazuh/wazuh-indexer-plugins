@@ -1,6 +1,6 @@
-# Logtest Architecture and Developer Guide
+# Logtest architecture and developer guide
 
-## Component Overview
+## Component overview
 
 The logtest flow involves three layers:
 
@@ -58,7 +58,7 @@ The orchestrator. Provides three public entry points:
 
 - **`executeLogtest()`** — Full combined flow (normalization + detection)
 - **`executeNormalization()`** — Engine-only: forwards payload to `EngineService.logtest()` and returns the response directly with `parseMessageAsJson()`
-- **`executeDetection()`** — SAP-only: looks up integration, fetches rule IDs/bodies, evaluates via `SecurityAnalyticsService.evaluateRules()`, and returns the SAP result
+- **`executeDetection()`** — Security Analytics-only: looks up integration, fetches rule IDs/bodies, evaluates via `SecurityAnalyticsService.evaluateRules()`, and returns the result
 
 The full logtest flow:
 
@@ -66,18 +66,18 @@ The full logtest flow:
 2. **Integration lookup** — Queries `wazuh-threatintel-integrations` for a document matching `document.id == integrationId` and `space.name == space`. Returns 400 if not found.
 3. **Engine processing** — Sends the event payload to the Wazuh Engine via `EngineService.logtest()`. Extracts the normalized event from the `output` field. The engine result fields (`output`, `asset_traces`, `validation`) are included directly in the response (no wrapper).
 4. **Rule fetching** — Extracts rule IDs from the integration's `document.rules` array, then fetches rule bodies from `wazuh-threatintel-rules` by `document.id`, filtered by the same space.
-5. **SAP evaluation** — Passes the normalized event JSON and rule bodies to `SecurityAnalyticsService.evaluateRules()`.
-6. **Response building** — Combines engine and SAP results into a single JSON response under the keys `normalization` and `detection`.
+5. **Security Analytics evaluation** — Passes the normalized event JSON and rule bodies to `SecurityAnalyticsService.evaluateRules()`.
+6. **Response building** — Combines engine and Security Analytics results into a single JSON response under the keys `normalization` and `detection`.
 
 **Error handling**:
-- If the Engine fails (HTTP error or exception), SAP evaluation is **skipped** and the response includes `status: "skipped"` with the reason.
+- If the Engine fails (HTTP error or exception), Security Analytics evaluation is **skipped** and the response includes `status: "skipped"` with the reason.
 - If no integration is provided, detection is skipped (normalization-only mode).
-- If the integration has no rules, SAP returns `rules_evaluated: 0, rules_matched: 0` with success status.
-- If SAP evaluation returns unparseable JSON, the SAP result is `status: "error"`.
+- If the integration has no rules, Security Analytics returns `rules_evaluated: 0, rules_matched: 0` with success status.
+- If Security Analytics evaluation returns unparseable JSON, the result is `status: "error"`.
 
 ### SecurityAnalyticsService / EventMatcher
 
-The SAP evaluation happens in the `security-analytics`:
+The Security Analytics evaluation happens in the `security-analytics` repository:
 
 - **`SecurityAnalyticsServiceImpl.evaluateRules()`** — Parses Sigma rule YAML strings into `SigmaRule` objects, then delegates to `EventMatcher`.
 - **`EventMatcher.evaluate()`** — Flattens the normalized event JSON into dot-notation keys, then evaluates each rule's detection conditions against the flat map. Returns a JSON result string.
@@ -101,7 +101,7 @@ Match results use a nested `rule` object per match entry:
 }
 ```
 
-## Data Flow
+## Data flow
 
 ```
 Client request
@@ -138,7 +138,7 @@ LogtestService.executeLogtest(integrationId, space, payload)
             { normalization: {...}, detection: {...} }
 ```
 
-### Split Endpoints
+### Split endpoints
 
 In addition to the combined flow, there are two dedicated endpoints that execute normalization and detection independently:
 
@@ -154,14 +154,14 @@ LogtestService.executeNormalization(payload)  LogtestService.executeDetection(id
                                                  ├──► extractRuleIds() + fetchRuleBodies()
                                                  │       → fetches rule content from .cti-rules
                                                  └──► securityAnalytics.evaluateRules(inputJson, ruleBodies)
-                                                         → returns SAP result directly
+                                                         → returns Security Analytics result directly
 ```
 
 **Key differences from the combined endpoint:**
 - **Normalization** returns the raw Engine response (no detection wrapper). The `integration` field is stripped if present but has no effect on behavior.
-- **Detection** accepts a pre-normalized event as the `input` JSON object. It does not call the Engine — it goes straight to integration lookup → rule fetch → SAP evaluation.
+- **Detection** accepts a pre-normalized event as the `input` JSON object. It does not call the Engine — it goes straight to integration lookup → rule fetch → Security Analytics evaluation.
 
-## Index Dependencies
+## Index dependencies
 
 | Index | Usage | Query |
 | --- | --- | --- |
@@ -172,26 +172,26 @@ Both indices must exist and have `document.id` mapped as `keyword` for term quer
 
 ## Testing
 
-### Unit Tests
+### Unit tests
 
 | Test class | Covers |
 | --- | --- |
 | `RestPostLogtestActionTests` | Request validation for combined endpoint (empty body, invalid JSON, missing fields, wrong space, delegation to service) |
 | `RestPostLogtestNormalizationActionTests` | Request validation for normalization endpoint (empty body, invalid JSON, missing space, invalid space, delegation, integration stripping) |
 | `RestPostLogtestDetectionActionTests` | Request validation for detection endpoint (empty body, invalid JSON, missing fields, invalid space, non-object input, delegation) |
-| `LogtestServiceTests` | Orchestration logic (integration lookup, engine errors, rule fetching, SAP evaluation, response structure) |
+| `LogtestServiceTests` | Orchestration logic (integration lookup, engine errors, rule fetching, Security Analytics evaluation, response structure) |
 | `EventMatcherTests` | Sigma rule evaluation (field matching, wildcards, numerics, booleans, nulls, AND/OR/NOT conditions) |
 
-### Integration Tests
+### Integration tests
 
 | Test class | Covers |
 | --- | --- |
 | `LogtestIT` | End-to-end REST workflow against a live test cluster (request validation, integration lookup, promote + logtest, response structure) |
 
-Integration tests extend `ContentManagerRestTestCase` and run against a real OpenSearch cluster. Since the Wazuh Engine is not available in the test environment, engine-dependent tests validate graceful error handling (engine error → SAP skipped).
+Integration tests extend `ContentManagerRestTestCase` and run against a real OpenSearch cluster. Since the Wazuh Engine is not available in the test environment, engine-dependent tests validate graceful error handling (engine error → Security Analytics skipped).
 
 
-## Adding New Logtest Features
+## Adding new logtest features
 
 ### Supporting a new validation field
 
@@ -207,7 +207,7 @@ Integration tests extend `ContentManagerRestTestCase` and run against a real Ope
 3. Add unit test scenarios in `LogtestServiceTests`.
 4. Update the API docs (`api.md`) response fields table.
 
-### Extending SAP evaluation
+### Extending Security Analytics evaluation
 
 1. Modify `EventMatcher.matchValue()` to handle new `SigmaType` subclasses.
 2. Add test cases in `EventMatcherTests`.

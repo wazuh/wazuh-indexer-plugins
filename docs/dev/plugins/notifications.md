@@ -1,4 +1,4 @@
-# Wazuh Indexer Notifications Plugin — Development Guide
+# Wazuh Indexer Notifications plugin — development guide
 
 This document describes the architecture, components, and extension points of the Notifications plugin, which provides multi-channel notification capabilities to the Wazuh Indexer.
 
@@ -16,7 +16,7 @@ The Notifications plugin handles:
 
 ---
 
-## Project Structure
+## Project structure
 
 The plugin is organized into three Gradle subprojects:
 
@@ -28,9 +28,9 @@ The plugin is organized into three Gradle subprojects:
 
 ---
 
-## Class Hierarchy
+## Class hierarchy
 
-### Destination Models (core-spi)
+### Destination models (core-spi)
 
 ```
 BaseDestination
@@ -44,7 +44,7 @@ BaseDestination
 └── SnsDestination
 ```
 
-### Transport Layer (core)
+### Transport layer (core)
 
 ```
 DestinationTransport (interface)
@@ -54,7 +54,7 @@ DestinationTransport (interface)
 └── SnsDestinationTransport          (AWS SNS)
 ```
 
-### REST Handlers (notifications)
+### REST handlers (notifications)
 
 | Handler | Method | URI |
 |---|---|---|
@@ -71,7 +71,7 @@ DestinationTransport (interface)
 
 ---
 
-## Setup Environment
+## Setup environment
 
 ### Requirements
 
@@ -79,7 +79,7 @@ DestinationTransport (interface)
 - **Gradle:** Use the included `./gradlew` wrapper (no separate install needed).
 - **IDE:** IntelliJ IDEA with Kotlin plugin is recommended.
 
-### Clone and Build
+### Clone and build
 
 ```bash
 git clone <notifications-repo-url>
@@ -94,7 +94,7 @@ notifications/notifications/build/distributions/
 
 ---
 
-## Build Packages
+## Build packages
 
 To create distribution packages:
 
@@ -114,15 +114,15 @@ bin/opensearch-plugin install file:///path/to/notifications-<version>.zip
 
 ---
 
-## Run Tests
+## Run tests
 
-### Unit Tests
+### Unit tests
 
 ```bash
 ./gradlew test
 ```
 
-### Integration Tests
+### Integration tests
 
 The integration test suite is located at:
 ```
@@ -158,7 +158,7 @@ Key integration test classes:
 
 ---
 
-## Notification Flow
+## Notification flow
 
 The data flow when sending a notification follows this sequence:
 
@@ -196,7 +196,7 @@ Transport Action (resolve destination type)
 
 ---
 
-## Default Channel Initialization
+## Default channel initialization
 
 The plugin creates a set of default notification channels on startup so that users have pre-configured templates for common integrations (Slack, Jira, PagerDuty, Shuffle). These channels are created **disabled** with placeholder URLs.
 
@@ -204,7 +204,7 @@ The plugin creates a set of default notification channels on startup so that use
 
 The feature is implemented in `DefaultChannelInitializer` (`notifications/notifications/src/main/kotlin/.../index/DefaultChannelInitializer.kt`).
 
-### Adding or Modifying Default Channels
+### Adding or modifying default channels
 
 To add a new default channel:
 
@@ -213,7 +213,7 @@ To add a new default channel:
 3. Set `isEnabled = false` and use a placeholder URL with clear instructions in the `description`.
 4. Add a corresponding test case in `DefaultChannelInitializerTests.kt`.
 
-### ClusterPlugin Interface
+### ClusterPlugin interface
 
 The `NotificationPlugin` class implements `ClusterPlugin` to gain access to the `onNodeStarted(DiscoveryNode)` lifecycle hook.
 
@@ -231,7 +231,7 @@ The tests verify:
 
 ---
 
-## Extending with a New Destination
+## Extending with a new destination
 
 To add a new notification destination:
 

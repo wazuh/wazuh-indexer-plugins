@@ -1,24 +1,25 @@
-<!-- // ANCHOR: settings-table --> 
-## Content manager settings
+<!-- // ANCHOR: settings-table -->
+## Content Manager settings
 
 The Content Manager plugin is configured through settings in `opensearch.yml`. All settings use the `plugins.content_manager` prefix.
 
-| Setting                                              | Data type | Default value                            | Description                                                                     |
-| ---------------------------------------------------- | --------- | ---------------------------------------- | ------------------------------------------------------------------------------- |
-| `plugins.content_manager.cti.api`                    | String    | `https://api.pre.cloud.wazuh.com/api/v1` | Base URL for the Wazuh CTI API                                                  |
-| `plugins.content_manager.catalog.sync_interval`      | Integer   | `60`                                     | Sync interval in minutes. Valid range: 1–1440                                   |
-| `plugins.content_manager.max_items_per_bulk`         | Integer   | `999`                                    | Maximum documents per bulk indexing request. Valid range: 10–999                |
-| `plugins.content_manager.max_concurrent_bulks`       | Integer   | `5`                                      | Maximum concurrent bulk operations. Valid range: 1–5                            |
-| `plugins.content_manager.client.timeout`             | Long      | `10`                                     | HTTP client timeout in seconds for CTI API requests. Valid range: 10–50         |
-| `plugins.content_manager.catalog.update_on_start`    | Boolean   | `true`                                   | Trigger content sync when the plugin starts                                     |
-| `plugins.content_manager.catalog.update_on_schedule` | Boolean   | `true`                                   | Enable the periodic sync job                                                    |
-| `plugins.content_manager.catalog.ruleset`            | String    | `""`                                     | Full CTI consumer URL for ruleset content                                       |
-| `plugins.content_manager.catalog.iocs`               | String    | `""`                                     | Full CTI consumer URL for IoC content                                           |
-| `plugins.content_manager.catalog.vulnerabilities`    | String    | `""`                                     | Full CTI consumer URL for vulnerabilities content                               |
-| `plugins.content_manager.catalog.create_detectors`   | Boolean   | `true`                                   | Automatically create Security Analytics detectors from CTI content              |
-| `plugins.content_manager.telemetry.enabled`          | Boolean   | `true`                                   | Enable or disable the daily Update check service ping. This setting is dynamic. |
-| `plugins.content_manager.catalog.update_on_demand`   | Boolean   | `true`                                   | When `false`, on-demand content updates (`POST /update`) return `403 Forbidden` for every caller, regardless of role. |
-| `plugins.content_manager.catalog.policy_update.enabled` | Boolean | `true`                                   | When `false`, policy updates (`PUT /policy/{space}`) return `403 Forbidden` for every caller, regardless of role. |
+- **`plugins.content_manager.cti.api`** (String, default `https://api.pre.cloud.wazuh.com/api/v1`) — base URL for the Wazuh CTI API.
+- **`plugins.content_manager.catalog.sync_interval`** (Integer, default `60`, range 10–1440) — sync interval in minutes.
+- **`plugins.content_manager.max_items_per_bulk`** (Integer, default `999`, range 10–999) — maximum documents per bulk indexing request.
+- **`plugins.content_manager.max_concurrent_bulks`** (Integer, default `5`, range 1–5) — maximum concurrent bulk operations.
+- **`plugins.content_manager.max_bulk_bytes`** (Long, default `5242880` / 5 MB, range 1048576–104857600 / 1–100 MB) — maximum request body size, in bytes, for a single bulk indexing request.
+- **`plugins.content_manager.client.timeout`** (Long, default `10`, range 10–50) — HTTP client timeout in seconds for CTI API requests.
+- **`plugins.content_manager.pit_keepalive`** (Long, default `120`, range 60–600) — point-in-time keepalive in seconds used during paginated index scans.
+- **`plugins.content_manager.engine.mock`** (Boolean, default `false`) — bypasses real Engine socket calls, returning mocked responses instead. Intended for testing only.
+- **`plugins.content_manager.catalog.update_on_start`** (Boolean, default `true`) — trigger content sync when the plugin starts.
+- **`plugins.content_manager.catalog.update_on_schedule`** (Boolean, default `true`) — enable the periodic sync job.
+- **`plugins.content_manager.catalog.ruleset`** (String, default `""`) — full CTI consumer URL for ruleset content.
+- **`plugins.content_manager.catalog.iocs`** (String, default `""`) — full CTI consumer URL for IoC content.
+- **`plugins.content_manager.catalog.vulnerabilities`** (String, default `""`) — full CTI consumer URL for vulnerabilities content.
+- **`plugins.content_manager.catalog.create_detectors`** (Boolean, default `true`) — automatically create Security Analytics detectors from CTI content.
+- **`plugins.content_manager.telemetry.enabled`** (Boolean, default `true`, dynamic) — enable or disable the daily Update check service ping.
+- **`plugins.content_manager.catalog.update_on_demand`** (Boolean, default `true`) — when `false`, on-demand content updates (`POST /update`) return `403 Forbidden` for every caller, regardless of role.
+- **`plugins.content_manager.catalog.policy_update.enabled`** (Boolean, default `true`) — when `false`, policy updates (`PUT /policy/{space}`) return `403 Forbidden` for every caller, regardless of role.
 
 <!-- // ANCHOR_END: settings-table -->
 
@@ -50,7 +51,7 @@ The plugin checks for new content every 60 minutes by default, but this can be c
 plugins.content_manager.catalog.sync_interval: 1440
 ```
 
-#### Custom CTI API Endpoint
+#### Custom CTI API endpoint
 
 To point to a different CTI API (e.g., production):
 
@@ -59,7 +60,7 @@ To point to a different CTI API (e.g., production):
 plugins.content_manager.cti.api: "https://cti.wazuh.com/api/v1"
 ```
 
-#### Custom Catalog Consumer URLs
+#### Custom catalog consumer URLs
 
 To override default consumers, provide full HTTP(S) consumer URLs:
 
@@ -76,7 +77,7 @@ Behavior:
 - If remote initialization fails, it falls back to the local packaged snapshot when available.
 - If a setting is empty, initialization uses the local packaged snapshot directly.
 
-#### Tune Bulk Operations
+#### Tune bulk operations
 
 For environments with limited resources, reduce the bulk operation concurrency:
 
@@ -87,7 +88,7 @@ plugins.content_manager.max_concurrent_bulks: 2
 plugins.content_manager.client.timeout: 30
 ```
 
-#### Disable Security Analytics Detector Creation
+#### Disable Security Analytics detector creation
 
 If you do not use the OpenSearch Security Analytics plugin:
 
@@ -121,7 +122,7 @@ This data allows Wazuh to determine if a newer version is available and notify u
 
 > The service only sends deployment identification/version metadata required for update checks. It does not send rules, events, or log payloads.
 
-#### Enable/Disable Update check service dynamically
+#### Enable or disable the update check service dynamically
 
 The update check service can be enabled or disabled at runtime without restarting the node using the Cluster Settings API:
 
@@ -138,20 +139,16 @@ curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 
 
 Some endpoints modify configuration with a high impact on the platform and are protected by two independent controls:
 
-| Endpoint | Method | Permission (cluster action) |
-| --- | --- | --- |
-| `/_plugins/_content_manager/policy/{space}` | `PUT` | `cluster:admin/content_manager/policy/update` |
-| `/_plugins/_content_manager/update` | `POST` | `cluster:admin/content_manager/update/trigger` |
-| `/_plugins/_setup/settings` | `PUT` | `cluster:admin/setup/settings/update` |
+- **`PUT /_plugins/_content_manager/policy/{space}`** — permission `cluster:admin/content_manager/policy/update`.
+- **`POST /_plugins/_content_manager/update`** — permission `cluster:admin/content_manager/update/trigger`.
+- **`PUT /_plugins/_setup/settings`** — permission `cluster:admin/setup/settings/update`.
 
 1. **RBAC** — each endpoint is gated by a cluster permission (the action name above), enforced by the security plugin. Only the superuser `admin` (role `all_access`, cluster wildcard `*`) holds these permissions; the bundled `wazuh-server` and `wazuh-dashboard` users do not. To delegate any of these actions without granting full superuser, create a dedicated role for the permission(s) above. See the [access control reference](../../security/access-control.md).
 2. **Per-endpoint disable settings** — each endpoint can be disabled independently with its own node setting; when disabled it returns `403 Forbidden` for **every** caller, including `admin` / `all_access`. This is intended for externally managed (e.g. Wazuh Cloud) deployments.
 
-   | Endpoint | Setting (set to `false` to disable) |
-   | --- | --- |
-   | `POST /_plugins/_content_manager/update` | `plugins.content_manager.catalog.update_on_demand` |
-   | `PUT /_plugins/_content_manager/policy/{space}` | `plugins.content_manager.catalog.policy_update.enabled` |
-   | `PUT /_plugins/_setup/settings` | `plugins.setup.settings_update.enabled` |
+   - **`POST /_plugins/_content_manager/update`** — disable via `plugins.content_manager.catalog.update_on_demand: false`.
+   - **`PUT /_plugins/_content_manager/policy/{space}`** — disable via `plugins.content_manager.catalog.policy_update.enabled: false`.
+   - **`PUT /_plugins/_setup/settings`** — disable via `plugins.setup.settings_update.enabled: false`.
 
 ```yaml
 # opensearch.yml — disable sensitive configuration endpoints on a managed deployment
@@ -166,4 +163,4 @@ plugins.setup.settings_update.enabled: false
 - The catalog URL settings (`plugins.content_manager.catalog.ruleset`, `plugins.content_manager.catalog.iocs`, and `plugins.content_manager.catalog.vulnerabilities`) should only be changed if instructed by Wazuh support or documentation, and must point to valid absolute HTTP(S) CTI consumer endpoints.
 - The sync interval is enforced by the OpenSearch Job Scheduler. The actual sync timing may vary slightly depending on cluster load.
 - The update check service runs with a fixed interval of 1 day when enabled. The first ping is sent immediately after the job is registered (on node start or when the setting is dynamically enabled); subsequent pings follow the 1-day interval.
-- **Detector Configuration:** The settings for Security Analytics detectors (interval, enabled status, and source indices) are managed directly via CTI integration files. If an integration's `detector` object is missing in the CTI source, the system will use built-in safety defaults.
+- **Detector configuration:** the settings for Security Analytics detectors (interval, enabled status, and source indices) are managed directly via CTI integration files. If an integration's `detector` object is missing in the CTI source, the system will use built-in safety defaults.

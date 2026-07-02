@@ -4,7 +4,7 @@ The Wazuh Indexer Alerting plugin monitors data stored in the Wazuh Indexer, eva
 
 The plugin is a fork of the [OpenSearch Alerting plugin](https://docs.opensearch.org/docs/3.6/observing-your-data/alerting/) adapted for Wazuh.
 
-## Key Capabilities
+## Key capabilities
 
 - **Multiple monitor types:** Query-level, bucket-level, document-level, and the Wazuh-specific Active Response monitor. See [Architecture](architecture.md) for details.
 - **Flexible triggers:** Define conditions using the full OpenSearch query DSL, aggregation results, or per-document matching with percolate queries.
@@ -20,7 +20,7 @@ The plugin is a fork of the [OpenSearch Alerting plugin](https://docs.opensearch
 
 - **Maximum monitors:** Users can create up to 10 custom monitors. This limit applies to all monitor types.
 
-## Wazuh Integration Points
+## Wazuh integration points
 
 ### Security Analytics
 
@@ -40,7 +40,7 @@ The Alerting plugin includes a Wazuh-specific **Active Response monitor type** t
 
 When an Active Response monitor triggers, it writes execution requests to the `wazuh-active-responses` data stream. The Wazuh Manager retrieves documents from this data stream to distribute and execute Active Response actions on agents. Each document references the source event that triggered the response.
 
-## Default Monitors
+## Default monitors
 
 On first startup, a sample alerting monitor is created alongside the [default notification channels](../notifications/index.md#default-notification-channels). This monitor serves as a template that users can customize and enable. Review it under **Alerting > Monitors** in the Wazuh Dashboard before enabling alerts.
 
@@ -53,6 +53,6 @@ On first startup, a sample alerting monitor is created alongside the [default no
 | Job Scheduler plugin | Schedules and executes monitors at configured intervals |
 | [wazuh-indexer-common-utils](https://github.com/wazuh/wazuh-indexer-common-utils) | Shared utility functions and common components |
 
-## Further Reading
+## Further reading
 
 For the full upstream API reference, advanced configuration, and Dashboard usage guides, see the [OpenSearch Alerting documentation](https://docs.opensearch.org/docs/3.6/observing-your-data/alerting/).

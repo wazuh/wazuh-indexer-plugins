@@ -2,7 +2,7 @@
 
 Common issues and diagnostic procedures for the Content Manager plugin.
 
-## Common Errors
+## Common errors
 
 ### "Error communicating with Engine socket: Connection refused"
 
@@ -25,7 +25,7 @@ No CTI access token has been registered. The Content Manager cannot sync content
 Register credentials by posting the CTI access token:
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/subscription" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/subscription" \
   -H 'Content-Type: application/json' \
   -d '{
     "access_token": "<your-cti-access-token>"
@@ -34,7 +34,7 @@ curl -sk -u admin:admin -X POST \
 
 A successful registration returns `{"message":"Credentials received","status":201}`. The token is persisted in `.wazuh-internal-state` and loaded into memory immediately.
 
-### Sync Not Running
+### Sync not running
 
 Content is not being updated despite having a valid subscription.
 
@@ -43,7 +43,7 @@ Content is not being updated despite having a valid subscription.
 1. Check consumer state and offsets:
    ```bash
    curl -sk -u admin:admin \
-     "https://192.168.56.6:9200/.wazuh-cti-consumers/_search?pretty"
+     "https://127.0.0.1:9200/.wazuh-cti-consumers/_search?pretty"
    ```
 
    If `local_offset` equals `remote_offset`, the content is already up-to-date.
@@ -51,7 +51,7 @@ Content is not being updated despite having a valid subscription.
 2. Check the sync job is registered and enabled:
    ```bash
    curl -sk -u admin:admin \
-     "https://192.168.56.6:9200/.wazuh-content-manager-jobs/_search?pretty"
+     "https://127.0.0.1:9200/.wazuh-content-manager-jobs/_search?pretty"
    ```
 
    Verify the job has `"enabled": true` and the schedule interval matches your configuration.
@@ -64,10 +64,34 @@ Content is not being updated despite having a valid subscription.
 4. Trigger a manual sync to test:
    ```bash
    curl -sk -u admin:admin -X POST \
-     "https://192.168.56.6:9200/_plugins/_content_manager/update"
+     "https://127.0.0.1:9200/_plugins/_content_manager/update"
    ```
 
-### Socket File Not Found
+### Engine validation rejects a temporary field
+
+**Symptoms:** Creating or updating a decoder (or any resource with a `check`/`detection` expression) fails with an Engine validation error naming a field that looks correct, for example:
+
+```
+{"message":"Engine validation failed. Failed to validate resource of type 'decoder': Validation failed for 'decoder': Failed to build operation 'tmp_json.event.action: string_equal(\"netflow_flow\")': Field 'tmp_json.event.action' is not defined in WCS schema and is not a temporary field"}
+```
+
+**Cause:** The Engine validates every field referenced in a `check` or `detection` expression against the Wazuh Common Schema (WCS). A field that is intentionally temporary — used only during decoding and not part of the final normalized event — is not in WCS by definition, so the Engine only accepts it if it's prefixed with an underscore.
+
+**Resolution:** Prefix temporary fields with `_` in both the check expression and anywhere else the field is referenced within the same resource:
+
+```json
+{
+  "check": [
+    {
+      "_tmp_json.event.action": "string_equal(\"netflow_flow\")"
+    }
+  ]
+}
+```
+
+Fields that are part of WCS (e.g., `event.action`, `source.ip`) never need the underscore prefix — only add it for genuinely temporary, decoder-internal fields.
+
+### Socket file not found
 
 The Unix socket used for Engine communication does not exist.
 
@@ -79,15 +103,15 @@ The Unix socket used for Engine communication does not exist.
 2. Check the Engine configuration for the socket path.
 3. Ensure the `engine/sockets/` directory exists under the Wazuh Indexer installation path.
 
-## Diagnostic Commands
+## Diagnostic commands
 
-### Check Consumer State
+### Check consumer state
 
 View synchronization state for all content contexts:
 
 ```bash
 curl -sk -u admin:admin \
-  "https://192.168.56.6:9200/.wazuh-cti-consumers/_search?pretty"
+  "https://127.0.0.1:9200/.wazuh-cti-consumers/_search?pretty"
 ```
 
 Example output:
@@ -121,37 +145,37 @@ Example output:
 - `local_offset < remote_offset`: Content needs updating.
 - `local_offset == 0`: Content has never been synced (snapshot required).
 
-### Check Sync Job
+### Check sync job
 
 View the periodic sync job configuration:
 
 ```bash
 curl -sk -u admin:admin \
-  "https://192.168.56.6:9200/.wazuh-content-manager-jobs/_search?pretty"
+  "https://127.0.0.1:9200/.wazuh-content-manager-jobs/_search?pretty"
 ```
 
-### Count Content Documents
+### Count content documents
 
 Check how many rules, decoders, etc. have been indexed:
 
 ```bash
 # Rules
-curl -sk -u admin:admin "https://192.168.56.6:9200/wazuh-threatintel-rules/_count?pretty"
+curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-rules/_count?pretty"
 
 # Decoders
-curl -sk -u admin:admin "https://192.168.56.6:9200/wazuh-threatintel-decoders/_count?pretty"
+curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-decoders/_count?pretty"
 
 # Integrations
-curl -sk -u admin:admin "https://192.168.56.6:9200/wazuh-threatintel-integrations/_count?pretty"
+curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-integrations/_count?pretty"
 
 # KVDBs
-curl -sk -u admin:admin "https://192.168.56.6:9200/wazuh-threatintel-kvdbs/_count?pretty"
+curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-kvdbs/_count?pretty"
 
 # IoCs
-curl -sk -u admin:admin "https://192.168.56.6:9200/wazuh-threatintel-enrichments/_count?pretty"
+curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-enrichments/_count?pretty"
 ```
 
-## Job Scheduling on Startup
+## Job scheduling on startup
 
 During node startup, `scheduleCatalogSyncJob` and `scheduleTelemetryPingJob` both require the `.wazuh-content-manager-jobs` index to reach yellow status with at least one active shard before they can register their job documents. On a freshly initialized or resource-constrained cluster this can time out, producing entries like:
 
@@ -164,7 +188,7 @@ The plugin automatically retries each registration up to 3 times with a linear b
 
 If all retries fail, the plugin logs `ERROR ... Giving up scheduling <job> after 3 attempts.` and the job will only be retried on the next node start. A persistent failure usually indicates the cluster cannot allocate shards — check cluster health with `GET _cluster/health` and verify index allocation settings.
 
-## Log Monitoring
+## Log monitoring
 
 Content Manager logs are part of the Wazuh Indexer logs. Use the following patterns to filter relevant entries:
 
@@ -190,14 +214,14 @@ grep -i "ERROR.*content.manager" \
   /var/log/wazuh-indexer/wazuh-indexer.log
 ```
 
-## Resetting Content
+## Resetting content
 
 To force a full re-sync from snapshot, delete the consumer state document and restart the indexer:
 
 ```bash
 # Delete consumer state (forces snapshot on next sync)
 curl -sk -u admin:admin -X DELETE \
-  "https://192.168.56.6:9200/.wazuh-cti-consumers/_doc/*"
+  "https://127.0.0.1:9200/.wazuh-cti-consumers/_doc/*"
 
 # Restart indexer to trigger sync
 systemctl restart wazuh-indexer

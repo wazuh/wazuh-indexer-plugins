@@ -4,30 +4,31 @@ The Content Manager plugin operates within the Wazuh Indexer environment. It is 
 
 ## Components
 
-### REST Layer
+### REST layer
 
 Exposes HTTP endpoints under `/_plugins/_content_manager/` for:
 - Subscription management (store CTI access token)
 - Manual content sync trigger
-- CUD operations on rules, decoders, integrations, and KVDBs
+- Version check
+- CUD operations on rules, decoders, integrations, filters, and KVDBs
 - Policy management
 - Promotion preview and execution
-- Logtest execution
-- Content validation and promotion
+- Logtest execution (combined, normalization-only, and detection-only)
+- Space reset
 
-### Credentials Store
+### Credentials store
 
-Manages the CTI access token used for all CTI API requests. The token is submitted via `POST /subscription`, persisted in the `.wazuh-internal-state` hidden index, and cached in `PluginSettings.accessToken` (a `volatile String` field). On node startup, the token is loaded from the index into memory. Without a registered token, sync and update operations are rejected.
+Manages the CTI access token used for all CTI API requests. The token is submitted via `POST /subscription`, persisted in the `.wazuh-internal-state` hidden index, and cached in memory. On node startup, the token is loaded from the index into memory. Without a registered token, sync and update operations are rejected.
 
 All HTTP clients that communicate with CTI services send a custom `User-Agent` header in the format `Wazuh Indexer <version>` (e.g., `Wazuh Indexer 5.0.0`). This applies to the Catalog API client, Snapshot client, and Telemetry client.
 
-### Job Scheduler (CatalogSyncJob)
+### Job scheduler
 
-Implements the OpenSearch `JobSchedulerExtension` interface. Registers a periodic job (`wazuh-catalog-sync-job`) that triggers content synchronization at a configurable interval (default: 60 minutes). The job metadata is stored in `.wazuh-content-manager-jobs`.
+Registers a periodic job that triggers content synchronization at a configurable interval (default: 60 minutes). The job metadata is stored in `.wazuh-content-manager-jobs`.
 
-### Update Check Service (TelemetryPingJob)
+### Update check service
 
-Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI Update check API endpoint (`/ping`).
+Runs a daily heartbeat job that calls the CTI Update check API endpoint (`/ping`).
 
 - Enabled by default through `plugins.content_manager.telemetry.enabled`.
 - Can be toggled at runtime because it is a dynamic setting.
@@ -35,96 +36,92 @@ Implements a daily heartbeat job (`wazuh-telemetry-ping-job`) that calls the CTI
 - Job metadata is stored in `.wazuh-content-manager-jobs`.
 - The first ping is dispatched immediately after the job is registered in the scheduler; subsequent runs follow the 1-day interval.
 
-### Consumer Service
+### Consumer service
 
-Orchestrates synchronization for each catalog consumer type (ruleset, iocs, vulnerabilities). Compares local offsets (from `.wazuh-cti-consumers`) with remote offsets from the CTI API, then delegates to either the Snapshot Service or Update Service. Tracks the sync lifecycle through the `status` field in `.wazuh-cti-consumers`: set to `running` at the start of `synchronize()`, then to `ready` once all post-sync work (hash recalculation, Security Analytics sync, Engine notification) is complete, or to `failed` if an unexpected exception interrupts the sync.
+Orchestrates synchronization for each catalog consumer type (ruleset, IoCs, vulnerabilities). Compares local offsets (from `.wazuh-cti-consumers`) with remote offsets from the CTI API, then delegates to either the snapshot service or the update service. Tracks the sync lifecycle through the `status` field in `.wazuh-cti-consumers` — see [Index structure](#index-structure) below for the status values.
 
-### Snapshot Service
+### Snapshot service
 
 Handles initial content loading. Initializes from either a remote CTI snapshot (when a custom consumer URL is configured) or a local packaged snapshot, then extracts and bulk-indexes content into the appropriate system indices. Performs data enrichment (e.g., converting JSON payloads to YAML for decoders).
 
-### Update Service
+### Update service
 
 Handles incremental updates. Fetches change batches from the CTI API based on offset differences and applies create, update, and delete operations to content indices.
 
-### Security Analytics Service
+### Security Analytics service
 
-Interfaces with the OpenSearch Security Analytics plugin. Creates, updates, and deletes Security Analytics rules, integrations, and detectors to keep them in sync with CTI content.
+Interfaces with the Security Analytics plugin. Creates, updates, and deletes Security Analytics rules, integrations, and detectors to keep them in sync with CTI content.
 
-**Dynamic Configuration**: Instead of using hardcoded defaults, the service extracts `enabled`, `interval`, and `source` (index patterns) directly from the CTI integration payload. This allows CTI to control detector behavior dynamically.
+**Dynamic configuration**: instead of using hardcoded defaults, the service extracts the enabled state, interval, and source index patterns directly from the CTI integration payload. This allows CTI to control detector behavior dynamically.
 
-**Document ID model**: SAP documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each SAP document stores:
-- `document.id` — the UUID of the original CTI document in the Content Manager.
-- `source` — the space the document belongs to (e.g., "draft", "test", "custom", or "standard").
+**Document ID model**: Security Analytics documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each Security Analytics document stores the UUID of the original CTI document and the space it belongs to (draft, test, custom, or standard), so the same CTI resource can exist across multiple spaces without ID collisions.
 
-This design allows the same CTI resource to exist across multiple spaces without ID collisions. Association and lookup between CTI and SAP documents is performed by querying `document.id` + `source`.
+> **Note:** Security Analytics enforces a maximum of 100 rules per detector. If an integration has more than 100 enabled rules, the detector creation or update request will be rejected. See [Security Analytics — Detector constraints](../security-analytics/index.md#detector-constraints) for details.
 
-> **Note:** SAP enforces a maximum of 100 rules per detector. If an integration has more than 100 enabled rules, the detector creation or update request will be rejected. See [Security Analytics — Detector constraints](../security-analytics/index.md#detector-constraints) for details.
+### Space service
 
-### Space Service
+Manages the four content spaces (standard, draft, test, custom). Routes CUD operations to the correct space partitions within system indices. Handles promotion by computing diffs between spaces in the promotion chain (draft → test → custom).
 
-Manages the four content spaces (standard, draft, test, custom). Routes CUD operations to the correct space partitions within system indices. Handles promotion by computing diffs between spaces in the promotion chain (Draft → Test → Custom).
-
-### Engine Client
+### Engine client
 
 Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-indexer/engine/sockets/engine-api.sock`. Used for logtest execution, content validation, and configuration reload.
 
-## Data Flows
+## Data flows
 
-### CTI Sync (Snapshot)
+### CTI sync (snapshot)
 
 ```
-Job Scheduler triggers
-  → Consumer Service checks .wazuh-cti-consumers (offset = 0)
+Job scheduler triggers
+  → Consumer service checks .wazuh-cti-consumers (offset = 0)
   → If custom catalog URL is configured: try remote snapshot first
   → If remote init fails: fallback to local packaged snapshot
   → If no custom catalog URL: initialize from local packaged snapshot
   → Extracts and bulk-indexes into wazuh-threatintel-rules, wazuh-threatintel-decoders, etc.
   → Updates .wazuh-cti-consumers with new offset
-  → Security Analytics Service creates detectors using dynamic CTI configuration (max 100 rules per detector)
+  → Security Analytics service creates detectors using dynamic CTI configuration (max 100 rules per detector)
 ```
 
-### CTI Sync (Incremental)
+### CTI sync (incremental)
 
 ```
-Job Scheduler triggers
-  → Consumer Service checks .wazuh-cti-consumers (local_offset < remote_offset)
-  → Update Service fetches change batches from CTI API
-  → Applies CREATE/UPDATE/DELETE to content indices
+Job scheduler triggers
+  → Consumer service checks .wazuh-cti-consumers (local_offset < remote_offset)
+  → Update service fetches change batches from CTI API
+  → Applies create/update/delete operations to content indices
   → Updates .wazuh-cti-consumers offset
-  → Security Analytics Service syncs changes
+  → Security Analytics service syncs changes
 ```
 
-### Update Check Heartbeat
+### Update check heartbeat
 
 ```
 Registration (on node start or dynamic enable)
-  → TelemetryPingJob document indexed in .wazuh-content-manager-jobs
+  → Heartbeat job document indexed in .wazuh-content-manager-jobs
   → Immediate first ping fired once the document is written
 
-Job Scheduler triggers (every 24h thereafter)
-  → TelemetryPingJob checks plugins.content_manager.telemetry.enabled
+Job scheduler triggers (every 24h thereafter)
+  → Checks plugins.content_manager.telemetry.enabled
   → Reads cluster UUID and current Wazuh version
-  → TelemetryClient sends GET /ping to CTI Update check API
+  → Sends GET /ping to CTI Update check API
   → Wazuh Dashboard can surface update availability to users
 ```
 
-### User-Generated Content (CUD)
+### User-generated content (CUD)
 
 ```
 REST request (POST/PUT/DELETE)
-  → Space Service routes to draft space
+  → Space service routes to draft space
   → Writes to wazuh-threatintel-rules / wazuh-threatintel-decoders / wazuh-threatintel-integrations / wazuh-threatintel-kvdbs
   → Returns created/updated/deleted resource
 ```
 
-### Standard Policy Engine Loading
+### Standard policy Engine loading
 
-The local Wazuh Engine must always reflect the latest version of the standard space policy. Whenever the standard space `space.hash` changes, the full policy — including all referenced integrations, decoders, kvdbs, filters, and rules — is built and sent to the Engine via `EngineService.promote()`.
+The local Wazuh Engine must always reflect the latest version of the standard space policy. Whenever the standard space policy hash changes, the full policy — including all referenced integrations, decoders, KVDBs, filters, and rules — is built and sent to the Engine for loading.
 
-The `space.hash` is an aggregate SHA-256 computed from the individual hashes of the policy and every resource it references. Any change to the policy will trigger a reload. These changes include:
+The policy hash is an aggregate SHA-256 computed from the individual hashes of the policy and every resource it references. Any change to the policy will trigger a reload. These changes include:
 
-- New or updated integrations, decoders, rules, kvdbs, or filters (via CTI sync)
+- New or updated integrations, decoders, rules, KVDBs, or filters (via CTI sync)
 - Changes to policy settings (`enabled`, `index_unclassified_events`, `index_discarded_events`)
 - Changes to the enrichment types list
 - Reordering of the filters list
@@ -135,7 +132,7 @@ The engine load is best-effort: if the Engine is unreachable, the error is logge
 
 ```
 GET /promote?space=draft
-  → Space Service computes diff (draft vs test, or test vs custom)
+  → Space service computes diff (draft vs test, or test vs custom)
   → Returns changes preview (adds, updates, deletes per content type)
 
 POST /promote
@@ -143,70 +140,63 @@ POST /promote
   → Engine validates configuration (draft → test only, and only when the
     changeset includes decoders, kvdbs, or filters — promotions limited to
     integrations, rules, or the policy skip the engine call)
-  → Consolidate changes to CM indices (tracked for rollback)
+  → Consolidate changes to Content Manager indices (tracked for rollback)
       → Apply adds/updates: policy, integrations, kvdbs, decoders, filters, rules
       → Apply deletes: integrations, kvdbs, decoders, filters, rules
-  → Sync integrations and rules to SAP:
-      → ADDs use POST (new SAP document)
-      → UPDATEs use PUT (existing SAP document)
-  → Delete removed integrations/rules from SAP
+  → Sync integrations and rules to Security Analytics:
+      → Adds use POST (new document)
+      → Updates use PUT (existing document)
+  → Delete removed integrations/rules from Security Analytics
 ```
 
-### Rollback on Failure
+### Rollback on failure
 
-If any Content Manager index mutation fails during the consolidation phase, the
-promotion endpoint automatically performs a LIFO (Last-In, First-Out) rollback
-to restore the system to its pre-promotion state.
+If any Content Manager index mutation fails during the consolidation phase, the promotion endpoint automatically performs a last-in-first-out (LIFO) rollback to restore the system to its pre-promotion state.
 
-#### Pre-Promotion Snapshots
+#### Pre-promotion snapshots
 
 Before any writes, the system captures:
-- **Old versions** (`captureOldVersions`): For each resource being added or updated,
-  the current target-space version is fetched and stored. If the resource does not exist
-  in the target space, `null` is stored.
-- **Delete snapshots** (`captureDeleteSnapshots`): For each resource being deleted, the
-  full document is fetched from the source space and stored.
+- **Old versions**: for each resource being added or updated, the current target-space version is fetched and stored. If the resource does not exist in the target space, no version is stored.
+- **Delete snapshots**: for each resource being deleted, the full document is fetched from the source space and stored.
 
-#### CM Index Rollback
+#### Content Manager index rollback
 
-Each successful index mutation is recorded as a `RollbackStep(kind, resourceType)`. On
-failure, steps are replayed in strict reverse (LIFO) order:
+Each successful index mutation is recorded as a rollback step. On failure, steps are replayed in strict reverse (LIFO) order:
 
 | Forward operation | Old version | Rollback action |
 |---|---|---|
-| ADD (apply) | `null` | Delete the newly created document |
-| UPDATE (apply) | non-null | Restore the previous version |
-| DELETE | snapshot | Re-index the snapshotted document |
+| Add (apply) | none | Delete the newly created document |
+| Update (apply) | exists | Restore the previous version |
+| Delete | snapshot | Re-index the snapshotted document |
 
 Individual rollback step failures are logged and skipped so remaining steps can proceed.
 
-#### SAP Reconciliation
+#### Security Analytics reconciliation
 
-After CM rollback completes, a best-effort SAP reconciliation runs in dependency order:
+After the Content Manager rollback completes, a best-effort Security Analytics reconciliation runs in dependency order:
 
-1. **Revert applied rules** — ADDs are deleted from SAP; UPDATEs are restored to old version.
-2. **Revert applied integrations** — Same as above.
-3. **Restore deleted integrations** — Re-created from pre-deletion snapshots via POST.
-4. **Restore deleted rules** — Same as above.
+1. **Revert applied rules** — adds are deleted from Security Analytics; updates are restored to the old version.
+2. **Revert applied integrations** — same as above.
+3. **Restore deleted integrations** — re-created from pre-deletion snapshots via POST.
+4. **Restore deleted rules** — same as above.
 
-SAP reconciliation failures are logged as warnings but do not cause the overall rollback
-to fail, since SAP sync is considered best-effort.
+Security Analytics reconciliation failures are logged as warnings but do not cause the overall rollback to fail, since the sync is considered best-effort.
 
 ```
 Consolidation fails at step N
   → LIFO rollback: undo step N-1, N-2, ..., 1
-      → APPLY + null old version → delete from target index
-      → APPLY + old version → restore old version to target index
-      → DELETE → re-index snapshot to target index
-  → SAP reconciliation (best-effort):
-      → Delete rules that were added to SAP
-      → Restore rules that were updated in SAP
-      → Restore integrations that were added/updated in SAP
-      → Re-create integrations/rules that were deleted from SAP
+      → Add + no old version → delete from target index
+      → Add/update + old version → restore old version to target index
+      → Delete → re-index snapshot to target index
+  → Security Analytics reconciliation (best-effort):
+      → Delete rules that were added
+      → Restore rules that were updated
+      → Restore integrations that were added/updated
+      → Re-create integrations/rules that were deleted
   → Return 500 with error message
 ```
 
-## Plan Change Handling (Blue/Green Swap)
+## Plan change handling (blue/green swap)
 
 When a subscription plan changes (e.g., free → pro, or vice versa), all downloaded content must be replaced with the content matching the new plan. The Content Manager uses a **blue/green index swap** to perform this replacement without any user-visible downtime.
 
@@ -222,8 +212,7 @@ When a subscription plan changes (e.g., free → pro, or vice versa), all downlo
 
 If the new content cannot be downloaded or processed (network error, source unavailable, etc.), the swap is abandoned cleanly: the staging indices are discarded, users continue to see the old content, and the system retries on the next scheduled sync. A failed swap is invisible to the end user.
 
-
-## Index Structure
+## Index structure
 
 Each content index (e.g., `wazuh-threatintel-rules`) is backed by an **alias**. The public alias name is the stable identifier used by all queries, dashboards, and REST APIs. The actual data lives in a physical index suffixed with `-a` or `-b`:
 
@@ -277,4 +266,4 @@ The `status` field reflects the consumer's synchronization lifecycle:
 | `running` | Sync is in progress; content may be partially written or inconsistent. |
 | `failed` | The previous sync cycle was interrupted by an unexpected exception. |
 
-The status is set to `running` at the very start of a sync cycle and transitions to `ready` after all post-sync work finishes — including hash recalculation, Security Analytics Plugin synchronization, and Engine IoC notification — or to `failed` if an unexpected exception interrupts the cycle. The Job Scheduler logs the failure and retries on the next scheduled run regardless of the consumer's status.
+The status is set to `running` at the very start of a sync cycle and transitions to `ready` after all post-sync work finishes — including hash recalculation, Security Analytics Plugin synchronization, and Engine IoC notification — or to `failed` if an unexpected exception interrupts the cycle. The job scheduler logs the failure and retries on the next scheduled run regardless of the consumer's status.

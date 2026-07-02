@@ -2,6 +2,8 @@
 
 The Wazuh Common Schema (WCS) is a standardized structure for organizing and categorizing security event data collected by Wazuh. It is designed to facilitate data analysis, correlation, and reporting across different data sources and types.
 
+This page documents the event category taxonomy shared by the stateless event and finding data streams. WCS also covers stateful inventory indices (see [Indices](./index.md#indices) above), the metrics streams, and the content and CVE indices owned by the Content Manager plugin (see [Content Manager](../content-manager/index.md#system-indices)) — those aren't repeated here.
+
 ### Categorization
 
 The Wazuh Common Schema categorizes events into several key areas to streamline data management and analysis.
@@ -33,7 +35,7 @@ The **Key** column is the canonical identifier used throughout the system — in
 
 > **Note:** `unclassified` is a catch-all for events that could not be assigned to any other category. It is managed automatically by the pipeline and should not be used as a target category when creating new integrations or rules.
 
-### Data Streams
+### Data streams
 
 Each category maps to a dedicated data stream following the pattern `wazuh-events-v5-{key}`:
 

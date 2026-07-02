@@ -1,12 +1,120 @@
-# Wazuh Indexer Setup Plugin — Development Guide
+# Wazuh Indexer Setup plugin — development guide
 
-This document describes how to extend the Wazuh Indexer setup plugin to create new index templates and index management policies (ISM) for OpenSearch.
+This document describes how to extend the Wazuh Indexer setup plugin to create new index templates and index management policies (ISM) for OpenSearch. See [Architecture](../../ref/modules/setup/architecture.md) for the conceptual overview.
 
 ---
 
-## 📦 Creating a New Index
+## Class diagram
 
-### 1. Add a New Index Template
+```mermaid
+---
+title: Wazuh Indexer setup plugin
+---
+classDiagram
+    %% Classes
+    class IndexInitializer
+    <<interface>> IndexInitializer
+    class Index
+    <<abstract>> Index
+    class IndexStateManagement
+    class WazuhIndex
+    <<abstract>> WazuhIndex
+    class StateIndex
+    class StreamIndex
+
+    %% Relations
+    IndexInitializer <|-- Index : implements
+    Index <|-- IndexStateManagement
+    Index <|-- WazuhIndex
+    WazuhIndex <|-- StateIndex
+    WazuhIndex <|-- StreamIndex
+
+    %% Schemas
+    class IndexInitializer {
+        +createIndex(String index) void
+        +createTemplate(String template) void
+    }
+    class Index {
+        Client client
+        ClusterService clusterService
+        IndexUtils utils
+        String index
+        String template
+        +Index(String index, String template)
+        +setClient(Client client) IndexInitializer
+        +setClusterService(ClusterService clusterService) IndexInitializer
+        +setIndexUtils(IndexUtils utils) IndexInitializer
+        +indexExists(String indexName) bool
+        +initialize() void
+        +createIndex(String index) void
+        +createTemplate(String template) void
+    }
+    class IndexStateManagement {
+        -List~String~ policies
+        +initialize() void
+        -createPolicies() void
+        -indexPolicy(String policy) void
+    }
+    class WazuhIndex {
+    }
+    class StreamIndex {
+        -String alias
+        +StreamIndex(String index, String template, String alias)
+        +createIndex(String index)
+    }
+    class StateIndex {
+    }
+```
+
+The `SetupPlugin` class holds the list of indices to create. The logic for the creation of the index templates and the indices is encapsulated in the `Index` abstract class. Each subclass can override this logic if necessary. The `SetupPlugin::onNodeStarted()` method invokes the `Index::initialize()` method, effectively creating every index in the list. The plugin implements the [ClusterPlugin](https://github.com/opensearch-project/OpenSearch/blob/3.1.0/server/src/main/java/org/opensearch/plugins/ClusterPlugin.java) interface to hook into this method.
+
+## Sequence diagram
+
+> **Note** Calls to `Client` are asynchronous.
+
+```mermaid
+sequenceDiagram
+    actor Node
+    participant SetupPlugin
+    participant Index
+    participant Client
+    Node->>SetupPlugin: plugin.onNodeStarted()
+    activate SetupPlugin
+    Note over Node,SetupPlugin: Invoked on Node::start()
+
+    activate Index
+    loop i..n indices
+        SetupPlugin->>Index: i.initialize()
+
+
+        Index-)Client: createTemplate(i)
+        Client--)Index: response
+
+        Index-)Client: indexExists(i)
+        Client--)Index: response
+        alt index i does not exist
+            Index-)Client: createIndex(i)
+            Client--)Index: response
+        end
+    end
+
+    deactivate Index
+    deactivate SetupPlugin
+```
+
+## JavaDoc
+
+The plugin is documented using JavaDoc. You can compile the documentation using the Gradle task for that purpose. The generated JavaDoc is in the **build/docs** folder.
+
+```bash
+./gradlew javadoc
+```
+
+---
+
+## Creating a new index
+
+### 1. Add a new index template
 
 Create a new JSON file in the directory: `/plugins/setup/src/main/resources`
 
@@ -32,7 +140,7 @@ Follow the existing structure and naming convention. Example:
 }
 ```
 
-### 2. Register the Index in the Code
+### 2. Register the index in the code
 
 Edit the constructor of the `SetupPlugin` class located at: `/plugins/setup/src/main/java/com/wazuh/setup/SetupPlugin.java`
 
@@ -59,20 +167,25 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
 }
 ```
 
-> ✅ Verifying Template and Index Creation
+> **Verifying template and index creation**
 > After building the plugin and deploying the Wazuh Indexer with it, you can verify the index templates and indices using the following commands:
 > ```bash
 > curl -X GET <indexer-IP>:9200/_index_template/
 > curl -X GET <indexer-IP>:9200/_cat/indices?v
 > ```
 Alternatively, use the Developer Tools console from the Wazuh Dashboard, or your browser.
-## 🔁 Creating a New ISM (Index State Management) Policy
-### 1. Add Rollover Alias to the Index Template
+
+## Creating a new ISM (Index State Management) policy
+
+### 1. Add rollover alias to the index template
+
 Edit the existing index template JSON file and add the following setting:
 ```json
 "plugins.index_state_management.rollover_alias": "<index-name>"
 ```
-### 2. Define the ISM Policy
+
+### 2. Define the ISM policy
+
 Refer to the [OpenSearch ISM Policies documentation](https://docs.opensearch.org/3.6/im-plugin/ism/policies/) for more details.
 
 Here is an example ISM policy:
@@ -136,7 +249,8 @@ Here is an example ISM policy:
 }
 ```
 
-### 3. Register the ISM Policy in the Plugin Code
+### 3. Register the ISM policy in the plugin code
+
 Edit the `IndexStateManagement` class located at: `/plugins/setup/src/main/java/com/wazuh/setup/index/IndexStateManagement.java`
 
 Register the new policy constant and add it in the constructor:
@@ -161,7 +275,7 @@ public IndexStateManagement(String index, String template) {
 }
 ```
 
-## 📌 Additional Notes
+## Additional notes
 Always follow existing naming conventions to maintain consistency.
 
 Use epoch timestamps (in milliseconds) for `last_updated_time` fields.
@@ -170,7 +284,7 @@ ISM policies and templates must be properly deployed before the indices are crea
 
 ---
 
-## 🚀 Event Stream Templates
+## Event stream templates
 
 ### Overview
 
@@ -224,13 +338,13 @@ new StreamIndex("wazuh-active-responses", "templates/streams/active-responses")
 
 ---
 
-## 🚀 Events Data Stream ISM Policy (`stream-events-policy`)
+## Events data stream ISM policy (`stream-events-policy`)
 
 ### Overview
 
 The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It combines rollover (based on shard size or document count) with a short retention period to ensure timely cleanup of processed event data.
 
-### Policy Details
+### Policy details
 - **Policy Name**: `stream-events-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-events-policy.json`
 - **Index Pattern**: `wazuh-events-v5-*`
@@ -238,7 +352,7 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 - **Rollover Conditions**: 25 GB primary shard size or 200,000,000 documents
 - **Priority**: 50
 
-### Policy States
+### Policy states
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 25 GB or 200M documents
@@ -250,13 +364,13 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 
 ---
 
-## 🚀 Findings Data Stream ISM Policy (`stream-findings-policy`)
+## Findings data stream ISM policy (`stream-findings-policy`)
 
 ### Overview
 
 The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. It combines rollover with a 90-day retention period to maintain detection findings for compliance and investigation purposes.
 
-### Policy Details
+### Policy details
 - **Policy Name**: `stream-findings-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-findings-policy.json`
 - **Index Pattern**: `wazuh-findings-v5-*`
@@ -264,7 +378,7 @@ The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. I
 - **Rollover Conditions**: 25 GB primary shard size or 200,000,000 documents
 - **Priority**: 50
 
-### Policy States
+### Policy states
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 25 GB or 200M documents
@@ -276,13 +390,13 @@ The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. I
 
 ---
 
-## 🚀 Raw Events Data Stream ISM Policy (`stream-raw-events-policy`)
+## Raw events data stream ISM policy (`stream-raw-events-policy`)
 
 ### Overview
 
 The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream with an aggressive 10-minute retention for temporary raw event storage.
 
-### Policy Details
+### Policy details
 - **Policy Name**: `stream-raw-events-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-raw-events-policy.json`
 - **Index Pattern**: `wazuh-events-raw-v5*`
@@ -290,7 +404,7 @@ The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream w
 - **Rollover Conditions**: 25 GB primary shard size or 200,000,000 documents
 - **Priority**: 100
 
-### Policy States
+### Policy states
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 25 GB or 200M documents
@@ -302,7 +416,7 @@ The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream w
 
 ---
 
-## 🚀 Active Responses Data Stream (`wazuh-active-responses`)
+## Active responses data stream (`wazuh-active-responses`)
 
 ### Overview
 
@@ -314,15 +428,15 @@ The **wazuh-active-responses** data stream stores Active Response execution requ
 - **Manager Retrieval**: The Wazuh manager retrieves documents from this index to distribute and execute Active Responses on agents
 - **Event Correlation**: Each document references the source event (document ID and index) that triggered the response
 
-### Data Stream Configuration
+### Data stream configuration
 
-#### Index Template
+#### Index template
 - **Location**: `plugins/setup/src/main/resources/templates/streams/active-responses.json`
 - **Index Pattern**: `wazuh-active-responses*`
 - **Rollover Alias**: `wazuh-active-responses`
 - **Priority**: 1
 
-#### Fields Included (WCS-compatible)
+#### Fields included (WCS-compatible)
 
 - **@timestamp**: When the document was inserted into the wazuh-active-responses index (indexing time)
 - **event.doc_id**: Document ID of the matched alert that triggered the active response
@@ -338,9 +452,9 @@ The **wazuh-active-responses** data stream stores Active Response execution requ
 - **wazuh.cluster.***: Cluster information
 - **wazuh.space.name**: Wazuh space/tenant information
 
-### ISM Policy
+### ISM policy
 
-#### Policy Details
+#### Policy details
 - **Policy Name**: `stream-active-responses-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-active-responses-policy.json`
 - **Retention Period**: 3 days
