@@ -158,11 +158,9 @@ public class SpaceService {
 
                     @Override
                     public void onFailure(Exception e) {
-                        log.error(
-                                Constants.E_LOG_DELETE_SPACE_RESOURCES_FAILED, spaceName, e.getMessage());
+                        log.error(Constants.E_LOG_DELETE_SPACE_RESOURCES_FAILED, spaceName, e.getMessage());
                         listener.onFailure(
-                                new IOException(
-                                        "Failed to delete space resources: " + e.getMessage(), e));
+                                new IOException("Failed to delete space resources: " + e.getMessage(), e));
                     }
                 });
     }
@@ -175,8 +173,7 @@ public class SpaceService {
         }
         try {
             bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-            BulkResponse response =
-                    this.offloadBlocking(() -> this.client.bulk(bulkRequest).actionGet());
+            BulkResponse response = this.offloadBlocking(() -> this.client.bulk(bulkRequest).actionGet());
             if (response.hasFailures()) {
                 listener.onFailure(
                         new IOException("Bulk deletion failed: " + response.buildFailureMessage()));
@@ -185,8 +182,7 @@ public class SpaceService {
             }
         } catch (Exception e) {
             log.error(Constants.E_LOG_DELETE_SPACE_RESOURCES_FAILED, spaceName, e.getMessage());
-            listener.onFailure(
-                    new IOException("Failed to delete space resources: " + e.getMessage(), e));
+            listener.onFailure(new IOException("Failed to delete space resources: " + e.getMessage(), e));
         }
     }
 

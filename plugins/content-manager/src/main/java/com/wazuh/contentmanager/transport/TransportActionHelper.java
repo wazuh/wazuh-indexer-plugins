@@ -76,8 +76,7 @@ public final class TransportActionHelper {
                     public void onFailure(Exception e) {
                         OpenSearchSecurityException secEx = extractSecurityException(e);
                         if (secEx != null) {
-                            onError.accept(
-                                    new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
+                            onError.accept(new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
                         } else {
                             onError.accept(
                                     new RestResponse(

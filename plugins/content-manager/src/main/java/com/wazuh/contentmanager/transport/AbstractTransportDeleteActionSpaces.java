@@ -89,11 +89,9 @@ public abstract class AbstractTransportDeleteActionSpaces
                 () -> {
                     try {
                         RestResponse result =
-                                executeDeleteWorkflow(
-                                        request, client, spaceService, securityAnalyticsService);
+                                executeDeleteWorkflow(request, client, spaceService, securityAnalyticsService);
                         listener.onResponse(
-                                new ContentResponse(
-                                        result.getMessage(), RestStatus.fromCode(result.getStatus())));
+                                new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
                     } catch (Exception e) {
                         listener.onResponse(
                                 new ContentResponse(
@@ -104,8 +102,7 @@ public abstract class AbstractTransportDeleteActionSpaces
                 policyError ->
                         listener.onResponse(
                                 new ContentResponse(
-                                        policyError.getMessage(),
-                                        RestStatus.fromCode(policyError.getStatus()))));
+                                        policyError.getMessage(), RestStatus.fromCode(policyError.getStatus()))));
     }
 
     private RestResponse executeDeleteWorkflow(

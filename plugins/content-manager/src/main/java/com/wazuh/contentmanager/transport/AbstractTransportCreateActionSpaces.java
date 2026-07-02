@@ -95,11 +95,9 @@ public abstract class AbstractTransportCreateActionSpaces
                 () -> {
                     try {
                         RestResponse result =
-                                executeCreateWorkflow(
-                                        request, client, spaceService, securityAnalyticsService);
+                                executeCreateWorkflow(request, client, spaceService, securityAnalyticsService);
                         listener.onResponse(
-                                new ContentResponse(
-                                        result.getMessage(), RestStatus.fromCode(result.getStatus())));
+                                new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
                     } catch (Exception e) {
                         listener.onResponse(
                                 new ContentResponse(
@@ -110,8 +108,7 @@ public abstract class AbstractTransportCreateActionSpaces
                 policyError ->
                         listener.onResponse(
                                 new ContentResponse(
-                                        policyError.getMessage(),
-                                        RestStatus.fromCode(policyError.getStatus()))));
+                                        policyError.getMessage(), RestStatus.fromCode(policyError.getStatus()))));
     }
 
     private RestResponse executeCreateWorkflow(
