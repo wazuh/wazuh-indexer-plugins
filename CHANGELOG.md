@@ -110,6 +110,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add alerting documentation [(#1231)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1231)
 - Add limits for the creation of filters, integrations, decoders, rules and kvdbs [(#1291)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1291)
 - Implement RBAC to safeguard sensitive configuration [(#1310)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1310)
+- Add `index.gc_deletes` setting to stateful index templates [(#1330)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1330)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
