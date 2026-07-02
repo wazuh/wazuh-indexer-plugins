@@ -23,6 +23,7 @@ import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
@@ -208,7 +209,9 @@ public abstract class AbstractTransportDeleteActionSpaces
             index.delete(id);
 
             // 6. Hash Update
-            spaceService.calculateAndUpdate(List.of(spaceName));
+            PlainActionFuture<Set<String>> hashFuture = new PlainActionFuture<>();
+            spaceService.calculateAndUpdate(List.of(spaceName), hashFuture);
+            hashFuture.actionGet();
 
             log.info(Constants.I_LOG_SUCCESS, "Deleted", this.getResourceType(), id);
             return new RestResponse(id, RestStatus.OK.getStatus());

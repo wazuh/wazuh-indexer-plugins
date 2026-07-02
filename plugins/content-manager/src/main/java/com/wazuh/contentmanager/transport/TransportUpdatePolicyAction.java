@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -181,7 +182,9 @@ public class TransportUpdatePolicyAction
                 return;
             }
 
-            Set<String> knownEnrichmentTypes = this.spaceService.getKnownEnrichmentTypes();
+            PlainActionFuture<Set<String>> enrichmentFuture = new PlainActionFuture<>();
+            this.spaceService.getKnownEnrichmentTypes(enrichmentFuture);
+            Set<String> knownEnrichmentTypes = enrichmentFuture.actionGet();
 
             // Validate enrichments
             RestResponse enrichmentsValidationError =
@@ -204,7 +207,9 @@ public class TransportUpdatePolicyAction
             }
 
             // Regenerate space hash
-            Set<String> changedSpaces = this.spaceService.calculateAndUpdate(List.of(spaceName));
+            PlainActionFuture<Set<String>> hashFuture = new PlainActionFuture<>();
+            this.spaceService.calculateAndUpdate(List.of(spaceName), hashFuture);
+            Set<String> changedSpaces = hashFuture.actionGet();
 
             // Load the standard space into the Engine only if its hash changed
             if (changedSpaces.contains(Space.STANDARD.toString())) {
@@ -230,7 +235,9 @@ public class TransportUpdatePolicyAction
     @SuppressWarnings("unchecked")
     private String updateStandardPolicy(Policy incomingPolicy)
             throws IOException, IllegalStateException {
-        Map<String, Object> currentPolicy = this.spaceService.getPolicy(Space.STANDARD.toString());
+        PlainActionFuture<Map<String, Object>> stdPolicyFuture = new PlainActionFuture<>();
+        this.spaceService.getPolicy(Space.STANDARD.toString(), stdPolicyFuture);
+        Map<String, Object> currentPolicy = stdPolicyFuture.actionGet();
         Map<String, Object> currentPolicyDoc =
                 (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
         if (currentPolicyDoc == null) {
@@ -326,9 +333,10 @@ public class TransportUpdatePolicyAction
             ObjectNode hashNode = mapper.createObjectNode();
             hashNode.put(Constants.KEY_SHA256, hash);
             document.set(Constants.KEY_HASH, hashNode);
-            String standardPolicyId =
-                    this.spaceService.findDocumentId(
-                            Constants.INDEX_POLICIES, Space.STANDARD.toString(), docId);
+            PlainActionFuture<String> stdIdFuture = new PlainActionFuture<>();
+            this.spaceService.findDocumentId(
+                    Constants.INDEX_POLICIES, Space.STANDARD.toString(), docId, stdIdFuture);
+            String standardPolicyId = stdIdFuture.actionGet();
             IndexResponse indexResponse = index.create(standardPolicyId, document);
             return indexResponse.getId();
         } catch (Exception e) {
@@ -338,7 +346,9 @@ public class TransportUpdatePolicyAction
 
     @SuppressWarnings("unchecked")
     private String updatePolicy(Policy policy) throws IOException, IllegalStateException {
-        Map<String, Object> currentPolicy = this.spaceService.getPolicy(Space.DRAFT.toString());
+        PlainActionFuture<Map<String, Object>> draftPolicyFuture = new PlainActionFuture<>();
+        this.spaceService.getPolicy(Space.DRAFT.toString(), draftPolicyFuture);
+        Map<String, Object> currentPolicy = draftPolicyFuture.actionGet();
 
         Map<String, Object> currentPolicyDoc =
                 (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
@@ -409,8 +419,10 @@ public class TransportUpdatePolicyAction
             ObjectNode hashNode = mapper.createObjectNode();
             hashNode.put(Constants.KEY_SHA256, hash);
             document.set(Constants.KEY_HASH, hashNode);
-            String draftPolicyId =
-                    this.spaceService.findDocumentId(Constants.INDEX_POLICIES, Space.DRAFT.toString(), docId);
+            PlainActionFuture<String> draftIdFuture = new PlainActionFuture<>();
+            this.spaceService.findDocumentId(
+                    Constants.INDEX_POLICIES, Space.DRAFT.toString(), docId, draftIdFuture);
+            String draftPolicyId = draftIdFuture.actionGet();
             IndexResponse indexResponse = index.create(draftPolicyId, document);
             return indexResponse.getId();
         } catch (Exception e) {
@@ -424,7 +436,9 @@ public class TransportUpdatePolicyAction
             return;
         }
         try {
-            JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString());
+            PlainActionFuture<JsonNode> payloadFuture = new PlainActionFuture<>();
+            this.spaceService.buildEnginePayload(Space.STANDARD.toString(), payloadFuture);
+            JsonNode payload = payloadFuture.actionGet();
             RestResponse response = this.engineService.promote(payload);
             if (response.getStatus() == RestStatus.OK.getStatus()) {
                 log.info("Engine load for standard space completed successfully.");

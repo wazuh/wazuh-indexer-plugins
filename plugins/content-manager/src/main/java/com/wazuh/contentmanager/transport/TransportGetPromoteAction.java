@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -83,10 +84,13 @@ public class TransportGetPromoteAction
             }
 
             // 3. Fetch Resources for both spaces
-            Map<String, Map<String, String>> sourceContent =
-                    this.spaceService.getSpaceResources(sourceSpace.toString());
-            Map<String, Map<String, String>> targetContent =
-                    this.spaceService.getSpaceResources(targetSpace.toString());
+            PlainActionFuture<Map<String, Map<String, String>>> sourceFuture = new PlainActionFuture<>();
+            this.spaceService.getSpaceResources(sourceSpace.toString(), sourceFuture);
+            Map<String, Map<String, String>> sourceContent = sourceFuture.actionGet();
+
+            PlainActionFuture<Map<String, Map<String, String>>> targetFuture = new PlainActionFuture<>();
+            this.spaceService.getSpaceResources(targetSpace.toString(), targetFuture);
+            Map<String, Map<String, String>> targetContent = targetFuture.actionGet();
 
             // 4. Calculate Differences
             Map<String, List<Map<String, String>>> changes = new HashMap<>();
@@ -156,11 +160,15 @@ public class TransportGetPromoteAction
             throws Exception {
         List<Map<String, String>> changes = new ArrayList<>();
 
-        Map<String, Object> sourcePolicy = this.spaceService.getPolicy(sourceSpace);
+        PlainActionFuture<Map<String, Object>> sourcePolicyFuture = new PlainActionFuture<>();
+        this.spaceService.getPolicy(sourceSpace, sourcePolicyFuture);
+        Map<String, Object> sourcePolicy = sourcePolicyFuture.actionGet();
         Map<String, Object> sourceDoc = (Map<String, Object>) sourcePolicy.get(Constants.KEY_DOCUMENT);
         String sourceId = (String) sourceDoc.get(Constants.KEY_ID);
 
-        Map<String, Object> targetPolicy = this.spaceService.getPolicy(targetSpace);
+        PlainActionFuture<Map<String, Object>> targetPolicyFuture = new PlainActionFuture<>();
+        this.spaceService.getPolicy(targetSpace, targetPolicyFuture);
+        Map<String, Object> targetPolicy = targetPolicyFuture.actionGet();
         Map<String, Object> targetDoc = (Map<String, Object>) targetPolicy.get(Constants.KEY_DOCUMENT);
 
         if (sourceId == null || sourceId.isBlank()) {

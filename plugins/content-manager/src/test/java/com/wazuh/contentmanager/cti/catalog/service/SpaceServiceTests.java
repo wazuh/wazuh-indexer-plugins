@@ -16,13 +16,15 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.common.action.ActionFuture;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
@@ -32,20 +34,20 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.util.List;
+import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for the {@link PolicyHashService} class. This test suite verifies the calculation and
+ * Unit tests for the {@link SpaceService} class. This test suite verifies the calculation and
  * update of aggregate policy hashes based on their associated integrations, rules, decoders, and
  * key-value databases.
  *
@@ -61,16 +63,8 @@ public class SpaceServiceTests extends OpenSearchTestCase {
     @Mock private Client client;
     @Mock private AdminClient adminClient;
     @Mock private IndicesAdminClient indicesAdminClient;
-    @Mock private IndicesExistsRequestBuilder indicesExistsRequestBuilder;
     @Mock private IndicesExistsResponse indicesExistsResponse;
-    @Mock private ActionFuture<SearchResponse> searchFuture;
     @Mock private SearchResponse searchResponse;
-
-    private static final String POLICY_IDX = "wazuh-threatintel-policies";
-    private static final String INTEGRATION_IDX = "wazuh-threatintel-integrations";
-    private static final String DECODER_IDX = "wazuh-threatintel-decoders";
-    private static final String KVDB_IDX = "wazuh-threatintel-kvdbs";
-    private static final String RULE_IDX = "wazuh-threatintel-rules";
 
     @Before
     @Override
@@ -91,72 +85,94 @@ public class SpaceServiceTests extends OpenSearchTestCase {
     }
 
     /** Tests that calculateAndUpdate skips execution when the policy index does not exist. */
+    @SuppressWarnings("unchecked")
     public void testCalculateAndUpdateSkipsWhenPolicyIndexDoesNotExist() {
         when(this.client.admin()).thenReturn(this.adminClient);
         when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
-        when(this.indicesAdminClient.prepareExists(anyString()))
-                .thenReturn(this.indicesExistsRequestBuilder);
-        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndicesExistsResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.indicesExistsResponse);
+                            return null;
+                        })
+                .when(this.indicesAdminClient)
+                .exists(any(IndicesExistsRequest.class), any());
         when(this.indicesExistsResponse.isExists()).thenReturn(false);
 
-        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
+        PlainActionFuture<Set<String>> future = new PlainActionFuture<>();
+        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()), future);
+        future.actionGet();
 
-        verify(this.client, never()).search(any(SearchRequest.class));
+        verify(this.client, never()).search(any(SearchRequest.class), any());
     }
 
     /**
      * Tests that calculateAndUpdate handles empty policy search results without performing bulk
      * updates.
      */
+    @SuppressWarnings("unchecked")
     public void testCalculateAndUpdateHandlesEmptyPolicies() {
         when(this.client.admin()).thenReturn(this.adminClient);
         when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
-        when(this.indicesAdminClient.prepareExists(anyString()))
-                .thenReturn(this.indicesExistsRequestBuilder);
-        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndicesExistsResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.indicesExistsResponse);
+                            return null;
+                        })
+                .when(this.indicesAdminClient)
+                .exists(any(IndicesExistsRequest.class), any());
         when(this.indicesExistsResponse.isExists()).thenReturn(true);
 
-        when(this.client.search(any(SearchRequest.class))).thenReturn(this.searchFuture);
-        when(this.searchFuture.actionGet()).thenReturn(this.searchResponse);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
         SearchHits emptyHits = SearchHits.empty();
         when(this.searchResponse.getHits()).thenReturn(emptyHits);
 
-        // Should not throw any exception
-        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
+        PlainActionFuture<Set<String>> future = new PlainActionFuture<>();
+        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()), future);
+        future.actionGet();
 
-        verify(this.client).search(any(SearchRequest.class));
-        // No bulk update should be performed when there are no policies
-        verify(this.client, never()).bulk(any());
+        verify(this.client).search(any(SearchRequest.class), any());
+        verify(this.client, never()).bulk(any(), any());
     }
 
     /** Tests that calculateAndUpdate handles exceptions gracefully without propagating them. */
     public void testCalculateAndUpdateHandlesException() {
         when(this.client.admin()).thenThrow(new RuntimeException("Test exception"));
 
-        // Should not throw any exception - it should be caught internally
-        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
+        PlainActionFuture<Set<String>> future = new PlainActionFuture<>();
+        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()), future);
+        future.actionGet();
     }
 
     /**
      * Tests that initializeSpace sets enabled=true only for the draft space and enabled=false for
      * other spaces (test, custom, standard).
      */
+    @SuppressWarnings("unchecked")
     public void testInitializeSpace_DraftPolicyEnabledTrue() {
-        // Arrange
-        org.mockito.ArgumentCaptor<IndexRequest> captor =
-                org.mockito.ArgumentCaptor.forClass(IndexRequest.class);
-        org.opensearch.action.index.IndexResponse mockResponse =
-                org.mockito.Mockito.mock(org.opensearch.action.index.IndexResponse.class);
-        org.opensearch.common.action.ActionFuture<org.opensearch.action.index.IndexResponse>
-                mockFuture = org.mockito.Mockito.mock(org.opensearch.common.action.ActionFuture.class);
-        when(this.client.index(any(IndexRequest.class))).thenReturn(mockFuture);
-        when(mockFuture.actionGet()).thenReturn(mockResponse);
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
 
-        // Act: Initialize draft space
-        this.policyHashService.initializeSpace("draft", "test-doc-id");
+        PlainActionFuture<Void> future = new PlainActionFuture<>();
+        this.policyHashService.initializeSpace("draft", "test-doc-id", future);
+        future.actionGet();
 
-        // Verify the IndexRequest contains enabled=true for draft space
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
         IndexRequest request = captor.getValue();
         String sourceJson = request.source().utf8ToString();
         assertTrue(
@@ -166,26 +182,26 @@ public class SpaceServiceTests extends OpenSearchTestCase {
     /**
      * Tests that initializeSpace sets enabled=false for non-draft spaces (test, custom, standard).
      */
+    @SuppressWarnings("unchecked")
     public void testInitializeSpace_NonDraftPoliciesEnabledFalse() {
-        // Test for all non-draft spaces
         for (String spaceName : new String[] {"test", "custom", "standard"}) {
-            // Reinitialize mocks for each space
-            org.mockito.Mockito.reset(this.client);
+            Mockito.reset(this.client);
 
-            org.mockito.ArgumentCaptor<IndexRequest> captor =
-                    org.mockito.ArgumentCaptor.forClass(IndexRequest.class);
-            org.opensearch.action.index.IndexResponse mockResponse =
-                    org.mockito.Mockito.mock(org.opensearch.action.index.IndexResponse.class);
-            org.opensearch.common.action.ActionFuture<org.opensearch.action.index.IndexResponse>
-                    mockFuture = org.mockito.Mockito.mock(org.opensearch.common.action.ActionFuture.class);
-            when(this.client.index(any(IndexRequest.class))).thenReturn(mockFuture);
-            when(mockFuture.actionGet()).thenReturn(mockResponse);
+            ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+            doAnswer(
+                            invocation -> {
+                                ActionListener<IndexResponse> listener = invocation.getArgument(1);
+                                listener.onResponse(mock(IndexResponse.class));
+                                return null;
+                            })
+                    .when(this.client)
+                    .index(any(IndexRequest.class), any());
 
-            // Act: Initialize non-draft space
-            this.policyHashService.initializeSpace(spaceName, "test-doc-id");
+            PlainActionFuture<Void> future = new PlainActionFuture<>();
+            this.policyHashService.initializeSpace(spaceName, "test-doc-id", future);
+            future.actionGet();
 
-            // Verify the IndexRequest contains enabled=false for non-draft spaces
-            verify(this.client).index(captor.capture());
+            verify(this.client).index(captor.capture(), any());
             IndexRequest request = captor.getValue();
             String sourceJson = request.source().utf8ToString();
             assertTrue(

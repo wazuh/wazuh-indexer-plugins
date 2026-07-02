@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
@@ -36,6 +37,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.action.ContentCreateRequest;
@@ -256,7 +258,9 @@ public abstract class AbstractTransportCreateActionSpaces
             }
 
             // Update Hash
-            spaceService.calculateAndUpdate(List.of(spaceName));
+            PlainActionFuture<Set<String>> hashFuture = new PlainActionFuture<>();
+            spaceService.calculateAndUpdate(List.of(spaceName), hashFuture);
+            hashFuture.actionGet();
 
             log.info(Constants.I_LOG_SUCCESS, "Created", this.getResourceType(), id);
             return new RestResponse(id, RestStatus.CREATED.getStatus());

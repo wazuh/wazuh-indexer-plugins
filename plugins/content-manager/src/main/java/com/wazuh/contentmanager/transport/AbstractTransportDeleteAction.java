@@ -22,6 +22,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
@@ -30,6 +31,7 @@ import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import com.wazuh.contentmanager.action.ContentDeleteRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
@@ -207,7 +209,9 @@ public abstract class AbstractTransportDeleteAction
             index.delete(id);
 
             // 6. Hash Update
-            spaceService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
+            PlainActionFuture<Set<String>> hashFuture = new PlainActionFuture<>();
+            spaceService.calculateAndUpdate(List.of(Space.DRAFT.toString()), hashFuture);
+            hashFuture.actionGet();
 
             log.info(Constants.I_LOG_SUCCESS, "Deleted", this.getResourceType(), id);
             return new RestResponse(id, RestStatus.OK.getStatus());

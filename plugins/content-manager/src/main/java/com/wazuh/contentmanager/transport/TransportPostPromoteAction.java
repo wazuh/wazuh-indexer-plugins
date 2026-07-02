@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -132,9 +133,10 @@ public class TransportPostPromoteAction
 
             // 3. Validation Phase - Invoke engine validation
             Space targetSpace = spaceDiff.getSpace().promote();
+            PlainActionFuture<Boolean> hasResourcesFuture = new PlainActionFuture<>();
+            this.spaceService.hasEngineResources(targetSpace, hasResourcesFuture);
             if ((targetSpace == Space.TEST || targetSpace == Space.CUSTOM)
-                    && (this.hasEngineRelatedChanges(context)
-                            || this.spaceService.hasEngineResources(targetSpace))) {
+                    && (this.hasEngineRelatedChanges(context) || hasResourcesFuture.actionGet())) {
                 RestResponse engineResponse = this.engine.promote(context.enginePayload);
 
                 if (engineResponse.getStatus() != RestStatus.OK.getStatus()
@@ -154,7 +156,9 @@ public class TransportPostPromoteAction
             // 4. Consolidation Phase
             this.consolidateChanges(context);
 
-            this.spaceService.calculateAndUpdate(List.of(targetSpace.toString()));
+            PlainActionFuture<Set<String>> hashFuture = new PlainActionFuture<>();
+            this.spaceService.calculateAndUpdate(List.of(targetSpace.toString()), hashFuture);
+            hashFuture.actionGet();
 
             // 5. Response Phase
             listener.onResponse(
@@ -250,7 +254,9 @@ public class TransportPostPromoteAction
         Space targetSpace = sourceSpace.promote();
         SpaceDiff.Changes changes = spaceDiff.getChanges();
 
-        Map<String, Object> policyDocument = this.spaceService.getPolicy(sourceSpace.toString());
+        PlainActionFuture<Map<String, Object>> policyFuture = new PlainActionFuture<>();
+        this.spaceService.getPolicy(sourceSpace.toString(), policyFuture);
+        Map<String, Object> policyDocument = policyFuture.actionGet();
         if (policyDocument == null) {
             throw new IOException("Policy document not found for source space: " + sourceSpace);
         }
@@ -311,18 +317,20 @@ public class TransportPostPromoteAction
                 sourceSpace.toString(),
                 targetSpace.toString());
 
-        JsonNode enginePayload =
-                this.spaceService.buildEnginePayload(
-                        policyDocument,
-                        targetSpace.toString(),
-                        integrationsToApply,
-                        kvdbsToApply,
-                        decodersToApply,
-                        filtersToApply,
-                        integrationsToDelete,
-                        kvdbsToDelete,
-                        decodersToDelete,
-                        filtersToDelete);
+        PlainActionFuture<JsonNode> enginePayloadFuture = new PlainActionFuture<>();
+        this.spaceService.buildEnginePayload(
+                policyDocument,
+                targetSpace.toString(),
+                integrationsToApply,
+                kvdbsToApply,
+                decodersToApply,
+                filtersToApply,
+                integrationsToDelete,
+                kvdbsToDelete,
+                decodersToDelete,
+                filtersToDelete,
+                enginePayloadFuture);
+        JsonNode enginePayload = enginePayloadFuture.actionGet();
 
         PromotionContext context =
                 new PromotionContext(
@@ -362,16 +370,16 @@ public class TransportPostPromoteAction
 
         for (String docId : resourcesToApply.keySet()) {
             try {
-                Map<String, Object> existing;
+                PlainActionFuture<Map<String, Object>> existingFuture = new PlainActionFuture<>();
                 if (resourceType.equals(Constants.KEY_POLICY)) {
-                    existing = this.spaceService.getPolicy(context.targetSpace);
+                    this.spaceService.getPolicy(context.targetSpace, existingFuture);
                 } else {
-                    existing = this.spaceService.getDocument(indexName, context.targetSpace, docId);
+                    this.spaceService.getDocument(indexName, context.targetSpace, docId, existingFuture);
                 }
-                dest.put(docId, existing);
-            } catch (IOException e) {
+                dest.put(docId, existingFuture.actionGet());
+            } catch (Exception e) {
                 log.warn(Constants.W_LOG_SNAPSHOT_OLD_VERSION_FAILED, docId, resourceType, e.getMessage());
-                throw e;
+                throw e instanceof IOException ? (IOException) e : new IOException(e.getMessage(), e);
             }
         }
     }
@@ -388,15 +396,16 @@ public class TransportPostPromoteAction
 
         for (String docId : idsToDelete) {
             try {
-                Map<String, Object> existing =
-                        this.spaceService.getDocument(indexName, context.targetSpace, docId);
+                PlainActionFuture<Map<String, Object>> existingFuture = new PlainActionFuture<>();
+                this.spaceService.getDocument(indexName, context.targetSpace, docId, existingFuture);
+                Map<String, Object> existing = existingFuture.actionGet();
                 if (existing != null) {
                     dest.put(docId, existing);
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 log.error(
                         Constants.E_LOG_SNAPSHOT_DELETE_TARGET_FAILED, docId, resourceType, e.getMessage());
-                throw e;
+                throw e instanceof IOException ? (IOException) e : new IOException(e.getMessage(), e);
             }
         }
     }
@@ -421,8 +430,9 @@ public class TransportPostPromoteAction
 
             switch (operation) {
                 case ADD -> {
-                    Map<String, Object> sourceDoc =
-                            this.spaceService.getDocument(indexName, sourceSpace, resourceId);
+                    PlainActionFuture<Map<String, Object>> srcFuture = new PlainActionFuture<>();
+                    this.spaceService.getDocument(indexName, sourceSpace, resourceId, srcFuture);
+                    Map<String, Object> sourceDoc = srcFuture.actionGet();
                     if (sourceDoc == null) {
                         throw new IOException(
                                 "Resource '"
@@ -447,8 +457,9 @@ public class TransportPostPromoteAction
                                         + "'");
                     }
 
-                    Map<String, Object> targetDoc =
-                            this.spaceService.getDocument(indexName, targetSpace, resourceId);
+                    PlainActionFuture<Map<String, Object>> tgtFuture = new PlainActionFuture<>();
+                    this.spaceService.getDocument(indexName, targetSpace, resourceId, tgtFuture);
+                    Map<String, Object> targetDoc = tgtFuture.actionGet();
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
@@ -467,12 +478,13 @@ public class TransportPostPromoteAction
                     resourcesToApply.put(resourceId, sourceDoc);
                 }
                 case UPDATE -> {
-                    Map<String, Object> sourceDoc;
+                    PlainActionFuture<Map<String, Object>> updFuture = new PlainActionFuture<>();
                     if (resourceType.equals(Constants.KEY_POLICY)) {
-                        sourceDoc = this.spaceService.getPolicy(sourceSpace);
+                        this.spaceService.getPolicy(sourceSpace, updFuture);
                     } else {
-                        sourceDoc = this.spaceService.getDocument(indexName, sourceSpace, resourceId);
+                        this.spaceService.getDocument(indexName, sourceSpace, resourceId, updFuture);
                     }
+                    Map<String, Object> sourceDoc = updFuture.actionGet();
                     if (sourceDoc == null) {
                         throw new IOException(
                                 "Resource '"
@@ -499,8 +511,9 @@ public class TransportPostPromoteAction
                     resourcesToApply.put(resourceId, sourceDoc);
                 }
                 case REMOVE -> {
-                    Map<String, Object> targetDoc =
-                            this.spaceService.getDocument(indexName, targetSpace, resourceId);
+                    PlainActionFuture<Map<String, Object>> rmFuture = new PlainActionFuture<>();
+                    this.spaceService.getDocument(indexName, targetSpace, resourceId, rmFuture);
+                    Map<String, Object> targetDoc = rmFuture.actionGet();
                     if (targetDoc != null) {
                         @SuppressWarnings("unchecked")
                         Map<String, String> targetDocSpace =
@@ -538,8 +551,13 @@ public class TransportPostPromoteAction
             String resourceType, Map<String, Map<String, Object>> resources, PromotionContext context)
             throws IOException {
         if (!resources.isEmpty()) {
+            PlainActionFuture<Void> promoteFuture = new PlainActionFuture<>();
             this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(resourceType), resources, context.targetSpace);
+                    this.spaceService.getIndexForResourceType(resourceType),
+                    resources,
+                    context.targetSpace,
+                    promoteFuture);
+            promoteFuture.actionGet();
             context.rollbackSteps.add(new RollbackStep(RollbackStep.Kind.APPLY, resourceType));
         }
     }
@@ -547,8 +565,13 @@ public class TransportPostPromoteAction
     private void deleteIfNotEmpty(String resourceType, Set<String> ids, PromotionContext context)
             throws IOException {
         if (!ids.isEmpty()) {
+            PlainActionFuture<Void> deleteFuture = new PlainActionFuture<>();
             this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(resourceType), ids, context.targetSpace);
+                    this.spaceService.getIndexForResourceType(resourceType),
+                    ids,
+                    context.targetSpace,
+                    deleteFuture);
+            deleteFuture.actionGet();
             context.rollbackSteps.add(new RollbackStep(RollbackStep.Kind.DELETE, resourceType));
         }
     }
@@ -695,16 +718,22 @@ public class TransportPostPromoteAction
             }
 
             if (!toDelete.isEmpty()) {
-                this.spaceService.deleteResources(indexName, toDelete, context.targetSpace);
+                PlainActionFuture<Void> delFuture = new PlainActionFuture<>();
+                this.spaceService.deleteResources(indexName, toDelete, context.targetSpace, delFuture);
+                delFuture.actionGet();
             }
             if (!toRestore.isEmpty()) {
-                this.spaceService.promoteSpace(indexName, toRestore, context.targetSpace);
+                PlainActionFuture<Void> restoreFuture = new PlainActionFuture<>();
+                this.spaceService.promoteSpace(indexName, toRestore, context.targetSpace, restoreFuture);
+                restoreFuture.actionGet();
             }
         } else {
             Map<String, Map<String, Object>> snapshots =
                     context.deleteSnapshots.getOrDefault(step.resourceType, Collections.emptyMap());
             if (!snapshots.isEmpty()) {
-                this.spaceService.promoteSpace(indexName, snapshots, context.targetSpace);
+                PlainActionFuture<Void> snapFuture = new PlainActionFuture<>();
+                this.spaceService.promoteSpace(indexName, snapshots, context.targetSpace, snapFuture);
+                snapFuture.actionGet();
             }
         }
     }

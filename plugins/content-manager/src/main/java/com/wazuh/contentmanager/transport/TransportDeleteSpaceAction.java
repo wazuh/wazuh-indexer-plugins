@@ -124,12 +124,23 @@ public class TransportDeleteSpaceAction
                                                 UUID.nameUUIDFromBytes(
                                                                 "wazuh-default-policy".getBytes(StandardCharsets.UTF_8))
                                                         .toString();
-                                        spaceService.initializeSpace(space.toString(), sharedDocumentId);
+                                        spaceService.initializeSpace(
+                                                space.toString(),
+                                                sharedDocumentId,
+                                                new ActionListener<>() {
+                                                    @Override
+                                                    public void onResponse(Void unused2) {
+                                                        String message =
+                                                                String.format(Locale.ROOT, "Successfully reset space [%s].", space);
+                                                        log.info(message);
+                                                        listener.onResponse(new MessageStatusResponse(message, RestStatus.OK));
+                                                    }
 
-                                        String message =
-                                                String.format(Locale.ROOT, "Successfully reset space [%s].", space);
-                                        log.info(message);
-                                        listener.onResponse(new MessageStatusResponse(message, RestStatus.OK));
+                                                    @Override
+                                                    public void onFailure(Exception e) {
+                                                        errorHandler.onFailure(e);
+                                                    }
+                                                });
                                     }
 
                                     @Override
