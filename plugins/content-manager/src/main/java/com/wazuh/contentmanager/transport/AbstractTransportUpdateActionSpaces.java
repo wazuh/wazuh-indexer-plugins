@@ -26,6 +26,7 @@ import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
@@ -94,24 +95,24 @@ public abstract class AbstractTransportUpdateActionSpaces
         }
         SpaceService spaceService = new SpaceService(client);
 
-        try {
-            RestResponse policyError = TransportActionHelper.validateDraftPolicyExists(client);
-            if (policyError != null) {
-                listener.onResponse(
-                        new ContentResponse(
-                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
-                return;
-            }
-
-            RestResponse result = executeUpdateWorkflow(request, client, spaceService);
-            listener.onResponse(
-                    new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
-        } catch (Exception e) {
-            listener.onResponse(
-                    new ContentResponse(
-                            e.getMessage() != null ? e.getMessage() : "Unexpected error",
-                            RestStatus.INTERNAL_SERVER_ERROR));
-        }
+        TransportActionHelper.validateDraftPolicyExists(
+                client,
+                () -> {
+                    try {
+                        RestResponse result = executeUpdateWorkflow(request, client, spaceService);
+                        listener.onResponse(
+                                new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
+                    } catch (Exception e) {
+                        listener.onResponse(
+                                new ContentResponse(
+                                        e.getMessage() != null ? e.getMessage() : "Unexpected error",
+                                        RestStatus.INTERNAL_SERVER_ERROR));
+                    }
+                },
+                policyError ->
+                        listener.onResponse(
+                                new ContentResponse(
+                                        policyError.getMessage(), RestStatus.fromCode(policyError.getStatus()))));
     }
 
     private RestResponse executeUpdateWorkflow(
@@ -283,7 +284,9 @@ public abstract class AbstractTransportUpdateActionSpaces
             index.create(id, ctiWrapper);
 
             // Update Space Hash
-            spaceService.calculateAndUpdate(List.of(spaceName));
+            PlainActionFuture<Set<String>> hashFuture = new PlainActionFuture<>();
+            spaceService.calculateAndUpdate(List.of(spaceName), hashFuture);
+            hashFuture.actionGet();
 
             log.info(Constants.I_LOG_SUCCESS, "Updated", this.getResourceType(), id);
             return new RestResponse(id, RestStatus.OK.getStatus());

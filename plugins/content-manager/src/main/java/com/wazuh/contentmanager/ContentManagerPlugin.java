@@ -27,6 +27,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.cluster.LocalNodeClusterManagerListener;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -69,6 +70,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
@@ -236,54 +238,76 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Triggers the internal {@link #start(Runnable)} method if the current node is a Cluster Manager
-     * to initialize indices. It also ensures the periodic catalog sync job is scheduled.
+     * Registers a {@link LocalNodeClusterManagerListener} so that cluster-manager-specific
+     * initialization (index creation, catalog sync, job scheduling) runs only on the single elected
+     * leader — not on every node that carries the {@code cluster_manager} role.
      *
-     * <p>The startup sync trigger is restricted to the cluster manager node to prevent every node in
-     * the cluster from running a concurrent synchronization on startup.
+     * <p>Credentials are loaded on every node unconditionally because all nodes may need the CTI
+     * access token to service requests.
      *
      * @param localNode The local node discovery information.
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        if (localNode.isClusterManagerNode()) {
-            this.start(
-                    () -> {
-                        if (PluginSettings.getInstance().isUpdateOnStart()) {
+        this.threadPool.generic().execute(this::tryLoadAccessToken);
 
-                            // Pre-deployment
-                            // -------------
-                            // 1. Register key from environment variable
-                            String accessToken = ContentManagerPlugin.preDeploymentKey();
-                            if (!accessToken.isBlank()) {
-                                try {
-                                    log.info("Pre-registered environment detected.");
-                                    this.subscriptionService.register(accessToken);
-                                } catch (Exception e) {
-                                    log.error("Unexpected error pre-registering environment: {}", e.getMessage());
-                                }
-
-                                // 2. Delete local snapshots (only for pre-registered environments).
-                                Path pluginsDir = this.environment.pluginsDir();
-                                if (pluginsDir != null) {
-                                    SnapshotServiceImpl.deleteSnapshots(
-                                            pluginsDir
-                                                    .resolve(Constants.PLUGIN_DIR_NAME)
-                                                    .resolve(Constants.CTI_SNAPSHOTS_DIR));
-                                }
-                            }
-
-                            // 3. Initialize
-                            this.catalogSyncJob.trigger();
-                        } else {
-                            log.debug(Constants.D_LOG_SKIP_CATALOG_SYNC_TRIGGER);
+        AtomicBoolean started = new AtomicBoolean(false);
+        LocalNodeClusterManagerListener listener =
+                new LocalNodeClusterManagerListener() {
+                    @Override
+                    public void onClusterManager() {
+                        if (!started.compareAndSet(false, true)) {
+                            return;
                         }
-                        this.scheduleCatalogSyncJob();
-                        this.scheduleTelemetryPingJob();
-                    });
-        } else {
-            // Non-CM nodes load credentials asynchronously on startup.
-            this.threadPool.generic().execute(this::tryLoadAccessToken);
+                        ContentManagerPlugin.this.start(
+                                () -> {
+                                    if (PluginSettings.getInstance().isUpdateOnStart()) {
+
+                                        // Pre-deployment
+                                        // -------------
+                                        // 1. Register key from environment variable
+                                        String accessToken = ContentManagerPlugin.preDeploymentKey();
+                                        if (!accessToken.isBlank()) {
+                                            try {
+                                                log.info("Pre-registered environment detected.");
+                                                ContentManagerPlugin.this.subscriptionService.register(accessToken);
+                                            } catch (Exception e) {
+                                                log.error(
+                                                        "Unexpected error pre-registering environment: {}", e.getMessage());
+                                            }
+
+                                            // 2. Delete local snapshots (only for pre-registered
+                                            // environments).
+                                            Path pluginsDir = ContentManagerPlugin.this.environment.pluginsDir();
+                                            if (pluginsDir != null) {
+                                                SnapshotServiceImpl.deleteSnapshots(
+                                                        pluginsDir
+                                                                .resolve(Constants.PLUGIN_DIR_NAME)
+                                                                .resolve(Constants.CTI_SNAPSHOTS_DIR));
+                                            }
+                                        }
+
+                                        // 3. Initialize
+                                        ContentManagerPlugin.this.catalogSyncJob.trigger();
+                                    } else {
+                                        log.debug(Constants.D_LOG_SKIP_CATALOG_SYNC_TRIGGER);
+                                    }
+                                    ContentManagerPlugin.this.scheduleCatalogSyncJob();
+                                    ContentManagerPlugin.this.scheduleTelemetryPingJob();
+                                });
+                    }
+
+                    @Override
+                    public void offClusterManager() {}
+                };
+
+        this.clusterService.addLocalNodeClusterManagerListener(listener);
+
+        // The listener only fires on transitions. If the node is already the
+        // elected cluster manager (the election happened before this method
+        // runs), trigger the callback explicitly.
+        if (this.clusterService.state().nodes().isLocalNodeElectedClusterManager()) {
+            listener.onClusterManager();
         }
     }
 

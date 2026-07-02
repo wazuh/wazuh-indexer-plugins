@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.transport;
 
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.transport.TransportService;
@@ -60,7 +61,9 @@ public class TransportDeleteDecoderAction extends AbstractTransportDeleteAction 
     @Override
     protected RestResponse validateDelete(Client client, String id, SpaceService spaceService) {
         try {
-            Map<String, Object> policySource = spaceService.getPolicy(Space.DRAFT.toString());
+            PlainActionFuture<Map<String, Object>> policyFuture = new PlainActionFuture<>();
+            spaceService.getPolicy(Space.DRAFT.toString(), policyFuture);
+            Map<String, Object> policySource = policyFuture.actionGet();
 
             if (policySource != null && policySource.containsKey(Constants.KEY_DOCUMENT)) {
                 @SuppressWarnings("unchecked")

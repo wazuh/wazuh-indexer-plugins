@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.env.Environment;
@@ -110,15 +111,18 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     @Override
     protected void onBeforeAliasSwap() {
         try {
-            this.preSwapIntegrationIds =
-                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
+            PlainActionFuture<Set<String>> intFuture = new PlainActionFuture<>();
+            this.spaceService.getResourceIdsBySpace(
+                    Constants.INDEX_INTEGRATIONS, Space.STANDARD, intFuture);
+            this.preSwapIntegrationIds = intFuture.actionGet();
         } catch (Exception e) {
             log.warn("Failed to collect pre-swap integration IDs: {}", e.getMessage());
             this.preSwapIntegrationIds = Collections.emptySet();
         }
         try {
-            this.preSwapRuleIds =
-                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_RULES, Space.STANDARD);
+            PlainActionFuture<Set<String>> ruleFuture = new PlainActionFuture<>();
+            this.spaceService.getResourceIdsBySpace(Constants.INDEX_RULES, Space.STANDARD, ruleFuture);
+            this.preSwapRuleIds = ruleFuture.actionGet();
         } catch (Exception e) {
             log.warn("Failed to collect pre-swap rule IDs: {}", e.getMessage());
             this.preSwapRuleIds = Collections.emptySet();
@@ -194,7 +198,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
 
             // Reload STANDARD space, as it was updated.
-            this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()));
+            PlainActionFuture<Set<String>> hashFuture = new PlainActionFuture<>();
+            this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()), hashFuture);
+            hashFuture.actionGet();
             this.loadStandardSpaceIntoEngine();
         }
     }
@@ -206,7 +212,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
         try {
-            JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString());
+            PlainActionFuture<JsonNode> payloadFuture = new PlainActionFuture<>();
+            this.spaceService.buildEnginePayload(Space.STANDARD.toString(), payloadFuture);
+            JsonNode payload = payloadFuture.actionGet();
             RestResponse response = this.engineService.promote(payload);
             if (response.getStatus() == RestStatus.OK.getStatus()) {
                 log.info(Constants.I_LOG_ENGINE_STANDARD_LOADED);
@@ -232,8 +240,10 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         }
 
         try {
-            Map<String, Map<String, Object>> integrations =
-                    this.spaceService.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
+            PlainActionFuture<Map<String, Map<String, Object>>> intResFuture = new PlainActionFuture<>();
+            this.spaceService.getResourcesBySpace(
+                    Constants.INDEX_INTEGRATIONS, Space.STANDARD, intResFuture);
+            Map<String, Map<String, Object>> integrations = intResFuture.actionGet();
             if (integrations.isEmpty()) {
                 log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "integrations");
                 return;
@@ -304,8 +314,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         }
 
         try {
-            Map<String, Map<String, Object>> rules =
-                    this.spaceService.getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD);
+            PlainActionFuture<Map<String, Map<String, Object>>> ruleResFuture = new PlainActionFuture<>();
+            this.spaceService.getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD, ruleResFuture);
+            Map<String, Map<String, Object>> rules = ruleResFuture.actionGet();
             if (rules.isEmpty()) {
                 log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "rules");
                 return;
@@ -370,8 +381,10 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
 
-        Map<String, Map<String, Object>> integrations =
-                this.spaceService.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
+        PlainActionFuture<Map<String, Map<String, Object>>> detIntFuture = new PlainActionFuture<>();
+        this.spaceService.getResourcesBySpace(
+                Constants.INDEX_INTEGRATIONS, Space.STANDARD, detIntFuture);
+        Map<String, Map<String, Object>> integrations = detIntFuture.actionGet();
 
         List<JsonNode> docs = new ArrayList<>();
         integrations.forEach(
@@ -490,8 +503,10 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      */
     private void deleteStaleResources() {
         try {
-            Set<String> currentIntegrationIds =
-                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
+            PlainActionFuture<Set<String>> curIntFuture = new PlainActionFuture<>();
+            this.spaceService.getResourceIdsBySpace(
+                    Constants.INDEX_INTEGRATIONS, Space.STANDARD, curIntFuture);
+            Set<String> currentIntegrationIds = curIntFuture.actionGet();
             Set<String> staleIntegrationIds = new HashSet<>(this.preSwapIntegrationIds);
             staleIntegrationIds.removeAll(currentIntegrationIds);
 
@@ -503,8 +518,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 }
             }
 
-            Set<String> currentRuleIds =
-                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_RULES, Space.STANDARD);
+            PlainActionFuture<Set<String>> curRuleFuture = new PlainActionFuture<>();
+            this.spaceService.getResourceIdsBySpace(Constants.INDEX_RULES, Space.STANDARD, curRuleFuture);
+            Set<String> currentRuleIds = curRuleFuture.actionGet();
             Set<String> staleRuleIds = new HashSet<>(this.preSwapRuleIds);
             staleRuleIds.removeAll(currentRuleIds);
 
@@ -551,9 +567,17 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         // Using a name-based UUID (v3) ensures all nodes produce the same ID for the same seed.
         String sharedDocumentId =
                 UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
-        this.spaceService.initializeSpace(Space.DRAFT.toString(), sharedDocumentId);
-        this.spaceService.initializeSpace(Space.TEST.toString(), sharedDocumentId);
-        this.spaceService.initializeSpace(Space.CUSTOM.toString(), sharedDocumentId);
+        PlainActionFuture<Void> draftFuture = new PlainActionFuture<>();
+        this.spaceService.initializeSpace(Space.DRAFT.toString(), sharedDocumentId, draftFuture);
+        draftFuture.actionGet();
+
+        PlainActionFuture<Void> testFuture = new PlainActionFuture<>();
+        this.spaceService.initializeSpace(Space.TEST.toString(), sharedDocumentId, testFuture);
+        testFuture.actionGet();
+
+        PlainActionFuture<Void> customFuture = new PlainActionFuture<>();
+        this.spaceService.initializeSpace(Space.CUSTOM.toString(), sharedDocumentId, customFuture);
+        customFuture.actionGet();
     }
 
     /**
