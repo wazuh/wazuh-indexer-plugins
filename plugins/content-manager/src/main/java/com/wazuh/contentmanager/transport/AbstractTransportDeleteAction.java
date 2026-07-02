@@ -83,26 +83,32 @@ public abstract class AbstractTransportDeleteAction
         SpaceService spaceService = new SpaceService(client);
         IntegrationService integrationService = new IntegrationService(client);
 
-        try {
-            RestResponse policyError = TransportActionHelper.validateDraftPolicyExists(client);
-            if (policyError != null) {
-                listener.onResponse(
-                        new ContentResponse(
-                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
-                return;
-            }
-
-            RestResponse result =
-                    executeDeleteWorkflow(
-                            request, client, spaceService, securityAnalyticsService, integrationService);
-            listener.onResponse(
-                    new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
-        } catch (Exception e) {
-            listener.onResponse(
-                    new ContentResponse(
-                            e.getMessage() != null ? e.getMessage() : "Unexpected error",
-                            RestStatus.INTERNAL_SERVER_ERROR));
-        }
+        TransportActionHelper.validateDraftPolicyExists(
+                client,
+                () -> {
+                    try {
+                        RestResponse result =
+                                executeDeleteWorkflow(
+                                        request,
+                                        client,
+                                        spaceService,
+                                        securityAnalyticsService,
+                                        integrationService);
+                        listener.onResponse(
+                                new ContentResponse(
+                                        result.getMessage(), RestStatus.fromCode(result.getStatus())));
+                    } catch (Exception e) {
+                        listener.onResponse(
+                                new ContentResponse(
+                                        e.getMessage() != null ? e.getMessage() : "Unexpected error",
+                                        RestStatus.INTERNAL_SERVER_ERROR));
+                    }
+                },
+                policyError ->
+                        listener.onResponse(
+                                new ContentResponse(
+                                        policyError.getMessage(),
+                                        RestStatus.fromCode(policyError.getStatus()))));
     }
 
     private RestResponse executeDeleteWorkflow(

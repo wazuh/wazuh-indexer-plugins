@@ -534,7 +534,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteSpaceResources(Space space) {
+    public void deleteSpaceResources(Space space, ActionListener<Void> listener) {
         try {
             String source = space.toString();
             WDeleteSpaceResourcesResponse response =
@@ -553,6 +553,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                     response.getDeletedIntegrations(),
                     response.getDeletedRules(),
                     space);
+            listener.onResponse(null);
         } catch (Exception e) {
             String message =
                     String.format(
@@ -561,7 +562,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             space,
                             e.getMessage());
             log.error(message);
-            throw new OpenSearchException(message, e);
+            listener.onFailure(new OpenSearchException(message, e));
         }
     }
 
