@@ -70,6 +70,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
@@ -250,10 +251,14 @@ public class ContentManagerPlugin extends Plugin
     public void onNodeStarted(DiscoveryNode localNode) {
         this.threadPool.generic().execute(this::tryLoadAccessToken);
 
-        this.clusterService.addLocalNodeClusterManagerListener(
+        AtomicBoolean started = new AtomicBoolean(false);
+        LocalNodeClusterManagerListener listener =
                 new LocalNodeClusterManagerListener() {
                     @Override
                     public void onClusterManager() {
+                        if (!started.compareAndSet(false, true)) {
+                            return;
+                        }
                         ContentManagerPlugin.this.start(
                                 () -> {
                                     if (PluginSettings.getInstance().isUpdateOnStart()) {
@@ -294,7 +299,16 @@ public class ContentManagerPlugin extends Plugin
 
                     @Override
                     public void offClusterManager() {}
-                });
+                };
+
+        this.clusterService.addLocalNodeClusterManagerListener(listener);
+
+        // The listener only fires on transitions. If the node is already the
+        // elected cluster manager (the election happened before this method
+        // runs), trigger the callback explicitly.
+        if (this.clusterService.state().nodes().isLocalNodeElectedClusterManager()) {
+            listener.onClusterManager();
+        }
     }
 
     /**

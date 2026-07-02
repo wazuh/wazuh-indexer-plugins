@@ -45,6 +45,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.wazuh.setup.action.PutSettingsAction;
@@ -186,10 +187,14 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        this.clusterService.addLocalNodeClusterManagerListener(
+        AtomicBoolean started = new AtomicBoolean(false);
+        LocalNodeClusterManagerListener listener =
                 new LocalNodeClusterManagerListener() {
                     @Override
                     public void onClusterManager() {
+                        if (!started.compareAndSet(false, true)) {
+                            return;
+                        }
                         SetupPlugin.this
                                 .threadPool
                                 .generic()
@@ -240,7 +245,16 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
                     @Override
                     public void offClusterManager() {}
-                });
+                };
+
+        this.clusterService.addLocalNodeClusterManagerListener(listener);
+
+        // The listener only fires on transitions. If the node is already the
+        // elected cluster manager (the election happened before this method
+        // runs), trigger the callback explicitly.
+        if (this.clusterService.state().nodes().isLocalNodeElectedClusterManager()) {
+            listener.onClusterManager();
+        }
     }
 
     @Override
