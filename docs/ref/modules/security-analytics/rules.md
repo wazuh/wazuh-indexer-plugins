@@ -8,7 +8,7 @@ This page describes the supported rule format, including field requirements, det
 
 ---
 
-## Starting Example
+## Starting example
 
 The following example demonstrates a complete Sigma rule using all supported blocks:
 
@@ -70,24 +70,22 @@ The sections below describe each component in detail.
 
 ---
 
-## Top-Level Fields
+## Top-level fields
 
-The following table lists all supported top-level fields in a Wazuh Sigma rule. Fields marked as **Required** must be present for the rule to pass validation.
+The following fields are the supported top-level fields in a Wazuh Sigma rule. Fields marked **Required** must be present for the rule to pass validation.
 
-| Field            | Type    | Required | Description                                                             |
-| ---------------- | ------- | -------- | ----------------------------------------------------------------------- |
-| `id`             | String  | Yes      | Globally unique rule identifier (UUIDv4 recommended)                    |
-| `status`         | String  | Yes      | Rule maturity status: `experimental`, `test`, or `stable`               |
-| `level`          | String  | Yes      | Alert severity: `informational`, `low`, `medium`, `high`, or `critical` |
-| `sigma_id`       | String  | No       | Original Sigma rule identifier (UUID), preserved when importing from upstream |
-| `enabled`        | Boolean | No       | Whether the rule is active (default: `true`)                            |
-| `tags`           | Array   | No       | Categorization tags (e.g., `attack.initial-access`)                     |
-| `falsepositives` | Array   | No       | Known sources of false positives                                        |
-| `detection`      | Object  | Yes      | Detection logic: selections, keywords, and conditions                   |
-| `logsource`      | Object  | Yes      | Classifies the type of log data the rule targets                        |
-| `mitre`          | Object  | No       | MITRE ATT&CK threat intelligence mapping                                |
-| `compliance`     | Object  | No       | Compliance framework mapping                                            |
-| `metadata`       | Object  | Yes      | Other information                                                       |
+- **`id`** (String, required) — globally unique rule identifier (UUIDv4 recommended).
+- **`status`** (String, required) — rule maturity status: `experimental`, `test`, or `stable`.
+- **`level`** (String, required) — alert severity: `informational`, `low`, `medium`, `high`, or `critical`.
+- **`sigma_id`** (String, optional) — original Sigma rule identifier (UUID), preserved when importing from upstream.
+- **`enabled`** (Boolean, optional, default `true`) — whether the rule is active.
+- **`tags`** (Array, optional) — categorization tags (e.g., `attack.initial-access`).
+- **`falsepositives`** (Array, optional) — known sources of false positives.
+- **`detection`** (Object, required) — detection logic: selections, keywords, and conditions.
+- **`logsource`** (Object, required) — classifies the type of log data the rule targets.
+- **`mitre`** (Object, optional) — MITRE ATT&CK threat intelligence mapping.
+- **`compliance`** (Object, optional) — compliance framework mapping.
+- **`metadata`** (Object, required) — other information.
 
 ---
 
@@ -374,7 +372,7 @@ event.duration|gte: 5000
 
 ---
 
-## Log Source
+## Log source
 
 Required
 
@@ -598,7 +596,7 @@ compliance:
 
 ---
 
-## Dynamic Event Field Referencing
+## Dynamic event field referencing
 
 A Sigma rule's metadata is normally static: the `title`, `tags`, `mitre`, and `compliance` blocks describe the rule itself and are attached unchanged to every finding it generates. Wazuh extends Sigma with **dynamic event-field referencing**, allowing those metadata fields to embed placeholders that resolve against the triggering event at enrichment time. Each finding written to the `wazuh-findings-v5-{logtype}-*` index then reflects the specific context of the event that matched — for example, the agent ID, hostname, or any other field present in the normalized event.
 

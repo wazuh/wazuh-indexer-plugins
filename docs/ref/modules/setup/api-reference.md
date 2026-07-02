@@ -1,4 +1,4 @@
-# API Reference
+# API reference
 
 The Setup plugin exposes a REST API under `/_plugins/_setup/`. All endpoints require authentication.
 
@@ -6,26 +6,25 @@ The Setup plugin exposes a REST API under `/_plugins/_setup/`. All endpoints req
 
 ## Settings
 
-### Update Settings
+### Update settings
 
-Persists configuration settings to the `.wazuh-settings` index. Currently supports the `engine.index_raw_events` boolean flag, which controls whether the Engine indexes raw events into the `wazuh-events-raw-v5` data stream.
+Persists configuration settings to the `.wazuh-settings` index. Currently, it supports the `engine.index_raw_events` boolean flag, which controls whether the Engine indexes raw events into the `wazuh-events-raw-v5` data stream.
 
-**Request**
+#### Request
+
 - Method: `PUT`
 - Path: `/_plugins/_setup/settings`
 
-**Request Body**
+#### Request body
 
-| Field                      | Type    | Required | Description                                                                    |
-| -------------------------- | ------- | -------- | ------------------------------------------------------------------------------ |
-| `engine`                   | Object  | Yes      | Engine settings object                                                         |
-| `engine.index_raw_events`  | Boolean | Yes      | Whether the Engine indexes raw events into the `wazuh-events-raw-v5` data stream |
+- **`engine`** (Object, required) — Engine settings object.
+- **`engine.index_raw_events`** (Boolean, required) — whether the Engine indexes raw events into the `wazuh-events-raw-v5` data stream.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://192.168.56.6:9200/_plugins/_setup/settings" \
+  "https://127.0.0.1:9200/_plugins/_setup/settings" \
   -H 'Content-Type: application/json' \
   -d '{
     "engine": {
@@ -34,7 +33,7 @@ curl -sk -u admin:admin -X PUT \
   }'
 ```
 
-**Example Response (success)**
+#### Example response (success)
 
 ```json
 {
@@ -43,7 +42,7 @@ curl -sk -u admin:admin -X PUT \
 }
 ```
 
-**Example Response (missing field)**
+#### Example response (missing field)
 
 ```json
 {
@@ -52,7 +51,7 @@ curl -sk -u admin:admin -X PUT \
 }
 ```
 
-**Example Response (invalid type)**
+#### Example response (invalid type)
 
 ```json
 {
@@ -61,14 +60,12 @@ curl -sk -u admin:admin -X PUT \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                                 |
-| ---- | --------------------------------------------------------------------------- |
-| 200  | Settings updated successfully                                               |
-| 400  | Invalid request body, missing required fields, or wrong field type          |
-| 500  | Internal server error (e.g., failed to persist settings to the index)       |
+- **200** — settings updated successfully.
+- **400** — invalid request body, missing required fields, or wrong field type.
+- **500** — internal server error (e.g., failed to persist settings to the index).
 
 ---
 
-> **Documentation Maintenance** — modifications to the REST API must be reflected in both `openapi.yml` and this file.
+> **Documentation maintenance** — modifications to the REST API must be reflected in both `openapi.yml` and this file.

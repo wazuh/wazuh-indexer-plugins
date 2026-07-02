@@ -14,13 +14,13 @@ Update check components are:
 
 The Content Manager periodically synchronizes content from the Wazuh CTI API. Three catalog consumers are managed:
 
-- **Catalog context**: Contains detection rules, decoders, integrations, KVDBs, and the routing policy.
-- **IoC context**: Contains Indicators of Compromise for threat detection.
-- **CVE context**: Contains Common Vulnerabilities and Exposures data, stored in `wazuh-threatintel-vulnerabilities`. CVE documents do not have a space and are not subject to removals from CTI.
+- **Catalog context**: contains detection rules, decoders, integrations, KVDBs, and the routing policy.
+- **IoC context**: contains Indicators of Compromise (IoC) for threat detection.
+- **CVE context**: contains Common Vulnerabilities and Exposures (CVE) data, stored in the hidden `.wazuh-threatintel-vulnerabilities` index. CVE documents do not have a space and are not subject to removals from CTI.
 
 Each catalog type has an associated consumer state document in `.wazuh-cti-consumers`, keyed by consumer type (for example, `cti:catalog:consumer:ruleset`).
 
-### Snapshot Initialization
+### Snapshot initialization
 
 On first run (when the local offset is `0`), the Content Manager performs snapshot initialization:
 
@@ -29,13 +29,13 @@ On first run (when the local offset is `0`), the Content Manager performs snapsh
 3. If no custom catalog URL is configured, it initializes from the local packaged snapshot.
 4. It indexes content into the appropriate system indices using bulk operations and updates `.wazuh-cti-consumers` offsets.
 
-### Incremental Updates
+### Incremental updates
 
 When the local offset is behind the remote offset, the Content Manager fetches changes in batches (up to 1000 per request) and applies creation, update, and removal operations to the content indices. The local offset is updated after each successful batch.
 
 If the local offset is ahead of the remote offset (e.g., consumer was changed), or if the update fails, the Content Manager resets to the latest snapshot to realign with the CTI API.
 
-### Sync Schedule
+### Sync schedule
 
 By default, synchronization runs:
 - **On plugin startup** (`plugins.content_manager.catalog.update_on_start: true`)
@@ -43,7 +43,7 @@ By default, synchronization runs:
 
 The periodic job is registered with the OpenSearch Job Scheduler and tracked in the `.wazuh-content-manager-jobs` index.
 
-## Update Check Service
+## Update check service
 
 When `plugins.content_manager.telemetry.enabled` is `true` (default), the Content Manager schedules a daily update check heartbeat job.
 
@@ -54,20 +54,20 @@ When `plugins.content_manager.telemetry.enabled` is `true` (default), the Conten
 
 This information is used to detect update availability and surface notifications through the Wazuh Dashboard.
 
-## User-Generated Content
+## User-generated content
 
-The Content Manager provides a full CUD REST API for creating custom detection content:
+The Content Manager provides a full CUD (create, update, delete) REST API for creating custom detection content:
 
-- **Rules**: Custom detection rules associated with an integration.
-- **Decoders**: Custom log decoders associated with an integration.
-- **Integrations**: Logical groupings of related rules, decoders, and KVDBs.
-- **KVDBs**: Key-value databases used by rules and decoders for lookups.
+- **Rules**: custom detection rules associated with an integration.
+- **Decoders**: custom log decoders associated with an integration.
+- **Integrations**: logical groupings of related rules, decoders, and KVDBs.
+- **KVDBs**: key-value databases used by rules and decoders for lookups.
 
 User-generated content is stored in the **draft space** and is separate from the CTI-managed **standard space**. This separation ensures that user customizations never conflict with upstream CTI content.
 
-See the [API Reference](api.md) for endpoint details.
+See the [API reference](api.md) for endpoint details.
 
-## Content Spaces
+## Content spaces
 
 The Content Manager organizes content into spaces:
 
@@ -80,20 +80,20 @@ The Content Manager organizes content into spaces:
 
 Content flows through spaces in a promotion chain: **Draft → Test → Custom**. The Standard space exists independently as the upstream CTI baseline. Each space maintains its own copies of rules, decoders, integrations, KVDBs, filters, and the routing policy within the system indices.
 
-## Policy Management
+## Policy management
 
 The routing **policy** defines how the Wazuh Engine processes incoming events — which integrations are active and in what order. The Content Manager provides an API to update the draft policy:
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://192.168.56.6:9200/_plugins/_content_manager/policy" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/policy" \
   -H 'Content-Type: application/json' \
   -d '{"resource": { ... }}'
 ```
 
 Policy changes are applied to the draft space and take effect after promotion.
 
-## Promotion Workflow
+## Promotion workflow
 
 The promotion workflow moves content through the space chain (**Draft → Test → Custom**):
 
@@ -101,8 +101,8 @@ The promotion workflow moves content through the space chain (**Draft → Test �
 2. **Execute promotion**: `POST /_plugins/_content_manager/promote` promotes the content from the source space to the next space in the chain.
 
 The promotion chain works as follows:
-- **Draft → Test**: Content is promoted for validation and logtest operations.
-- **Test → Custom**: Once validated, content is promoted to the Custom space where it becomes active — the Wazuh Engine (via the manager package) uses this space to decode and process logs in production.
+- **Draft → Test**: content is promoted for validation and logtest operations.
+- **Test → Custom**: once validated, content is promoted to the Custom space where it becomes active — the Wazuh Engine (via the manager package) uses this space to decode and process logs in production.
 
 During promotion, the Content Manager:
 - Sends updated content to the Engine
@@ -110,7 +110,7 @@ During promotion, the Content Manager:
 - Triggers a configuration reload
 - Updates the target space to reflect the promoted content
 
-## Engine Communication
+## Engine communication
 
 The Content Manager communicates with the Wazuh Engine through a Unix domain socket located at:
 
@@ -120,27 +120,29 @@ The Content Manager communicates with the Wazuh Engine through a Unix domain soc
 
 This socket is used for:
 
-- **Logtest**: Sends a log event to the Engine for analysis and returns the decoded/matched result.
-- **Content validation**: Validates rules and decoders before promotion.
-- **Configuration reload**: Signals the Engine to reload its configuration after promotion.
+- **Logtest**: sends a log event to the Engine for analysis and returns the decoded/matched result.
+- **Content validation**: validates rules and decoders before promotion.
+- **Configuration reload**: signals the Engine to reload its configuration after promotion.
 
-## System Indices
+## System indices
 
 The Content Manager uses the following system indices:
 
-| Index                         | Description                                                                         |
-| ----------------------------- | ----------------------------------------------------------------------------------- |
-| `.wazuh-cti-consumers`              | Synchronization state for each CTI consumer type (`type`, `resource`, `is_public`, offsets, status)   |
-| `.wazuh-internal-state`            | Persisted CTI access token (hidden, single document)                                |
-| `wazuh-threatintel-rules`                  | Detection rules (both CTI-synced and user-generated, across all spaces)             |
-| `wazuh-threatintel-decoders`               | Log decoders                                                                        |
-| `wazuh-threatintel-integrations`           | Integration definitions                                                             |
-| `wazuh-threatintel-kvdbs`                  | Key-value databases                                                                 |
-| `wazuh-threatintel-policies`               | Routing policies                                                                    |
-| `wazuh-threatintel-enrichments`                   | Indicators of Compromise                                                            |
-| `wazuh-threatintel-vulnerabilities`                   | Common Vulnerabilities and Exposures (CVE data from CTI, no spaces, offset-tracked) |
-| `wazuh-threatintel-filters`             | Engine filters (routing filters for event classification)                           |
-| `.wazuh-content-manager-jobs` | Job Scheduler metadata for periodic sync and update check jobs                      |
+| Index                                | Description                                                                                          |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `.wazuh-cti-consumers`                | Synchronization state for each CTI consumer type (`type`, `resource`, `is_public`, offsets, status)   |
+| `.wazuh-internal-state`               | Persisted CTI access token (hidden, single document)                                                  |
+| `wazuh-threatintel-rules`             | Detection rules (both CTI-synced and user-generated, across all spaces)                               |
+| `wazuh-threatintel-decoders`          | Log decoders                                                                                           |
+| `wazuh-threatintel-integrations`      | Integration definitions                                                                               |
+| `wazuh-threatintel-kvdbs`             | Key-value databases                                                                                    |
+| `wazuh-threatintel-policies`          | Routing policies                                                                                       |
+| `wazuh-threatintel-enrichments`       | Indicators of Compromise (IoC)                                                                         |
+| `.wazuh-threatintel-vulnerabilities`  | Common Vulnerabilities and Exposures (CVE) data from CTI — hidden, no spaces, offset-tracked           |
+| `wazuh-threatintel-filters`           | Engine filters (routing filters for event classification)                                             |
+| `.wazuh-content-manager-jobs`         | Job Scheduler metadata for periodic sync and update check jobs                                        |
+
+For the alias-backed blue/green storage details and the exact hidden/alias status of each index, see the [development guide's system indices table](../../../dev/plugins/content-manager.md#system-indices).
 
 ## Wazuh Cloud subscription
 
@@ -150,7 +152,7 @@ To synchronize content from the CTI API, the Wazuh Indexer requires a valid CTI 
 2. The Content Manager uses the in-memory token for all CTI API requests.
 3. Without a registered token, sync operations return a `404 Token not found` error.
 
-See [Subscription Management](api.md#store-cti-credentials) in the API Reference.
+See [Subscription management](api.md#store-cti-credentials) in the API reference.
 
 ### Pre-registration with Wazuh Cloud
 

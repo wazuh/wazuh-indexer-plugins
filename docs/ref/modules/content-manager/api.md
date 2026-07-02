@@ -1,10 +1,26 @@
-# API Reference
+# API reference
 
-The Content Manager plugin exposes a REST API under `/_plugins/_content_manager/`. All endpoints require authentication.
+The Content Manager plugin exposes a REST API under `/_plugins/_content_manager/`. All endpoints require authentication. The full machine-readable specification is available in [`openapi.yml`](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/plugins/content-manager/openapi.yml).
+
+## Sections
+
+- [YAML content-type support](#yaml-content-type-support)
+- [Subscription management](#subscription-management)
+- [Content updates](#content-updates)
+- [Logtest](#logtest)
+- [Policy](#policy)
+- [Rules](#rules)
+- [Decoders](#decoders)
+- [Filters](#filters)
+- [Integrations](#integrations)
+- [KVDBs](#kvdbs)
+- [Promotion](#promotion)
+- [Spaces](#spaces)
+- [Version check](#version-check)
 
 ---
 
-## YAML Content-Type Support
+## YAML content-type support
 
 The **Decoders**, **KVDBs**, and **Filters** endpoints accept requests with `Content-Type: application/yaml` in addition to the standard `Content-Type: application/json`. When using YAML, the request body uses the same envelope structure as JSON — the only difference is the serialization format.
 
@@ -44,8 +60,8 @@ For resource types that do not require an `integration` field (e.g., Filters, wh
 
 When a Decoder, KVDB, or Filter is created or updated, a `yaml` field is stored alongside the `document` in the indexed record. This field contains a YAML representation of the resource content:
 
-- **YAML requests**: The `yaml` field is generated from the `resource` subtree of the parsed envelope.
-- **JSON requests**: The `yaml` field is auto-generated from the resource content.
+- **YAML requests**: the `yaml` field is generated from the `resource` subtree of the parsed envelope.
+- **JSON requests**: the `yaml` field is auto-generated from the resource content.
 
 ### Type fidelity
 
@@ -53,45 +69,42 @@ YAML parsing preserves numeric type fidelity. Floating-point values like `5.0` a
 
 ### Supported endpoints
 
-| Endpoint | Methods | YAML supported |
-| --- | --- | :---: |
-| `/_plugins/_content_manager/decoders` | POST, PUT | ✅ |
-| `/_plugins/_content_manager/kvdbs` | POST, PUT | ✅ |
-| `/_plugins/_content_manager/filters` | POST, PUT | ✅ |
-| `/_plugins/_content_manager/integrations` | POST, PUT | ❌ |
-| `/_plugins/_content_manager/rules` | POST, PUT | ❌ |
-| `/_plugins/_content_manager/policy/{space}` | PUT | ❌ |
+- **`/_plugins/_content_manager/decoders`** (POST, PUT) — YAML supported.
+- **`/_plugins/_content_manager/kvdbs`** (POST, PUT) — YAML supported.
+- **`/_plugins/_content_manager/filters`** (POST, PUT) — YAML supported.
+- **`/_plugins/_content_manager/integrations`** (POST, PUT) — JSON only.
+- **`/_plugins/_content_manager/rules`** (POST, PUT) — JSON only.
+- **`/_plugins/_content_manager/policy/{space}`** (PUT) — JSON only.
 
 ---
 
-## Subscription Management
+## Subscription management
 
-### Store CTI Credentials
+### Store CTI credentials
 
 Stores the provided CTI access token in the `.wazuh-internal-state` hidden index and loads it into memory. If the index does not exist it is recreated automatically before writing.
 
-**Request**
+#### Request
+
 - Method: `POST`
 - Path: `/_plugins/_content_manager/subscription`
 
-**Request Body**
+#### Request body
 
-| Field          | Type   | Required | Description                                             |
-| -------------- | ------ | -------- | ------------------------------------------------------- |
-| `access_token` | String | Yes      | The CTI access token used to authenticate against the CTI API |
+- **`access_token`** (String, required) — the CTI access token used to authenticate against the CTI API.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/subscription" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/subscription" \
   -H 'Content-Type: application/json' \
   -d '{
     "access_token": "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -100,34 +113,34 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                     |
-| ---- | ----------------------------------------------- |
-| 201  | Credentials stored successfully                 |
-| 400  | Missing or empty `access_token` field           |
-| 500  | Internal error                                  |
+- **201** — credentials stored successfully.
+- **400** — missing or empty `access_token` field.
+- **412** — a required precondition is not met (for example, the credentials index is not declared as a system index — see `plugins.security.system_indices.indices` in `opensearch.yml`).
+- **500** — internal error.
 
 ---
 
-### Get CTI Subscription Status
+### Get CTI subscription status
 
 Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public free plan is returned.
 
 > If the stored token is rejected by the CTI API (e.g. expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public free plan as if the instance were unregistered.
 
-**Request**
+#### Request
+
 - Method: `GET`
 - Path: `/_plugins/_content_manager/subscription`
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X GET \
-  "https://localhost:9200/_plugins/_content_manager/subscription"
+  "https://127.0.0.1:9200/_plugins/_content_manager/subscription"
 ```
 
-**Example Response (registered)**
+#### Example response (registered)
 
 ```json
 {
@@ -142,7 +155,7 @@ curl -sk -u admin:admin -X GET \
 }
 ```
 
-**Example Response (unregistered)**
+#### Example response (unregistered)
 
 ```json
 {
@@ -157,31 +170,30 @@ curl -sk -u admin:admin -X GET \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                     |
-| ---- | ----------------------------------------------- |
-| 200  | Subscription status returned successfully       |
-| 500  | Internal error                                  |
+- **200** — subscription status returned successfully.
+- **500** — internal error.
 
 ---
 
-### Delete CTI Credentials
+### Delete CTI credentials
 
 Clears the stored CTI access token document from the credentials index and clears the in-memory token. The credentials index is preserved. After this operation the instance is unregistered. If the credentials index does not exist the operation succeeds without error.
 
-**Request**
+#### Request
+
 - Method: `DELETE`
 - Path: `/_plugins/_content_manager/subscription`
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X DELETE \
-  "https://localhost:9200/_plugins/_content_manager/subscription"
+  "https://127.0.0.1:9200/_plugins/_content_manager/subscription"
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -190,33 +202,32 @@ curl -sk -u admin:admin -X DELETE \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                     |
-| ---- | ----------------------------------------------- |
-| 200  | Credentials removed successfully                |
-| 500  | Internal error                                  |
+- **200** — credentials removed successfully.
+- **500** — internal error.
 
 ---
 
-## Content Updates
+## Content updates
 
-### Trigger Manual Sync
+### Trigger manual sync
 
 Triggers an immediate content synchronization with the CTI API. Requires a valid subscription.
 
-**Request**
+#### Request
+
 - Method: `POST`
 - Path: `/_plugins/_content_manager/update`
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/update"
+  "https://127.0.0.1:9200/_plugins/_content_manager/update"
 ```
 
-**Example Response (accepted)**
+#### Example response (accepted)
 
 ```json
 {
@@ -225,7 +236,7 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Example Response (no credentials)**
+#### Example response (no credentials)
 
 ```json
 {
@@ -234,7 +245,7 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Example Response (update in progress)**
+#### Example response (update in progress)
 
 ```json
 {
@@ -243,46 +254,43 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                             |
-| ---- | --------------------------------------- |
-| 202  | Update request accepted for processing  |
-| 404  | No access token registered              |
-| 409  | A content update is already in progress |
-| 500  | Internal error during sync              |
+- **202** — update request accepted for processing.
+- **404** — no access token registered.
+- **409** — a content update is already in progress.
+- **500** — internal error during sync.
 
 ---
 
 ## Logtest
 
-### Execute Logtest
+### Execute logtest
 
-Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is provided, the integration's Sigma rules are also evaluated against the normalized event via the Security Analytics Plugin (SAP). If `integration` is omitted, only the normalization step is performed and the `detection` section is returned with `status: "skipped"`.
+Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is provided, the integration's Sigma rules are also evaluated against the normalized event via the Security Analytics plugin. If `integration` is omitted, only the normalization step is performed and the `detection` section is returned with `status: "skipped"`.
 
 > **Note**: A testing policy must be loaded in the Engine for logtest to execute successfully. Load a policy via the policy promotion endpoint. When an integration is specified, it must exist in the specified space.
 
-**Request**
+#### Request
+
 - Method: `POST`
 - Path: `/_plugins/_content_manager/logtest`
 
-**Request Body**
+#### Request body
 
-| Field            | Type    | Required | Description                                          |
-| ---------------- | ------- | -------- | ---------------------------------------------------- |
-| `integration`    | String  | No       | ID of the integration to test against. If omitted, only normalization is performed. |
-| `space`          | String  | Yes      | `"test"`, `"standard"` or `"custom"`                             |
-| `queue`          | Integer | Yes      | Queue number for logtest execution                   |
-| `location`       | String  | Yes      | Log file path or logical source location             |
-| `event`          | String  | Yes      | Raw log event to test                                |
-| `metadata`       | Object  | No       | Optional metadata passed to the Engine               |
-| `trace_level`    | String  | No       | Trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`      |
+- **`integration`** (String, optional) — ID of the integration to test against. If omitted, only normalization is performed.
+- **`space`** (String, required) — `"test"`, `"standard"`, or `"custom"`.
+- **`queue`** (Integer, required) — queue number for logtest execution.
+- **`location`** (String, required) — log file path or logical source location.
+- **`event`** (String, required) — raw log event to test.
+- **`metadata`** (Object, optional) — optional metadata passed to the Engine.
+- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/logtest" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/logtest" \
   -H 'Content-Type: application/json' \
   -d '{
     "integration": "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509",
@@ -294,7 +302,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-**Example Response (success with rule match)**
+#### Example response (success with rule match)
 
 ```json
 {
@@ -345,7 +353,7 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Example Response (Engine error, SAP skipped)**
+#### Example response (Engine error, detection skipped)
 
 ```json
 {
@@ -366,7 +374,7 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Example Response (no rules in integration)**
+#### Example response (no rules in integration)
 
 ```json
 {
@@ -387,11 +395,11 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Example Request (normalization only, no integration)**
+#### Example request (normalization only, no integration)
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/logtest" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/logtest" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "test",
@@ -402,7 +410,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-**Example Response (normalization only)**
+#### Example response (normalization only)
 
 ```json
 {
@@ -425,59 +433,54 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Response Fields**
+#### Response fields
 
-| Field                                  | Type    | Description                                                  |
-| -------------------------------------- | ------- | ------------------------------------------------------------ |
-| `normalization.output`                 | Object  | Engine normalized event output                               |
-| `normalization.asset_traces`           | Array   | List of decoders that processed the event                    |
-| `normalization.validation`             | Object  | Validation result (`valid`, `errors`)                        |
-| `normalization.status`                 | String  | Present on error: `"error"`                                  |
-| `normalization.error`                  | Object  | Present on error: `message` and `code`                       |
-| `detection.status`                     | String  | `"success"`, `"error"`, or `"skipped"`                       |
-| `detection.reason`                     | String  | Present when status is `"skipped"`                           |
-| `detection.rules_evaluated`            | Integer | Number of Sigma rules evaluated                              |
-| `detection.rules_matched`              | Integer | Number of rules that matched                                 |
-| `detection.matches`                    | Array   | List of matched rules with details                           |
-| `detection.matches[].rule`             | Object  | Rule metadata: `id`, `title`, `level`, `tags`                |
-| `detection.matches[].matched_conditions` | Array | Human-readable descriptions of conditions that matched       |
+- **`normalization.output`** (Object) — Engine normalized event output.
+- **`normalization.asset_traces`** (Array) — list of decoders that processed the event.
+- **`normalization.validation`** (Object) — validation result (`valid`, `errors`).
+- **`normalization.status`** (String) — present on error: `"error"`.
+- **`normalization.error`** (Object) — present on error: `message` and `code`.
+- **`detection.status`** (String) — `"success"`, `"error"`, or `"skipped"`.
+- **`detection.reason`** (String) — present when status is `"skipped"`.
+- **`detection.rules_evaluated`** (Integer) — number of Sigma rules evaluated.
+- **`detection.rules_matched`** (Integer) — number of rules that matched.
+- **`detection.matches`** (Array) — list of matched rules with details.
+- **`detection.matches[].rule`** (Object) — rule metadata: `id`, `title`, `level`, `tags`.
+- **`detection.matches[].matched_conditions`** (Array) — human-readable descriptions of conditions that matched.
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                        |
-| ---- | -------------------------------------------------- |
-| 200  | Logtest executed (check inner status fields)       |
-| 400  | Missing/invalid fields or integration not found    |
-| 500  | Engine socket communication error or internal error|
+- **200** — logtest executed (check inner status fields).
+- **400** — missing/invalid fields or integration not found.
+- **500** — Engine socket communication error or internal error.
 
 ---
 
-### Normalization Only
+### Normalization only
 
 Sends a log event to the Wazuh Engine for decoding and normalization without performing Sigma rule detection. Use this to validate that decoders correctly parse events before testing detection rules.
 
 > **Note**: A testing policy must be loaded in the Engine for normalization to execute successfully.
 
-**Request**
+#### Request
+
 - Method: `POST`
 - Path: `/_plugins/_content_manager/logtest/normalization`
 
-**Request Body**
+#### Request body
 
-| Field            | Type    | Required | Description                                          |
-| ---------------- | ------- | -------- | ---------------------------------------------------- |
-| `space`          | String  | Yes      | `"test"` or `"standard"`                             |
-| `queue`          | Integer | No       | Queue number for logtest execution                   |
-| `location`       | String  | No       | Log file path or logical source location             |
-| `input`          | String  | No       | Raw log event to normalize                           |
-| `metadata`       | Object  | No       | Optional metadata passed to the Engine               |
-| `trace_level`    | String  | No       | Trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`      |
+- **`space`** (String, required) — `"test"` or `"standard"`.
+- **`queue`** (Integer, optional) — queue number for logtest execution.
+- **`location`** (String, optional) — log file path or logical source location.
+- **`event`** (String, optional) — raw log event to normalize.
+- **`metadata`** (Object, optional) — optional metadata passed to the Engine.
+- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/logtest/normalization" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/logtest/normalization" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "test",
@@ -485,11 +488,11 @@ curl -sk -u admin:admin -X POST \
     "location": "/var/log/cassandra/system.log",
     "metadata": {},
     "trace_level": "NONE",
-    "input": "INFO  [CompactionExecutor-3] 2025-11-30 14:23:45 CassandraDaemon.java:250 - Some message - 7500 - 4"
+    "event": "INFO  [CompactionExecutor-3] 2025-11-30 14:23:45 CassandraDaemon.java:250 - Some message - 7500 - 4"
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -535,49 +538,44 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Response Fields**
+#### Response fields
 
-| Field                              | Type    | Description                                     |
-| ---------------------------------- | ------- | ----------------------------------------------- |
-| `message.output`                   | Object  | Engine normalized event output                  |
-| `message.asset_traces`             | Array   | List of decoders that processed the event       |
-| `message.validation`               | Object  | Validation result (`valid`, `errors`)            |
+- **`message.output`** (Object) — Engine normalized event output.
+- **`message.asset_traces`** (Array) — list of decoders that processed the event.
+- **`message.validation`** (Object) — validation result (`valid`, `errors`).
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                        |
-| ---- | -------------------------------------------------- |
-| 200  | Normalization executed successfully                |
-| 400  | Missing/invalid fields                             |
-| 500  | Engine socket communication error or internal error|
+- **200** — normalization executed successfully.
+- **400** — missing/invalid fields.
+- **500** — Engine socket communication error or internal error.
 
 ---
 
-### Detection Only
+### Detection only
 
-Evaluates an already-normalized event against the Sigma rules of a given integration via the Security Analytics Plugin (SAP). This endpoint does **not** call the Wazuh Engine — the normalized event must be provided directly in the `input` field.
+Evaluates an already-normalized event against the Sigma rules of a given integration via the Security Analytics plugin. This endpoint does **not** call the Wazuh Engine — the normalized event must be provided directly in the `input` field.
 
 Use this after obtaining a normalized event from the `/logtest/normalization` endpoint, or when you already have a normalized event and want to test different integrations' rules against it.
 
 > **Note**: The integration must exist in the specified space. The `input` field must be a JSON object (the normalized event), not a raw log string.
 
-**Request**
+#### Request
+
 - Method: `POST`
 - Path: `/_plugins/_content_manager/logtest/detection`
 
-**Request Body**
+#### Request body
 
-| Field            | Type    | Required | Description                                          |
-| ---------------- | ------- | -------- | ---------------------------------------------------- |
-| `space`          | String  | Yes      | `"test"` or `"standard"`                             |
-| `integration`    | String  | Yes      | UUID of the integration whose rules to evaluate      |
-| `input`          | Object  | Yes      | Normalized event object to evaluate rules against    |
+- **`space`** (String, required) — `"test"` or `"standard"`.
+- **`integration`** (String, required) — UUID of the integration whose rules to evaluate.
+- **`input`** (Object, required) — normalized event object to evaluate rules against.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/logtest/detection" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/logtest/detection" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "test",
@@ -604,7 +602,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-**Example Response (matches found)**
+#### Example response (matches found)
 
 ```json
 {
@@ -642,7 +640,7 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Example Response (no rules in integration)**
+#### Example response (no rules in integration)
 
 ```json
 {
@@ -656,30 +654,26 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Response Fields**
+#### Response fields
 
-| Field                                  | Type    | Description                                     |
-| -------------------------------------- | ------- | ----------------------------------------------- |
-| `message.status`                       | String  | `"success"` or `"error"`                        |
-| `message.rules_evaluated`              | Integer | Number of Sigma rules evaluated                 |
-| `message.rules_matched`                | Integer | Number of rules that matched                    |
-| `message.matches`                      | Array   | List of matched rules with details              |
-| `message.matches[].rule`               | Object  | Rule metadata: `id`, `title`, `level`, `tags`   |
-| `message.matches[].matched_conditions` | Array   | Human-readable descriptions of matched conditions|
+- **`message.status`** (String) — `"success"` or `"error"`.
+- **`message.rules_evaluated`** (Integer) — number of Sigma rules evaluated.
+- **`message.rules_matched`** (Integer) — number of rules that matched.
+- **`message.matches`** (Array) — list of matched rules with details.
+- **`message.matches[].rule`** (Object) — rule metadata: `id`, `title`, `level`, `tags`.
+- **`message.matches[].matched_conditions`** (Array) — human-readable descriptions of matched conditions.
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                        |
-| ---- | -------------------------------------------------- |
-| 200  | Detection executed (check `message.status`)        |
-| 400  | Missing/invalid fields or integration not found    |
-| 500  | Internal error                                     |
+- **200** — detection executed (check `message.status`).
+- **400** — missing/invalid fields or integration not found.
+- **500** — internal error.
 
 ---
 
 ## Policy
 
-### Update Policy
+### Update policy
 
 Updates the routing policy in the specified space. The policy defines which integrations are active, the root decoder, enrichment types, and how events are routed through the Engine.
 
@@ -687,53 +681,46 @@ Updates the routing policy in the specified space. The policy defines which inte
 
 **Space-specific behavior**
 
-- **Draft space** (`/policy/draft`): All policy fields are accepted. The metadata fields `author`, `description`, `documentation`, and `references` are required in addition to the boolean fields.
-- **Standard space** (`/policy/standard`): Only `enrichments`, `filters`, `enabled`, `index_unclassified_events`, and `index_discarded_events` can be modified. All other fields are preserved from the existing standard policy document. If the update changes the space hash, the full standard policy is automatically loaded to the local Engine.
+- **Draft space** (`/policy/draft`): all policy fields are accepted. The metadata fields `author`, `description`, `documentation`, and `references` are required in addition to the boolean fields.
+- **Standard space** (`/policy/standard`): only `enrichments`, `filters`, `enabled`, `index_unclassified_events`, and `index_discarded_events` can be modified. All other fields are preserved from the existing standard policy document. If the update changes the space hash, the full standard policy is automatically loaded to the local Engine.
 
-**Request**
+#### Request
+
 - Method: `PUT`
 - Path: `/_plugins/_content_manager/policy/{space}`
 
-**Path Parameters**
+#### Path parameters
 
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `space` | String | Yes | Target space (`draft` or `standard`) |
+- **`space`** (String, required) — target space (`draft` or `standard`).
 
-**Request Body**
+#### Request body
 
-| Field      | Type   | Required | Description                |
-| ---------- | ------ | -------- | -------------------------- |
-| `resource` | Object | Yes      | The policy resource object |
+- **`resource`** (Object, required) — the policy resource object.
 
 Fields within `resource`:
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `metadata` | Object | Yes (draft) | Policy metadata (see below) |
-| `root_decoder` | String | No | Identifier of the root decoder for event processing |
-| `integrations` | Array | No | List of integration IDs (reorder only, no add/remove) |
-| `filters` | Array | No | List of filter UUIDs (reorder only, no add/remove) |
-| `enrichments` | Array | No | Enrichment types (no duplicates; values depend on engine capabilities) |
-| `enabled` | Boolean | Yes | Whether the policy is active and synchronized by the Engine |
-| `index_unclassified_events` | Boolean | Yes | Whether uncategorized events are indexed |
-| `index_discarded_events` | Boolean | Yes | Whether discarded events are indexed |
+- **`metadata`** (Object, required in draft) — policy metadata (see below).
+- **`root_decoder`** (String, optional) — identifier of the root decoder for event processing.
+- **`integrations`** (Array, optional) — list of integration IDs (reorder only, no add/remove).
+- **`filters`** (Array, optional) — list of filter UUIDs (reorder only, no add/remove).
+- **`enrichments`** (Array, optional) — enrichment types (no duplicates; values depend on engine capabilities).
+- **`enabled`** (Boolean, required) — whether the policy is active and synchronized by the Engine.
+- **`index_unclassified_events`** (Boolean, required) — whether uncategorized events are indexed.
+- **`index_discarded_events`** (Boolean, required) — whether discarded events are indexed.
 
 Fields within `resource.metadata`:
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `title` | String | No | Human-readable policy name |
-| `author` | String | Yes (draft) | Author of the policy |
-| `description` | String | Yes (draft) | Brief description |
-| `documentation` | String | Yes (draft) | Documentation text or URL |
-| `references` | Array | Yes (draft) | External reference URLs |
+- **`title`** (String, optional) — human-readable policy name.
+- **`author`** (String, required in draft) — author of the policy.
+- **`description`** (String, required in draft) — brief description.
+- **`documentation`** (String, required in draft) — documentation text or URL.
+- **`references`** (Array, required in draft) — external reference URLs.
 
-**Example Request (draft space)**
+#### Example request (draft space)
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://192.168.56.6:9200/_plugins/_content_manager/policy/draft" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/policy/draft" \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
@@ -759,11 +746,11 @@ curl -sk -u admin:admin -X PUT \
   }'
 ```
 
-**Example Request (standard space)**
+#### Example request (standard space)
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://192.168.56.6:9200/_plugins/_content_manager/policy/standard" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/policy/standard" \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
@@ -776,7 +763,7 @@ curl -sk -u admin:admin -X PUT \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -787,13 +774,11 @@ curl -sk -u admin:admin -X PUT \
 
 The `message` field contains the OpenSearch document ID of the updated policy.
 
-**Status Codes**
+#### Status codes
 
-| Code | Description |
-|---|---|
-| 200 | Policy updated |
-| 400 | Invalid space, missing `resource` field, missing required fields, invalid enrichments, or disallowed modification of `integrations`/`filters` |
-| 500 | Internal error |
+- **200** — policy updated.
+- **400** — invalid space, missing `resource` field, missing required fields, invalid enrichments, or disallowed modification of `integrations`/`filters`.
+- **500** — internal error.
 
 ---
 
@@ -803,55 +788,50 @@ Rules follow the Sigma format with Wazuh extensions. See [Sigma Rules](../securi
 
 > **Validation notes**:
 > - The `logsource.product` field must exactly match the `metadata.title` of the parent integration.
-> - Detection fields are validated against the Wazuh Common Schema (WCS); rules referencing unknown fields are rejected.
+> - Detection fields are validated against the Wazuh Common Schema (WCS); rules referencing unknown fields are rejected. A field used in a check or detection expression that is *not* part of WCS must be prefixed with an underscore to mark it as temporary (see [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field)) — otherwise the Engine rejects the resource.
 > - IPv6 addresses are supported in detection conditions (standard, compressed, and CIDR notation).
 
-### Create Rule
+### Create rule
 
-Creates a new detection rule in the draft space. The rule is linked to the specified parent integration and validated by the Security Analytics Plugin.
+Creates a new detection rule in the draft space. The rule is linked to the specified parent integration and validated by the Security Analytics plugin.
 
-The rule is also synchronized to the SAP, where a separate document is created with its own auto-generated UUID. The SAP document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
+The rule is also synchronized to Security Analytics, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
 
-**Request**
+#### Request
+
 - Method: `POST`
 - Path: `/_plugins/_content_manager/rules`
 
-**Request Body**
+#### Request body
 
-| Field         | Type   | Required | Description                                             |
-| ------------- | ------ | -------- | ------------------------------------------------------- |
-| `integration` | String | Yes      | UUID of the parent integration (must be in draft space) |
-| `resource`    | Object | Yes      | The rule definition                                     |
+- **`integration`** (String, required) — UUID of the parent integration (must be in draft space).
+- **`resource`** (Object, required) — the rule definition.
 
 Fields within `resource`:
 
-| Field         | Type    | Required | Description                                                 |
-| ------------- | ------- | -------- | ----------------------------------------------------------- |
-| `metadata`    | Object  | Yes      | Rule metadata (see below)                                   |
-| `sigma_id`    | String  | No       | Sigma rule ID                                               |
-| `enabled`     | Boolean | No       | Whether the rule is enabled                                 |
-| `status`      | String  | Yes      | Rule status (e.g., `experimental`, `stable`)                |
-| `level`       | String  | Yes      | Alert level (e.g., `low`, `medium`, `high`, `critical`)     |
-| `logsource`   | Object  | No       | Log source definition (`product`, `category`)               |
-| `detection`   | Object  | Yes      | Sigma detection logic with `condition` and selection fields |
-| `mitre`       | Object  | No       | MITRE ATT&CK mapping (see [Sigma Rules](../security-analytics/rules.md#mitre-attck-block))       |
-| `compliance`  | Object  | No       | Compliance framework mapping (see [Sigma Rules](../security-analytics/rules.md#compliance-block)) |
+- **`metadata`** (Object, required) — rule metadata (see below).
+- **`sigma_id`** (String, optional) — Sigma rule ID.
+- **`enabled`** (Boolean, optional) — whether the rule is enabled.
+- **`status`** (String, optional) — rule status (e.g., `experimental`, `stable`).
+- **`level`** (String, optional) — alert level (e.g., `low`, `medium`, `high`, `critical`).
+- **`logsource`** (Object, optional) — log source definition (`product`, `category`).
+- **`detection`** (Object, optional) — Sigma detection logic with `condition` and selection fields.
+- **`mitre`** (Object, optional) — MITRE ATT&CK mapping (see [Sigma Rules](../security-analytics/rules.md#mitre-attck)).
+- **`compliance`** (Object, optional) — compliance framework mapping (see [Sigma Rules](../security-analytics/rules.md#compliance)).
 
 Fields within `resource.metadata`:
 
-| Field           | Type   | Required | Description                                        |
-| --------------- | ------ | -------- | -------------------------------------------------- |
-| `title`         | String | Yes      | Rule title (must be unique within the draft space) |
-| `author`        | String | No       | Rule author                                        |
-| `description`   | String | No       | Rule description                                   |
-| `references`    | Array  | No       | Reference URLs                                     |
-| `documentation` | String | No       | Documentation text or URL                          |
+- **`title`** (String, required) — rule title (must be unique within the draft space).
+- **`author`** (String, optional) — rule author.
+- **`description`** (String, optional) — rule description.
+- **`references`** (Array, optional) — reference URLs.
+- **`documentation`** (String, optional) — documentation text or URL.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/rules" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/rules" \
   -H 'Content-Type: application/json' \
   -d '{
     "integration": "6b7b7645-00da-44d0-a74b-cffa7911e89c",
@@ -892,7 +872,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -903,43 +883,36 @@ curl -sk -u admin:admin -X POST \
 
 The `message` field contains the UUID of the created rule.
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                                            |
-| ---- | -------------------------------------------------------------------------------------- |
-| 201  | Rule created                                                                           |
-| 400  | Missing fields, duplicate title, integration not in draft space, or validation failure |
-| 500  | Internal error or SAP unavailable                                                      |
+- **201** — rule created.
+- **400** — missing fields, duplicate title, integration not in draft space, or validation failure.
+- **500** — internal error or Security Analytics unavailable.
 
 ---
 
-### Update Rule
+### Update rule
 
-Updates an existing rule in the draft space.
+Updates an existing rule in the draft space. Unlike on create, `detection` and `logsource` are required on update, in addition to `metadata`.
 
-**Request**
+#### Request
+
 - Method: `PUT`
 - Path: `/_plugins/_content_manager/rules/{id}`
 
-**Parameters**
+#### Parameters
 
-| Name | In   | Type          | Required | Description      |
-| ---- | ---- | ------------- | -------- | ---------------- |
-| `id` | Path | String (UUID) | Yes      | Rule document ID |
+- **`id`** (Path, String/UUID, required) — rule document ID.
 
-**Request Body**
+#### Request body
 
-| Field      | Type   | Required | Description                                     |
-| ---------- | ------ | -------- | ----------------------------------------------- |
-| `resource` | Object | Yes      | Updated rule definition (same fields as create) |
+- **`resource`** (Object, required) — updated rule definition (same fields as create).
 
-> **Note**: On update, `enabled`, `metadata.title`, and `metadata.author` are required. The `detection` and `logsource` fields are also required.
-
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://192.168.56.6:9200/_plugins/_content_manager/rules/6e1c43f1-f09b-4cec-bb59-00e3a52b7930" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/rules/6e1c43f1-f09b-4cec-bb59-00e3a52b7930" \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
@@ -967,7 +940,7 @@ curl -sk -u admin:admin -X PUT \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -976,39 +949,36 @@ curl -sk -u admin:admin -X PUT \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                |
-| ---- | ---------------------------------------------------------- |
-| 200  | Rule updated                                               |
-| 400  | Invalid request, not in draft space, or validation failure |
-| 404  | Rule not found                                             |
-| 500  | Internal error                                             |
+- **200** — rule updated.
+- **400** — invalid request, not in draft space, or validation failure.
+- **404** — rule not found.
+- **500** — internal error.
 
 ---
 
-### Delete Rule
+### Delete rule
 
 Deletes a rule from the draft space. The rule is also removed from any integrations that reference it.
 
-**Request**
+#### Request
+
 - Method: `DELETE`
 - Path: `/_plugins/_content_manager/rules/{id}`
 
-**Parameters**
+#### Parameters
 
-| Name | In   | Type          | Required | Description      |
-| ---- | ---- | ------------- | -------- | ---------------- |
-| `id` | Path | String (UUID) | Yes      | Rule document ID |
+- **`id`** (Path, String/UUID, required) — rule document ID.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X DELETE \
-  "https://192.168.56.6:9200/_plugins/_content_manager/rules/6e1c43f1-f09b-4cec-bb59-00e3a52b7930"
+  "https://127.0.0.1:9200/_plugins/_content_manager/rules/6e1c43f1-f09b-4cec-bb59-00e3a52b7930"
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1017,71 +987,62 @@ curl -sk -u admin:admin -X DELETE \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description    |
-| ---- | -------------- |
-| 200  | Rule deleted   |
-| 404  | Rule not found |
-| 500  | Internal error |
+- **200** — rule deleted.
+- **404** — rule not found.
+- **500** — internal error.
 
 ---
 
 ## Decoders
 
-### Create Decoder
+### Create decoder
 
 Creates a new log decoder in the draft space. The decoder is validated against the Wazuh Engine before being stored, and automatically linked to the specified integration.
 
 > **Note**: A testing policy must be loaded in the Engine for decoder validation to succeed.
 
-**Request**
+#### Request
+
 - Method: `POST`
 - Path: `/_plugins/_content_manager/decoders`
 
-**Request Body**
+#### Request body
 
-| Field         | Type   | Required | Description                                             |
-| ------------- | ------ | -------- | ------------------------------------------------------- |
-| `integration` | String | Yes      | UUID of the parent integration (must be in draft space) |
-| `resource`    | Object | Yes      | The decoder definition                                  |
+- **`integration`** (String, required) — UUID of the parent integration (must be in draft space).
+- **`resource`** (Object, required) — the decoder definition.
 
 Fields within `resource`:
 
-| Field       | Type    | Description                                                    |
-| ----------- | ------- | -------------------------------------------------------------- |
-| `name`      | String  | Decoder name identifier (e.g., `decoder/core-wazuh-message/0`) |
-| `enabled`   | Boolean | Whether the decoder is enabled                                 |
-| `check`     | Array   | Decoder check logic — array of condition objects               |
-| `normalize` | Array   | Normalization rules — array of mapping objects                 |
-| `metadata`  | Object  | Decoder metadata (see below)                                   |
+- **`name`** (String) — decoder name identifier (e.g., `decoder/core-wazuh-message/0`).
+- **`enabled`** (Boolean) — whether the decoder is enabled.
+- **`check`** (Array) — decoder check logic — array of condition objects. Fields referenced here that aren't part of WCS must be prefixed with an underscore (see the validation note under [Rules](#rules)).
+- **`normalize`** (Array) — normalization rules — array of mapping objects.
+- **`metadata`** (Object) — decoder metadata (see below).
 
 Fields within `metadata`:
 
-| Field           | Type   | Description                          |
-| --------------- | ------ | ------------------------------------ |
-| `title`         | String | Human-readable decoder title         |
-| `description`   | String | Decoder description                   |
-| `module`        | String | Module name                          |
-| `compatibility` | String | Compatibility description            |
-| `author`        | Object | Author info (`name`, `email`, `url`) |
-| `references`    | Array  | Reference URLs                       |
-| `versions`      | Array  | Supported versions                   |
+- **`title`** (String) — human-readable decoder title.
+- **`description`** (String) — decoder description.
+- **`module`** (String) — module name.
+- **`compatibility`** (String) — compatibility description.
+- **`author`** (String) — author name, stored as a keyword.
+- **`references`** (Array) — reference URLs.
+- **`versions`** (Array) — supported versions.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/decoders" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/decoders" \
   -H 'Content-Type: application/json' \
   -d '{
     "integration": "0aa4fc6f-1cfd-4a7c-b30b-643f32950f1f",
     "resource": {
       "enabled": true,
       "metadata": {
-        "author": {
-          "name": "Wazuh, Inc."
-        },
+        "author": "Wazuh, Inc.",
         "compatibility": "All wazuh events.",
         "description": "Base decoder to process Wazuh message format.",
         "module": "wazuh",
@@ -1096,7 +1057,7 @@ curl -sk -u admin:admin -X POST \
       "name": "decoder/core-wazuh-message/0",
       "check": [
         {
-          "tmp_json.event.action": "string_equal(\"netflow_flow\")"
+          "_tmp_json.event.action": "string_equal(\"netflow_flow\")"
         }
       ],
       "normalize": [
@@ -1112,7 +1073,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1123,19 +1084,18 @@ curl -sk -u admin:admin -X POST \
 
 The `message` field contains the UUID of the created decoder (prefixed with `d_`).
 
-**Example Request (YAML)**
+#### Example request (YAML)
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/decoders" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/decoders" \
   -H 'Content-Type: application/yaml' \
   --data-binary '---
 integration: 0aa4fc6f-1cfd-4a7c-b30b-643f32950f1f
 resource:
   enabled: true
   metadata:
-    author:
-      name: "Wazuh, Inc."
+    author: "Wazuh, Inc."
     compatibility: "All wazuh events."
     description: "Base decoder to process Wazuh message format."
     module: wazuh
@@ -1146,50 +1106,45 @@ resource:
       - "Wazuh 5.*"
   name: decoder/core-wazuh-message/0
   check:
-    - tmp_json.event.action: "string_equal(\"netflow_flow\")"
+    - _tmp_json.event.action: "string_equal(\"netflow_flow\")"
   normalize:
     - map:
         - "@timestamp": "get_date()"
 '
 ```
 
-> **Note**: See [YAML Content-Type Support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
+> **Note**: See [YAML content-type support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                                               |
-| ---- | ----------------------------------------------------------------------------------------- |
-| 201  | Decoder created                                                                           |
-| 400  | Missing `integration` field, integration not in draft space, or Engine validation failure |
-| 500  | Engine unavailable or internal error                                                      |
+- **201** — decoder created.
+- **400** — missing `integration` field, integration not in draft space, or Engine validation failure (see [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field) if the failure mentions an unrecognized WCS field).
+- **500** — Engine unavailable or internal error.
 
 ---
 
-### Update Decoder
+### Update decoder
 
 Updates an existing decoder in the draft space. The decoder is re-validated against the Wazuh Engine.
 
-**Request**
+#### Request
+
 - Method: `PUT`
 - Path: `/_plugins/_content_manager/decoders/{id}`
 
-**Parameters**
+#### Parameters
 
-| Name | In   | Type   | Required | Description         |
-| ---- | ---- | ------ | -------- | ------------------- |
-| `id` | Path | String | Yes      | Decoder document ID |
+- **`id`** (Path, String, required) — decoder document ID.
 
-**Request Body**
+#### Request body
 
-| Field      | Type   | Required | Description                                        |
-| ---------- | ------ | -------- | -------------------------------------------------- |
-| `resource` | Object | Yes      | Updated decoder definition (same fields as create) |
+- **`resource`** (Object, required) — updated decoder definition (same fields as create).
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://192.168.56.6:9200/_plugins/_content_manager/decoders/bb6d0245-8c1d-42d1-8edb-4e0907cf45e0" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/decoders/bb6d0245-8c1d-42d1-8edb-4e0907cf45e0" \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
@@ -1198,9 +1153,7 @@ curl -sk -u admin:admin -X PUT \
       "metadata": {
         "title": "Test Decoder UPDATED",
         "description": "Updated description",
-        "author": {
-          "name": "Hello there"
-        }
+        "author": "Hello there"
       },
       "check": [],
       "normalize": []
@@ -1208,7 +1161,7 @@ curl -sk -u admin:admin -X PUT \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1217,40 +1170,36 @@ curl -sk -u admin:admin -X PUT \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                       |
-| ---- | ----------------------------------------------------------------- |
-| 200  | Decoder updated                                                   |
-| 400  | Invalid request, not in draft space, or Engine validation failure |
-| 404  | Decoder not found                                                 |
-| 500  | Internal error                                                    |
+- **200** — decoder updated.
+- **400** — invalid request, not in draft space, or Engine validation failure.
+- **404** — decoder not found.
+- **500** — internal error.
 
 ---
 
-### Delete Decoder
+### Delete decoder
 
-Deletes a decoder from the draft space. The decoder is also removed from any integrations that reference it.
-A decoder cannot be deleted if it is currently set as the root decoder in the draft policy.
+Deletes a decoder from the draft space. The decoder is also removed from any integrations that reference it. A decoder cannot be deleted if it is currently set as the root decoder in the draft policy.
 
-**Request**
+#### Request
+
 - Method: `DELETE`
 - Path: `/_plugins/_content_manager/decoders/{id}`
 
-**Parameters**
+#### Parameters
 
-| Name | In   | Type          | Required | Description         |
-| ---- | ---- | ------------- | -------- | ------------------- |
-| `id` | Path | String (UUID) | Yes      | Decoder document ID |
+- **`id`** (Path, String/UUID, required) — decoder document ID.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X DELETE \
-  "https://192.168.56.6:9200/_plugins/_content_manager/decoders/acbdba85-09c4-45a0-a487-61c8eeec58e6"
+  "https://127.0.0.1:9200/_plugins/_content_manager/decoders/acbdba85-09c4-45a0-a487-61c8eeec58e6"
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1259,7 +1208,8 @@ curl -sk -u admin:admin -X DELETE \
 }
 ```
 
-**Example Response (set as root decoder)**
+#### Example response (set as root decoder)
+
 ```json
 {
   "message": "Cannot remove decoder [acbdba85-09c4-45a0-a487-61c8eeec58e6] as it is set as root decoder.",
@@ -1267,57 +1217,49 @@ curl -sk -u admin:admin -X DELETE \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                    |
-|------|--------------------------------|
-| 200  | Decoder deleted                |
-| 400  | Decoder is set as root decoder |
-| 404  | Decoder not found              |
-| 500  | Internal error                 |
-
+- **200** — decoder deleted.
+- **400** — decoder is set as root decoder.
+- **404** — decoder not found.
+- **500** — internal error.
 
 ---
 
 ## Filters
 
-### Create Filter
+### Create filter
 
 Creates a new filter in the draft or standard space. The filter is validated against the Wazuh Engine before being stored and automatically linked to the specified space's policy.
 
-**Request**
+#### Request
+
 - Method: `POST`
 - Path: `/_plugins/_content_manager/filters`
 
-**Request Body**
+#### Request body
 
-| Field      | Type   | Required | Description                         |
-| ---------- | ------ | -------- | ----------------------------------- |
-| `space`    | String | Yes      | Target space: `draft` or `standard` |
-| `resource` | Object | Yes      | The filter definition               |
+- **`space`** (String, required) — target space: `draft` or `standard`.
+- **`resource`** (Object, required) — the filter definition.
 
 Fields within `resource`:
 
-| Field      | Type    | Description                                         |
-| ---------- | ------- | --------------------------------------------------- |
-| `name`     | String  | Filter name identifier (e.g., `filter/prefilter/0`) |
-| `enabled`  | Boolean | Whether the filter is enabled                       |
-| `check`    | String  | Filter check expression                             |
-| `type`     | String  | Filter type (e.g., `pre-filter`)                    |
-| `metadata` | Object  | Filter metadata (see below)                         |
+- **`name`** (String) — filter name identifier (e.g., `filter/prefilter/0`).
+- **`enabled`** (Boolean) — whether the filter is enabled.
+- **`check`** (String) — filter check expression.
+- **`type`** (String) — filter type (e.g., `pre-filter`).
+- **`metadata`** (Object) — filter metadata (see below).
 
 Fields within `metadata`:
 
-| Field         | Type   | Description                          |
-| ------------- | ------ | ------------------------------------ |
-| `description` | String | Filter description                   |
-| `author`      | Object | Author info (`name`, `email`, `url`) |
+- **`description`** (String) — filter description.
+- **`author`** (String) — author name, stored as a keyword.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/filters" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/filters" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "draft",
@@ -1326,11 +1268,7 @@ curl -sk -u admin:admin -X POST \
       "enabled": true,
       "metadata": {
         "description": "Default filter to allow all events (for default ruleset)",
-        "author": {
-          "email": "info@wazuh.com",
-          "name": "Wazuh, Inc.",
-          "url": "https://wazuh.com"
-        }
+        "author": "Wazuh, Inc."
       },
       "check": "$host.os.platform == '\''ubuntu'\''",
       "type": "pre-filter"
@@ -1338,7 +1276,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1349,11 +1287,11 @@ curl -sk -u admin:admin -X POST \
 
 The `message` field contains the UUID of the created filter (prefixed with `f_`).
 
-**Example Request (YAML)**
+#### Example request (YAML)
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/filters" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/filters" \
   -H 'Content-Type: application/yaml' \
   --data-binary '---
 space: draft
@@ -1362,53 +1300,45 @@ resource:
   enabled: true
   metadata:
     description: "Default filter to allow all events (for default ruleset)"
-    author:
-      email: info@wazuh.com
-      name: "Wazuh, Inc."
-      url: "https://wazuh.com"
+    author: "Wazuh, Inc."
   check: "$host.os.platform == '\''ubuntu'\''"
   type: pre-filter
 '
 ```
 
-> **Note**: See [YAML Content-Type Support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
+> **Note**: See [YAML content-type support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                        |
-| ---- | ------------------------------------------------------------------ |
-| 201  | Filter created                                                     |
-| 400  | Missing `space` field, invalid space, or Engine validation failure |
-| 500  | Engine unavailable or internal error                               |
+- **201** — filter created.
+- **400** — missing `space` field, invalid space, or Engine validation failure.
+- **500** — Engine unavailable or internal error.
 
 ---
 
-### Update Filter
+### Update filter
 
 Updates an existing filter in the draft or standard space. The filter is re-validated against the Wazuh Engine.
 
-**Request**
+#### Request
+
 - Method: `PUT`
 - Path: `/_plugins/_content_manager/filters/{id}`
 
-**Parameters**
+#### Parameters
 
-| Name | In   | Type          | Required | Description        |
-| ---- | ---- | ------------- | -------- | ------------------ |
-| `id` | Path | String (UUID) | Yes      | Filter document ID |
+- **`id`** (Path, String/UUID, required) — filter document ID.
 
-**Request Body**
+#### Request body
 
-| Field      | Type   | Required | Description                                       |
-| ---------- | ------ | -------- | ------------------------------------------------- |
-| `space`    | String | Yes      | Target space: `draft` or `standard`               |
-| `resource` | Object | Yes      | Updated filter definition (same fields as create) |
+- **`space`** (String, required) — target space: `draft` or `standard`.
+- **`resource`** (Object, required) — updated filter definition (same fields as create).
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://192.168.56.6:9200/_plugins/_content_manager/filters/a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/filters/a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "draft",
@@ -1417,11 +1347,7 @@ curl -sk -u admin:admin -X PUT \
       "enabled": true,
       "metadata": {
         "description": "Updated filter description",
-        "author": {
-          "email": "info@wazuh.com",
-          "name": "Wazuh, Inc.",
-          "url": "https://wazuh.com"
-        }
+        "author": "Wazuh, Inc."
       },
       "check": "$host.os.platform == '\''ubuntu'\''",
       "type": "pre-filter"
@@ -1429,7 +1355,7 @@ curl -sk -u admin:admin -X PUT \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1438,39 +1364,36 @@ curl -sk -u admin:admin -X PUT \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                  |
-| ---- | ------------------------------------------------------------ |
-| 200  | Filter updated                                               |
-| 400  | Invalid request, invalid space, or Engine validation failure |
-| 404  | Filter not found                                             |
-| 500  | Internal error                                               |
+- **200** — filter updated.
+- **400** — invalid request, invalid space, or Engine validation failure.
+- **404** — filter not found.
+- **500** — internal error.
 
 ---
 
-### Delete Filter
+### Delete filter
 
 Deletes a filter from the draft or standard space. The filter is also removed from the associated policy.
 
-**Request**
+#### Request
+
 - Method: `DELETE`
 - Path: `/_plugins/_content_manager/filters/{id}`
 
-**Parameters**
+#### Parameters
 
-| Name | In   | Type          | Required | Description        |
-| ---- | ---- | ------------- | -------- | ------------------ |
-| `id` | Path | String (UUID) | Yes      | Filter document ID |
+- **`id`** (Path, String/UUID, required) — filter document ID.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X DELETE \
-  "https://192.168.56.6:9200/_plugins/_content_manager/filters/a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6"
+  "https://127.0.0.1:9200/_plugins/_content_manager/filters/a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6"
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1479,59 +1402,52 @@ curl -sk -u admin:admin -X DELETE \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description      |
-| ---- | ---------------- |
-| 200  | Filter deleted   |
-| 404  | Filter not found |
-| 500  | Internal error   |
+- **200** — filter deleted.
+- **404** — filter not found.
+- **500** — internal error.
 
 ---
 
 ## Integrations
 
-### Create Integration
+### Create integration
 
-Creates a new integration in the draft space. An integration is a logical grouping of related rules, decoders, and KVDBs. The integration is validated against the Engine and registered in the Security Analytics Plugin.
+Creates a new integration in the draft space. An integration is a logical grouping of related rules, decoders, and KVDBs. The integration is validated against the Engine and registered with the Security Analytics plugin.
 
-The integration is also synchronized to the SAP, where a separate document is created with its own auto-generated UUID. The SAP document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
+The integration is also synchronized to Security Analytics, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
 
-**Request**
+#### Request
+
 - Method: `POST`
 - Path: `/_plugins/_content_manager/integrations`
 
-**Request Body**
+#### Request body
 
-| Field      | Type   | Required | Description                |
-| ---------- | ------ | -------- | -------------------------- |
-| `resource` | Object | Yes      | The integration definition |
+- **`resource`** (Object, required) — the integration definition.
 
 Fields within `resource`:
 
-| Field      | Type    | Required | Description                                                                          |
-| ---------- | ------- | -------- | ------------------------------------------------------------------------------------ |
-| `metadata` | Object  | Yes      | Integration metadata (see below)                                                     |
-| `category` | String  | Yes      | Category (e.g., `cloud-services`, `network-activity`, `security`, `system-activity`) |
-| `enabled`  | Boolean | No       | Whether the integration is enabled                                                   |
+- **`metadata`** (Object, required) — integration metadata (see below).
+- **`category`** (String, required) — category (e.g., `cloud-services`, `network-activity`, `security`, `system-activity`).
+- **`enabled`** (Boolean, optional) — whether the integration is enabled.
 
 Fields within `resource.metadata`:
 
-| Field           | Type   | Required | Description                                       |
-| --------------- | ------ | -------- | ------------------------------------------------- |
-| `title`         | String | Yes      | Integration title (must be unique in draft space)  |
-| `author`        | String | Yes      | Author of the integration                          |
-| `description`   | String | No       | Description                                        |
-| `documentation` | String | No       | Documentation text or URL                          |
-| `references`    | Array  | No       | Reference URLs                                     |
+- **`title`** (String, required) — integration title (must be unique in draft space).
+- **`author`** (String, required) — author of the integration.
+- **`description`** (String, optional) — description.
+- **`documentation`** (String, optional) — documentation text or URL.
+- **`references`** (Array, optional) — reference URLs.
 
 > **Note**: Do not include the `id` field — it is auto-generated by the Indexer.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/integrations" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/integrations" \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
@@ -1550,7 +1466,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1561,64 +1477,53 @@ curl -sk -u admin:admin -X POST \
 
 The `message` field contains the UUID of the created integration.
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                                                     |
-| ---- | ----------------------------------------------------------------------------------------------- |
-| 201  | Integration created                                                                             |
-| 400  | Missing required fields (`title`, `author`, `category`), duplicate title, or validation failure |
-| 500  | Internal error or SAP/Engine unavailable                                                        |
+- **201** — integration created.
+- **400** — missing required fields (`title`, `author`, `category`), duplicate title, or validation failure.
+- **500** — internal error or Security Analytics/Engine unavailable.
 
 ---
 
-### Update Integration
+### Update integration
 
-Updates an existing integration in the draft space. Only integrations in the draft space can be updated.
+Updates an existing integration in the draft space. Only integrations in the draft space can be updated. All fields within `resource` are required on update, including `rules`, `decoders`, and `kvdbs`, to allow reordering — pass empty arrays `[]` if the integration has none.
 
-**Request**
+#### Request
+
 - Method: `PUT`
 - Path: `/_plugins/_content_manager/integrations/{id}`
 
-**Parameters**
+#### Parameters
 
-| Name | In   | Type          | Required | Description             |
-| ---- | ---- | ------------- | -------- | ----------------------- |
-| `id` | Path | String (UUID) | Yes      | Integration document ID |
+- **`id`** (Path, String/UUID, required) — integration document ID.
 
-**Request Body**
+#### Request body
 
-| Field      | Type   | Required | Description                    |
-| ---------- | ------ | -------- | ------------------------------ |
-| `resource` | Object | Yes      | Updated integration definition |
+- **`resource`** (Object, required) — updated integration definition.
 
 Fields within `resource` (all required for update):
 
-| Field      | Type    | Required | Description                        |
-| ---------- | ------- | -------- | ---------------------------------- |
-| `metadata` | Object  | Yes      | Integration metadata (see below)   |
-| `category` | String  | Yes      | Category                           |
-| `enabled`  | Boolean | Yes      | Whether the integration is enabled |
-| `rules`    | Array   | Yes      | Ordered list of rule IDs           |
-| `decoders` | Array   | Yes      | Ordered list of decoder IDs        |
-| `kvdbs`    | Array   | Yes      | Ordered list of KVDB IDs           |
+- **`metadata`** (Object) — integration metadata (see below).
+- **`category`** (String) — category.
+- **`enabled`** (Boolean) — whether the integration is enabled.
+- **`rules`** (Array) — ordered list of rule IDs.
+- **`decoders`** (Array) — ordered list of decoder IDs.
+- **`kvdbs`** (Array) — ordered list of KVDB IDs.
 
-Fields within `resource.metadata`:
+Fields within `resource.metadata` (all required for update):
 
-| Field           | Type   | Required | Description               |
-| --------------- | ------ | -------- | ------------------------- |
-| `title`         | String | Yes      | Integration title         |
-| `author`        | String | Yes      | Author                    |
-| `description`   | String | Yes      | Description               |
-| `documentation` | String | Yes      | Documentation text or URL |
-| `references`    | Array  | Yes      | Reference URLs            |
+- **`title`** (String) — integration title.
+- **`author`** (String) — author.
+- **`description`** (String) — description.
+- **`documentation`** (String) — documentation text or URL.
+- **`references`** (Array) — reference URLs.
 
-> **Note**: The `rules`, `decoders`, and `kvdbs` arrays are mandatory on update to allow reordering. Pass empty arrays `[]` if the integration has none.
-
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://192.168.56.6:9200/_plugins/_content_manager/integrations/94e5a2af-505e-4164-ab62-576a71873308" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/integrations/94e5a2af-505e-4164-ab62-576a71873308" \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
@@ -1638,7 +1543,7 @@ curl -sk -u admin:admin -X PUT \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1647,39 +1552,36 @@ curl -sk -u admin:admin -X PUT \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                                      |
-| ---- | -------------------------------------------------------------------------------- |
-| 200  | Integration updated                                                              |
-| 400  | Invalid request, missing required fields, not in draft space, or duplicate title |
-| 404  | Integration not found                                                            |
-| 500  | Internal error                                                                   |
+- **200** — integration updated.
+- **400** — invalid request, missing required fields, not in draft space, or duplicate title.
+- **404** — integration not found.
+- **500** — internal error.
 
 ---
 
-### Delete Integration
+### Delete integration
 
 Deletes an integration from the draft space. The integration must have no attached decoders, rules, or KVDBs — delete those first.
 
-**Request**
+#### Request
+
 - Method: `DELETE`
 - Path: `/_plugins/_content_manager/integrations/{id}`
 
-**Parameters**
+#### Parameters
 
-| Name | In   | Type          | Required | Description             |
-| ---- | ---- | ------------- | -------- | ----------------------- |
-| `id` | Path | String (UUID) | Yes      | Integration document ID |
+- **`id`** (Path, String/UUID, required) — integration document ID.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X DELETE \
-  "https://192.168.56.6:9200/_plugins/_content_manager/integrations/94e5a2af-505e-4164-ab62-576a71873308"
+  "https://127.0.0.1:9200/_plugins/_content_manager/integrations/94e5a2af-505e-4164-ab62-576a71873308"
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1688,7 +1590,7 @@ curl -sk -u admin:admin -X DELETE \
 }
 ```
 
-**Example Response (has dependencies)**
+#### Example response (has dependencies)
 
 ```json
 {
@@ -1697,14 +1599,12 @@ curl -sk -u admin:admin -X DELETE \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                |
-| ---- | ---------------------------------------------------------- |
-| 200  | Integration deleted                                        |
-| 400  | Integration has dependent resources (decoders/rules/kvdbs) |
-| 404  | Integration not found                                      |
-| 500  | Internal error                                             |
+- **200** — integration deleted.
+- **400** — integration has dependent resources (decoders/rules/kvdbs).
+- **404** — integration not found.
+- **500** — internal error.
 
 ---
 
@@ -1714,41 +1614,36 @@ curl -sk -u admin:admin -X DELETE \
 
 Creates a new key-value database in the draft space, linked to the specified integration.
 
-**Request**
+#### Request
+
 - Method: `POST`
 - Path: `/_plugins/_content_manager/kvdbs`
 
-**Request Body**
+#### Request body
 
-| Field         | Type   | Required | Description                                             |
-| ------------- | ------ | -------- | ------------------------------------------------------- |
-| `integration` | String | Yes      | UUID of the parent integration (must be in draft space) |
-| `resource`    | Object | Yes      | The KVDB definition                                     |
+- **`integration`** (String, required) — UUID of the parent integration (must be in draft space).
+- **`resource`** (Object, required) — the KVDB definition.
 
 Fields within `resource`:
 
-| Field      | Type    | Required | Description                                  |
-| ---------- | ------- | -------- | -------------------------------------------- |
-| `metadata` | Object  | Yes      | KVDB metadata (see below)                    |
-| `content`  | Object  | Yes      | Key-value data (at least one entry required) |
-| `name`     | String  | No       | KVDB identifier name                         |
-| `enabled`  | Boolean | No       | Whether the KVDB is enabled                  |
+- **`metadata`** (Object, required) — KVDB metadata (see below).
+- **`content`** (Object, required) — key-value data (at least one entry required).
+- **`name`** (String, optional) — KVDB identifier name.
+- **`enabled`** (Boolean, optional) — whether the KVDB is enabled.
 
 Fields within `resource.metadata`:
 
-| Field           | Type   | Required | Description               |
-| --------------- | ------ | -------- | ------------------------- |
-| `title`         | String | Yes      | KVDB title                |
-| `author`        | String | Yes      | Author                    |
-| `description`   | String | No       | Description               |
-| `documentation` | String | No       | Documentation             |
-| `references`    | Array  | No       | Reference URLs            |
+- **`title`** (String, required) — KVDB title.
+- **`author`** (String, required) — author.
+- **`description`** (String, optional) — description.
+- **`documentation`** (String, optional) — documentation.
+- **`references`** (Array, optional) — reference URLs.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/kvdbs" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs" \
   -H 'Content-Type: application/json' \
   -d '{
     "integration": "f16f33ec-a5ea-4dc4-bf33-616b1562323a",
@@ -1782,7 +1677,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1793,11 +1688,11 @@ curl -sk -u admin:admin -X POST \
 
 The `message` field contains the UUID of the created KVDB.
 
-**Example Request (YAML)**
+#### Example request (YAML)
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/kvdbs" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs" \
   -H 'Content-Type: application/yaml' \
   --data-binary '---
 integration: f16f33ec-a5ea-4dc4-bf33-616b1562323a
@@ -1826,62 +1721,53 @@ resource:
 '
 ```
 
-> **Note**: See [YAML Content-Type Support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
+> **Note**: See [YAML content-type support](#yaml-content-type-support) for details on the YAML envelope format and type fidelity.
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                                       |
-| ---- | --------------------------------------------------------------------------------- |
-| 201  | KVDB created                                                                      |
-| 400  | Missing `integration` or required resource fields, integration not in draft space |
-| 500  | Internal error                                                                    |
+- **201** — KVDB created.
+- **400** — missing `integration` or required resource fields, integration not in draft space.
+- **500** — internal error.
 
 ---
 
 ### Update KVDB
 
-Updates an existing KVDB in the draft space.
+Updates an existing KVDB in the draft space. All fields within `resource` are required on update.
 
-**Request**
+#### Request
+
 - Method: `PUT`
 - Path: `/_plugins/_content_manager/kvdbs/{id}`
 
-**Parameters**
+#### Parameters
 
-| Name | In   | Type          | Required | Description      |
-| ---- | ---- | ------------- | -------- | ---------------- |
-| `id` | Path | String (UUID) | Yes      | KVDB document ID |
+- **`id`** (Path, String/UUID, required) — KVDB document ID.
 
-**Request Body**
+#### Request body
 
-| Field      | Type   | Required | Description             |
-| ---------- | ------ | -------- | ----------------------- |
-| `resource` | Object | Yes      | Updated KVDB definition |
+- **`resource`** (Object, required) — updated KVDB definition.
 
 Fields within `resource` (all required for update):
 
-| Field      | Type    | Required | Description                 |
-| ---------- | ------- | -------- | --------------------------- |
-| `metadata` | Object  | Yes      | KVDB metadata (see below)   |
-| `content`  | Object  | Yes      | Key-value data              |
-| `name`     | String  | No       | KVDB identifier name        |
-| `enabled`  | Boolean | No       | Whether the KVDB is enabled |
+- **`metadata`** (Object) — KVDB metadata (see below).
+- **`content`** (Object) — key-value data.
+- **`name`** (String) — KVDB identifier name.
+- **`enabled`** (Boolean) — whether the KVDB is enabled.
 
-Fields within `resource.metadata`:
+Fields within `resource.metadata` (all required for update):
 
-| Field           | Type   | Required | Description               |
-| --------------- | ------ | -------- | ------------------------- |
-| `title`         | String | Yes      | KVDB title                |
-| `author`        | String | Yes      | Author                    |
-| `description`   | String | Yes      | Description               |
-| `documentation` | String | Yes      | Documentation             |
-| `references`    | Array  | Yes      | Reference URLs            |
+- **`title`** (String) — KVDB title.
+- **`author`** (String) — author.
+- **`description`** (String) — description.
+- **`documentation`** (String) — documentation.
+- **`references`** (Array) — reference URLs.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://192.168.56.6:9200/_plugins/_content_manager/kvdbs/9d4ec6d5-8e30-4ea3-be05-957968c02dae" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs/9d4ec6d5-8e30-4ea3-be05-957968c02dae" \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
@@ -1914,7 +1800,7 @@ curl -sk -u admin:admin -X PUT \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1923,14 +1809,12 @@ curl -sk -u admin:admin -X PUT \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                     |
-| ---- | --------------------------------------------------------------- |
-| 200  | KVDB updated                                                    |
-| 400  | Invalid request, missing required fields, or not in draft space |
-| 404  | KVDB not found                                                  |
-| 500  | Internal error                                                  |
+- **200** — KVDB updated.
+- **400** — invalid request, missing required fields, or not in draft space.
+- **404** — KVDB not found.
+- **500** — internal error.
 
 ---
 
@@ -1938,24 +1822,23 @@ curl -sk -u admin:admin -X PUT \
 
 Deletes a KVDB from the draft space. The KVDB is also removed from any integrations that reference it.
 
-**Request**
+#### Request
+
 - Method: `DELETE`
 - Path: `/_plugins/_content_manager/kvdbs/{id}`
 
-**Parameters**
+#### Parameters
 
-| Name | In   | Type          | Required | Description      |
-| ---- | ---- | ------------- | -------- | ---------------- |
-| `id` | Path | String (UUID) | Yes      | KVDB document ID |
+- **`id`** (Path, String/UUID, required) — KVDB document ID.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X DELETE \
-  "https://192.168.56.6:9200/_plugins/_content_manager/kvdbs/9d4ec6d5-8e30-4ea3-be05-957968c02dae"
+  "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs/9d4ec6d5-8e30-4ea3-be05-957968c02dae"
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -1964,40 +1847,37 @@ curl -sk -u admin:admin -X DELETE \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description    |
-| ---- | -------------- |
-| 200  | KVDB deleted   |
-| 404  | KVDB not found |
-| 500  | Internal error |
+- **200** — KVDB deleted.
+- **404** — KVDB not found.
+- **500** — internal error.
 
 ---
 
 ## Promotion
 
-### Preview Promotion Changes
+### Preview promotion changes
 
 Returns a preview of changes that would be applied when promoting from the specified space. This is a dry-run operation that does not modify any content.
 
-**Request**
+#### Request
+
 - Method: `GET`
 - Path: `/_plugins/_content_manager/promote`
 
-**Parameters**
+#### Parameters
 
-| Name    | In    | Type   | Required | Description                                |
-| ------- | ----- | ------ | -------- | ------------------------------------------ |
-| `space` | Query | String | Yes      | Source space to preview: `draft` or `test` |
+- **`space`** (Query, String, required) — source space to preview: `draft` or `test`.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin \
-  "https://192.168.56.6:9200/_plugins/_content_manager/promote?space=draft"
+  "https://127.0.0.1:9200/_plugins/_content_manager/promote?space=draft"
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -2028,63 +1908,59 @@ curl -sk -u admin:admin \
 ```
 
 The response lists changes grouped by content type. Each change includes:
-- `operation`: `add`, `update`, or `remove`
-- `id`: Document ID of the affected resource
+- `operation`: `add`, `update`, or `remove`.
+- `id`: document ID of the affected resource.
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                          |
-| ---- | ------------------------------------ |
-| 200  | Preview returned successfully        |
-| 400  | Invalid or missing `space` parameter |
-| 500  | Internal error                       |
+- **200** — preview returned successfully.
+- **400** — invalid or missing `space` parameter.
+- **500** — internal error.
 
 ---
 
-### Execute Promotion
+### Execute promotion
 
 Promotes content from the source space to the next space in the promotion chain (Draft → Test → Custom). The request body must include the source space and the changes to apply (typically obtained from the preview endpoint).
 
 For Draft → Test promotions, the changeset is forwarded to the local Wazuh Engine for validation only when it includes decoders, kvdbs, or filters. Promotions limited to integrations, rules, or the policy skip the engine call entirely. Test → Custom promotions never invoke the engine.
 
-In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Security Analytics Plugin (SAP). For each promoted resource, a new SAP document is created in the target space with:
-- A newly generated UUID as the SAP document primary ID.
+In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Security Analytics plugin. For each promoted resource, a new document is created in the target space with:
+- A newly generated UUID as the primary ID.
 - A `document.id` field storing the original CTI document UUID for cross-reference.
 - A `source` field indicating the target space (e.g., "Test", "Custom").
 
-New resources (ADD operations) use `POST` to create SAP documents; existing resources (UPDATE operations) use `PUT` to update them in-place.
+New resources (add operations) use `POST` to create these documents; existing resources (update operations) use `PUT` to update them in-place.
 
-This ensures that the same CTI resource can exist in multiple spaces with independent SAP documents.
+This ensures that the same CTI resource can exist in multiple spaces with independent Security Analytics documents.
 
-#### Rollback on Failure
+#### Rollback on failure
 
-If any Content Manager index mutation fails during the consolidation phase, the endpoint
-automatically performs a **LIFO rollback** to restore the system to its pre-promotion state:
+If any Content Manager index mutation fails during the consolidation phase, the endpoint automatically performs a **LIFO rollback** to restore the system to its pre-promotion state:
 
 1. **Pre-promotion snapshots** are captured before any writes — old versions for adds/updates, full documents for deletes.
-2. **CM rollback**: Each completed mutation is undone in reverse order. ADDs are deleted, UPDATEs are restored to their previous version, DELETEs are re-indexed from the snapshot.
-3. **SAP reconciliation** (best-effort): Rules and integrations synced to SAP during the forward pass are reverted — new SAP documents are deleted, updated ones are restored, and deleted ones are re-created from snapshots.
+2. **Content Manager rollback**: each completed mutation is undone in reverse order. Adds are deleted, updates are restored to their previous version, deletes are re-indexed from the snapshot.
+3. **Security Analytics reconciliation** (best-effort): rules and integrations synced during the forward pass are reverted — new documents are deleted, updated ones are restored, and deleted ones are re-created from snapshots.
 
-Individual rollback or SAP reconciliation step failures are logged but do not prevent remaining steps from executing. On rollback, the endpoint returns a `500` status.
+Individual rollback or reconciliation step failures are logged but do not prevent remaining steps from executing. On rollback, the endpoint returns a `500` status.
 
-**Request**
+#### Request
+
 - Method: `POST`
 - Path: `/_plugins/_content_manager/promote`
 
-**Request Body**
+#### Request body
 
-| Field     | Type   | Required | Description                                |
-| --------- | ------ | -------- | ------------------------------------------ |
-| `space`   | String | Yes      | Source space: `draft` or `test`            |
-| `changes` | Object | Yes      | Changes to promote (from preview response) |
+- **`space`** (String, required) — source space: `draft` or `test`.
+- **`changes`** (Object, required) — changes to promote (from the preview response).
 
 The `changes` object contains arrays for each content type (`policy`, `integrations`, `kvdbs`, `decoders`, `rules`, `filters`), each with `operation` and `id` fields.
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://192.168.56.6:9200/_plugins/_content_manager/promote" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/promote" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "draft",
@@ -2114,7 +1990,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -2123,19 +1999,17 @@ curl -sk -u admin:admin -X POST \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                      |
-| ---- | ------------------------------------------------ |
-| 200  | Promotion successful                             |
-| 400  | Invalid request body or missing `space` field    |
-| 500  | Engine communication error or validation failure |
+- **200** — promotion successful.
+- **400** — invalid request body or missing `space` field.
+- **500** — Engine communication error or validation failure.
 
 ---
 
 ## Spaces
 
-### Reset Space
+### Reset space
 
 Resets a user space (`draft`) to its initial state.
 
@@ -2143,26 +2017,25 @@ When resetting the `draft` space, this operation will:
 - Remove all documents (integrations, rules, decoders, kvdbs) that belong to the given space.
 - Re-generate the default policy for the given space.
 
-> **Note**: Only `draft` space can be reset.
+> **Note**: Only the `draft` space can be reset.
 
-**Request**
+#### Request
+
 - Method: `DELETE`
 - Path: `/_plugins/_content_manager/space/{space}`
 
-**Parameters**
+#### Parameters
 
-| Name    | In   | Type   | Required | Description                                   |
-| ------- | ---- | ------ | -------- | --------------------------------------------- |
-| `space` | Path | String | Yes      | The name of the user space to reset (`draft`) |
+- **`space`** (Path, String, required) — the name of the user space to reset (`draft`).
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin -X DELETE \
-  "https://192.168.56.6:9200/_plugins/_content_manager/space/draft"
+  "https://127.0.0.1:9200/_plugins/_content_manager/space/draft"
 ```
 
-**Example Response**
+#### Example response
 
 ```json
 {
@@ -2171,32 +2044,33 @@ curl -sk -u admin:admin -X DELETE \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                                                    |
-| ---- | ------------------------------------------------------------------------------ |
-| 200  | Space reset successfully                                                       |
-| 400  | Invalid space identifier, or attempted to reset a space different from `draft` |
-| 500  | Internal error (e.g., Engine unavailable or deletion failure)                  |
+- **200** — space reset successfully.
+- **400** — invalid space identifier, or attempted to reset a space different from `draft`.
+- **500** — internal error (e.g., Engine unavailable or deletion failure).
 
-## Version Check
+---
 
-### Check Available Updates
+## Version check
+
+### Check available updates
 
 Returns whether there are newer versions of Wazuh available for download. The endpoint reads the current installed version from `VERSION.json` and queries the CTI API for available updates. The response includes the latest available major, minor, and patch updates when available.
 
-**Request**
+#### Request
+
 - Method: `GET`
 - Path: `/_plugins/_content_manager/version/check`
 
-**Example Request**
+#### Example request
 
 ```bash
 curl -sk -u admin:admin \
-  "https://192.168.56.6:9200/_plugins/_content_manager/version/check"
+  "https://127.0.0.1:9200/_plugins/_content_manager/version/check"
 ```
 
-**Example Response (updates available)**
+#### Example response (updates available)
 
 ```json
 {
@@ -2230,7 +2104,7 @@ curl -sk -u admin:admin \
 }
 ```
 
-**Example Response (no updates)**
+#### Example response (no updates)
 
 ```json
 {
@@ -2246,7 +2120,7 @@ curl -sk -u admin:admin \
 }
 ```
 
-**Example Response (version not found)**
+#### Example response (version not found)
 
 ```json
 {
@@ -2255,20 +2129,16 @@ curl -sk -u admin:admin \
 }
 ```
 
-**Status Codes**
+#### Status codes
 
-| Code | Description                                            |
-| ---- | ------------------------------------------------------ |
-| 200  | Version check completed (may include updates or empty) |
-| 500  | Unable to determine version or internal error          |
-| 502  | CTI API returned an error                              |
+- **200** — version check completed (may include updates or empty).
+- **500** — unable to determine version or internal error.
+- **502** — CTI API returned an error.
 
 > **Note**: Categories with no available updates are represented as empty objects `{}`.
 
 ---
 
-## Documentation Maintenance
+## Documentation maintenance
 
-To maintain technical consistency, any modification, addition or removal \
-of endpoints in the REST API source code must be reflected in the `openapi.yml` \
-specification and this `api.md` reference guide.
+To maintain technical consistency, any modification, addition or removal of endpoints in the REST API source code must be reflected in the `openapi.yml` specification and this `api.md` reference guide.

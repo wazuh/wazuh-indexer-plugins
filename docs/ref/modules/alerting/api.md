@@ -1,8 +1,8 @@
-# API Reference
+# API reference
 
 The Alerting plugin exposes a REST API under the `/_plugins/_alerting/` base path. This page summarizes the available endpoints. For full request/response schemas, see the [OpenSearch Alerting API documentation](https://docs.opensearch.org/docs/3.6/observing-your-data/alerting/api/).
 
-## Endpoint Summary
+## Endpoint summary
 
 ### Monitors
 
@@ -48,7 +48,7 @@ The Alerting plugin exposes a REST API under the `/_plugins/_alerting/` base pat
 | `DELETE` | `/_plugins/_alerting/comments/{commentId}` | Delete a comment |
 | `GET` | `/_plugins/_alerting/comments/_search` | Search comments |
 
-### Destinations (Legacy)
+### Destinations (legacy)
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
@@ -59,7 +59,7 @@ The Alerting plugin exposes a REST API under the `/_plugins/_alerting/` base pat
 
 ## Examples
 
-### Create a Query-Level Monitor
+### Create a query-level monitor
 
 This example creates a monitor that checks every 5 minutes whether the number of error-level events in the last hour exceeds 100:
 
@@ -119,7 +119,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-### Acknowledge Alerts
+### Acknowledge alerts
 
 ```bash
 curl -sk -u admin:admin -X POST \
@@ -130,7 +130,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-### Execute a Monitor On-Demand
+### Execute a monitor on-demand
 
 ```bash
 curl -sk -u admin:admin -X POST \

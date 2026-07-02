@@ -4,7 +4,7 @@ Common issues and solutions when working with the Notifications plugin.
 
 ---
 
-## Channel Configuration Issues
+## Channel configuration issues
 
 ### Slack notifications are not delivered
 
@@ -73,7 +73,7 @@ Restart the node after adding keystore entries.
 
 ---
 
-## Permission Issues
+## Permission issues
 
 ### "User doesn't have backend roles configured"
 
@@ -104,7 +104,7 @@ curl -X PUT "https://localhost:9200/_cluster/settings" \
 
 ---
 
-## HTTP Response Size Limit
+## HTTP response size limit
 
 ### "HTTP response too large" error
 
@@ -126,7 +126,7 @@ curl -X PUT "https://localhost:9200/_cluster/settings" \
 
 ---
 
-## Plugin Stats
+## Plugin stats
 
 To inspect the plugin's internal metrics and check for anomalies:
 
