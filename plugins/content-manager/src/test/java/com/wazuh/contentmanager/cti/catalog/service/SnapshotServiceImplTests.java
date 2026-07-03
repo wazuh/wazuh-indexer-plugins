@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
@@ -53,6 +54,7 @@ import org.mockito.MockitoAnnotations;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -111,6 +113,16 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.contentIndexMock.processPayload(any(JsonNode.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(this.contentIndexMock.getWriteIndex()).thenReturn(".test-context-test-consumer-kvdb");
+
+        // Stub async clear() to invoke the listener immediately
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Void> listener = invocation.getArgument(0);
+                            listener.onResponse(null);
+                            return null;
+                        })
+                .when(this.contentIndexMock)
+                .clear(any());
     }
 
     @After
@@ -134,7 +146,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         verify(this.snapshotClient, never()).downloadFile(anyString());
-        verify(this.contentIndexMock, never()).clear();
+        verify(this.contentIndexMock, never()).clear(any());
     }
 
     /**
@@ -151,7 +163,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         verify(this.snapshotClient).downloadFile(url);
-        verify(this.contentIndexMock, never()).clear();
+        verify(this.contentIndexMock, never()).clear(any());
     }
 
     /**
@@ -201,7 +213,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock, never()).clear();
+        verify(this.contentIndexMock, never()).clear(any());
         verify(this.contentIndexMock).processPayload(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
@@ -674,7 +686,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.snapshotClient, never()).downloadFile(anyString());
 
         // Indices should be cleared
-        verify(this.contentIndexMock, atLeastOnce()).clear();
+        verify(this.contentIndexMock, atLeastOnce()).clear(any());
 
         // Documents should be processed and indexed
         verify(this.contentIndexMock, atLeastOnce()).processPayload(any(JsonNode.class));

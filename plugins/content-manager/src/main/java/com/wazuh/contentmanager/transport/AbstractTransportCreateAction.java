@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.PlainActionFuture;
@@ -250,7 +251,9 @@ public abstract class AbstractTransportCreateAction
                 }
             }
 
-            index.create(id, ctiWrapper);
+            PlainActionFuture<IndexResponse> createFuture = new PlainActionFuture<>();
+            index.create(id, ctiWrapper, createFuture);
+            createFuture.actionGet();
 
             // 8. Link to Parent
             try {

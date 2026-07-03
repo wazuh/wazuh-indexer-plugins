@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.ReindexAction;
@@ -135,7 +136,9 @@ public final class IndexSwapHelper {
             String shadowPhysical = resolveShadowName(client, aliasName);
 
             ContentIndex shadowIndex = new ContentIndex(client, aliasName, shadowPhysical, mappingsPath);
-            CreateIndexResponse response = shadowIndex.createShadowIndex();
+            PlainActionFuture<CreateIndexResponse> shadowFuture = new PlainActionFuture<>();
+            shadowIndex.createShadowIndex(shadowFuture);
+            CreateIndexResponse response = shadowFuture.actionGet();
             if (response == null || !response.isAcknowledged()) {
                 throw new IllegalStateException(
                         "Shadow index creation for [" + shadowPhysical + "] was not acknowledged");

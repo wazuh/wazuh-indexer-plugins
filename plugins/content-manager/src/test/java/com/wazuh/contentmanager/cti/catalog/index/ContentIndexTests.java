@@ -26,6 +26,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -45,6 +46,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -96,9 +98,14 @@ public class ContentIndexTests extends OpenSearchTestCase {
     /** Test creating an Integration. Validates that fields are removed during preprocessing. */
     public void testCreate_Integration_Processing() throws IOException {
         // Mock
-        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
-        future.onResponse(this.indexResponse);
-        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.indexResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
 
         String jsonPayload =
                 "{"
@@ -117,11 +124,13 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "f0c91fac-d749-4ef0-bdfa-0b3632adf32d";
 
         // Act
-        this.contentIndex.create(id, payload);
+        PlainActionFuture<IndexResponse> future = new PlainActionFuture<>();
+        this.contentIndex.create(id, payload, future);
+        future.actionGet();
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         IndexRequest request = captor.getValue();
         Assert.assertEquals(INDEX_NAME, request.index());
@@ -134,12 +143,16 @@ public class ContentIndexTests extends OpenSearchTestCase {
     }
 
     /** Test creating a Decoder. Validates that the YAML enrichment is generated. */
-    /** Test creating a Decoder. Validates that the YAML enrichment is generated. */
     public void testCreate_Decoder_YamlEnrichment() throws IOException {
         // Mock
-        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
-        future.onResponse(this.indexResponse);
-        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.indexResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
 
         String jsonPayload =
                 "{"
@@ -158,11 +171,13 @@ public class ContentIndexTests extends OpenSearchTestCase {
         // Act
         ContentIndex contentIndex1 =
                 new ContentIndex(this.client, Constants.INDEX_DECODERS, MAPPINGS_PATH);
-        contentIndex1.create(id, payload);
+        PlainActionFuture<IndexResponse> future = new PlainActionFuture<>();
+        contentIndex1.create(id, payload, future);
+        future.actionGet();
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
 
@@ -178,9 +193,14 @@ public class ContentIndexTests extends OpenSearchTestCase {
      */
     public void testCreate_Rule_SigmaIdProcessing() throws IOException {
         // Mock
-        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
-        future.onResponse(this.indexResponse);
-        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.indexResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
 
         String jsonPayload =
                 "{"
@@ -197,11 +217,13 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "R1";
 
         // Act
-        this.contentIndex.create(id, payload);
+        PlainActionFuture<IndexResponse> future = new PlainActionFuture<>();
+        this.contentIndex.create(id, payload, future);
+        future.actionGet();
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
         JsonNode related = source.get("document").get("related");
@@ -217,9 +239,14 @@ public class ContentIndexTests extends OpenSearchTestCase {
      */
     public void testCreate_Rule_SigmaIdArrayProcessing() throws IOException {
         // Mock
-        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
-        future.onResponse(this.indexResponse);
-        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.indexResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
 
         String jsonPayload =
                 "{"
@@ -235,11 +262,13 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "R2";
 
         // Act
-        this.contentIndex.create(id, payload);
+        PlainActionFuture<IndexResponse> future = new PlainActionFuture<>();
+        this.contentIndex.create(id, payload, future);
+        future.actionGet();
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
         JsonNode relatedItem = source.get("document").get("related").get(0);
@@ -269,15 +298,25 @@ public class ContentIndexTests extends OpenSearchTestCase {
                         + "}"
                         + "}";
 
-        PlainActionFuture<GetResponse> getFuture = PlainActionFuture.newFuture();
-        getFuture.onResponse(this.getResponse);
-        when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<GetResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.getResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .get(any(GetRequest.class), any());
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsString()).thenReturn(originalDocJson);
 
-        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
-        indexFuture.onResponse(this.indexResponse);
-        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.indexResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
 
         List<Operation> operations = new ArrayList<>();
         operations.add(
@@ -288,11 +327,13 @@ public class ContentIndexTests extends OpenSearchTestCase {
                         "new_duration"));
 
         // Act
-        this.contentIndex.update(id, operations);
+        PlainActionFuture<Void> future = new PlainActionFuture<>();
+        this.contentIndex.update(id, operations, future);
+        future.actionGet();
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         JsonNode updatedDoc = this.mapper.readTree(captor.getValue().source().utf8ToString());
 
@@ -323,28 +364,44 @@ public class ContentIndexTests extends OpenSearchTestCase {
     public void testExists_DocumentExists() {
         // Arrange
         String id = "existing-id";
-        when(this.client.prepareGet(INDEX_NAME, id).setFetchSource(false).get().isExists())
-                .thenReturn(true);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<GetResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.getResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .get(any(GetRequest.class), any());
+        when(this.getResponse.isExists()).thenReturn(true);
 
         // Act
-        boolean exists = this.contentIndex.exists(id);
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        this.contentIndex.exists(id, future);
 
         // Assert
-        Assert.assertTrue(exists);
+        Assert.assertTrue(future.actionGet());
     }
 
     /** Test exists method when document does not exist. */
     public void testExists_DocumentNotExists() {
         // Arrange
         String id = "non-existing-id";
-        when(this.client.prepareGet(INDEX_NAME, id).setFetchSource(false).get().isExists())
-                .thenReturn(false);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<GetResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.getResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .get(any(GetRequest.class), any());
+        when(this.getResponse.isExists()).thenReturn(false);
 
         // Act
-        boolean exists = this.contentIndex.exists(id);
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        this.contentIndex.exists(id, future);
 
         // Assert
-        Assert.assertFalse(exists);
+        Assert.assertFalse(future.actionGet());
     }
 
     /** Test getIndexName method. */
@@ -399,9 +456,14 @@ public class ContentIndexTests extends OpenSearchTestCase {
      */
     public void testCreate_Resource_ExpectedSchema() throws IOException {
         // Mock
-        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
-        future.onResponse(this.indexResponse);
-        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.indexResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
 
         String jsonPayload =
                 "{"
@@ -416,11 +478,13 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "test-resource-id";
 
         // Act
-        this.contentIndex.create(id, payload);
+        PlainActionFuture<IndexResponse> future = new PlainActionFuture<>();
+        this.contentIndex.create(id, payload, future);
+        future.actionGet();
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         IndexRequest request = captor.getValue();
         Assert.assertEquals(INDEX_NAME, request.index());
@@ -436,24 +500,33 @@ public class ContentIndexTests extends OpenSearchTestCase {
         // Arrange
         String id = "non-existing-id";
 
-        PlainActionFuture<GetResponse> getFuture = PlainActionFuture.newFuture();
-        getFuture.onResponse(this.getResponse);
-        when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<GetResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.getResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .get(any(GetRequest.class), any());
         when(this.getResponse.isExists()).thenReturn(false);
 
         List<Operation> operations = new ArrayList<>();
         operations.add(new Operation("add", "/field", null, "value"));
 
         // Act & Assert
+        PlainActionFuture<Void> future = new PlainActionFuture<>();
+        this.contentIndex.update(id, operations, future);
+
         Exception exception = null;
         try {
-            this.contentIndex.update(id, operations);
+            future.actionGet();
         } catch (Exception e) {
             exception = e;
         }
 
         Assert.assertNotNull("Should throw exception when document not found", exception);
-        Assert.assertTrue(exception.getMessage().contains("not found"));
+        Throwable cause = exception.getCause() != null ? exception.getCause() : exception;
+        Assert.assertTrue(cause.getMessage().contains("not found"));
     }
 
     /** Test CVE payload normalization preserves explicit top-level `type`. */
@@ -483,25 +556,37 @@ public class ContentIndexTests extends OpenSearchTestCase {
                         + "}"
                         + "}";
 
-        PlainActionFuture<GetResponse> getFuture = PlainActionFuture.newFuture();
-        getFuture.onResponse(this.getResponse);
-        when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<GetResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.getResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .get(any(GetRequest.class), any());
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsString()).thenReturn(originalDocJson);
 
-        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
-        indexFuture.onResponse(this.indexResponse);
-        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(this.indexResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
 
         List<Operation> operations = new ArrayList<>();
         operations.add(new Operation("replace", "/document/title", null, "Updated Rule"));
 
         // Act
-        this.contentIndex.update(id, operations, expectedOffset);
+        PlainActionFuture<Void> future = new PlainActionFuture<>();
+        this.contentIndex.update(id, operations, expectedOffset, future);
+        future.actionGet();
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         JsonNode updatedDoc = this.mapper.readTree(captor.getValue().source().utf8ToString());
         Assert.assertTrue("Should contain 'offset'", updatedDoc.has("offset"));

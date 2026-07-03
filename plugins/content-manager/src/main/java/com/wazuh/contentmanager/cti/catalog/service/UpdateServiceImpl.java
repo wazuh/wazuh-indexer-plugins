@@ -24,6 +24,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.support.PlainActionFuture;
 
 import java.util.Map;
 
@@ -214,7 +216,9 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                     if (type != null) {
                         index = this.indices.get(type);
                         if (index != null) {
-                            index.create(id, payload);
+                            PlainActionFuture<IndexResponse> createFuture = new PlainActionFuture<>();
+                            index.create(id, payload, createFuture);
+                            createFuture.actionGet();
                         } else {
                             log.warn(Constants.W_LOG_UPDATE_NO_INDEX_FOR_TYPE, type);
                         }
@@ -223,7 +227,9 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 break;
             case UPDATE:
                 index = this.findIndexForId(id);
-                index.update(id, offset.getOperations(), offset.getOffset());
+                PlainActionFuture<Void> updateFuture = new PlainActionFuture<>();
+                index.update(id, offset.getOperations(), offset.getOffset(), updateFuture);
+                updateFuture.actionGet();
                 break;
             case DELETE:
                 if (this.shouldSkipDelete(id)) {
@@ -271,7 +277,9 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         }
 
         for (ContentIndex index : this.indices.values()) {
-            if (index.exists(id)) {
+            PlainActionFuture<Boolean> existsFuture = new PlainActionFuture<>();
+            index.exists(id, existsFuture);
+            if (existsFuture.actionGet()) {
                 return index;
             }
         }

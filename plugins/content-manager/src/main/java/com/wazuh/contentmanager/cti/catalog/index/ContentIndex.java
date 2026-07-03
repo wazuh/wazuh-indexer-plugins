@@ -27,6 +27,8 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -44,16 +46,14 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.model.*;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
@@ -181,33 +181,17 @@ public class ContentIndex {
     }
 
     /**
-     * Creates the index in OpenSearch using the configured mappings and settings.
-     *
-     * <p>Applies specific settings (replicas=0) and registers an alias if one is defined.
-     *
-     * @return The response from the create index operation, or null if mappings could not be read.
-     * @throws ExecutionException If the client execution fails.
-     * @throws InterruptedException If the thread is interrupted while waiting.
-     * @throws TimeoutException If the operation exceeds the client timeout setting.
-     */
-    /**
      * Creates the physical index in OpenSearch with the configured mappings and settings, and assigns
      * the public alias to it.
      *
-     * <p>The physical index is created using {@link #physicalName} (e.g., {@code
-     * "wazuh-threatintel-rules-a"}) and the alias {@link #indexName} (e.g., {@code
-     * "wazuh-threatintel-rules"}) is pointed at it with {@code is_write_index: true}.
-     *
-     * @return The response from the create index operation, or null if mappings could not be read.
-     * @throws ExecutionException If the client execution fails.
-     * @throws InterruptedException If the thread is interrupted while waiting.
-     * @throws TimeoutException If the operation exceeds the client timeout setting.
+     * @param listener The listener to notify with the create index response, or null if mappings
+     *     could not be read.
      */
-    public CreateIndexResponse createIndex()
-            throws ExecutionException, InterruptedException, TimeoutException {
+    public void createIndex(ActionListener<CreateIndexResponse> listener) {
         if (this.mappingsPath == null) {
             log.error(Constants.E_LOG_CREATE_INDEX_NO_MAPPINGS, this.indexName);
-            return null;
+            listener.onResponse(null);
+            return;
         }
 
         Settings.Builder settingsBuilder =
@@ -221,54 +205,60 @@ public class ContentIndex {
 
         String mappings = this.readMappings();
         if (mappings == null) {
-            return null;
+            listener.onResponse(null);
+            return;
         }
 
         CreateIndexRequest request =
                 new CreateIndexRequest().index(this.physicalName).mapping(mappings).settings(settings);
 
-        CreateIndexResponse response =
-                this.client
-                        .admin()
-                        .indices()
-                        .create(request)
-                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-
-        // Assign the public alias to the newly created physical index.
-        if (response.isAcknowledged()) {
-            IndicesAliasesRequest aliasRequest =
-                    new IndicesAliasesRequest()
-                            .addAliasAction(
-                                    IndicesAliasesRequest.AliasActions.add()
-                                            .index(this.physicalName)
-                                            .alias(this.indexName)
-                                            .writeIndex(true));
-            this.client
-                    .admin()
-                    .indices()
-                    .aliases(aliasRequest)
-                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            log.debug(Constants.D_LOG_INDEX_CREATED_WITH_ALIAS, this.physicalName, this.indexName);
-        }
-
-        return response;
+        this.client
+                .admin()
+                .indices()
+                .create(
+                        request,
+                        ActionListener.wrap(
+                                response -> {
+                                    if (response.isAcknowledged()) {
+                                        IndicesAliasesRequest aliasRequest =
+                                                new IndicesAliasesRequest()
+                                                        .addAliasAction(
+                                                                IndicesAliasesRequest.AliasActions.add()
+                                                                        .index(this.physicalName)
+                                                                        .alias(this.indexName)
+                                                                        .writeIndex(true));
+                                        this.client
+                                                .admin()
+                                                .indices()
+                                                .aliases(
+                                                        aliasRequest,
+                                                        ActionListener.wrap(
+                                                                aliasResponse -> {
+                                                                    log.debug(
+                                                                            Constants.D_LOG_INDEX_CREATED_WITH_ALIAS,
+                                                                            this.physicalName,
+                                                                            this.indexName);
+                                                                    listener.onResponse(response);
+                                                                },
+                                                                listener::onFailure));
+                                    } else {
+                                        listener.onResponse(response);
+                                    }
+                                },
+                                listener::onFailure));
     }
 
     /**
      * Creates a hidden shadow physical index without an alias. Used during blue/green swaps to
-     * prepare the staging slot. The index is hidden so its partial contents are not exposed via
-     * {@code _cat/indices}, Dashboards, or wildcard queries during the rebuild window.
+     * prepare the staging slot.
      *
-     * @return The response from the create index operation, or null if mappings could not be read.
-     * @throws ExecutionException If the client execution fails.
-     * @throws InterruptedException If the thread is interrupted while waiting.
-     * @throws TimeoutException If the operation exceeds the client timeout setting.
+     * @param listener The listener to notify with the create index response.
      */
-    public CreateIndexResponse createShadowIndex()
-            throws ExecutionException, InterruptedException, TimeoutException {
+    public void createShadowIndex(ActionListener<CreateIndexResponse> listener) {
         if (this.mappingsPath == null) {
             log.error(Constants.E_LOG_CREATE_SHADOW_INDEX_NO_MAPPINGS, this.physicalName);
-            return null;
+            listener.onResponse(null);
+            return;
         }
 
         Settings settings =
@@ -280,24 +270,26 @@ public class ContentIndex {
 
         String mappings = this.readMappings();
         if (mappings == null) {
-            return null;
+            listener.onResponse(null);
+            return;
         }
 
         CreateIndexRequest request =
                 new CreateIndexRequest().index(this.physicalName).mapping(mappings).settings(settings);
 
-        CreateIndexResponse response =
-                this.client
-                        .admin()
-                        .indices()
-                        .create(request)
-                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-
-        if (response.isAcknowledged()) {
-            log.debug(Constants.D_LOG_SHADOW_INDEX_CREATED, this.physicalName);
-        }
-
-        return response;
+        this.client
+                .admin()
+                .indices()
+                .create(
+                        request,
+                        ActionListener.wrap(
+                                response -> {
+                                    if (response.isAcknowledged()) {
+                                        log.debug(Constants.D_LOG_SHADOW_INDEX_CREATED, this.physicalName);
+                                    }
+                                    listener.onResponse(response);
+                                },
+                                listener::onFailure));
     }
 
     /**
@@ -322,28 +314,48 @@ public class ContentIndex {
      * Checks if a document with the specified ID exists in the index.
      *
      * @param id The ID of the document to check.
-     * @return true if the document exists, false otherwise.
+     * @param listener The listener to notify with the existence result.
      */
-    public boolean exists(String id) {
-        return this.client.prepareGet(this.indexName, id).setFetchSource(false).get().isExists();
+    public void exists(String id, ActionListener<Boolean> listener) {
+        GetRequest getRequest =
+                new GetRequest(this.indexName, id)
+                        .fetchSourceContext(FetchSourceContext.DO_NOT_FETCH_SOURCE);
+        this.client.get(
+                getRequest,
+                ActionListener.wrap(
+                        response -> listener.onResponse(response.isExists()), listener::onFailure));
     }
 
     /**
      * Retrieves a document by ID and returns it as a Jackson JsonNode.
      *
      * @param id The document ID.
-     * @return The document source as JsonNode, or null if not found.
+     * @param listener The listener to notify with the document source, or null if not found.
      */
-    public JsonNode getDocument(String id) {
-        try {
-            GetResponse response = this.client.prepareGet(this.indexName, id).get();
-            if (response.isExists() && response.getSourceAsString() != null) {
-                return this.mapper.readTree(response.getSourceAsString());
-            }
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_GET_DOCUMENT_FAILED, id, this.indexName, e.getMessage());
-        }
-        return null;
+    public void getDocument(String id, ActionListener<JsonNode> listener) {
+        this.client.get(
+                new GetRequest(this.indexName, id),
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(GetResponse response) {
+                        try {
+                            if (response.isExists() && response.getSourceAsString() != null) {
+                                listener.onResponse(
+                                        ContentIndex.this.mapper.readTree(response.getSourceAsString()));
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        } catch (Exception e) {
+                            listener.onFailure(e);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error(Constants.E_LOG_GET_DOCUMENT_FAILED, id, indexName, e.getMessage());
+                        listener.onResponse(null);
+                    }
+                });
     }
 
     /**
@@ -351,10 +363,9 @@ public class ContentIndex {
      *
      * @param id The unique identifier for the document.
      * @param payload The JSON object representing the document content.
-     * @return The IndexResponse object with the result of the indexing operation.
-     * @throws IOException If the indexing operation fails.
+     * @param listener The listener to notify with the index response.
      */
-    public IndexResponse create(String id, JsonNode payload) throws IOException {
+    public void create(String id, JsonNode payload, ActionListener<IndexResponse> listener) {
         ObjectNode processedPayload;
         if (payload.isObject()
                 && payload.has("document")
@@ -375,14 +386,7 @@ public class ContentIndex {
                         .id(id)
                         .source(processedPayload.toString(), XContentType.JSON)
                         .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-        try {
-            return this.client
-                    .index(request)
-                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(Constants.E_LOG_INDEX_DOCUMENT_FAILED, id, e.getMessage());
-            throw new IOException(e);
-        }
+        this.client.index(request, listener);
     }
 
     /**
@@ -390,10 +394,10 @@ public class ContentIndex {
      *
      * @param id The ID of the document to update.
      * @param operations The list of operations to apply to the document.
-     * @throws Exception If the document does not exist, or if patching/indexing fails.
+     * @param listener The listener to notify on completion.
      */
-    public void update(String id, List<Operation> operations) throws Exception {
-        this.update(id, operations, null);
+    public void update(String id, List<Operation> operations, ActionListener<Void> listener) {
+        this.update(id, operations, null, listener);
     }
 
     /**
@@ -403,46 +407,57 @@ public class ContentIndex {
      * @param id The ID of the document to update.
      * @param operations The list of operations to apply to the document.
      * @param offset The CTI offset value to store on the document, or null to leave unchanged.
-     * @throws Exception If the document does not exist, or if patching/indexing fails.
+     * @param listener The listener to notify on completion.
      */
-    public void update(String id, List<Operation> operations, Long offset) throws Exception {
-        // 1. Fetch
-        GetResponse response =
-                this.client
-                        .get(new GetRequest(this.indexName, id))
-                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        if (!response.isExists()) {
-            throw new IOException("Document [" + id + "] not found for update.");
-        }
+    public void update(
+            String id, List<Operation> operations, Long offset, ActionListener<Void> listener) {
+        this.client.get(
+                new GetRequest(this.indexName, id),
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(GetResponse response) {
+                        try {
+                            if (!response.isExists()) {
+                                listener.onFailure(new IOException("Document [" + id + "] not found for update."));
+                                return;
+                            }
 
-        // 2. Patch
-        ObjectNode currentDoc = (ObjectNode) this.mapper.readTree(response.getSourceAsString());
+                            ObjectNode currentDoc =
+                                    (ObjectNode) ContentIndex.this.mapper.readTree(response.getSourceAsString());
 
-        // Resources from the VD feed do not contain a "document" object, so we need to patch the root
-        // document instead of the "document" node.
-        if (this.indexName.equals(Constants.INDEX_CVES)) {
-            currentDoc = (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT);
-        }
+                            if (ContentIndex.this.indexName.equals(Constants.INDEX_CVES)) {
+                                currentDoc = (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT);
+                            }
 
-        for (Operation op : operations) {
-            JsonNode opJson = this.mapper.valueToTree(op);
-            JsonPatch.applyOperation(currentDoc, opJson);
-        }
+                            for (Operation op : operations) {
+                                JsonNode opJson = ContentIndex.this.mapper.valueToTree(op);
+                                JsonPatch.applyOperation(currentDoc, opJson);
+                            }
 
-        // 2.5. Inject offset if provided
-        if (offset != null) {
-            currentDoc.put(Constants.KEY_OFFSET, offset);
-        }
+                            if (offset != null) {
+                                currentDoc.put(Constants.KEY_OFFSET, offset);
+                            }
 
-        // 3. Process
-        ObjectNode processedDoc = this.processPayload(currentDoc);
+                            ObjectNode processedDoc = ContentIndex.this.processPayload(currentDoc);
 
-        // 4. Index
-        IndexRequest request =
-                new IndexRequest(this.getWriteIndex())
-                        .id(id)
-                        .source(processedDoc.toString(), XContentType.JSON);
-        this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+                            IndexRequest request =
+                                    new IndexRequest(ContentIndex.this.getWriteIndex())
+                                            .id(id)
+                                            .source(processedDoc.toString(), XContentType.JSON);
+                            ContentIndex.this.client.index(
+                                    request,
+                                    ActionListener.wrap(
+                                            indexResponse -> listener.onResponse(null), listener::onFailure));
+                        } catch (Exception e) {
+                            listener.onFailure(e);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        listener.onFailure(e);
+                    }
+                });
     }
 
     /**
@@ -492,42 +507,49 @@ public class ContentIndex {
      * Searches for a document by a specific field name and value.
      *
      * @param queryBuilder The query to execute.
-     * @return A JsonObject representing the found document, or null if not found or on
+     * @param listener The listener to notify with the search result, or null if not found.
      */
-    public ObjectNode searchByQuery(QueryBuilder queryBuilder) {
-        try {
-            // Create search request
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);
-            SearchRequest searchRequest = new SearchRequest(this.indexName).source(searchSourceBuilder);
+    public void searchByQuery(QueryBuilder queryBuilder, ActionListener<ObjectNode> listener) {
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);
+        SearchRequest searchRequest = new SearchRequest(this.indexName).source(searchSourceBuilder);
 
-            // Execute search synchronously
-            SearchResponse searchResponse =
-                    this.client
-                            .search(searchRequest)
-                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        this.client.search(
+                searchRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(SearchResponse searchResponse) {
+                        try {
+                            if (searchResponse == null
+                                    || searchResponse.getHits() == null
+                                    || searchResponse.getHits().getTotalHits() == null
+                                    || searchResponse.getHits().getTotalHits().value() == 0L) {
+                                log.debug(
+                                        Constants.D_LOG_NO_DOCUMENT_FOUND_QUERY, indexName, queryBuilder.toString());
+                                listener.onResponse(null);
+                                return;
+                            }
+                            ArrayNode hitsArray = ContentIndex.this.mapper.createArrayNode();
+                            for (SearchHit hit : searchResponse.getHits().getHits()) {
+                                ObjectNode hitObject =
+                                        (ObjectNode) ContentIndex.this.mapper.readTree(hit.getSourceAsString());
+                                hitObject.put(Constants.KEY_ID, hit.getId());
+                                hitsArray.add(hitObject);
+                            }
+                            ObjectNode result = ContentIndex.this.mapper.createObjectNode();
+                            result.set(Constants.Q_HITS, hitsArray);
+                            result.put("total", searchResponse.getHits().getTotalHits().value());
+                            listener.onResponse(result);
+                        } catch (Exception e) {
+                            listener.onFailure(e);
+                        }
+                    }
 
-            // Check if we have results
-            if (searchResponse == null
-                    || searchResponse.getHits() == null
-                    || searchResponse.getHits().getTotalHits() == null
-                    || searchResponse.getHits().getTotalHits().value() == 0L) {
-                log.debug(Constants.D_LOG_NO_DOCUMENT_FOUND_QUERY, this.indexName, queryBuilder.toString());
-                return null;
-            }
-            ArrayNode hitsArray = this.mapper.createArrayNode();
-            for (SearchHit hit : searchResponse.getHits().getHits()) {
-                ObjectNode hitObject = (ObjectNode) this.mapper.readTree(hit.getSourceAsString());
-                hitObject.put(Constants.KEY_ID, hit.getId());
-                hitsArray.add(hitObject);
-            }
-            ObjectNode result = this.mapper.createObjectNode();
-            result.set(Constants.Q_HITS, hitsArray);
-            result.put("total", searchResponse.getHits().getTotalHits().value());
-            return result;
-        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(Constants.E_LOG_SEARCH_BY_QUERY_FAILED, this.indexName, e.getMessage());
-            return null;
-        }
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error(Constants.E_LOG_SEARCH_BY_QUERY_FAILED, indexName, e.getMessage());
+                        listener.onResponse(null);
+                    }
+                });
     }
 
     /**
@@ -577,23 +599,70 @@ public class ContentIndex {
     /**
      * Deletes all documents in the index by deleting the physical index and recreating it with the
      * alias.
+     *
+     * @param listener The listener to notify on completion.
      */
-    public void clear() {
+    public void clear(ActionListener<Void> listener) {
         if (this.mappingsPath == null) {
             log.error(Constants.E_LOG_CLEAR_INDEX_NO_MAPPINGS, this.indexName);
+            listener.onResponse(null);
             return;
         }
         try {
-            boolean exists =
-                    this.client.admin().indices().prepareExists(this.physicalName).get().isExists();
-            if (exists) {
-                this.client.admin().indices().prepareDelete(this.physicalName).get();
-            }
-            this.createIndex();
-            log.debug(Constants.D_LOG_INDEX_WIPED_RECREATED, this.indexName, this.physicalName);
+            this.client
+                    .admin()
+                    .indices()
+                    .exists(
+                            new IndicesExistsRequest(this.physicalName),
+                            new ActionListener<>() {
+                                @Override
+                                public void onResponse(
+                                        org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse
+                                                existsResponse) {
+                                    if (existsResponse.isExists()) {
+                                        ContentIndex.this
+                                                .client
+                                                .admin()
+                                                .indices()
+                                                .delete(
+                                                        new DeleteIndexRequest(ContentIndex.this.physicalName),
+                                                        ActionListener.wrap(
+                                                                deleteResponse -> ContentIndex.this.recreateAfterClear(listener),
+                                                                e -> {
+                                                                    log.error(
+                                                                            Constants.E_LOG_CLEAR_INDEX_FAILED,
+                                                                            indexName,
+                                                                            e.getMessage());
+                                                                    listener.onResponse(null);
+                                                                }));
+                                    } else {
+                                        ContentIndex.this.recreateAfterClear(listener);
+                                    }
+                                }
+
+                                @Override
+                                public void onFailure(Exception e) {
+                                    log.error(Constants.E_LOG_CLEAR_INDEX_FAILED, indexName, e.getMessage());
+                                    listener.onResponse(null);
+                                }
+                            });
         } catch (Exception e) {
             log.error(Constants.E_LOG_CLEAR_INDEX_FAILED, this.indexName, e.getMessage());
+            listener.onResponse(null);
         }
+    }
+
+    private void recreateAfterClear(ActionListener<Void> listener) {
+        this.createIndex(
+                ActionListener.wrap(
+                        response -> {
+                            log.debug(Constants.D_LOG_INDEX_WIPED_RECREATED, this.indexName, this.physicalName);
+                            listener.onResponse(null);
+                        },
+                        e -> {
+                            log.error(Constants.E_LOG_CLEAR_INDEX_FAILED, this.indexName, e.getMessage());
+                            listener.onResponse(null);
+                        }));
     }
 
     /**

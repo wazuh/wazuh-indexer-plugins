@@ -21,7 +21,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.transport.TransportService;
@@ -75,7 +77,9 @@ public class TransportDeleteFilterAction extends AbstractTransportDeleteActionSp
     protected void unlinkFromParent(Client client, String id, String spaceName) throws Exception {
         ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
         TermQueryBuilder queryBuilder = new TermQueryBuilder(Constants.Q_SPACE_NAME, spaceName);
-        ObjectNode searchResult = policiesIndex.searchByQuery(queryBuilder);
+        PlainActionFuture<ObjectNode> searchFuture = new PlainActionFuture<>();
+        policiesIndex.searchByQuery(queryBuilder, searchFuture);
+        ObjectNode searchResult = searchFuture.actionGet();
 
         if (searchResult == null
                 || !searchResult.has(Constants.Q_HITS)
@@ -105,7 +109,9 @@ public class TransportDeleteFilterAction extends AbstractTransportDeleteActionSp
             ((ObjectNode) document).set(Constants.KEY_FILTERS, updatedFilters);
             String hash = Resource.computeSha256(document.toString());
             ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
-            policiesIndex.create(draftPolicyId, draftPolicyHit);
+            PlainActionFuture<IndexResponse> createFuture = new PlainActionFuture<>();
+            policiesIndex.create(draftPolicyId, draftPolicyHit, createFuture);
+            createFuture.actionGet();
         }
     }
 }

@@ -140,7 +140,9 @@ public abstract class AbstractTransportDeleteAction
             }
 
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
-            if (!index.exists(id)) {
+            PlainActionFuture<Boolean> existsFuture = new PlainActionFuture<>();
+            index.exists(id, existsFuture);
+            if (!existsFuture.actionGet()) {
                 log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, this.getResourceType(), id);
                 return new RestResponse(
                         Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());

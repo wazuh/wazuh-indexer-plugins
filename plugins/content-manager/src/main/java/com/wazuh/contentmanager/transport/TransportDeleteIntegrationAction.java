@@ -21,7 +21,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
@@ -70,7 +72,9 @@ public class TransportDeleteIntegrationAction extends AbstractTransportDeleteAct
             String id,
             com.wazuh.contentmanager.cti.catalog.service.SpaceService spaceService) {
         ContentIndex index = new ContentIndex(client, Constants.INDEX_INTEGRATIONS, null);
-        JsonNode doc = index.getDocument(id);
+        PlainActionFuture<JsonNode> docFuture = new PlainActionFuture<>();
+        index.getDocument(id, docFuture);
+        JsonNode doc = docFuture.actionGet();
 
         if (doc != null && doc.has(Constants.KEY_DOCUMENT)) {
             JsonNode document = doc.get(Constants.KEY_DOCUMENT);
@@ -108,7 +112,9 @@ public class TransportDeleteIntegrationAction extends AbstractTransportDeleteAct
         ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
         TermQueryBuilder queryBuilder =
                 new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
-        ObjectNode searchResult = policiesIndex.searchByQuery(queryBuilder);
+        PlainActionFuture<ObjectNode> searchFuture = new PlainActionFuture<>();
+        policiesIndex.searchByQuery(queryBuilder, searchFuture);
+        ObjectNode searchResult = searchFuture.actionGet();
 
         if (searchResult == null
                 || !searchResult.has(Constants.Q_HITS)
@@ -138,7 +144,9 @@ public class TransportDeleteIntegrationAction extends AbstractTransportDeleteAct
             ((ObjectNode) document).set(Constants.KEY_INTEGRATIONS, updatedIntegrations);
             String hash = Resource.computeSha256(document.toString());
             ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
-            policiesIndex.create(draftPolicyId, draftPolicyHit);
+            PlainActionFuture<IndexResponse> createFuture = new PlainActionFuture<>();
+            policiesIndex.create(draftPolicyId, draftPolicyHit, createFuture);
+            createFuture.actionGet();
         }
     }
 

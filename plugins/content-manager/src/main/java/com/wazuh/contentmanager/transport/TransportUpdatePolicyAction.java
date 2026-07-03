@@ -337,7 +337,9 @@ public class TransportUpdatePolicyAction
             this.spaceService.findDocumentId(
                     Constants.INDEX_POLICIES, Space.STANDARD.toString(), docId, stdIdFuture);
             String standardPolicyId = stdIdFuture.actionGet();
-            IndexResponse indexResponse = index.create(standardPolicyId, document);
+            PlainActionFuture<IndexResponse> createFuture = new PlainActionFuture<>();
+            index.create(standardPolicyId, document, createFuture);
+            IndexResponse indexResponse = createFuture.actionGet();
             return indexResponse.getId();
         } catch (Exception e) {
             throw new IllegalStateException("Standard policy not found: " + e.getMessage());
@@ -423,7 +425,9 @@ public class TransportUpdatePolicyAction
             this.spaceService.findDocumentId(
                     Constants.INDEX_POLICIES, Space.DRAFT.toString(), docId, draftIdFuture);
             String draftPolicyId = draftIdFuture.actionGet();
-            IndexResponse indexResponse = index.create(draftPolicyId, document);
+            PlainActionFuture<IndexResponse> createFuture = new PlainActionFuture<>();
+            index.create(draftPolicyId, document, createFuture);
+            IndexResponse indexResponse = createFuture.actionGet();
             return indexResponse.getId();
         } catch (Exception e) {
             throw new IllegalStateException("Draft policy not found: " + e.getMessage());

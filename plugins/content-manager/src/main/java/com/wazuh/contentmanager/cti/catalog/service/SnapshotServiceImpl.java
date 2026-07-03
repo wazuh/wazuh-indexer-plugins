@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
@@ -365,7 +366,11 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         try {
             // 1. Clear indices
-            this.indicesMap.values().forEach(ContentIndex::clear);
+            for (ContentIndex idx : this.indicesMap.values()) {
+                PlainActionFuture<Void> clearFuture = new PlainActionFuture<>();
+                idx.clear(clearFuture);
+                clearFuture.actionGet();
+            }
 
             // 2. Stream and index JSON entries directly from the ZIP
             AccessController.doPrivilegedChecked(

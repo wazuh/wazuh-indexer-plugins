@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.transport.TransportService;
@@ -67,7 +68,9 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
         RestResponse response = super.preserveMetadata(index, id, resourceNode);
         if (response != null) return response;
 
-        JsonNode existingDoc = index.getDocument(id);
+        PlainActionFuture<JsonNode> docFuture = new PlainActionFuture<>();
+        index.getDocument(id, docFuture);
+        JsonNode existingDoc = docFuture.actionGet();
         if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
             @SuppressWarnings("unchecked")
             Map<String, Object> existing =

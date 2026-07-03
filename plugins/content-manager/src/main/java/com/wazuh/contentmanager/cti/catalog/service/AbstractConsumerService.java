@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.env.Environment;
@@ -30,8 +31,6 @@ import org.opensearch.transport.client.Client;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
@@ -514,9 +513,10 @@ public abstract class AbstractConsumerService {
 
             if (!indexExists) {
                 try {
-                    // ContentIndex.createIndex() already logs the creation; avoid a duplicate here.
-                    index.createIndex();
-                } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                    PlainActionFuture<CreateIndexResponse> createFuture = new PlainActionFuture<>();
+                    index.createIndex(createFuture);
+                    createFuture.actionGet();
+                } catch (Exception e) {
                     log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
                 }
             }
@@ -597,7 +597,11 @@ public abstract class AbstractConsumerService {
                         log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
                     }
                 } else {
-                    indicesMap.values().forEach(ContentIndex::clear);
+                    for (ContentIndex idx : indicesMap.values()) {
+                        PlainActionFuture<Void> clearFuture = new PlainActionFuture<>();
+                        idx.clear(clearFuture);
+                        clearFuture.actionGet();
+                    }
                 }
 
                 log.debug(Constants.D_LOG_SNAPSHOT_INIT_CUSTOM_URL, catalogUri);

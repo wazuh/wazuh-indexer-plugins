@@ -22,7 +22,9 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
 import org.junit.Assert;
@@ -43,7 +45,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -86,6 +90,18 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         indices.put("rule", this.ruleIndex);
         indices.put("decoder", this.decoderIndex);
         indices.put("cves", this.cveIndex);
+
+        // Default: all exists() calls respond with false so PlainActionFuture doesn't hang.
+        for (ContentIndex idx : indices.values()) {
+            doAnswer(
+                            invocation -> {
+                                ActionListener<Boolean> listener = invocation.getArgument(1);
+                                listener.onResponse(false);
+                                return null;
+                            })
+                    .when(idx)
+                    .exists(any(), any());
+        }
 
         this.updateService =
                 new UpdateServiceImpl(
@@ -146,8 +162,41 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                         SimpleHttpResponse.create(
                                 200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
-        when(this.ruleIndex.exists("rule-2")).thenReturn(true);
-        when(this.decoderIndex.exists("decoder-1")).thenReturn(true);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Boolean> listener = invocation.getArgument(1);
+                            listener.onResponse(true);
+                            return null;
+                        })
+                .when(this.ruleIndex)
+                .exists(eq("rule-2"), any());
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Boolean> listener = invocation.getArgument(1);
+                            listener.onResponse(true);
+                            return null;
+                        })
+                .when(this.decoderIndex)
+                .exists(eq("decoder-1"), any());
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(2);
+                            listener.onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(this.ruleIndex)
+                .create(any(), any(JsonNode.class), any());
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Void> listener = invocation.getArgument(3);
+                            listener.onResponse(null);
+                            return null;
+                        })
+                .when(this.ruleIndex)
+                .update(any(), any(List.class), any(), any());
 
         when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
@@ -165,10 +214,10 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         // Assert
         Assert.assertTrue("update() should return true on success", result);
         // Verify CREATE
-        verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class));
+        verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class), any());
 
         // Verify UPDATE (offset is now passed as the third argument)
-        verify(this.ruleIndex).update(eq("rule-2"), any(List.class), any());
+        verify(this.ruleIndex).update(eq("rule-2"), any(List.class), any(), any());
 
         // Verify DELETE
         verify(this.decoderIndex).delete("decoder-1");
@@ -216,7 +265,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         doThrow(new RuntimeException("Simulated Indexing Failure"))
                 .when(this.ruleIndex)
-                .create(anyString(), any(JsonNode.class));
+                .create(anyString(), any(JsonNode.class), any());
 
         when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
@@ -284,8 +333,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertTrue("update() should return true on success", result);
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
-        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any());
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), any());
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
@@ -306,7 +355,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(1, 5));
 
         // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any());
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
         Assert.assertEquals(0, consumerCaptor.getValue().getLocalOffset());
@@ -343,7 +392,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         doThrow(new RuntimeException("Simulated Indexing Failure"))
                 .when(this.ruleIndex)
-                .create(anyString(), any(JsonNode.class));
+                .create(anyString(), any(JsonNode.class), any());
 
         // Act
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(29, 30));
@@ -395,8 +444,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertTrue("update() should return true on success", result);
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
-        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any());
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), any());
 
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(captor.capture());
@@ -430,8 +479,32 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                         SimpleHttpResponse.create(
                                 200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
-        when(this.ruleIndex.exists("fake-id")).thenReturn(false);
-        when(this.decoderIndex.exists("fake-id")).thenReturn(false);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Boolean> listener = invocation.getArgument(1);
+                            listener.onResponse(false);
+                            return null;
+                        })
+                .when(this.ruleIndex)
+                .exists(eq("fake-id"), any());
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Boolean> listener = invocation.getArgument(1);
+                            listener.onResponse(false);
+                            return null;
+                        })
+                .when(this.decoderIndex)
+                .exists(eq("fake-id"), any());
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Boolean> listener = invocation.getArgument(1);
+                            listener.onResponse(false);
+                            return null;
+                        })
+                .when(this.cveIndex)
+                .exists(eq("fake-id"), any());
 
         when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
@@ -511,6 +584,15 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                         SimpleHttpResponse.create(
                                 200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(2);
+                            listener.onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(this.cveIndex)
+                .create(any(), any(JsonNode.class), any());
+
         when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsString()).thenReturn("{}");
@@ -519,7 +601,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         Assert.assertTrue("update() should return true on success", result);
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(this.cveIndex).create(eq("TID-123"), payloadCaptor.capture());
+        verify(this.cveIndex).create(eq("TID-123"), payloadCaptor.capture(), any());
         Assert.assertEquals("TID", payloadCaptor.getValue().get("type").asText());
         Assert.assertEquals(70L, payloadCaptor.getValue().get("offset").asLong());
     }

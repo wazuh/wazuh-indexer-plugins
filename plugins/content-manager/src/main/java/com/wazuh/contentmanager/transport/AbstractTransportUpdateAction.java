@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.action.support.PlainActionFuture;
@@ -150,7 +151,9 @@ public abstract class AbstractTransportUpdateAction
             }
 
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
-            if (!index.exists(id)) {
+            PlainActionFuture<Boolean> existsFuture = new PlainActionFuture<>();
+            index.exists(id, existsFuture);
+            if (!existsFuture.actionGet()) {
                 log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, this.getResourceType(), id);
                 return new RestResponse(
                         Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
@@ -282,7 +285,9 @@ public abstract class AbstractTransportUpdateAction
                 }
             }
 
-            index.create(id, ctiWrapper);
+            PlainActionFuture<IndexResponse> createFuture = new PlainActionFuture<>();
+            index.create(id, ctiWrapper, createFuture);
+            createFuture.actionGet();
 
             // 9. Update Hash
             PlainActionFuture<Set<String>> hashFuture = new PlainActionFuture<>();
@@ -305,7 +310,9 @@ public abstract class AbstractTransportUpdateAction
 
     /** Preserves creation date and other immutable fields from the existing document. */
     protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
-        JsonNode existingDoc = index.getDocument(id);
+        PlainActionFuture<JsonNode> docFuture = new PlainActionFuture<>();
+        index.getDocument(id, docFuture);
+        JsonNode existingDoc = docFuture.actionGet();
         if (existingDoc == null || !existingDoc.has(Constants.KEY_DOCUMENT)) return null;
 
         JsonNode doc = existingDoc.get(Constants.KEY_DOCUMENT);
