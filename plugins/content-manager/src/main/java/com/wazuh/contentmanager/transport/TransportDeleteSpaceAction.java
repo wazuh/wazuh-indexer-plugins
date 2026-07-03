@@ -96,8 +96,7 @@ public class TransportDeleteSpaceAction
                         Throwable cause = e;
                         while (cause != null) {
                             if (cause instanceof OpenSearchSecurityException secEx) {
-                                listener.onResponse(
-                                        new MessageStatusResponse(secEx.getMessage(), secEx.status()));
+                                listener.onResponse(new MessageStatusResponse(secEx.getMessage(), secEx.status()));
                                 return;
                             }
                             cause = cause.getCause();
@@ -105,8 +104,7 @@ public class TransportDeleteSpaceAction
                         log.error("Failed to reset space [{}]: {}", space, e.getMessage());
                         listener.onResponse(
                                 new MessageStatusResponse(
-                                        "Internal Server Error: " + e.getMessage(),
-                                        RestStatus.INTERNAL_SERVER_ERROR));
+                                        "Internal Server Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
                     }
                 };
 
@@ -124,20 +122,14 @@ public class TransportDeleteSpaceAction
                                     public void onResponse(Void unused) {
                                         String sharedDocumentId =
                                                 UUID.nameUUIDFromBytes(
-                                                                "wazuh-default-policy"
-                                                                        .getBytes(StandardCharsets.UTF_8))
+                                                                "wazuh-default-policy".getBytes(StandardCharsets.UTF_8))
                                                         .toString();
-                                        spaceService.initializeSpace(
-                                                space.toString(), sharedDocumentId);
+                                        spaceService.initializeSpace(space.toString(), sharedDocumentId);
 
                                         String message =
-                                                String.format(
-                                                        Locale.ROOT,
-                                                        "Successfully reset space [%s].",
-                                                        space);
+                                                String.format(Locale.ROOT, "Successfully reset space [%s].", space);
                                         log.info(message);
-                                        listener.onResponse(
-                                                new MessageStatusResponse(message, RestStatus.OK));
+                                        listener.onResponse(new MessageStatusResponse(message, RestStatus.OK));
                                     }
 
                                     @Override
