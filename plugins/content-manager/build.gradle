@@ -152,10 +152,22 @@ tasks.named("check").configure { dependsOn(integTest) }
 
 tasks.named("publishNebulaPublicationToMavenLocal").configure { dependsOn("generatePomFileForPluginZipPublication") }
 
+// Number of nodes to bring up for the integTest cluster. Override with -PnumNodes=N.
+def _numNodes = findProperty('numNodes') as Integer ?: 2
+
 integTest {
   // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
   if (System.getProperty("test.debug") != null) {
     jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+  }
+
+  doFirst {
+    // Set number of nodes system property to be used in tests
+    systemProperty 'cluster.number_of_nodes', "${_numNodes}"
+    // Ensures unicast_hosts is written before tests hit the cluster in multi-node runs
+    getClusters().forEach { cluster ->
+      cluster.waitForAllConditions()
+    }
   }
 }
 
@@ -182,6 +194,20 @@ testClusters.integTest {
   setting 'plugins.content_manager.catalog.ruleset', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta3-t1-ruleset-5/consumers/public-ruleset-5"
   setting 'plugins.content_manager.catalog.iocs', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5"
   setting 'plugins.content_manager.catalog.vulnerabilities', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5"
+    
+  // Cluster shrink exception thrown if numberOfNodes is set to 1, so only apply if > 1
+  if (_numNodes > 1) numberOfNodes = _numNodes
+
+  // When running integration tests it doesn't forward the --debug-jvm to the cluster.
+  // Use -Dcluster.debug to debug the OpenSearch JVM(s); since multi-node is supported,
+  // each node gets its own incrementing debug port.
+  if (System.getProperty("cluster.debug") != null) {
+    def debugPort = 5005
+    nodes.forEach { node ->
+      node.jvmArgs("-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=*:${debugPort}")
+      debugPort += 1
+    }
+  }
 
   // Installs all registered zipArchive dependencies on integTest cluster nodes
   configurations.zipArchive.asFileTree.each {
@@ -211,6 +237,13 @@ project(':wazuh-indexer-setup').afterEvaluate { setupProject ->
 }
 
 run {
+  doFirst {
+    // There seems to be an issue when running multi node run or integ tasks with unicast_hosts
+    // not being written, the waitForAllConditions ensures it's written
+    getClusters().forEach { cluster ->
+      cluster.waitForAllConditions()
+    }
+  }
   useCluster testClusters.integTest
 }
 
