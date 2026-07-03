@@ -710,4 +710,14 @@ public class Constants {
     public static final String SETUP_STATUS_FAILED = "failed";
     public static final int MAX_SETUP_WAIT_RETRIES = 3;
     public static final int SETUP_WAIT_BACKOFF_BASE_SECONDS = 5;
+
+    // Resource-creation limit locks: serialize the count-then-create sequence used to enforce
+    // plugins.content_manager.max_{integrations,decoders,rules,kvdbs,filters}, keyed per
+    // resource type and space.
+    public static final String INDEX_RESOURCE_LOCKS = ".wazuh-content-manager-resource-locks";
+    public static final int MAX_LOCK_ACQUIRE_RETRIES = 20;
+    public static final long LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS = 100;
+    public static final long LOCK_STALE_THRESHOLD_MILLIS = 30_000;
+    public static final String E_503_RESOURCE_LOCK_TIMEOUT =
+            "Too many concurrent requests creating this resource. Please retry.";
 }

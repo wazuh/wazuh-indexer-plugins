@@ -17,8 +17,11 @@
 package com.wazuh.contentmanager.transport;
 
 import org.apache.lucene.search.TotalHits;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.SuppressForbidden;
@@ -32,7 +35,9 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -67,6 +72,7 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
         Settings settings = Settings.builder().put("plugins.content_manager.engine.mock", true).build();
         PluginSettings.getInstance(settings);
         this.client = mock(Client.class);
+        stubResourceLock(this.client);
         this.engineService = mock(EngineService.class);
         this.action =
                 new TransportCreateDecoderAction(
@@ -87,6 +93,32 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
         Field instance = PluginSettings.class.getDeclaredField("INSTANCE");
         instance.setAccessible(true);
         instance.set(null, null);
+    }
+
+    /**
+     * Stubs the resource-creation-lock plumbing (ResourceLockService) so create actions can
+     * acquire/release the lock without NPEs: the lock index is reported as already existing, and lock
+     * acquire/release always succeed.
+     */
+    @SuppressWarnings("unchecked")
+    private static void stubResourceLock(Client client) {
+        IndicesExistsResponse existsResponse = mock(IndicesExistsResponse.class);
+        when(existsResponse.isExists()).thenReturn(true);
+        ActionFuture<IndicesExistsResponse> existsFuture = mock(ActionFuture.class);
+        when(existsFuture.actionGet()).thenReturn(existsResponse);
+        IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
+        when(indicesAdminClient.exists(any())).thenReturn(existsFuture);
+        AdminClient adminClient = mock(AdminClient.class);
+        when(adminClient.indices()).thenReturn(indicesAdminClient);
+        when(client.admin()).thenReturn(adminClient);
+
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
+        when(client.index(any())).thenReturn(indexFuture);
+
+        ActionFuture<DeleteResponse> deleteFuture = mock(ActionFuture.class);
+        when(deleteFuture.actionGet()).thenReturn(mock(DeleteResponse.class));
+        when(client.delete(any())).thenReturn(deleteFuture);
     }
 
     @SuppressWarnings("unchecked")

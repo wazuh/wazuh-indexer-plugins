@@ -18,24 +18,16 @@ package com.wazuh.contentmanager.transport;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 
 import com.wazuh.contentmanager.action.CreateKvdbAction;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -45,8 +37,6 @@ import com.wazuh.contentmanager.utils.Constants;
 
 /** Transport action for creating KVDB resources. */
 public class TransportCreateKvdbAction extends AbstractTransportCreateAction {
-
-    private static final Logger log = LogManager.getLogger(TransportCreateKvdbAction.class);
 
     @Inject
     public TransportCreateKvdbAction(
@@ -90,32 +80,22 @@ public class TransportCreateKvdbAction extends AbstractTransportCreateAction {
                         client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
         if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
 
-        // Enforce max kvdbs limit
-        int maxKvdbs = PluginSettings.getInstance().getMaxKvdbs();
-        SearchRequest countRequest = new SearchRequest(Constants.INDEX_KVDBS);
-        SearchSourceBuilder countSource = new SearchSourceBuilder();
-        countSource.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
-        countSource.size(0);
-        countSource.trackTotalHits(true);
-        countRequest.source(countSource);
-        try {
-            SearchResponse countResponse = client.search(countRequest).actionGet();
-            long count =
-                    countResponse.getHits().getTotalHits() != null
-                            ? countResponse.getHits().getTotalHits().value()
-                            : 0;
-            if (count >= maxKvdbs) {
-                log.info(Constants.I_LOG_MAX_KVDBS_REACHED, maxKvdbs);
-                return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_TOO_MANY_KVDBS, maxKvdbs),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-        } catch (Exception e) {
-            // If counting fails (e.g., index does not exist yet), allow creation to proceed.
-            log.warn("Failed to count existing kvdbs for limit check: {}", e.getMessage());
-        }
-
         return null;
+    }
+
+    @Override
+    protected int getMaxAllowed() {
+        return PluginSettings.getInstance().getMaxKvdbs();
+    }
+
+    @Override
+    protected String getTooManyResourcesMessageFormat() {
+        return Constants.E_400_TOO_MANY_KVDBS;
+    }
+
+    @Override
+    protected String getMaxReachedLogFormat() {
+        return Constants.I_LOG_MAX_KVDBS_REACHED;
     }
 
     @Override
