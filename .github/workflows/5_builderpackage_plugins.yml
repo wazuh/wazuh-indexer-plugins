@@ -95,7 +95,7 @@ jobs:
           revision: ${{ inputs.revision }}
           reference: ${{ needs.branches.outputs.common_utils_plugin_ref }}
       - name: Cache Maven Local
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ~/.m2/repository
           key: ${{ github.run_id }}-common-utils
@@ -107,7 +107,7 @@ jobs:
     if: inputs.plugin == 'content-manager'
     steps:
       - name: Restore Maven Local Cache (common-utils)
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: ${{ github.run_id }}-common-utils
@@ -118,7 +118,7 @@ jobs:
           revision: ${{ inputs.revision }}
           reference: ${{ needs.branches.outputs.alerting_plugin_ref }}
       - name: Cache Maven Local
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ~/.m2/repository
           key: ${{ github.run_id }}-alerting
@@ -130,7 +130,7 @@ jobs:
     if: inputs.plugin == 'content-manager'
     steps:
       - name: Restore Maven Local Cache (alerting)
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: ${{ github.run_id }}-alerting
@@ -141,7 +141,7 @@ jobs:
           revision: ${{ inputs.revision }}
           reference: ${{ needs.branches.outputs.security_analytics_plugin_ref }}
       - name: Cache Maven Local
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ~/.m2/repository
           key: ${{ github.run_id }}-security-analytics
@@ -170,14 +170,14 @@ jobs:
 
       - name: Restore Maven Local Cache (common-utils)
         if: inputs.plugin != 'content-manager'
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: ${{ github.run_id }}-common-utils
 
       - name: Restore Maven Local Cache (security-analytics with deps)
         if: inputs.plugin == 'content-manager'
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: ${{ github.run_id }}-security-analytics
