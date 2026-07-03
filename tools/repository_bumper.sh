@@ -3,9 +3,10 @@
 # =========================
 # Repository Bumper Script
 # =========================
-# This script updates the VERSION.json file for a new version release.
+# Updates VERSION.json for a new release, and, when --set-as-main is used,
+# records the outgoing version under CHANGELOG.md's "## Prior versions".
 #
-# It takes three arguments:
+# Arguments:
 # 1. The new version to set (e.g., 4.5.0)
 # 2. The new stage to set (alpha, beta, rc, stable)
 #
@@ -126,6 +127,67 @@ function update_version_file() {
     log "Updated $file with version=$version and stage=$stage"
 }
 
+# ====
+# Determine the "org/repo" slug from the origin remote URL.
+# ====
+function get_repo_slug() {
+    local remote_url
+    remote_url=$(git remote get-url origin)
+    remote_url="${remote_url%.git}"
+    remote_url="${remote_url#*github.com/}"
+    remote_url="${remote_url#*github.com:}"
+    echo "$remote_url"
+}
+
+# ====
+# Add the outgoing version to CHANGELOG.md's "## Prior versions" section.
+# Only called when main moves to a new version (--set-as-main).
+# Arguments:
+#   $1 - previous version
+# ====
+function update_changelog_prior_versions() {
+    local prev_version="$1"
+    local file="CHANGELOG.md"
+    local repo_slug
+    repo_slug=$(get_repo_slug)
+    local entry="- [${prev_version}](https://github.com/${repo_slug}/blob/${prev_version}/CHANGELOG.md)"
+
+    if [[ ! -f "$file" ]]; then
+        log "Warning: $file not found; skipping Prior versions update."
+        return 0
+    fi
+
+    if grep -qF -- "$entry" "$file"; then
+        log "Prior versions already contains an entry for $prev_version; skipping."
+        return 0
+    fi
+
+    if grep -qE "^## Prior versions?$" "$file"; then
+        # Matches singular or plural heading; replaces the "- []()" placeholder if present.
+        awk -v entry="$entry" '
+            /^## Prior versions?$/ && !done {
+                print "## Prior versions"
+                print entry
+                done = 1
+                skip_placeholder = 1
+                next
+            }
+            skip_placeholder {
+                skip_placeholder = 0
+                if ($0 == "- []()") next
+            }
+            { print }
+        ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+    else
+        {
+            echo ""
+            echo "## Prior versions"
+            echo "$entry"
+        } >> "$file"
+    fi
+
+    log "Added $prev_version to Prior versions in $file"
+}
 
 # ====
 # Main logic
@@ -166,7 +228,12 @@ function main() {
     navigate_to_project_root
     check_jq_installed
     validate_inputs "$version" "$stage"
+    local old_version
+    old_version=$(jq -r '.version' VERSION.json)
     update_version_file "$version" "$stage"
+    if [[ "$set_as_main" == "yes" ]] && [[ "$old_version" != "$version" ]]; then
+        update_changelog_prior_versions "$old_version"
+    fi
 
     log "Update complete."
 }
