@@ -18,9 +18,11 @@ package com.wazuh.contentmanager.rest.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
@@ -89,6 +91,77 @@ public class PayloadValidations {
     }
 
     /**
+     * Asynchronously validates that a document exists and is in the draft space.
+     *
+     * @param client the OpenSearch client
+     * @param index the index to search in
+     * @param docId document ID to validate
+     * @param docType the document type name for error messages
+     * @param listener receives an error string if validation fails, null otherwise
+     */
+    public void validateDocumentInSpaceAsync(
+            Client client,
+            String index,
+            String docId,
+            String docType,
+            ActionListener<String> listener) {
+        String capitalizedDocType = Strings.capitalize(docType);
+        client.get(
+                new GetRequest(index, docId),
+                ActionListener.wrap(
+                        response -> {
+                            if (!response.isExists()) {
+                                listener.onResponse(
+                                        String.format(
+                                                Locale.ROOT,
+                                                Constants.E_400_RESOURCE_NOT_FOUND,
+                                                capitalizedDocType,
+                                                docId));
+                                return;
+                            }
+
+                            Map<String, Object> source = response.getSourceAsMap();
+                            if (source == null || !source.containsKey(Constants.KEY_SPACE)) {
+                                listener.onResponse(
+                                        String.format(
+                                                Locale.ROOT,
+                                                Constants.E_400_RESOURCE_NOT_FOUND,
+                                                capitalizedDocType,
+                                                docId));
+                                return;
+                            }
+
+                            Object spaceObj = source.get(Constants.KEY_SPACE);
+                            if (!(spaceObj instanceof Map)) {
+                                listener.onResponse(
+                                        String.format(
+                                                Locale.ROOT,
+                                                Constants.E_400_RESOURCE_NOT_FOUND,
+                                                capitalizedDocType,
+                                                docId));
+                                return;
+                            }
+
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
+                            Object spaceName = spaceMap.get(Constants.KEY_NAME);
+
+                            if (!Space.DRAFT.equals(String.valueOf(spaceName))) {
+                                listener.onResponse(
+                                        String.format(
+                                                Locale.ROOT,
+                                                Constants.E_400_RESOURCE_NOT_IN_DRAFT,
+                                                capitalizedDocType,
+                                                docId));
+                                return;
+                            }
+
+                            listener.onResponse(null);
+                        },
+                        listener::onFailure));
+    }
+
+    /**
      * Validates that a document with the same title does not already exist in the given space.
      *
      * @param client the OpenSearch client
@@ -140,6 +213,67 @@ public class PayloadValidations {
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
         return null;
+    }
+
+    /**
+     * Asynchronously validates that a document with the same title does not already exist.
+     *
+     * @param client the OpenSearch client
+     * @param indexName the index to search in
+     * @param space the space to check
+     * @param title the title to validate
+     * @param currentId the ID of the current document (for updates), can be null for creation
+     * @param resourceType the type of resource for error messages
+     * @param listener receives a RestResponse with error if a duplicate is found, null otherwise
+     */
+    public void validateDuplicateTitleAsync(
+            Client client,
+            String indexName,
+            String space,
+            String title,
+            String currentId,
+            String resourceType,
+            ActionListener<RestResponse> listener) {
+        SearchRequest searchRequest = new SearchRequest(indexName);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(
+                QueryBuilders.boolQuery()
+                        .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space))
+                        .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_TITLE, title)));
+        sourceBuilder.size(1);
+        sourceBuilder.fetchSource(false);
+        searchRequest.source(sourceBuilder);
+
+        client.search(
+                searchRequest,
+                ActionListener.wrap(
+                        response -> {
+                            if (response.getHits().getTotalHits().value() > 0) {
+                                if (currentId != null) {
+                                    String foundId = response.getHits().getAt(0).getId();
+                                    if (foundId.equals(currentId)) {
+                                        listener.onResponse(null);
+                                        return;
+                                    }
+                                }
+                                listener.onResponse(
+                                        new RestResponse(
+                                                String.format(
+                                                        Locale.ROOT,
+                                                        Constants.E_400_DUPLICATE_NAME,
+                                                        resourceType,
+                                                        title,
+                                                        space),
+                                                RestStatus.BAD_REQUEST.getStatus()));
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        e ->
+                                listener.onResponse(
+                                        new RestResponse(
+                                                "Error validating duplicate name: " + e.getMessage(),
+                                                RestStatus.INTERNAL_SERVER_ERROR.getStatus()))));
     }
 
     /**

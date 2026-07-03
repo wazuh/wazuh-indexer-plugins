@@ -386,6 +386,36 @@ public class ContentIndex {
     }
 
     /**
+     * Asynchronously indexes a new document or overwrites an existing one.
+     *
+     * @param id The unique identifier for the document.
+     * @param payload The JSON object representing the document content.
+     * @param listener The listener to notify on completion.
+     */
+    public void createAsync(String id, JsonNode payload, ActionListener<IndexResponse> listener) {
+        ObjectNode processedPayload;
+        if (payload.isObject()
+                && payload.has("document")
+                && payload.has("space")
+                && payload.has("hash")) {
+            processedPayload = payload.deepCopy();
+        } else {
+            processedPayload = this.processPayload(payload);
+        }
+
+        if (processedPayload.has("document")) {
+            YamlUtils.fixDecimalScale(processedPayload.get("document"));
+        }
+
+        IndexRequest request =
+                new IndexRequest(this.getWriteIndex())
+                        .id(id)
+                        .source(processedPayload.toString(), XContentType.JSON)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        this.client.index(request, listener);
+    }
+
+    /**
      * Updates an existing document by applying a list of patch operations.
      *
      * @param id The ID of the document to update.
@@ -528,6 +558,53 @@ public class ContentIndex {
             log.error(Constants.E_LOG_SEARCH_BY_QUERY_FAILED, this.indexName, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Asynchronously searches for documents by a query.
+     *
+     * @param queryBuilder The query to execute.
+     * @param listener The listener to notify with the results, or null if none found.
+     */
+    public void searchByQueryAsync(QueryBuilder queryBuilder, ActionListener<ObjectNode> listener) {
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);
+        SearchRequest searchRequest = new SearchRequest(this.indexName).source(searchSourceBuilder);
+
+        this.client.search(
+                searchRequest,
+                ActionListener.wrap(
+                        searchResponse -> {
+                            if (searchResponse == null
+                                    || searchResponse.getHits() == null
+                                    || searchResponse.getHits().getTotalHits() == null
+                                    || searchResponse.getHits().getTotalHits().value() == 0L) {
+                                log.debug(
+                                        Constants.D_LOG_NO_DOCUMENT_FOUND_QUERY,
+                                        this.indexName,
+                                        queryBuilder.toString());
+                                listener.onResponse(null);
+                                return;
+                            }
+                            try {
+                                ArrayNode hitsArray = this.mapper.createArrayNode();
+                                for (SearchHit hit : searchResponse.getHits().getHits()) {
+                                    ObjectNode hitObject =
+                                            (ObjectNode)
+                                                    this.mapper.readTree(hit.getSourceAsString());
+                                    hitObject.put(Constants.KEY_ID, hit.getId());
+                                    hitsArray.add(hitObject);
+                                }
+                                ObjectNode result = this.mapper.createObjectNode();
+                                result.set(Constants.Q_HITS, hitsArray);
+                                result.put(
+                                        "total",
+                                        searchResponse.getHits().getTotalHits().value());
+                                listener.onResponse(result);
+                            } catch (IOException e) {
+                                listener.onFailure(e);
+                            }
+                        },
+                        listener::onFailure));
     }
 
     /**

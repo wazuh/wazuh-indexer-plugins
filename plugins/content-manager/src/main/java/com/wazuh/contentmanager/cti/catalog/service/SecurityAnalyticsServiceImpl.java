@@ -245,7 +245,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
      * @param message the raw exception message, potentially JSON-formatted
      * @return the extracted error message
      */
-    static String extractErrorMessage(String message) {
+    public static String extractErrorMessage(String message) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode errorNode = mapper.readTree(message);

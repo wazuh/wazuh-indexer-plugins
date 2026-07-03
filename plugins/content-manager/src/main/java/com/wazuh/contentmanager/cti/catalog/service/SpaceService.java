@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -35,6 +36,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilders;
@@ -861,6 +863,354 @@ public class SpaceService {
             log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
         }
         return changedSpaces;
+    }
+
+    /**
+     * Asynchronously calculates and updates the aggregate hash for all policies in the given spaces.
+     *
+     * @param targetSpaces The list of target spaces to process.
+     * @param listener The listener to notify with the set of changed space names.
+     */
+    public void calculateAndUpdateAsync(
+            List<String> targetSpaces, ActionListener<Set<String>> listener) {
+        this.client
+                .admin()
+                .indices()
+                .exists(
+                        new IndicesExistsRequest(Constants.INDEX_POLICIES),
+                        ActionListener.wrap(
+                                existsResponse -> {
+                                    if (!existsResponse.isExists()) {
+                                        log.warn(
+                                                Constants.W_LOG_POLICY_INDEX_MISSING,
+                                                Constants.INDEX_POLICIES);
+                                        listener.onResponse(new HashSet<>());
+                                        return;
+                                    }
+                                    searchPoliciesAndProcessAsync(targetSpaces, listener);
+                                },
+                                e -> {
+                                    log.error(
+                                            Constants.E_LOG_CALCULATE_HASHES_FAILED,
+                                            e.getMessage(),
+                                            e);
+                                    listener.onResponse(new HashSet<>());
+                                }));
+    }
+
+    private void searchPoliciesAndProcessAsync(
+            List<String> targetSpaces, ActionListener<Set<String>> listener) {
+        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+        searchRequest.source().query(QueryBuilders.matchAllQuery()).size(10000);
+
+        this.client.search(
+                searchRequest,
+                ActionListener.wrap(
+                        response -> {
+                            Set<String> changedSpaces = new HashSet<>();
+                            BulkRequest bulkUpdateRequest = new BulkRequest();
+                            SearchHit[] hits = response.getHits().getHits();
+                            processHitsAsync(
+                                    hits,
+                                    0,
+                                    targetSpaces,
+                                    bulkUpdateRequest,
+                                    changedSpaces,
+                                    ActionListener.wrap(
+                                            v ->
+                                                    executeBulkUpdateAsync(
+                                                            bulkUpdateRequest,
+                                                            changedSpaces,
+                                                            listener),
+                                            e -> {
+                                                log.error(
+                                                        Constants.E_LOG_CALCULATE_HASHES_FAILED,
+                                                        e.getMessage(),
+                                                        e);
+                                                listener.onResponse(changedSpaces);
+                                            }));
+                        },
+                        e -> {
+                            log.error(
+                                    Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
+                            listener.onResponse(new HashSet<>());
+                        }));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void processHitsAsync(
+            SearchHit[] hits,
+            int idx,
+            List<String> targetSpaces,
+            BulkRequest bulkUpdateRequest,
+            Set<String> changedSpaces,
+            ActionListener<Void> listener) {
+        if (idx >= hits.length) {
+            listener.onResponse(null);
+            return;
+        }
+
+        SearchHit hit = hits[idx];
+        Map<String, Object> source = hit.getSourceAsMap();
+        Map<String, Object> space = (Map<String, Object>) source.get(Constants.KEY_SPACE);
+        String spaceName = null;
+        if (space != null) {
+            spaceName = (String) space.get(Constants.KEY_NAME);
+            if (!targetSpaces.contains(spaceName)) {
+                processHitsAsync(
+                        hits, idx + 1, targetSpaces, bulkUpdateRequest, changedSpaces, listener);
+                return;
+            }
+            log.debug(Constants.D_LOG_RECALCULATING_HASH, hit.getId(), spaceName);
+        }
+
+        List<String> spaceHashes = new ArrayList<>();
+        spaceHashes.add(Resource.extractHash(source));
+
+        Map<String, Object> document = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+        List<String> integrationIds =
+                (document != null && document.containsKey(Constants.KEY_INTEGRATIONS))
+                        ? (List<String>) document.get(Constants.KEY_INTEGRATIONS)
+                        : Collections.emptyList();
+        List<String> filterIds =
+                (document != null && document.containsKey(Constants.KEY_FILTERS))
+                        ? (List<String>) document.get(Constants.KEY_FILTERS)
+                        : Collections.emptyList();
+
+        final String finalSpaceName = spaceName;
+        collectIntegrationHashesAsync(
+                integrationIds,
+                0,
+                spaceHashes,
+                ActionListener.wrap(
+                        v ->
+                                collectResourceHashesAsync(
+                                        filterIds,
+                                        0,
+                                        Constants.INDEX_FILTERS,
+                                        spaceHashes,
+                                        ActionListener.wrap(
+                                                v2 -> {
+                                                    finalizeHitHash(
+                                                            hit,
+                                                            source,
+                                                            finalSpaceName,
+                                                            spaceHashes,
+                                                            bulkUpdateRequest,
+                                                            changedSpaces);
+                                                    processHitsAsync(
+                                                            hits,
+                                                            idx + 1,
+                                                            targetSpaces,
+                                                            bulkUpdateRequest,
+                                                            changedSpaces,
+                                                            listener);
+                                                },
+                                                listener::onFailure)),
+                        listener::onFailure));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void finalizeHitHash(
+            SearchHit hit,
+            Map<String, Object> source,
+            String spaceName,
+            List<String> spaceHashes,
+            BulkRequest bulkUpdateRequest,
+            Set<String> changedSpaces) {
+        String spaceHash = Resource.computeSha256(String.join("", spaceHashes));
+
+        Map<String, Object> updateMap = new HashMap<>();
+        Map<String, Object> spaceMap =
+                (Map<String, Object>) source.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+        Map<String, Object> hashMap =
+                (Map<String, Object>)
+                        spaceMap.getOrDefault(Constants.KEY_HASH, new HashMap<>());
+
+        String oldHash = (String) hashMap.getOrDefault(Constants.KEY_SHA256, "");
+        if (spaceName != null && !spaceHash.equals(oldHash)) {
+            changedSpaces.add(spaceName);
+        }
+
+        hashMap.put(Constants.KEY_SHA256, spaceHash);
+        spaceMap.put(Constants.KEY_HASH, hashMap);
+        updateMap.put(Constants.KEY_SPACE, spaceMap);
+
+        bulkUpdateRequest.add(
+                new UpdateRequest(Constants.INDEX_POLICIES, hit.getId())
+                        .doc(updateMap, XContentType.JSON));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void collectIntegrationHashesAsync(
+            List<String> integrationIds,
+            int idx,
+            List<String> spaceHashes,
+            ActionListener<Void> listener) {
+        if (idx >= integrationIds.size()) {
+            listener.onResponse(null);
+            return;
+        }
+
+        String integrationId = integrationIds.get(idx);
+        getDocumentSourceAsync(
+                Constants.INDEX_INTEGRATIONS,
+                integrationId,
+                ActionListener.wrap(
+                        integrationSource -> {
+                            if (integrationSource == null) {
+                                collectIntegrationHashesAsync(
+                                        integrationIds, idx + 1, spaceHashes, listener);
+                                return;
+                            }
+
+                            spaceHashes.add(Resource.extractHash(integrationSource));
+
+                            Map<String, Object> integration =
+                                    (Map<String, Object>)
+                                            integrationSource.get(Constants.KEY_DOCUMENT);
+                            if (integration == null) {
+                                collectIntegrationHashesAsync(
+                                        integrationIds, idx + 1, spaceHashes, listener);
+                                return;
+                            }
+
+                            addHashesAsync(
+                                    integration,
+                                    Constants.KEY_DECODERS,
+                                    Constants.INDEX_DECODERS,
+                                    spaceHashes,
+                                    ActionListener.wrap(
+                                            v ->
+                                                    addHashesAsync(
+                                                            integration,
+                                                            Constants.KEY_KVDBS,
+                                                            Constants.INDEX_KVDBS,
+                                                            spaceHashes,
+                                                            ActionListener.wrap(
+                                                                    v2 ->
+                                                                            addHashesAsync(
+                                                                                    integration,
+                                                                                    Constants
+                                                                                            .KEY_RULES,
+                                                                                    Constants
+                                                                                            .INDEX_RULES,
+                                                                                    spaceHashes,
+                                                                                    ActionListener
+                                                                                            .wrap(
+                                                                                                    v3 ->
+                                                                                                            collectIntegrationHashesAsync(
+                                                                                                                    integrationIds,
+                                                                                                                    idx
+                                                                                                                            + 1,
+                                                                                                                    spaceHashes,
+                                                                                                                    listener),
+                                                                                                    listener
+                                                                                                            ::onFailure)),
+                                                                    listener::onFailure)),
+                                            listener::onFailure));
+                        },
+                        listener::onFailure));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addHashesAsync(
+            Map<String, Object> integration,
+            String resource,
+            String resourceIndex,
+            List<String> spaceHashes,
+            ActionListener<Void> listener) {
+        if (!integration.containsKey(resource)) {
+            listener.onResponse(null);
+            return;
+        }
+        List<String> resourceIds = (List<String>) integration.get(resource);
+        collectResourceHashesAsync(resourceIds, 0, resourceIndex, spaceHashes, listener);
+    }
+
+    private void collectResourceHashesAsync(
+            List<String> ids,
+            int idx,
+            String indexName,
+            List<String> hashes,
+            ActionListener<Void> listener) {
+        if (idx >= ids.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        getDocumentSourceAsync(
+                indexName,
+                ids.get(idx),
+                ActionListener.wrap(
+                        source -> {
+                            if (source != null) {
+                                hashes.add(Resource.extractHash(source));
+                            }
+                            collectResourceHashesAsync(
+                                    ids, idx + 1, indexName, hashes, listener);
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Asynchronously retrieves the source document for a given document ID from the specified index.
+     *
+     * @param indexName The name of the index.
+     * @param documentId The document ID.
+     * @param listener The listener to notify with the source map, or null if not found.
+     */
+    public void getDocumentSourceAsync(
+            String indexName,
+            String documentId,
+            ActionListener<Map<String, Object>> listener) {
+        this.client.get(
+                new GetRequest(indexName, documentId),
+                ActionListener.wrap(
+                        response -> {
+                            if (response.isExists()) {
+                                listener.onResponse(response.getSourceAsMap());
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        e -> {
+                            log.warn(
+                                    Constants.W_LOG_RETRIEVE_DOCUMENT_FAILED,
+                                    documentId,
+                                    indexName,
+                                    e.getMessage());
+                            listener.onResponse(null);
+                        }));
+    }
+
+    private void executeBulkUpdateAsync(
+            BulkRequest bulkUpdateRequest,
+            Set<String> changedSpaces,
+            ActionListener<Set<String>> listener) {
+        if (bulkUpdateRequest.numberOfActions() == 0) {
+            listener.onResponse(changedSpaces);
+            return;
+        }
+        bulkUpdateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        this.client.bulk(
+                bulkUpdateRequest,
+                ActionListener.wrap(
+                        bulkResponse -> {
+                            if (bulkResponse.hasFailures()) {
+                                log.error(
+                                        Constants.E_LOG_BULK_UPDATE_HASHES_FAILED,
+                                        bulkResponse.buildFailureMessage());
+                            }
+                            if (!changedSpaces.isEmpty()) {
+                                log.info(Constants.I_LOG_CONTENT_HASH_CHANGED, changedSpaces);
+                            }
+                            listener.onResponse(changedSpaces);
+                        },
+                        e -> {
+                            log.error(
+                                    Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
+                            listener.onResponse(changedSpaces);
+                        }));
     }
 
     /**
