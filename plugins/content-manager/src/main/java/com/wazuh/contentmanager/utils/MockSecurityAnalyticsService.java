@@ -78,24 +78,28 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     public void upsertIntegrationAsync(
             JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.upsertIntegrationAsync called");
+        listener.onResponse(null);
     }
 
     @Override
     public void deleteIntegrationAsync(
             String id, Space space, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.deleteIntegrationAsync called for id: {}", id);
+        listener.onResponse(null);
     }
 
     @Override
     public void upsertRuleAsync(
             JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.upsertRuleAsync called");
+        listener.onResponse(null);
     }
 
     @Override
     public void deleteRuleAsync(
             String id, Space space, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.deleteRuleAsync called for id: {}", id);
+        listener.onResponse(null);
     }
 
     @Override
@@ -105,11 +109,13 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
             Method method,
             ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.upsertDetectorAsync called");
+        listener.onResponse(null);
     }
 
     @Override
     public void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.deleteDetectorAsync called for id: {}", id);
+        listener.onResponse(null);
     }
 
     @Override
