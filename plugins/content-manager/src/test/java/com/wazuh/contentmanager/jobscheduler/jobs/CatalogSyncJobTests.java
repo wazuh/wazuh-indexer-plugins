@@ -20,6 +20,7 @@ import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -42,6 +43,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -157,5 +160,141 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
 
         verifyNoInteractions(this.consumersIndex);
         Assert.assertFalse("Semaphore must be released after a skipped pass", job.isRunning());
+        Assert.assertFalse(
+                "A skipped pass (Setup not ready) must not arm the retry flag", job.isRetryPending());
+        verify(job, times(1)).trigger();
+    }
+
+    /**
+     * A second {@code trigger()} call made while a pass is still in flight (semaphore held, task not
+     * yet completed) must be rejected without starting a second pass. Uses a plain unstubbed executor
+     * mock, so the first submitted task is captured but never actually run -- simulating a pass that
+     * is genuinely still in progress.
+     */
+    public void testTrigger_whileAlreadyRunning_isRejectedAndDoesNotStartSecondPass() {
+        ExecutorService neverRunsExecutor = mock(ExecutorService.class);
+        when(this.threadPool.generic()).thenReturn(neverRunsExecutor);
+
+        this.catalogSyncJob.trigger();
+        Assert.assertTrue(
+                "First trigger() must acquire the semaphore and remain running until its task"
+                        + " completes",
+                this.catalogSyncJob.isRunning());
+
+        this.catalogSyncJob.trigger();
+
+        verify(neverRunsExecutor, times(1)).execute(any(Runnable.class));
+        Assert.assertTrue(
+                "Semaphore must remain held; the second trigger() must not release or re-acquire it",
+                this.catalogSyncJob.isRunning());
+    }
+
+    /**
+     * A scheduled {@code execute()} call that lands while a pass is still in flight must be rejected
+     * the same way {@code trigger()} is, without starting a second pass.
+     */
+    public void testExecute_whileAlreadyRunning_isRejectedAndDoesNotStartSecondPass() {
+        ExecutorService neverRunsExecutor = mock(ExecutorService.class);
+        when(this.threadPool.generic()).thenReturn(neverRunsExecutor);
+
+        this.catalogSyncJob.trigger();
+        Assert.assertTrue(this.catalogSyncJob.isRunning());
+
+        JobExecutionContext context = mock(JobExecutionContext.class);
+        this.catalogSyncJob.execute(context);
+
+        verify(neverRunsExecutor, times(1)).execute(any(Runnable.class));
+        Assert.assertTrue(
+                "A concurrent scheduled execute() must not start a second pass while one is in"
+                        + " flight",
+                this.catalogSyncJob.isRunning());
+    }
+
+    /** Makes {@code threadPool.generic()} run submitted tasks synchronously on the calling thread. */
+    private void useSameThreadExecutor() {
+        ExecutorService sameThreadExecutor = mock(ExecutorService.class);
+        doAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(0)).run();
+                            return null;
+                        })
+                .when(sameThreadExecutor)
+                .execute(any(Runnable.class));
+        when(this.threadPool.generic()).thenReturn(sameThreadExecutor);
+    }
+
+    /** A fresh failure fires exactly one immediate retry; a retry that succeeds clears the flag. */
+    public void testHandleOutcome_failure_triggersOneImmediateRetry() {
+        this.useSameThreadExecutor();
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+        job.handleOutcome(CatalogSyncJob.SyncOutcome.FAILURE);
+
+        verify(job, times(1)).trigger();
+        verify(job, times(1)).performSynchronization();
+        Assert.assertFalse("Flag must be clear after the retry succeeds", job.isRetryPending());
+        Assert.assertFalse("Semaphore must be released after the retry completes", job.isRunning());
+    }
+
+    /** If the one immediate retry also fails, no second retry is triggered. */
+    public void testHandleOutcome_retryAlsoFails_doesNotRetryAgain() {
+        this.useSameThreadExecutor();
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.FAILURE).when(job).performSynchronization();
+
+        job.handleOutcome(CatalogSyncJob.SyncOutcome.FAILURE);
+
+        verify(job, times(1)).trigger();
+        verify(job, times(1)).performSynchronization();
+        Assert.assertFalse(
+                "Flag must be reset so the next distinct failure episode gets its own retry",
+                job.isRetryPending());
+        Assert.assertFalse("Semaphore must be released after the retry completes", job.isRunning());
+    }
+
+    /** A successful pass never triggers a retry and leaves the retry flag clear. */
+    public void testHandleOutcome_success_leavesRetryFlagClear() {
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+
+        job.handleOutcome(CatalogSyncJob.SyncOutcome.SUCCESS);
+
+        verify(job, times(0)).trigger();
+        Assert.assertFalse(job.isRetryPending());
+    }
+
+    /** A scheduled run that fails transiently triggers exactly one immediate retry. */
+    public void testExecute_transientFailureThenSuccess_triggersOneRetry() {
+        this.useSameThreadExecutor();
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.FAILURE, CatalogSyncJob.SyncOutcome.SUCCESS)
+                .when(job)
+                .performSynchronization();
+        JobExecutionContext context = mock(JobExecutionContext.class);
+
+        job.execute(context);
+
+        verify(job, times(1)).trigger();
+        verify(job, times(2)).performSynchronization();
+        Assert.assertFalse(job.isRunning());
+    }
+
+    /**
+     * The semaphore must be released before the retry is triggered, otherwise the nested {@code
+     * trigger()} call inside {@code handleOutcome()} would find the permit unavailable and silently
+     * no-op, leaving {@code performSynchronization()} invoked only once (the original failing pass)
+     * instead of twice (the original pass plus its retry).
+     */
+    public void testSemaphoreReleasedBeforeRetryTriggered() {
+        this.useSameThreadExecutor();
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.FAILURE, CatalogSyncJob.SyncOutcome.SUCCESS)
+                .when(job)
+                .performSynchronization();
+
+        job.trigger();
+
+        verify(job, times(2)).performSynchronization();
+        Assert.assertFalse("Semaphore must end released", job.isRunning());
     }
 }
