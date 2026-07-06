@@ -17,10 +17,10 @@ set -euo pipefail
 # Print usage instructions
 # ====
 function usage() {
-    echo "Usage: $0 <version> <stage>"
+    echo "Usage: $0 <version> <stage> [--set-as-main]"
     echo "  version:  The new version to set in VERSION.json (e.g., 4.5.0)"
     echo "  stage:    The new stage to set in VERSION.json (alpha, beta, rc, stable)"
-    echo "  --set-as-main: (Optional) Enable main branch mode: bump version values only,"
+    echo "  --set-as-main: (Optional) Enable main branch mode: bump version values only, keep branch references pointing to main"
     exit 1
 }
 
