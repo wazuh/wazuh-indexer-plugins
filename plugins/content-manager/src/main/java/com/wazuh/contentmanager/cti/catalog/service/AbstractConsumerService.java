@@ -524,8 +524,25 @@ public abstract class AbstractConsumerService {
         // When a plan change is detected, download into hidden shadow indices and atomically
         // swap aliases. This avoids any window where users see empty/partial data.
         if (shadowSwapRequired) {
-            return this.performShadowSwap(
-                    consumerType, catalogUri, swapTargetResource, indicesMap, remoteConsumer, urlResolver);
+            if (!this.performShadowSwap(
+                    consumerType, catalogUri, swapTargetResource, indicesMap, remoteConsumer, urlResolver)) {
+                return false;
+            }
+            // The swapped snapshot only carries data up to its snapshot offset. Close the gap to
+            // the remote head in the same pass; otherwise the consumer would be reported as READY
+            // while trailing the remote offset (local_offset < remote_offset) until the next sync.
+            if (remoteConsumer.getSnapshotOffset() < remoteConsumer.getOffset()) {
+                this.performIncrementalUpdate(
+                        context,
+                        consumer,
+                        consumerType,
+                        catalogUri,
+                        urlResolver,
+                        indicesMap,
+                        remoteConsumer.getSnapshotOffset(),
+                        remoteConsumer.getOffset());
+            }
+            return true;
         }
 
         boolean updated = false;
@@ -647,28 +664,62 @@ public abstract class AbstractConsumerService {
 
         // Incremental Update
         if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
-            log.info(
-                    Constants.I_LOG_UPDATING_CONSUMER_CONTENT,
-                    consumerType,
-                    currentOffset,
-                    remoteConsumer.getOffset());
-
-            UpdateServiceImpl updateService =
-                    new UpdateServiceImpl(
+            updated =
+                    this.performIncrementalUpdate(
                             context,
                             consumer,
                             consumerType,
                             catalogUri,
-                            new ApiClient(urlResolver),
-                            this.consumersIndex,
-                            indicesMap);
-            try {
-                updated = updateService.update(currentOffset, remoteConsumer.getOffset());
-            } finally {
-                updateService.close();
-            }
+                            urlResolver,
+                            indicesMap,
+                            currentOffset,
+                            remoteConsumer.getOffset());
         }
         return updated;
+    }
+
+    /**
+     * Fetches and applies incremental changes from the CTI API between the given offsets and persists
+     * the resulting consumer state. Shared by the regular sync path and the post-swap catch-up: a
+     * swapped snapshot only carries data up to its snapshot offset, so the remaining changes up to
+     * the remote head must be applied in the same pass. Failures propagate to the caller, matching
+     * the regular sync path semantics ({@link UpdateServiceImpl#update} resets the consumer before
+     * rethrowing).
+     *
+     * @param context The CTI context name.
+     * @param consumer The CTI consumer name.
+     * @param consumerType The consumer type identifier.
+     * @param catalogUri The effective catalog URI.
+     * @param urlResolver The URL resolver for API requests.
+     * @param indicesMap The content indices keyed by type.
+     * @param fromOffset The offset to update from (exclusive).
+     * @param toOffset The offset to update to (inclusive).
+     * @return {@code true} if changes were applied.
+     */
+    private boolean performIncrementalUpdate(
+            String context,
+            String consumer,
+            String consumerType,
+            String catalogUri,
+            ResourceUrlResolver urlResolver,
+            Map<String, ContentIndex> indicesMap,
+            long fromOffset,
+            long toOffset) {
+        log.info(Constants.I_LOG_UPDATING_CONSUMER_CONTENT, consumerType, fromOffset, toOffset);
+        UpdateServiceImpl updateService =
+                new UpdateServiceImpl(
+                        context,
+                        consumer,
+                        consumerType,
+                        catalogUri,
+                        new ApiClient(urlResolver),
+                        this.consumersIndex,
+                        indicesMap);
+        try {
+            return updateService.update(fromOffset, toOffset);
+        } finally {
+            updateService.close();
+        }
     }
 
     /**
