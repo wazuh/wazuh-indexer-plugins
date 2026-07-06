@@ -120,11 +120,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
             this.indices.add(new StreamIndex(
                 "wazuh-events-v5-" + category
             ));
-
-            if(category.equals("unclassified")) {
-                // Unclassified events data stream (stores uncategorized events for investigation)
-                this.indices.add(new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified"));
-            }
         }
         // Findings data streams (stores detection findings per category)
         for (String category : this.categories) {

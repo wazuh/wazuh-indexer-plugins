@@ -132,7 +132,9 @@ public class UnclassifiedEventsIT extends OpenSearchRestTestCase {
 
     /**
      * Test to verify that the unclassified events index template is created during plugin
-     * initialization.
+     * initialization and is built from the main events schema body. The main events mapping uses
+     * {@code dynamic: strict_allow_templates}, whereas the former standalone unclassified schema used
+     * {@code dynamic: strict}; asserting on that marker confirms the stream now uses the main body.
      *
      * @throws IOException if there is an issue with the HTTP request
      * @throws ParseException if there is an issue parsing the response
@@ -148,6 +150,36 @@ public class UnclassifiedEventsIT extends OpenSearchRestTestCase {
                 "Template should be created during plugin initialization",
                 body,
                 containsString(UNCLASSIFIED_INDEX_TEMPLATE));
+        assertThat(
+                "Template should be built from the main events schema (dynamic: strict_allow_templates)",
+                body,
+                containsString("strict_allow_templates"));
+    }
+
+    /**
+     * Test to verify that the unclassified data stream uses the main events mapping by indexing an
+     * event carrying ECS fields ({@code agent.id}, {@code host.name}, {@code message}) that were
+     * absent from the former lean unclassified schema. Under the old {@code dynamic: strict} mapping
+     * these fields would have been rejected; the main schema accepts them via its dynamic templates.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     */
+    public void testUnclassifiedUsesMainEventsSchema() throws IOException {
+        Request request = new Request("POST", "/" + UNCLASSIFIED_DATASTREAM + "/_doc");
+        request.addParameter("refresh", "true");
+        request.setJsonEntity(
+                "{"
+                        + "\"@timestamp\": \"2026-07-06T00:00:00.000Z\","
+                        + "\"agent\": {\"id\": \"agent-001\"},"
+                        + "\"host\": {\"name\": \"test-host\"},"
+                        + "\"message\": \"unclassified event body\""
+                        + "}");
+
+        Response response = client().performRequest(request);
+        assertEquals(
+                "Indexing an event with main-schema ECS fields should succeed",
+                201,
+                response.getStatusLine().getStatusCode());
     }
 
     /**
