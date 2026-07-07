@@ -162,7 +162,7 @@ jobs:
           cp -a "$HOME/.m2" /home/builder/.m2 2>/dev/null || true
           chown -R builder:builder "$GITHUB_WORKSPACE" /home/builder
           runuser -u builder -- env "JAVA_HOME=$JAVA_HOME" "PATH=$PATH" "GRADLE_USER_HOME=/home/builder/.gradle" \
-            ./gradlew check
+            ./gradlew check -PnumNodes=1
 
       - name: Upload test results
         uses: actions/upload-artifact@v7

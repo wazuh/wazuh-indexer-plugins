@@ -27,6 +27,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -97,6 +98,77 @@ public class IntegrationService {
             document.put(listKey, list);
             this.updateIntegrationSource(response.getId(), document, source);
         }
+    }
+
+    /**
+     * Asynchronously links a resource to an integration by adding its ID to the specified list field.
+     *
+     * @param integrationId The ID of the integration to update.
+     * @param resourceId The ID of the resource to link.
+     * @param listKey The key of the list field in the integration document.
+     * @param listener The listener to notify on completion.
+     */
+    @SuppressWarnings("unchecked")
+    public void linkResourceToIntegrationAsync(
+            String integrationId, String resourceId, String listKey, ActionListener<Void> listener) {
+        this.client.get(
+                new GetRequest(Constants.INDEX_INTEGRATIONS, integrationId),
+                ActionListener.wrap(
+                        response -> {
+                            if (!response.isExists()) {
+                                listener.onFailure(
+                                        new IOException("Integration [" + integrationId + "] not found."));
+                                return;
+                            }
+
+                            Map<String, Object> source = response.getSourceAsMap();
+                            Map<String, Object> document =
+                                    (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+
+                            List<String> list = (List<String>) document.getOrDefault(listKey, new ArrayList<>());
+
+                            if (!(list instanceof ArrayList)) {
+                                list = new ArrayList<>(list);
+                            }
+
+                            if (!list.contains(resourceId)) {
+                                list.add(resourceId);
+                                document.put(listKey, list);
+                                this.updateIntegrationSourceAsync(response.getId(), document, source, listener);
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Asynchronously updates the integration document in the index with a recalculated hash.
+     *
+     * @param id Integration ID.
+     * @param document The updated document content.
+     * @param source The full source map including metadata.
+     * @param listener The listener to notify on completion.
+     */
+    public void updateIntegrationSourceAsync(
+            String id,
+            Map<String, Object> document,
+            Map<String, Object> source,
+            ActionListener<Void> listener) {
+        JsonNode documentNode = this.mapper.valueToTree(document);
+        String newHash = Resource.computeSha256(documentNode.toString());
+
+        Map<String, Object> hashMap = new HashMap<>();
+        hashMap.put(Constants.KEY_SHA256, newHash);
+        source.put(Constants.KEY_HASH, hashMap);
+        source.put(Constants.KEY_DOCUMENT, document);
+
+        this.client.index(
+                new IndexRequest(Constants.INDEX_INTEGRATIONS)
+                        .id(id)
+                        .source(source)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
+                ActionListener.wrap(indexResponse -> listener.onResponse(null), listener::onFailure));
     }
 
     /**

@@ -20,7 +20,6 @@ import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.SuppressForbidden;
-import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -87,18 +86,28 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
                         new TotalHits(1, TotalHits.Relation.EQUAL_TO),
                         0.0f);
         when(searchResponse.getHits()).thenReturn(searchHits);
-        ActionFuture<SearchResponse> future = mock(ActionFuture.class);
-        when(future.actionGet()).thenReturn(searchResponse);
-        when(this.client.search(any())).thenReturn(future);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(), any(ActionListener.class));
     }
 
     @SuppressWarnings("unchecked")
     private void mockDraftPolicyMissing() {
         SearchResponse searchResponse = mock(SearchResponse.class);
         when(searchResponse.getHits()).thenReturn(SearchHits.empty());
-        ActionFuture<SearchResponse> future = mock(ActionFuture.class);
-        when(future.actionGet()).thenReturn(searchResponse);
-        when(this.client.search(any())).thenReturn(future);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(), any(ActionListener.class));
     }
 
     public void testDoExecute_EmptyBody() {
@@ -180,8 +189,17 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
                                 }));
     }
 
+    @SuppressWarnings("unchecked")
     public void testDoExecute_DraftPolicyCheckException() {
-        when(this.client.search(any())).thenThrow(new RuntimeException("Search failed"));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onFailure(new RuntimeException("Search failed"));
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(), any(ActionListener.class));
+
         ContentCreateRequest request =
                 new ContentCreateRequest(
                         RestRequest.Method.POST,
@@ -189,7 +207,6 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
                                 .getBytes(java.nio.charset.StandardCharsets.UTF_8),
                         "json");
 
-        @SuppressWarnings("unchecked")
         ActionListener<ContentResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 

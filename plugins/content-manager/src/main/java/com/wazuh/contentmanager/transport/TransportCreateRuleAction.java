@@ -19,22 +19,22 @@ package com.wazuh.contentmanager.transport;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.OpenSearchSecurityException;
-import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
-import java.io.IOException;
 import java.util.Map;
 
 import com.wazuh.contentmanager.action.CreateRuleAction;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsException;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
@@ -62,88 +62,152 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
     }
 
     @Override
-    protected RestResponse validatePayload(
-            Client client, JsonNode root, JsonNode resource, IntegrationService integrationService) {
+    protected void validatePayload(
+            Client client,
+            JsonNode root,
+            JsonNode resource,
+            IntegrationService integrationService,
+            ActionListener<RestResponse> listener) {
         RestResponse metadataValidation =
                 this.documentValidations.validateMetadataFields(
                         resource, java.util.List.of(Constants.KEY_TITLE));
-        if (metadataValidation != null) return metadataValidation;
-
-        String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
-        RestResponse duplicateValidation =
-                this.documentValidations.validateDuplicateTitle(
-                        client, Constants.INDEX_RULES, Space.DRAFT.toString(), title, null, Constants.KEY_RULE);
-        if (duplicateValidation != null) return duplicateValidation;
-
-        String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
-        String spaceError =
-                this.documentValidations.validateDocumentInSpace(
-                        client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
-        if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
-
-        // Validate that logsource.product matches the integration's metadata.title
-        GetResponse integrationResponse =
-                client.prepareGet(Constants.INDEX_INTEGRATIONS, integrationId).get();
-        if (integrationResponse.isExists()) {
-            Map<String, Object> source = integrationResponse.getSourceAsMap();
-            if (source != null && source.containsKey(Constants.KEY_DOCUMENT)) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> doc = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
-                if (doc != null && doc.containsKey(Constants.KEY_METADATA)) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> metadata = (Map<String, Object>) doc.get(Constants.KEY_METADATA);
-                    String integrationTitle =
-                            metadata != null ? (String) metadata.get(Constants.KEY_TITLE) : null;
-
-                    String ruleProduct = null;
-                    if (resource.has(Constants.KEY_LOGSOURCE)
-                            && resource.get(Constants.KEY_LOGSOURCE).has(Constants.KEY_PRODUCT)) {
-                        ruleProduct = resource.get(Constants.KEY_LOGSOURCE).get(Constants.KEY_PRODUCT).asText();
-                    }
-
-                    if (integrationTitle == null || !integrationTitle.equals(ruleProduct)) {
-                        return new RestResponse(
-                                "Rule logsource.product ('"
-                                        + ruleProduct
-                                        + "') must match the integration's metadata.title ('"
-                                        + integrationTitle
-                                        + "').",
-                                RestStatus.BAD_REQUEST.getStatus());
-                    }
-                }
-            }
+        if (metadataValidation != null) {
+            listener.onResponse(metadataValidation);
+            return;
         }
 
-        return null;
+        String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
+        String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
+
+        // Step 1: validateDuplicateTitle (async)
+        this.documentValidations.validateDuplicateTitleAsync(
+                client,
+                Constants.INDEX_RULES,
+                Space.DRAFT.toString(),
+                title,
+                null,
+                Constants.KEY_RULE,
+                ActionListener.wrap(
+                        duplicateError -> {
+                            if (duplicateError != null) {
+                                listener.onResponse(duplicateError);
+                                return;
+                            }
+                            // Step 2: validateDocumentInSpace (async)
+                            this.documentValidations.validateDocumentInSpaceAsync(
+                                    client,
+                                    Constants.INDEX_INTEGRATIONS,
+                                    integrationId,
+                                    Constants.KEY_INTEGRATION,
+                                    ActionListener.wrap(
+                                            spaceError -> {
+                                                if (spaceError != null) {
+                                                    listener.onResponse(
+                                                            new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus()));
+                                                    return;
+                                                }
+                                                // Step 3: validate logsource.product (async)
+                                                validateLogsourceProduct(client, integrationId, resource, listener);
+                                            },
+                                            listener::onFailure));
+                        },
+                        listener::onFailure));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void validateLogsourceProduct(
+            Client client,
+            String integrationId,
+            JsonNode resource,
+            ActionListener<RestResponse> listener) {
+        client.get(
+                new GetRequest(Constants.INDEX_INTEGRATIONS, integrationId),
+                ActionListener.wrap(
+                        integrationResponse -> {
+                            if (integrationResponse.isExists()) {
+                                Map<String, Object> source = integrationResponse.getSourceAsMap();
+                                if (source != null && source.containsKey(Constants.KEY_DOCUMENT)) {
+                                    Map<String, Object> doc =
+                                            (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+                                    if (doc != null && doc.containsKey(Constants.KEY_METADATA)) {
+                                        Map<String, Object> metadata =
+                                                (Map<String, Object>) doc.get(Constants.KEY_METADATA);
+                                        String integrationTitle =
+                                                metadata != null ? (String) metadata.get(Constants.KEY_TITLE) : null;
+
+                                        String ruleProduct = null;
+                                        if (resource.has(Constants.KEY_LOGSOURCE)
+                                                && resource.get(Constants.KEY_LOGSOURCE).has(Constants.KEY_PRODUCT)) {
+                                            ruleProduct =
+                                                    resource.get(Constants.KEY_LOGSOURCE).get(Constants.KEY_PRODUCT).asText();
+                                        }
+
+                                        if (integrationTitle == null || !integrationTitle.equals(ruleProduct)) {
+                                            listener.onResponse(
+                                                    new RestResponse(
+                                                            "Rule logsource.product ('"
+                                                                    + ruleProduct
+                                                                    + "') must match the"
+                                                                    + " integration's"
+                                                                    + " metadata.title ('"
+                                                                    + integrationTitle
+                                                                    + "').",
+                                                            RestStatus.BAD_REQUEST.getStatus()));
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                            listener.onResponse(null);
+                        },
+                        listener::onFailure));
     }
 
     @Override
-    protected RestResponse syncExternalServices(
-            String id, JsonNode resource, SecurityAnalyticsService securityAnalyticsService) {
-        try {
-            securityAnalyticsService.upsertRule(resource, Space.DRAFT, Method.POST);
-            return null;
-        } catch (SecurityAnalyticsException e) {
-            return new RestResponse(
-                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
-        } catch (Exception e) {
-            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            String msg = e.getMessage() != null ? e.getMessage() : "Unknown error";
-            return new RestResponse(
-                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + msg,
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
+    protected void syncExternalServices(
+            String id,
+            JsonNode resource,
+            SecurityAnalyticsService securityAnalyticsService,
+            ActionListener<RestResponse> listener) {
+        securityAnalyticsService.upsertRuleAsync(
+                resource,
+                Space.DRAFT,
+                Method.POST,
+                ActionListener.wrap(
+                        response -> listener.onResponse(null),
+                        e -> {
+                            String msg = e.getMessage() != null ? e.getMessage() : "Unknown error";
+                            if (msg.contains("Wazuh Common Schema (WCS)")) {
+                                listener.onResponse(
+                                        new RestResponse(
+                                                Constants.E_SECURITY_ANALYTICS_ERROR
+                                                        + " "
+                                                        + SecurityAnalyticsServiceImpl.extractErrorMessage(msg),
+                                                RestStatus.BAD_REQUEST.getStatus()));
+                                return;
+                            }
+                            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
+                            if (secEx != null) {
+                                listener.onResponse(
+                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
+                                return;
+                            }
+                            listener.onResponse(
+                                    new RestResponse(
+                                            Constants.E_SECURITY_ANALYTICS_ERROR + " " + msg,
+                                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                        }));
     }
 
     @Override
     protected void linkToParent(
-            Client client, String id, JsonNode root, IntegrationService integrationService)
-            throws IOException {
+            Client client,
+            String id,
+            JsonNode root,
+            IntegrationService integrationService,
+            ActionListener<Void> listener) {
         String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
-        integrationService.linkResourceToIntegration(integrationId, id, Constants.KEY_RULES);
+        integrationService.linkResourceToIntegrationAsync(
+                integrationId, id, Constants.KEY_RULES, listener);
     }
 }

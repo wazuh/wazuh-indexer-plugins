@@ -16,8 +16,10 @@
  */
 package com.wazuh.contentmanager;
 
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.LocalNodeClusterManagerListener;
 import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
@@ -63,6 +65,8 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     @Mock private CatalogSyncJob catalogSyncJob;
     @Mock private TelemetryPingJob telemetryPingJob;
     @Mock private ConsumersIndex consumersIndex;
+    @Mock private ClusterState clusterState;
+    @Mock private DiscoveryNodes discoveryNodes;
 
     /** Sets up the test environment before each test method. */
     @Before
@@ -81,6 +85,10 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                 .when(mockExecutor)
                 .execute(any(Runnable.class));
         when(this.threadPool.generic()).thenReturn(mockExecutor);
+
+        when(this.clusterService.state()).thenReturn(this.clusterState);
+        when(this.clusterState.nodes()).thenReturn(this.discoveryNodes);
+        when(this.discoveryNodes.isLocalNodeElectedClusterManager()).thenReturn(false);
 
         this.injectField(this.plugin, "client", this.client);
         this.injectField(this.plugin, "clusterService", this.clusterService);
