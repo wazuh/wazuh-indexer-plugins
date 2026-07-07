@@ -94,7 +94,7 @@ public abstract class AbstractTransportCreateAction
         SpaceService spaceService = new SpaceService(client);
         IntegrationService integrationService = new IntegrationService(client);
 
-        TransportActionHelper.validateDraftPolicyExistsAsync(
+        TransportActionHelper.validateDraftPolicyExists(
                 client,
                 ActionListener.wrap(
                         policyError -> {
