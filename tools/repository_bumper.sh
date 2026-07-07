@@ -3,7 +3,9 @@
 # =========================
 # Repository Bumper Script
 # =========================
-# This script updates the VERSION.json file for a new version release.
+# This script updates the VERSION.json file for a new version release, then
+# pins any "@main" workflow/action references to other repos to the current
+# branch (see workflow_refs_sync.sh).
 #
 # It takes three arguments:
 # 1. The new version to set (e.g., 4.5.0)
@@ -167,6 +169,7 @@ function main() {
     check_jq_installed
     validate_inputs "$version" "$stage"
     update_version_file "$version" "$stage"
+    bash "$(dirname "${BASH_SOURCE[0]}")/workflow_refs_sync.sh"
 
     log "Update complete."
 }
