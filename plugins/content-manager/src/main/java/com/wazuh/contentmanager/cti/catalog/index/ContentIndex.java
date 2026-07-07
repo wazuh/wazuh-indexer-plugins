@@ -357,9 +357,9 @@ public class ContentIndex {
     public IndexResponse create(String id, JsonNode payload) throws IOException {
         ObjectNode processedPayload;
         if (payload.isObject()
-                && payload.has("document")
-                && payload.has("space")
-                && payload.has("hash")) {
+                && payload.has(Constants.KEY_DOCUMENT)
+                && payload.has(Constants.KEY_SPACE)
+                && payload.has(Constants.KEY_HASH)) {
             processedPayload = payload.deepCopy();
         } else {
             processedPayload = this.processPayload(payload);
