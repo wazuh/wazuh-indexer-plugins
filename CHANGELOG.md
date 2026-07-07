@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See the [CONTRIBUTING guide](./CONTRIBUTING.md#Changelog) for instructions on how to add changelog entries.
 
-## [Unreleased 5.0.x]
+## [v5.0.0]
 
 ### Added
 - Create index and index templates for 5.0.0 [(#452)](https://github.com/wazuh/wazuh-indexer-plugins/pull/452)
@@ -108,6 +108,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement registration based content [(#1138)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1138)
 - Add Data retention policies for stream indices [(#1217)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1217)
 - Add alerting documentation [(#1231)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1231)
+- Implement RBAC to safeguard sensitive configuration [(#1310)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1310)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -182,6 +183,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update Active Response template to include wazuh.rule object [(#1207)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1207)
 - Add configuration to documentation [(#1223)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1223)
 - Improve sigma rules documentation [(#1228)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1228)
+- Improve Content Manager logging clarity and reduce redundant log output [(#1237)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1237)
+- Unify Setup and Content Manager plugin states into running/ready/failed [(#1293)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1293)
+- Use the zstd codec by default for indices created by Wazuh plugins [(#1294)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1294)
+- Disable automatic refresh for low-activity indices [(#1304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1304)
 
 ### Deprecated
 -
@@ -225,9 +230,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change `threat.enrichments` and `wazuh.threat.enrichments` type from `nested` to `object` and remove root-level `enrichments` field set [(#1210)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1210)
 - Fix malformed signed CTI token-exchange request [(#1206)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1206)
 - Fix SLF4J startup warning in setup plugin by replacing 1.x bridge with correct 2.x provider [(#1245)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1245)
+- Fix race condition between Content Manager and Setup plugin initialization [(#1262)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1262)
+- Fix invalid action name warning messages [(#1313)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1313)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
 - Bump requests in /integrations/amazon-security-lake/tests [(#491)](https://github.com/wazuh/wazuh-indexer-plugins/pull/491)
+
+
+## Prior versions
+- []()
 
 [Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/205f222d0d246129917fa211766e1735aae13ed7...main

@@ -14,6 +14,24 @@ The plugin features a retry mechanism to handle transient faults. In case of a t
 
 The back-off time is configurable. Head to [Configuration Files](./configuration.md#setup-settings) for more information.
 
+### Readiness marker
+
+The plugin persists its initialization state in a hidden, single-document index,
+`.wazuh-setup-status`, managed by the `SetupStatusIndex` class. Other plugins (currently the
+Content Manager) read this marker to defer their own startup work until Setup has finished
+creating its indices, avoiding races where a dependent index template doesn't exist yet.
+
+The marker transitions once per boot:
+
+| Value     | Meaning                                                                                                                                                                          |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `running` | Index initialization is in progress (set when `SetupStatusIndex.initialize()` runs at the start of index initialization, overwriting any marker left over from a previous boot). |
+| `ready`   | All index templates, indices and data streams have been created successfully.                                                                                                    |
+| `failed`  | Index initialization could not complete (an unhandled exception was thrown while initializing one of the indices).                                                               |
+
+Writing the marker is best-effort: a failure to persist it is logged but never interrupts node
+startup.
+
 ### Replica configuration
 
 During the node initialization, the plugin checks for the presence of the `cluster.default_number_of_replicas` setting in the node configuration. If this setting is defined, the plugin automatically updates the cluster's persistent settings with this value. This ensures that the default number of replicas is consistently applied across the cluster as defined in the configuration file.

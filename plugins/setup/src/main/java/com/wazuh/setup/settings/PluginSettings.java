@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -45,6 +45,26 @@ public class PluginSettings {
     public static final Setting<Integer> BACKOFF =
             Setting.intSetting(
                     "plugins.setup.backoff", DEFAULT_BACKOFF, 5, 60, Setting.Property.NodeScope);
+
+    /**
+     * Controls whether Setup settings can be modified through the API ({@code PUT
+     * /_plugins/_setup/settings}, e.g. {@code engine.index_raw_events}). When set to {@code false},
+     * the endpoint returns {@code 403 FORBIDDEN} for every caller, regardless of role. Intended for
+     * externally managed (e.g. Wazuh Cloud) deployments. Defaults to true.
+     */
+    public static final Setting<Boolean> SETTINGS_UPDATE_ENABLED =
+            Setting.boolSetting(
+                    "plugins.setup.settings_update.enabled", true, Setting.Property.NodeScope);
+
+    /**
+     * {@link PluginSettings#SETTINGS_UPDATE_ENABLED} getter.
+     *
+     * @param settings settings of this node.
+     * @return whether modification of Setup settings is enabled.
+     */
+    public static boolean isSettingsUpdateEnabled(Settings settings) {
+        return SETTINGS_UPDATE_ENABLED.get(settings);
+    }
 
     /**
      * {@link PluginSettings#TIMEOUT} getter.

@@ -1,3 +1,8 @@
+# Normalize line endings to LF.
+* text eol=lf
+
+# Ensure that line endings for DOS batch files are not modified.
+*.bat -text
 
 # intellij files
 .idea/

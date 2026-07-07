@@ -1,0 +1,34 @@
+# perf-tune.yml — Wazuh Indexer performance-test tuning.
+#
+# Read by scripts/perf-tune-indexer.sh (applied at provision time by setup-indexer.sh /
+# setup-aio.sh). Flat key: value pairs only — the parser is intentionally simple. This file
+# is the single source of truth: ALL keys below are required (no code-side defaults), so to
+# change behavior edit the value here. A missing/empty key aborts provisioning.
+#
+#   heap_size  JVM heap, applied to -Xms/-Xmx. ALWAYS applied (permanent setting).
+#
+# 5.x plugin settings — written verbatim into opensearch.yml as the value below (skipped on
+# 4.x, where these plugins don't exist). The isolated scenario relies on the indexer's OWN
+# detection pipeline to turn the indexed system-activity event into findings (this build has
+# no security-analytics REST API to create detectors manually), so:
+#   enriched_findings_index_enabled  must be true (writes the enriched findings index).
+#   catalog_update_on_start          true → content-manager syncs the CTI catalog on start
+#                                    and (with create_detectors) builds the real detectors.
+#                                    NEEDS network from the indexer to the CTI API.
+#   catalog_create_detectors         true → auto-create detectors from the synced catalog
+#                                    (the system-activity detector matches the perf event).
+#   catalog_update_on_schedule       periodic re-sync; off is enough for a single run.
+#   telemetry_enabled                content-manager telemetry; off to avoid extra noise.
+#
+#   memory_lock   bootstrap.memory_lock + systemd LimitMEMLOCK=infinity. On-demand.
+#   disable_swap  swapoff -a for this boot (fstab untouched → reverts on reboot). On-demand.
+heap_size: 4g
+
+enriched_findings_index_enabled: true
+catalog_update_on_start: true
+catalog_update_on_schedule: false
+catalog_create_detectors: true
+telemetry_enabled: false
+
+memory_lock: false
+disable_swap: false

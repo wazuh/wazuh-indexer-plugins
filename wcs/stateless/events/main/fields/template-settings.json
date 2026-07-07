@@ -9,7 +9,8 @@
       "plugins.index_state_management.rollover_alias": "wazuh-events-v5",
       "plugins.index_state_management.policy_id": "stream-events-policy",
       "index": {
-        "number_of_shards": "3",
+        "codec": "zstd",
+        "number_of_shards": "1",
         "number_of_replicas": "0",
         "refresh_interval": "2s",
         "query.default_field": [

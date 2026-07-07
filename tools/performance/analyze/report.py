@@ -39,6 +39,7 @@ METRICS = [
     ("index_latency_ms", "Index latency", "ms/op", "rate"),
     ("query_latency_ms", "Query latency", "ms/op", "rate"),
     ("heap_used_percent", "Indexer JVM heap", "%", "gauge"),
+    ("heap_used_gb", "Indexer JVM heap used", "GB", "gauge"),
     ("gc_old_time_ms_per_s", "Old-GC time", "ms/s", "rate"),
     ("indexing_pressure_bytes", "Indexing pressure", "B", "gauge"),
     ("write_queue", "Write queue depth", "", "gauge"),

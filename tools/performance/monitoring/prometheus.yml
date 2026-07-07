@@ -14,3 +14,9 @@ scrape_configs:
       - targets: ["${INDEXER_HOST}:9100"]
         labels:
           host: indexer
+  # JMX exporter (javaagent) on the indexer JVM — deep JVM metrics (heap pools, GC, threads).
+  - job_name: jmx_exporter
+    static_configs:
+      - targets: ["${INDEXER_HOST}:9404"]
+        labels:
+          host: indexer

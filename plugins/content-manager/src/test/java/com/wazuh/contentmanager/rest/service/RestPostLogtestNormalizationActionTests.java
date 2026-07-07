@@ -16,173 +16,34 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
-import org.opensearch.core.common.bytes.BytesArray;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
-import java.nio.charset.StandardCharsets;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
-import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit tests for {@link RestPostLogtestNormalizationAction}. Validates request validation logic:
- * required fields, space constraints, and delegation to {@link LogtestService}.
- */
 public class RestPostLogtestNormalizationActionTests extends OpenSearchTestCase {
-
     private RestPostLogtestNormalizationAction action;
-    private AutoCloseable closeable;
-
-    @Mock private LogtestService logtestService;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.closeable = MockitoAnnotations.openMocks(this);
-        this.action = new RestPostLogtestNormalizationAction(this.logtestService);
+        this.action = new RestPostLogtestNormalizationAction();
     }
 
-    @After
-    @Override
-    public void tearDown() throws Exception {
-        if (this.closeable != null) {
-            this.closeable.close();
-        }
-        super.tearDown();
+    public void testRouteMethod() {
+        Assert.assertEquals(1, this.action.routes().size());
+        Assert.assertEquals(RestRequest.Method.POST, this.action.routes().get(0).getMethod());
     }
 
-    private RestRequest mockRequest(String json) {
-        RestRequest request = mock(RestRequest.class);
-        when(request.hasContent()).thenReturn(true);
-        when(request.content()).thenReturn(new BytesArray(json.getBytes(StandardCharsets.UTF_8)));
-        return request;
+    public void testRoutePath() {
+        Assert.assertEquals(
+                PluginSettings.LOGTEST_NORMALIZATION_URI, this.action.routes().get(0).getPath());
     }
 
-    // spotless:off
-    private String validRequest() {
-        return """
-            {
-              "space": "test",
-              "queue": 1,
-              "location": "/var/log/cassandra/system.log",
-              "input": "INFO  [main] 2026-03-31 10:00:00 StorageService.java:123 - Node is ready to serve",
-              "trace_level": "NONE"
-            }
-            """;
-    }
-    // spotless:on
-
-    /** Empty payload returns 400. */
-    public void testEmptyPayload400() {
-        RestRequest request = mock(RestRequest.class);
-        when(request.hasContent()).thenReturn(false);
-        RestResponse response = this.action.handleRequest(request);
-        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        verify(this.logtestService, never()).executeNormalization(any());
-    }
-
-    /** Invalid JSON returns 400. */
-    public void testInvalidJson400() {
-        RestRequest request = mockRequest("{not valid json");
-        RestResponse response = this.action.handleRequest(request);
-        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        verify(this.logtestService, never()).executeNormalization(any());
-    }
-
-    /** Missing space field returns 400. */
-    public void testMissingSpace400() {
-        // spotless:off
-        RestRequest request = mockRequest(
-            """
-            {"queue": 1, "location": "/var/log/test.log", "input": "test"}
-            """
-        );
-        // spotless:on
-        RestResponse response = this.action.handleRequest(request);
-        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("space"));
-        verify(this.logtestService, never()).executeNormalization(any());
-    }
-
-    /** Non-test space returns 400 with appropriate message. */
-    public void testNonTestSpace400() {
-        // spotless:off
-        RestRequest request = mockRequest(
-            """
-            {"space": "draft", "queue": 1, "input": "test"}
-            """
-        );
-        // spotless:on
-        RestResponse response = this.action.handleRequest(request);
-        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("draft"));
-        verify(this.logtestService, never()).executeNormalization(any());
-    }
-
-    /** Valid request delegates to LogtestService with correct arguments. */
-    public void testValidRequestDelegatesToService() {
-        RestResponse serviceResponse = new RestResponse("{\"output\":{}}", RestStatus.OK.getStatus());
-        when(this.logtestService.executeNormalization(any(ObjectNode.class)))
-                .thenReturn(serviceResponse);
-
-        RestRequest request = mockRequest(validRequest());
-        RestResponse response = this.action.handleRequest(request);
-
-        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        var captor = org.mockito.ArgumentCaptor.forClass(ObjectNode.class);
-        verify(this.logtestService).executeNormalization(captor.capture());
-
-        // Verify integration field is stripped from engine payload
-        ObjectNode payload = captor.getValue();
-        Assert.assertFalse(payload.has("integration"));
-        Assert.assertTrue(payload.has("space"));
-        Assert.assertTrue(payload.has("queue"));
-    }
-
-    /** Integration field is stripped if present. */
-    public void testIntegrationFieldStripped() {
-        RestResponse serviceResponse = new RestResponse("{\"output\":{}}", RestStatus.OK.getStatus());
-        when(this.logtestService.executeNormalization(any(ObjectNode.class)))
-                .thenReturn(serviceResponse);
-
-        // spotless:off
-        RestRequest request = mockRequest(
-            """
-            {"space": "test", "integration": "some-id", "queue": 1, "input": "test"}
-            """
-        );
-        // spotless:on
-        RestResponse response = this.action.handleRequest(request);
-
-        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
-        var captor = org.mockito.ArgumentCaptor.forClass(ObjectNode.class);
-        verify(this.logtestService).executeNormalization(captor.capture());
-        Assert.assertFalse(captor.getValue().has("integration"));
-    }
-
-    /** Service response is returned as-is. */
-    public void testServiceResponsePassedThrough() {
-        RestResponse serviceResponse =
-                new RestResponse("{\"output\":{},\"asset_traces\":[]}", RestStatus.OK.getStatus());
-        when(this.logtestService.executeNormalization(any(ObjectNode.class)))
-                .thenReturn(serviceResponse);
-
-        RestRequest request = mockRequest(validRequest());
-        RestResponse response = this.action.handleRequest(request);
-
-        Assert.assertEquals(serviceResponse, response);
+    public void testName() {
+        Assert.assertEquals("content_manager_logtest_normalization", this.action.getName());
     }
 }

@@ -5,13 +5,13 @@
 # selected with PERF_SCENARIO:
 #
 #   PERF_SCENARIO=real-world (default):
-#     - aio       : manager + indexer + dashboard      16 GB / 8 vCPU   192.168.60.20
+#     - aio       : manager + indexer + dashboard      10 GB / 6 vCPU   192.168.60.20
 #     - agent-1   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.60.21
 #     - agent-2   : Wazuh agent (FIM + Logcollector)    2 GB / 2 vCPU   192.168.60.22
 #
 #   PERF_SCENARIO=isolated — single indexer + synthetic load, watched from boot:
-#     - indexer   : single-node wazuh-indexer + node_exporter   16 GB / 8 vCPU   192.168.60.20
-#     - monitor   : Prometheus + Grafana + OpenSearch Benchmark   2 GB / 2 vCPU   192.168.60.30
+#     - indexer   : single-node wazuh-indexer + node_exporter   8 GB / 4 vCPU   192.168.60.20
+#     - monitor   : Prometheus + Grafana + image-renderer        3 GB / 2 vCPU   192.168.60.30
 #
 # Works with VirtualBox, libvirt, Parallels and VMware — VM sizing is applied to
 # every provider. For libvirt, override the box, e.g.
@@ -22,6 +22,14 @@ SCENARIO   = ENV.fetch("PERF_SCENARIO", "real-world")
 # Wazuh version to provision as MAJOR.MINOR (e.g. 5.0, 4.14); the latest patch of
 # that line is installed. Selects the installer source uniformly.
 VERSION    = ENV.fetch("PERF_VERSION", "5.0")
+# Optional: benchmark a specific indexer package instead of resolving by version.
+# run.sh stages the file under the synced folder and sets this to its guest path.
+# isolated installs it directly; real-world installs the AIO then overwrites the
+# indexer with it. VERSION still selects the certificate flow.
+PACKAGE    = ENV.fetch("PERF_PACKAGE", "")
+# Optional perf-tune config (perf-tune-indexer.sh reads it): guest path to a perf-tune.yml.
+# Empty → the tune script's built-in default (/opt/perf/config/perf-tune.yml).
+TUNE_CONFIG = ENV.fetch("PERF_TUNE_CONFIG", "")
 # Default subnet is 192.168.60.x to avoid colliding with VirtualBox's default
 # host-only range (192.168.56.x), which breaks libvirt network creation.
 INDEXER_IP = ENV.fetch("PERF_AIO_IP", "192.168.60.20")
@@ -50,7 +58,7 @@ end
 
 Vagrant.configure("2") do |config|
   config.vm.box = BOX
-  # A 16 GB guest on a busy host can take longer than Vagrant's 300s default to become
+  # A large guest on a busy host can take longer than Vagrant's 300s default to become
   # SSH-reachable, surfacing as "Timed out while waiting for the machine to boot".
   # Give it more headroom (override with PERF_BOOT_TIMEOUT).
   config.vm.boot_timeout = ENV.fetch("PERF_BOOT_TIMEOUT", "900").to_i
@@ -61,7 +69,7 @@ Vagrant.configure("2") do |config|
       indexer.vm.hostname = "wazuh-indexer"
       indexer.vm.network "private_network", ip: INDEXER_IP
       indexer.vm.synced_folder "..", "/opt/perf"
-      configure_size(indexer.vm, ENV.fetch("PERF_INDEXER_MEM", "16384"), ENV.fetch("PERF_INDEXER_CPUS", "8"))
+      configure_size(indexer.vm, ENV.fetch("PERF_INDEXER_MEM", "8192"), ENV.fetch("PERF_INDEXER_CPUS", "4"))
       indexer.vm.provision "shell", inline: <<-SHELL
         set -e
         export DEBIAN_FRONTEND=noninteractive
@@ -71,8 +79,15 @@ Vagrant.configure("2") do |config|
         # guest-only file living under the synced mount.
         bash /opt/perf/scripts/setup-indexer.sh \
           --version "#{VERSION}" \
-          --password-out /var/lib/wazuh-perf/admin-password.txt
+          --password-out /var/lib/wazuh-perf/admin-password.txt \
+          #{PACKAGE.empty? ? "" : "--package \"#{PACKAGE}\""} \
+          #{TUNE_CONFIG.empty? ? "" : "--tune-config \"#{TUNE_CONFIG}\""}
         bash /opt/perf/monitoring/setup-node-exporter.sh
+        # JMX Prometheus exporter (javaagent on :9404) for deep JVM metrics; Prometheus on
+        # the monitor scrapes it. Must run BEFORE setup-indexer's perf-tune restart so the
+        # agent is on the JVM command line — setup-indexer.sh already restarts last, but the
+        # exporter appends to jvm.options and restarts again to be safe.
+        bash /opt/perf/monitoring/setup-jmx-exporter.sh
       SHELL
     end
 
@@ -81,12 +96,12 @@ Vagrant.configure("2") do |config|
       monitor.vm.hostname = "perf-monitor"
       monitor.vm.network "private_network", ip: MONITOR_IP
       monitor.vm.synced_folder "..", "/opt/perf"
-      configure_size(monitor.vm, ENV.fetch("PERF_MONITOR_MEM", "2048"), ENV.fetch("PERF_MONITOR_CPUS", "2"))
+      # 3 GB: Prometheus + Grafana + the image-renderer (headless Chromium) need headroom.
+      configure_size(monitor.vm, ENV.fetch("PERF_MONITOR_MEM", "3072"), ENV.fetch("PERF_MONITOR_CPUS", "2"))
       monitor.vm.provision "shell", inline: <<-SHELL
         set -e
         export DEBIAN_FRONTEND=noninteractive
-        apt-get update -y && apt-get install -y curl python3 python3-pip python3-requests
-        pip3 install --break-system-packages opensearch-benchmark
+        apt-get update -y && apt-get install -y curl python3 python3-requests
         bash /opt/perf/monitoring/setup-monitor.sh --indexer-host #{INDEXER_IP}
       SHELL
     end
@@ -97,7 +112,7 @@ Vagrant.configure("2") do |config|
       aio.vm.hostname = "wazuh-aio"
       aio.vm.network "private_network", ip: INDEXER_IP
       aio.vm.synced_folder "..", "/opt/perf"
-      configure_size(aio.vm, ENV.fetch("PERF_AIO_MEM", "16384"), ENV.fetch("PERF_AIO_CPUS", "8"))
+      configure_size(aio.vm, ENV.fetch("PERF_AIO_MEM", "10240"), ENV.fetch("PERF_AIO_CPUS", "6"))
       aio.vm.provision "shell", inline: <<-SHELL
         set -e
         export DEBIAN_FRONTEND=noninteractive
@@ -107,7 +122,9 @@ Vagrant.configure("2") do |config|
         # guest-only file living under the synced mount.
         bash /opt/perf/scripts/setup-aio.sh \
           --version "#{VERSION}" \
-          --password-out /var/lib/wazuh-perf/admin-password.txt
+          --password-out /var/lib/wazuh-perf/admin-password.txt \
+          #{PACKAGE.empty? ? "" : "--package \"#{PACKAGE}\""} \
+          #{TUNE_CONFIG.empty? ? "" : "--tune-config \"#{TUNE_CONFIG}\""}
       SHELL
     end
 

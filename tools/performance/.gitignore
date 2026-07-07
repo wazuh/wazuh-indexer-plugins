@@ -1,14 +1,13 @@
-# Generated benchmark corpus + index body (produced by gen-corpora.py)
-benchmark/workloads/wazuh-events/documents.json
-benchmark/workloads/wazuh-events/index.json
-benchmark/workloads/wazuh-events/workload-params.json
-
 # Run outputs (metrics, reports)
 runs/
+
+# Staged custom indexer package (run.sh --package)
+.pkg/
 
 # Analyze outputs written to the tool dir (analyze.sh + compare.py / plot.py defaults)
 *compare.md
 *timeline.png
+*averages.png
 
 # Rendered monitor scrape config (produced by setup-monitor.sh)
 monitoring/prometheus.rendered.yml

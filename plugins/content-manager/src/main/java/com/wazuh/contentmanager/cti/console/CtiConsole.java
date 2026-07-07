@@ -30,6 +30,7 @@ import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.AuthService;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeService;
+import com.wazuh.contentmanager.utils.Constants;
 
 /** CTI Console main class. Contains and manages CTI Console internal state and services. */
 public class CtiConsole implements TokenListener {
@@ -111,7 +112,7 @@ public class CtiConsole implements TokenListener {
         this.tokenLock.lock();
         try {
             this.token = token;
-            log.info("Permanent token changed: {}", this.token); // TODO do not log the token
+            log.debug(Constants.D_LOG_CTI_ACCESS_TOKEN_UPDATED);
 
             // Cancel polling
             FutureUtils.cancel(this.getTokenTaskFuture);

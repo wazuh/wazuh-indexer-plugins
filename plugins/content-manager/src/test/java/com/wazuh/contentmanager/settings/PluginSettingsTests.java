@@ -116,6 +116,36 @@ public class PluginSettingsTests extends OpenSearchTestCase {
                 pluginSettings.getCatalogVulnerabilities());
     }
 
+    /** Tests that max_bulk_bytes defaults to 5 MB when not configured. */
+    public void testMaxBulkBytesDefault() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        Assert.assertEquals(5L * 1024 * 1024, pluginSettings.getMaxBulkBytes());
+    }
+
+    /** Tests that a custom max_bulk_bytes value within bounds is honored. */
+    public void testMaxBulkBytesCustom() {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.max_bulk_bytes", 8L * 1024 * 1024).build();
+        PluginSettings pluginSettings = PluginSettings.getInstance(settings);
+        Assert.assertEquals(8L * 1024 * 1024, pluginSettings.getMaxBulkBytes());
+    }
+
+    /** Tests that a max_bulk_bytes below the 1 MB floor is rejected. */
+    public void testMaxBulkBytesBelowMinThrows() {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.max_bulk_bytes", 1024L).build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /** Tests that a max_bulk_bytes above the 100 MB ceiling is rejected. */
+    public void testMaxBulkBytesAboveMaxThrows() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.max_bulk_bytes", 200L * 1024 * 1024)
+                        .build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
     /** Tests that getUserAgent returns the fallback value when no version has been set. */
     public void testGetUserAgentDefaultsToUnknown() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);

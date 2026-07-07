@@ -2,16 +2,18 @@ name: "(5.x) Check Content Manager API Docs"
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, ready_for_review]
 
 jobs:
   verify-api-docs:
-    runs-on: ubuntu-24.04
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on:
+      - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     permissions:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

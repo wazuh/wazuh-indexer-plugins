@@ -128,13 +128,24 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
     }
 
     /**
-     * Creates or updates the default local consumer state in the internal index.
+     * Creates or updates the default local consumer state in the internal index. The placeholder is
+     * persisted as {@link LocalConsumer.Status#RUNNING}: it is created on the path that immediately
+     * precedes a sync attempt, so it must never read as {@link LocalConsumer.Status#READY} — that
+     * would falsely report unsynced content (offset 0, no resource) as up-to-date and safe to read.
      *
      * @return The initialized {@link LocalConsumer}, or null if persistence fails.
      */
     public LocalConsumer setConsumer() {
         LocalConsumer consumer =
-                new LocalConsumer(this.context, this.consumer, this.consumerType, this.resource, true);
+                new LocalConsumer(
+                        this.context,
+                        this.consumer,
+                        this.consumerType,
+                        this.resource,
+                        true,
+                        LocalConsumer.Status.RUNNING,
+                        0,
+                        0);
 
         try {
             IndexResponse response = this.consumerIndex.setConsumer(consumer);

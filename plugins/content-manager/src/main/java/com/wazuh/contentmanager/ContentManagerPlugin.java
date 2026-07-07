@@ -22,16 +22,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.ActionFilter;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.inject.AbstractModule;
+import org.opensearch.common.inject.Module;
 import org.opensearch.common.settings.*;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -41,6 +47,7 @@ import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
 import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
+import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.SystemIndexPlugin;
@@ -65,11 +72,13 @@ import java.util.List;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
+import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
@@ -77,12 +86,14 @@ import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.engine.service.EngineServiceImpl;
+import com.wazuh.contentmanager.filter.SensitiveConfigActionFilter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.rest.service.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.transport.*;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
@@ -90,7 +101,7 @@ import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
-        implements ClusterPlugin, JobSchedulerExtension, SystemIndexPlugin {
+        implements ActionPlugin, ClusterPlugin, JobSchedulerExtension, SystemIndexPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private static final String CONTENT_MANAGER_JOBS_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String CATALOG_SYNC_JOB_ID = "wazuh-catalog-sync-job";
@@ -163,14 +174,7 @@ public class ContentManagerPlugin extends Plugin
                     nodeSettings.getAsList(
                             "plugins.security.system_indices.indices", Collections.emptyList());
             if (!systemIndicesEnabled || !systemIndices.contains(CredentialsIndex.INDEX_NAME)) {
-                log.warn(
-                        "[{}] index is not configured as a system index. "
-                                + "Registration will be disabled and any stored token will be "
-                                + "removed on startup. Add it to "
-                                + "plugins.security.system_indices.indices in opensearch.yml and "
-                                + "ensure plugins.security.system_indices.enabled is true, "
-                                + "then restart.",
-                        CredentialsIndex.INDEX_NAME);
+                log.warn(Constants.W_LOG_CREDENTIALS_INDEX_NOT_PROTECTED, CredentialsIndex.INDEX_NAME);
                 this.isCredentialsIndexProtected = false;
             }
         }
@@ -222,7 +226,13 @@ public class ContentManagerPlugin extends Plugin
                 .addSettingsUpdateConsumer(
                         PluginSettings.TELEMETRY_ENABLED, this::onTelemetrySettingChanged);
 
-        return Collections.emptyList();
+        return List.of(
+                this.subscriptionService,
+                this.catalogSyncJob,
+                this.engine,
+                this.logtestService,
+                this.spaceService,
+                this.securityAnalyticsService);
     }
 
     /**
@@ -240,9 +250,33 @@ public class ContentManagerPlugin extends Plugin
             this.start(
                     () -> {
                         if (PluginSettings.getInstance().isUpdateOnStart()) {
+
+                            // Pre-deployment
+                            // -------------
+                            // 1. Register key from environment variable
+                            String accessToken = ContentManagerPlugin.preDeploymentKey();
+                            if (!accessToken.isBlank()) {
+                                try {
+                                    log.info("Pre-registered environment detected.");
+                                    this.subscriptionService.register(accessToken);
+                                } catch (Exception e) {
+                                    log.error("Unexpected error pre-registering environment: {}", e.getMessage());
+                                }
+
+                                // 2. Delete local snapshots (only for pre-registered environments).
+                                Path pluginsDir = this.environment.pluginsDir();
+                                if (pluginsDir != null) {
+                                    SnapshotServiceImpl.deleteSnapshots(
+                                            pluginsDir
+                                                    .resolve(Constants.PLUGIN_DIR_NAME)
+                                                    .resolve(Constants.CTI_SNAPSHOTS_DIR));
+                                }
+                            }
+
+                            // 3. Initialize
                             this.catalogSyncJob.trigger();
                         } else {
-                            log.info("Skipping catalog sync job trigger");
+                            log.debug(Constants.D_LOG_SKIP_CATALOG_SYNC_TRIGGER);
                         }
                         this.scheduleCatalogSyncJob();
                         this.scheduleTelemetryPingJob();
@@ -289,42 +323,32 @@ public class ContentManagerPlugin extends Plugin
             Supplier<DiscoveryNodes> nodesInCluster) {
         return List.of(
                 // CTI subscription endpoints
-                new RestPostSubscriptionAction(this.subscriptionService),
-                new RestGetSubscriptionAction(this.subscriptionService),
-                new RestDeleteSubscriptionAction(this.subscriptionService),
-                new RestPostUpdateAction(this.catalogSyncJob),
-                // Version check endpoint
-                new RestGetVersionCheckAction(this.environment, this.clusterService),
-                // User-generated content endpoints
-                new RestPostLogtestAction(this.logtestService),
-                new RestPostLogtestNormalizationAction(this.logtestService),
-                new RestPostLogtestDetectionAction(this.logtestService),
-                // Policy endpoints
-                new RestPutPolicyAction(this.spaceService, this.engine),
-                // Rule endpoints
+                new RestPostSubscriptionAction(),
+                new RestGetSubscriptionAction(),
+                new RestDeleteSubscriptionAction(),
+                new RestPostUpdateAction(),
+                new RestGetVersionCheckAction(),
+                new RestPostLogtestAction(),
+                new RestPostLogtestNormalizationAction(),
+                new RestPostLogtestDetectionAction(),
+                new RestPutPolicyAction(),
                 new RestPostRuleAction(),
                 new RestPutRuleAction(),
                 new RestDeleteRuleAction(),
-                // Integration endpoints
-                new RestPostIntegrationAction(this.engine),
-                new RestPutIntegrationAction(this.engine),
-                new RestDeleteIntegrationAction(this.engine),
-                // Decoder endpoints
-                new RestPostDecoderAction(this.engine),
-                new RestPutDecoderAction(this.engine),
-                new RestDeleteDecoderAction(this.engine),
-                // KVDB endpoints
-                new RestPostKvdbAction(this.engine),
-                new RestPutKvdbAction(this.engine),
-                new RestDeleteKvdbAction(this.engine),
-                // Promote endpoints
-                new RestPostPromoteAction(this.engine, this.spaceService, this.securityAnalyticsService),
-                new RestGetPromoteAction(this.spaceService),
-                // Engine Filters endpoints
-                new RestPostFilterAction(this.engine),
-                new RestPutFilterAction(this.engine),
-                new RestDeleteFilterAction(this.engine),
-                // Space deletion endpoint
+                new RestPostIntegrationAction(),
+                new RestPutIntegrationAction(),
+                new RestDeleteIntegrationAction(),
+                new RestPostDecoderAction(),
+                new RestPutDecoderAction(),
+                new RestDeleteDecoderAction(),
+                new RestPostKvdbAction(),
+                new RestPutKvdbAction(),
+                new RestDeleteKvdbAction(),
+                new RestPostPromoteAction(),
+                new RestGetPromoteAction(),
+                new RestPostFilterAction(),
+                new RestPutFilterAction(),
+                new RestDeleteFilterAction(),
                 new RestDeleteSpaceAction());
     }
 
@@ -345,13 +369,13 @@ public class ContentManagerPlugin extends Plugin
                                         CreateIndexResponse consumersResponse = this.consumersIndex.createIndex();
                                         if (consumersResponse != null && consumersResponse.isAcknowledged()) {
                                             log.info(
-                                                    "Index created: {} acknowledged={}",
+                                                    Constants.I_LOG_PLUGIN_INDEX_CREATED,
                                                     consumersResponse.index(),
                                                     consumersResponse.isAcknowledged());
                                         }
                                     } catch (Exception e) {
                                         log.error(
-                                                "Failed to create {} index, due to: {}",
+                                                Constants.E_LOG_PLUGIN_INDEX_CREATE_FAILED,
                                                 ConsumersIndex.INDEX_NAME,
                                                 e.getMessage(),
                                                 e);
@@ -361,13 +385,13 @@ public class ContentManagerPlugin extends Plugin
                                         CreateIndexResponse credentialsResponse = this.credentialsIndex.createIndex();
                                         if (credentialsResponse != null && credentialsResponse.isAcknowledged()) {
                                             log.info(
-                                                    "Index created: {} acknowledged={}",
+                                                    Constants.I_LOG_PLUGIN_INDEX_CREATED,
                                                     credentialsResponse.index(),
                                                     credentialsResponse.isAcknowledged());
                                         }
                                     } catch (Exception e) {
                                         log.error(
-                                                "Failed to create {} index, due to: {}",
+                                                Constants.E_LOG_PLUGIN_INDEX_CREATE_FAILED,
                                                 CredentialsIndex.INDEX_NAME,
                                                 e.getMessage(),
                                                 e);
@@ -379,7 +403,7 @@ public class ContentManagerPlugin extends Plugin
                                 }
                             });
         } catch (Exception e) {
-            log.error("Error during plugin initialization: {}", e.getMessage(), e);
+            log.error(Constants.E_LOG_PLUGIN_INIT_FAILED, e.getMessage(), e);
             onComplete.run();
         }
     }
@@ -399,9 +423,7 @@ public class ContentManagerPlugin extends Plugin
                 // unprotected access and ensure the environment falls back to unregistered mode.
                 if (this.credentialsIndex.exists()) {
                     this.credentialsIndex.deleteDocument();
-                    log.warn(
-                            "Deleted stored access token because the credentials index is not "
-                                    + "configured as a system index.");
+                    log.warn(Constants.W_LOG_ACCESS_TOKEN_DELETED_UNPROTECTED);
                 }
                 PluginSettings.getInstance().setAccessToken(null);
                 return;
@@ -410,15 +432,15 @@ public class ContentManagerPlugin extends Plugin
                 String token = this.credentialsIndex.getAccessToken();
                 if (token != null) {
                     PluginSettings.getInstance().setAccessToken(token);
-                    log.info("CTI access token loaded from credentials index.");
+                    log.info(Constants.I_LOG_CTI_TOKEN_LOADED);
                 } else {
-                    log.debug("Credentials index exists but no access token is stored.");
+                    log.debug(Constants.D_LOG_CREDENTIALS_INDEX_NO_TOKEN);
                 }
             } else {
-                log.debug("Credentials index does not exist yet; access token not loaded.");
+                log.debug(Constants.D_LOG_CREDENTIALS_INDEX_MISSING);
             }
         } catch (Exception e) {
-            log.warn("Could not load CTI access token from credentials index: {}", e.getMessage());
+            log.warn(Constants.W_LOG_CTI_TOKEN_LOAD_FAILED, e.getMessage());
         }
     }
 
@@ -427,7 +449,11 @@ public class ContentManagerPlugin extends Plugin
         if (!ClusterInfo.indexExists(this.client, CONTENT_MANAGER_JOBS_INDEX_NAME)) {
             try {
                 Settings settings =
-                        Settings.builder().put("index.number_of_replicas", 0).put("index.hidden", true).build();
+                        Settings.builder()
+                                .put("index.number_of_replicas", 0)
+                                .put("index.hidden", true)
+                                .put(Constants.KEY_INDEX_REFRESH_INTERVAL, Constants.REFRESH_INTERVAL_DISABLED)
+                                .build();
 
                 this.client
                         .admin()
@@ -436,11 +462,12 @@ public class ContentManagerPlugin extends Plugin
                         .setSettings(settings)
                         .get();
 
-                log.info("Created job index {}.", CONTENT_MANAGER_JOBS_INDEX_NAME);
+                log.info(Constants.I_LOG_JOB_INDEX_CREATED, CONTENT_MANAGER_JOBS_INDEX_NAME);
             } catch (ResourceAlreadyExistsException e) {
-                log.debug("Index {} already exists. Skipping.", CONTENT_MANAGER_JOBS_INDEX_NAME);
+                log.debug(Constants.D_LOG_INDEX_ALREADY_EXISTS, CONTENT_MANAGER_JOBS_INDEX_NAME);
             } catch (Exception e) {
-                log.warn("Could not create index {}: {}", CONTENT_MANAGER_JOBS_INDEX_NAME, e.getMessage());
+                log.warn(
+                        Constants.W_LOG_INDEX_CREATE_FAILED, CONTENT_MANAGER_JOBS_INDEX_NAME, e.getMessage());
             }
         }
 
@@ -501,12 +528,13 @@ public class ContentManagerPlugin extends Plugin
                                     IndexRequest request =
                                             new IndexRequest(CONTENT_MANAGER_JOBS_INDEX_NAME)
                                                     .id(CATALOG_SYNC_JOB_ID)
-                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null));
+                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null))
+                                                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
                                     this.client.index(request).actionGet();
-                                    log.info("Catalog Sync Job scheduled successfully.");
+                                    log.info(Constants.I_LOG_CATALOG_SYNC_JOB_SCHEDULED);
                                 }
                             } catch (Exception e) {
-                                log.info("Failed to schedule Catalog Sync Job: {}, retrying", e.getMessage());
+                                log.warn(Constants.W_LOG_CATALOG_SYNC_JOB_FAILED, e.getMessage());
                                 this.retryJobScheduling("Catalog Sync Job", attempt, this::scheduleCatalogSyncJob);
                             }
                         });
@@ -523,15 +551,12 @@ public class ContentManagerPlugin extends Plugin
     private void retryJobScheduling(String jobName, int attempt, IntConsumer retryAction) {
         int nextAttempt = attempt + 1;
         if (nextAttempt > Constants.MAX_JOB_SCHEDULE_RETRIES) {
-            log.error(
-                    "Giving up scheduling {} after {} attempts.",
-                    jobName,
-                    Constants.MAX_JOB_SCHEDULE_RETRIES);
+            log.error(Constants.E_LOG_JOB_SCHEDULE_GIVE_UP, jobName, Constants.MAX_JOB_SCHEDULE_RETRIES);
             return;
         }
         long delaySeconds = (long) nextAttempt * Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
         log.info(
-                "Retrying {} (attempt {}/{}) in {}s.",
+                Constants.I_LOG_JOB_SCHEDULE_RETRY,
                 jobName,
                 nextAttempt,
                 Constants.MAX_JOB_SCHEDULE_RETRIES,
@@ -558,7 +583,7 @@ public class ContentManagerPlugin extends Plugin
     private void scheduleTelemetryPingJob(int attempt) {
         boolean isEnabled = PluginSettings.getInstance().isTelemetryEnabled();
         if (!isEnabled) {
-            log.info("Telemetry job is disabled via settings. Skipping registration.");
+            log.debug(Constants.D_LOG_TELEMETRY_JOB_DISABLED);
             return;
         }
 
@@ -601,10 +626,11 @@ public class ContentManagerPlugin extends Plugin
                                     IndexRequest request =
                                             new IndexRequest(CONTENT_MANAGER_JOBS_INDEX_NAME)
                                                     .id(TELEMETRY_JOB_ID)
-                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null));
+                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null))
+                                                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
                                     this.client.index(request).actionGet();
-                                    log.info("Telemetry Ping Job scheduled successfully (Interval: 1d).");
+                                    log.info(Constants.I_LOG_TELEMETRY_JOB_SCHEDULED);
 
                                     // Run the first ping immediately; subsequent fires are owned by
                                     // the Job Scheduler on the 1-day interval.
@@ -613,7 +639,7 @@ public class ContentManagerPlugin extends Plugin
                                     }
                                 }
                             } catch (Exception e) {
-                                log.info("Failed to schedule Telemetry Ping Job: {}", e.getMessage());
+                                log.warn(Constants.W_LOG_TELEMETRY_JOB_FAILED, e.getMessage());
                                 this.retryJobScheduling(
                                         "Telemetry Ping Job", attempt, this::scheduleTelemetryPingJob);
                             }
@@ -624,11 +650,10 @@ public class ContentManagerPlugin extends Plugin
     private void onTelemetrySettingChanged(boolean isEnabled) {
         PluginSettings.getInstance().setTelemetryEnabled(isEnabled);
         if (isEnabled) {
-            log.info(
-                    "Telemetry setting dynamically enabled. Scheduling job and triggering initial run...");
+            log.info(Constants.I_LOG_TELEMETRY_DYNAMICALLY_ENABLED);
             this.scheduleTelemetryPingJob();
         } else {
-            log.info("Telemetry setting dynamically disabled. Removing job...");
+            log.info(Constants.I_LOG_TELEMETRY_DYNAMICALLY_DISABLED);
             this.removeTelemetryPingJob();
         }
     }
@@ -657,12 +682,13 @@ public class ContentManagerPlugin extends Plugin
                                     if (jobExists) {
                                         this.client
                                                 .prepareDelete(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                                                 .get();
-                                        log.info("Telemetry Ping Job removed successfully.");
+                                        log.info(Constants.I_LOG_TELEMETRY_JOB_REMOVED);
                                     }
                                 }
                             } catch (Exception e) {
-                                log.error("Failed to remove Telemetry Ping Job: {}", e.getMessage());
+                                log.error(Constants.E_LOG_TELEMETRY_JOB_REMOVE_FAILED, e.getMessage());
                             }
                         });
     }
@@ -680,6 +706,7 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.CTI_API_URL,
                 PluginSettings.MAX_CONCURRENT_BULKS,
                 PluginSettings.MAX_ITEMS_PER_BULK,
+                PluginSettings.MAX_BULK_BYTES,
                 PluginSettings.CATALOG_SYNC_INTERVAL,
                 PluginSettings.UPDATE_ON_START,
                 PluginSettings.UPDATE_ON_SCHEDULE,
@@ -689,7 +716,85 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.TELEMETRY_ENABLED,
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
-                PluginSettings.CREATE_DETECTORS);
+                PluginSettings.CREATE_DETECTORS,
+                PluginSettings.UPDATE_ON_DEMAND,
+                PluginSettings.POLICY_UPDATE_ENABLED);
+    }
+
+    @Override
+    public Collection<Module> createGuiceModules() {
+        return List.of(
+                new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        bind(EngineService.class).toProvider(() -> ContentManagerPlugin.this.engine);
+                        bind(SecurityAnalyticsService.class)
+                                .toProvider(() -> ContentManagerPlugin.this.securityAnalyticsService);
+                    }
+                });
+    }
+
+    @Override
+    public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
+        return List.of(
+                // Existing
+                new ActionHandler<>(
+                        IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
+                new ActionHandler<>(TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class),
+                // Group 2: Subscription GET/DELETE + Space DELETE
+                new ActionHandler<>(GetSubscriptionAction.INSTANCE, TransportGetSubscriptionAction.class),
+                new ActionHandler<>(
+                        DeleteSubscriptionAction.INSTANCE, TransportDeleteSubscriptionAction.class),
+                new ActionHandler<>(DeleteSpaceAction.INSTANCE, TransportDeleteSpaceAction.class),
+                // Group 3: Promote
+                new ActionHandler<>(GetPromoteAction.INSTANCE, TransportGetPromoteAction.class),
+                new ActionHandler<>(PostPromoteAction.INSTANCE, TransportPostPromoteAction.class),
+                // Group 4: Logtest
+                new ActionHandler<>(LogtestAction.INSTANCE, TransportLogtestAction.class),
+                new ActionHandler<>(LogtestDetectionAction.INSTANCE, TransportLogtestDetectionAction.class),
+                new ActionHandler<>(
+                        LogtestNormalizationAction.INSTANCE, TransportLogtestNormalizationAction.class),
+                // Group 5: Version Check
+                new ActionHandler<>(VersionCheckAction.INSTANCE, TransportVersionCheckAction.class),
+                // Group 6: Policy
+                new ActionHandler<>(UpdatePolicyAction.INSTANCE, TransportUpdatePolicyAction.class),
+                // Phase 2: CRUD - Decoders
+                new ActionHandler<>(CreateDecoderAction.INSTANCE, TransportCreateDecoderAction.class),
+                new ActionHandler<>(UpdateDecoderAction.INSTANCE, TransportUpdateDecoderAction.class),
+                new ActionHandler<>(DeleteDecoderAction.INSTANCE, TransportDeleteDecoderAction.class),
+                // Phase 2: CRUD - KVDBs
+                new ActionHandler<>(CreateKvdbAction.INSTANCE, TransportCreateKvdbAction.class),
+                new ActionHandler<>(UpdateKvdbAction.INSTANCE, TransportUpdateKvdbAction.class),
+                new ActionHandler<>(DeleteKvdbAction.INSTANCE, TransportDeleteKvdbAction.class),
+                // Phase 2: CRUD - Integrations
+                new ActionHandler<>(
+                        CreateIntegrationAction.INSTANCE, TransportCreateIntegrationAction.class),
+                new ActionHandler<>(
+                        UpdateIntegrationAction.INSTANCE, TransportUpdateIntegrationAction.class),
+                new ActionHandler<>(
+                        DeleteIntegrationAction.INSTANCE, TransportDeleteIntegrationAction.class),
+                // Phase 2: CRUD - Rules
+                new ActionHandler<>(CreateRuleAction.INSTANCE, TransportCreateRuleAction.class),
+                new ActionHandler<>(UpdateRuleAction.INSTANCE, TransportUpdateRuleAction.class),
+                new ActionHandler<>(DeleteRuleAction.INSTANCE, TransportDeleteRuleAction.class),
+                // Phase 2: CRUD - Filters
+                new ActionHandler<>(CreateFilterAction.INSTANCE, TransportCreateFilterAction.class),
+                new ActionHandler<>(UpdateFilterAction.INSTANCE, TransportUpdateFilterAction.class),
+                new ActionHandler<>(DeleteFilterAction.INSTANCE, TransportDeleteFilterAction.class));
+    }
+
+    /**
+     * Registers an {@link ActionFilter} that blocks modification of sensitive configuration when the
+     * corresponding per-endpoint setting is disabled: {@code
+     * plugins.content_manager.catalog.update_on_demand} (content update trigger) and {@code
+     * plugins.content_manager.catalog.policy_update.enabled} (policy updates). When disabled, the
+     * action is rejected for every caller, regardless of role.
+     *
+     * @return the list of action filters for this plugin.
+     */
+    @Override
+    public List<ActionFilter> getActionFilters() {
+        return List.of(new SensitiveConfigActionFilter());
     }
 
     /**
@@ -769,9 +874,9 @@ public class ContentManagerPlugin extends Plugin
                 return fileVersion;
             }
 
-            log.warn("VERSION.json found but 'version' field is empty or missing.");
+            log.warn(Constants.W_LOG_VERSION_FIELD_MISSING);
         } catch (Exception e) {
-            log.warn("Could not read VERSION.json: {}", e.getMessage());
+            log.warn(Constants.W_LOG_VERSION_READ_FAILED, e.getMessage());
         }
 
         String configuredVersion = System.getProperty(VERSION_SYSTEM_PROPERTY);
@@ -791,5 +896,15 @@ public class ContentManagerPlugin extends Plugin
      */
     public static boolean isTestEnvironment() {
         return "true".equals(System.getProperty("INDEXER_TEST_ENV"));
+    }
+
+    /**
+     * Returns the value of the "DEPLOY_KEY" environment variable, if it exists.
+     *
+     * @return value of the "DEPLOY_KEY" environment variable, of an empty string if it does not
+     *     exist.
+     */
+    public static String preDeploymentKey() {
+        return System.getProperty("DEPLOY_KEY", "");
     }
 }

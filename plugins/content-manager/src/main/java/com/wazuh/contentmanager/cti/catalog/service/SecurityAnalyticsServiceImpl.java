@@ -110,7 +110,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                         : "";
         String category = this.formatCategory(doc, false);
 
-        log.info(Constants.I_LOG_SAP_SEND, "integration", name, id);
+        log.debug(Constants.D_LOG_SAP_SEND, "integration", name, id);
         return new WIndexIntegrationRequest(
                 id,
                 WriteRequest.RefreshPolicy.IMMEDIATE,
@@ -123,7 +123,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     public void deleteIntegration(String id, Space space) {
         try {
             if (Space.STANDARD.equals(space)) {
-                this.deleteDetector(id);
+                try {
+                    this.deleteDetector(id);
+                } catch (Exception e) {
+                    log.debug("No detector found for integration [{}], skipping: {}", id, e.getMessage());
+                }
             }
             // Use document.id + source=<space> to find and delete
             // the document in Security Analytics.
@@ -133,7 +137,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             WDeleteIntegrationAction.INSTANCE,
                             new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source))
                     .actionGet();
-            log.info(Constants.I_LOG_SAP_DELETED, "Integration", id, ", source=" + source);
+            log.debug(Constants.D_LOG_SAP_DELETED, "Integration", id, ", source=" + source);
         } catch (Exception e) {
             String message =
                     String.format(
@@ -143,7 +147,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             id,
                             space.toString(),
                             e.getMessage());
-            log.error(message);
+            log.error(message, e);
             throw new OpenSearchException(message);
         }
     }
@@ -158,7 +162,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                     id,
                     ActionListener.wrap(
                             detectorResponse -> {
-                                log.info("Detector [{}] deleted. Now deleting integration.", id);
+                                log.debug(Constants.D_LOG_SAP_DETECTOR_DELETED_THEN_INTEGRATION, id);
                                 this.executeAsync(
                                         WDeleteIntegrationAction.INSTANCE,
                                         new WDeleteIntegrationRequest(
@@ -192,7 +196,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String body = doc.toString();
         String sourceName = space.toString();
 
-        log.info(Constants.I_LOG_SAP_SEND, "rule", title, id);
+        log.debug(Constants.D_LOG_SAP_SEND, "rule", title, id);
         try {
             if (space != Space.STANDARD) {
                 this.client
@@ -274,7 +278,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String body = doc.toString();
         String sourceName = space.toString();
 
-        log.info(Constants.I_LOG_SAP_SEND, "rule", title, id);
+        log.debug(Constants.D_LOG_SAP_SEND, "rule", title, id);
         if (space != Space.STANDARD) {
             this.executeAsync(
                     WIndexCustomRuleAction.INSTANCE,
@@ -322,7 +326,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                                         id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source))
                         .actionGet();
             }
-            log.info(Constants.I_LOG_SAP_DELETED, "Rule", id, ", source=" + source);
+            log.debug(Constants.D_LOG_SAP_DELETED, "Rule", id, ", source=" + source);
         } catch (Exception e) {
             String message =
                     String.format(
@@ -332,7 +336,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             id,
                             space.toString(),
                             e.getMessage());
-            log.error(message);
+            log.error(message, e);
             throw new OpenSearchException(message);
         }
     }
@@ -352,7 +356,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                     new WDeleteCustomRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source),
                     listener);
         }
-        log.info(Constants.I_LOG_SAP_DELETE_ASYNC, "rule", id, ", source=" + source);
+        log.debug(Constants.D_LOG_SAP_DELETE_ASYNC, "rule", id, ", source=" + source);
     }
 
     @Override
@@ -406,7 +410,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         String category = this.formatCategory(doc, rawCategory);
         List<String> rules = this.fetchEnabledRuleIds(doc.get(Constants.KEY_RULES));
         if (rules.isEmpty()) {
-            log.debug("Detector [{}] has no enabled rules. Skipping creation.", id);
+            log.debug(Constants.D_LOG_SAP_DETECTOR_NO_ENABLED_RULES, id);
             return null;
         }
 
@@ -430,7 +434,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                 int MAX = 10080; // 60*24*7
                 if (interval < MIN || interval > MAX) {
                     log.warn(
-                            "Interval for detector [{}] is out of bounds ([{},{}], got: {}). Falling back to default value of {} minutes.",
+                            Constants.W_LOG_DETECTOR_INTERVAL_OUT_OF_BOUNDS,
                             id,
                             MIN,
                             MAX,
@@ -445,7 +449,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             }
         }
 
-        log.info(Constants.I_LOG_SAP_SEND, "detector", title, id);
+        log.debug(Constants.D_LOG_SAP_SEND, "detector", title, id);
         return new WIndexDetectorRequest(
                 id,
                 title,
@@ -494,11 +498,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             }
             int filtered = candidateIds.size() - enabledIds.size();
             if (filtered > 0) {
-                log.info("Filtered {} disabled rule(s) from detector rule list", filtered);
+                log.debug(Constants.D_LOG_DETECTOR_FILTERED_DISABLED_RULES, filtered);
             }
             return enabledIds;
         } catch (Exception e) {
-            log.error("Failed to fetch enabled rule IDs: {}", e.getMessage());
+            log.error(Constants.E_LOG_FETCH_ENABLED_RULES_FAILED, e.getMessage());
             return candidateIds;
         }
     }
@@ -511,12 +515,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             WDeleteDetectorAction.INSTANCE,
                             new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE))
                     .actionGet();
-            log.info(Constants.I_LOG_SAP_DELETED, "Detector", id, "");
+            log.debug(Constants.D_LOG_SAP_DELETED, "Detector", id, "");
         } catch (Exception e) {
             String message =
                     String.format(
                             Locale.ROOT, "Failed to delete %s with id [%s]: %s", "detector", id, e.getMessage());
-            log.error(message);
             throw new OpenSearchException(message);
         }
     }
@@ -527,7 +530,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                 WDeleteDetectorAction.INSTANCE,
                 new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE),
                 listener);
-        log.info(Constants.I_LOG_SAP_DELETE_ASYNC, "detector", id, "");
+        log.debug(Constants.D_LOG_SAP_DELETE_ASYNC, "detector", id, "");
     }
 
     @Override
@@ -542,14 +545,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             .actionGet();
 
             if (response.hasFailures()) {
-                log.warn(
-                        "Partial failures deleting SAP resources for space [{}]: {}",
-                        space,
-                        response.getFailureMessage());
+                log.warn(Constants.W_LOG_SAP_SPACE_DELETE_PARTIAL, space, response.getFailureMessage());
             }
 
             log.info(
-                    "Deleted [{}] integrations and [{}] rules from Security Analytics for space [{}]",
+                    Constants.I_LOG_SAP_SPACE_DELETED,
                     response.getDeletedIntegrations(),
                     response.getDeletedRules(),
                     space);
@@ -589,7 +589,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                     this.client.execute(WEvaluateRulesAction.INSTANCE, request).actionGet();
             return response.getResultJson();
         } catch (Exception e) {
-            log.error("Failed to evaluate rules via SAP transport action.", e);
+            log.error(Constants.E_LOG_EVALUATE_RULES_FAILED, e);
             return "{\"status\":\"error\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}";
         }
     }

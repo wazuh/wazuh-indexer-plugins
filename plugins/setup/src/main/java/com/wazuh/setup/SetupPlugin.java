@@ -18,12 +18,14 @@ package com.wazuh.setup;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.*;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -41,17 +43,19 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import com.wazuh.setup.action.PutSettingsAction;
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.SettingsIndex;
+import com.wazuh.setup.index.SetupStatusIndex;
 import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
 import com.wazuh.setup.rest.RestPutSettingsAction;
 import com.wazuh.setup.settings.PluginSettings;
+import com.wazuh.setup.transport.TransportPutSettingsAction;
 import com.wazuh.setup.utils.JsonUtils;
 
 /**
@@ -68,6 +72,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private ClusterService clusterService;
     private ThreadPool threadPool;
     private SettingsIndex settingsIndex;
+    private SetupStatusIndex setupStatusIndex;
     // spotless:off
     private final String[] categories = {
         "access-management", // No integration in this category yet
@@ -101,6 +106,13 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         // spotless:off
+        // Setup status index - Holds the initialization marker read by other plugins (e.g.
+        // Content Manager) to defer their startup work until setup completes. Added first so its
+        // own initialize() (which writes the "running" marker) runs before any other index,
+        // invalidating a stale marker from a previous boot as early as possible.
+        this.setupStatusIndex = new SetupStatusIndex(SetupStatusIndex.INDEX_NAME, "templates/setup-status");
+        this.indices.add(this.setupStatusIndex);
+
         // ISM index
         this.indices.add(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));
         // Decoder indices
@@ -167,7 +179,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                     index.setUtils(utils);
                 });
 
-        return Collections.emptyList();
+        // Expose the settings index so it can be injected into TransportPutSettingsAction.
+        return List.of(this.settingsIndex);
     }
 
     @Override
@@ -201,7 +214,16 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                                     log.error("Failed to update cluster.default_number_of_replicas", e);
                                 }
 
-                                this.indices.forEach(Index::initialize);
+                                try {
+                                    this.indices.forEach(Index::initialize);
+                                } catch (Exception e) {
+                                    log.error("Setup initialization failed: {}", e.getMessage(), e);
+                                    this.setupStatusIndex.markFailed();
+                                }
+
+                                // Signal that all indices are ready. Consumers of this marker may now start working
+                                // with them.
+                                this.setupStatusIndex.markReady();
                             });
         }
     }
@@ -215,11 +237,19 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
             SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
-        return List.of(new RestPutSettingsAction(this.settingsIndex));
+        return List.of(new RestPutSettingsAction());
+    }
+
+    @Override
+    public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
+        return List.of(
+                new ActionPlugin.ActionHandler<>(
+                        PutSettingsAction.INSTANCE, TransportPutSettingsAction.class));
     }
 
     @Override
     public List<Setting<?>> getSettings() {
-        return List.of(PluginSettings.TIMEOUT, PluginSettings.BACKOFF);
+        return List.of(
+                PluginSettings.TIMEOUT, PluginSettings.BACKOFF, PluginSettings.SETTINGS_UPDATE_ENABLED);
     }
 }

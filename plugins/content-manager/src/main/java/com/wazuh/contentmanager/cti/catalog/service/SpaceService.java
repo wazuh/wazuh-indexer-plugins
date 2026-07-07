@@ -138,7 +138,7 @@ public class SpaceService {
                 }
             }
         } catch (Exception e) {
-            log.error("Failed to delete space resources for [{}]: {}", spaceName, e.getMessage());
+            log.error(Constants.E_LOG_DELETE_SPACE_RESOURCES_FAILED, spaceName, e.getMessage());
             throw new IOException("Failed to delete space resources: " + e.getMessage(), e);
         }
     }
@@ -207,11 +207,11 @@ public class SpaceService {
                             .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
             this.client.index(request).actionGet();
-            log.info("Initialized space [{}]", spaceName);
+            log.info(Constants.I_LOG_SPACE_INITIALIZED, spaceName);
         } catch (VersionConflictEngineException e) {
-            log.debug("Space [{}] already initialized, skipping.", spaceName);
+            log.debug(Constants.D_LOG_SPACE_ALREADY_INITIALIZED, spaceName);
         } catch (Exception e) {
-            log.error("Failed to initialize space [{}]: {}", spaceName, e.getMessage());
+            log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, spaceName, e.getMessage());
         }
     }
 
@@ -258,7 +258,7 @@ public class SpaceService {
                 }
             } catch (Exception e) {
                 log.warn(
-                        "Failed to fetch [{}] from index [{}] for space [{}]: {}",
+                        Constants.W_LOG_FETCH_RESOURCE_TYPE_FAILED,
                         resourceType,
                         indexName,
                         spaceName,
@@ -321,7 +321,7 @@ public class SpaceService {
                 }
             }
         } catch (Exception e) {
-            log.error("Failed to consolidate resources: {}", e.getMessage());
+            log.error(Constants.E_LOG_CONSOLIDATE_RESOURCES_FAILED, e.getMessage());
             throw new IOException("Failed to consolidate resources: " + e.getMessage(), e);
         }
     }
@@ -357,15 +357,52 @@ public class SpaceService {
                 }
             }
         } catch (Exception e) {
-            log.error(
-                    "Failed to fetch resources from [{}] for space [{}]: {}",
-                    indexName,
-                    space,
-                    e.getMessage());
+            log.error(Constants.E_LOG_FETCH_RESOURCES_FAILED, indexName, space, e.getMessage());
             throw new IOException("Failed to fetch resources: " + e.getMessage(), e);
         }
 
         return resources;
+    }
+
+    /**
+     * Fetches only the document IDs from a specific index that belong to a given space.
+     *
+     * <p>Use this instead of {@link #getResourcesBySpace} when full document content is not needed,
+     * to avoid loading large source maps into heap.
+     *
+     * @param indexName The index to search.
+     * @param space The space to filter by.
+     * @return A set of document.id values.
+     * @throws IOException If the search operation fails.
+     */
+    public Set<String> getResourceIdsBySpace(String indexName, Space space) throws IOException {
+        Set<String> ids = new HashSet<>();
+
+        try {
+            if (this.client.admin().indices().prepareExists(indexName).get().isExists()) {
+                SearchRequest searchRequest = new SearchRequest(indexName);
+                SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+                sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space));
+                sourceBuilder.size(10000);
+                sourceBuilder.fetchSource(new String[] {Constants.Q_DOCUMENT_ID}, null);
+                searchRequest.source(sourceBuilder);
+
+                SearchResponse response =
+                        this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
+
+                for (SearchHit hit : response.getHits().getHits()) {
+                    String docId = this.getDocumentId(hit.getSourceAsMap());
+                    if (docId != null) {
+                        ids.add(docId);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error(Constants.E_LOG_FETCH_RESOURCES_FAILED, indexName, space, e.getMessage());
+            throw new IOException("Failed to fetch resource IDs: " + e.getMessage(), e);
+        }
+
+        return ids;
     }
 
     /**
@@ -547,7 +584,7 @@ public class SpaceService {
             }
             return null;
         } catch (Exception e) {
-            log.error("Failed to get document [{}] from index [{}]: {}", id, indexName, e.getMessage());
+            log.error(Constants.E_LOG_GET_DOCUMENT_FAILED, id, indexName, e.getMessage());
             throw new IOException("Failed to retrieve document: " + e.getMessage(), e);
         }
     }
@@ -594,7 +631,7 @@ public class SpaceService {
             }
             return null;
         } catch (Exception e) {
-            log.error("Failed to get policy for space [{}]: {}", space, e.getMessage());
+            log.error(Constants.E_LOG_GET_POLICY_FAILED, space, e.getMessage());
             throw new IOException("Failed to retrieve policy: " + e.getMessage(), e);
         }
     }
@@ -620,10 +657,7 @@ public class SpaceService {
                     DeleteRequest deleteRequest = new DeleteRequest(indexName, targetId);
                     bulkRequest.add(deleteRequest);
                 } else {
-                    log.warn(
-                            "Document with document.id [{}] not found in space [{}] for deletion",
-                            docId,
-                            targetSpace);
+                    log.warn(Constants.W_LOG_DOCUMENT_NOT_FOUND_FOR_DELETION, docId, targetSpace);
                 }
             }
 
@@ -638,7 +672,7 @@ public class SpaceService {
                 }
             }
         } catch (Exception e) {
-            log.error("Failed to delete resources: {}", e.getMessage());
+            log.error(Constants.E_LOG_DELETE_RESOURCES_FAILED, e.getMessage());
             throw new IOException("Failed to delete resources: " + e.getMessage(), e);
         }
     }
@@ -684,11 +718,7 @@ public class SpaceService {
                 return response.getHits().getAt(0).getId();
             }
         } catch (Exception e) {
-            log.error(
-                    "Error finding document ID for space [{}] and docId [{}]: {}",
-                    spaceName,
-                    documentId,
-                    e.getMessage());
+            log.error(Constants.E_LOG_FIND_DOCUMENT_ID_FAILED, spaceName, documentId, e.getMessage());
         }
         return null;
     }
@@ -721,9 +751,7 @@ public class SpaceService {
         Set<String> changedSpaces = new HashSet<>();
         try {
             if (!this.client.admin().indices().prepareExists(Constants.INDEX_POLICIES).get().isExists()) {
-                log.warn(
-                        "Policy index [{}] does not exist. Skipping hash calculation.",
-                        Constants.INDEX_POLICIES);
+                log.warn(Constants.W_LOG_POLICY_INDEX_MISSING, Constants.INDEX_POLICIES);
                 return changedSpaces;
             }
 
@@ -745,8 +773,7 @@ public class SpaceService {
                     if (!targetSpaces.contains(spaceName)) {
                         continue;
                     }
-                    log.info(
-                            "Calculating hash calculation for policy [{}] in space [{}]", hit.getId(), spaceName);
+                    log.debug(Constants.D_LOG_RECALCULATING_HASH, hit.getId(), spaceName);
                 }
 
                 List<String> spaceHashes = new ArrayList<>();
@@ -822,13 +849,16 @@ public class SpaceService {
                 bulkUpdateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
                 BulkResponse bulkResponse = this.client.bulk(bulkUpdateRequest).actionGet();
                 if (bulkResponse.hasFailures()) {
-                    log.error(
-                            "Bulk update of policy space hashes failed: {}", bulkResponse.buildFailureMessage());
+                    log.error(Constants.E_LOG_BULK_UPDATE_HASHES_FAILED, bulkResponse.buildFailureMessage());
                 }
             }
 
+            if (!changedSpaces.isEmpty()) {
+                log.info(Constants.I_LOG_CONTENT_HASH_CHANGED, changedSpaces);
+            }
+
         } catch (Exception e) {
-            log.error("Error calculating policy hashes: {}", e.getMessage(), e);
+            log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
         }
         return changedSpaces;
     }
@@ -875,11 +905,7 @@ public class SpaceService {
                 return response.getSourceAsMap();
             }
         } catch (Exception e) {
-            log.warn(
-                    "Failed to retrieve document [{}] from index [{}]: {}",
-                    documentId,
-                    indexName,
-                    e.getMessage());
+            log.warn(Constants.W_LOG_RETRIEVE_DOCUMENT_FAILED, documentId, indexName, e.getMessage());
         }
         return null;
     }
@@ -916,10 +942,10 @@ public class SpaceService {
                     }
                 }
             } else {
-                log.warn("IOC type hashes document not found. Enrichment validation may fail.");
+                log.warn(Constants.W_LOG_IOC_TYPE_HASHES_NOT_FOUND);
             }
         } catch (Exception e) {
-            log.error("Failed to retrieve valid enrichment types from IOC index: {}", e.getMessage());
+            log.error(Constants.E_LOG_RETRIEVE_ENRICHMENT_TYPES_FAILED, e.getMessage());
         }
         return knownEnrichmentTypes;
     }
@@ -955,11 +981,7 @@ public class SpaceService {
                     return true;
                 }
             } catch (Exception e) {
-                log.warn(
-                        "Failed to check engine resources in space [{}] index [{}]: {}",
-                        space,
-                        index,
-                        e.getMessage());
+                log.warn(Constants.W_LOG_CHECK_ENGINE_RESOURCES_FAILED, space, index, e.getMessage());
             }
         }
         return false;

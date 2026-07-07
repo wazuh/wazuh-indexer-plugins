@@ -331,6 +331,10 @@ def extract(nodes_stats, cluster_stats):
     out["heap_used_percent"] = round(
         100 * acc["heap_used_bytes"] / acc["heap_max_bytes"], 2
     ) if acc["heap_max_bytes"] else 0
+    # Absolute JVM heap in GB (same value the JMX exporter reports as
+    # jvm_memory_bytes_used{area="heap"}), so the charts/report can show JVM RAM used.
+    out["heap_used_gb"] = round(acc["heap_used_bytes"] / GIB, 3)
+    out["heap_max_gb"] = round(acc["heap_max_bytes"] / GIB, 3)
     return out
 
 

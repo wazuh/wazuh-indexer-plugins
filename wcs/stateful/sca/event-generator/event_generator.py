@@ -75,7 +75,22 @@ def generate_random_check():
         'remediation': 'Generated remediation.',
         'references': [f'https://example.com/check{random.randint(0, 9999)}'],
         'condition': 'all',
-        'compliance': [f'cis:{random.randint(1, 10)}.{random.randint(1, 10)}.{random.randint(1, 10)}'],
+        'compliance': {
+            'pci_dss': [f'{random.randint(1, 12)}.{random.randint(1, 5)}'],
+            'nist_800_53': [f'AC-{random.randint(1, 20)}'],
+            'gdpr': ['Art. 32'],
+            'tsc': ['CC6.1']
+        },
+        'mitre': {
+            'tactic': {
+                'id': ['TA0002'],
+                'name': ['Execution']
+            },
+            'technique': {
+                'id': ['T1059'],
+                'name': ['Command and Scripting Interpreter']
+            }
+        },
         'rules': [f'Rule {random.randint(1, 100)}', f'Rule {random.randint(1, 100)}'],
         'result': 'pass',
         'reason': 'Randomly passed.'

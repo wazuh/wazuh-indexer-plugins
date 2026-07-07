@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
@@ -159,9 +160,10 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                                 + "\"local_offset\":9,\"remote_offset\":100}");
 
         // Act
-        this.updateService.update(9, 12);
+        boolean result = this.updateService.update(9, 12);
 
         // Assert
+        Assert.assertTrue("update() should return true on success", result);
         // Verify CREATE
         verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class));
 
@@ -227,7 +229,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                                 + "\"local_offset\":29,\"remote_offset\":100}");
 
         // Act
-        this.updateService.update(29, 30);
+        LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(29, 30));
 
         // Assert
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
@@ -240,6 +242,10 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         Assert.assertEquals(
                 "https://cti.example/api/v1/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5",
                 resetConsumer.getResource());
+        Assert.assertEquals(
+                "Reset consumer must be marked FAILED, not the default status",
+                LocalConsumer.Status.FAILED,
+                resetConsumer.getStatus());
     }
 
     /**
@@ -274,9 +280,10 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.getResponse.isExists()).thenReturn(false);
 
         // Act
-        this.updateService.update(19, 20);
+        boolean result = this.updateService.update(19, 20);
 
         // Assert
+        Assert.assertTrue("update() should return true on success", result);
         verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
         verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
 
@@ -296,12 +303,16 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                 .thenReturn(SimpleHttpResponse.create(500, "Internal Error", ContentType.TEXT_PLAIN));
 
         // Act
-        this.updateService.update(1, 5);
+        LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(1, 5));
 
         // Assert
         verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
-        verify(this.consumersIndex, never()).setConsumer(any());
+        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
+        Assert.assertEquals(0, consumerCaptor.getValue().getLocalOffset());
+        Assert.assertEquals(LocalConsumer.Status.FAILED, consumerCaptor.getValue().getStatus());
     }
+
 
     /**
      * Tests that the consumer state is reset to 0 if an exception occurs during processing.
@@ -336,14 +347,16 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                 .create(anyString(), any(JsonNode.class));
 
         // Act
-        this.updateService.update(29, 30);
+        LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(29, 30));
 
+        // Assert
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
 
         LocalConsumer resetConsumer = consumerCaptor.getValue();
         Assert.assertEquals(0, resetConsumer.getLocalOffset());
         Assert.assertEquals(CONSUMER, resetConsumer.getName());
+        Assert.assertEquals(LocalConsumer.Status.FAILED, resetConsumer.getStatus());
     }
 
     /**
@@ -379,9 +392,10 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.getResponse.getSourceAsString()).thenReturn("{}");
 
         // Act
-        this.updateService.update(39, 40);
+        boolean result = this.updateService.update(39, 40);
 
         // Assert
+        Assert.assertTrue("update() should return true on success", result);
         verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
         verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
 
@@ -425,13 +439,11 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.getResponse.getSourceAsString()).thenReturn("{}");
 
         // Act
-        this.updateService.update(49, 50);
+        LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(49, 50));
 
         // Assert
         verify(this.ruleIndex, never()).delete(anyString());
         verify(this.decoderIndex, never()).delete(anyString());
-
-        verify(this.consumersIndex).setConsumer(any(LocalConsumer.class));
     }
 
     /**
@@ -463,8 +475,9 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsString()).thenReturn("{}");
 
-        this.updateService.update(59, 60);
+        boolean result = this.updateService.update(59, 60);
 
+        Assert.assertTrue("update() should return true on success", result);
         verify(this.ruleIndex, never()).delete(anyString());
         verify(this.decoderIndex, never()).delete(anyString());
 
@@ -503,8 +516,9 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.getResponse.isExists()).thenReturn(true);
         when(this.getResponse.getSourceAsString()).thenReturn("{}");
 
-        this.updateService.update(69, 70);
+        boolean result = this.updateService.update(69, 70);
 
+        Assert.assertTrue("update() should return true on success", result);
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
         verify(this.cveIndex).create(eq("TID-123"), payloadCaptor.capture());
         Assert.assertEquals("TID", payloadCaptor.getValue().get("type").asText());

@@ -1,0 +1,19 @@
+# jmx_prometheus_javaagent config for the wazuh-indexer JVM.
+#
+# The javaagent registers the standard Hotspot collectors automatically (jvm_memory_*,
+# jvm_gc_*, jvm_threads_*, jvm_buffer_pool_*), which is all the JVM Overview dashboard
+# needs. The rules below also surface the raw MBeans (heap pools, GC, threading) for
+# ad-hoc exploration in Prometheus.
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+rules:
+  - pattern: 'java.lang<type=MemoryPool, name=(.+)><(\w+)>(\w+): (.*)'
+    name: jvm_memory_pool_$2_$3
+    labels:
+      pool: "$1"
+  - pattern: 'java.lang<type=GarbageCollector, name=(.+)><>(CollectionCount|CollectionTime): (.*)'
+    name: jvm_gc_$2
+    labels:
+      collector: "$1"
+  - pattern: 'java.lang<type=Threading><>(\w+): (.*)'
+    name: jvm_threading_$1
