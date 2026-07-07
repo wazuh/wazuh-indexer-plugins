@@ -336,6 +336,22 @@ The `executeRequest()` workflow:
 
 Returns `200 OK` with the resource UUID on success.
 
+### Integration `mode` field
+
+Integration documents carry a `document.mode` field with one of two values:
+
+- `protected` — the integration is Wazuh core content and **cannot be modified or deleted** through the REST API.
+- `user-managed` — the integration can be modified by the user.
+
+The value is set by whoever produces the content: CTI content carries its own `mode` (core integrations are `protected`, the rest `user-managed`), and integrations created through the REST API are always `user-managed`.
+
+| Integration | Space | `PUT /integrations/{id}` |
+| --- | --- | --- |
+| `protected` | any | Rejected with `400 Bad Request`. |
+| `user-managed` | `draft` | Fully editable (metadata, category, `enabled`). |
+| `user-managed` | `standard` | Only `enabled` can change; every other field is preserved from the stored document. |
+
+
 ---
 
 ## YAML Content-Type Support
@@ -892,7 +908,7 @@ The plugin includes integration tests defined in the `tests/content-manager` dir
 | 8   | Create an integration with empty body                                |
 | 9   | Create an integration without authentication                         |
 
-#### 01 - Integrations: Update Integration (8 scenarios)
+#### 01 - Integrations: Update Integration (12 scenarios)
 | #   | Scenario                                                                               |
 | --- | -------------------------------------------------------------------------------------- |
 | 1   | Successfully update an integration                                                     |
@@ -903,8 +919,12 @@ The plugin includes integration tests defined in the `tests/content-manager` dir
 | 6   | Update an integration with an id in the request body                                   |
 | 7   | Update an integration attempting to add/remove dependency lists                        |
 | 8   | Update an integration without authentication                                           |
+| 9   | Update a protected integration (rejected)                                              |
+| 10  | Toggle `enabled` on a user-managed integration in the standard space                   |
+| 11  | Update a user-managed standard integration: only `enabled` changes, other fields preserved |
+| 12  | Update a protected integration in the standard space (rejected)                        |
 
-#### 01 - Integrations: Delete Integration (7 scenarios)
+#### 01 - Integrations: Delete Integration (8 scenarios)
 | #   | Scenario                                                      |
 | --- | ------------------------------------------------------------- |
 | 1   | Successfully delete an integration with no attached resources |
@@ -914,6 +934,7 @@ The plugin includes integration tests defined in the `tests/content-manager` dir
 | 5   | Delete an integration without providing an ID                 |
 | 6   | Delete an integration not in draft space                      |
 | 7   | Delete an integration without authentication                  |
+| 8   | Delete a protected integration (rejected)                     |
 
 #### 02 - Decoders: Create Decoder (7 scenarios)
 | #   | Scenario                                                |
