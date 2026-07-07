@@ -84,7 +84,7 @@ Read-only access across the platform.
 **Cluster permissions:**
 
 - Base: `cluster_composite_ops`, `cluster_monitor`
-- Content Manager: `subscription/get`, `logtest*`
+- Content Manager: `subscription/get`, `logtest*`, `version/check`
 - Security Analytics: read-only (`cluster:admin/opensearch/securityanalytics/*` get/search actions) plus `rules/evaluate`
 - Alerting, Notifications, Reporting, Index management: **read-only**
 

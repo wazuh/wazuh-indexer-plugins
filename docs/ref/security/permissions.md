@@ -4,7 +4,7 @@ This page lists the permissions registered by the Wazuh Indexer plugins that are
 
 ### Setup plugin permissions
 
-- `cluster:admin/setup/settings/update` — update the Wazuh settings (`PUT /_plugins/_setup/settings`)
+- `cluster:admin/setup/settings/update` — update the Wazuh settings (`PUT /_plugins/_setup/settings`), exposed as the action group `plugin:wazuh/settings/write`
 
 ### Content Manager plugin permissions
 
