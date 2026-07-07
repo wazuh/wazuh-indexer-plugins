@@ -101,6 +101,102 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
     }
 
     /**
+     * Create a decoder with caller-supplied {@code metadata.date} and {@code metadata.modified}
+     * timestamps.
+     *
+     * <p>Verifies: The caller-supplied timestamps are stored as-is instead of being replaced by
+     * plugin-generated ones.
+     *
+     * @throws IOException On failure to communicate with OpenSearch or parse responses.
+     */
+    public void testPostDecoder_honorsCallerSuppliedTimestamps() throws IOException {
+        String integrationId = this.createIntegration("test-decoder-caller-timestamps");
+        String callerDate = "2020-01-01T00:00:00Z";
+        String callerModified = "2020-06-15T12:30:00Z";
+
+        // spotless:off
+        String payload = """
+                {
+                    "integration": "%s",
+                    "resource": {
+                        "enabled": true,
+                        "metadata": {
+                            "author": "Wazuh, Inc.",
+                            "date": "%s",
+                            "modified": "%s",
+                            "description": "Test decoder with explicit timestamps.",
+                            "references": ["https://wazuh.com"],
+                            "title": "Test decoder with explicit timestamps"
+                        },
+                        "name": "decoder/test-decoder-timestamps/0",
+                        "check": [{"tmp_json.event.action": "string_equal(\\"test\\")"}],
+                        "normalize": [{"map": [{"@timestamp": "get_date()"}]}]
+                    }
+                }
+                """;
+        payload = String.format(Locale.ROOT, payload, integrationId, callerDate, callerModified);
+        // spotless:on
+
+        Response response = this.makeRequest("POST", PluginSettings.DECODERS_URI, payload);
+        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
+        String decoderId = (String) this.parseResponseAsMap(response).get("message");
+
+        JsonNode source = this.getResourceByDocumentId(Constants.INDEX_DECODERS, decoderId, "draft");
+        JsonNode metadata = source.path(Constants.KEY_DOCUMENT).path(Constants.KEY_METADATA);
+        assertEquals(
+                "Caller-supplied 'date' should be honored", callerDate, metadata.path("date").asText());
+        assertEquals(
+                "Caller-supplied 'modified' should be honored",
+                callerModified,
+                metadata.path("modified").asText());
+    }
+
+    /**
+     * Create a decoder with a caller-supplied {@code metadata.date} that is not a valid date.
+     *
+     * <p>No plugin-side format validation is performed on caller-supplied dates; the malformed value
+     * is expected to fail index mapping validation ({@code MapperParsingException}).
+     *
+     * <p>Verifies: Response status code is 400 (Bad Request), not 500 (Internal Server Error).
+     *
+     * @throws IOException On failure to communicate with OpenSearch or parse responses.
+     */
+    public void testPostDecoder_malformedDateReturnsBadRequest() throws IOException {
+        String integrationId = this.createIntegration("test-decoder-malformed-date");
+
+        // spotless:off
+        String payload = """
+                {
+                    "integration": "%s",
+                    "resource": {
+                        "enabled": true,
+                        "metadata": {
+                            "author": "Wazuh, Inc.",
+                            "date": "not-a-valid-date",
+                            "description": "Test decoder with a malformed date.",
+                            "references": ["https://wazuh.com"],
+                            "title": "Test decoder with a malformed date"
+                        },
+                        "name": "decoder/test-decoder-malformed-date/0",
+                        "check": [{"tmp_json.event.action": "string_equal(\\"test\\")"}],
+                        "normalize": [{"map": [{"@timestamp": "get_date()"}]}]
+                    }
+                }
+                """;
+        String body = String.format(Locale.ROOT, payload, integrationId);
+        // spotless:on
+
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.DECODERS_URI, body));
+        assertEquals(
+                "Malformed date should surface as 400, not 500",
+                RestStatus.BAD_REQUEST.getStatus(),
+                e.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
      * Create a decoder without an integration reference.
      *
      * <p>Verifies: Response status code is 400 with "Missing [integration] field."

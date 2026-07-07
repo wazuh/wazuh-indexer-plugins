@@ -130,6 +130,45 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
     }
 
     /**
+     * Create a filter with a caller-supplied {@code metadata.date} that is not a valid date.
+     *
+     * <p>No plugin-side format validation is performed on caller-supplied dates; the malformed value
+     * is expected to fail index mapping validation ({@code MapperParsingException}).
+     *
+     * <p>Verifies: Response status code is 400 (Bad Request), not 500 (Internal Server Error).
+     */
+    public void testPostFilter_malformedDateReturnsBadRequest() {
+        // spotless:off
+        String payload = """
+                {
+                    "space": "draft",
+                    "resource": {
+                        "name": "filter/test-filter-malformed-date/0",
+                        "enabled": true,
+                        "metadata": {
+                            "title": "Test filter with a malformed date",
+                            "description": "Test filter with a malformed date.",
+                            "author": "Wazuh, Inc.",
+                            "date": "not-a-valid-date"
+                        },
+                        "check": "$host.os.platform == 'ubuntu'",
+                        "type": "pre-filter"
+                    }
+                }
+                """;
+        // spotless:on
+
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.FILTERS_URI, payload));
+        assertEquals(
+                "Malformed date should surface as 400, not 500",
+                RestStatus.BAD_REQUEST.getStatus(),
+                e.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
      * Create a filter with an explicit id in the resource.
      *
      * <p>Verifies: Response status code is 400.
