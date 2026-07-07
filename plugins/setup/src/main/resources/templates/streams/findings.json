@@ -8616,17 +8616,50 @@
             },
             "case": {
               "properties": {
-                "comment": {
-                  "type": "match_only_text"
+                "comments": {
+                  "properties": {
+                    "author": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "comment": {
+                      "type": "match_only_text"
+                    },
+                    "created_at": {
+                      "type": "date"
+                    },
+                    "updated_at": {
+                      "type": "date"
+                    }
+                  },
+                  "type": "nested"
                 },
                 "created_at": {
                   "type": "date"
+                },
+                "description": {
+                  "type": "match_only_text"
+                },
+                "priority": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "severity": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
                 },
                 "status": {
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
                 "tags": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "title": {
+                  "type": "match_only_text"
+                },
+                "tlp": {
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
