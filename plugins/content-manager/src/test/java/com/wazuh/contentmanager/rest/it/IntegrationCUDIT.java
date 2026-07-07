@@ -25,6 +25,7 @@ import org.opensearch.core.rest.RestStatus;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import com.wazuh.contentmanager.ContentManagerRestTestCase;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -78,6 +79,12 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         assertNotNull(source);
         this.assertSpaceName(source);
         this.assertHashPresent(source, "Integration");
+
+        // Integrations created through the API are always user-managed.
+        assertEquals(
+                "Created integration should be user-managed",
+                Constants.MODE_USER_MANAGED,
+                source.path(Constants.KEY_DOCUMENT).path(Constants.KEY_MODE).asText());
 
         // Verify integration is in draft policy's integrations list
         List<String> policyIntegrations = this.getDraftPolicyIntegrations();
@@ -677,5 +684,325 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                         () -> this.makeRequest("DELETE", PluginSettings.INTEGRATIONS_URI + "/"));
         int statusCode = e.getResponse().getStatusLine().getStatusCode();
         assertEquals("Expected 405 for missing ID", 405, statusCode);
+    }
+
+    // ==============================
+    // Protected integrations (mode)
+    // ==============================
+
+    /**
+     * Update a protected integration (i.e. {@code document.mode == "protected"}).
+     *
+     * <p>Protection is based on the {@code mode} field, not the space, so a protected integration
+     * placed in the draft space still cannot be modified.
+     *
+     * <p>Verifies: Response status code is 400 (Bad Request).
+     *
+     * @throws IOException On request or response parsing failure.
+     */
+    public void testPutIntegration_protectedCannotBeModified() throws IOException {
+        String integrationId = this.indexProtectedIntegration("test-protected-put");
+
+        // spotless:off
+        String payload = """
+                {
+                    "resource": {
+                        "metadata": {
+                            "title": "test-protected-put",
+                            "author": "Wazuh Inc.",
+                            "description": "Attempted update.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        },
+                        "category": "cloud-services",
+                        "enabled": false,
+                        "rules": [],
+                        "decoders": [],
+                        "kvdbs": []
+                    }
+                }
+                """;
+        // spotless:on
+
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class,
+                        () ->
+                                this.makeRequest(
+                                        "PUT", PluginSettings.INTEGRATIONS_URI + "/" + integrationId, payload));
+        assertEquals(
+                RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
+     * A caller must not be able to change {@code mode} through an update. Attempting to set {@code
+     * mode: protected} on a user-managed integration must be ignored so the integration does not get
+     * permanently locked.
+     *
+     * <p>Verifies: Response status code is 200 OK, and the stored {@code mode} remains {@code
+     * user-managed}.
+     *
+     * @throws IOException On request or response parsing failure.
+     */
+    public void testPutIntegration_cannotChangeModeToProtected() throws IOException {
+        String integrationId = this.createIntegration("test-mode-immutable");
+
+        // spotless:off
+        String payload = """
+                {
+                    "resource": {
+                        "metadata": {
+                            "title": "test-mode-immutable",
+                            "author": "Wazuh Inc.",
+                            "description": "Attempt to escalate to protected.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        },
+                        "category": "cloud-services",
+                        "enabled": true,
+                        "mode": "protected",
+                        "rules": [],
+                        "decoders": [],
+                        "kvdbs": []
+                    }
+                }
+                """;
+        // spotless:on
+
+        Response response =
+                this.makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/" + integrationId, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
+
+        JsonNode document =
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "draft")
+                        .path(Constants.KEY_DOCUMENT);
+        assertEquals(
+                "Caller-supplied mode must be ignored; integration stays user-managed",
+                Constants.MODE_USER_MANAGED,
+                document.path(Constants.KEY_MODE).asText());
+    }
+
+    /**
+     * Delete a protected integration (i.e. {@code document.mode == "protected"}).
+     *
+     * <p>Verifies: Response status code is 400 (Bad Request).
+     *
+     * @throws IOException On request or response parsing failure.
+     */
+    public void testDeleteIntegration_protectedCannotBeDeleted() throws IOException {
+        String integrationId = this.indexProtectedIntegration("test-protected-delete");
+
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class,
+                        () -> this.deleteResource(PluginSettings.INTEGRATIONS_URI, integrationId));
+        assertEquals(
+                RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
+     * Toggle {@code enabled} on a user-managed integration living in the standard space.
+     *
+     * <p>Verifies:
+     *
+     * <ul>
+     *   <li>Response status code is 200 OK.
+     *   <li>The stored {@code enabled} flag reflects the new value.
+     *   <li>The document stays in the standard space and keeps its {@code user-managed} mode.
+     * </ul>
+     *
+     * @throws IOException On request or response parsing failure.
+     */
+    public void testPutIntegration_standardUserManaged_toggleEnabled() throws IOException {
+        String integrationId =
+                this.indexIntegration("test-standard-toggle", "standard", "user-managed", true);
+
+        // spotless:off
+        String payload = """
+                {
+                    "resource": {
+                        "metadata": {
+                            "title": "test-standard-toggle",
+                            "author": "Wazuh Inc.",
+                            "description": "Integration indexed by the test suite.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        },
+                        "category": "cloud-services",
+                        "enabled": false,
+                        "rules": [],
+                        "decoders": [],
+                        "kvdbs": []
+                    }
+                }
+                """;
+        // spotless:on
+
+        Response response =
+                this.makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/" + integrationId, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
+
+        JsonNode source =
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "standard");
+        assertNotNull("Standard integration should still exist", source);
+        JsonNode document = source.path(Constants.KEY_DOCUMENT);
+        assertFalse(
+                "enabled should have been toggled to false",
+                document.path(Constants.KEY_ENABLED).asBoolean());
+        assertEquals(
+                "Mode should remain user-managed",
+                Constants.MODE_USER_MANAGED,
+                document.path(Constants.KEY_MODE).asText());
+    }
+
+    /**
+     * Update a user-managed integration in the standard space, changing {@code enabled} together with
+     * other fields. Only {@code enabled} must take effect; every other field is preserved from the
+     * stored document.
+     *
+     * <p>Verifies: Response status code is 200 OK, {@code enabled} changed, and {@code category} /
+     * {@code metadata.title} are unchanged.
+     *
+     * @throws IOException On request or response parsing failure.
+     */
+    public void testPutIntegration_standardUserManaged_preservesOtherFields() throws IOException {
+        String integrationId =
+                this.indexIntegration("test-standard-preserve", "standard", "user-managed", true);
+
+        // spotless:off
+        String payload = """
+                {
+                    "resource": {
+                        "metadata": {
+                            "title": "test-standard-preserve-CHANGED",
+                            "author": "Someone Else",
+                            "description": "Changed description.",
+                            "documentation": "changed",
+                            "references": ["https://example.com"]
+                        },
+                        "category": "changed-category",
+                        "enabled": false,
+                        "rules": [],
+                        "decoders": [],
+                        "kvdbs": []
+                    }
+                }
+                """;
+        // spotless:on
+
+        Response response =
+                this.makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/" + integrationId, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
+
+        JsonNode document =
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "standard")
+                        .path(Constants.KEY_DOCUMENT);
+        assertFalse("enabled should have changed", document.path(Constants.KEY_ENABLED).asBoolean());
+        assertEquals(
+                "category should be preserved",
+                "cloud-services",
+                document.path(Constants.KEY_CATEGORY).asText());
+        assertEquals(
+                "title should be preserved",
+                "test-standard-preserve",
+                document.path(Constants.KEY_METADATA).path(Constants.KEY_TITLE).asText());
+    }
+
+    /**
+     * Update a protected integration that lives in the standard space (Wazuh core content).
+     *
+     * <p>Verifies: Response status code is 400 (Bad Request).
+     *
+     * @throws IOException On request or response parsing failure.
+     */
+    public void testPutIntegration_standardProtected_rejected() throws IOException {
+        String integrationId =
+                this.indexIntegration("test-standard-protected", "standard", "protected", true);
+
+        // spotless:off
+        String payload = """
+                {
+                    "resource": {
+                        "metadata": {
+                            "title": "test-standard-protected",
+                            "author": "Wazuh Inc.",
+                            "description": "Integration indexed by the test suite.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        },
+                        "category": "cloud-services",
+                        "enabled": false,
+                        "rules": [],
+                        "decoders": [],
+                        "kvdbs": []
+                    }
+                }
+                """;
+        // spotless:on
+
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class,
+                        () ->
+                                this.makeRequest(
+                                        "PUT", PluginSettings.INTEGRATIONS_URI + "/" + integrationId, payload));
+        assertEquals(
+                RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
+     * Indexes a protected integration directly into the draft space, bypassing the API (which only
+     * ever creates user-managed integrations).
+     *
+     * @param title the integration title.
+     * @return the generated integration ID.
+     * @throws IOException On request or response parsing failure.
+     */
+    private String indexProtectedIntegration(String title) throws IOException {
+        return this.indexIntegration(title, "draft", "protected", true);
+    }
+
+    /**
+     * Indexes an integration document directly into the given space, bypassing the API. Used to set
+     * up scenarios the API cannot create on its own (protected integrations, or integrations living
+     * in the standard space, which normally arrive from CTI content).
+     *
+     * @param title the integration title.
+     * @param space the target space (e.g. {@code "draft"} or {@code "standard"}).
+     * @param mode the integration mode ({@code "protected"} or {@code "user-managed"}).
+     * @param enabled the initial {@code enabled} value.
+     * @return the generated integration ID.
+     * @throws IOException On request or response parsing failure.
+     */
+    private String indexIntegration(String title, String space, String mode, boolean enabled)
+            throws IOException {
+        String id = UUID.randomUUID().toString();
+        // spotless:off
+        String doc = """
+                {
+                    "document": {
+                        "id": "%s",
+                        "category": "cloud-services",
+                        "enabled": %s,
+                        "mode": "%s",
+                        "decoders": [],
+                        "kvdbs": [],
+                        "rules": [],
+                        "metadata": {
+                            "title": "%s",
+                            "author": "Wazuh Inc.",
+                            "description": "Integration indexed by the test suite.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        }
+                    },
+                    "hash": {"sha256": "0000000000000000000000000000000000000000000000000000000000000000"},
+                    "space": {"name": "%s"}
+                }
+                """;
+        // spotless:on
+        doc = String.format(java.util.Locale.ROOT, doc, id, enabled, mode, title, space);
+        this.makeRequest("PUT", Constants.INDEX_INTEGRATIONS + "/_doc/" + id + "?refresh=true", doc);
+        return id;
     }
 }

@@ -28,6 +28,8 @@ class TestIntegrationLifecycle:
 
         source = A.assert_in_index(client, C.INDEX_INTEGRATIONS, iid, space=C.SPACE_DRAFT)
         A.assert_hash_present(source)
+        # Integrations created through the API are always user-managed.
+        assert source["document"]["mode"] == "user-managed", source["document"]
         A.assert_listed_in_draft_policy(client, "integrations", iid)
         A.assert_space_hash_changed(before, A.space_hash(client, C.SPACE_DRAFT))
 
@@ -52,6 +54,8 @@ class TestIntegrationLifecycle:
 
         updated = client.get_doc(C.INDEX_INTEGRATIONS, integration["id"])["document"]
         assert updated["metadata"]["description"] == "updated description"
+        # The mode is server-managed and preserved across updates.
+        assert updated["mode"] == "user-managed", updated
 
     def test_update_rejects_dependency_add(self, client, integration):
         source = client.get_doc(C.INDEX_INTEGRATIONS, integration["id"])["document"]
