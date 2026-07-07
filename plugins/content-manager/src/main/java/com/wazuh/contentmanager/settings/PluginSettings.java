@@ -219,6 +219,32 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
+    /**
+     * Controls whether on-demand content updates can be triggered through the API ({@code POST
+     * /_plugins/_content_manager/update}). When set to {@code false}, the endpoint returns {@code 403
+     * FORBIDDEN} for every caller, regardless of role. Intended for externally managed (e.g. Wazuh
+     * Cloud) deployments. Defaults to true.
+     */
+    public static final Setting<Boolean> UPDATE_ON_DEMAND =
+            Setting.boolSetting(
+                    "plugins.content_manager.catalog.update_on_demand",
+                    true,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /**
+     * Controls whether policy updates can be performed through the API ({@code PUT
+     * /_plugins/_content_manager/policy/{space}}). When set to {@code false}, the endpoint returns
+     * {@code 403 FORBIDDEN} for every caller, regardless of role. Intended for externally managed
+     * (e.g. Wazuh Cloud) deployments. Defaults to true.
+     */
+    public static final Setting<Boolean> POLICY_UPDATE_ENABLED =
+            Setting.boolSetting(
+                    "plugins.content_manager.catalog.policy_update.enabled",
+                    true,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
@@ -233,6 +259,8 @@ public class PluginSettings {
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
+    private final boolean updateOnDemand;
+    private final boolean policyUpdateEnabled;
     private volatile boolean isTelemetryEnabled;
     private volatile String accessToken;
     private String version;
@@ -257,6 +285,8 @@ public class PluginSettings {
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
+        this.updateOnDemand = UPDATE_ON_DEMAND.get(settings);
+        this.policyUpdateEnabled = POLICY_UPDATE_ENABLED.get(settings);
         this.isTelemetryEnabled = TELEMETRY_ENABLED.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
@@ -442,6 +472,24 @@ public class PluginSettings {
     /** Retrieves the full ruleset catalog consumer URL. */
     public String getCatalogRuleset() {
         return this.catalogRuleset;
+    }
+
+    /**
+     * Returns whether on-demand content updates can be triggered through the API.
+     *
+     * @return true if on-demand content updates are enabled, false otherwise.
+     */
+    public boolean isUpdateOnDemandEnabled() {
+        return this.updateOnDemand;
+    }
+
+    /**
+     * Returns whether policy updates can be performed through the API.
+     *
+     * @return true if policy updates are enabled, false otherwise.
+     */
+    public boolean isPolicyUpdateEnabled() {
+        return this.policyUpdateEnabled;
     }
 
     /**

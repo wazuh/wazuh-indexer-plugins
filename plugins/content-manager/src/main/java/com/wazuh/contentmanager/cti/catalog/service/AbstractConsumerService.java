@@ -84,6 +84,11 @@ public abstract class AbstractConsumerService {
     private SnapshotServiceImpl snapshotServiceOverride;
 
     /**
+     * Set to {@code true} after a successful shadow swap so subclasses can clean up stale resources.
+     */
+    protected boolean shadowSwapPerformed;
+
+    /**
      * Constructs a new AbstractConsumerService.
      *
      * @param client The OpenSearch client for index operations.
@@ -145,6 +150,13 @@ public abstract class AbstractConsumerService {
      */
     protected abstract String getSnapshotFilename();
 
+    /**
+     * Hook called inside {@link #performShadowSwap} just before the atomic alias swap. Subclasses can
+     * override this to capture pre-swap state (e.g., collect resource IDs that may become stale after
+     * the swap). The default implementation is a no-op.
+     */
+    protected void onBeforeAliasSwap() {}
+
     /** Injects a {@link ConsumerService} instance, used by tests to provide a mock. */
     public void setConsumerService(ConsumerService consumerService) {
         this.consumerServiceOverride = consumerService;
@@ -159,16 +171,25 @@ public abstract class AbstractConsumerService {
      * Main synchronization entry point. Orchestrates the synchronization process by performing the
      * actual sync and calling onSyncComplete with the result.
      *
-     * <p>Marks the consumer as {@link LocalConsumer.Status#UPDATING} before sync begins so that
-     * external components can detect the in-progress state. The status is restored to {@link
-     * LocalConsumer.Status#IDLE} once synchronization completes, whether updates were applied.
+     * <p>Marks the consumer as {@link LocalConsumer.Status#RUNNING} before sync begins so that
+     * external components can detect the in-progress state. The status moves to {@link
+     * LocalConsumer.Status#READY} once synchronization completes normally, or to {@link
+     * LocalConsumer.Status#FAILED} if an unexpected exception interrupts the sync; the exception is
+     * then rethrown so the caller ({@code CatalogSyncJob}) can log it and continue with the remaining
+     * synchronizers.
      */
     public void synchronize() {
-        this.setConsumerStatus(LocalConsumer.Status.UPDATING);
-        boolean isUpdated = this.syncConsumerServices();
-        log.debug(Constants.D_LOG_SYNC_COMPLETED, this.getConsumerType(), isUpdated);
-        this.onSyncComplete(isUpdated);
-        this.setConsumerStatus(LocalConsumer.Status.IDLE);
+        this.setConsumerStatus(LocalConsumer.Status.RUNNING);
+        try {
+            boolean isUpdated = this.syncConsumerServices();
+            log.debug(Constants.D_LOG_SYNC_COMPLETED, this.getConsumerType(), isUpdated);
+            this.onSyncComplete(isUpdated);
+            this.setConsumerStatus(LocalConsumer.Status.READY);
+        } catch (Exception e) {
+            this.setConsumerStatus(LocalConsumer.Status.FAILED);
+            throw new RuntimeException(
+                    "Synchronization failed for consumer [" + this.getConsumerType() + "]", e);
+        }
     }
 
     /**
@@ -252,7 +273,7 @@ public abstract class AbstractConsumerService {
                                 consumerType,
                                 catalogUri,
                                 remoteConsumer.isPublic(),
-                                LocalConsumer.Status.UPDATING,
+                                LocalConsumer.Status.RUNNING,
                                 0,
                                 remoteConsumer.getOffset());
             } else if (manifestEntry != null) {
@@ -269,7 +290,7 @@ public abstract class AbstractConsumerService {
                                 mType,
                                 mResource,
                                 mIsPublic,
-                                LocalConsumer.Status.UPDATING,
+                                LocalConsumer.Status.RUNNING,
                                 0,
                                 mRemoteOffset);
             } else {
@@ -503,8 +524,25 @@ public abstract class AbstractConsumerService {
         // When a plan change is detected, download into hidden shadow indices and atomically
         // swap aliases. This avoids any window where users see empty/partial data.
         if (shadowSwapRequired) {
-            return this.performShadowSwap(
-                    consumerType, catalogUri, swapTargetResource, indicesMap, remoteConsumer, urlResolver);
+            if (!this.performShadowSwap(
+                    consumerType, catalogUri, swapTargetResource, indicesMap, remoteConsumer, urlResolver)) {
+                return false;
+            }
+            // The swapped snapshot only carries data up to its snapshot offset. Close the gap to
+            // the remote head in the same pass; otherwise the consumer would be reported as READY
+            // while trailing the remote offset (local_offset < remote_offset) until the next sync.
+            if (remoteConsumer.getSnapshotOffset() < remoteConsumer.getOffset()) {
+                this.performIncrementalUpdate(
+                        context,
+                        consumer,
+                        consumerType,
+                        catalogUri,
+                        urlResolver,
+                        indicesMap,
+                        remoteConsumer.getSnapshotOffset(),
+                        remoteConsumer.getOffset());
+            }
+            return true;
         }
 
         boolean updated = false;
@@ -539,7 +577,7 @@ public abstract class AbstractConsumerService {
 
             boolean hasEffectiveCatalog = catalogUri != null && !catalogUri.isBlank();
 
-            // t0: persist the initial consumer state (status=updating, local_offset=0,
+            // t0: persist the initial consumer state (status=running, local_offset=0,
             // remote_offset=<latest known>) before snapshot loading begins, so external observers
             // can see the in-progress state. Identity fields come from the remote response when a
             // catalog URL is available (either setting or existing doc's resource), otherwise from
@@ -626,25 +664,62 @@ public abstract class AbstractConsumerService {
 
         // Incremental Update
         if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
-            log.info(
-                    Constants.I_LOG_UPDATING_CONSUMER_CONTENT,
-                    consumerType,
-                    currentOffset,
-                    remoteConsumer.getOffset());
-
-            UpdateServiceImpl updateService =
-                    new UpdateServiceImpl(
+            updated =
+                    this.performIncrementalUpdate(
                             context,
                             consumer,
                             consumerType,
                             catalogUri,
-                            new ApiClient(urlResolver),
-                            this.consumersIndex,
-                            indicesMap);
-            updated = updateService.update(currentOffset, remoteConsumer.getOffset());
-            updateService.close();
+                            urlResolver,
+                            indicesMap,
+                            currentOffset,
+                            remoteConsumer.getOffset());
         }
         return updated;
+    }
+
+    /**
+     * Fetches and applies incremental changes from the CTI API between the given offsets and persists
+     * the resulting consumer state. Shared by the regular sync path and the post-swap catch-up: a
+     * swapped snapshot only carries data up to its snapshot offset, so the remaining changes up to
+     * the remote head must be applied in the same pass. Failures propagate to the caller, matching
+     * the regular sync path semantics ({@link UpdateServiceImpl#update} resets the consumer before
+     * rethrowing).
+     *
+     * @param context The CTI context name.
+     * @param consumer The CTI consumer name.
+     * @param consumerType The consumer type identifier.
+     * @param catalogUri The effective catalog URI.
+     * @param urlResolver The URL resolver for API requests.
+     * @param indicesMap The content indices keyed by type.
+     * @param fromOffset The offset to update from (exclusive).
+     * @param toOffset The offset to update to (inclusive).
+     * @return {@code true} if changes were applied.
+     */
+    private boolean performIncrementalUpdate(
+            String context,
+            String consumer,
+            String consumerType,
+            String catalogUri,
+            ResourceUrlResolver urlResolver,
+            Map<String, ContentIndex> indicesMap,
+            long fromOffset,
+            long toOffset) {
+        log.info(Constants.I_LOG_UPDATING_CONSUMER_CONTENT, consumerType, fromOffset, toOffset);
+        UpdateServiceImpl updateService =
+                new UpdateServiceImpl(
+                        context,
+                        consumer,
+                        consumerType,
+                        catalogUri,
+                        new ApiClient(urlResolver),
+                        this.consumersIndex,
+                        indicesMap);
+        try {
+            return updateService.update(fromOffset, toOffset);
+        } finally {
+            updateService.close();
+        }
     }
 
     /**
@@ -811,6 +886,9 @@ public abstract class AbstractConsumerService {
                 IndexSwapHelper.reindexUserContent(this.client, liveToShadow, timeoutSeconds);
             }
 
+            // Allow subclasses to capture pre-swap state before aliases change.
+            this.onBeforeAliasSwap();
+
             // Step 6-7: Unhide + atomic alias swap.
             log.debug(Constants.D_LOG_ATOMIC_ALIAS_SWAP, consumerType);
             IndexSwapHelper.atomicSwap(
@@ -837,7 +915,7 @@ public abstract class AbstractConsumerService {
                             consumerType,
                             planResource,
                             remoteConsumer.isPublic(),
-                            LocalConsumer.Status.UPDATING,
+                            LocalConsumer.Status.RUNNING,
                             snapshotOffset,
                             remoteConsumer.getOffset());
             this.consumersIndex.setConsumer(newConsumer);
@@ -854,6 +932,7 @@ public abstract class AbstractConsumerService {
         }
 
         log.info(Constants.I_LOG_CONTENT_UPDATED_NEW_SOURCE, consumerType);
+        this.shadowSwapPerformed = true;
         return true;
     }
 }

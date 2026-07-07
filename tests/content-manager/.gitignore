@@ -1,0 +1,6 @@
+# Python test-suite artifacts (not source)
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/

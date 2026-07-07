@@ -75,6 +75,10 @@ public class Constants {
                     + CredentialsIndex.INDEX_NAME
                     + "' index is not configured as a system index. "
                     + "Add it to plugins.security.system_indices.indices in opensearch.yml and restart.";
+    public static final String E_403_UPDATE_ON_DEMAND_DISABLED =
+            "On-demand content updates are disabled on this deployment.";
+    public static final String E_403_POLICY_UPDATE_DISABLED =
+            "Policy updates are disabled on this deployment.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
     public static final String E_SECURITY_ANALYTICS_ERROR =
             "Error in Security Analytics."; // Used for both BAD_REQUEST and INTERNAL_SERVER_ERROR
@@ -126,7 +130,7 @@ public class Constants {
     public static final String D_LOG_CONSUMER_RESOURCE_READ_FAILED =
             "Could not read existing consumer resource for [{}]: {}";
     public static final String D_LOG_CONSUMER_T0_WRITTEN =
-            "Recorded initial state for consumer [{}] (status UPDATING, local offset 0, remote offset {}).";
+            "Recorded initial state for consumer [{}] (status RUNNING, local offset 0, remote offset {}).";
     public static final String W_LOG_CONSUMER_T0_FAILED =
             "Failed to write initial consumer state for [{}]: {}";
     public static final String W_LOG_REFRESH_INDICES_FAILED = "Error refreshing indices: {}";
@@ -282,6 +286,10 @@ public class Constants {
     public static final String W_LOG_SNAPSHOT_TEMP_FILE_DELETE_FAILED =
             "Failed to delete temp file {}";
     public static final String W_LOG_SNAPSHOT_CLEANUP_FAILED = "Error during cleanup: {}";
+    public static final String D_LOG_SNAPSHOT_ELAPSED =
+            "Snapshot [{}] processed and removed in {} ms";
+    public static final String D_LOG_SNAPSHOT_LOCAL_ELAPSED =
+            "Local snapshot [{}] processed and removed in {} ms";
     public static final String D_LOG_UPDATE_START =
             "Starting content update for consumer [{}] from [{}] to [{}]";
     public static final String E_LOG_UPDATE_FETCH_CHANGES_FAILED = "Failed to fetch changes: {} {}";
@@ -527,6 +535,12 @@ public class Constants {
     public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
 
+    // Index settings
+    public static final String KEY_INDEX_CODEC = "index.codec";
+    public static final String CODEC_ZSTD = "zstd";
+    public static final String KEY_INDEX_REFRESH_INTERVAL = "index.refresh_interval";
+    public static final String REFRESH_INTERVAL_DISABLED = "-1";
+
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
     public static final String KEY_INTEGRATIONS = "integrations";
@@ -558,6 +572,7 @@ public class Constants {
     public static final String KEY_DESCRIPTION = "description";
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
+    public static final String KEY_MESSAGE = "message";
     public static final String KEY_STATUS = "status";
     public static final String KEY_INPUT = "input";
     public static final String KEY_YAML = "yaml";
@@ -666,4 +681,13 @@ public class Constants {
     // Job Scheduler registration retries
     public static final int MAX_JOB_SCHEDULE_RETRIES = 3;
     public static final int JOB_SCHEDULE_RETRY_BACKOFF_SECONDS = 15;
+
+    // Setup plugin readiness marker (written by the Setup plugin once all its
+    // index templates, indices and data streams have been created).
+    public static final String INDEX_SETUP_STATUS = ".wazuh-setup-status";
+    public static final String SETUP_STATUS_DOC_ID = "setup-status";
+    public static final String SETUP_STATUS_READY = "ready";
+    public static final String SETUP_STATUS_FAILED = "failed";
+    public static final int MAX_SETUP_WAIT_RETRIES = 3;
+    public static final int SETUP_WAIT_BACKOFF_BASE_SECONDS = 5;
 }

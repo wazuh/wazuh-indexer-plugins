@@ -72,6 +72,7 @@ public class Policy {
     @JsonProperty(METADATA_KEY)
     private ResourceMetadata metadata;
 
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     @JsonProperty(ROOT_DECODER_KEY)
     private String rootDecoder;
 

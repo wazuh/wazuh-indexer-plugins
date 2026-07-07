@@ -16,7 +16,7 @@
  */
 package com.wazuh.setup.rest;
 
-import org.opensearch.action.index.IndexResponse;
+import org.opensearch.common.CheckedConsumer;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
@@ -26,201 +26,65 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.FakeRestRequest;
-import org.junit.After;
-import org.junit.Before;
+import org.opensearch.transport.client.node.NodeClient;
 
 import java.util.HashMap;
 
+import com.wazuh.setup.action.PutSettingsAction;
+import com.wazuh.setup.action.PutSettingsRequest;
+import com.wazuh.setup.action.PutSettingsResponse;
 import com.wazuh.setup.index.SettingsIndex;
-import com.wazuh.setup.model.WazuhSettings;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 /**
- * Unit tests for {@link RestPutSettingsAction}. Validates PUT settings request handling, payload
- * validation, and index operation responses.
+ * Unit tests for {@link RestPutSettingsAction}. The handler delegates to {@link PutSettingsAction};
+ * the validation/persistence logic is covered by {@code TransportPutSettingsActionTests}.
  */
 public class RestPutSettingsActionTests extends OpenSearchTestCase {
 
-    private RestPutSettingsAction action;
-    private AutoCloseable mocks;
+    private final RestPutSettingsAction action = new RestPutSettingsAction();
 
-    @Mock private SettingsIndex settingsIndex;
-    @Mock private RestChannel channel;
-    @Mock private IndexResponse indexResponse;
-
-    @Before
-    @Override
-    public void setUp() throws Exception {
-        super.setUp();
-        this.mocks = MockitoAnnotations.openMocks(this);
-        this.action = new RestPutSettingsAction(this.settingsIndex);
+    public void testGetNameAndRoutes() {
+        assertEquals("wazuh_settings", this.action.getName());
+        assertEquals(1, this.action.routes().size());
+        assertEquals(RestRequest.Method.PUT, this.action.routes().get(0).getMethod());
     }
 
-    @After
-    @Override
-    public void tearDown() throws Exception {
-        super.tearDown();
-        if (this.mocks != null) {
-            this.mocks.close();
-        }
-    }
+    /** The handler maps the transport response status onto the REST channel response. */
+    public void testDelegatesAndMapsStatus() throws Exception {
+        NodeClient client = mock(NodeClient.class, Answers.RETURNS_DEEP_STUBS);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<PutSettingsResponse> listener = invocation.getArgument(2);
+                            listener.onResponse(
+                                    new PutSettingsResponse(SettingsIndex.S_200_SETTINGS_UPDATED, RestStatus.OK));
+                            return null;
+                        })
+                .when(client)
+                .execute(eq(PutSettingsAction.INSTANCE), any(PutSettingsRequest.class), any());
 
-    /** Helper to build a PUT request with the given body. */
-    private RestRequest buildRequest(String body) {
-        FakeRestRequest.Builder builder =
+        RestRequest request =
                 new FakeRestRequest.Builder(this.xContentRegistry())
                         .withMethod(RestRequest.Method.PUT)
                         .withPath(SettingsIndex.SETTINGS_URI)
-                        .withParams(new HashMap<>());
-        if (body != null) {
-            builder.withContent(new BytesArray(body), XContentType.JSON);
-        }
-        return builder.build();
-    }
+                        .withParams(new HashMap<>())
+                        .withContent(
+                                new BytesArray("{\"engine\":{\"index_raw_events\":true}}"), XContentType.JSON)
+                        .build();
+        RestChannel channel = mock(RestChannel.class, Answers.RETURNS_DEEP_STUBS);
 
-    /** Configures the mock to invoke onResponse callback. */
-    @SuppressWarnings("unchecked")
-    private void mockIndexDocumentSuccess() {
-        doAnswer(
-                        invocation -> {
-                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
-                            listener.onResponse(this.indexResponse);
-                            return null;
-                        })
-                .when(this.settingsIndex)
-                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
-    }
+        CheckedConsumer<RestChannel, Exception> consumer = this.action.prepareRequest(request, client);
+        consumer.accept(channel);
 
-    /** Configures the mock to invoke onFailure callback. */
-    @SuppressWarnings("unchecked")
-    private void mockIndexDocumentFailure(Exception exception) {
-        doAnswer(
-                        invocation -> {
-                            ActionListener<IndexResponse> listener = invocation.getArgument(1);
-                            listener.onFailure(exception);
-                            return null;
-                        })
-                .when(this.settingsIndex)
-                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
-    }
-
-    /** Captures and returns the BytesRestResponse sent to the channel. */
-    private BytesRestResponse captureResponse() {
         ArgumentCaptor<BytesRestResponse> captor = ArgumentCaptor.forClass(BytesRestResponse.class);
-        verify(this.channel).sendResponse(captor.capture());
-        return captor.getValue();
-    }
-
-    /** Valid payload with index_raw_events=true -> 200. */
-    @SuppressWarnings("unchecked")
-    public void testPut_validPayloadTrue_200() {
-        mockIndexDocumentSuccess();
-        RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":true}}");
-
-        this.action.handleRequest(request, this.channel);
-
-        BytesRestResponse response = captureResponse();
-        assertEquals(RestStatus.OK, response.status());
-        verify(this.settingsIndex, times(1))
-                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
-    }
-
-    /** Valid payload with index_raw_events=false -> 200. */
-    @SuppressWarnings("unchecked")
-    public void testPut_validPayloadFalse_200() {
-        mockIndexDocumentSuccess();
-        RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":false}}");
-
-        this.action.handleRequest(request, this.channel);
-
-        BytesRestResponse response = captureResponse();
-        assertEquals(RestStatus.OK, response.status());
-        verify(this.settingsIndex, times(1))
-                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
-    }
-
-    /** Request with no body -> 400. */
-    @SuppressWarnings("unchecked")
-    public void testPut_noContent_400() {
-        RestRequest request = buildRequest(null);
-
-        this.action.handleRequest(request, this.channel);
-
-        BytesRestResponse response = captureResponse();
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
-        verify(this.settingsIndex, never())
-                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
-    }
-
-    /** Malformed JSON body -> 400. */
-    @SuppressWarnings("unchecked")
-    public void testPut_invalidJson_400() {
-        RestRequest request = buildRequest("{not valid json");
-
-        this.action.handleRequest(request, this.channel);
-
-        BytesRestResponse response = captureResponse();
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
-        verify(this.settingsIndex, never())
-                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
-    }
-
-    /** Payload missing 'engine' object -> 400. */
-    @SuppressWarnings("unchecked")
-    public void testPut_missingEngineField_400() {
-        RestRequest request = buildRequest("{}");
-
-        this.action.handleRequest(request, this.channel);
-
-        BytesRestResponse response = captureResponse();
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
-        verify(this.settingsIndex, never())
-                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
-    }
-
-    /** 'engine' present but missing 'index_raw_events' -> 400. */
-    @SuppressWarnings("unchecked")
-    public void testPut_missingIndexRawEventsField_400() {
-        RestRequest request = buildRequest("{\"engine\":{}}");
-
-        this.action.handleRequest(request, this.channel);
-
-        BytesRestResponse response = captureResponse();
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
-        verify(this.settingsIndex, never())
-                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
-    }
-
-    /** 'index_raw_events' is a string, not a boolean -> 400 (type validation fails). */
-    @SuppressWarnings("unchecked")
-    public void testPut_nonBooleanValue_400() {
-        RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":\"yes\"}}");
-
-        this.action.handleRequest(request, this.channel);
-
-        BytesRestResponse response = captureResponse();
-        assertEquals(RestStatus.BAD_REQUEST, response.status());
-        verify(this.settingsIndex, never())
-                .indexDocument(any(WazuhSettings.class), any(ActionListener.class));
-    }
-
-    /** Index operation throws an exception -> 500. */
-    @SuppressWarnings("unchecked")
-    public void testPut_indexingFails_500() {
-        mockIndexDocumentFailure(new RuntimeException("Index unavailable"));
-        RestRequest request = buildRequest("{\"engine\":{\"index_raw_events\":true}}");
-
-        this.action.handleRequest(request, this.channel);
-
-        BytesRestResponse response = captureResponse();
-        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+        verify(channel).sendResponse(captor.capture());
+        assertEquals(RestStatus.OK, captor.getValue().status());
     }
 }

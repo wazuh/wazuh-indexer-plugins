@@ -10,7 +10,7 @@ info:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
 servers:
-  - url: "{protocol}://{wazuh.indexer}:{port}/_plugins/content-manager"
+  - url: "{protocol}://{wazuh.indexer}:{port}/_plugins/_content_manager"
     description: Wazuh Indexer Content Manager Plugin
     variables:
       protocol:
@@ -327,18 +327,15 @@ paths:
                   resource:
                     enabled: true
                     name: "decoder/netflow-default/0"
-                    check:
-                      - {}
+                    parse|event.original:
+                      - "<source.ip> - - [<event.start>]"
                     normalize: []
                     metadata:
                       title: "NetFlow decoder"
                       description: "Decoder for NetFlow logs."
                       module: "netflow"
                       compatibility: 'This integration has been tested against logs provided by Elastic. - "0.0.1"'
-                      author:
-                        name: "Wazuh, Inc."
-                        email: "info@wazuh.com"
-                        url: "https://wazuh.com"
+                      author: "Wazuh, Inc."
                       references:
                         - "https://www.cisco.com/..."
                       versions:
@@ -368,9 +365,7 @@ paths:
                       title: NetFlow decoder
                       description: Decoder for NetFlow logs.
                       module: netflow
-                      author:
-                        name: Wazuh, Inc.
-                        email: info@wazuh.com
+                      author: Wazuh, Inc.
                     normalize: []
       responses:
         "201":
@@ -412,18 +407,15 @@ paths:
                   resource:
                     enabled: true
                     name: "decoder/netflow-default/0"
-                    check:
-                      - {}
+                    parse|event.original:
+                      - "<source.ip> - - [<event.start>]"
                     normalize: []
                     metadata:
                       title: "NetFlow decoder (Updated)"
                       description: "Updated decoder description."
                       module: "netflow"
                       compatibility: 'This integration has been tested against logs provided by Elastic. - "0.0.1"'
-                      author:
-                        name: "Wazuh, Inc."
-                        email: "info@wazuh.com"
-                        url: "https://wazuh.com"
+                      author: "Wazuh, Inc."
                       references:
                         - "https://www.cisco.com/c/en/us/products/ios-nx-os-software/ios-netflow/index.html"
                       versions:
@@ -448,9 +440,7 @@ paths:
                       title: NetFlow decoder (Updated)
                       description: Updated decoder description.
                       module: netflow
-                      author:
-                        name: Wazuh, Inc.
-                        email: info@wazuh.com
+                      author: Wazuh, Inc.
                     normalize: []
       responses:
         "200":
@@ -520,11 +510,9 @@ paths:
                     name: "filter/prefilter/0"
                     enabled: true
                     metadata:
+                      title: "Default Prefilter"
                       description: "Default filter to allow all events (for default ruleset)"
-                      author:
-                        email: "info@wazuh.com"
-                        name: "Wazuh, Inc."
-                        url: "https://wazuh.com"
+                      author: "Wazuh, Inc."
                     check: "$host.os.platform == 'ubuntu'"
                     type: "pre-filter"
           application/yaml:
@@ -551,10 +539,7 @@ paths:
                     metadata:
                       title: Default Prefilter
                       description: Default filter to allow all events (for default ruleset)
-                      author:
-                        email: info@wazuh.com
-                        name: Wazuh, Inc.
-                        url: https://wazuh.com
+                      author: Wazuh, Inc.
                     check: "$host.os.platform == 'ubuntu'"
                     type: pre-filter
       responses:
@@ -604,11 +589,9 @@ paths:
                     name: "filter/prefilter/0"
                     enabled: true
                     metadata:
+                      title: "Default Prefilter"
                       description: "Updated filter description"
-                      author:
-                        email: "info@wazuh.com"
-                        name: "Wazuh, Inc."
-                        url: "https://wazuh.com"
+                      author: "Wazuh, Inc."
                     check: "$host.os.platform == 'ubuntu'"
                     type: "pre-filter"
           application/yaml:
@@ -634,10 +617,7 @@ paths:
                     enabled: true
                     metadata:
                       description: Updated filter description
-                      author:
-                        email: info@wazuh.com
-                        name: Wazuh, Inc.
-                        url: https://wazuh.com
+                      author: Wazuh, Inc.
                     check: "$host.os.platform == 'ubuntu'"
                     type: pre-filter
       responses:
@@ -1026,7 +1006,7 @@ paths:
                   location: "/var/log/cassandra/system.log"
                   metadata: {}
                   trace_level: "NONE"
-                  input: "INFO  [CompactionExecutor-3] 2025-11-30 14:23:45 CassandraDaemon.java:250 - Some message - 7500 - 4"
+                  event: "INFO  [CompactionExecutor-3] 2025-11-30 14:23:45 CassandraDaemon.java:250 - Some message - 7500 - 4"
       responses:
         "200":
           $ref: "#/components/responses/LogtestNormalizationResponse"
@@ -1397,8 +1377,8 @@ components:
           type: string
           enum:
             - NONE
-            - BASIC
-            - FULL
+            - ASSET_ONLY
+            - ALL
           description: Trace verbosity level
           example: "NONE"
 
@@ -1408,6 +1388,7 @@ components:
       additionalProperties: false
       required:
         - space
+        - event
       properties:
         space:
           type: string
@@ -1429,7 +1410,7 @@ components:
           description: Log file path or logical source location
           example: "/var/log/cassandra/system.log"
 
-        input:
+        event:
           type: string
           description: Raw log event to be normalized
           example: "INFO  [CompactionExecutor-3] 2025-11-30 14:23:45 CassandraDaemon.java:250 - Some message"
@@ -1444,8 +1425,8 @@ components:
           type: string
           enum:
             - NONE
-            - BASIC
-            - FULL
+            - ASSET_ONLY
+            - ALL
           description: Trace verbosity level
           example: "NONE"
 
@@ -1690,7 +1671,9 @@ components:
     # Decoder document schema for creation (id is auto-generated)
     DecoderResourceCreate:
       type: object
-      additionalProperties: false
+      # Decoders also carry engine "parse|<field>" keys (e.g. parse|event.original),
+      # so additional properties beyond those listed below are permitted.
+      additionalProperties: true
       # No required fields (None is mandatory)
       properties:
         enabled:
@@ -1720,15 +1703,8 @@ components:
           additionalProperties: false
           properties:
             author:
-              type: object
-              additionalProperties: false
-              properties:
-                email:
-                  type: string
-                name:
-                  type: string
-                url:
-                  type: string
+              type: string
+              description: Author name (stored as a keyword; must be a string)
 
             compatibility:
               type: string
@@ -1761,7 +1737,9 @@ components:
     # Decoder document schema (engine-specific definitions and metadata)
     DecoderResource:
       type: object
-      additionalProperties: false
+      # Decoders also carry engine "parse|<field>" keys (e.g. parse|event.original),
+      # so additional properties beyond those listed below are permitted.
+      additionalProperties: true
       properties:
         enabled:
           type: boolean
@@ -1790,15 +1768,8 @@ components:
           additionalProperties: false
           properties:
             author:
-              type: object
-              additionalProperties: false
-              properties:
-                name:
-                  type: string
-                email:
-                  type: string
-                url:
-                  type: string
+              type: string
+              description: Author name (stored as a keyword; must be a string)
 
             compatibility:
               type: string
@@ -1852,21 +1823,20 @@ components:
         metadata:
           type: object
           additionalProperties: false
+          required:
+            - title
           properties:
+            title:
+              type: string
+              description: Human-readable filter title
+
             description:
               type: string
               description: Filter description
 
             author:
-              type: object
-              additionalProperties: false
-              properties:
-                email:
-                  type: string
-                name:
-                  type: string
-                url:
-                  type: string
+              type: string
+              description: Author name (stored as a keyword; must be a string)
 
     # Filter document schema (for updates)
     FilterResource:
@@ -1892,21 +1862,20 @@ components:
         metadata:
           type: object
           additionalProperties: false
+          required:
+            - title
           properties:
+            title:
+              type: string
+              description: Human-readable filter title
+
             description:
               type: string
               description: Filter description
 
             author:
-              type: object
-              additionalProperties: false
-              properties:
-                email:
-                  type: string
-                name:
-                  type: string
-                url:
-                  type: string
+              type: string
+              description: Author name (stored as a keyword; must be a string)
 
     # KVDB document schema (key-value data managed by the engine)
     KvdbResource:

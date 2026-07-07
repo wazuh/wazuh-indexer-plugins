@@ -24,7 +24,10 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 | `plugins.security_analytics.correlation_time_window`                          | Time      | `5m`          | Time window used to group findings into correlations                                                                                   |
 | `plugins.security_analytics.enable_detectors_with_dedicated_query_indices`    | Boolean   | `true`        | Create dedicated query indices for new detectors                                                                                       |
 | `plugins.security_analytics.enable_workflow_usage`                            | Boolean   | `true`        | Use Alerting composite workflows when running detectors                                                                                |
+| `plugins.security_analytics.enriched_findings_bulk_size`                      | Integer   | `100`         | Number of enriched findings accumulated before a bulk index request is fired. Valid range: `10–1000`                                   |
+| `plugins.security_analytics.enriched_findings_flush_interval`                 | Integer   | `5`           | Interval in seconds at which pending enriched findings are flushed regardless of batch size. Valid range: `1–60`                       |
 | `plugins.security_analytics.enriched_findings_index_enabled`                  | Boolean   | `true`        | Toggle the enriched findings pipeline (see [Architecture](architecture.md))                                                            |
+| `plugins.security_analytics.enriched_findings_max_in_flight`                  | Integer   | `5`           | Maximum number of concurrent async enrichment chains. Valid range: `1–10`                                                              |
 | `plugins.security_analytics.filter_by_backend_roles`                          | Boolean   | `false`       | Restrict access to detectors, rules, and findings based on the requester's backend roles                                               |
 | `plugins.security_analytics.finding_history_max_age`                          | Time      | `30d`         | Maximum age of a finding history index before rollover                                                                                 |
 | `plugins.security_analytics.finding_history_retention_period`                 | Time      | `60d`         | Retention period after which finding history indices are deleted                                                                       |
@@ -77,6 +80,21 @@ plugins.security_analytics.filter_by_backend_roles: false
 ```
 
 Setting `enriched_findings_index_enabled` to `false` disables the Wazuh enriched findings pipeline described in [Architecture](architecture.md); raw SAP findings continue to be written to `.opensearch-sap-{category}-findings-*`, but no `wazuh-findings-v5-{category}*` documents are produced.
+
+### Enrichment tuning
+
+The enriched findings service batches index requests and limits concurrency to avoid overloading the transport layer. The three settings below can be tuned independently:
+
+```yaml
+# opensearch.yml
+plugins.security_analytics.enriched_findings_bulk_size: 100
+plugins.security_analytics.enriched_findings_max_in_flight: 5
+plugins.security_analytics.enriched_findings_flush_interval: 5
+```
+
+- **`bulk_size`** — findings are buffered until this count is reached, then flushed as a single bulk request. Lower it on low-throughput nodes to reduce latency; raise it on high-throughput nodes to improve indexing efficiency.
+- **`max_in_flight`** — caps the number of concurrent enrichment chains (MultiGet + build + index). Lower it on resource-constrained nodes to reduce peak demand on the transport layer.
+- **`flush_interval`** — interval in seconds at which any remaining buffered findings are flushed, regardless of `bulk_size`. Prevents findings from sitting in the buffer indefinitely during low-activity periods.
 
 ### Updating a setting at runtime
 

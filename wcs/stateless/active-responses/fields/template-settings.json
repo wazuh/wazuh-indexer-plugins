@@ -10,7 +10,8 @@
       "plugins.index_state_management.policy_id": "stream-active-responses-policy",
       "mapping.nested_fields.limit": 10,
       "index": {
-        "number_of_shards": "3",
+        "codec": "zstd",
+        "number_of_shards": "1",
         "number_of_replicas": "0",
         "auto_expand_replicas": "0-1",
         "refresh_interval": "5s",
