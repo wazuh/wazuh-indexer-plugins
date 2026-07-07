@@ -195,9 +195,10 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
                             }
                             OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
                             if (osEx != null) {
-                                listener.onResponse(new RestResponse(
-                                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + osEx.getMessage(),
-                                    osEx.status().getStatus()));
+                                listener.onResponse(
+                                        new RestResponse(
+                                                Constants.E_SECURITY_ANALYTICS_ERROR + " " + osEx.getMessage(),
+                                                osEx.status().getStatus()));
                             }
                             listener.onResponse(
                                     new RestResponse(
