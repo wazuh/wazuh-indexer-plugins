@@ -87,11 +87,11 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
                         0.0f);
         when(searchResponse.getHits()).thenReturn(searchHits);
         doAnswer(
-                invocation -> {
-                    ActionListener<SearchResponse> listener = invocation.getArgument(1);
-                    listener.onResponse(searchResponse);
-                    return null;
-                })
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(searchResponse);
+                            return null;
+                        })
                 .when(this.client)
                 .search(any(), any(ActionListener.class));
     }
@@ -101,11 +101,11 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
         SearchResponse searchResponse = mock(SearchResponse.class);
         when(searchResponse.getHits()).thenReturn(SearchHits.empty());
         doAnswer(
-                invocation -> {
-                    ActionListener<SearchResponse> listener = invocation.getArgument(1);
-                    listener.onResponse(searchResponse);
-                    return null;
-                })
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(searchResponse);
+                            return null;
+                        })
                 .when(this.client)
                 .search(any(), any(ActionListener.class));
     }
@@ -192,11 +192,11 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
     @SuppressWarnings("unchecked")
     public void testDoExecute_DraftPolicyCheckException() {
         doAnswer(
-                invocation -> {
-                    ActionListener<SearchResponse> listener = invocation.getArgument(1);
-                    listener.onFailure(new RuntimeException("Search failed"));
-                    return null;
-                })
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onFailure(new RuntimeException("Search failed"));
+                            return null;
+                        })
                 .when(this.client)
                 .search(any(), any(ActionListener.class));
 

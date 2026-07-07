@@ -588,17 +588,13 @@ public class ContentIndex {
                             try {
                                 ArrayNode hitsArray = this.mapper.createArrayNode();
                                 for (SearchHit hit : searchResponse.getHits().getHits()) {
-                                    ObjectNode hitObject =
-                                            (ObjectNode)
-                                                    this.mapper.readTree(hit.getSourceAsString());
+                                    ObjectNode hitObject = (ObjectNode) this.mapper.readTree(hit.getSourceAsString());
                                     hitObject.put(Constants.KEY_ID, hit.getId());
                                     hitsArray.add(hitObject);
                                 }
                                 ObjectNode result = this.mapper.createObjectNode();
                                 result.set(Constants.Q_HITS, hitsArray);
-                                result.put(
-                                        "total",
-                                        searchResponse.getHits().getTotalHits().value());
+                                result.put("total", searchResponse.getHits().getTotalHits().value());
                                 listener.onResponse(result);
                             } catch (IOException e) {
                                 listener.onFailure(e);

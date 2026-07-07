@@ -103,18 +103,11 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
                                             spaceError -> {
                                                 if (spaceError != null) {
                                                     listener.onResponse(
-                                                            new RestResponse(
-                                                                    spaceError,
-                                                                    RestStatus.BAD_REQUEST
-                                                                            .getStatus()));
+                                                            new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus()));
                                                     return;
                                                 }
                                                 // Step 3: validate logsource.product (async)
-                                                validateLogsourceProduct(
-                                                        client,
-                                                        integrationId,
-                                                        resource,
-                                                        listener);
+                                                validateLogsourceProduct(client, integrationId, resource, listener);
                                             },
                                             listener::onFailure));
                         },
@@ -132,39 +125,24 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
                 ActionListener.wrap(
                         integrationResponse -> {
                             if (integrationResponse.isExists()) {
-                                Map<String, Object> source =
-                                        integrationResponse.getSourceAsMap();
-                                if (source != null
-                                        && source.containsKey(Constants.KEY_DOCUMENT)) {
+                                Map<String, Object> source = integrationResponse.getSourceAsMap();
+                                if (source != null && source.containsKey(Constants.KEY_DOCUMENT)) {
                                     Map<String, Object> doc =
-                                            (Map<String, Object>)
-                                                    source.get(Constants.KEY_DOCUMENT);
-                                    if (doc != null
-                                            && doc.containsKey(Constants.KEY_METADATA)) {
+                                            (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+                                    if (doc != null && doc.containsKey(Constants.KEY_METADATA)) {
                                         Map<String, Object> metadata =
-                                                (Map<String, Object>)
-                                                        doc.get(Constants.KEY_METADATA);
+                                                (Map<String, Object>) doc.get(Constants.KEY_METADATA);
                                         String integrationTitle =
-                                                metadata != null
-                                                        ? (String)
-                                                                metadata.get(
-                                                                        Constants.KEY_TITLE)
-                                                        : null;
+                                                metadata != null ? (String) metadata.get(Constants.KEY_TITLE) : null;
 
                                         String ruleProduct = null;
                                         if (resource.has(Constants.KEY_LOGSOURCE)
-                                                && resource
-                                                        .get(Constants.KEY_LOGSOURCE)
-                                                        .has(Constants.KEY_PRODUCT)) {
+                                                && resource.get(Constants.KEY_LOGSOURCE).has(Constants.KEY_PRODUCT)) {
                                             ruleProduct =
-                                                    resource
-                                                            .get(Constants.KEY_LOGSOURCE)
-                                                            .get(Constants.KEY_PRODUCT)
-                                                            .asText();
+                                                    resource.get(Constants.KEY_LOGSOURCE).get(Constants.KEY_PRODUCT).asText();
                                         }
 
-                                        if (integrationTitle == null
-                                                || !integrationTitle.equals(ruleProduct)) {
+                                        if (integrationTitle == null || !integrationTitle.equals(ruleProduct)) {
                                             listener.onResponse(
                                                     new RestResponse(
                                                             "Rule logsource.product ('"
@@ -174,8 +152,7 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
                                                                     + " metadata.title ('"
                                                                     + integrationTitle
                                                                     + "').",
-                                                            RestStatus.BAD_REQUEST
-                                                                    .getStatus()));
+                                                            RestStatus.BAD_REQUEST.getStatus()));
                                             return;
                                         }
                                     }
@@ -205,18 +182,14 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
                                         new RestResponse(
                                                 Constants.E_SECURITY_ANALYTICS_ERROR
                                                         + " "
-                                                        + SecurityAnalyticsServiceImpl
-                                                                .extractErrorMessage(msg),
+                                                        + SecurityAnalyticsServiceImpl.extractErrorMessage(msg),
                                                 RestStatus.BAD_REQUEST.getStatus()));
                                 return;
                             }
-                            OpenSearchSecurityException secEx =
-                                    TransportActionHelper.extractSecurityException(e);
+                            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
                             if (secEx != null) {
                                 listener.onResponse(
-                                        new RestResponse(
-                                                secEx.getMessage(),
-                                                secEx.status().getStatus()));
+                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
                                 return;
                             }
                             listener.onResponse(

@@ -78,8 +78,7 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
             IntegrationService integrationService,
             ActionListener<RestResponse> listener) {
         RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_CATEGORY));
+                this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_CATEGORY));
         if (fieldValidation != null) {
             listener.onResponse(fieldValidation);
             return;
@@ -109,12 +108,9 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
                                 return;
                             }
 
-                            ((ObjectNode) resource)
-                                    .set(Constants.KEY_RULES, MAPPER.createArrayNode());
-                            ((ObjectNode) resource)
-                                    .set(Constants.KEY_DECODERS, MAPPER.createArrayNode());
-                            ((ObjectNode) resource)
-                                    .set(Constants.KEY_KVDBS, MAPPER.createArrayNode());
+                            ((ObjectNode) resource).set(Constants.KEY_RULES, MAPPER.createArrayNode());
+                            ((ObjectNode) resource).set(Constants.KEY_DECODERS, MAPPER.createArrayNode());
+                            ((ObjectNode) resource).set(Constants.KEY_KVDBS, MAPPER.createArrayNode());
 
                             listener.onResponse(null);
                         },
@@ -136,9 +132,7 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
         if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
             listener.onResponse(
                     new RestResponse(
-                            Constants.E_400_ENGINE_VALIDATION_FAILED
-                                    + " "
-                                    + engineResponse.getMessage(),
+                            Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
                             RestStatus.BAD_REQUEST.getStatus()));
             return;
         }
@@ -151,20 +145,15 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
                 ActionListener.wrap(
                         response -> listener.onResponse(null),
                         e -> {
-                            OpenSearchSecurityException secEx =
-                                    TransportActionHelper.extractSecurityException(e);
+                            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
                             if (secEx != null) {
                                 listener.onResponse(
-                                        new RestResponse(
-                                                secEx.getMessage(),
-                                                secEx.status().getStatus()));
+                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
                                 return;
                             }
                             listener.onResponse(
                                     new RestResponse(
-                                            Constants.E_SECURITY_ANALYTICS_ERROR
-                                                    + " "
-                                                    + e.getMessage(),
+                                            Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
                                             RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
                         }));
     }
@@ -173,11 +162,7 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
     protected void rollbackExternalServices(
             String id, SecurityAnalyticsService securityAnalyticsService) {
         securityAnalyticsService.deleteIntegrationAsync(
-                id,
-                Space.DRAFT,
-                ActionListener.wrap(
-                        response -> {},
-                        e -> {}));
+                id, Space.DRAFT, ActionListener.wrap(response -> {}, e -> {}));
     }
 
     @Override
@@ -198,37 +183,28 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
                             if (searchResult == null
                                     || !searchResult.has(Constants.Q_HITS)
                                     || searchResult.get(Constants.Q_HITS).isEmpty()) {
-                                listener.onFailure(
-                                        new IllegalStateException(
-                                                Constants.E_500_MISSING_DRAFT_POLICY));
+                                listener.onFailure(new IllegalStateException(Constants.E_500_MISSING_DRAFT_POLICY));
                                 return;
                             }
 
                             ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
                             JsonNode draftPolicyHit = hitsArray.get(0);
-                            String draftPolicyId =
-                                    draftPolicyHit.get(Constants.KEY_ID).asText();
-                            JsonNode document =
-                                    draftPolicyHit.get(Constants.KEY_DOCUMENT);
+                            String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
+                            JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
 
-                            ArrayNode integrations =
-                                    (ArrayNode) document.get(Constants.KEY_INTEGRATIONS);
-                            if (integrations == null)
-                                integrations = MAPPER.createArrayNode();
+                            ArrayNode integrations = (ArrayNode) document.get(Constants.KEY_INTEGRATIONS);
+                            if (integrations == null) integrations = MAPPER.createArrayNode();
 
                             integrations.add(id);
 
-                            String hash =
-                                    Resource.computeSha256(document.toString());
-                            ((ObjectNode) draftPolicyHit.at("/hash"))
-                                    .put(Constants.KEY_SHA256, hash);
+                            String hash = Resource.computeSha256(document.toString());
+                            ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
 
                             policiesIndex.createAsync(
                                     draftPolicyId,
                                     draftPolicyHit,
                                     ActionListener.wrap(
-                                            indexResponse -> listener.onResponse(null),
-                                            listener::onFailure));
+                                            indexResponse -> listener.onResponse(null), listener::onFailure));
                         },
                         listener::onFailure));
     }

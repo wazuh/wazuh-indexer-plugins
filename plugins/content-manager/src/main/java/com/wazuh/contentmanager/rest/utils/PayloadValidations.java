@@ -100,11 +100,7 @@ public class PayloadValidations {
      * @param listener receives an error string if validation fails, null otherwise
      */
     public void validateDocumentInSpaceAsync(
-            Client client,
-            String index,
-            String docId,
-            String docType,
-            ActionListener<String> listener) {
+            Client client, String index, String docId, String docType, ActionListener<String> listener) {
         String capitalizedDocType = Strings.capitalize(docType);
         client.get(
                 new GetRequest(index, docId),

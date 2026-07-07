@@ -881,19 +881,14 @@ public class SpaceService {
                         ActionListener.wrap(
                                 existsResponse -> {
                                     if (!existsResponse.isExists()) {
-                                        log.warn(
-                                                Constants.W_LOG_POLICY_INDEX_MISSING,
-                                                Constants.INDEX_POLICIES);
+                                        log.warn(Constants.W_LOG_POLICY_INDEX_MISSING, Constants.INDEX_POLICIES);
                                         listener.onResponse(new HashSet<>());
                                         return;
                                     }
                                     searchPoliciesAndProcessAsync(targetSpaces, listener);
                                 },
                                 e -> {
-                                    log.error(
-                                            Constants.E_LOG_CALCULATE_HASHES_FAILED,
-                                            e.getMessage(),
-                                            e);
+                                    log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
                                     listener.onResponse(new HashSet<>());
                                 }));
     }
@@ -917,22 +912,14 @@ public class SpaceService {
                                     bulkUpdateRequest,
                                     changedSpaces,
                                     ActionListener.wrap(
-                                            v ->
-                                                    executeBulkUpdateAsync(
-                                                            bulkUpdateRequest,
-                                                            changedSpaces,
-                                                            listener),
+                                            v -> executeBulkUpdateAsync(bulkUpdateRequest, changedSpaces, listener),
                                             e -> {
-                                                log.error(
-                                                        Constants.E_LOG_CALCULATE_HASHES_FAILED,
-                                                        e.getMessage(),
-                                                        e);
+                                                log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
                                                 listener.onResponse(changedSpaces);
                                             }));
                         },
                         e -> {
-                            log.error(
-                                    Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
+                            log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
                             listener.onResponse(new HashSet<>());
                         }));
     }
@@ -957,8 +944,7 @@ public class SpaceService {
         if (space != null) {
             spaceName = (String) space.get(Constants.KEY_NAME);
             if (!targetSpaces.contains(spaceName)) {
-                processHitsAsync(
-                        hits, idx + 1, targetSpaces, bulkUpdateRequest, changedSpaces, listener);
+                processHitsAsync(hits, idx + 1, targetSpaces, bulkUpdateRequest, changedSpaces, listener);
                 return;
             }
             log.debug(Constants.D_LOG_RECALCULATING_HASH, hit.getId(), spaceName);
@@ -1024,8 +1010,7 @@ public class SpaceService {
         Map<String, Object> spaceMap =
                 (Map<String, Object>) source.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
         Map<String, Object> hashMap =
-                (Map<String, Object>)
-                        spaceMap.getOrDefault(Constants.KEY_HASH, new HashMap<>());
+                (Map<String, Object>) spaceMap.getOrDefault(Constants.KEY_HASH, new HashMap<>());
 
         String oldHash = (String) hashMap.getOrDefault(Constants.KEY_SHA256, "");
         if (spaceName != null && !spaceHash.equals(oldHash)) {
@@ -1037,8 +1022,7 @@ public class SpaceService {
         updateMap.put(Constants.KEY_SPACE, spaceMap);
 
         bulkUpdateRequest.add(
-                new UpdateRequest(Constants.INDEX_POLICIES, hit.getId())
-                        .doc(updateMap, XContentType.JSON));
+                new UpdateRequest(Constants.INDEX_POLICIES, hit.getId()).doc(updateMap, XContentType.JSON));
     }
 
     @SuppressWarnings("unchecked")
@@ -1059,19 +1043,16 @@ public class SpaceService {
                 ActionListener.wrap(
                         integrationSource -> {
                             if (integrationSource == null) {
-                                collectIntegrationHashesAsync(
-                                        integrationIds, idx + 1, spaceHashes, listener);
+                                collectIntegrationHashesAsync(integrationIds, idx + 1, spaceHashes, listener);
                                 return;
                             }
 
                             spaceHashes.add(Resource.extractHash(integrationSource));
 
                             Map<String, Object> integration =
-                                    (Map<String, Object>)
-                                            integrationSource.get(Constants.KEY_DOCUMENT);
+                                    (Map<String, Object>) integrationSource.get(Constants.KEY_DOCUMENT);
                             if (integration == null) {
-                                collectIntegrationHashesAsync(
-                                        integrationIds, idx + 1, spaceHashes, listener);
+                                collectIntegrationHashesAsync(integrationIds, idx + 1, spaceHashes, listener);
                                 return;
                             }
 
@@ -1091,22 +1072,17 @@ public class SpaceService {
                                                                     v2 ->
                                                                             addHashesAsync(
                                                                                     integration,
-                                                                                    Constants
-                                                                                            .KEY_RULES,
-                                                                                    Constants
-                                                                                            .INDEX_RULES,
+                                                                                    Constants.KEY_RULES,
+                                                                                    Constants.INDEX_RULES,
                                                                                     spaceHashes,
-                                                                                    ActionListener
-                                                                                            .wrap(
-                                                                                                    v3 ->
-                                                                                                            collectIntegrationHashesAsync(
-                                                                                                                    integrationIds,
-                                                                                                                    idx
-                                                                                                                            + 1,
-                                                                                                                    spaceHashes,
-                                                                                                                    listener),
-                                                                                                    listener
-                                                                                                            ::onFailure)),
+                                                                                    ActionListener.wrap(
+                                                                                            v3 ->
+                                                                                                    collectIntegrationHashesAsync(
+                                                                                                            integrationIds,
+                                                                                                            idx + 1,
+                                                                                                            spaceHashes,
+                                                                                                            listener),
+                                                                                            listener::onFailure)),
                                                                     listener::onFailure)),
                                             listener::onFailure));
                         },
@@ -1146,8 +1122,7 @@ public class SpaceService {
                             if (source != null) {
                                 hashes.add(Resource.extractHash(source));
                             }
-                            collectResourceHashesAsync(
-                                    ids, idx + 1, indexName, hashes, listener);
+                            collectResourceHashesAsync(ids, idx + 1, indexName, hashes, listener);
                         },
                         listener::onFailure));
     }
@@ -1160,9 +1135,7 @@ public class SpaceService {
      * @param listener The listener to notify with the source map, or null if not found.
      */
     public void getDocumentSourceAsync(
-            String indexName,
-            String documentId,
-            ActionListener<Map<String, Object>> listener) {
+            String indexName, String documentId, ActionListener<Map<String, Object>> listener) {
         this.client.get(
                 new GetRequest(indexName, documentId),
                 ActionListener.wrap(
@@ -1175,10 +1148,7 @@ public class SpaceService {
                         },
                         e -> {
                             log.warn(
-                                    Constants.W_LOG_RETRIEVE_DOCUMENT_FAILED,
-                                    documentId,
-                                    indexName,
-                                    e.getMessage());
+                                    Constants.W_LOG_RETRIEVE_DOCUMENT_FAILED, documentId, indexName, e.getMessage());
                             listener.onResponse(null);
                         }));
     }
@@ -1198,8 +1168,7 @@ public class SpaceService {
                         bulkResponse -> {
                             if (bulkResponse.hasFailures()) {
                                 log.error(
-                                        Constants.E_LOG_BULK_UPDATE_HASHES_FAILED,
-                                        bulkResponse.buildFailureMessage());
+                                        Constants.E_LOG_BULK_UPDATE_HASHES_FAILED, bulkResponse.buildFailureMessage());
                             }
                             if (!changedSpaces.isEmpty()) {
                                 log.info(Constants.I_LOG_CONTENT_HASH_CHANGED, changedSpaces);
@@ -1207,8 +1176,7 @@ public class SpaceService {
                             listener.onResponse(changedSpaces);
                         },
                         e -> {
-                            log.error(
-                                    Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
+                            log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
                             listener.onResponse(changedSpaces);
                         }));
     }

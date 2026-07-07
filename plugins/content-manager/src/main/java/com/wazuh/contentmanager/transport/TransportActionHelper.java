@@ -89,8 +89,7 @@ public final class TransportActionHelper {
                 searchRequest,
                 ActionListener.wrap(
                         response -> {
-                            if (Objects.requireNonNull(response.getHits().getTotalHits()).value()
-                                    == 0) {
+                            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
                                 log.error(Constants.E_500_MISSING_DRAFT_POLICY);
                                 listener.onResponse(
                                         new RestResponse(
@@ -104,8 +103,7 @@ public final class TransportActionHelper {
                             OpenSearchSecurityException secEx = extractSecurityException(ex);
                             if (secEx != null) {
                                 listener.onResponse(
-                                        new RestResponse(
-                                                secEx.getMessage(), secEx.status().getStatus()));
+                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
                             } else {
                                 listener.onResponse(
                                         new RestResponse(

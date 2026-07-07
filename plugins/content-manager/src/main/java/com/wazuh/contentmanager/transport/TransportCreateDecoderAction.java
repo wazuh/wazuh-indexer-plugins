@@ -76,8 +76,7 @@ public class TransportCreateDecoderAction extends AbstractTransportCreateAction 
                         spaceError -> {
                             if (spaceError != null) {
                                 listener.onResponse(
-                                        new RestResponse(
-                                                spaceError, RestStatus.BAD_REQUEST.getStatus()));
+                                        new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus()));
                             } else {
                                 listener.onResponse(null);
                             }
@@ -95,9 +94,7 @@ public class TransportCreateDecoderAction extends AbstractTransportCreateAction 
         if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
             listener.onResponse(
                     new RestResponse(
-                            Constants.E_400_ENGINE_VALIDATION_FAILED
-                                    + " "
-                                    + engineValidation.getMessage(),
+                            Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineValidation.getMessage(),
                             RestStatus.BAD_REQUEST.getStatus()));
             return;
         }

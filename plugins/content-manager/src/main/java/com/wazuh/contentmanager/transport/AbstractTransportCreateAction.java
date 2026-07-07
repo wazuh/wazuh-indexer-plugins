@@ -100,8 +100,7 @@ public abstract class AbstractTransportCreateAction
                             if (policyError != null) {
                                 listener.onResponse(
                                         new ContentResponse(
-                                                policyError.getMessage(),
-                                                RestStatus.fromCode(policyError.getStatus())));
+                                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
                                 return;
                             }
                             executeCreateWorkflowAsync(
@@ -131,8 +130,7 @@ public abstract class AbstractTransportCreateAction
                     this.getResourceType(),
                     "Request body is missing");
             listener.onResponse(
-                    new ContentResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
+                    new ContentResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
             return;
         }
 
@@ -154,8 +152,7 @@ public abstract class AbstractTransportCreateAction
                             "Invalid YAML format. Reason: " + e.getMessage());
                     listener.onResponse(
                             new ContentResponse(
-                                    Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(),
-                                    RestStatus.BAD_REQUEST));
+                                    Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(), RestStatus.BAD_REQUEST));
                     return;
                 }
 
@@ -170,8 +167,7 @@ public abstract class AbstractTransportCreateAction
                             validationError.getMessage());
                     listener.onResponse(
                             new ContentResponse(
-                                    validationError.getMessage(),
-                                    RestStatus.fromCode(validationError.getStatus())));
+                                    validationError.getMessage(), RestStatus.fromCode(validationError.getStatus())));
                     return;
                 }
                 resourceNode = (ObjectNode) rootNode.get(Constants.KEY_RESOURCE);
@@ -187,8 +183,7 @@ public abstract class AbstractTransportCreateAction
                             "Invalid JSON format. Reason: " + e.getMessage());
                     listener.onResponse(
                             new ContentResponse(
-                                    Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(),
-                                    RestStatus.BAD_REQUEST));
+                                    Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(), RestStatus.BAD_REQUEST));
                     return;
                 }
 
@@ -203,8 +198,7 @@ public abstract class AbstractTransportCreateAction
                             validationError.getMessage());
                     listener.onResponse(
                             new ContentResponse(
-                                    validationError.getMessage(),
-                                    RestStatus.fromCode(validationError.getStatus())));
+                                    validationError.getMessage(), RestStatus.fromCode(validationError.getStatus())));
                     return;
                 }
                 resourceNode = (ObjectNode) rootNode.get(Constants.KEY_RESOURCE);
@@ -230,8 +224,7 @@ public abstract class AbstractTransportCreateAction
                                     listener.onResponse(
                                             new ContentResponse(
                                                     validationError.getMessage(),
-                                                    RestStatus.fromCode(
-                                                            validationError.getStatus())));
+                                                    RestStatus.fromCode(validationError.getStatus())));
                                     return;
                                 }
                                 afterValidation(
@@ -286,12 +279,10 @@ public abstract class AbstractTransportCreateAction
                                         "sync",
                                         this.getResourceType(),
                                         id,
-                                        "with external services (Engine/SAP). Reason: "
-                                                + syncError.getMessage());
+                                        "with external services (Engine/SAP). Reason: " + syncError.getMessage());
                                 listener.onResponse(
                                         new ContentResponse(
-                                                syncError.getMessage(),
-                                                RestStatus.fromCode(syncError.getStatus())));
+                                                syncError.getMessage(), RestStatus.fromCode(syncError.getStatus())));
                                 return;
                             }
                             afterSync(
@@ -363,11 +354,7 @@ public abstract class AbstractTransportCreateAction
                 rootNode,
                 integrationService,
                 ActionListener.wrap(
-                        v ->
-                                afterLink(
-                                        id,
-                                        spaceService,
-                                        listener),
+                        v -> afterLink(id, spaceService, listener),
                         e -> {
                             log.error(
                                     Constants.E_LOG_FAILED_TO,
@@ -382,21 +369,14 @@ public abstract class AbstractTransportCreateAction
     }
 
     private void afterLink(
-            String id,
-            SpaceService spaceService,
-            ActionListener<ContentResponse> listener) {
+            String id, SpaceService spaceService, ActionListener<ContentResponse> listener) {
         // 9. Update Hash (async)
         spaceService.calculateAndUpdateAsync(
                 List.of(Space.DRAFT.toString()),
                 ActionListener.wrap(
                         changedSpaces -> {
-                            log.info(
-                                    Constants.I_LOG_SUCCESS,
-                                    "Created",
-                                    this.getResourceType(),
-                                    id);
-                            listener.onResponse(
-                                    new ContentResponse(id, RestStatus.CREATED));
+                            log.info(Constants.I_LOG_SUCCESS, "Created", this.getResourceType(), id);
+                            listener.onResponse(new ContentResponse(id, RestStatus.CREATED));
                         },
                         e -> respondWithError(listener, e)));
     }
@@ -404,8 +384,7 @@ public abstract class AbstractTransportCreateAction
     private void respondWithError(ActionListener<ContentResponse> listener, Exception e) {
         OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
         if (secEx != null) {
-            listener.onResponse(
-                    new ContentResponse(secEx.getMessage(), secEx.status()));
+            listener.onResponse(new ContentResponse(secEx.getMessage(), secEx.status()));
             return;
         }
         log.error(
@@ -415,8 +394,7 @@ public abstract class AbstractTransportCreateAction
                 "Reason: " + e.getMessage());
         listener.onResponse(
                 new ContentResponse(
-                        "Internal Server Error. " + e.getMessage(),
-                        RestStatus.INTERNAL_SERVER_ERROR));
+                        "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
     }
 
     protected String getCurrentDate() {

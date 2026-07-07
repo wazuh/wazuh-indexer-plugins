@@ -110,20 +110,14 @@ public class IntegrationService {
      */
     @SuppressWarnings("unchecked")
     public void linkResourceToIntegrationAsync(
-            String integrationId,
-            String resourceId,
-            String listKey,
-            ActionListener<Void> listener) {
+            String integrationId, String resourceId, String listKey, ActionListener<Void> listener) {
         this.client.get(
                 new GetRequest(Constants.INDEX_INTEGRATIONS, integrationId),
                 ActionListener.wrap(
                         response -> {
                             if (!response.isExists()) {
                                 listener.onFailure(
-                                        new IOException(
-                                                "Integration ["
-                                                        + integrationId
-                                                        + "] not found."));
+                                        new IOException("Integration [" + integrationId + "] not found."));
                                 return;
                             }
 
@@ -131,9 +125,7 @@ public class IntegrationService {
                             Map<String, Object> document =
                                     (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
 
-                            List<String> list =
-                                    (List<String>)
-                                            document.getOrDefault(listKey, new ArrayList<>());
+                            List<String> list = (List<String>) document.getOrDefault(listKey, new ArrayList<>());
 
                             if (!(list instanceof ArrayList)) {
                                 list = new ArrayList<>(list);
@@ -142,8 +134,7 @@ public class IntegrationService {
                             if (!list.contains(resourceId)) {
                                 list.add(resourceId);
                                 document.put(listKey, list);
-                                this.updateIntegrationSourceAsync(
-                                        response.getId(), document, source, listener);
+                                this.updateIntegrationSourceAsync(response.getId(), document, source, listener);
                             } else {
                                 listener.onResponse(null);
                             }
