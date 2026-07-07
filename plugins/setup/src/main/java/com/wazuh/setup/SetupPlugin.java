@@ -75,13 +75,13 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private SetupStatusIndex setupStatusIndex;
     // spotless:off
     private final String[] categories = {
-        "access-management", // No integration in this category yet
+        "access-management",
         "applications",
         "cloud-services",
         "network-activity",
         "security",
         "system-activity",
-        "other", // No integration in this category yet
+        "other",
         "unclassified"
     };
     // spotless:on
