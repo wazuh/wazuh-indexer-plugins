@@ -726,6 +726,74 @@ public class SpaceService {
     }
 
     /**
+     * Asynchronously retrieves the policy document for a given space.
+     *
+     * @param space The space of the policy document.
+     * @param listener receives the policy as a Map, or null if not found.
+     */
+    public void getPolicyAsync(String space, ActionListener<Map<String, Object>> listener) {
+        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space));
+        sourceBuilder.size(1);
+        searchRequest.source(sourceBuilder);
+
+        this.client.search(
+                searchRequest,
+                ActionListener.wrap(
+                        response -> {
+                            if (response.getHits().getTotalHits().value() > 0) {
+                                SearchHit hit = response.getHits().getAt(0);
+                                listener.onResponse(hit.getSourceAsMap());
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        e -> {
+                            log.error(Constants.E_LOG_GET_POLICY_FAILED, space, e.getMessage());
+                            listener.onFailure(
+                                    new IOException("Failed to retrieve policy: " + e.getMessage(), e));
+                        }));
+    }
+
+    /**
+     * Asynchronously finds the real _id of a document given its logical document.id and space.
+     *
+     * @param indexName The index to search.
+     * @param spaceName The space name.
+     * @param documentId The logical document ID.
+     * @param listener receives the real _id, or null if not found.
+     */
+    public void findDocumentIdAsync(
+            String indexName, String spaceName, String documentId, ActionListener<String> listener) {
+        SearchRequest searchRequest = new SearchRequest(indexName);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(
+                QueryBuilders.boolQuery()
+                        .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName))
+                        .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_ID, documentId)));
+        sourceBuilder.size(1);
+        sourceBuilder.fetchSource(false);
+        searchRequest.source(sourceBuilder);
+
+        this.client.search(
+                searchRequest,
+                ActionListener.wrap(
+                        response -> {
+                            if (response.getHits().getTotalHits().value() > 0) {
+                                listener.onResponse(response.getHits().getAt(0).getId());
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        e -> {
+                            log.error(
+                                    Constants.E_LOG_FIND_DOCUMENT_ID_FAILED, spaceName, documentId, e.getMessage());
+                            listener.onFailure(e);
+                        }));
+    }
+
+    /**
      * This is a wrapper for its overloaded counterpart, intended to provide a default behavior that
      * processes only production spaces.
      *

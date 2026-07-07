@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
@@ -44,41 +43,10 @@ public final class TransportActionHelper {
     /**
      * Checks if the draft policy exists.
      *
-     * @return RestResponse with error if missing, null if ok
-     */
-    public static RestResponse validateDraftPolicyExists(Client client) {
-        try {
-            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-            sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
-            sourceBuilder.size(0);
-            searchRequest.source(sourceBuilder);
-
-            SearchResponse response = client.search(searchRequest).actionGet();
-
-            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
-                log.error(Constants.E_500_MISSING_DRAFT_POLICY);
-                return new RestResponse(
-                        Constants.E_500_MISSING_DRAFT_POLICY, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
-        } catch (Exception ex) {
-            OpenSearchSecurityException secEx = extractSecurityException(ex);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            return new RestResponse(
-                    "Draft policy check failed: " + ex.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
-    }
-
-    /**
-     * Asynchronously checks if the draft policy exists.
-     *
      * @param client the OpenSearch client
      * @param listener receives null if the draft policy exists, or a RestResponse with the error
      */
-    public static void validateDraftPolicyExistsAsync(
+    public static void validateDraftPolicyExists(
             Client client, ActionListener<RestResponse> listener) {
         SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();

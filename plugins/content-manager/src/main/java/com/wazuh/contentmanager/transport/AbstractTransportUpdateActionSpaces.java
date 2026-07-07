@@ -95,24 +95,33 @@ public abstract class AbstractTransportUpdateActionSpaces
         }
         SpaceService spaceService = new SpaceService(client);
 
-        try {
-            RestResponse policyError = TransportActionHelper.validateDraftPolicyExists(client);
-            if (policyError != null) {
-                listener.onResponse(
-                        new ContentResponse(
-                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
-                return;
-            }
-
-            RestResponse result = executeUpdateWorkflow(request, client, spaceService);
-            listener.onResponse(
-                    new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
-        } catch (Exception e) {
-            listener.onResponse(
-                    new ContentResponse(
-                            e.getMessage() != null ? e.getMessage() : "Unexpected error",
-                            RestStatus.INTERNAL_SERVER_ERROR));
-        }
+        TransportActionHelper.validateDraftPolicyExists(
+                client,
+                ActionListener.wrap(
+                        policyError -> {
+                            if (policyError != null) {
+                                listener.onResponse(
+                                        new ContentResponse(
+                                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
+                                return;
+                            }
+                            try {
+                                RestResponse result = executeUpdateWorkflow(request, client, spaceService);
+                                listener.onResponse(
+                                        new ContentResponse(
+                                                result.getMessage(), RestStatus.fromCode(result.getStatus())));
+                            } catch (Exception e) {
+                                listener.onResponse(
+                                        new ContentResponse(
+                                                e.getMessage() != null ? e.getMessage() : "Unexpected error",
+                                                RestStatus.INTERNAL_SERVER_ERROR));
+                            }
+                        },
+                        e ->
+                                listener.onResponse(
+                                        new ContentResponse(
+                                                e.getMessage() != null ? e.getMessage() : "Unexpected error",
+                                                RestStatus.INTERNAL_SERVER_ERROR))));
     }
 
     private RestResponse executeUpdateWorkflow(
