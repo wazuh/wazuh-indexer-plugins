@@ -199,6 +199,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Remove outdated documentation [(#532)](https://github.com/wazuh/wazuh-indexer-plugins/pull/532)
 - Remove ECS object from WCS definitions [(#612)](https://github.com/wazuh/wazuh-indexer-plugins/pull/612)
 - Remove alerts and archives index creation [(#693)](https://github.com/wazuh/wazuh-indexer-plugins/pull/693)
+- Remove `unclassified` module from WCS and index templates [(#1358)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1358)
 
 ### Fixed
 - Improve ECS folder structure [(#473)](https://github.com/wazuh/wazuh-indexer-plugins/pull/473)
