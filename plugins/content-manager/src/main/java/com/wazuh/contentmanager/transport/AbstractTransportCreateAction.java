@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -385,6 +386,11 @@ public abstract class AbstractTransportCreateAction
         OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
         if (secEx != null) {
             listener.onResponse(new ContentResponse(secEx.getMessage(), secEx.status()));
+            return;
+        }
+        OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
+        if (osEx != null) {
+            listener.onResponse(new ContentResponse(osEx.getMessage(), osEx.status()));
             return;
         }
         log.error(

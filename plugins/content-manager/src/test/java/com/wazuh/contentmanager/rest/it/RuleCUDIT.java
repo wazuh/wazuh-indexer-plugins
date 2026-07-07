@@ -90,6 +90,61 @@ public class RuleCUDIT extends ContentManagerRestTestCase {
     }
 
     /**
+     * Create a rule with a caller-supplied {@code metadata.date} that is not a valid date.
+     *
+     * <p>No plugin-side format validation is performed on caller-supplied dates; the malformed value
+     * is expected to fail index mapping validation ({@code MapperParsingException}).
+     *
+     * <p>Verifies: Response status code is 400 (Bad Request), not 500 (Internal Server Error).
+     *
+     * @throws IOException On failure to create integration fixture.
+     */
+    public void testPostRule_malformedDateReturnsBadRequest() throws IOException {
+        String integrationId = this.createIntegration("test-rule-malformed-date");
+
+        // spotless:off
+        String payload = """
+                {
+                    "integration": "%s",
+                    "resource": {
+                        "metadata": {
+                            "title": "Test rule with a malformed date",
+                            "description": "Test rule with a malformed date.",
+                            "author": "Tester",
+                            "date": "not-a-valid-date",
+                            "references": ["https://wazuh.com"]
+                        },
+                        "sigma_id": "test-sigma-malformed-date",
+                        "enabled": true,
+                        "status": "experimental",
+                        "logsource": {
+                            "product": "system",
+                            "category": "system"
+                        },
+                        "detection": {
+                            "condition": "selection",
+                            "selection": {
+                                "event.action": ["test"]
+                            }
+                        },
+                        "level": "low"
+                    }
+                }
+                """;
+        String body = String.format(Locale.ROOT, payload, integrationId);
+        // spotless:on
+
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.RULES_URI, body));
+        assertEquals(
+                "Malformed date should surface as 400, not 500",
+                RestStatus.BAD_REQUEST.getStatus(),
+                e.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
      * Create a rule with missing title.
      *
      * <p>Verifies: Response status code is 400.

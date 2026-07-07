@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.transport;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.support.ActionFilters;
@@ -191,6 +192,12 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
                                 listener.onResponse(
                                         new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
                                 return;
+                            }
+                            OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
+                            if (osEx != null) {
+                                listener.onResponse(new RestResponse(
+                                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + osEx.getMessage(),
+                                    osEx.status().getStatus()));
                             }
                             listener.onResponse(
                                     new RestResponse(
