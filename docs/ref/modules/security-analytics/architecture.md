@@ -126,3 +126,14 @@ The `WTransportIndexDetectorAction` serves as the entry point for detector creat
 | `.opensearch-sap-log-types-config`          | Integrations                                                 |
 | `wazuh-findings-v5-{category}*`             | Enriched findings written by `WazuhEnrichedFindingService`   |
 | `.opensearch-sap-detectors-config`          | Threat Detectors configurations.                             |
+
+## Access control
+
+Access to Security Analytics is governed by the [default Wazuh roles](../../security/access-control.md). The plugin authorizes requests against two action namespaces: the Wazuh custom actions `cluster:admin/wazuh/securityanalytics/*` and the upstream OpenSearch actions `cluster:admin/opensearch/securityanalytics/*` (see [Permissions](../../security/permissions.md)).
+
+| Role               | Security Analytics access                                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `wazuh_admin`      | **Full** - create/update/delete detectors, rules, log types and correlations; read findings and alerts. |
+| `wazuh_demo`       | **Full** - same endpoints as `wazuh_admin`.                                                                                |
+| `wazuh_readonly`   | **Read-only** - get/search detectors, rules, findings, alerts, mappings, correlations and threat-intel; `rules/evaluate`.  |
+| `wazuh_manager`    | None                                               |                                       |
