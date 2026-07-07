@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -426,30 +425,6 @@ public class TransportUpdatePolicyAction
 
         ObjectNode policyNode = mapper.valueToTree(mergedPolicy);
         Resource.nestMetadataFields(policyNode);
-
-        ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
-        try {
-            ObjectNode document = mapper.createObjectNode();
-            document.set(Constants.KEY_DOCUMENT, policyNode);
-            ObjectNode spaceNode = mapper.createObjectNode();
-            spaceNode.put(Constants.KEY_NAME, Space.STANDARD.toString());
-            document.set(Constants.KEY_SPACE, spaceNode);
-            String hash = Resource.computeSha256(policyNode.toString());
-            ObjectNode hashNode = mapper.createObjectNode();
-            hashNode.put(Constants.KEY_SHA256, hash);
-            document.set(Constants.KEY_HASH, hashNode);
-            String standardPolicyId =
-                    this.spaceService.findDocumentId(
-                            Constants.INDEX_POLICIES, Space.STANDARD.toString(), docId);
-            IndexResponse indexResponse = index.create(standardPolicyId, document);
-            return indexResponse.getId();
-        } catch (Exception e) {
-            OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
-            if (osEx != null && osEx.status().getStatus() < 500) {
-                throw new IllegalArgumentException(osEx.getMessage());
-            }
-            throw new IllegalStateException("Standard policy not found: " + e.getMessage());
-        }
         return policyNode;
     }
 
@@ -464,7 +439,7 @@ public class TransportUpdatePolicyAction
         Object dateObj = existingMeta.get(Constants.KEY_DATE);
         if (dateObj == null) dateObj = currentPolicyDoc.get(Constants.KEY_DATE);
         String docCreationDate = dateObj != null ? dateObj.toString() : "";
-        String incomingModified = policy.getModified();
+        String incomingModified = incomingPolicy.getModified();
         String docModificationDate =
                 incomingModified != null && !incomingModified.isBlank()
                         ? incomingModified
@@ -509,6 +484,12 @@ public class TransportUpdatePolicyAction
     }
 
     private void respondWithError(ActionListener<MessageStatusResponse> listener, Exception e) {
+        OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
+        if (osEx != null && osEx.status().getStatus() < 500) {
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, osEx.getMessage());
+            listener.onResponse(new MessageStatusResponse(osEx.getMessage(), osEx.status()));
+            return;
+        }
         log.error(
                 Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);
         listener.onResponse(
