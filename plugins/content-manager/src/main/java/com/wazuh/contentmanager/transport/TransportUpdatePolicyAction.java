@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchException;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -261,10 +262,14 @@ public class TransportUpdatePolicyAction
         if (dateObj == null) dateObj = currentPolicyDoc.get(Constants.KEY_DATE);
         String docCreationDate = dateObj != null ? dateObj.toString() : "";
 
+        String incomingModified = incomingPolicy.getModified();
         Policy mergedPolicy = new Policy();
         mergedPolicy.setId(docId);
         mergedPolicy.setDate(docCreationDate);
-        mergedPolicy.setModified(Instant.now().toString());
+        mergedPolicy.setModified(
+                incomingModified != null && !incomingModified.isBlank()
+                        ? incomingModified
+                        : Instant.now().toString());
 
         Object titleObj = existingMetadata.get(Constants.KEY_TITLE);
         if (titleObj == null) titleObj = currentPolicyDoc.get(Constants.KEY_TITLE);
@@ -332,6 +337,10 @@ public class TransportUpdatePolicyAction
             IndexResponse indexResponse = index.create(standardPolicyId, document);
             return indexResponse.getId();
         } catch (Exception e) {
+            OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
+            if (osEx != null && osEx.status().getStatus() < 500) {
+                throw new IllegalArgumentException(osEx.getMessage());
+            }
             throw new IllegalStateException("Standard policy not found: " + e.getMessage());
         }
     }
@@ -380,7 +389,11 @@ public class TransportUpdatePolicyAction
         Object dateObj = existingMeta.get(Constants.KEY_DATE);
         if (dateObj == null) dateObj = currentPolicyDoc.get(Constants.KEY_DATE);
         String docCreationDate = dateObj != null ? dateObj.toString() : "";
-        String docModificationDate = Instant.now().toString();
+        String incomingModified = policy.getModified();
+        String docModificationDate =
+                incomingModified != null && !incomingModified.isBlank()
+                        ? incomingModified
+                        : Instant.now().toString();
 
         policy.setId(docId);
         policy.setDate(docCreationDate);
@@ -414,6 +427,10 @@ public class TransportUpdatePolicyAction
             IndexResponse indexResponse = index.create(draftPolicyId, document);
             return indexResponse.getId();
         } catch (Exception e) {
+            OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
+            if (osEx != null && osEx.status().getStatus() < 500) {
+                throw new IllegalArgumentException(osEx.getMessage());
+            }
             throw new IllegalStateException("Draft policy not found: " + e.getMessage());
         }
     }

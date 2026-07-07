@@ -210,6 +210,8 @@ public class PolicyIT extends ContentManagerRestTestCase {
      *   <li>Response status code is 200 OK.
      *   <li>The draft policy in wazuh-threatintel-policies is updated.
      *   <li>Its space.hash.sha256 field is updated.
+     *   <li>The caller-supplied {@code modified} timestamp is honored.
+     *   <li>The caller-supplied {@code date} is ignored; the original creation date is preserved.
      * </ul>
      *
      * @throws IOException On parsing or request error.
@@ -220,6 +222,12 @@ public class PolicyIT extends ContentManagerRestTestCase {
         String decoderId = this.createDecoder(integrationId);
 
         String policyHashBefore = this.getDraftPolicySpaceHash();
+        String creationDateBefore =
+                this.getDraftPolicy()
+                        .path(Constants.KEY_DOCUMENT)
+                        .path(Constants.KEY_METADATA)
+                        .path(Constants.KEY_DATE)
+                        .asText();
 
         // Get current integrations list (it should have the new integration)
         List<String> currentIntegrations = this.getDraftPolicyIntegrations();
@@ -241,6 +249,18 @@ public class PolicyIT extends ContentManagerRestTestCase {
         String policyHashAfter = this.getDraftPolicySpaceHash();
         assertNotEquals(
                 "Draft policy space hash should have been updated", policyHashBefore, policyHashAfter);
+
+        // The caller-supplied "modified" timestamp should be honored, while "date" stays immutable
+        JsonNode updatedMetadata =
+                this.getDraftPolicy().path(Constants.KEY_DOCUMENT).path(Constants.KEY_METADATA);
+        assertEquals(
+                "Caller-supplied 'modified' timestamp should be honored",
+                "2026-02-03T18:57:33.931731040Z",
+                updatedMetadata.path(Constants.KEY_MODIFIED).asText());
+        assertEquals(
+                "Original creation 'date' should be preserved, not overwritten by the request body",
+                creationDateBefore,
+                updatedMetadata.path(Constants.KEY_DATE).asText());
     }
 
     private static String getString(String decoderId, StringBuilder intListJson) {
@@ -271,6 +291,53 @@ public class PolicyIT extends ContentManagerRestTestCase {
         // spotless:on
         payload = String.format(Locale.ROOT, payload, decoderId, intListJson);
         return payload;
+    }
+
+    /**
+     * Update policy with a caller-supplied {@code metadata.modified} that is not a valid date.
+     *
+     * <p>No plugin-side format validation is performed on caller-supplied dates; the malformed value
+     * is expected to fail index mapping validation ({@code MapperParsingException}). Note:
+     * {@code metadata.date} is always overwritten with the existing policy's creation date on update
+     * (see {@link #testPutPolicy_success}), so a malformed {@code date} would never reach indexing —
+     * {@code modified} is used here instead since it is the field actually honored from the request.
+     *
+     * <p>Verifies: Response status code is 400 (Bad Request), not 500 (Internal Server Error).
+     */
+    public void testPutPolicy_malformedModifiedReturnsBadRequest() {
+        // spotless:off
+        String payload = """
+                {
+                    "type": "policy",
+                    "resource": {
+                        "root_decoder": "",
+                        "integrations": [],
+                        "filters": [],
+                        "enrichments": [],
+                        "enabled": true,
+                        "index_unclassified_events": false,
+                        "index_discarded_events": false,
+                        "metadata": {
+                            "title": "Policy with malformed modified",
+                            "modified": "not-a-valid-date",
+                            "author": "Test",
+                            "description": "Policy with a malformed modified timestamp.",
+                            "documentation": "",
+                            "references": []
+                        }
+                    }
+                }
+                """;
+        // spotless:on
+
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class,
+                        () -> this.makeRequest("PUT", PluginSettings.POLICY_URI + "/draft", payload));
+        assertEquals(
+                "Malformed modified timestamp should surface as 400, not 500",
+                RestStatus.BAD_REQUEST.getStatus(),
+                e.getResponse().getStatusLine().getStatusCode());
     }
 
     /**

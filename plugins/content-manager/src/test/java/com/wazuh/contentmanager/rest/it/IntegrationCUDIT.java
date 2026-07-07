@@ -92,6 +92,44 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
     }
 
     /**
+     * Create an integration with a caller-supplied {@code metadata.date} that is not a valid date.
+     *
+     * <p>No plugin-side format validation is performed on caller-supplied dates; the malformed value
+     * is expected to fail index mapping validation ({@code MapperParsingException}).
+     *
+     * <p>Verifies: Response status code is 400 (Bad Request), not 500 (Internal Server Error).
+     */
+    public void testPostIntegration_malformedDateReturnsBadRequest() {
+        // spotless:off
+        String payload = """
+                {
+                    "resource": {
+                        "category": "cloud-services",
+                        "enabled": true,
+                        "metadata": {
+                            "title": "test-integration-malformed-date",
+                            "author": "Wazuh Inc.",
+                            "date": "not-a-valid-date",
+                            "description": "Integration with a malformed date.",
+                            "documentation": "test-doc",
+                            "references": ["https://wazuh.com"]
+                        }
+                    }
+                }
+                """;
+        // spotless:on
+
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload));
+        assertEquals(
+                "Malformed date should surface as 400, not 500",
+                RestStatus.BAD_REQUEST.getStatus(),
+                e.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
      * Create an integration with the same title as an existing integration.
      *
      * <p>Verifies: Response status code is 400.

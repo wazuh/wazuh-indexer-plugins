@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.transport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
@@ -76,6 +77,24 @@ public final class TransportActionHelper {
         while (cause != null) {
             if (cause instanceof OpenSearchSecurityException) {
                 return (OpenSearchSecurityException) cause;
+            }
+            cause = cause.getCause();
+        }
+        return null;
+    }
+
+    /**
+     * Walks the exception cause chain looking for an OpenSearchException, e.g. a {@code
+     * MapperParsingException} raised when a caller-supplied value (such as a malformed date) fails
+     * index mapping validation. OpenSearchException subclasses carry their own correct {@link
+     * org.opensearch.core.rest.RestStatus} (400 for mapping/parsing failures), so callers should
+     * prefer it over a hardcoded Internal Server Error.
+     */
+    public static OpenSearchException extractOpenSearchException(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            if (cause instanceof OpenSearchException) {
+                return (OpenSearchException) cause;
             }
             cause = cause.getCause();
         }
