@@ -34,15 +34,15 @@ Refer to the [docs](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/wcs
 
 ### Event stream templates
 
-All event categories share a single base template. One index template per category is generated dynamically at deployment time from this shared base. Specialized streams (raw, unclassified, active-responses) use their own dedicated template files.
+All event categories share a single base template. One index template per category is generated dynamically at deployment time from this shared base. Specialized streams (raw, active-responses) use their own dedicated template files.
 
 The WCS field definitions are organized under `wcs/stateless/events/`:
 
 ```
 wcs/stateless/events/
-├── main/          # Shared fields for all event categories
-├── raw/           # Fields for raw (unprocessed) events
-└── unclassified/  # Fields for uncategorized events
+├── findings/   # Fields for findings events
+├── main/       # Shared fields for all event categories
+└── raw/        # Fields for raw (unprocessed) events
 ```
 
 For the underlying class structure and implementation details, see the [development guide](../../../dev/plugins/setup.md).
