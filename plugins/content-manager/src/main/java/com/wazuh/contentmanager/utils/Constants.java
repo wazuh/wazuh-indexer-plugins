@@ -55,6 +55,8 @@ public class Constants {
     public static final String E_400_DUPLICATE_ENRICHMENT = "Duplicate enrichment type '%s'.";
     public static final String E_400_INTEGRATION_HAS_RESOURCES =
             "Cannot delete integration because it has %s attached.";
+    public static final String E_400_PROTECTED_INTEGRATION =
+            "Integration [%s] is protected and cannot be modified.";
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
             "Only 'update' operation is supported for policy.";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
@@ -565,6 +567,7 @@ public class Constants {
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_OFFSET = "offset";
     public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_MODE = "mode";
     public static final String KEY_DETECTOR = "detector";
     public static final String KEY_SOURCE = "source";
     public static final String KEY_INTERVAL = "interval";
@@ -600,6 +603,10 @@ public class Constants {
     public static final String KEY_PRODUCT = "product";
     public static final String KEY_CATEGORY = "category";
     public static final String KEY_FILTER = "filter";
+
+    // Integration mode values. Protected integrations cannot be modified; user-managed ones can.
+    public static final String MODE_PROTECTED = "protected";
+    public static final String MODE_USER_MANAGED = "user-managed";
 
     // Engine promotion payload keys
     public static final String KEY_RESOURCES = "resources";

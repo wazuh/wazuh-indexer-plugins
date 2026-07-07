@@ -98,6 +98,9 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
         ((ObjectNode) resource).set(Constants.KEY_DECODERS, MAPPER.createArrayNode());
         ((ObjectNode) resource).set(Constants.KEY_KVDBS, MAPPER.createArrayNode());
 
+        // Integrations created through the API are always user-managed.
+        ((ObjectNode) resource).put(Constants.KEY_MODE, Constants.MODE_USER_MANAGED);
+
         return null;
     }
 

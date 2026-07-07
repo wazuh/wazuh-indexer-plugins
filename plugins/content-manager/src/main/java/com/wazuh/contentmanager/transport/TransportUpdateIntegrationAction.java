@@ -28,20 +28,45 @@ import org.opensearch.transport.client.Client;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import com.wazuh.contentmanager.action.UpdateIntegrationAction;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
-/** Transport action for updating Integration resources. */
-public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAction {
+/**
+ * Transport action for updating Integration resources.
+ *
+ * <p>Integrations can be updated in both the {@code draft} and {@code standard} spaces. The target
+ * space is resolved from the stored document, so callers keep using {@code PUT /integrations/{id}}
+ * without supplying a space. Behaviour depends on the resolved space and the integration's {@code
+ * mode}:
+ *
+ * <ul>
+ *   <li><b>protected</b> integrations (Wazuh core content) cannot be modified in any space.
+ *   <li><b>user-managed</b> integrations in the {@code draft} space are fully editable.
+ *   <li><b>user-managed</b> integrations in the {@code standard} space only allow toggling {@code
+ *       enabled}; every other field is preserved from the stored document.
+ * </ul>
+ */
+public class TransportUpdateIntegrationAction extends AbstractTransportUpdateActionSpaces {
+
+    private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
+
+    /** Space resolved from the stored document for the request currently being processed. */
+    private Space resolvedSpace;
 
     @Inject
     public TransportUpdateIntegrationAction(
@@ -63,27 +88,119 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
     }
 
     @Override
+    protected Set<Space> getAllowedSpaces() {
+        return validSpaces;
+    }
+
+    @Override
+    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
+        String id = resource.get(Constants.KEY_ID).asText();
+
+        ContentIndex index = new ContentIndex(client, Constants.INDEX_INTEGRATIONS, null);
+        JsonNode existingDoc = index.getDocument(id);
+        if (existingDoc == null || !existingDoc.has(Constants.KEY_DOCUMENT)) {
+            return new RestResponse(Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
+        }
+        JsonNode existingDocument = existingDoc.get(Constants.KEY_DOCUMENT);
+
+        // Protected integrations cannot be modified
+        if (this.documentValidations.isProtected(existingDocument)) {
+            return new RestResponse(
+                    String.format(Locale.ROOT, Constants.E_400_PROTECTED_INTEGRATION, id),
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // The space is resolved
+        String storedSpace = existingDoc.path(Constants.KEY_SPACE).path(Constants.KEY_NAME).asText();
+        ((ObjectNode) root).put(Constants.KEY_SPACE, storedSpace);
+        try {
+            this.resolvedSpace = Space.fromValue(storedSpace);
+        } catch (IllegalArgumentException e) {
+            return new RestResponse(
+                    Constants.E_400_RESOURCE_SPACE_INVALID, RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // 'enabled' is the only field that can be changed for standard integrations
+        RestResponse fieldValidation =
+                this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_ENABLED));
+        if (fieldValidation != null) {
+            return fieldValidation;
+        } 
+
+        if (Space.STANDARD.equals(this.resolvedSpace)) {
+            return null;
+        }
+
+        // Draft integrations are fully editable
+        fieldValidation =
+                this.documentValidations.validateRequiredFields(
+                        resource, List.of(Constants.KEY_CATEGORY, Constants.KEY_ENABLED));
+        if (fieldValidation != null) {
+            return fieldValidation;
+        }
+
+        RestResponse metadataValidation =
+                this.documentValidations.validateMetadataFields(
+                        resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
+        if (metadataValidation != null) {
+            return metadataValidation;
+        }
+
+        String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
+        return this.documentValidations.validateDuplicateTitle(
+                client, Constants.INDEX_INTEGRATIONS, storedSpace, title, id, Constants.KEY_INTEGRATION);
+    }
+
+    @Override
     protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
         RestResponse response = super.preserveMetadata(index, id, resourceNode);
-        if (response != null) return response;
+        if (response != null) {
+            return response;
+        }
 
         JsonNode existingDoc = index.getDocument(id);
-        if (existingDoc != null && existingDoc.has(Constants.KEY_DOCUMENT)) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> existing =
-                    MAPPER.convertValue(existingDoc.get(Constants.KEY_DOCUMENT), Map.class);
+        if (existingDoc == null || !existingDoc.has(Constants.KEY_DOCUMENT)) {
+            return null;
+        }
+        JsonNode existingDocument = existingDoc.get(Constants.KEY_DOCUMENT);
 
-            RestResponse error;
-            error = this.checkListEquality(existing, resourceNode, Constants.KEY_RULES);
-            if (error != null) return error;
+        // The mode is server-managed and cannot be changed through the API
+        resourceNode.remove(Constants.KEY_MODE);
+        if (existingDocument.has(Constants.KEY_MODE)) {
+            resourceNode.set(Constants.KEY_MODE, existingDocument.get(Constants.KEY_MODE));
+        }
 
-            error = this.checkListEquality(existing, resourceNode, Constants.KEY_DECODERS);
-            if (error != null) return error;
+        if (Space.STANDARD.equals(this.resolvedSpace)) {
+            // Only 'enabled' is mutable in the standard space
+            boolean enabled = resourceNode.path(Constants.KEY_ENABLED).asBoolean(true);
+            String modified =
+                    resourceNode.path(Constants.KEY_METADATA).path(Constants.KEY_MODIFIED).asText(null);
 
-            error = this.checkListEquality(existing, resourceNode, Constants.KEY_KVDBS);
+            ObjectNode restored = ((ObjectNode) existingDocument).deepCopy();
+            resourceNode.removeAll();
+            resourceNode.setAll(restored);
+            resourceNode.put(Constants.KEY_ID, id);
+            resourceNode.put(Constants.KEY_ENABLED, enabled);
+            if (modified != null) {
+                Resource.getOrCreateMetadataNode(resourceNode).put(Constants.KEY_MODIFIED, modified);
+            }
+            return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> existing = MAPPER.convertValue(existingDocument, Map.class);
+
+        RestResponse error = this.checkListEquality(existing, resourceNode, Constants.KEY_RULES);
+        if (error != null) {
             return error;
         }
-        return null;
+
+        error = this.checkListEquality(existing, resourceNode, Constants.KEY_DECODERS);
+        if (error != null) {
+            return error;
+        }
+
+        return this.checkListEquality(existing, resourceNode, Constants.KEY_KVDBS);
     }
 
     private RestResponse checkListEquality(
@@ -95,32 +212,18 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
     }
 
     @Override
-    protected RestResponse validatePayload(Client client, JsonNode root, JsonNode resource) {
-        RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_CATEGORY, Constants.KEY_ENABLED));
-        if (fieldValidation != null) return fieldValidation;
+    protected RestResponse syncExternalServices(String id, JsonNode resource) {
+        if (Space.STANDARD.equals(this.resolvedSpace)) {
+            return null;
+        }
 
-        RestResponse metadataValidation =
-                this.documentValidations.validateMetadataFields(
-                        resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
-        if (metadataValidation != null) return metadataValidation;
+        SecurityAnalyticsService securityAnalyticsService;
+        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+            securityAnalyticsService = new MockSecurityAnalyticsService();
+        } else {
+            securityAnalyticsService = new SecurityAnalyticsServiceImpl(this.client);
+        }
 
-        String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
-        String id = resource.get(Constants.KEY_ID).asText();
-
-        return this.documentValidations.validateDuplicateTitle(
-                client,
-                Constants.INDEX_INTEGRATIONS,
-                Space.DRAFT.toString(),
-                title,
-                id,
-                Constants.KEY_INTEGRATION);
-    }
-
-    @Override
-    protected RestResponse syncExternalServices(
-            String id, JsonNode resource, SecurityAnalyticsService securityAnalyticsService) {
         // 1. Validate using the Engine.
         ObjectNode enginePayload = MAPPER.createObjectNode();
         enginePayload.set(Constants.KEY_RESOURCE, resource);

@@ -89,6 +89,20 @@ public class PayloadValidations {
     }
 
     /**
+     * Checks whether an integration document is in {@code protected} mode. Protected integrations are
+     * managed by Wazuh and cannot be modified or deleted through the API. The check relies on the
+     * {@code document.mode} field so it stays correct regardless of the space the resource lives in.
+     *
+     * @param document the {@code document} node of the stored resource.
+     * @return true if the resource is protected, false otherwise.
+     */
+    public boolean isProtected(JsonNode document) {
+        return document != null
+                && document.has(Constants.KEY_MODE)
+                && Constants.MODE_PROTECTED.equals(document.get(Constants.KEY_MODE).asText());
+    }
+
+    /**
      * Validates that a document with the same title does not already exist in the given space.
      *
      * @param client the OpenSearch client
