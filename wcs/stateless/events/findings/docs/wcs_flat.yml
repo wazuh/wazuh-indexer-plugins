@@ -25523,16 +25523,58 @@ wazuh.agent.version:
   original_fieldset: agent
   short: Version of the agent.
   type: keyword
-wazuh.case.comment:
-  dashed_name: wazuh-case-comment
-  description: Free-form comment attached to the case.
-  example: This is a comment for the case.
-  flat_name: wazuh.case.comment
+wazuh.case.comments:
+  dashed_name: wazuh-case-comments
+  description: Array of comments attached to the case, each authored and timestamped
+    independently.
+  flat_name: wazuh.case.comments
   level: custom
-  name: case.comment
+  name: case.comments
+  normalize:
+  - array
+  short: Array of comments attached to the case, each authored and timestamped independently.
+  type: nested
+wazuh.case.comments.author:
+  dashed_name: wazuh-case-comments-author
+  description: Name of the user that authored the comment.
+  example: admin
+  flat_name: wazuh.case.comments.author
+  ignore_above: 1024
+  level: custom
+  name: case.comments.author
   normalize: []
-  short: Free-form comment attached to the case.
+  short: Name of the user that authored the comment.
+  type: keyword
+wazuh.case.comments.comment:
+  dashed_name: wazuh-case-comments-comment
+  description: Text content of the comment.
+  example: This is a comment for the case.
+  flat_name: wazuh.case.comments.comment
+  level: custom
+  name: case.comments.comment
+  normalize: []
+  short: Text content of the comment.
   type: match_only_text
+wazuh.case.comments.created_at:
+  dashed_name: wazuh-case-comments-created-at
+  description: Timestamp when the comment was created.
+  example: '1623456789000'
+  flat_name: wazuh.case.comments.created_at
+  level: custom
+  name: case.comments.created_at
+  normalize: []
+  short: Timestamp when the comment was created.
+  type: date
+wazuh.case.comments.updated_at:
+  dashed_name: wazuh-case-comments-updated-at
+  description: Timestamp when the comment was last updated.
+  example: '1623456789000'
+  flat_name: wazuh.case.comments.updated_at
+  level: custom
+  name: case.comments.updated_at
+  normalize: []
+  short: Timestamp when the comment was last updated.
+  type: date
 wazuh.case.created_at:
   dashed_name: wazuh-case-created-at
   description: Timestamp when the case was created.
@@ -25543,6 +25585,38 @@ wazuh.case.created_at:
   normalize: []
   short: Timestamp when the case was created.
   type: date
+wazuh.case.description:
+  dashed_name: wazuh-case-description
+  description: Detailed description of the case.
+  example: This is a sample description for the case.
+  flat_name: wazuh.case.description
+  level: custom
+  name: case.description
+  normalize: []
+  short: Detailed description of the case.
+  type: match_only_text
+wazuh.case.priority:
+  dashed_name: wazuh-case-priority
+  description: Priority of the case. One of LOW, MEDIUM, HIGH, URGENT.
+  example: MEDIUM
+  flat_name: wazuh.case.priority
+  ignore_above: 1024
+  level: custom
+  name: case.priority
+  normalize: []
+  short: Priority of the case. One of LOW, MEDIUM, HIGH, URGENT.
+  type: keyword
+wazuh.case.severity:
+  dashed_name: wazuh-case-severity
+  description: Severity of the case. One of INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL.
+  example: MEDIUM
+  flat_name: wazuh.case.severity
+  ignore_above: 1024
+  level: custom
+  name: case.severity
+  normalize: []
+  short: Severity of the case. One of INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL.
+  type: keyword
 wazuh.case.status:
   dashed_name: wazuh-case-status
   description: Current status of the case. One of ACTIVE, ACKNOWLEDGED, COMPLETED,
@@ -25567,6 +25641,29 @@ wazuh.case.tags:
   normalize:
   - array
   short: Tags attached to the case for organization.
+  type: keyword
+wazuh.case.title:
+  dashed_name: wazuh-case-title
+  description: Title summarizing the case.
+  example: Sample Case Title
+  flat_name: wazuh.case.title
+  level: custom
+  name: case.title
+  normalize: []
+  short: Title summarizing the case.
+  type: match_only_text
+wazuh.case.tlp:
+  dashed_name: wazuh-case-tlp
+  description: Traffic Light Protocol classification of the case. One of TLP:RED,
+    TLP:AMBER, TLP:GREEN, TLP:CLEAR.
+  example: TLP:CLEAR
+  flat_name: wazuh.case.tlp
+  ignore_above: 1024
+  level: custom
+  name: case.tlp
+  normalize: []
+  short: Traffic Light Protocol classification of the case. One of TLP:RED, TLP:AMBER,
+    TLP:GREEN, TLP:CLEAR.
   type: keyword
 wazuh.case.updated_at:
   dashed_name: wazuh-case-updated-at

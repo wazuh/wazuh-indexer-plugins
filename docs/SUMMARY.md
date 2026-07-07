@@ -65,6 +65,7 @@
 - [Security](ref/security/index.md)
   - [Access Control](ref/security/access-control.md)
   - [Defining Users and Roles](ref/security/defining-users-and-roles.md)
+  - [Permissions](ref/security/permissions.md)
 - [Performance]()
 - [Glossary]()
 
