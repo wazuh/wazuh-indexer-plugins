@@ -140,15 +140,15 @@ Refer to the [docs](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/wcs
 
 ### Event stream templates
 
-All event categories share a single base template: `templates/streams/events.json`. The `StreamIndex` class dynamically generates one index template per category at deployment time by overriding `index_patterns` and `rollover_alias` from the base template. Specialized streams (raw, unclassified, active-responses) use their own dedicated template files.
+All event categories share a single base template: `templates/streams/events.json`. The `StreamIndex` class dynamically generates one index template per category at deployment time by overriding `index_patterns` and `rollover_alias` from the base template. Specialized streams (raw, active-responses) use their own dedicated template files.
 
 The WCS field definitions are organized under `wcs/stateless/events/`:
 
 ```
 wcs/stateless/events/
-├── main/          # Shared fields for all event categories
-├── raw/           # Fields for raw (unprocessed) events
-└── unclassified/  # Fields for uncategorized events
+├── findings/   # Fields for findings events
+├── main/       # Shared fields for all event categories
+└── raw/        # Fields for raw (unprocessed) events
 ```
 
 ## JavaDoc
