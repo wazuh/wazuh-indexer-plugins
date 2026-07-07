@@ -134,7 +134,7 @@ Follow the existing structure and naming convention. Example:
   "settings": {
     "index": {
       "number_of_shards": 1,
-      "number_of_replicas": 1
+      "number_of_replicas": 0
     }
   }
 }
@@ -144,10 +144,10 @@ Follow the existing structure and naming convention. Example:
 
 Edit the constructor of the `SetupPlugin` class located at: `/plugins/setup/src/main/java/com/wazuh/setup/SetupPlugin.java`
 
-Add the template and index entry to the `indices` map. There are two kind of indices:
+Add the template and index entry to the `indices` map. There are two kinds of indices:
 
-- **Stream index**. Stream indices contain time-based events of any kind (alerts, statistics, logs...).
-- **Stateful index**. Stateful indices represent the most recent information of a subject (active vulnerabilities, installed packages, open ports, ...). These indices are different of Stream indices as they do not contain timestamps. The information is not based on time, as they always represent the most recent state.
+- **Stream index**. Stream indices contain time-based events of any kind (alerts, statistics, logs...). These are created as Data Streams.
+- **Stateful index**. Stateful indices represent the most recent information of a subject (active vulnerabilities, installed packages, open ports, ...). These indices are different from Stream indices as they do not contain timestamps. The information is not based on time, as they always represent the most recent state.
 
 ```java
 /**
@@ -159,9 +159,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
   // ...
 
   // Stream indices
-  this.indices.add(new StreamIndex("my-stream-index-000001", "my-index-template-1", "my-alias"));
+  this.indices.add(new StreamIndex("my-stream-index", "templates/streams/my-index-template-1"));
   // State indices
-  this.indices.add(new StateIndex("my-state-index", "my-index-template-2"));
+  this.indices.add(new StateIndex("my-state-index", "templates/states/my-index-template-2"));
 
   //...
 }
@@ -177,11 +177,12 @@ Alternatively, use the Developer Tools console from the Wazuh Dashboard, or your
 
 ## Creating a new ISM (Index State Management) policy
 
-### 1. Add rollover alias to the index template
+### 1. Add rollover alias and policy ID to the index template
 
-Edit the existing index template JSON file and add the following setting:
+Edit the existing index template JSON file and add the following settings:
 ```json
-"plugins.index_state_management.rollover_alias": "<index-name>"
+"plugins.index_state_management.rollover_alias": "<index-name>",
+"plugins.index_state_management.policy_id": "<index-name>-policy"
 ```
 
 ### 2. Define the ISM policy
@@ -288,18 +289,23 @@ ISM policies and templates must be properly deployed before the indices are crea
 
 ### Overview
 
-All event data streams share a single base template: `templates/streams/events.json`. At deployment time, the plugin generates one index template per event category by dynamically setting the `index_patterns` and `rollover_alias` fields from the base template. This means:
+Event and findings data streams are both category-based: 8 event categories share a single base template (`templates/streams/events.json`), and the 8 corresponding findings categories share their own base template (`templates/streams/findings.json`). At deployment time, `StreamIndex.createTemplate()` generates one index template per category from the applicable base, overriding exactly two fields:
 
-- **Source of truth**: Only `events.json` exists in the repository.
-- **At runtime**: One index template is created for each category (e.g., `wazuh-events-v5-cloud-services-template`, `wazuh-events-v5-security-template`, etc.).
+- `index_patterns` — always set to `<category-index-name>*`.
+- `settings["plugins.index_state_management.rollover_alias"]` — set to the category's index name, but only if that key already exists in the base template's settings.
 
-The `StreamIndex` class handles this: when constructed with only an index name (no explicit template path), it defaults to `templates/streams/events` and rewrites the `index_patterns` and `rollover_alias` to match the specific index.
+Every other part of the generated template — most importantly `mappings` — is copied through unchanged. This means all category templates within a stream family (all 8 event categories, or all 8 findings categories) have identical mappings; only the index pattern and rollover alias differ.
+
+- **Source of truth**: Only `events.json` and `findings.json` exist in the repository; no per-category template files exist.
+- **At runtime**: One index template is created for each category (e.g., `wazuh-events-v5-cloud-services-template`, `wazuh-events-v5-security-template`, etc.), and likewise for each findings category.
+
+The `StreamIndex` class handles this: when constructed with only an index name (no explicit template path), it defaults to `templates/streams/events` and rewrites `index_patterns` and (conditionally) `rollover_alias` to match the specific index. Findings categories are registered the same way but with the two-arg constructor pointing at `templates/streams/findings`.
 
 #### How it works
 
 ```java
 // Single-arg constructor defaults to the shared events template
-new StreamIndex("wazuh-events-v5-cloud-services")
+new StreamIndex("wazuh-events-v5-cloud-services");
 // Equivalent to:
 new StreamIndex("wazuh-events-v5-cloud-services", "templates/streams/events")
 ```
@@ -307,8 +313,8 @@ new StreamIndex("wazuh-events-v5-cloud-services", "templates/streams/events")
 During `createTemplate()`, the plugin:
 1. Reads `events.json` from the classpath
 2. Overrides `index_patterns` to `["wazuh-events-v5-cloud-services*"]`
-3. Overrides `rollover_alias` to `"wazuh-events-v5-cloud-services"`
-4. Creates the composable index template in OpenSearch
+3. If `rollover_alias` is present in the base template's settings, overrides it to `"wazuh-events-v5-cloud-services"`
+4. Creates the composable index template in OpenSearch, with `mappings` copied through unchanged
 
 #### Verifying deployed templates
 
@@ -318,22 +324,27 @@ To list all event templates in a running cluster:
 GET /_index_template/wazuh-events-*
 ```
 
+Likewise, to list all findings templates:
+
+```bash
+GET /_index_template/wazuh-findings-*
+```
+
 ### Specialized stream templates
 
 Some data streams use their own dedicated templates instead of the shared `events.json`:
 
-| Data Stream | Template | Notes |
-|---|---|---|
-| `wazuh-events-raw-v5` | `templates/streams/raw.json` | Stores original unprocessed events |
-| `wazuh-events-v5-unclassified` | `templates/streams/unclassified.json` | Stores uncategorized events for investigation |
-| `wazuh-active-responses` | `templates/streams/active-responses.json` | Active Response execution requests |
+| Data Stream                    | Template                                  | Notes                                         |
+| ------------------------------ | ----------------------------------------- | --------------------------------------------- |
+| `wazuh-events-raw-v5`          | `templates/streams/raw.json`              | Stores original unprocessed events            |
+| `wazuh-active-responses`       | `templates/streams/active-responses.json` | Active Response execution requests            |
 
 These are registered with the two-arg constructor:
 
 ```java
-new StreamIndex("wazuh-events-raw-v5", "templates/streams/raw")
-new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified")
-new StreamIndex("wazuh-active-responses", "templates/streams/active-responses")
+new StreamIndex("wazuh-events-raw-v5", "templates/streams/raw");
+new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified");
+new StreamIndex("wazuh-active-responses", "templates/streams/active-responses");
 ```
 
 ---
@@ -349,13 +360,13 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 - **Location**: `plugins/setup/src/main/resources/policies/stream-events-policy.json`
 - **Index Pattern**: `wazuh-events-v5-*`
 - **Retention Period**: 1 hour
-- **Rollover Conditions**: 25 GB primary shard size or 200,000,000 documents
-- **Priority**: 50
+- **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
+- **ISM template priority**: 0
 
 ### Policy states
 
 1. **Hot State**
-   - Actions: Rollover when primary shard reaches 25 GB or 200M documents
+   - Actions: Rollover when primary shard reaches 20 GB or 200M documents
    - Transition Condition: Transitions to `delete` after 1 hour
 
 2. **Delete State**
@@ -375,13 +386,13 @@ The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. I
 - **Location**: `plugins/setup/src/main/resources/policies/stream-findings-policy.json`
 - **Index Pattern**: `wazuh-findings-v5-*`
 - **Retention Period**: 90 days
-- **Rollover Conditions**: 25 GB primary shard size or 200,000,000 documents
-- **Priority**: 50
+- **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
+- **ISM template priority**: 0
 
 ### Policy states
 
 1. **Hot State**
-   - Actions: Rollover when primary shard reaches 25 GB or 200M documents
+   - Actions: Rollover when primary shard reaches 20 GB or 200M documents
    - Transition Condition: Transitions to `delete` after 90 days
 
 2. **Delete State**
@@ -401,13 +412,13 @@ The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream w
 - **Location**: `plugins/setup/src/main/resources/policies/stream-raw-events-policy.json`
 - **Index Pattern**: `wazuh-events-raw-v5*`
 - **Retention Period**: 10 minutes
-- **Rollover Conditions**: 25 GB primary shard size or 200,000,000 documents
-- **Priority**: 100
+- **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
+- **ISM template priority**: 0
 
 ### Policy states
 
 1. **Hot State**
-   - Actions: Rollover when primary shard reaches 25 GB or 200M documents
+   - Actions: Rollover when primary shard reaches 20 GB or 200M documents
    - Transition Condition: Transitions to `delete` after 10 minutes
 
 2. **Delete State**
@@ -458,8 +469,8 @@ The **wazuh-active-responses** data stream stores Active Response execution requ
 - **Policy Name**: `stream-active-responses-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-active-responses-policy.json`
 - **Retention Period**: 3 days
-- **Rollover Conditions**: 25 GB primary shard size or 200,000,000 documents
-- **Priority**: 100
+- **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
+- **ISM template priority**: 0
 
 ### Configuration
 
@@ -473,3 +484,29 @@ The data stream is created automatically during plugin initialization. Ensure:
 
 Integration tests for the active responses data stream are located at:
 `plugins/setup/src/test/java/com/wazuh/setup/ActiveResponsesIT.java`
+
+---
+
+## Metrics data stream ISM policy (`stream-metrics-policy`)
+
+### Overview
+
+The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh-metrics-agents`, `wazuh-metrics-comms`, `wazuh-metrics-normalization`) with a 30-day retention period.
+
+### Policy details
+- **Policy Name**: `stream-metrics-policy`
+- **Location**: `plugins/setup/src/main/resources/policies/stream-metrics-policy.json`
+- **Index Pattern**: `wazuh-metrics-*`
+- **Retention Period**: 30 days
+- **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
+- **ISM template priority**: 0
+
+### Policy states
+
+1. **Hot State**
+   - Actions: Rollover when primary shard reaches 20 GB or 200M documents
+   - Transition Condition: Transitions to `delete` after 30 days
+
+2. **Delete State**
+   - Actions: Deletes the index
+   - Retry Policy: 3 attempts with exponential backoff (1-minute initial delay)

@@ -2,39 +2,51 @@
 
 ## Component overview
 
-The logtest flow involves three layers:
+The logtest flow involves four layers: a thin REST handler, a transport action that owns request validation, an orchestration service, and the external services it calls.
 
 ```
-RestPostLogtestAction               →  LogtestService  →  EngineService + SecurityAnalyticsService
-RestPostLogtestNormalizationAction  →       ↑                    ↑
-RestPostLogtestDetectionAction      →       ↑                    ↑
-       (REST handlers)                (Orchestration)       (External services)
+RestPostLogtestAction               →  TransportLogtestAction               →  LogtestService  →  EngineService + SecurityAnalyticsService
+RestPostLogtestNormalizationAction  →  TransportLogtestNormalizationAction  →       ↑                    ↑
+RestPostLogtestDetectionAction      →  TransportLogtestDetectionAction      →       ↑                    ↑
+       (REST handlers)                      (Validation)                     (Orchestration)       (External services)
 ```
+
+REST handlers no longer validate requests or contain any business logic — that responsibility moved to the transport action layer. This is a plugin-wide pattern, not specific to logtest: every REST handler in `rest/service/` delegates to a same-named `Transport*Action` via `client.execute()`, per `AbstractContentAction`'s own javadoc ("Business logic has been moved to transport actions; REST handlers now delegate to the transport layer via `client.execute()`").
 
 ### RestPostLogtestAction (combined)
 
 **Path**: `rest/service/RestPostLogtestAction.java`
 
-The REST handler for `POST /_plugins/_content_manager/logtest`. Responsibilities:
+The REST handler for `POST /_plugins/_content_manager/logtest`. It reads the raw request body into a `LogtestRequest` and calls `client.execute(LogtestAction.INSTANCE, logtestRequest, listener)`. It performs no validation and does not interact with indices or external services directly.
+
+### TransportLogtestAction
+
+**Path**: `transport/TransportLogtestAction.java`
+
+The validation and dispatch layer for the combined endpoint. Responsibilities:
 
 1. Validates the request has content and is valid JSON.
 2. Validates the required field `space`.
-3. Validates that `space` is `"test"` or `"standard"`.
+3. Validates that `space` is not `"draft"`.
 4. Extracts the optional `integration` field (if present) and strips it from the Engine payload.
 5. Delegates to `LogtestService.executeLogtest(integrationId, space, enginePayload)`.
    If `integrationId` is `null`, only engine normalization is performed.
-
-The handler does **not** interact with indices or external services directly, all business logic is in the service.
 
 ### RestPostLogtestNormalizationAction
 
 **Path**: `rest/service/RestPostLogtestNormalizationAction.java`
 
-The REST handler for `POST /_plugins/_content_manager/logtest/normalization`. Responsibilities:
+The REST handler for `POST /_plugins/_content_manager/logtest/normalization`. Reads the request body and calls `client.execute(LogtestNormalizationAction.INSTANCE, ...)`. No validation.
+
+### TransportLogtestNormalizationAction
+
+**Path**: `transport/TransportLogtestNormalizationAction.java`
+
+Responsibilities:
 
 1. Validates the request has content and is valid JSON.
 2. Validates the required field `space`.
-3. Validates that `space` is `"test"` or `"standard"`.
+3. Validates that `space` is not `"draft"`.
 4. Strips the `integration` field if present (not used for normalization).
 5. Delegates to `LogtestService.executeNormalization(enginePayload)`.
 
@@ -42,11 +54,17 @@ The REST handler for `POST /_plugins/_content_manager/logtest/normalization`. Re
 
 **Path**: `rest/service/RestPostLogtestDetectionAction.java`
 
-The REST handler for `POST /_plugins/_content_manager/logtest/detection`. Responsibilities:
+The REST handler for `POST /_plugins/_content_manager/logtest/detection`. Reads the request body and calls `client.execute(LogtestDetectionAction.INSTANCE, ...)`. No validation.
+
+### TransportLogtestDetectionAction
+
+**Path**: `transport/TransportLogtestDetectionAction.java`
+
+Responsibilities:
 
 1. Validates the request has content and is valid JSON.
 2. Validates the required fields `space`, `integration`, and `input`.
-3. Validates that `space` is `"test"` or `"standard"`.
+3. Validates that `space` is not `"draft"`.
 4. Validates that `input` is a JSON object (not a string or array).
 5. Delegates to `LogtestService.executeDetection(integrationId, space, inputEvent)`.
 
@@ -108,6 +126,10 @@ Client request
     │
     ▼
 RestPostLogtestAction (combined)
+    │  reads body into LogtestRequest, no validation
+    │  client.execute(LogtestAction.INSTANCE, ...)
+    ▼
+TransportLogtestAction
     │  validates request
     │  strips "integration" field
     ▼
@@ -144,6 +166,9 @@ In addition to the combined flow, there are two dedicated endpoints that execute
 
 ```
 RestPostLogtestNormalizationAction           RestPostLogtestDetectionAction
+    │  no validation, delegates via client.execute()  │  no validation, delegates via client.execute()
+    ▼                                            ▼
+TransportLogtestNormalizationAction          TransportLogtestDetectionAction
     │  validates: space                          │  validates: space, integration, input
     │  strips integration field                  │
     ▼                                            ▼
@@ -176,9 +201,9 @@ Both indices must exist and have `document.id` mapped as `keyword` for term quer
 
 | Test class | Covers |
 | --- | --- |
-| `RestPostLogtestActionTests` | Request validation for combined endpoint (empty body, invalid JSON, missing fields, wrong space, delegation to service) |
-| `RestPostLogtestNormalizationActionTests` | Request validation for normalization endpoint (empty body, invalid JSON, missing space, invalid space, delegation, integration stripping) |
-| `RestPostLogtestDetectionActionTests` | Request validation for detection endpoint (empty body, invalid JSON, missing fields, invalid space, non-object input, delegation) |
+| `TransportLogtestActionTests` | Request validation for combined endpoint (empty body, invalid JSON, missing fields, wrong space, delegation to service) |
+| `TransportLogtestNormalizationActionTests` | Request validation for normalization endpoint (empty body, invalid JSON, missing space, invalid space, delegation, integration stripping) |
+| `TransportLogtestDetectionActionTests` | Request validation for detection endpoint (empty body, invalid JSON, missing fields, invalid space, non-object input, delegation) |
 | `LogtestServiceTests` | Orchestration logic (integration lookup, engine errors, rule fetching, Security Analytics evaluation, response structure) |
 | `EventMatcherTests` | Sigma rule evaluation (field matching, wildcards, numerics, booleans, nulls, AND/OR/NOT conditions) |
 
@@ -196,7 +221,7 @@ Integration tests extend `ContentManagerRestTestCase` and run against a real Ope
 ### Supporting a new validation field
 
 1. Add the field constant to `Constants.java`.
-2. Add validation logic in the relevant handler(s): `RestPostLogtestAction`, `RestPostLogtestNormalizationAction`, and/or `RestPostLogtestDetectionAction`.
+2. Add validation logic in the relevant transport action(s): `TransportLogtestAction`, `TransportLogtestNormalizationAction`, and/or `TransportLogtestDetectionAction`. The REST handlers themselves need no changes — they only read the body and dispatch.
 3. Add unit tests in the corresponding test classes.
 4. Add integration test in `LogtestIT`.
 

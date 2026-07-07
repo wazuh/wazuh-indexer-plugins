@@ -27,7 +27,7 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 - **`plugins.security_analytics.enriched_findings_flush_interval`** (Integer, default `5`, range 1–60) — interval in seconds at which pending enriched findings are flushed regardless of batch size.
 - **`plugins.security_analytics.enriched_findings_index_enabled`** (Boolean, default `true`) — toggle the enriched findings pipeline (see [Architecture](architecture.md)).
 - **`plugins.security_analytics.enriched_findings_max_in_flight`** (Integer, default `5`, range 1–10) — maximum number of concurrent async enrichment chains.
-- **`plugins.security_analytics.enriched_findings_rule_cache_max_size`** (Integer, default `10000`, minimum `0`) — maximum number of rule-metadata entries cached in memory. Least-recently-used entries are evicted past this size.
+- **`plugins.security_analytics.enriched_findings_rule_cache_max_size`** (Integer, default `10000`, minimum `0`, **static — requires a node restart to change**) — maximum number of rule-metadata entries cached in memory. Least-recently-used entries are evicted past this size.
 - **`plugins.security_analytics.filter_by_backend_roles`** (Boolean, default `false`) — restrict access to detectors, rules, and findings based on the requester's backend roles.
 - **`plugins.security_analytics.finding_history_max_age`** (Time, default `30d`) — maximum age of a finding history index before rollover.
 - **`plugins.security_analytics.finding_history_retention_period`** (Time, default `60d`) — retention period after which finding history indices are deleted.

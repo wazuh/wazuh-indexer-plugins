@@ -10,22 +10,34 @@ The Security Analytics plugin is a fork of the [OpenSearch Security Analytics pl
 
 `WazuhEnrichedFindingService.enrich()` returns immediately after adding the finding to the internal queue. All network I/O and document assembly happen on async transport threads. Failures are logged at `WARN` level and never surface to the Security Analytics write path.
 
-### Bounded concurrency
+### Bounded, batch-oriented concurrency
 
-A `Semaphore` with `MAX_IN_FLIGHT` permits limits how many enrichment chains run simultaneously. Findings that arrive while all permits are held are queued in a `ConcurrentLinkedQueue` and processed as permits become available. This prevents transport-layer overload on resource-constrained nodes.
+Enrichment is batch-oriented, not per-finding: `processQueue()` drains the internal `findingsQueue` in batches of up to `enriched_findings_enrich_batch_size` findings (default `100`, range 1–1000, dynamic) and acquires a single semaphore permit for the whole batch, not one permit per finding. The semaphore is an `AdjustableSemaphore` sized by `enriched_findings_max_in_flight` (default `5`, range 1–10, dynamic) — its permit count can be resized live via `setMaxInFlight()` when the setting changes, with no restart required. Batches that arrive while all permits are held stay queued in `findingsQueue` until a permit frees up.
+
+Within a batch, per-finding completion is tracked with an `AtomicInteger remaining` counter; the batch's single permit is only released once every finding in the batch has completed (`onOneDone` callback).
+
+### Batched triggering-event fetch
+
+Instead of one `GetRequest` per finding, the service fetches all triggering events for a batch in a single deduplicated `MultiGetRequest` (deduplicated by `index|docId`, since multiple findings in a batch can share the same source event). This is the core throughput optimization: it eliminates roughly `enrichBatchSize - 1` out of every `enrichBatchSize` round-trips to the event index under load. Rule-metadata lookups are unaffected by this batching and remain per-finding (see below).
 
 ### Rule metadata cache
 
-Rule metadata (severity level, compliance mappings, MITRE ATT&CK tags) is stored in an in-memory `ConcurrentHashMap` keyed by rule ID, bounded by `plugins.security_analytics.enriched_findings_rule_cache_max_size` (least-recently-used eviction). On a cache miss, the service issues a `MultiGetRequest` against both the pre-packaged rules index (`opensearch-pre-packaged-rules`) and the custom rules index (`opensearch-custom-rules`). Subsequent findings from the same detector reuse the cached entry, eliminating repeated round-trips.
+Rule metadata (severity level, compliance mappings, MITRE ATT&CK tags) is cached in a `LinkedHashMap` in access-order mode wrapped with `Collections.synchronizedMap`, with an overridden `removeEldestEntry` providing LRU eviction — not a plain `ConcurrentHashMap` (which has no eviction capability). The cache is bounded by `plugins.security_analytics.enriched_findings_rule_cache_max_size` (default `10000`, minimum `0`). Unlike the other enriched-findings settings, this one is **static**: it has no registered settings-update-consumer, so changing it requires a node restart.
+
+On a cache miss, the service issues a `MultiGetRequest` against both the pre-packaged rules index (`opensearch-pre-packaged-rules`) and the custom rules index (`opensearch-custom-rules`). Subsequent findings from the same detector reuse the cached entry, eliminating repeated round-trips.
 
 ### Bulk indexing
 
 Index requests are accumulated in a `ConcurrentLinkedQueue<IndexRequest>`. Two flush paths drain this queue:
 
-- **Batch trigger**: every time `pendingCount` reaches a multiple of `BULK_BATCH_SIZE`, the thread that incremented the counter calls `drainAndFlush()` immediately.
-- **Periodic flush**: a fixed-delay scheduler fires `drainAndFlush()` every `FLUSH_INTERVAL` to drain any remainder that has not yet reached the batch threshold.
+- **Batch trigger**: every time the pending count reaches a multiple of `enriched_findings_bulk_size` (default `100`, range 10–1000, dynamic), the thread that incremented the counter calls `drainAndFlush()` immediately.
+- **Periodic flush**: a fixed-delay scheduler fires `drainAndFlush()` every `enriched_findings_flush_interval` (default `5` seconds, range 1–60, dynamic) to drain any remainder that has not yet reached the batch threshold. Changing this setting at runtime cancels and reschedules the flush job (`setFlushInterval()`).
 
 `drainAndFlush()` polls all pending requests into a single `BulkRequest` and calls `client.bulk()`. The call is wrapped in `threadPool.getThreadContext().stashContext()` so the security plugin accepts the request regardless of which thread pool the flush runs on.
+
+### Document build offloading
+
+Synchronous document-assembly work (copying event sources, interpolating templates) runs on the `GENERIC` thread pool rather than the transport/listener thread that completed the upstream `MultiGetRequest` — this keeps that work from competing with request handling on the transport thread.
 
 ### Category resolution
 
@@ -62,38 +74,40 @@ sequenceDiagram
     SA->>TC: SUBSCRIBE_FINDINGS_ACTION
     TC->>WS: enrich(finding)
     WS->>WS: Add to findingsQueue
-    WS->>WS: Acquire semaphore permit (max 5 in-flight)
-    WS->>SI: GetRequest (triggering event by doc ID)
-    SI-->>WS: Event source map
-    WS->>WS: resolveCategory(wazuh.integration.category)
-    alt Rule metadata cache hit
-        WS->>WS: Read from ruleMetadataCache
-    else Cache miss
-        WS->>RI: MultiGetRequest (pre-packaged + custom rules indices)
-        RI-->>WS: Rule metadata
-        WS->>WS: Store in ruleMetadataCache
+    WS->>WS: processQueue() drains a batch (up to enrichBatchSize findings)
+    WS->>WS: Acquire semaphore permit for the whole batch (max_in_flight)
+    WS->>SI: MultiGetRequest (deduplicated triggering events for the batch)
+    SI-->>WS: Event source maps
+    loop For each finding in the batch
+        WS->>WS: resolveCategory(wazuh.integration.category)
+        alt Rule metadata cache hit
+            WS->>WS: Read from ruleMetadataCache
+        else Cache miss
+            WS->>RI: MultiGetRequest (pre-packaged + custom rules indices)
+            RI-->>WS: Rule metadata
+            WS->>WS: Store in ruleMetadataCache
+        end
+        WS->>WS: buildAndIndex (assemble enriched document, on GENERIC thread pool)
+        WS->>WS: Add to pendingRequests queue
     end
-    WS->>WS: buildAndIndex (assemble enriched document)
-    WS->>WS: Add to pendingRequests queue
-    alt Batch full (100 items)
+    alt Batch trigger (bulk_size reached)
         WS->>WF: client.bulk (stashed thread context)
-    else Periodic flush (every 5 s)
+    else Periodic flush (every flush_interval)
         WS->>WF: client.bulk (stashed thread context)
     end
-    WS->>WS: Release semaphore permit
+    WS->>WS: Release batch's semaphore permit once every finding in it has completed
 ```
 
-### Technical parameters
+### Tuning settings
 
-| Parameter            | Value                            | Description                                                     |
-| -------------------- | -------------------------------- | --------------------------------------------------------------- |
-| `BULK_BATCH_SIZE`    | `100`                            | Pending index requests accumulated before a batch-trigger flush |
-| `MAX_IN_FLIGHT`      | `5`                              | Maximum concurrent async enrichment chains                      |
-| `FLUSH_INTERVAL`     | `5 s`                            | Interval between periodic flush runs                            |
-| Rule metadata cache  | Bounded (LRU), in-memory         | `ConcurrentHashMap`, keyed by rule ID                            |
-| Index operation type | `CREATE`                         | Prevents overwriting existing enriched findings                 |
+- **`plugins.security_analytics.enriched_findings_bulk_size`** (default `100`, range 10–1000, dynamic) — bulk flush batch size: number of pending index requests accumulated before a batch-trigger flush.
+- **`plugins.security_analytics.enriched_findings_max_in_flight`** (default `5`, range 1–10, dynamic) — maximum number of concurrent in-flight enrichment batches.
+- **`plugins.security_analytics.enriched_findings_flush_interval`** (default `5` seconds, range 1–60, dynamic) — interval between periodic flush runs.
+- **`plugins.security_analytics.enriched_findings_enrich_batch_size`** (default `100`, range 1–1000, dynamic) — number of findings drained from the queue per in-flight permit.
+- **`plugins.security_analytics.enriched_findings_rule_cache_max_size`** (default `10000`, minimum `0`, **static — requires a node restart**) — maximum number of rule-metadata entries cached in memory.
+- **Index operation type** (`CREATE`, not configurable) — prevents overwriting existing enriched findings.
 
-These parameters are exposed as settings — see `plugins.security_analytics.enriched_findings_*` in the [Configuration reference](../../ref/modules/security-analytics/configuration.md).
+See the [Configuration reference](../../ref/modules/security-analytics/configuration.md) for the full settings list.
 
 ## Detector provisioning
 
@@ -119,7 +133,7 @@ To ensure system stability, `DetectorFactory` implements a fallback mechanism fo
 
 ## Case management
 
-> **Status:** the schema below reflects the [issue #1220 follow-up](https://github.com/wazuh/wazuh-indexer-plugins/issues/1220) revision, not yet merged into the stable branch.
+> **Status:** incoming changes in [issue #1334](https://github.com/wazuh/wazuh-indexer-plugins/issues/1334).
 
 Case management adds triage capabilities to Security Analytics findings, allowing analysts to track status, classification, a multi-comment discussion thread, tags, and user attribution on individual findings.
 

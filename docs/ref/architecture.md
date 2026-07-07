@@ -41,7 +41,7 @@ The Wazuh Indexer is built on top of [OpenSearch](https://opensearch.org/) and e
 
 ## Plugins
 
-### Setup Plugin
+### Setup plugin
 
 The Setup plugin initializes the Wazuh Indexer environment when the cluster starts. It is responsible for:
 
@@ -52,7 +52,7 @@ The Setup plugin initializes the Wazuh Indexer environment when the cluster star
 
 The Setup plugin runs once during cluster initialization and ensures the required infrastructure is in place before other plugins begin operating.
 
-### Content Manager Plugin
+### Content Manager plugin
 
 The Content Manager is the most feature-rich plugin. It handles:
 
@@ -64,7 +64,7 @@ The Content Manager is the most feature-rich plugin. It handles:
 
 See [Content Manager](modules/content-manager/index.md) for full details.
 
-### Security Plugin
+### Security plugin
 
 The Security plugin extends OpenSearch's security capabilities for Wazuh-specific needs:
 
@@ -72,14 +72,14 @@ The Security plugin extends OpenSearch's security capabilities for Wazuh-specifi
 - **User management**: Provides APIs and configuration for managing users and their access levels.
 - **TLS/SSL**: Handles transport and REST layer encryption.
 
-### Reporting Plugin
+### Reporting plugin
 
 The Reporting plugin enables on-demand and scheduled report generation from the Wazuh Dashboard, producing PDF or CSV exports of dashboards and saved searches.
 
-## Data Flow
+## Data flow
 
 1. **Wazuh Agents** collect security events from monitored endpoints and forward them to the **Wazuh Manager**.
 2. The **Wazuh Engine** on the server analyzes events using rules and decoders, then forwards alerts and events to the **Wazuh Indexer** via the Indexer API.
-3. The **Setup Plugin** ensures the correct index templates, data streams, and lifecycle policies exist.
-4. The **Content Manager Plugin** keeps the Engine's detection content up to date by synchronizing with the CTI API and managing user customizations.
+3. The **Setup plugin** ensures the correct index templates, data streams, and lifecycle policies exist.
+4. The **Content Manager plugin** keeps the Engine's detection content up to date by synchronizing with the CTI API and managing user customizations.
 5. The **Wazuh Dashboard** queries the Indexer to visualize alerts, events, and security analytics.

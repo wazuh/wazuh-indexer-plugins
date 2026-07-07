@@ -1,6 +1,6 @@
 # Wazuh Indexer Content Manager plugin — development guide
 
-This document describes the architecture, components, and extension points of the Content Manager plugin, which manages security content synchronization from the Wazuh CTI API and provides REST endpoints for user-generated content management.
+This document describes the architecture, components, and extension points of the Content Manager plugin, which manages threat intelligence content synchronization from the Wazuh CTI API and provides REST endpoints for user-generated content management.
 
 ---
 
@@ -89,19 +89,19 @@ sequenceDiagram
 
 The plugin manages the following indices. The 8 content indices marked "alias-backed" use the **alias-backed blue/green storage** scheme (see [Index alias convention](#index-alias-convention) below); `.wazuh-cti-consumers`, `.wazuh-internal-state`, and `.wazuh-content-manager-jobs` are single physical indices, not blue/green'd.
 
-| Alias or index name | Purpose | Hidden | Alias-backed |
-| --- | --- | --- | --- |
-| `.wazuh-cti-consumers` | Sync state (status, offsets) per consumer | yes | no |
-| `.wazuh-internal-state` | Persisted CTI access token | yes | no |
-| `wazuh-threatintel-policies` | Policy documents | no | yes |
-| `wazuh-threatintel-integrations` | Integration definitions | no | yes |
-| `wazuh-threatintel-rules` | Detection rules | no | yes |
-| `wazuh-threatintel-decoders` | Decoder definitions | no | yes |
-| `wazuh-threatintel-kvdbs` | Key-value databases | no | yes |
-| `wazuh-threatintel-filters` | Engine filter rules | no | yes |
-| `wazuh-threatintel-enrichments` | Indicators of Compromise (IoC) | no | yes |
-| `.wazuh-threatintel-vulnerabilities` | CVE vulnerability data | yes | yes |
-| `.wazuh-content-manager-jobs` | Job scheduler metadata | yes | no |
+| Alias or index name                  | Purpose                                   | Hidden | Alias-backed |
+| ------------------------------------ | ----------------------------------------- | ------ | ------------ |
+| `.wazuh-cti-consumers`               | Sync state (status, offsets) per consumer | yes    | no           |
+| `.wazuh-internal-state`              | Persisted CTI access token                | yes    | no           |
+| `wazuh-threatintel-policies`         | Policy documents                          | no     | yes          |
+| `wazuh-threatintel-integrations`     | Integration definitions                   | no     | yes          |
+| `wazuh-threatintel-rules`            | Detection rules                           | no     | yes          |
+| `wazuh-threatintel-decoders`         | Decoder definitions                       | no     | yes          |
+| `wazuh-threatintel-kvdbs`            | Key-value databases                       | no     | yes          |
+| `wazuh-threatintel-filters`          | Engine filter rules                       | no     | yes          |
+| `wazuh-threatintel-enrichments`      | Indicators of Compromise (IoC)            | no     | yes          |
+| `.wazuh-threatintel-vulnerabilities` | CVE vulnerability data                    | yes    | yes          |
+| `.wazuh-content-manager-jobs`        | Job scheduler metadata                    | yes    | no           |
 
 This is the authoritative index list for the plugin; the [Reference Manual's System Indices table](../../ref/modules/content-manager/index.md#system-indices) links here rather than repeating it.
 
@@ -120,17 +120,16 @@ Only one physical index is live at a time. The alias points to it with `is_write
 
 ### Key classes
 
-| Class | Location | Responsibility |
-|---|---|---|
-| `ContentIndex` | `cti/catalog/index/ContentIndex.java` | Creates alias-backed physical indices. Has a 4-arg constructor for targeting shadow physical names directly. `createIndex()` creates the physical index and assigns the alias. `createShadowIndex()` creates a hidden physical index without an alias. |
-| `IndexSwapHelper` | `cti/catalog/index/IndexSwapHelper.java` | Stateless utility class for swap operations: `resolveShadowName()`, `resolveLivePhysicalName()`, `createShadowIndices()`, `reindexUserContent()`, `atomicSwap()`, `deleteIndices()`. |
-| `AbstractConsumerService` | `cti/catalog/service/AbstractConsumerService.java` | Detects plan changes and delegates to `performShadowSwap()` instead of the old `resetConsumer()` wipe-and-reload path. |
+| Class                     | Responsibility                                                                                                                                                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ContentIndex`            | Creates alias-backed physical indices. Has a 4-arg constructor for targeting shadow physical names directly. `createIndex()` creates the physical index and assigns the alias. `createShadowIndex()` creates a hidden physical index without an alias. |
+| `IndexSwapHelper`         | Stateless utility class for swap operations: `resolveShadowName()`, `resolveLivePhysicalName()`, `createShadowIndices()`, `reindexUserContent()`, `atomicSwap()`, `deleteIndices()`.                                                                   |
+| `AbstractConsumerService` | Detects plan changes and delegates to `performShadowSwap()` instead of the old `resetConsumer()` wipe-and-reload path.                                                                                                                                 |
 
 ### Shadow swap flow (plan change)
 
 When `AbstractConsumerService.syncConsumerServices()` detects a plan change (the plan-provided `resource` URL differs from the persisted one), it runs the shadow swap path:
 
-```
 1. Resolve shadow physical names (the -a/-b suffix not currently live)
 2. Create hidden shadow physical indices (index.hidden=true, no alias)
 3. Download snapshot into shadow indices (reuse SnapshotServiceImpl)
@@ -141,13 +140,17 @@ When `AbstractConsumerService.syncConsumerServices()` detects a plan change (the
 7. Rewrite consumer document in .wazuh-cti-consumers
 8. Run post-sync cascade (onSyncComplete: Security Analytics sync, engine promote, etc.)
 9. Delete old physical indices
-```
 
-**Error handling:**
-- Failure before step 6: shadow indices are deleted, alias and consumer doc unchanged. Next sync retries.
-- Failure between steps 6–7: alias is swapped but consumer doc still says old resource. Next sync re-detects the plan change and re-runs the shadow path (at most one wasted rebuild, no user-visible corruption).
+### Failure modes
 
-**Concurrency:** The `CatalogSyncJob` semaphore spans the entire `synchronize()` call, which includes the shadow swap. No additional locking is needed.
+| Failure point                                                                          | System state after failure                                                                                                                                    | Next sync behavior                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Before step 6 (alias swap)                                                             | Shadow indices are deleted; live alias and consumer document are untouched.                                                                                   | Retries the shadow swap from a clean state against the same target plan.                                                                                                                                                  |
+| Between step 6 (alias swap) and step 7 (consumer doc rewrite)                          | Alias already points at the new physical indices, but `.wazuh-cti-consumers` still names the old `resource` URL.                                              | Re-detects the plan change (persisted resource still differs from the plan) and re-runs the shadow swap — at most one wasted rebuild, no user-visible corruption since readers already see the new content via the alias. |
+| Concurrent REST writes to `draft`/`test`/`custom` during shadow population (steps 2–4) | Content written after the reindex snapshot (step 4) but before the alias swap (step 6) exists only in the old live indices.                                   | Lost on swap unless the write lands in the same sync cycle; acceptable because the `CatalogSyncJob` semaphore (below) makes this window narrow, not eliminated.                                                           |
+| Engine/Security Analytics unavailable during the post-sync cascade (step 8)            | Alias and consumer document are already committed to the new source; only downstream propagation (Engine `promote()`, Security Analytics sync) is incomplete. | Cascade is idempotent and retried on the next scheduled sync, which now runs against the already-swapped source.                                                                                                          |
+
+**Concurrency:** The `CatalogSyncJob` semaphore spans the entire `synchronize()` call, which includes the shadow swap. No additional locking is needed, but it also means the swap holds that semaphore for its full duration — normal incremental syncs for other consumers queue behind it.
 
 ### Normal incremental syncs
 
@@ -159,7 +162,7 @@ Regular incremental updates (no plan change) write through the alias to the live
 
 ### Entry point
 
-**`ContentManagerPlugin`** is the main class. It implements `Plugin`, `ClusterPlugin`, `JobSchedulerExtension`, and `SystemIndexPlugin` (which extends `ActionPlugin`). On startup it:
+**`ContentManagerPlugin`** is the main class. It implements `Plugin`, `ClusterPlugin`, `JobSchedulerExtension`, and `SystemIndexPlugin` (which extends `ActionPlugin`). On startup, it:
 
 1. Initializes `PluginSettings`, `ConsumersIndex`, `CredentialsIndex`, `CtiConsole`, `CatalogSyncJob`, `EngineServiceImpl`, and `SpaceService`.
 2. Registers all REST handlers via `getRestHandlers()`.
@@ -213,35 +216,35 @@ Runtime toggle behavior:
 
 The plugin registers 27 REST handlers, grouped by domain:
 
-| Domain | Handler | Method | URI |
-| --- | --- | --- | --- |
-| **Subscription** | `RestPostSubscriptionAction` | POST | `/_plugins/_content_manager/subscription` |
-| | `RestGetSubscriptionAction` | GET | `/_plugins/_content_manager/subscription` |
-| | `RestDeleteSubscriptionAction` | DELETE | `/_plugins/_content_manager/subscription` |
-| **Update** | `RestPostUpdateAction` | POST | `/_plugins/_content_manager/update` |
-| **Version check** | `RestGetVersionCheckAction` | GET | `/_plugins/_content_manager/version/check` |
-| **Logtest** | `RestPostLogtestAction` | POST | `/_plugins/_content_manager/logtest` |
-| | `RestPostLogtestNormalizationAction` | POST | `/_plugins/_content_manager/logtest/normalization` |
-| | `RestPostLogtestDetectionAction` | POST | `/_plugins/_content_manager/logtest/detection` |
-| **Policy** | `RestPutPolicyAction` | PUT | `/_plugins/_content_manager/policy/{space}` |
-| **Rules** | `RestPostRuleAction` | POST | `/_plugins/_content_manager/rules` |
-| | `RestPutRuleAction` | PUT | `/_plugins/_content_manager/rules/{id}` |
-| | `RestDeleteRuleAction` | DELETE | `/_plugins/_content_manager/rules/{id}` |
-| **Decoders** | `RestPostDecoderAction` | POST | `/_plugins/_content_manager/decoders` |
-| | `RestPutDecoderAction` | PUT | `/_plugins/_content_manager/decoders/{id}` |
-| | `RestDeleteDecoderAction` | DELETE | `/_plugins/_content_manager/decoders/{id}` |
-| **Integrations** | `RestPostIntegrationAction` | POST | `/_plugins/_content_manager/integrations` |
-| | `RestPutIntegrationAction` | PUT | `/_plugins/_content_manager/integrations/{id}` |
-| | `RestDeleteIntegrationAction` | DELETE | `/_plugins/_content_manager/integrations/{id}` |
-| **KVDBs** | `RestPostKvdbAction` | POST | `/_plugins/_content_manager/kvdbs` |
-| | `RestPutKvdbAction` | PUT | `/_plugins/_content_manager/kvdbs/{id}` |
-| | `RestDeleteKvdbAction` | DELETE | `/_plugins/_content_manager/kvdbs/{id}` |
-| **Filters** | `RestPostFilterAction` | POST | `/_plugins/_content_manager/filters` |
-| | `RestPutFilterAction` | PUT | `/_plugins/_content_manager/filters/{id}` |
-| | `RestDeleteFilterAction` | DELETE | `/_plugins/_content_manager/filters/{id}` |
-| **Promote** | `RestPostPromoteAction` | POST | `/_plugins/_content_manager/promote` |
-| | `RestGetPromoteAction` | GET | `/_plugins/_content_manager/promote` |
-| **Spaces** | `RestDeleteSpaceAction` | DELETE | `/_plugins/_content_manager/space/{space}` |
+| Domain            | Handler                              | Method | URI                                                |
+| ----------------- | ------------------------------------ | ------ | -------------------------------------------------- |
+| **Subscription**  | `RestPostSubscriptionAction`         | POST   | `/_plugins/_content_manager/subscription`          |
+|                   | `RestGetSubscriptionAction`          | GET    | `/_plugins/_content_manager/subscription`          |
+|                   | `RestDeleteSubscriptionAction`       | DELETE | `/_plugins/_content_manager/subscription`          |
+| **Update**        | `RestPostUpdateAction`               | POST   | `/_plugins/_content_manager/update`                |
+| **Version check** | `RestGetVersionCheckAction`          | GET    | `/_plugins/_content_manager/version/check`         |
+| **Logtest**       | `RestPostLogtestAction`              | POST   | `/_plugins/_content_manager/logtest`               |
+|                   | `RestPostLogtestNormalizationAction` | POST   | `/_plugins/_content_manager/logtest/normalization` |
+|                   | `RestPostLogtestDetectionAction`     | POST   | `/_plugins/_content_manager/logtest/detection`     |
+| **Policy**        | `RestPutPolicyAction`                | PUT    | `/_plugins/_content_manager/policy/{space}`        |
+| **Rules**         | `RestPostRuleAction`                 | POST   | `/_plugins/_content_manager/rules`                 |
+|                   | `RestPutRuleAction`                  | PUT    | `/_plugins/_content_manager/rules/{id}`            |
+|                   | `RestDeleteRuleAction`               | DELETE | `/_plugins/_content_manager/rules/{id}`            |
+| **Decoders**      | `RestPostDecoderAction`              | POST   | `/_plugins/_content_manager/decoders`              |
+|                   | `RestPutDecoderAction`               | PUT    | `/_plugins/_content_manager/decoders/{id}`         |
+|                   | `RestDeleteDecoderAction`            | DELETE | `/_plugins/_content_manager/decoders/{id}`         |
+| **Integrations**  | `RestPostIntegrationAction`          | POST   | `/_plugins/_content_manager/integrations`          |
+|                   | `RestPutIntegrationAction`           | PUT    | `/_plugins/_content_manager/integrations/{id}`     |
+|                   | `RestDeleteIntegrationAction`        | DELETE | `/_plugins/_content_manager/integrations/{id}`     |
+| **KVDBs**         | `RestPostKvdbAction`                 | POST   | `/_plugins/_content_manager/kvdbs`                 |
+|                   | `RestPutKvdbAction`                  | PUT    | `/_plugins/_content_manager/kvdbs/{id}`            |
+|                   | `RestDeleteKvdbAction`               | DELETE | `/_plugins/_content_manager/kvdbs/{id}`            |
+| **Filters**       | `RestPostFilterAction`               | POST   | `/_plugins/_content_manager/filters`               |
+|                   | `RestPutFilterAction`                | PUT    | `/_plugins/_content_manager/filters/{id}`          |
+|                   | `RestDeleteFilterAction`             | DELETE | `/_plugins/_content_manager/filters/{id}`          |
+| **Promote**       | `RestPostPromoteAction`              | POST   | `/_plugins/_content_manager/promote`               |
+|                   | `RestGetPromoteAction`               | GET    | `/_plugins/_content_manager/promote`               |
+| **Spaces**        | `RestDeleteSpaceAction`              | DELETE | `/_plugins/_content_manager/space/{space}`         |
 
 ---
 
@@ -393,14 +396,14 @@ The `ContentIndex.create()` method skips `processPayload()` when it receives a f
 
 ### Key classes
 
-| Class | Role |
-| --- | --- |
-| `YamlUtils` | YAML - JSON conversion with `USE_BIG_DECIMAL_FOR_FLOATS`, `fixDecimalScale()` |
-| `Decoder` | Model with `yaml` field, `fromPayload()` generates YAML from document |
-| `Kvdb` | Model with `yaml` field, same pattern as Decoder |
-| `Filter` | Model with `yaml` field, same pattern as Decoder |
-| `AbstractContentAction` | `isYamlRequest()`, `supportsYamlField()` base methods |
-| `ContentIndex` | `create()` skips `processPayload()` for pre-built wrappers |
+| Class                   | Role                                                                          |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `YamlUtils`             | YAML - JSON conversion with `USE_BIG_DECIMAL_FOR_FLOATS`, `fixDecimalScale()` |
+| `Decoder`               | Model with `yaml` field, `fromPayload()` generates YAML from document         |
+| `Kvdb`                  | Model with `yaml` field, same pattern as Decoder                              |
+| `Filter`                | Model with `yaml` field, same pattern as Decoder                              |
+| `AbstractContentAction` | `isYamlRequest()`, `supportsYamlField()` base methods                         |
+| `ContentIndex`          | `create()` skips `processPayload()` for pre-built wrappers                    |
 
 ---
 
@@ -513,7 +516,9 @@ sequenceDiagram
     participant CTI as External CTI API
     participant Snapshot as SnapshotService
     participant Update as UpdateService
+    participant Swap as IndexSwapHelper
     participant Indices as Content Indices
+    participant Consumers as .wazuh-cti-consumers
     participant SA as SecurityAnalyticsServiceImpl
 
     Scheduler->>SyncJob: Trigger Execution
@@ -530,11 +535,21 @@ sequenceDiagram
         Snapshot->>CTI: Download Snapshot ZIP
         Snapshot->>Indices: Bulk Index Content (Rules/Integrations/etc.)
         Snapshot-->>Synchronizer: Done
-    else Local Offset < Remote Offset (Update)
+    else Local Offset < Remote Offset (Update, no plan change)
         Synchronizer->>Update: update(localOffset, remoteOffset)
         Update->>CTI: Fetch Changes
         Update->>Indices: Apply JSON Patches
         Update-->>Synchronizer: Done
+    else Plan change detected (resource URL differs)
+        Synchronizer->>Swap: performShadowSwap()
+        Swap->>Indices: Create hidden shadow indices (-a/-b spare suffix)
+        Swap->>CTI: Download snapshot into shadow indices
+        Swap->>Indices: Reindex user content (space.name != "standard")
+        Swap->>Indices: Unhide shadow indices
+        Swap->>Indices: Atomic alias swap (single IndicesAliasesRequest)
+        Swap->>Consumers: Rewrite consumer document (new resource, local_offset = remote_offset)
+        Swap->>Indices: Delete old physical indices
+        Swap-->>Synchronizer: Done
     end
 
     opt Changes Applied (onSyncComplete)
@@ -560,6 +575,8 @@ sequenceDiagram
 
     deactivate SyncJob
 ```
+
+The `opt Changes Applied (onSyncComplete)` cascade runs after all three branches, including the shadow swap — by the time it executes, `Indices` and `Consumers` already resolve through the swapped alias and rewritten consumer document.
 
 ### Initialization phase
 
@@ -736,23 +753,23 @@ The `wazuh-threatintel-policies` index stores policy configurations. See [Docume
 
 **Policy document fields:**
 
-| Field                      | Type      | Description                                                  | Editable in standard space |
-| -------------------------- | --------- | ------------------------------------------------------------ | :------------------------: |
-| `id`                       | keyword   | Unique identifier                                            | No                         |
-| `title`                    | keyword   | Human-readable name                                          | No                         |
-| `date`                     | date      | Creation timestamp                                           | No                         |
-| `modified`                 | date      | Last modification timestamp                                  | No                         |
-| `root_decoder`             | keyword   | Root decoder for event processing                            | No                         |
-| `integrations`             | keyword[] | Active integration IDs                                       | No                         |
-| `author`                   | keyword   | Policy author                                                | No                         |
-| `description`              | text      | Brief description                                            | No                         |
-| `documentation`            | keyword   | Documentation link                                           | No                         |
-| `references`               | keyword[] | External reference URLs                                      | No                         |
-| `filters`                  | keyword[] | Filter UUIDs (reordering allowed, no add/remove)             | Yes                        |
-| `enrichments`              | keyword[] | Enrichment types (`file`, `domain-name`, `ip`, `url`, `geo`) | Yes                        |
-| `enabled`                  | boolean   | Whether the policy is active                                 | Yes                        |
-| `index_unclassified_events`| boolean   | Index events that match no rule                              | Yes                        |
-| `index_discarded_events`   | boolean   | Index events explicitly discarded by rules                   | Yes                        |
+| Field                       | Type      | Description                                                  | Editable in standard space |
+| --------------------------- | --------- | ------------------------------------------------------------ | :------------------------: |
+| `id`                        | keyword   | Unique identifier                                            |             No             |
+| `title`                     | keyword   | Human-readable name                                          |             No             |
+| `date`                      | date      | Creation timestamp                                           |             No             |
+| `modified`                  | date      | Last modification timestamp                                  |             No             |
+| `root_decoder`              | keyword   | Root decoder for event processing                            |             No             |
+| `integrations`              | keyword[] | Active integration IDs                                       |             No             |
+| `author`                    | keyword   | Policy author                                                |             No             |
+| `description`               | text      | Brief description                                            |             No             |
+| `documentation`             | keyword   | Documentation link                                           |             No             |
+| `references`                | keyword[] | External reference URLs                                      |             No             |
+| `filters`                   | keyword[] | Filter UUIDs (reordering allowed, no add/remove)             |            Yes             |
+| `enrichments`               | keyword[] | Enrichment types (`file`, `domain-name`, `ip`, `url`, `geo`) |            Yes             |
+| `enabled`                   | boolean   | Whether the policy is active                                 |            Yes             |
+| `index_unclassified_events` | boolean   | Index events that match no rule                              |            Yes             |
+| `index_discarded_events`    | boolean   | Index events explicitly discarded by rules                   |            Yes             |
 
 ### Filters CUD (Engine filters)
 
@@ -885,25 +902,25 @@ tail -f var/log/wazuh-indexer/wazuh-cluster.log | grep -E "ContentManager|Catalo
 
 The plugin includes integration tests defined in the `tests/content-manager` directory. These tests cover various scenarios for managing integrations, decoders, rules, and KVDBs through the REST API, grouped below by resource and operation.
 
-| Resource / operation | Scenario count | Covers |
-| --- | --- | --- |
-| Integrations: create | 9 | Success; duplicate title; missing title/author/category; explicit `id` in resource; missing resource object; empty body; no authentication |
-| Integrations: update | 8 | Success; title collision with an existing draft integration; missing required fields; not found; invalid UUID; `id` in request body; attempting to add/remove dependency lists; no authentication |
-| Integrations: delete | 7 | Success (no attached resources); has attached resources; not found; invalid UUID; missing ID; not in draft space; no authentication |
-| Decoders: create | 7 | Success; missing integration reference; explicit `id` in resource; integration not in draft space; missing resource object; empty body; no authentication |
-| Decoders: update | 7 | Success; not found; invalid UUID; not in draft space; missing resource object; empty body; no authentication |
-| Decoders: delete | 7 | Success; not found; invalid UUID; not in draft space; missing ID; no authentication; verify removal from index |
-| Rules: create | 7 | Success; missing title; missing integration reference; explicit `id` in resource; integration not in draft space; empty body; no authentication |
-| Rules: update | 7 | Success; missing title; not found; invalid UUID; not in draft space; empty body; no authentication |
-| Rules: delete | 7 | Success; not found; invalid UUID; not in draft space; missing ID; no authentication; verify removal from index |
-| KVDBs: create | 9 | Success; missing title/author/content; missing integration reference; explicit `id` in resource; integration not in draft space; empty body; no authentication |
-| KVDBs: update | 7 | Success; missing required fields; not found; invalid UUID; not in draft space; empty body; no authentication |
-| KVDBs: delete | 7 | Success; not found; invalid UUID; not in draft space; missing ID; no authentication; verify removal from index |
-| Policy: initialization | 6 | `wazuh-threatintel-policies` index exists; exactly four policy documents (one per space); standard policy has a distinct document ID; draft/test/custom start with empty `integrations`/`root_decoder`; document structure; valid SHA-256 hash |
-| Policy: update draft | 12 | Success; missing/wrong `type`; missing resource object; missing required fields; attempting to add/remove an integration; reordering integrations (allowed); empty body; no authentication; changes not reflected in test space until promotion; changes reflected after promotion |
-| Logtest | 4 | Success; empty body; invalid JSON; no authentication |
-| Promote: preview | 7 | Draft → test; test → custom; missing/empty/invalid `space` parameter; preview from custom (not allowed); no authentication |
-| Promote: execute | 18 | Success draft → test and test → custom, each verified for resource presence, hash regeneration, and hash match; deleting a draft decoder doesn't affect a promoted test space; promote from custom (not allowed); invalid space; missing/incomplete `changes` object; non-update operation on policy; empty body; no authentication |
+| Resource / operation   | Scenario count | Covers                                                                                                                                                                                                                                                                                                                              |
+| ---------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Integrations: create   | 9              | Success; duplicate title; missing title/author/category; explicit `id` in resource; missing resource object; empty body; no authentication                                                                                                                                                                                          |
+| Integrations: update   | 8              | Success; title collision with an existing draft integration; missing required fields; not found; invalid UUID; `id` in request body; attempting to add/remove dependency lists; no authentication                                                                                                                                   |
+| Integrations: delete   | 7              | Success (no attached resources); has attached resources; not found; invalid UUID; missing ID; not in draft space; no authentication                                                                                                                                                                                                 |
+| Decoders: create       | 7              | Success; missing integration reference; explicit `id` in resource; integration not in draft space; missing resource object; empty body; no authentication                                                                                                                                                                           |
+| Decoders: update       | 7              | Success; not found; invalid UUID; not in draft space; missing resource object; empty body; no authentication                                                                                                                                                                                                                        |
+| Decoders: delete       | 7              | Success; not found; invalid UUID; not in draft space; missing ID; no authentication; verify removal from index                                                                                                                                                                                                                      |
+| Rules: create          | 7              | Success; missing title; missing integration reference; explicit `id` in resource; integration not in draft space; empty body; no authentication                                                                                                                                                                                     |
+| Rules: update          | 7              | Success; missing title; not found; invalid UUID; not in draft space; empty body; no authentication                                                                                                                                                                                                                                  |
+| Rules: delete          | 7              | Success; not found; invalid UUID; not in draft space; missing ID; no authentication; verify removal from index                                                                                                                                                                                                                      |
+| KVDBs: create          | 9              | Success; missing title/author/content; missing integration reference; explicit `id` in resource; integration not in draft space; empty body; no authentication                                                                                                                                                                      |
+| KVDBs: update          | 7              | Success; missing required fields; not found; invalid UUID; not in draft space; empty body; no authentication                                                                                                                                                                                                                        |
+| KVDBs: delete          | 7              | Success; not found; invalid UUID; not in draft space; missing ID; no authentication; verify removal from index                                                                                                                                                                                                                      |
+| Policy: initialization | 6              | `wazuh-threatintel-policies` index exists; exactly four policy documents (one per space); standard policy has a distinct document ID; draft/test/custom start with empty `integrations`/`root_decoder`; document structure; valid SHA-256 hash                                                                                      |
+| Policy: update draft   | 12             | Success; missing/wrong `type`; missing resource object; missing required fields; attempting to add/remove an integration; reordering integrations (allowed); empty body; no authentication; changes not reflected in test space until promotion; changes reflected after promotion                                                  |
+| Logtest                | 4              | Success; empty body; invalid JSON; no authentication                                                                                                                                                                                                                                                                                |
+| Promote: preview       | 7              | Draft → test; test → custom; missing/empty/invalid `space` parameter; preview from custom (not allowed); no authentication                                                                                                                                                                                                          |
+| Promote: execute       | 18             | Success draft → test and test → custom, each verified for resource presence, hash regeneration, and hash match; deleting a draft decoder doesn't affect a promoted test space; promote from custom (not allowed); invalid space; missing/incomplete `changes` object; non-update operation on policy; empty body; no authentication |
 
 ---
 

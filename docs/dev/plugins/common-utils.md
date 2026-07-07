@@ -6,14 +6,12 @@
 
 The library defines cross-plugin models and transport-action contracts so that plugins can call each other's functionality without a direct compile-time dependency on each other's internals:
 
-| Package | Purpose |
-| --- | --- |
-| `org.opensearch.commons.alerting` | Shared alerting models and `AlertingPluginInterface`, the transport bridge other plugins use to call into Alerting (e.g., Security Analytics fetches findings via `AlertingPluginInterface.INSTANCE.getFindings()`). |
-| `org.opensearch.commons.notifications` | Shared notification channel/config models and `NotificationsPluginInterface`, used to send notifications from other plugins without depending on the Notifications plugin directly. |
-| `org.opensearch.commons.notifications.model.ActiveResponse` | The Active Response channel definition — the Wazuh-specific extension that lets a Notifications channel drive Active Response execution requests. |
-| `org.opensearch.commons.replication` | Shared cross-cluster replication models and `ReplicationPluginInterface`. |
-| `org.opensearch.commons.authuser` | Shared user/role context passed across plugin boundaries for RBAC enforcement. |
-| `org.opensearch.commons.destination` | Shared destination message/response models used by notification transports. |
+- **`org.opensearch.commons.alerting`** — shared alerting models and `AlertingPluginInterface`, the transport bridge other plugins use to call into Alerting (e.g., Security Analytics fetches findings via `AlertingPluginInterface.INSTANCE.getFindings()`).
+- **`org.opensearch.commons.notifications`** — shared notification channel/config models and `NotificationsPluginInterface`, used to send notifications from other plugins without depending on the Notifications plugin directly.
+- **`org.opensearch.commons.notifications.model.ActiveResponse`** — the Active Response channel definition; the Wazuh-specific extension that lets a Notifications channel drive Active Response execution requests.
+- **`org.opensearch.commons.replication`** — shared cross-cluster replication models and `ReplicationPluginInterface`.
+- **`org.opensearch.commons.authuser`** — shared user/role context passed across plugin boundaries for RBAC enforcement.
+- **`org.opensearch.commons.destination`** — shared destination message/response models used by notification transports.
 
 ## Relationship to the Security Analytics `commons/` submodule
 
