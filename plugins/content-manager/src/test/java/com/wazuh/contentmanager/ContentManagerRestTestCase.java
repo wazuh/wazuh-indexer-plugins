@@ -111,6 +111,8 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                                         "properties": {
                                             "title":    {"type": "keyword"},
                                             "author":   {"type": "keyword"},
+                                            "date":     {"type": "date"},
+                                            "modified": {"type": "date"},
                                             "description": {"type": "text"},
                                             "references":  {"type": "keyword"},
                                             "documentation": {"type": "keyword"}
