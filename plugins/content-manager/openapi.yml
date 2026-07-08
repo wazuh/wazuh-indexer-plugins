@@ -1541,11 +1541,21 @@ components:
         date:
           type: string
           format: date-time
-          description: Creation timestamp (ISO-8601)
+          description: |
+            Creation timestamp (ISO-8601). Optional on create/update requests: if omitted,
+            the server generates it. If provided, the value is stored as-is and is not
+            validated or reformatted by the plugin — it must match the underlying index
+            field's `date` mapping format (`strict_date_optional_time||epoch_millis`), or
+            the request fails with `400 Bad Request`.
         modified:
           type: string
           format: date-time
-          description: Last modification timestamp (ISO-8601)
+          description: |
+            Last modification timestamp (ISO-8601). Optional on create/update requests: if
+            omitted, the server generates it. If provided, the value is stored as-is and is
+            not validated or reformatted by the plugin — it must match the underlying index
+            field's `date` mapping format (`strict_date_optional_time||epoch_millis`), or
+            the request fails with `400 Bad Request`.
         description:
           type: string
           description: Brief description
@@ -1577,11 +1587,19 @@ components:
         date:
           type: string
           format: date-time
-          description: Creation timestamp (ISO-8601)
+          description: |
+            Creation timestamp (ISO-8601). Read-only in practice: on update, any
+            caller-supplied value is ignored and the existing policy's original creation
+            date is preserved.
         modified:
           type: string
           format: date-time
-          description: Last modification timestamp (ISO-8601)
+          description: |
+            Last modification timestamp (ISO-8601). Optional on update requests: if
+            omitted, the server generates it. If provided, the value is stored as-is and is
+            not validated or reformatted by the plugin — it must match the underlying index
+            field's `date` mapping format (`strict_date_optional_time||epoch_millis`), or
+            the request fails with `400 Bad Request`.
         description:
           type: string
           description: Brief description

@@ -188,6 +188,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Unify Setup and Content Manager plugin states into running/ready/failed [(#1293)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1293)
 - Use the zstd codec by default for indices created by Wazuh plugins [(#1294)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1294)
 - Disable automatic refresh for low-activity indices [(#1304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1304)
+- Extend findings case management fields with title, description, severity, priority, tlp and a comments array [(#1338)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1338)
+- Allow dates on Content Manager's REST API [(#1359)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1359)
 
 ### Deprecated
 -
@@ -198,6 +200,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Remove outdated documentation [(#532)](https://github.com/wazuh/wazuh-indexer-plugins/pull/532)
 - Remove ECS object from WCS definitions [(#612)](https://github.com/wazuh/wazuh-indexer-plugins/pull/612)
 - Remove alerts and archives index creation [(#693)](https://github.com/wazuh/wazuh-indexer-plugins/pull/693)
+- Remove `unclassified` module from WCS and index templates [(#1358)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1358)
 
 ### Fixed
 - Improve ECS folder structure [(#473)](https://github.com/wazuh/wazuh-indexer-plugins/pull/473)
@@ -233,6 +236,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix SLF4J startup warning in setup plugin by replacing 1.x bridge with correct 2.x provider [(#1245)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1245)
 - Fix race condition between Content Manager and Setup plugin initialization [(#1262)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1262)
 - Fix invalid action name warning messages [(#1313)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1313)
+- Fix consumer offset left behind the remote head after a plan-change content swap [(#1343)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1343)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)

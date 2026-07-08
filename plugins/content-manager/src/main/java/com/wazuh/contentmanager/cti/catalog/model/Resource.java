@@ -276,26 +276,42 @@ public class Resource {
     }
 
     /**
-     * Sets the creation time on the given resource JSON node, inside {@code metadata.date}.
+     * Sets the creation time on the given resource JSON node, inside {@code metadata.date}, unless a
+     * caller-supplied value is already present.
      *
      * @param resourceNode The resource JSON node.
      * @param timestamp The timestamp to set.
      */
     public static void setCreationTime(ObjectNode resourceNode, String timestamp) {
         ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
-        metadataNode.put(Constants.KEY_DATE, timestamp);
+        if (!Resource.hasNonBlankValue(metadataNode, Constants.KEY_DATE)) {
+            metadataNode.put(Constants.KEY_DATE, timestamp);
+        }
     }
 
     /**
      * Sets the last modification time on the given resource JSON node, inside {@code
-     * metadata.modified}.
+     * metadata.modified}, unless a caller-supplied value is already present.
      *
      * @param resourceNode The resource JSON node.
      * @param timestamp The timestamp to set.
      */
     public static void setLastModificationTime(ObjectNode resourceNode, String timestamp) {
         ObjectNode metadataNode = Resource.getOrCreateMetadataNode(resourceNode);
-        metadataNode.put(Constants.KEY_MODIFIED, timestamp);
+        if (!Resource.hasNonBlankValue(metadataNode, Constants.KEY_MODIFIED)) {
+            metadataNode.put(Constants.KEY_MODIFIED, timestamp);
+        }
+    }
+
+    /**
+     * Checks whether the given field is present on the node with a non-null, non-blank value.
+     *
+     * @param node The JSON object node to inspect.
+     * @param field The field name to check.
+     * @return {@code true} if the field holds a non-blank value.
+     */
+    private static boolean hasNonBlankValue(ObjectNode node, String field) {
+        return node.has(field) && !node.get(field).isNull() && !node.get(field).asText("").isBlank();
     }
 
     /**
