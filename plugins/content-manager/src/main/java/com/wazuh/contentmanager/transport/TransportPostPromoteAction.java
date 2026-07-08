@@ -27,6 +27,7 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.RestRequest;
@@ -40,7 +41,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -101,10 +101,11 @@ public class TransportPostPromoteAction
         this.securityAnalyticsService = securityAnalyticsService;
     }
 
+    // ── Entry point ──────────────────────────────────────────────────────────
+
     @Override
     protected void doExecute(
             Task task, PostPromoteRequest request, ActionListener<MessageStatusResponse> listener) {
-        // 1. Check if engine service exists
         if (this.engine == null) {
             log.error(Constants.E_LOG_ENGINE_IS_NULL);
             listener.onResponse(
@@ -113,7 +114,6 @@ public class TransportPostPromoteAction
             return;
         }
 
-        // 2. Check request body exists
         String body = request.getBody();
         if (body == null || body.isBlank()) {
             listener.onResponse(
@@ -122,43 +122,11 @@ public class TransportPostPromoteAction
         }
 
         try {
-            // 1. Validation Phase - Validate payload
             ObjectMapper mapper = new ObjectMapper();
             SpaceDiff spaceDiff = mapper.readValue(body, SpaceDiff.class);
             this.validatePromoteRequest(spaceDiff);
 
-            // 2. Gathering Phase - Build the engine payload
-            PromotionContext context = this.gatherPromotionData(spaceDiff);
-
-            // 3. Validation Phase - Invoke engine validation
-            Space targetSpace = spaceDiff.getSpace().promote();
-            if ((targetSpace == Space.TEST || targetSpace == Space.CUSTOM)
-                    && (this.hasEngineRelatedChanges(context)
-                            || this.spaceService.hasEngineResources(targetSpace))) {
-                RestResponse engineResponse = this.engine.promote(context.enginePayload);
-
-                if (engineResponse.getStatus() != RestStatus.OK.getStatus()
-                        && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
-                    log.warn(Constants.W_LOG_VALIDATION_FAILED, engineResponse.getMessage());
-                    log.debug(
-                            Constants.D_LOG_ENGINE_REJECTED_PAYLOAD,
-                            mapper.writeValueAsString(context.enginePayload));
-                    listener.onResponse(
-                            new MessageStatusResponse(
-                                    engineResponse.getMessage(), RestStatus.fromCode(engineResponse.getStatus())));
-                    return;
-                }
-                log.debug(Constants.D_LOG_ENGINE_VALIDATION_COMPLETE, targetSpace);
-            }
-
-            // 4. Consolidation Phase
-            this.consolidateChanges(context);
-
-            this.spaceService.calculateAndUpdate(List.of(targetSpace.toString()));
-
-            // 5. Response Phase
-            listener.onResponse(
-                    new MessageStatusResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK));
+            this.gatherPromotionDataAsync(spaceDiff, listener);
         } catch (IllegalArgumentException e) {
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             listener.onResponse(new MessageStatusResponse(e.getMessage(), RestStatus.BAD_REQUEST));
@@ -166,32 +134,1153 @@ public class TransportPostPromoteAction
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
             listener.onResponse(new MessageStatusResponse(message, RestStatus.BAD_REQUEST));
-        } catch (IndexNotFoundException e) {
-            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "index", e.getMessage());
-            listener.onResponse(
-                    new MessageStatusResponse(
-                            Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
         } catch (IOException e) {
-            OpenSearchSecurityException secEx = extractSecurityException(e);
-            if (secEx != null) {
-                listener.onResponse(new MessageStatusResponse(secEx.getMessage(), secEx.status()));
-                return;
-            }
-            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "IO", e.getMessage());
-            listener.onResponse(
-                    new MessageStatusResponse(
-                            Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
-        } catch (Exception e) {
-            OpenSearchSecurityException secEx = extractSecurityException(e);
-            if (secEx != null) {
-                listener.onResponse(new MessageStatusResponse(secEx.getMessage(), secEx.status()));
-                return;
-            }
-            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "space", e.getMessage());
-            listener.onResponse(
-                    new MessageStatusResponse(
-                            Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
+            respondWithError(listener, e);
         }
+    }
+
+    // ── Gathering phase ──────────────────────────────────────────────────────
+
+    private void gatherPromotionDataAsync(
+            SpaceDiff spaceDiff, ActionListener<MessageStatusResponse> listener) {
+        Space sourceSpace = spaceDiff.getSpace();
+        Space targetSpace = sourceSpace.promote();
+        SpaceDiff.Changes changes = spaceDiff.getChanges();
+
+        this.spaceService.getPolicyAsync(
+                sourceSpace.toString(),
+                ActionListener.wrap(
+                        (Map<String, Object> policyDocument) -> {
+                            if (policyDocument == null) {
+                                respondWithError(
+                                        listener,
+                                        new IOException("Policy document not found for source space: " + sourceSpace));
+                                return;
+                            }
+
+                            Map<String, Map<String, Object>> policyToApply = new HashMap<>();
+                            Map<String, Map<String, Object>> integrationsToApply = new HashMap<>();
+                            Map<String, Map<String, Object>> kvdbsToApply = new HashMap<>();
+                            Map<String, Map<String, Object>> decodersToApply = new HashMap<>();
+                            Map<String, Map<String, Object>> filtersToApply = new HashMap<>();
+                            Map<String, Map<String, Object>> rulesToApply = new HashMap<>();
+
+                            Set<String> integrationsToDelete = new HashSet<>();
+                            Set<String> kvdbsToDelete = new HashSet<>();
+                            Set<String> decodersToDelete = new HashSet<>();
+                            Set<String> filtersToDelete = new HashSet<>();
+                            Set<String> rulesToDelete = new HashSet<>();
+
+                            List<ResourceChangeEntry> entries =
+                                    List.of(
+                                            new ResourceChangeEntry(
+                                                    changes.getPolicy(),
+                                                    Constants.KEY_POLICY,
+                                                    policyToApply,
+                                                    HashSet.newHashSet(0)),
+                                            new ResourceChangeEntry(
+                                                    changes.getIntegrations(),
+                                                    Constants.KEY_INTEGRATIONS,
+                                                    integrationsToApply,
+                                                    integrationsToDelete),
+                                            new ResourceChangeEntry(
+                                                    changes.getKvdbs(), Constants.KEY_KVDBS, kvdbsToApply, kvdbsToDelete),
+                                            new ResourceChangeEntry(
+                                                    changes.getDecoders(),
+                                                    Constants.KEY_DECODERS,
+                                                    decodersToApply,
+                                                    decodersToDelete),
+                                            new ResourceChangeEntry(
+                                                    changes.getFilters(),
+                                                    Constants.KEY_FILTERS,
+                                                    filtersToApply,
+                                                    filtersToDelete),
+                                            new ResourceChangeEntry(
+                                                    changes.getRules(), Constants.KEY_RULES, rulesToApply, rulesToDelete));
+
+                            processAllResourceTypesAsync(
+                                    entries,
+                                    0,
+                                    sourceSpace.toString(),
+                                    targetSpace.toString(),
+                                    ActionListener.wrap(
+                                            v ->
+                                                    buildPayloadAndCapture(
+                                                            policyDocument,
+                                                            targetSpace,
+                                                            policyToApply,
+                                                            integrationsToApply,
+                                                            kvdbsToApply,
+                                                            decodersToApply,
+                                                            filtersToApply,
+                                                            rulesToApply,
+                                                            integrationsToDelete,
+                                                            kvdbsToDelete,
+                                                            decodersToDelete,
+                                                            filtersToDelete,
+                                                            rulesToDelete,
+                                                            spaceDiff,
+                                                            listener),
+                                            e -> respondWithError(listener, e)));
+                        },
+                        e -> respondWithError(listener, e)));
+    }
+
+    private void buildPayloadAndCapture(
+            Map<String, Object> policyDocument,
+            Space targetSpace,
+            Map<String, Map<String, Object>> policyToApply,
+            Map<String, Map<String, Object>> integrationsToApply,
+            Map<String, Map<String, Object>> kvdbsToApply,
+            Map<String, Map<String, Object>> decodersToApply,
+            Map<String, Map<String, Object>> filtersToApply,
+            Map<String, Map<String, Object>> rulesToApply,
+            Set<String> integrationsToDelete,
+            Set<String> kvdbsToDelete,
+            Set<String> decodersToDelete,
+            Set<String> filtersToDelete,
+            Set<String> rulesToDelete,
+            SpaceDiff spaceDiff,
+            ActionListener<MessageStatusResponse> listener) {
+        this.spaceService.buildEnginePayloadAsync(
+                policyDocument,
+                targetSpace.toString(),
+                integrationsToApply,
+                kvdbsToApply,
+                decodersToApply,
+                filtersToApply,
+                integrationsToDelete,
+                kvdbsToDelete,
+                decodersToDelete,
+                filtersToDelete,
+                ActionListener.wrap(
+                        (JsonNode enginePayload) -> {
+                            PromotionContext context =
+                                    new PromotionContext(
+                                            enginePayload,
+                                            policyToApply,
+                                            integrationsToApply,
+                                            kvdbsToApply,
+                                            decodersToApply,
+                                            filtersToApply,
+                                            rulesToApply,
+                                            integrationsToDelete,
+                                            kvdbsToDelete,
+                                            decodersToDelete,
+                                            filtersToDelete,
+                                            rulesToDelete,
+                                            targetSpace.toString());
+
+                            captureAllOldVersionsAsync(
+                                    context,
+                                    APPLY_RESOURCE_TYPES,
+                                    0,
+                                    ActionListener.wrap(
+                                            v ->
+                                                    captureAllDeleteSnapshotsAsync(
+                                                            context,
+                                                            DELETE_RESOURCE_TYPES,
+                                                            0,
+                                                            ActionListener.wrap(
+                                                                    v2 -> afterGatheringPhase(context, spaceDiff, listener),
+                                                                    e -> respondWithError(listener, e))),
+                                            e -> respondWithError(listener, e)));
+                        },
+                        e -> respondWithError(listener, e)));
+    }
+
+    // ── Process resource changes ─────────────────────────────────────────────
+
+    private void processAllResourceTypesAsync(
+            List<ResourceChangeEntry> entries,
+            int idx,
+            String sourceSpace,
+            String targetSpace,
+            ActionListener<Void> listener) {
+        if (idx >= entries.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        ResourceChangeEntry entry = entries.get(idx);
+        String indexName = this.spaceService.getIndexForResourceType(entry.resourceType);
+        if (indexName == null) {
+            listener.onFailure(
+                    new IllegalArgumentException("Unknown resource type: " + entry.resourceType));
+            return;
+        }
+        processResourceChangesAsync(
+                entry.items,
+                0,
+                entry.resourceType,
+                indexName,
+                entry.resourcesToApply,
+                entry.resourcesToDelete,
+                sourceSpace,
+                targetSpace,
+                ActionListener.wrap(
+                        v -> processAllResourceTypesAsync(entries, idx + 1, sourceSpace, targetSpace, listener),
+                        listener::onFailure));
+    }
+
+    private void processResourceChangesAsync(
+            List<SpaceDiff.OperationItem> items,
+            int idx,
+            String resourceType,
+            String indexName,
+            Map<String, Map<String, Object>> resourcesToApply,
+            Set<String> resourcesToDelete,
+            String sourceSpace,
+            String targetSpace,
+            ActionListener<Void> listener) {
+        if (idx >= items.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        SpaceDiff.OperationItem item = items.get(idx);
+        String resourceId = item.getId();
+
+        ActionListener<Void> next =
+                ActionListener.wrap(
+                        v ->
+                                processResourceChangesAsync(
+                                        items,
+                                        idx + 1,
+                                        resourceType,
+                                        indexName,
+                                        resourcesToApply,
+                                        resourcesToDelete,
+                                        sourceSpace,
+                                        targetSpace,
+                                        listener),
+                        listener::onFailure);
+
+        switch (item.getOperation()) {
+            case ADD ->
+                    processAddAsync(
+                            resourceId,
+                            indexName,
+                            resourceType,
+                            resourcesToApply,
+                            sourceSpace,
+                            targetSpace,
+                            next);
+            case UPDATE ->
+                    processUpdateAsync(
+                            resourceId, resourceType, indexName, resourcesToApply, sourceSpace, next);
+            case REMOVE ->
+                    processRemoveAsync(resourceId, indexName, resourcesToDelete, targetSpace, next);
+        }
+    }
+
+    private void processAddAsync(
+            String resourceId,
+            String indexName,
+            String resourceType,
+            Map<String, Map<String, Object>> resourcesToApply,
+            String sourceSpace,
+            String targetSpace,
+            ActionListener<Void> listener) {
+        this.spaceService.getDocumentAsync(
+                indexName,
+                sourceSpace,
+                resourceId,
+                ActionListener.wrap(
+                        (Map<String, Object> sourceDoc) -> {
+                            if (sourceDoc == null) {
+                                listener.onFailure(
+                                        new IOException(
+                                                "Resource '"
+                                                        + resourceId
+                                                        + "' not found in "
+                                                        + resourceType
+                                                        + " for ADD operation"));
+                                return;
+                            }
+                            validateSourceSpace(sourceDoc, resourceId, sourceSpace);
+
+                            this.spaceService.getDocumentAsync(
+                                    indexName,
+                                    targetSpace,
+                                    resourceId,
+                                    ActionListener.wrap(
+                                            (Map<String, Object> targetDoc) -> {
+                                                if (targetDoc != null) {
+                                                    @SuppressWarnings("unchecked")
+                                                    Map<String, String> targetDocSpace =
+                                                            (Map<String, String>)
+                                                                    targetDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                                                    String targetDocSpaceName = targetDocSpace.get(Constants.KEY_NAME);
+                                                    if (targetSpace.equals(targetDocSpaceName)) {
+                                                        listener.onFailure(
+                                                                new IllegalArgumentException(
+                                                                        "Resource '"
+                                                                                + resourceId
+                                                                                + "' already exists in target space '"
+                                                                                + targetSpace
+                                                                                + "', use UPDATE operation instead"));
+                                                        return;
+                                                    }
+                                                }
+                                                resourcesToApply.put(resourceId, sourceDoc);
+                                                listener.onResponse(null);
+                                            },
+                                            listener::onFailure));
+                        },
+                        listener::onFailure));
+    }
+
+    private void processUpdateAsync(
+            String resourceId,
+            String resourceType,
+            String indexName,
+            Map<String, Map<String, Object>> resourcesToApply,
+            String sourceSpace,
+            ActionListener<Void> listener) {
+        ActionListener<Map<String, Object>> docListener =
+                ActionListener.wrap(
+                        (Map<String, Object> sourceDoc) -> {
+                            if (sourceDoc == null) {
+                                listener.onFailure(
+                                        new IOException(
+                                                "Resource '"
+                                                        + resourceId
+                                                        + "' not found in "
+                                                        + resourceType
+                                                        + " for UPDATE operation"));
+                                return;
+                            }
+                            validateSourceSpace(sourceDoc, resourceId, sourceSpace);
+                            resourcesToApply.put(resourceId, sourceDoc);
+                            listener.onResponse(null);
+                        },
+                        listener::onFailure);
+
+        if (resourceType.equals(Constants.KEY_POLICY)) {
+            this.spaceService.getPolicyAsync(sourceSpace, docListener);
+        } else {
+            this.spaceService.getDocumentAsync(indexName, sourceSpace, resourceId, docListener);
+        }
+    }
+
+    private void processRemoveAsync(
+            String resourceId,
+            String indexName,
+            Set<String> resourcesToDelete,
+            String targetSpace,
+            ActionListener<Void> listener) {
+        this.spaceService.getDocumentAsync(
+                indexName,
+                targetSpace,
+                resourceId,
+                ActionListener.wrap(
+                        (Map<String, Object> targetDoc) -> {
+                            if (targetDoc != null) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, String> targetDocSpace =
+                                        (Map<String, String>)
+                                                targetDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                                String targetDocSpaceName = targetDocSpace.get(Constants.KEY_NAME);
+                                if (!targetSpace.equals(targetDocSpaceName)) {
+                                    log.warn(
+                                            Constants.W_LOG_RESOURCE_NOT_IN_TARGET_SPACE,
+                                            resourceId,
+                                            targetDocSpaceName,
+                                            targetSpace);
+                                }
+                            }
+                            resourcesToDelete.add(resourceId);
+                            log.debug(Constants.D_LOG_RESOURCE_MARKED_FOR_DELETION, resourceId, targetSpace);
+                            listener.onResponse(null);
+                        },
+                        listener::onFailure));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void validateSourceSpace(
+            Map<String, Object> sourceDoc, String resourceId, String sourceSpace) {
+        Map<String, String> sourceDocSpace =
+                (Map<String, String>) sourceDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+        String docSpace = sourceDocSpace.get(Constants.KEY_NAME);
+        if (!sourceSpace.equals(docSpace)) {
+            throw new IllegalArgumentException(
+                    "Resource '"
+                            + resourceId
+                            + "' is in space '"
+                            + docSpace
+                            + "', expected source space '"
+                            + sourceSpace
+                            + "'");
+        }
+    }
+
+    // ── Capture old versions / delete snapshots ──────────────────────────────
+
+    private void captureAllOldVersionsAsync(
+            PromotionContext context, List<String> types, int typeIdx, ActionListener<Void> listener) {
+        if (typeIdx >= types.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        String resourceType = types.get(typeIdx);
+        Map<String, Map<String, Object>> resourcesToApply = context.getApplyMap(resourceType);
+        if (resourcesToApply.isEmpty()) {
+            captureAllOldVersionsAsync(context, types, typeIdx + 1, listener);
+            return;
+        }
+        String indexName = this.spaceService.getIndexForResourceType(resourceType);
+        Map<String, Map<String, Object>> dest =
+                context.oldVersions.computeIfAbsent(resourceType, k -> new HashMap<>());
+        List<String> docIds = new ArrayList<>(resourcesToApply.keySet());
+
+        captureOldVersionsForTypeAsync(
+                context,
+                resourceType,
+                indexName,
+                docIds,
+                0,
+                dest,
+                ActionListener.wrap(
+                        v -> captureAllOldVersionsAsync(context, types, typeIdx + 1, listener),
+                        listener::onFailure));
+    }
+
+    private void captureOldVersionsForTypeAsync(
+            PromotionContext context,
+            String resourceType,
+            String indexName,
+            List<String> docIds,
+            int idx,
+            Map<String, Map<String, Object>> dest,
+            ActionListener<Void> listener) {
+        if (idx >= docIds.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        String docId = docIds.get(idx);
+        ActionListener<Map<String, Object>> docListener =
+                ActionListener.wrap(
+                        (Map<String, Object> existing) -> {
+                            dest.put(docId, existing);
+                            captureOldVersionsForTypeAsync(
+                                    context, resourceType, indexName, docIds, idx + 1, dest, listener);
+                        },
+                        e -> {
+                            log.warn(
+                                    Constants.W_LOG_SNAPSHOT_OLD_VERSION_FAILED, docId, resourceType, e.getMessage());
+                            listener.onFailure(e);
+                        });
+
+        if (resourceType.equals(Constants.KEY_POLICY)) {
+            this.spaceService.getPolicyAsync(context.targetSpace, docListener);
+        } else {
+            this.spaceService.getDocumentAsync(indexName, context.targetSpace, docId, docListener);
+        }
+    }
+
+    private void captureAllDeleteSnapshotsAsync(
+            PromotionContext context, List<String> types, int typeIdx, ActionListener<Void> listener) {
+        if (typeIdx >= types.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        String resourceType = types.get(typeIdx);
+        Set<String> idsToDelete = context.getDeleteSet(resourceType);
+        if (idsToDelete.isEmpty()) {
+            captureAllDeleteSnapshotsAsync(context, types, typeIdx + 1, listener);
+            return;
+        }
+        String indexName = this.spaceService.getIndexForResourceType(resourceType);
+        Map<String, Map<String, Object>> dest =
+                context.deleteSnapshots.computeIfAbsent(resourceType, k -> new HashMap<>());
+        List<String> docIds = new ArrayList<>(idsToDelete);
+
+        captureDeleteSnapshotsForTypeAsync(
+                context,
+                resourceType,
+                indexName,
+                docIds,
+                0,
+                dest,
+                ActionListener.wrap(
+                        v -> captureAllDeleteSnapshotsAsync(context, types, typeIdx + 1, listener),
+                        listener::onFailure));
+    }
+
+    private void captureDeleteSnapshotsForTypeAsync(
+            PromotionContext context,
+            String resourceType,
+            String indexName,
+            List<String> docIds,
+            int idx,
+            Map<String, Map<String, Object>> dest,
+            ActionListener<Void> listener) {
+        if (idx >= docIds.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        String docId = docIds.get(idx);
+        this.spaceService.getDocumentAsync(
+                indexName,
+                context.targetSpace,
+                docId,
+                ActionListener.wrap(
+                        (Map<String, Object> existing) -> {
+                            if (existing != null) {
+                                dest.put(docId, existing);
+                            }
+                            captureDeleteSnapshotsForTypeAsync(
+                                    context, resourceType, indexName, docIds, idx + 1, dest, listener);
+                        },
+                        e -> {
+                            log.error(
+                                    Constants.E_LOG_SNAPSHOT_DELETE_TARGET_FAILED,
+                                    docId,
+                                    resourceType,
+                                    e.getMessage());
+                            listener.onFailure(e);
+                        }));
+    }
+
+    // ── After gathering: engine validation ───────────────────────────────────
+
+    private void afterGatheringPhase(
+            PromotionContext context,
+            SpaceDiff spaceDiff,
+            ActionListener<MessageStatusResponse> listener) {
+        Space targetSpace = spaceDiff.getSpace().promote();
+
+        if ((targetSpace == Space.TEST || targetSpace == Space.CUSTOM)
+                && this.hasEngineRelatedChanges(context)) {
+            invokeEngineAndConsolidate(context, targetSpace, listener);
+            return;
+        }
+
+        if (targetSpace == Space.TEST || targetSpace == Space.CUSTOM) {
+            this.spaceService.hasEngineResourcesAsync(
+                    targetSpace,
+                    ActionListener.wrap(
+                            (Boolean hasResources) -> {
+                                if (hasResources) {
+                                    invokeEngineAndConsolidate(context, targetSpace, listener);
+                                } else {
+                                    consolidateChangesAsync(context, listener);
+                                }
+                            },
+                            e -> respondWithError(listener, e)));
+        } else {
+            consolidateChangesAsync(context, listener);
+        }
+    }
+
+    private void invokeEngineAndConsolidate(
+            PromotionContext context, Space targetSpace, ActionListener<MessageStatusResponse> listener) {
+        RestResponse engineResponse = this.engine.promote(context.enginePayload);
+
+        if (engineResponse.getStatus() != RestStatus.OK.getStatus()
+                && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, engineResponse.getMessage());
+            try {
+                log.debug(
+                        Constants.D_LOG_ENGINE_REJECTED_PAYLOAD,
+                        new ObjectMapper().writeValueAsString(context.enginePayload));
+            } catch (IOException ignored) {
+            }
+            listener.onResponse(
+                    new MessageStatusResponse(
+                            engineResponse.getMessage(), RestStatus.fromCode(engineResponse.getStatus())));
+            return;
+        }
+        log.debug(Constants.D_LOG_ENGINE_VALIDATION_COMPLETE, targetSpace);
+        consolidateChangesAsync(context, listener);
+    }
+
+    // ── Consolidation phase ──────────────────────────────────────────────────
+
+    private void consolidateChangesAsync(
+            PromotionContext context, ActionListener<MessageStatusResponse> listener) {
+        applyResourceTypesAsync(
+                context,
+                APPLY_RESOURCE_TYPES,
+                0,
+                ActionListener.wrap(
+                        v ->
+                                deleteResourceTypesAsync(
+                                        context,
+                                        DELETE_RESOURCE_TYPES,
+                                        0,
+                                        ActionListener.wrap(
+                                                v2 ->
+                                                        sapSyncAsync(
+                                                                context,
+                                                                ActionListener.wrap(
+                                                                        v3 -> afterConsolidationPhase(context, listener),
+                                                                        e -> {
+                                                                            log.warn(
+                                                                                    "SAP sync error during consolidation: {}",
+                                                                                    e.getMessage());
+                                                                            afterConsolidationPhase(context, listener);
+                                                                        })),
+                                                e -> rollbackAndFail(context, e, listener))),
+                        e -> rollbackAndFail(context, e, listener)));
+    }
+
+    private void applyResourceTypesAsync(
+            PromotionContext context, List<String> types, int idx, ActionListener<Void> listener) {
+        if (idx >= types.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        String type = types.get(idx);
+        Map<String, Map<String, Object>> resources = context.getApplyMap(type);
+        if (resources.isEmpty()) {
+            applyResourceTypesAsync(context, types, idx + 1, listener);
+            return;
+        }
+        this.spaceService.promoteSpaceAsync(
+                this.spaceService.getIndexForResourceType(type),
+                resources,
+                context.targetSpace,
+                ActionListener.wrap(
+                        v -> {
+                            context.rollbackSteps.add(new RollbackStep(RollbackStep.Kind.APPLY, type));
+                            applyResourceTypesAsync(context, types, idx + 1, listener);
+                        },
+                        listener::onFailure));
+    }
+
+    private void deleteResourceTypesAsync(
+            PromotionContext context, List<String> types, int idx, ActionListener<Void> listener) {
+        if (idx >= types.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        String type = types.get(idx);
+        Set<String> ids = context.getDeleteSet(type);
+        if (ids.isEmpty()) {
+            deleteResourceTypesAsync(context, types, idx + 1, listener);
+            return;
+        }
+        this.spaceService.deleteResourcesAsync(
+                this.spaceService.getIndexForResourceType(type),
+                ids,
+                context.targetSpace,
+                ActionListener.wrap(
+                        v -> {
+                            context.rollbackSteps.add(new RollbackStep(RollbackStep.Kind.DELETE, type));
+                            deleteResourceTypesAsync(context, types, idx + 1, listener);
+                        },
+                        listener::onFailure));
+    }
+
+    // ── SAP synchronization (best-effort) ────────────────────────────────────
+
+    private void sapSyncAsync(PromotionContext context, ActionListener<Void> listener) {
+        Space targetSpaceEnum = Space.fromValue(context.targetSpace);
+        ObjectMapper mapper = new ObjectMapper();
+
+        List<String> rulesToDelete = new ArrayList<>(context.rulesToDelete);
+        List<String> integrationsToDelete = new ArrayList<>(context.integrationsToDelete);
+
+        sapDeleteAsync(
+                rulesToDelete,
+                0,
+                "rule",
+                targetSpaceEnum,
+                context.targetSpace,
+                ActionListener.wrap(
+                        v ->
+                                sapDeleteAsync(
+                                        integrationsToDelete,
+                                        0,
+                                        "integration",
+                                        targetSpaceEnum,
+                                        context.targetSpace,
+                                        ActionListener.wrap(
+                                                v2 ->
+                                                        upsertSapResourcesAsync(
+                                                                context.integrationsToApply,
+                                                                context.oldVersions.getOrDefault(
+                                                                        Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
+                                                                Constants.KEY_INTEGRATIONS,
+                                                                targetSpaceEnum,
+                                                                mapper,
+                                                                context.targetSpace,
+                                                                ActionListener.wrap(
+                                                                        v3 ->
+                                                                                upsertSapResourcesAsync(
+                                                                                        context.rulesToApply,
+                                                                                        context.oldVersions.getOrDefault(
+                                                                                                Constants.KEY_RULES, Collections.emptyMap()),
+                                                                                        Constants.KEY_RULES,
+                                                                                        targetSpaceEnum,
+                                                                                        mapper,
+                                                                                        context.targetSpace,
+                                                                                        listener),
+                                                                        listener::onFailure)),
+                                                listener::onFailure)),
+                        listener::onFailure));
+    }
+
+    private void sapDeleteAsync(
+            List<String> ids,
+            int idx,
+            String kind,
+            Space targetSpaceEnum,
+            String targetSpace,
+            ActionListener<Void> listener) {
+        if (idx >= ids.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        String id = ids.get(idx);
+        ActionListener<ActionResponse> itemListener =
+                ActionListener.wrap(
+                        r -> sapDeleteAsync(ids, idx + 1, kind, targetSpaceEnum, targetSpace, listener),
+                        e -> {
+                            log.warn(
+                                    Constants.W_LOG_SAP_DELETE_RESOURCE_FAILED,
+                                    kind,
+                                    id,
+                                    targetSpace,
+                                    e.getMessage());
+                            sapDeleteAsync(ids, idx + 1, kind, targetSpaceEnum, targetSpace, listener);
+                        });
+
+        if ("rule".equals(kind)) {
+            this.securityAnalyticsService.deleteRuleAsync(id, targetSpaceEnum, itemListener);
+        } else {
+            this.securityAnalyticsService.deleteIntegrationAsync(id, targetSpaceEnum, itemListener);
+        }
+    }
+
+    private void upsertSapResourcesAsync(
+            Map<String, Map<String, Object>> resources,
+            Map<String, Map<String, Object>> oldVersionsForType,
+            String resourceType,
+            Space targetSpaceEnum,
+            ObjectMapper mapper,
+            String targetSpace,
+            ActionListener<Void> listener) {
+        List<Map.Entry<String, Map<String, Object>>> entries = new ArrayList<>(resources.entrySet());
+        upsertSapEntryAsync(
+                entries,
+                0,
+                oldVersionsForType,
+                resourceType,
+                targetSpaceEnum,
+                mapper,
+                targetSpace,
+                listener);
+    }
+
+    private void upsertSapEntryAsync(
+            List<Map.Entry<String, Map<String, Object>>> entries,
+            int idx,
+            Map<String, Map<String, Object>> oldVersionsForType,
+            String resourceType,
+            Space targetSpaceEnum,
+            ObjectMapper mapper,
+            String targetSpace,
+            ActionListener<Void> listener) {
+        if (idx >= entries.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        Map.Entry<String, Map<String, Object>> entry = entries.get(idx);
+        Map<String, Object> doc = entry.getValue();
+
+        if (!doc.containsKey(Constants.KEY_DOCUMENT)) {
+            upsertSapEntryAsync(
+                    entries,
+                    idx + 1,
+                    oldVersionsForType,
+                    resourceType,
+                    targetSpaceEnum,
+                    mapper,
+                    targetSpace,
+                    listener);
+            return;
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> document = (Map<String, Object>) doc.get(Constants.KEY_DOCUMENT);
+        RestRequest.Method method =
+                oldVersionsForType.get(entry.getKey()) == null
+                        ? RestRequest.Method.POST
+                        : RestRequest.Method.PUT;
+
+        ActionListener<ActionResponse> itemListener =
+                ActionListener.wrap(
+                        r ->
+                                upsertSapEntryAsync(
+                                        entries,
+                                        idx + 1,
+                                        oldVersionsForType,
+                                        resourceType,
+                                        targetSpaceEnum,
+                                        mapper,
+                                        targetSpace,
+                                        listener),
+                        e -> {
+                            log.warn(
+                                    Constants.W_LOG_SAP_SYNC_RESOURCE_FAILED,
+                                    resourceType,
+                                    entry.getKey(),
+                                    targetSpace,
+                                    e.getMessage());
+                            upsertSapEntryAsync(
+                                    entries,
+                                    idx + 1,
+                                    oldVersionsForType,
+                                    resourceType,
+                                    targetSpaceEnum,
+                                    mapper,
+                                    targetSpace,
+                                    listener);
+                        });
+
+        if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
+            this.securityAnalyticsService.upsertIntegrationAsync(
+                    mapper.valueToTree(document), targetSpaceEnum, method, itemListener);
+        } else {
+            this.securityAnalyticsService.upsertRuleAsync(
+                    mapper.valueToTree(document), targetSpaceEnum, method, itemListener);
+        }
+    }
+
+    // ── Post-consolidation ───────────────────────────────────────────────────
+
+    private void afterConsolidationPhase(
+            PromotionContext context, ActionListener<MessageStatusResponse> listener) {
+        this.spaceService.calculateAndUpdateAsync(
+                List.of(context.targetSpace),
+                ActionListener.wrap(
+                        changedSpaces ->
+                                listener.onResponse(
+                                        new MessageStatusResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK)),
+                        e -> respondWithError(listener, e)));
+    }
+
+    // ── Rollback ─────────────────────────────────────────────────────────────
+
+    private void rollbackAndFail(
+            PromotionContext context, Exception cause, ActionListener<MessageStatusResponse> listener) {
+        log.error(Constants.E_LOG_CONSOLIDATION_FAILED, cause.getMessage());
+        rollbackChangesAsync(
+                context,
+                ActionListener.wrap(
+                        v -> respondWithError(listener, wrapAsIOException(cause)),
+                        rollbackError -> {
+                            log.error("Rollback also failed: {}", rollbackError.getMessage());
+                            respondWithError(listener, wrapAsIOException(cause));
+                        }));
+    }
+
+    private void rollbackChangesAsync(PromotionContext context, ActionListener<Void> listener) {
+        log.info(Constants.I_LOG_ROLLBACK_START, context.targetSpace, context.rollbackSteps.size());
+        List<RollbackStep> steps = context.rollbackSteps;
+        rollbackStepAsync(
+                steps,
+                steps.size() - 1,
+                context,
+                ActionListener.wrap(
+                        v -> {
+                            log.info(Constants.I_LOG_ROLLBACK_COMPLETE, context.targetSpace);
+                            reconcileSapAfterRollbackAsync(context, listener);
+                        },
+                        e -> {
+                            log.info(Constants.I_LOG_ROLLBACK_COMPLETE, context.targetSpace);
+                            reconcileSapAfterRollbackAsync(context, listener);
+                        }));
+    }
+
+    private void rollbackStepAsync(
+            List<RollbackStep> steps, int idx, PromotionContext context, ActionListener<Void> listener) {
+        if (idx < 0) {
+            listener.onResponse(null);
+            return;
+        }
+        RollbackStep step = steps.get(idx);
+        rollbackCmStepAsync(
+                step,
+                context,
+                ActionListener.wrap(
+                        v -> {
+                            log.debug(Constants.D_LOG_ROLLBACK_STEP_OK, step);
+                            rollbackStepAsync(steps, idx - 1, context, listener);
+                        },
+                        e -> {
+                            String index = this.spaceService.getIndexForResourceType(step.resourceType);
+                            Collection<String> ids =
+                                    (step.kind == RollbackStep.Kind.APPLY)
+                                            ? context
+                                                    .oldVersions
+                                                    .getOrDefault(step.resourceType, Collections.emptyMap())
+                                                    .keySet()
+                                            : context
+                                                    .deleteSnapshots
+                                                    .getOrDefault(step.resourceType, Collections.emptyMap())
+                                                    .keySet();
+                            log.error(Constants.E_LOG_ROLLBACK_STEP_FAILED, step, index, ids, e.getMessage());
+                            rollbackStepAsync(steps, idx - 1, context, listener);
+                        }));
+    }
+
+    private void rollbackCmStepAsync(
+            RollbackStep step, PromotionContext context, ActionListener<Void> listener) {
+        String indexName = this.spaceService.getIndexForResourceType(step.resourceType);
+
+        if (step.kind == RollbackStep.Kind.APPLY) {
+            Map<String, Map<String, Object>> versions =
+                    context.oldVersions.getOrDefault(step.resourceType, Collections.emptyMap());
+
+            Set<String> toDelete = new HashSet<>();
+            Map<String, Map<String, Object>> toRestore = new HashMap<>();
+
+            for (Map.Entry<String, Map<String, Object>> entry : versions.entrySet()) {
+                if (entry.getValue() == null) {
+                    toDelete.add(entry.getKey());
+                } else {
+                    toRestore.put(entry.getKey(), entry.getValue());
+                }
+            }
+
+            ActionListener<Void> afterDelete =
+                    ActionListener.wrap(
+                            v -> {
+                                if (!toRestore.isEmpty()) {
+                                    this.spaceService.promoteSpaceAsync(
+                                            indexName, toRestore, context.targetSpace, listener);
+                                } else {
+                                    listener.onResponse(null);
+                                }
+                            },
+                            listener::onFailure);
+
+            if (!toDelete.isEmpty()) {
+                this.spaceService.deleteResourcesAsync(
+                        indexName, toDelete, context.targetSpace, afterDelete);
+            } else {
+                afterDelete.onResponse(null);
+            }
+        } else {
+            Map<String, Map<String, Object>> snapshots =
+                    context.deleteSnapshots.getOrDefault(step.resourceType, Collections.emptyMap());
+            if (!snapshots.isEmpty()) {
+                this.spaceService.promoteSpaceAsync(indexName, snapshots, context.targetSpace, listener);
+            } else {
+                listener.onResponse(null);
+            }
+        }
+    }
+
+    // ── SAP reconciliation after rollback (best-effort) ──────────────────────
+
+    private void reconcileSapAfterRollbackAsync(
+            PromotionContext context, ActionListener<Void> listener) {
+        Space targetSpaceEnum = Space.fromValue(context.targetSpace);
+        ObjectMapper mapper = new ObjectMapper();
+
+        revertSapAppliedAsync(
+                context.rulesToApply,
+                context.oldVersions.getOrDefault(Constants.KEY_RULES, Collections.emptyMap()),
+                Constants.KEY_RULES,
+                targetSpaceEnum,
+                mapper,
+                ActionListener.wrap(
+                        v ->
+                                revertSapAppliedAsync(
+                                        context.integrationsToApply,
+                                        context.oldVersions.getOrDefault(
+                                                Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
+                                        Constants.KEY_INTEGRATIONS,
+                                        targetSpaceEnum,
+                                        mapper,
+                                        ActionListener.wrap(
+                                                v2 ->
+                                                        restoreSapDeletedAsync(
+                                                                context.deleteSnapshots.getOrDefault(
+                                                                        Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
+                                                                Constants.KEY_INTEGRATIONS,
+                                                                targetSpaceEnum,
+                                                                mapper,
+                                                                ActionListener.wrap(
+                                                                        v3 ->
+                                                                                restoreSapDeletedAsync(
+                                                                                        context.deleteSnapshots.getOrDefault(
+                                                                                                Constants.KEY_RULES, Collections.emptyMap()),
+                                                                                        Constants.KEY_RULES,
+                                                                                        targetSpaceEnum,
+                                                                                        mapper,
+                                                                                        listener),
+                                                                        e -> listener.onResponse(null))),
+                                                e -> listener.onResponse(null))),
+                        e -> listener.onResponse(null)));
+    }
+
+    private void revertSapAppliedAsync(
+            Map<String, Map<String, Object>> resources,
+            Map<String, Map<String, Object>> oldVersionsForType,
+            String resourceType,
+            Space targetSpaceEnum,
+            ObjectMapper mapper,
+            ActionListener<Void> listener) {
+        List<Map.Entry<String, Map<String, Object>>> entries = new ArrayList<>(resources.entrySet());
+        revertSapAppliedEntryAsync(
+                entries, 0, oldVersionsForType, resourceType, targetSpaceEnum, mapper, listener);
+    }
+
+    private void revertSapAppliedEntryAsync(
+            List<Map.Entry<String, Map<String, Object>>> entries,
+            int idx,
+            Map<String, Map<String, Object>> oldVersionsForType,
+            String resourceType,
+            Space targetSpaceEnum,
+            ObjectMapper mapper,
+            ActionListener<Void> listener) {
+        if (idx >= entries.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        String id = entries.get(idx).getKey();
+        Map<String, Object> oldVersion = oldVersionsForType.get(id);
+
+        ActionListener<Void> next =
+                ActionListener.wrap(
+                        v ->
+                                revertSapAppliedEntryAsync(
+                                        entries,
+                                        idx + 1,
+                                        oldVersionsForType,
+                                        resourceType,
+                                        targetSpaceEnum,
+                                        mapper,
+                                        listener),
+                        e -> {
+                            log.warn(Constants.W_LOG_SAP_ROLLBACK_FAILED, resourceType, id, e.getMessage());
+                            revertSapAppliedEntryAsync(
+                                    entries,
+                                    idx + 1,
+                                    oldVersionsForType,
+                                    resourceType,
+                                    targetSpaceEnum,
+                                    mapper,
+                                    listener);
+                        });
+
+        ActionListener<ActionResponse> sapListener =
+                ActionListener.wrap(r -> next.onResponse(null), next::onFailure);
+
+        if (oldVersion == null) {
+            if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
+                this.securityAnalyticsService.deleteIntegrationAsync(id, targetSpaceEnum, sapListener);
+            } else {
+                this.securityAnalyticsService.deleteRuleAsync(id, targetSpaceEnum, sapListener);
+            }
+            log.debug(Constants.D_LOG_SAP_ROLLBACK_DELETED, resourceType, id, targetSpaceEnum);
+        } else if (oldVersion.containsKey(Constants.KEY_DOCUMENT)) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> document = (Map<String, Object>) oldVersion.get(Constants.KEY_DOCUMENT);
+            JsonNode docNode = mapper.valueToTree(document);
+            if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
+                this.securityAnalyticsService.upsertIntegrationAsync(
+                        docNode, targetSpaceEnum, RestRequest.Method.PUT, sapListener);
+            } else {
+                this.securityAnalyticsService.upsertRuleAsync(
+                        docNode, targetSpaceEnum, RestRequest.Method.PUT, sapListener);
+            }
+            log.debug(Constants.D_LOG_SAP_ROLLBACK_RESTORED, resourceType, id, targetSpaceEnum);
+        } else {
+            next.onResponse(null);
+        }
+    }
+
+    private void restoreSapDeletedAsync(
+            Map<String, Map<String, Object>> snapshots,
+            String resourceType,
+            Space targetSpaceEnum,
+            ObjectMapper mapper,
+            ActionListener<Void> listener) {
+        List<Map.Entry<String, Map<String, Object>>> entries = new ArrayList<>(snapshots.entrySet());
+        restoreSapDeletedEntryAsync(entries, 0, resourceType, targetSpaceEnum, mapper, listener);
+    }
+
+    private void restoreSapDeletedEntryAsync(
+            List<Map.Entry<String, Map<String, Object>>> entries,
+            int idx,
+            String resourceType,
+            Space targetSpaceEnum,
+            ObjectMapper mapper,
+            ActionListener<Void> listener) {
+        if (idx >= entries.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        String id = entries.get(idx).getKey();
+        Map<String, Object> snapshot = entries.get(idx).getValue();
+
+        ActionListener<Void> next =
+                ActionListener.wrap(
+                        v ->
+                                restoreSapDeletedEntryAsync(
+                                        entries, idx + 1, resourceType, targetSpaceEnum, mapper, listener),
+                        e -> {
+                            log.warn(
+                                    Constants.W_LOG_SAP_ROLLBACK_RESTORE_DELETED_FAILED,
+                                    resourceType,
+                                    id,
+                                    e.getMessage());
+                            restoreSapDeletedEntryAsync(
+                                    entries, idx + 1, resourceType, targetSpaceEnum, mapper, listener);
+                        });
+
+        if (snapshot != null && snapshot.containsKey(Constants.KEY_DOCUMENT)) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> document = (Map<String, Object>) snapshot.get(Constants.KEY_DOCUMENT);
+            JsonNode docNode = mapper.valueToTree(document);
+
+            ActionListener<ActionResponse> sapListener =
+                    ActionListener.wrap(
+                            r -> {
+                                log.debug(
+                                        Constants.D_LOG_SAP_ROLLBACK_RESTORED_DELETED,
+                                        resourceType,
+                                        id,
+                                        targetSpaceEnum);
+                                next.onResponse(null);
+                            },
+                            next::onFailure);
+
+            if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
+                this.securityAnalyticsService.upsertIntegrationAsync(
+                        docNode, targetSpaceEnum, RestRequest.Method.POST, sapListener);
+            } else {
+                this.securityAnalyticsService.upsertRuleAsync(
+                        docNode, targetSpaceEnum, RestRequest.Method.POST, sapListener);
+            }
+        } else {
+            next.onResponse(null);
+        }
+    }
+
+    // ── Error handling ───────────────────────────────────────────────────────
+
+    private void respondWithError(ActionListener<MessageStatusResponse> listener, Exception e) {
+        OpenSearchSecurityException secEx = extractSecurityException(e);
+        if (secEx != null) {
+            listener.onResponse(new MessageStatusResponse(secEx.getMessage(), secEx.status()));
+            return;
+        }
+        if (e instanceof IndexNotFoundException) {
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "index", e.getMessage());
+        } else if (e instanceof IOException) {
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "IO", e.getMessage());
+        } else {
+            log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "space", e.getMessage());
+        }
+        listener.onResponse(
+                new MessageStatusResponse(
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
     }
 
     private static OpenSearchSecurityException extractSecurityException(Throwable throwable) {
@@ -204,6 +1293,14 @@ public class TransportPostPromoteAction
         }
         return null;
     }
+
+    private static IOException wrapAsIOException(Exception e) {
+        return e instanceof IOException
+                ? (IOException) e
+                : new IOException("Consolidation failed: " + e.getMessage(), e);
+    }
+
+    // ── Pure-logic helpers (unchanged) ───────────────────────────────────────
 
     private boolean hasEngineRelatedChanges(PromotionContext context) {
         return !context.decodersToApply.isEmpty()
@@ -245,571 +1342,13 @@ public class TransportPostPromoteAction
         }
     }
 
-    private PromotionContext gatherPromotionData(SpaceDiff spaceDiff) throws IOException {
-        Space sourceSpace = spaceDiff.getSpace();
-        Space targetSpace = sourceSpace.promote();
-        SpaceDiff.Changes changes = spaceDiff.getChanges();
+    // ── Inner classes ────────────────────────────────────────────────────────
 
-        Map<String, Object> policyDocument = this.spaceService.getPolicy(sourceSpace.toString());
-        if (policyDocument == null) {
-            throw new IOException("Policy document not found for source space: " + sourceSpace);
-        }
-
-        Map<String, Map<String, Object>> policyToApply = new HashMap<>();
-        Map<String, Map<String, Object>> integrationsToApply = new HashMap<>();
-        Map<String, Map<String, Object>> kvdbsToApply = new HashMap<>();
-        Map<String, Map<String, Object>> decodersToApply = new HashMap<>();
-        Map<String, Map<String, Object>> filtersToApply = new HashMap<>();
-        Map<String, Map<String, Object>> rulesToApply = new HashMap<>();
-
-        Set<String> integrationsToDelete = new HashSet<>();
-        Set<String> kvdbsToDelete = new HashSet<>();
-        Set<String> decodersToDelete = new HashSet<>();
-        Set<String> filtersToDelete = new HashSet<>();
-        Set<String> rulesToDelete = new HashSet<>();
-
-        this.processResourceChanges(
-                changes.getPolicy(),
-                Constants.KEY_POLICY,
-                policyToApply,
-                HashSet.newHashSet(0),
-                sourceSpace.toString(),
-                targetSpace.toString());
-        this.processResourceChanges(
-                changes.getIntegrations(),
-                Constants.KEY_INTEGRATIONS,
-                integrationsToApply,
-                integrationsToDelete,
-                sourceSpace.toString(),
-                targetSpace.toString());
-        this.processResourceChanges(
-                changes.getKvdbs(),
-                Constants.KEY_KVDBS,
-                kvdbsToApply,
-                kvdbsToDelete,
-                sourceSpace.toString(),
-                targetSpace.toString());
-        this.processResourceChanges(
-                changes.getDecoders(),
-                Constants.KEY_DECODERS,
-                decodersToApply,
-                decodersToDelete,
-                sourceSpace.toString(),
-                targetSpace.toString());
-        this.processResourceChanges(
-                changes.getFilters(),
-                Constants.KEY_FILTERS,
-                filtersToApply,
-                filtersToDelete,
-                sourceSpace.toString(),
-                targetSpace.toString());
-        this.processResourceChanges(
-                changes.getRules(),
-                Constants.KEY_RULES,
-                rulesToApply,
-                rulesToDelete,
-                sourceSpace.toString(),
-                targetSpace.toString());
-
-        JsonNode enginePayload =
-                this.spaceService.buildEnginePayload(
-                        policyDocument,
-                        targetSpace.toString(),
-                        integrationsToApply,
-                        kvdbsToApply,
-                        decodersToApply,
-                        filtersToApply,
-                        integrationsToDelete,
-                        kvdbsToDelete,
-                        decodersToDelete,
-                        filtersToDelete);
-
-        PromotionContext context =
-                new PromotionContext(
-                        enginePayload,
-                        policyToApply,
-                        integrationsToApply,
-                        kvdbsToApply,
-                        decodersToApply,
-                        filtersToApply,
-                        rulesToApply,
-                        integrationsToDelete,
-                        kvdbsToDelete,
-                        decodersToDelete,
-                        filtersToDelete,
-                        rulesToDelete,
-                        targetSpace.toString());
-
-        for (String type : APPLY_RESOURCE_TYPES) {
-            this.captureOldVersions(context, type);
-        }
-        for (String type : DELETE_RESOURCE_TYPES) {
-            this.captureDeleteSnapshots(context, type);
-        }
-
-        return context;
-    }
-
-    private void captureOldVersions(PromotionContext context, String resourceType)
-            throws IOException {
-        Map<String, Map<String, Object>> resourcesToApply = context.getApplyMap(resourceType);
-        if (resourcesToApply.isEmpty()) {
-            return;
-        }
-        String indexName = this.spaceService.getIndexForResourceType(resourceType);
-        Map<String, Map<String, Object>> dest =
-                context.oldVersions.computeIfAbsent(resourceType, k -> new HashMap<>());
-
-        for (String docId : resourcesToApply.keySet()) {
-            try {
-                Map<String, Object> existing;
-                if (resourceType.equals(Constants.KEY_POLICY)) {
-                    existing = this.spaceService.getPolicy(context.targetSpace);
-                } else {
-                    existing = this.spaceService.getDocument(indexName, context.targetSpace, docId);
-                }
-                dest.put(docId, existing);
-            } catch (IOException e) {
-                log.warn(Constants.W_LOG_SNAPSHOT_OLD_VERSION_FAILED, docId, resourceType, e.getMessage());
-                throw e;
-            }
-        }
-    }
-
-    private void captureDeleteSnapshots(PromotionContext context, String resourceType)
-            throws IOException {
-        Set<String> idsToDelete = context.getDeleteSet(resourceType);
-        if (idsToDelete.isEmpty()) {
-            return;
-        }
-        String indexName = this.spaceService.getIndexForResourceType(resourceType);
-        Map<String, Map<String, Object>> dest =
-                context.deleteSnapshots.computeIfAbsent(resourceType, k -> new HashMap<>());
-
-        for (String docId : idsToDelete) {
-            try {
-                Map<String, Object> existing =
-                        this.spaceService.getDocument(indexName, context.targetSpace, docId);
-                if (existing != null) {
-                    dest.put(docId, existing);
-                }
-            } catch (IOException e) {
-                log.error(
-                        Constants.E_LOG_SNAPSHOT_DELETE_TARGET_FAILED, docId, resourceType, e.getMessage());
-                throw e;
-            }
-        }
-    }
-
-    private void processResourceChanges(
+    private record ResourceChangeEntry(
             List<SpaceDiff.OperationItem> items,
             String resourceType,
             Map<String, Map<String, Object>> resourcesToApply,
-            Set<String> resourcesToDelete,
-            String sourceSpace,
-            String targetSpace)
-            throws IOException {
-
-        String indexName = this.spaceService.getIndexForResourceType(resourceType);
-        if (indexName == null) {
-            throw new IllegalArgumentException("Unknown resource type: " + resourceType);
-        }
-
-        for (SpaceDiff.OperationItem item : items) {
-            String resourceId = item.getId();
-            SpaceDiff.Operation operation = item.getOperation();
-
-            switch (operation) {
-                case ADD -> {
-                    Map<String, Object> sourceDoc =
-                            this.spaceService.getDocument(indexName, sourceSpace, resourceId);
-                    if (sourceDoc == null) {
-                        throw new IOException(
-                                "Resource '"
-                                        + resourceId
-                                        + "' not found in "
-                                        + resourceType
-                                        + " for ADD operation");
-                    }
-
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> sourceDocSpace =
-                            (Map<String, String>) sourceDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
-                    String docSpace = sourceDocSpace.get(Constants.KEY_NAME);
-                    if (!sourceSpace.equals(docSpace)) {
-                        throw new IllegalArgumentException(
-                                "Resource '"
-                                        + resourceId
-                                        + "' is in space '"
-                                        + docSpace
-                                        + "', expected source space '"
-                                        + sourceSpace
-                                        + "'");
-                    }
-
-                    Map<String, Object> targetDoc =
-                            this.spaceService.getDocument(indexName, targetSpace, resourceId);
-                    if (targetDoc != null) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, String> targetDocSpace =
-                                (Map<String, String>) targetDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
-                        String targetDocSpaceName = targetDocSpace.get(Constants.KEY_NAME);
-                        if (targetSpace.equals(targetDocSpaceName)) {
-                            throw new IllegalArgumentException(
-                                    "Resource '"
-                                            + resourceId
-                                            + "' already exists in target space '"
-                                            + targetSpace
-                                            + "', use UPDATE operation instead");
-                        }
-                    }
-
-                    resourcesToApply.put(resourceId, sourceDoc);
-                }
-                case UPDATE -> {
-                    Map<String, Object> sourceDoc;
-                    if (resourceType.equals(Constants.KEY_POLICY)) {
-                        sourceDoc = this.spaceService.getPolicy(sourceSpace);
-                    } else {
-                        sourceDoc = this.spaceService.getDocument(indexName, sourceSpace, resourceId);
-                    }
-                    if (sourceDoc == null) {
-                        throw new IOException(
-                                "Resource '"
-                                        + resourceId
-                                        + "' not found in "
-                                        + resourceType
-                                        + " for UPDATE operation");
-                    }
-
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> sourceDocSpace =
-                            (Map<String, String>) sourceDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
-                    String docSpace = sourceDocSpace.get(Constants.KEY_NAME);
-                    if (!sourceSpace.equals(docSpace)) {
-                        throw new IllegalArgumentException(
-                                "Resource '"
-                                        + resourceId
-                                        + "' is in space '"
-                                        + docSpace
-                                        + "', expected source space '"
-                                        + sourceSpace
-                                        + "'");
-                    }
-                    resourcesToApply.put(resourceId, sourceDoc);
-                }
-                case REMOVE -> {
-                    Map<String, Object> targetDoc =
-                            this.spaceService.getDocument(indexName, targetSpace, resourceId);
-                    if (targetDoc != null) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, String> targetDocSpace =
-                                (Map<String, String>) targetDoc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
-                        String targetDocSpaceName = targetDocSpace.get(Constants.KEY_NAME);
-                        if (!targetSpace.equals(targetDocSpaceName)) {
-                            log.warn(
-                                    Constants.W_LOG_RESOURCE_NOT_IN_TARGET_SPACE,
-                                    resourceId,
-                                    targetDocSpaceName,
-                                    targetSpace);
-                        }
-                    }
-
-                    resourcesToDelete.add(resourceId);
-                    log.debug(Constants.D_LOG_RESOURCE_MARKED_FOR_DELETION, resourceId, targetSpace);
-                }
-            }
-        }
-    }
-
-    private void consolidateChanges(PromotionContext context) throws IOException {
-        try {
-            this.doConsolidate(context);
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_CONSOLIDATION_FAILED, e.getMessage());
-            this.rollbackChanges(context);
-            throw e instanceof IOException
-                    ? (IOException) e
-                    : new IOException("Consolidation failed: " + e.getMessage(), e);
-        }
-    }
-
-    private void promoteIfNotEmpty(
-            String resourceType, Map<String, Map<String, Object>> resources, PromotionContext context)
-            throws IOException {
-        if (!resources.isEmpty()) {
-            this.spaceService.promoteSpace(
-                    this.spaceService.getIndexForResourceType(resourceType), resources, context.targetSpace);
-            context.rollbackSteps.add(new RollbackStep(RollbackStep.Kind.APPLY, resourceType));
-        }
-    }
-
-    private void deleteIfNotEmpty(String resourceType, Set<String> ids, PromotionContext context)
-            throws IOException {
-        if (!ids.isEmpty()) {
-            this.spaceService.deleteResources(
-                    this.spaceService.getIndexForResourceType(resourceType), ids, context.targetSpace);
-            context.rollbackSteps.add(new RollbackStep(RollbackStep.Kind.DELETE, resourceType));
-        }
-    }
-
-    private void doConsolidate(PromotionContext context) throws IOException {
-        Space targetSpaceEnum = Space.fromValue(context.targetSpace);
-        ObjectMapper mapper = new ObjectMapper();
-
-        for (String type : APPLY_RESOURCE_TYPES) {
-            this.promoteIfNotEmpty(type, context.getApplyMap(type), context);
-        }
-
-        for (String type : DELETE_RESOURCE_TYPES) {
-            this.deleteIfNotEmpty(type, context.getDeleteSet(type), context);
-        }
-
-        // Best-effort SAP synchronization
-        for (String ruleId : context.rulesToDelete) {
-            try {
-                this.securityAnalyticsService.deleteRule(ruleId, targetSpaceEnum);
-            } catch (Exception e) {
-                log.warn(
-                        Constants.W_LOG_SAP_DELETE_RESOURCE_FAILED,
-                        "rule",
-                        ruleId,
-                        context.targetSpace,
-                        e.getMessage());
-            }
-        }
-
-        for (String integrationId : context.integrationsToDelete) {
-            try {
-                this.securityAnalyticsService.deleteIntegration(integrationId, targetSpaceEnum);
-            } catch (Exception e) {
-                log.warn(
-                        Constants.W_LOG_SAP_DELETE_RESOURCE_FAILED,
-                        "integration",
-                        integrationId,
-                        context.targetSpace,
-                        e.getMessage());
-            }
-        }
-
-        this.upsertSapResources(
-                context.integrationsToApply,
-                context.oldVersions.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
-                Constants.KEY_INTEGRATIONS,
-                targetSpaceEnum,
-                mapper,
-                context.targetSpace);
-
-        this.upsertSapResources(
-                context.rulesToApply,
-                context.oldVersions.getOrDefault(Constants.KEY_RULES, Collections.emptyMap()),
-                Constants.KEY_RULES,
-                targetSpaceEnum,
-                mapper,
-                context.targetSpace);
-    }
-
-    private void upsertSapResources(
-            Map<String, Map<String, Object>> resources,
-            Map<String, Map<String, Object>> oldVersionsForType,
-            String resourceType,
-            Space targetSpaceEnum,
-            ObjectMapper mapper,
-            String targetSpace) {
-        for (Map.Entry<String, Map<String, Object>> entry : resources.entrySet()) {
-            Map<String, Object> doc = entry.getValue();
-            if (doc.containsKey(Constants.KEY_DOCUMENT)) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> document = (Map<String, Object>) doc.get(Constants.KEY_DOCUMENT);
-                try {
-                    RestRequest.Method method =
-                            oldVersionsForType.get(entry.getKey()) == null
-                                    ? RestRequest.Method.POST
-                                    : RestRequest.Method.PUT;
-                    if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
-                        this.securityAnalyticsService.upsertIntegration(
-                                mapper.valueToTree(document), targetSpaceEnum, method);
-                    } else {
-                        this.securityAnalyticsService.upsertRule(
-                                mapper.valueToTree(document), targetSpaceEnum, method);
-                    }
-                } catch (Exception e) {
-                    log.warn(
-                            Constants.W_LOG_SAP_SYNC_RESOURCE_FAILED,
-                            resourceType,
-                            entry.getKey(),
-                            targetSpace,
-                            e.getMessage());
-                }
-            }
-        }
-    }
-
-    private void rollbackChanges(PromotionContext context) {
-        log.info(Constants.I_LOG_ROLLBACK_START, context.targetSpace, context.rollbackSteps.size());
-
-        ListIterator<RollbackStep> it =
-                context.rollbackSteps.listIterator(context.rollbackSteps.size());
-
-        while (it.hasPrevious()) {
-            RollbackStep step = it.previous();
-            try {
-                this.rollbackCmStep(step, context);
-                log.debug(Constants.D_LOG_ROLLBACK_STEP_OK, step);
-            } catch (Exception e) {
-                String index = this.spaceService.getIndexForResourceType(step.resourceType);
-                Collection<String> ids =
-                        (step.kind == RollbackStep.Kind.APPLY)
-                                ? context
-                                        .oldVersions
-                                        .getOrDefault(step.resourceType, Collections.emptyMap())
-                                        .keySet()
-                                : context
-                                        .deleteSnapshots
-                                        .getOrDefault(step.resourceType, Collections.emptyMap())
-                                        .keySet();
-                log.error(Constants.E_LOG_ROLLBACK_STEP_FAILED, step, index, ids, e.getMessage());
-            }
-        }
-
-        log.info(Constants.I_LOG_ROLLBACK_COMPLETE, context.targetSpace);
-        this.reconcileSapAfterRollback(context);
-    }
-
-    private void rollbackCmStep(RollbackStep step, PromotionContext context) throws IOException {
-        String indexName = this.spaceService.getIndexForResourceType(step.resourceType);
-
-        if (step.kind == RollbackStep.Kind.APPLY) {
-            Map<String, Map<String, Object>> versions =
-                    context.oldVersions.getOrDefault(step.resourceType, Collections.emptyMap());
-
-            Set<String> toDelete = new HashSet<>();
-            Map<String, Map<String, Object>> toRestore = new HashMap<>();
-
-            for (Map.Entry<String, Map<String, Object>> entry : versions.entrySet()) {
-                if (entry.getValue() == null) {
-                    toDelete.add(entry.getKey());
-                } else {
-                    toRestore.put(entry.getKey(), entry.getValue());
-                }
-            }
-
-            if (!toDelete.isEmpty()) {
-                this.spaceService.deleteResources(indexName, toDelete, context.targetSpace);
-            }
-            if (!toRestore.isEmpty()) {
-                this.spaceService.promoteSpace(indexName, toRestore, context.targetSpace);
-            }
-        } else {
-            Map<String, Map<String, Object>> snapshots =
-                    context.deleteSnapshots.getOrDefault(step.resourceType, Collections.emptyMap());
-            if (!snapshots.isEmpty()) {
-                this.spaceService.promoteSpace(indexName, snapshots, context.targetSpace);
-            }
-        }
-    }
-
-    private void reconcileSapAfterRollback(PromotionContext context) {
-        Space targetSpaceEnum = Space.fromValue(context.targetSpace);
-        ObjectMapper mapper = new ObjectMapper();
-
-        this.revertSapApplied(
-                context.rulesToApply,
-                context.oldVersions.getOrDefault(Constants.KEY_RULES, Collections.emptyMap()),
-                Constants.KEY_RULES,
-                targetSpaceEnum,
-                mapper);
-
-        this.revertSapApplied(
-                context.integrationsToApply,
-                context.oldVersions.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
-                Constants.KEY_INTEGRATIONS,
-                targetSpaceEnum,
-                mapper);
-
-        this.restoreSapDeleted(
-                context.deleteSnapshots.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
-                Constants.KEY_INTEGRATIONS,
-                targetSpaceEnum,
-                mapper);
-
-        this.restoreSapDeleted(
-                context.deleteSnapshots.getOrDefault(Constants.KEY_RULES, Collections.emptyMap()),
-                Constants.KEY_RULES,
-                targetSpaceEnum,
-                mapper);
-    }
-
-    private void revertSapApplied(
-            Map<String, Map<String, Object>> resources,
-            Map<String, Map<String, Object>> oldVersionsForType,
-            String resourceType,
-            Space targetSpaceEnum,
-            ObjectMapper mapper) {
-
-        for (Map.Entry<String, Map<String, Object>> entry : resources.entrySet()) {
-            String id = entry.getKey();
-            Map<String, Object> oldVersion = oldVersionsForType.get(id);
-
-            try {
-                if (oldVersion == null) {
-                    if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
-                        this.securityAnalyticsService.deleteIntegration(id, targetSpaceEnum);
-                    } else {
-                        this.securityAnalyticsService.deleteRule(id, targetSpaceEnum);
-                    }
-                    log.debug(Constants.D_LOG_SAP_ROLLBACK_DELETED, resourceType, id, targetSpaceEnum);
-                } else if (oldVersion.containsKey(Constants.KEY_DOCUMENT)) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> document =
-                            (Map<String, Object>) oldVersion.get(Constants.KEY_DOCUMENT);
-                    JsonNode docNode = mapper.valueToTree(document);
-                    if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
-                        this.securityAnalyticsService.upsertIntegration(
-                                docNode, targetSpaceEnum, RestRequest.Method.PUT);
-                    } else {
-                        this.securityAnalyticsService.upsertRule(
-                                docNode, targetSpaceEnum, RestRequest.Method.PUT);
-                    }
-                    log.debug(Constants.D_LOG_SAP_ROLLBACK_RESTORED, resourceType, id, targetSpaceEnum);
-                }
-            } catch (Exception e) {
-                log.warn(Constants.W_LOG_SAP_ROLLBACK_FAILED, resourceType, id, e.getMessage());
-            }
-        }
-    }
-
-    private void restoreSapDeleted(
-            Map<String, Map<String, Object>> snapshots,
-            String resourceType,
-            Space targetSpaceEnum,
-            ObjectMapper mapper) {
-
-        for (Map.Entry<String, Map<String, Object>> entry : snapshots.entrySet()) {
-            String id = entry.getKey();
-            Map<String, Object> snapshot = entry.getValue();
-
-            try {
-                if (snapshot != null && snapshot.containsKey(Constants.KEY_DOCUMENT)) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> document = (Map<String, Object>) snapshot.get(Constants.KEY_DOCUMENT);
-                    JsonNode docNode = mapper.valueToTree(document);
-                    if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
-                        this.securityAnalyticsService.upsertIntegration(
-                                docNode, targetSpaceEnum, RestRequest.Method.POST);
-                    } else {
-                        this.securityAnalyticsService.upsertRule(
-                                docNode, targetSpaceEnum, RestRequest.Method.POST);
-                    }
-                    log.debug(
-                            Constants.D_LOG_SAP_ROLLBACK_RESTORED_DELETED, resourceType, id, targetSpaceEnum);
-                }
-            } catch (Exception e) {
-                log.warn(
-                        Constants.W_LOG_SAP_ROLLBACK_RESTORE_DELETED_FAILED, resourceType, id, e.getMessage());
-            }
-        }
-    }
+            Set<String> resourcesToDelete) {}
 
     /** Internal context class to hold promotion data and rollback state. */
     private static class PromotionContext {

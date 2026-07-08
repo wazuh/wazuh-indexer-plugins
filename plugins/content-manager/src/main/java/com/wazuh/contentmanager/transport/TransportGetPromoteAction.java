@@ -61,7 +61,6 @@ public class TransportGetPromoteAction
     protected void doExecute(
             Task task, GetPromoteRequest request, ActionListener<GetPromoteResponse> listener) {
         try {
-            // 1. Validate Space Parameter
             String spaceParam = request.getSpace();
             if (spaceParam == null || spaceParam.isBlank()) {
                 listener.onResponse(
@@ -72,7 +71,6 @@ public class TransportGetPromoteAction
             }
             Space sourceSpace = Space.fromValue(spaceParam);
 
-            // 2. Determine Target Space
             Space targetSpace = sourceSpace.promote();
             if (targetSpace == sourceSpace) {
                 listener.onResponse(
@@ -82,44 +80,27 @@ public class TransportGetPromoteAction
                 return;
             }
 
-            // 3. Fetch Resources for both spaces
-            Map<String, Map<String, String>> sourceContent =
-                    this.spaceService.getSpaceResources(sourceSpace.toString());
-            Map<String, Map<String, String>> targetContent =
-                    this.spaceService.getSpaceResources(targetSpace.toString());
-
-            // 4. Calculate Differences
-            Map<String, List<Map<String, String>>> changes = new HashMap<>();
-
-            for (String resourceType : sourceContent.keySet()) {
-                if (Constants.KEY_IOCS.equals(resourceType)) {
-                    continue;
-                }
-
-                Map<String, String> sourceItems = sourceContent.getOrDefault(resourceType, new HashMap<>());
-                Map<String, String> targetItems = targetContent.getOrDefault(resourceType, new HashMap<>());
-
-                List<Map<String, String>> resourceChanges;
-                if (Constants.KEY_POLICY.equals(resourceType)) {
-                    resourceChanges =
-                            this.calculatePolicyDiff(sourceSpace.toString(), targetSpace.toString());
-                } else {
-                    resourceChanges = this.calculateDiff(sourceItems, targetItems);
-                }
-                changes.put(resourceType, resourceChanges);
-            }
-
-            // 5. Build Response
-            listener.onResponse(new GetPromoteResponse(changes));
+            this.spaceService.getSpaceResourcesAsync(
+                    sourceSpace.toString(),
+                    ActionListener.wrap(
+                            sourceContent -> {
+                                this.spaceService.getSpaceResourcesAsync(
+                                        targetSpace.toString(),
+                                        ActionListener.wrap(
+                                                targetContent -> {
+                                                    computeDiffsAsync(
+                                                            sourceSpace.toString(),
+                                                            targetSpace.toString(),
+                                                            sourceContent,
+                                                            targetContent,
+                                                            listener);
+                                                },
+                                                e -> handleError(e, listener)));
+                            },
+                            e -> handleError(e, listener)));
         } catch (IllegalArgumentException e) {
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             listener.onResponse(new GetPromoteResponse(e.getMessage(), RestStatus.BAD_REQUEST));
-        } catch (Exception e) {
-            log.error(
-                    Constants.E_LOG_OPERATION_FAILED, "processing", "promote preview", e.getMessage(), e);
-            listener.onResponse(
-                    new GetPromoteResponse(
-                            Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
 
@@ -151,27 +132,94 @@ public class TransportGetPromoteAction
         return changes;
     }
 
+    private void computeDiffsAsync(
+            String sourceSpace,
+            String targetSpace,
+            Map<String, Map<String, String>> sourceContent,
+            Map<String, Map<String, String>> targetContent,
+            ActionListener<GetPromoteResponse> listener) {
+        Map<String, List<Map<String, String>>> changes = new HashMap<>();
+        boolean hasPolicy = false;
+
+        for (String resourceType : sourceContent.keySet()) {
+            if (Constants.KEY_IOCS.equals(resourceType)) {
+                continue;
+            }
+            if (Constants.KEY_POLICY.equals(resourceType)) {
+                hasPolicy = true;
+                continue;
+            }
+            Map<String, String> sourceItems = sourceContent.getOrDefault(resourceType, new HashMap<>());
+            Map<String, String> targetItems = targetContent.getOrDefault(resourceType, new HashMap<>());
+            changes.put(resourceType, this.calculateDiff(sourceItems, targetItems));
+        }
+
+        if (hasPolicy) {
+            calculatePolicyDiffAsync(
+                    sourceSpace,
+                    targetSpace,
+                    ActionListener.wrap(
+                            policyChanges -> {
+                                changes.put(Constants.KEY_POLICY, policyChanges);
+                                listener.onResponse(new GetPromoteResponse(changes));
+                            },
+                            e -> handleError(e, listener)));
+        } else {
+            listener.onResponse(new GetPromoteResponse(changes));
+        }
+    }
+
     @SuppressWarnings("unchecked")
-    private List<Map<String, String>> calculatePolicyDiff(String sourceSpace, String targetSpace)
-            throws Exception {
-        List<Map<String, String>> changes = new ArrayList<>();
+    private void calculatePolicyDiffAsync(
+            String sourceSpace, String targetSpace, ActionListener<List<Map<String, String>>> listener) {
+        this.spaceService.getPolicyAsync(
+                sourceSpace,
+                ActionListener.wrap(
+                        sourcePolicy -> {
+                            this.spaceService.getPolicyAsync(
+                                    targetSpace,
+                                    ActionListener.wrap(
+                                            targetPolicy -> {
+                                                List<Map<String, String>> changes = new ArrayList<>();
+                                                Map<String, Object> sourceDoc =
+                                                        (Map<String, Object>) sourcePolicy.get(Constants.KEY_DOCUMENT);
+                                                String sourceId = (String) sourceDoc.get(Constants.KEY_ID);
 
-        Map<String, Object> sourcePolicy = this.spaceService.getPolicy(sourceSpace);
-        Map<String, Object> sourceDoc = (Map<String, Object>) sourcePolicy.get(Constants.KEY_DOCUMENT);
-        String sourceId = (String) sourceDoc.get(Constants.KEY_ID);
+                                                if (sourceId == null || sourceId.isBlank()) {
+                                                    listener.onFailure(
+                                                            new IllegalStateException(Constants.E_500_INTERNAL_SERVER_ERROR));
+                                                    return;
+                                                }
 
-        Map<String, Object> targetPolicy = this.spaceService.getPolicy(targetSpace);
-        Map<String, Object> targetDoc = (Map<String, Object>) targetPolicy.get(Constants.KEY_DOCUMENT);
+                                                Map<String, Object> targetDoc =
+                                                        (Map<String, Object>) targetPolicy.get(Constants.KEY_DOCUMENT);
 
-        if (sourceId == null || sourceId.isBlank()) {
-            throw new IllegalStateException(Constants.E_500_INTERNAL_SERVER_ERROR);
+                                                if (this.isPolicyDifferent(sourceDoc, targetDoc)) {
+                                                    changes.add(
+                                                            Map.of(
+                                                                    Constants.KEY_OPERATION,
+                                                                    Constants.OP_UPDATE,
+                                                                    Constants.KEY_ID,
+                                                                    sourceId));
+                                                }
+                                                listener.onResponse(changes);
+                                            },
+                                            listener::onFailure));
+                        },
+                        listener::onFailure));
+    }
+
+    private void handleError(Exception e, ActionListener<GetPromoteResponse> listener) {
+        if (e instanceof IllegalArgumentException) {
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
+            listener.onResponse(new GetPromoteResponse(e.getMessage(), RestStatus.BAD_REQUEST));
+        } else {
+            log.error(
+                    Constants.E_LOG_OPERATION_FAILED, "processing", "promote preview", e.getMessage(), e);
+            listener.onResponse(
+                    new GetPromoteResponse(
+                            Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
         }
-
-        if (this.isPolicyDifferent(sourceDoc, targetDoc)) {
-            changes.add(Map.of(Constants.KEY_OPERATION, Constants.OP_UPDATE, Constants.KEY_ID, sourceId));
-        }
-
-        return changes;
     }
 
     private boolean isPolicyDifferent(Map<String, Object> sourceDoc, Map<String, Object> targetDoc) {
