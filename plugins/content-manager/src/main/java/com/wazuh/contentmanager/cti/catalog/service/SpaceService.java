@@ -146,6 +146,94 @@ public class SpaceService {
     }
 
     /**
+     * Asynchronously deletes all documents related to a specific space across all resource indices.
+     *
+     * @param space The space to wipe.
+     * @param listener notified on completion or failure.
+     */
+    public void deleteSpaceResourcesAsync(Space space, ActionListener<Void> listener) {
+        String spaceName = space.toString();
+        List<String> indexNames = new ArrayList<>(Constants.RESOURCE_INDICES.values());
+        BulkRequest bulkRequest = new BulkRequest();
+        collectDeleteRequestsAsync(
+                spaceName,
+                indexNames,
+                0,
+                bulkRequest,
+                ActionListener.wrap(
+                        v -> {
+                            if (bulkRequest.numberOfActions() == 0) {
+                                listener.onResponse(null);
+                                return;
+                            }
+                            bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                            this.client.bulk(
+                                    bulkRequest,
+                                    ActionListener.wrap(
+                                            bulkResponse -> {
+                                                if (bulkResponse.hasFailures()) {
+                                                    listener.onFailure(
+                                                            new IOException(
+                                                                    "Bulk deletion failed: " + bulkResponse.buildFailureMessage()));
+                                                } else {
+                                                    listener.onResponse(null);
+                                                }
+                                            },
+                                            listener::onFailure));
+                        },
+                        e -> {
+                            log.error(Constants.E_LOG_DELETE_SPACE_RESOURCES_FAILED, spaceName, e.getMessage());
+                            listener.onFailure(
+                                    new IOException("Failed to delete space resources: " + e.getMessage(), e));
+                        }));
+    }
+
+    private void collectDeleteRequestsAsync(
+            String spaceName,
+            List<String> indexNames,
+            int idx,
+            BulkRequest bulkRequest,
+            ActionListener<Void> listener) {
+        if (idx >= indexNames.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        String indexName = indexNames.get(idx);
+        this.client
+                .admin()
+                .indices()
+                .exists(
+                        new IndicesExistsRequest(indexName),
+                        ActionListener.wrap(
+                                existsResponse -> {
+                                    if (!existsResponse.isExists()) {
+                                        collectDeleteRequestsAsync(
+                                                spaceName, indexNames, idx + 1, bulkRequest, listener);
+                                        return;
+                                    }
+                                    SearchRequest searchRequest = new SearchRequest(indexName);
+                                    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+                                    sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+                                    sourceBuilder.size(10000);
+                                    sourceBuilder.fetchSource(false);
+                                    searchRequest.source(sourceBuilder);
+
+                                    this.client.search(
+                                            searchRequest,
+                                            ActionListener.wrap(
+                                                    searchResponse -> {
+                                                        for (SearchHit hit : searchResponse.getHits().getHits()) {
+                                                            bulkRequest.add(new DeleteRequest(indexName, hit.getId()));
+                                                        }
+                                                        collectDeleteRequestsAsync(
+                                                                spaceName, indexNames, idx + 1, bulkRequest, listener);
+                                                    },
+                                                    listener::onFailure));
+                                },
+                                listener::onFailure));
+    }
+
+    /**
      * Creates a single space policy document if it does not already exist.
      *
      * <p>Uses a deterministic, space-specific OpenSearch document ID so that {@link
@@ -214,6 +302,84 @@ public class SpaceService {
             log.debug(Constants.D_LOG_SPACE_ALREADY_INITIALIZED, spaceName);
         } catch (Exception e) {
             log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, spaceName, e.getMessage());
+        }
+    }
+
+    /**
+     * Asynchronously creates a single space policy document if it does not already exist.
+     *
+     * @param spaceName The space name.
+     * @param documentId Shared policy ID stored inside the document to link all default spaces.
+     * @param listener notified on completion or failure.
+     */
+    public void initializeSpaceAsync(
+            String spaceName, String documentId, ActionListener<Void> listener) {
+        String spaceDocId =
+                UUID.nameUUIDFromBytes(("wazuh-space-" + spaceName).getBytes(StandardCharsets.UTF_8))
+                        .toString();
+        try {
+            String date = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
+            String title = "Custom space";
+
+            Policy policy = new Policy();
+            policy.setId(documentId);
+            policy.setTitle(title);
+            policy.setDescription(title);
+            policy.setAuthor("Custom");
+            policy.setRootDecoder(null);
+            policy.setDocumentation("");
+            policy.setIntegrations(Collections.emptyList());
+            policy.setFilters(Collections.emptyList());
+            policy.setEnrichments(Collections.emptyList());
+            policy.setReferences(Collections.emptyList());
+            policy.setDate(date);
+            policy.setModified(date);
+            policy.setEnabled(Space.DRAFT.toString().equals(spaceName));
+            policy.setIndexUnclassifiedEvents(false);
+            policy.setIndexDiscardedEvents(false);
+
+            ObjectNode docNode = this.objectMapper.valueToTree(policy);
+            Resource.nestMetadataFields(docNode);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> docMap = this.objectMapper.convertValue(docNode, Map.class);
+
+            String docJson = this.objectMapper.writeValueAsString(docMap);
+            String docHash = Resource.computeSha256(docJson);
+
+            Map<String, Object> space = new HashMap<>();
+            space.put(Constants.KEY_NAME, spaceName);
+            space.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
+
+            Map<String, Object> source = new HashMap<>();
+            source.put(Constants.KEY_DOCUMENT, docMap);
+            source.put(Constants.KEY_SPACE, space);
+            source.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
+
+            IndexRequest request =
+                    new IndexRequest(Constants.INDEX_POLICIES)
+                            .id(spaceDocId)
+                            .source(this.objectMapper.writeValueAsString(source), XContentType.JSON)
+                            .opType(DocWriteRequest.OpType.CREATE)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+            this.client.index(
+                    request,
+                    ActionListener.wrap(
+                            indexResponse -> {
+                                log.info(Constants.I_LOG_SPACE_INITIALIZED, spaceName);
+                                listener.onResponse(null);
+                            },
+                            e -> {
+                                if (e instanceof VersionConflictEngineException) {
+                                    log.debug(Constants.D_LOG_SPACE_ALREADY_INITIALIZED, spaceName);
+                                } else {
+                                    log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, spaceName, e.getMessage());
+                                }
+                                listener.onResponse(null);
+                            }));
+        } catch (Exception e) {
+            log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, spaceName, e.getMessage());
+            listener.onResponse(null);
         }
     }
 
