@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.search.SearchHit;
@@ -37,10 +38,12 @@ import org.junit.Before;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -124,18 +127,35 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         return response;
     }
 
-    private void mockClientSearch(SearchResponse... responses) {
+    @SuppressWarnings("unchecked")
+    private void mockClientSearchAsync(SearchResponse... responses) {
         when(this.client.prepareSearch(anyString())).thenReturn(this.searchRequestBuilder);
         when(this.searchRequestBuilder.setSource(any(SearchSourceBuilder.class)))
                 .thenReturn(this.searchRequestBuilder);
-        if (responses.length == 1) {
-            when(this.searchRequestBuilder.get()).thenReturn(responses[0]);
-        } else {
-            var stub = when(this.searchRequestBuilder.get());
-            for (SearchResponse r : responses) {
-                stub = stub.thenReturn(r);
-            }
-        }
+        AtomicInteger callCount = new AtomicInteger(0);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> l = invocation.getArgument(0);
+                            l.onResponse(responses[callCount.getAndIncrement()]);
+                            return null;
+                        })
+                .when(this.searchRequestBuilder)
+                .execute(any(ActionListener.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void mockClientSearchAsyncFailure(Exception exception) {
+        when(this.client.prepareSearch(anyString())).thenReturn(this.searchRequestBuilder);
+        when(this.searchRequestBuilder.setSource(any(SearchSourceBuilder.class)))
+                .thenReturn(this.searchRequestBuilder);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> l = invocation.getArgument(0);
+                            l.onFailure(exception);
+                            return null;
+                        })
+                .when(this.searchRequestBuilder)
+                .execute(any(ActionListener.class));
     }
 
     private RestResponse createEngineSuccess(String outputJson) {
@@ -152,12 +172,20 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         return response;
     }
 
+    @SuppressWarnings("unchecked")
+    private RestResponse executeAndCapture(String integrationId, Space space, ObjectNode payload) {
+        ActionListener<RestResponse> listener = mock(ActionListener.class);
+        this.service.executeLogtest(integrationId, space, payload, listener);
+        ArgumentCaptor<RestResponse> captor = ArgumentCaptor.forClass(RestResponse.class);
+        verify(listener).onResponse(captor.capture());
+        return captor.getValue();
+    }
+
     /** Integration not found returns 400. */
     public void testIntegrationNotFound() throws Exception {
-        mockClientSearch(createEmptySearchResponse());
+        mockClientSearchAsync(createEmptySearchResponse());
 
-        RestResponse response =
-                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
+        RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains(INTEGRATION_ID));
         verify(this.engine, never()).logtest(any());
@@ -165,13 +193,9 @@ public class LogtestServiceTests extends OpenSearchTestCase {
 
     /** Integration search failure returns 500. */
     public void testIntegrationSearchFailure() throws Exception {
-        when(this.client.prepareSearch(anyString())).thenReturn(this.searchRequestBuilder);
-        when(this.searchRequestBuilder.setSource(any(SearchSourceBuilder.class)))
-                .thenReturn(this.searchRequestBuilder);
-        when(this.searchRequestBuilder.get()).thenThrow(new RuntimeException("search failed"));
+        mockClientSearchAsyncFailure(new RuntimeException("search failed"));
 
-        RestResponse response =
-                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
+        RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
         verify(this.engine, never()).logtest(any());
     }
@@ -188,17 +212,16 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             {"document": {"detection": {"selection": {"event.kind": "event"}, "condition": "selection"}, "logsource": {"product": "test"}, "level": "low", "status": "experimental"}}
             """);
         // spotless:on
-        mockClientSearch(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
+        mockClientSearchAsync(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
 
         when(this.engine.logtest(any(JsonNode.class)))
                 .thenReturn(createEngineError("Engine processing failed"));
 
-        RestResponse response =
-                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
+        RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"skipped\""));
         Assert.assertTrue(response.getMessage().contains("Engine processing failed"));
-        verify(this.securityAnalytics, never()).evaluateRules(anyString(), anyList());
+        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
     }
 
     /** When engine throws exception, SAP is skipped. */
@@ -209,17 +232,16 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             {"document": {"rules": []}}
             """);
         // spotless:on
-        mockClientSearch(createSearchResponse(integrationHit));
+        mockClientSearchAsync(createSearchResponse(integrationHit));
 
         when(this.engine.logtest(any(JsonNode.class)))
                 .thenThrow(new RuntimeException("socket timeout"));
 
-        RestResponse response =
-                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
+        RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"skipped\""));
         Assert.assertTrue(response.getMessage().contains("socket timeout"));
-        verify(this.securityAnalytics, never()).evaluateRules(anyString(), anyList());
+        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
     }
 
     /** Integration with no rules returns success with zero matches. */
@@ -230,7 +252,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             {"document": {}}
             """);
         // spotless:on
-        mockClientSearch(createSearchResponse(integrationHit));
+        mockClientSearchAsync(createSearchResponse(integrationHit));
 
         // spotless:off
         when(this.engine.logtest(any(JsonNode.class)))
@@ -241,16 +263,16 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             ));
         // spotless:on
 
-        RestResponse response =
-                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
+        RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"rules_evaluated\":0"));
         Assert.assertTrue(response.getMessage().contains("\"rules_matched\":0"));
         Assert.assertTrue(response.getMessage().contains("\"success\""));
-        verify(this.securityAnalytics, never()).evaluateRules(anyString(), anyList());
+        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
     }
 
     /** Full flow: engine success + SAP evaluation. */
+    @SuppressWarnings("unchecked")
     public void testFullFlowWithRules() throws Exception {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
@@ -262,7 +284,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             {"document": {"detection": {"selection": {"event.kind": "event"}, "condition": "selection"}, "logsource": {"product": "test"}, "level": "low", "status": "experimental"}}
             """);
         // spotless:on
-        mockClientSearch(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
+        mockClientSearchAsync(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
 
         // spotless:off
         when(this.engine.logtest(any(JsonNode.class)))
@@ -271,24 +293,27 @@ public class LogtestServiceTests extends OpenSearchTestCase {
                 {"output": {"event": {"kind": "event", "category": ["database"]}}, "asset_traces": []}
                 """
             ));
-        when(this.securityAnalytics.evaluateRules(anyString(), anyList()))
-            .thenReturn(
+        doAnswer(invocation -> {
+            ActionListener<String> l = invocation.getArgument(2);
+            l.onResponse(
                 """
                 {"status":"success","rules_evaluated":1,"rules_matched":1,"matches":[{"rule_name":"Test Rule"}],"evaluation_time_ms":10}
                 """
             );
+            return null;
+        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), any(ActionListener.class));
         // spotless:on
 
-        RestResponse response =
-                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
+        RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("normalization"));
         Assert.assertTrue(response.getMessage().contains("detection"));
         Assert.assertTrue(response.getMessage().contains("\"rules_matched\":1"));
-        verify(this.securityAnalytics, times(1)).evaluateRules(anyString(), anyList());
+        verify(this.securityAnalytics, times(1)).evaluateRulesAsync(anyString(), anyList(), any());
     }
 
     /** Normalized event from engine output is passed to SAP. */
+    @SuppressWarnings("unchecked")
     public void testNormalizedEventPassedToSA() throws Exception {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
@@ -300,7 +325,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             {"document": {"detection": {"selection": {"event.kind": "event"}, "condition": "selection"}, "logsource": {"product": "test"}, "level": "low", "status": "experimental"}}
             """);
         // spotless:on
-        mockClientSearch(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
+        mockClientSearchAsync(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
 
         // spotless:off
         when(this.engine.logtest(any(JsonNode.class)))
@@ -309,15 +334,18 @@ public class LogtestServiceTests extends OpenSearchTestCase {
                 {"output": {"event": {"kind": "event"}, "custom_field": "value"}, "asset_traces": []}
                 """
             ));
-        when(this.securityAnalytics.evaluateRules(anyString(), anyList()))
-            .thenReturn("{\"status\":\"success\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}");
+        doAnswer(invocation -> {
+            ActionListener<String> l = invocation.getArgument(2);
+            l.onResponse("{\"status\":\"success\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}");
+            return null;
+        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), any(ActionListener.class));
         // spotless:on
 
-        this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
+        ActionListener<RestResponse> listener = mock(ActionListener.class);
+        this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload(), listener);
 
-        // Verify the normalized event (output node) was passed to SAP
-        var eventCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
-        verify(this.securityAnalytics).evaluateRules(eventCaptor.capture(), anyList());
+        var eventCaptor = ArgumentCaptor.forClass(String.class);
+        verify(this.securityAnalytics).evaluateRulesAsync(eventCaptor.capture(), anyList(), any());
         String normalizedEvent = eventCaptor.getValue();
         Assert.assertTrue(normalizedEvent.contains("custom_field"));
         Assert.assertTrue(normalizedEvent.contains("event"));
@@ -333,7 +361,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             """, RULE_ID));
         // spotless:on
         // Return integration, then empty rules (simulates no rules found)
-        mockClientSearch(createSearchResponse(integrationHit), createEmptySearchResponse());
+        mockClientSearchAsync(createSearchResponse(integrationHit), createEmptySearchResponse());
 
         // spotless:off
         when(this.engine.logtest(any(JsonNode.class)))
@@ -344,14 +372,14 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             ));
         // spotless:on
 
-        RestResponse response =
-                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
+        RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"rules_evaluated\":0"));
-        verify(this.securityAnalytics, never()).evaluateRules(anyString(), anyList());
+        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
     }
 
     /** SAP evaluation error returns error SAP result but still 200. */
+    @SuppressWarnings("unchecked")
     public void testSAEvaluationErrorReturns200() throws Exception {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
@@ -363,7 +391,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             {"document": {"detection": {"selection": {"event.kind": "event"}, "condition": "selection"}, "logsource": {"product": "test"}, "level": "low", "status": "experimental"}}
             """);
         // spotless:on
-        mockClientSearch(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
+        mockClientSearchAsync(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
 
         // spotless:off
         when(this.engine.logtest(any(JsonNode.class)))
@@ -374,10 +402,16 @@ public class LogtestServiceTests extends OpenSearchTestCase {
             ));
         // spotless:on
         // SAP returns unparseable response
-        when(this.securityAnalytics.evaluateRules(anyString(), anyList())).thenReturn("not valid json");
+        doAnswer(
+                        invocation -> {
+                            ActionListener<String> l = invocation.getArgument(2);
+                            l.onResponse("not valid json");
+                            return null;
+                        })
+                .when(this.securityAnalytics)
+                .evaluateRulesAsync(anyString(), anyList(), any(ActionListener.class));
 
-        RestResponse response =
-                this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload());
+        RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"error\""));
     }

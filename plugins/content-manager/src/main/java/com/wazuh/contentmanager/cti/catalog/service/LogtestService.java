@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
@@ -84,78 +85,89 @@ public class LogtestService {
      * @param space the space to search in (test or standard)
      * @param enginePayload the request payload to forward to the Engine (without the integration
      *     field)
-     * @return a {@link RestResponse} containing the combined engine and SAP results as JSON
+     * @param listener the listener to be notified with the combined engine and SAP results
      */
-    public RestResponse executeLogtest(String integrationId, Space space, ObjectNode enginePayload) {
-        // If no integration provided, run engine only and skip detection
+    public void executeLogtest(
+            String integrationId,
+            Space space,
+            ObjectNode enginePayload,
+            ActionListener<RestResponse> listener) {
         if (integrationId == null) {
-            return executeEngineOnly(enginePayload);
+            listener.onResponse(executeEngineOnly(enginePayload));
+            return;
         }
 
-        // 1. Look up integration from wazuh-threatintel-integrations by document.id + space
-        SearchResponse integrationSearchResponse;
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            integrationSearchResponse =
-                    this.client
-                            .prepareSearch(Constants.INDEX_INTEGRATIONS)
-                            .setSource(
-                                    new SearchSourceBuilder()
-                                            .query(
-                                                    QueryBuilders.boolQuery()
-                                                            .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_ID, integrationId))
-                                                            .must(
-                                                                    QueryBuilders.termQuery(
-                                                                            Constants.Q_SPACE_NAME, space.toString())))
-                                            .size(1))
-                            .get();
-        } catch (Exception e) {
-            log.error("Failed to look up integration [{}]: {}", integrationId, e.getMessage());
-            return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
+        this.client
+                .prepareSearch(Constants.INDEX_INTEGRATIONS)
+                .setSource(
+                        new SearchSourceBuilder()
+                                .query(
+                                        QueryBuilders.boolQuery()
+                                                .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_ID, integrationId))
+                                                .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString())))
+                                .size(1))
+                .execute(
+                        ActionListener.wrap(
+                                integrationSearchResponse -> {
+                                    if (Objects.requireNonNull(integrationSearchResponse.getHits().getTotalHits())
+                                                    .value()
+                                            == 0) {
+                                        listener.onResponse(
+                                                new RestResponse(
+                                                        String.format(
+                                                                Locale.ROOT,
+                                                                Constants.E_400_INTEGRATION_NOT_FOUND,
+                                                                integrationId,
+                                                                space),
+                                                        RestStatus.BAD_REQUEST.getStatus()));
+                                        return;
+                                    }
 
-        if (Objects.requireNonNull(integrationSearchResponse.getHits().getTotalHits()).value() == 0) {
-            return new RestResponse(
-                    String.format(Locale.ROOT, Constants.E_400_INTEGRATION_NOT_FOUND, integrationId, space),
-                    RestStatus.BAD_REQUEST.getStatus());
-        }
+                                    Map<String, Object> engineResult = executeEngine(enginePayload);
+                                    if ("error".equals(engineResult.get(Constants.KEY_STATUS))) {
+                                        Map<String, Object> sapResult = new LinkedHashMap<>();
+                                        sapResult.put(Constants.KEY_STATUS, "skipped");
+                                        sapResult.put("reason", "Engine processing failed");
+                                        listener.onResponse(buildCombinedResponse(engineResult, sapResult));
+                                        return;
+                                    }
 
-        // 2. Send event to Engine
-        Map<String, Object> engineResult = executeEngine(enginePayload);
+                                    Map<String, Object> integrationSource =
+                                            integrationSearchResponse.getHits().getAt(0).getSourceAsMap();
+                                    List<String> ruleIds = extractRuleIds(integrationSource);
+                                    String normalizedEventJson = (String) engineResult.remove("_normalized_event");
 
-        // If engine failed, skip SAP evaluation
-        if ("error".equals(engineResult.get(Constants.KEY_STATUS))) {
-            Map<String, Object> sapResult = new LinkedHashMap<>();
-            sapResult.put(Constants.KEY_STATUS, "skipped");
-            sapResult.put("reason", "Engine processing failed");
-            return buildCombinedResponse(engineResult, sapResult);
-        }
+                                    if (ruleIds.isEmpty()) {
+                                        listener.onResponse(
+                                                buildCombinedResponse(engineResult, createEmptySapResult()));
+                                        return;
+                                    }
 
-        // 3. Fetch rule IDs from integration
-        Map<String, Object> integrationSource =
-                integrationSearchResponse.getHits().getAt(0).getSourceAsMap();
-        List<String> ruleIds = extractRuleIds(integrationSource);
-        List<String> ruleBodies =
-                ruleIds.isEmpty() ? List.of() : fetchRuleBodies(integrationId, ruleIds, space);
-
-        // 4. Extract normalized event for SAP evaluation
-        String normalizedEventJson = (String) engineResult.remove("_normalized_event");
-
-        // 5. Evaluate rules
-        Map<String, Object> sapResult;
-        if (ruleBodies.isEmpty()) {
-            sapResult = createEmptySapResult();
-        } else {
-            String saResultJson = this.securityAnalytics.evaluateRules(normalizedEventJson, ruleBodies);
-            try {
-                sapResult = mapper.readValue(saResultJson, Map.class);
-            } catch (Exception e) {
-                sapResult = createErrorSapResult();
-            }
-        }
-
-        return buildCombinedResponse(engineResult, sapResult);
+                                    fetchRuleBodiesAsync(
+                                            integrationId,
+                                            ruleIds,
+                                            space,
+                                            ActionListener.wrap(
+                                                    ruleBodies ->
+                                                            evaluateAndRespond(
+                                                                    engineResult, normalizedEventJson, ruleBodies, listener),
+                                                    e -> {
+                                                        log.warn(
+                                                                "Failed to fetch rules for" + " integration [{}]: {}",
+                                                                integrationId,
+                                                                e.getMessage());
+                                                        listener.onResponse(
+                                                                buildCombinedResponse(engineResult, createEmptySapResult()));
+                                                    }));
+                                },
+                                e -> {
+                                    log.error(
+                                            "Failed to look up integration [{}]: {}", integrationId, e.getMessage());
+                                    listener.onResponse(
+                                            new RestResponse(
+                                                    Constants.E_500_INTERNAL_SERVER_ERROR,
+                                                    RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                                }));
     }
 
     /**
@@ -416,6 +428,71 @@ public class LogtestService {
             log.warn("Failed to fetch rules for integration [{}]: {}", integrationId, e.getMessage());
         }
         return ruleBodies;
+    }
+
+    private void fetchRuleBodiesAsync(
+            String integrationId,
+            List<String> ruleIds,
+            Space space,
+            ActionListener<List<String>> listener) {
+        this.client
+                .prepareSearch(Constants.INDEX_RULES)
+                .setSource(
+                        new SearchSourceBuilder()
+                                .query(
+                                        QueryBuilders.boolQuery()
+                                                .must(QueryBuilders.termsQuery(Constants.Q_DOCUMENT_ID, ruleIds))
+                                                .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString())))
+                                .size(ruleIds.size()))
+                .execute(
+                        ActionListener.wrap(
+                                rulesSearchResponse -> {
+                                    ObjectMapper mapper = new ObjectMapper();
+                                    List<String> ruleBodies = new ArrayList<>();
+                                    for (SearchHit hit : rulesSearchResponse.getHits().getHits()) {
+                                        Map<String, Object> ruleSource = hit.getSourceAsMap();
+                                        Object ruleDocObj = ruleSource.get(Constants.KEY_DOCUMENT);
+                                        if (ruleDocObj != null) {
+                                            ruleBodies.add(
+                                                    ruleDocObj instanceof Map
+                                                            ? mapper.writeValueAsString(ruleDocObj)
+                                                            : ruleDocObj.toString());
+                                        }
+                                    }
+                                    listener.onResponse(ruleBodies);
+                                },
+                                listener::onFailure));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void evaluateAndRespond(
+            Map<String, Object> engineResult,
+            String normalizedEventJson,
+            List<String> ruleBodies,
+            ActionListener<RestResponse> listener) {
+        if (ruleBodies.isEmpty()) {
+            listener.onResponse(buildCombinedResponse(engineResult, createEmptySapResult()));
+            return;
+        }
+
+        this.securityAnalytics.evaluateRulesAsync(
+                normalizedEventJson,
+                ruleBodies,
+                ActionListener.wrap(
+                        saResultJson -> {
+                            ObjectMapper mapper = new ObjectMapper();
+                            Map<String, Object> sapResult;
+                            try {
+                                sapResult = mapper.readValue(saResultJson, Map.class);
+                            } catch (Exception e) {
+                                sapResult = createErrorSapResult();
+                            }
+                            listener.onResponse(buildCombinedResponse(engineResult, sapResult));
+                        },
+                        e -> {
+                            log.error("Failed to evaluate rules: {}", e.getMessage());
+                            listener.onResponse(buildCombinedResponse(engineResult, createErrorSapResult()));
+                        }));
     }
 
     /**

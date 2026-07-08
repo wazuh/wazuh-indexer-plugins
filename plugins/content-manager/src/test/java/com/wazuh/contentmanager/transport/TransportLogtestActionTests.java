@@ -49,13 +49,19 @@ public class TransportLogtestActionTests extends OpenSearchTestCase {
                         mock(TransportService.class), mock(ActionFilters.class), this.logtestService);
     }
 
+    @SuppressWarnings("unchecked")
     public void testDoExecute_Success() {
-        when(this.logtestService.executeLogtest(isNull(), eq(Space.TEST), any(ObjectNode.class)))
-                .thenReturn(new RestResponse("OK", RestStatus.OK.getStatus()));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<RestResponse> l = invocation.getArgument(3);
+                            l.onResponse(new RestResponse("OK", RestStatus.OK.getStatus()));
+                            return null;
+                        })
+                .when(this.logtestService)
+                .executeLogtest(isNull(), eq(Space.TEST), any(ObjectNode.class), any(ActionListener.class));
 
         LogtestRequest request = new LogtestRequest("{\"space\":\"test\"}");
 
-        @SuppressWarnings("unchecked")
         ActionListener<LogtestResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
@@ -69,15 +75,24 @@ public class TransportLogtestActionTests extends OpenSearchTestCase {
                                 }));
     }
 
+    @SuppressWarnings("unchecked")
     public void testDoExecute_SuccessWithIntegration() {
-        when(this.logtestService.executeLogtest(
-                        eq("my-integration"), eq(Space.STANDARD), any(ObjectNode.class)))
-                .thenReturn(new RestResponse("OK", RestStatus.OK.getStatus()));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<RestResponse> l = invocation.getArgument(3);
+                            l.onResponse(new RestResponse("OK", RestStatus.OK.getStatus()));
+                            return null;
+                        })
+                .when(this.logtestService)
+                .executeLogtest(
+                        eq("my-integration"),
+                        eq(Space.STANDARD),
+                        any(ObjectNode.class),
+                        any(ActionListener.class));
 
         LogtestRequest request =
                 new LogtestRequest("{\"space\":\"standard\",\"integration\":\"my-integration\"}");
 
-        @SuppressWarnings("unchecked")
         ActionListener<LogtestResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
@@ -154,13 +169,19 @@ public class TransportLogtestActionTests extends OpenSearchTestCase {
                                 }));
     }
 
+    @SuppressWarnings("unchecked")
     public void testDoExecute_Exception() {
-        when(this.logtestService.executeLogtest(any(), any(), any()))
-                .thenThrow(new RuntimeException("Unexpected failure"));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<RestResponse> l = invocation.getArgument(3);
+                            l.onFailure(new RuntimeException("Unexpected failure"));
+                            return null;
+                        })
+                .when(this.logtestService)
+                .executeLogtest(any(), any(), any(), any(ActionListener.class));
 
         LogtestRequest request = new LogtestRequest("{\"space\":\"test\"}");
 
-        @SuppressWarnings("unchecked")
         ActionListener<LogtestResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
