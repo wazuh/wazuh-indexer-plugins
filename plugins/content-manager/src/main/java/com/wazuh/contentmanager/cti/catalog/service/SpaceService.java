@@ -228,9 +228,24 @@ public class SpaceService {
                                                         collectDeleteRequestsAsync(
                                                                 spaceName, indexNames, idx + 1, bulkRequest, listener);
                                                     },
-                                                    listener::onFailure));
+                                                    e -> {
+                                                        log.warn(
+                                                                "Failed to search index [{}] for space [{}] during delete, skipping: {}",
+                                                                indexName,
+                                                                spaceName,
+                                                                e.getMessage());
+                                                        collectDeleteRequestsAsync(
+                                                                spaceName, indexNames, idx + 1, bulkRequest, listener);
+                                                    }));
                                 },
-                                listener::onFailure));
+                                e -> {
+                                    log.warn(
+                                            "Failed to check existence of index [{}] for space [{}] during delete, skipping: {}",
+                                            indexName,
+                                            spaceName,
+                                            e.getMessage());
+                                    collectDeleteRequestsAsync(spaceName, indexNames, idx + 1, bulkRequest, listener);
+                                }));
     }
 
     /**
