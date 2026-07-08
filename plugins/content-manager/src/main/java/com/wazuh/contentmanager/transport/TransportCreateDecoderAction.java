@@ -31,6 +31,7 @@ import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Transport action for creating Decoder resources. */
@@ -68,7 +69,23 @@ public class TransportCreateDecoderAction extends AbstractTransportCreateAction 
                 this.documentValidations.validateDocumentInSpace(
                         client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
         if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
+
         return null;
+    }
+
+    @Override
+    protected int getMaxAllowed() {
+        return PluginSettings.getInstance().getMaxDecoders();
+    }
+
+    @Override
+    protected String getTooManyResourcesMessageFormat() {
+        return Constants.E_400_TOO_MANY_DECODERS;
+    }
+
+    @Override
+    protected String getMaxReachedLogFormat() {
+        return Constants.I_LOG_MAX_DECODERS_REACHED;
     }
 
     @Override
