@@ -508,6 +508,27 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
+    public void setDetectorEnabled(String id, boolean enabled) {
+        try {
+            this.client
+                    .execute(
+                            WSetDetectorEnabledAction.INSTANCE,
+                            new WSetDetectorEnabledRequest(id, enabled, WriteRequest.RefreshPolicy.IMMEDIATE))
+                    .actionGet();
+            log.debug("Detector [{}] enabled set to {}.", id, enabled);
+        } catch (Exception e) {
+            String message =
+                    String.format(
+                            Locale.ROOT,
+                            "Failed to set enabled=%s for detector [%s]: %s",
+                            enabled,
+                            id,
+                            e.getMessage());
+            throw new OpenSearchException(message);
+        }
+    }
+
+    @Override
     public void deleteDetector(String id) {
         try {
             this.client

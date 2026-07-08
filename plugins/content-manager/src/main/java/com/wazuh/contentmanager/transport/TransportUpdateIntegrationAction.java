@@ -125,7 +125,7 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
                 this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_ENABLED));
         if (fieldValidation != null) {
             return fieldValidation;
-        } 
+        }
 
         if (Space.STANDARD.equals(this.resolvedSpace)) {
             return null;
@@ -213,15 +213,12 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
 
     @Override
     protected RestResponse syncExternalServices(String id, JsonNode resource) {
-        if (Space.STANDARD.equals(this.resolvedSpace)) {
-            return null;
-        }
+        SecurityAnalyticsService securityAnalyticsService = this.resolveSecurityAnalyticsService();
 
-        SecurityAnalyticsService securityAnalyticsService;
-        if (PluginSettings.getInstance().isEngineMockEnabled()) {
-            securityAnalyticsService = new MockSecurityAnalyticsService();
-        } else {
-            securityAnalyticsService = new SecurityAnalyticsServiceImpl(this.client);
+        // Standard integrations: only 'enabled' is mutable, and toggling it keeps the related
+        // detector in sync.
+        if (Space.STANDARD.equals(this.resolvedSpace)) {
+            return this.syncDetectorEnabledState(id, resource, securityAnalyticsService);
         }
 
         // 1. Validate using the Engine.
@@ -250,5 +247,43 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
         }
 
         return null;
+    }
+
+    /**
+     * Mirrors the integration's {@code enabled} state onto its related Security Analytics detector.
+     *
+     * <p>The detector shares the integration's document id, so its enabled state is toggled directly
+     * by id via {@link SecurityAnalyticsService#setDetectorEnabled(String, boolean)}, which flips the
+     * existing detector (preserving its inputs, triggers and monitors) and is a no-op when no
+     * detector exists.
+     *
+     * @param id the integration/detector document id.
+     * @param resource the (restored) integration document being updated.
+     * @param securityAnalyticsService the SAP service used to toggle the detector.
+     * @return a {@link RestResponse} error if the detector could not be synced, or null on success.
+     */
+    private RestResponse syncDetectorEnabledState(
+            String id, JsonNode resource, SecurityAnalyticsService securityAnalyticsService) {
+        boolean enabled = resource.path(Constants.KEY_ENABLED).asBoolean(true);
+
+        try {
+            securityAnalyticsService.setDetectorEnabled(id, enabled);
+        } catch (Exception e) {
+            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
+            if (secEx != null) {
+                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
+            return new RestResponse(
+                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+        return null;
+    }
+
+    private SecurityAnalyticsService resolveSecurityAnalyticsService() {
+        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+            return new MockSecurityAnalyticsService();
+        }
+        return new SecurityAnalyticsServiceImpl(this.client);
     }
 }

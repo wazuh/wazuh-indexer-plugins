@@ -70,6 +70,14 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     }
 
     @Override
+    public void setDetectorEnabled(String id, boolean enabled) {
+        log.debug(
+                "MockSecurityAnalyticsService.setDetectorEnabled called for id: {}, enabled: {}",
+                id,
+                enabled);
+    }
+
+    @Override
     public void deleteDetector(String id) {
         log.debug("MockSecurityAnalyticsService.deleteDetector called for id: {}", id);
     }

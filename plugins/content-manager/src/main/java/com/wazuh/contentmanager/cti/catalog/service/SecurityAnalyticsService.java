@@ -136,6 +136,16 @@ public interface SecurityAnalyticsService {
             ActionListener<? extends ActionResponse> listener);
 
     /**
+     * Enables or disables an existing Threat Detector in SAP without otherwise modifying it. The
+     * detector is identified by the owning integration's id (they share the same id). A missing
+     * detector is a no-op.
+     *
+     * @param id The identifier of the detector (== integration document id).
+     * @param enabled The desired enabled state.
+     */
+    void setDetectorEnabled(String id, boolean enabled);
+
+    /**
      * Deletes a Threat Detector from SAP.
      *
      * @param id The identifier of the detector to delete.
