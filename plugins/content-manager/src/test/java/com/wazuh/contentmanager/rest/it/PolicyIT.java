@@ -297,9 +297,9 @@ public class PolicyIT extends ContentManagerRestTestCase {
      * Update policy with a caller-supplied {@code metadata.modified} that is not a valid date.
      *
      * <p>No plugin-side format validation is performed on caller-supplied dates; the malformed value
-     * is expected to fail index mapping validation ({@code MapperParsingException}). Note:
-     * {@code metadata.date} is always overwritten with the existing policy's creation date on update
-     * (see {@link #testPutPolicy_success}), so a malformed {@code date} would never reach indexing —
+     * is expected to fail index mapping validation ({@code MapperParsingException}). Note: {@code
+     * metadata.date} is always overwritten with the existing policy's creation date on update (see
+     * {@link #testPutPolicy_success}), so a malformed {@code date} would never reach indexing —
      * {@code modified} is used here instead since it is the field actually honored from the request.
      *
      * <p>Verifies: Response status code is 400 (Bad Request), not 500 (Internal Server Error).

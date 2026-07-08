@@ -28,14 +28,15 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 /**
  * Integration test for issue #1345 ("Immediate Recovery When a Feed Update Fails"): the {@code
  * CatalogSyncJob} concurrency guard must reject a request to start a new synchronization pass while
- * one is already running, over the real REST -> transport -> {@code CatalogSyncJob} path (no mocks).
+ * one is already running, over the real REST -> transport -> {@code CatalogSyncJob} path (no
+ * mocks).
  */
 public class CatalogSyncConcurrencyIT extends ContentManagerRestTestCase {
 
     /**
      * Two POST /update requests fired back-to-back: the first is accepted and starts a pass; the
-     * second, landing while that pass is still in flight on the {@code threadPool.generic()} executor,
-     * must be rejected with 409 Conflict rather than starting a second concurrent pass.
+     * second, landing while that pass is still in flight on the {@code threadPool.generic()}
+     * executor, must be rejected with 409 Conflict rather than starting a second concurrent pass.
      *
      * <p>Verifies: First request returns 202 Accepted. Second request (fired immediately after)
      * returns 409 Conflict with the "already in progress" message, proving the {@code
@@ -49,8 +50,7 @@ public class CatalogSyncConcurrencyIT extends ContentManagerRestTestCase {
 
         ResponseException e =
                 expectThrows(
-                        ResponseException.class,
-                        () -> this.makeRequest("POST", PluginSettings.UPDATE_URI, ""));
+                        ResponseException.class, () -> this.makeRequest("POST", PluginSettings.UPDATE_URI, ""));
         assertEquals(
                 "A second update request landing while the first is still running must be rejected"
                         + " with 409, proving the real semaphore guard (not a mock) is enforced",

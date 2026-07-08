@@ -55,9 +55,9 @@ public class CatalogSyncJob implements JobExecutor {
 
     /**
      * Tracks whether an immediate retry has already been fired for the current failure episode. Set
-     * by {@link #handleOutcome(SyncOutcome)} on a fresh {@link SyncOutcome#FAILURE}; cleared on {@link
-     * SyncOutcome#SUCCESS} or once the retry's own outcome has been evaluated. Guarantees at most one
-     * immediate retry per failure episode.
+     * by {@link #handleOutcome(SyncOutcome)} on a fresh {@link SyncOutcome#FAILURE}; cleared on
+     * {@link SyncOutcome#SUCCESS} or once the retry's own outcome has been evaluated. Guarantees at
+     * most one immediate retry per failure episode.
      */
     private final AtomicBoolean retryPending = new AtomicBoolean(false);
 
@@ -165,9 +165,11 @@ public class CatalogSyncJob implements JobExecutor {
                     this.retryPending.set(false);
                 }
             }
-            case SETUP_NOT_READY -> {
-                // waitForSetup() already retried internally; not a synchronization failure.
-            }
+            // waitForSetup() already retried internally; not a synchronization failure. Still clears
+            // retryPending: if this was the immediate retry's own outcome, leaving the flag set would
+            // cause the next unrelated FAILURE to be misread as that retry's outcome and skip its own
+            // immediate retry.
+            case SETUP_NOT_READY -> this.retryPending.set(false);
         }
     }
 
@@ -196,7 +198,8 @@ public class CatalogSyncJob implements JobExecutor {
      * periodic job will retry on its next scheduled run.
      *
      * @return {@link SyncOutcome#SETUP_NOT_READY} if the Setup plugin did not become ready in time,
-     *     {@link SyncOutcome#FAILURE} if any synchronizer threw, {@link SyncOutcome#SUCCESS} otherwise.
+     *     {@link SyncOutcome#FAILURE} if any synchronizer threw, {@link SyncOutcome#SUCCESS}
+     *     otherwise.
      */
     SyncOutcome performSynchronization() {
         if (!this.waitForSetup()) {

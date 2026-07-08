@@ -205,8 +205,7 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
 
         verify(neverRunsExecutor, times(1)).execute(any(Runnable.class));
         Assert.assertTrue(
-                "A concurrent scheduled execute() must not start a second pass while one is in"
-                        + " flight",
+                "A concurrent scheduled execute() must not start a second pass while one is in" + " flight",
                 this.catalogSyncJob.isRunning());
     }
 
@@ -261,6 +260,35 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
 
         verify(job, times(0)).trigger();
         Assert.assertFalse(job.isRetryPending());
+    }
+
+    /**
+     * Regression test: if the immediate retry's own outcome is {@code SETUP_NOT_READY} (rather than
+     * {@code SUCCESS} or {@code FAILURE}), {@code retryPending} must still be cleared. Otherwise a
+     * later, unrelated failure would be misread as that stale retry's outcome and would not get its
+     * own immediate retry.
+     */
+    public void testHandleOutcome_retryHitsSetupNotReady_clearsFlagSoNextFailureRetries() {
+        this.useSameThreadExecutor();
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SETUP_NOT_READY, CatalogSyncJob.SyncOutcome.SUCCESS)
+                .when(job)
+                .performSynchronization();
+
+        job.handleOutcome(CatalogSyncJob.SyncOutcome.FAILURE);
+
+        Assert.assertFalse(
+                "Flag must be cleared even though the retry's own outcome was SETUP_NOT_READY, not"
+                        + " SUCCESS/FAILURE",
+                job.isRetryPending());
+
+        job.handleOutcome(CatalogSyncJob.SyncOutcome.FAILURE);
+
+        verify(job, times(2)).trigger();
+        verify(job, times(2)).performSynchronization();
+        Assert.assertFalse(
+                "The second, unrelated failure must trigger and resolve its own retry",
+                job.isRetryPending());
     }
 
     /** A scheduled run that fails transiently triggers exactly one immediate retry. */
