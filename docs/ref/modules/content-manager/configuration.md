@@ -20,12 +20,17 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.telemetry.enabled`** (Boolean, default `true`, dynamic) — enable or disable the daily Update check service ping.
 - **`plugins.content_manager.catalog.update_on_demand`** (Boolean, default `true`) — when `false`, on-demand content updates (`POST /update`) return `403 Forbidden` for every caller, regardless of role.
 - **`plugins.content_manager.catalog.policy_update.enabled`** (Boolean, default `true`) — when `false`, policy updates (`PUT /policy/{space}`) return `403 Forbidden` for every caller, regardless of role.
+- **`plugins.content_manager.max_integrations`** (Integer, default `100`, range 0–100, dynamic) — maximum number of integrations that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_decoders`** (Integer, default `200`, range 0–200, dynamic) — maximum number of decoders that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_rules`** (Integer, default `200`, range 0–200, dynamic) — maximum number of rules that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_kvdbs`** (Integer, default `100`, range 0–100, dynamic) — maximum number of KVDBs that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_filters`** (Integer, default `100`, range 0–100, dynamic) — maximum number of filters that can be created per space. Requests that would exceed this limit are rejected with HTTP 400.
 
 <!-- // ANCHOR_END: settings-table -->
 
 ### Offline configuration / disabling automatic updates
 
-<!-- // ANCHOR: offline-config --> 
+<!-- // ANCHOR: offline-config -->
 On offline installations, disable every task that requires an internet connection to prevent failures.
 
 ```yaml
@@ -157,9 +162,31 @@ plugins.content_manager.catalog.policy_update.enabled: false
 plugins.setup.settings_update.enabled: false
 ```
 
+#### Resource creation limits
+
+The plugin enforces configurable upper bounds on the number of resources that can be created. Each limit applies to POST (creation) requests only — existing resources are not affected when a limit is lowered. The count is checked against the relevant index at request time; if the index does not yet exist, the check is skipped and creation proceeds.
+
+All limit settings are dynamic and can be changed at runtime:
+
+```bash
+curl -X PUT "https://localhost:9200/_cluster/settings" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "persistent": {
+      "plugins.content_manager.max_integrations": 50,
+      "plugins.content_manager.max_decoders": 100,
+      "plugins.content_manager.max_rules": 100,
+      "plugins.content_manager.max_kvdbs": 50,
+      "plugins.content_manager.max_filters": 50
+    }
+  }'
+```
+
+Setting a limit to `0` blocks all new creation of that resource type.
+
 ### Notes
 
-- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings (like `plugins.content_manager.telemetry.enabled`), which can be updated at runtime via the OpenSearch API.
+- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings, which can be updated at runtime via the OpenSearch API. Dynamic settings include `plugins.content_manager.telemetry.enabled` and all five resource creation limits (`max_integrations`, `max_decoders`, `max_rules`, `max_kvdbs`, `max_filters`).
 - The catalog URL settings (`plugins.content_manager.catalog.ruleset`, `plugins.content_manager.catalog.iocs`, and `plugins.content_manager.catalog.vulnerabilities`) should only be changed if instructed by Wazuh support or documentation, and must point to valid absolute HTTP(S) CTI consumer endpoints.
 - The sync interval is enforced by the OpenSearch Job Scheduler. The actual sync timing may vary slightly depending on cluster load.
 - The update check service runs with a fixed interval of 1 day when enabled. The first ping is sent immediately after the job is registered (on node start or when the setting is dynamically enabled); subsequent pings follow the 1-day interval.

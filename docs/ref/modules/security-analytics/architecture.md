@@ -62,9 +62,20 @@ See [Configuration](configuration.md) for the settings that control batch size, 
 
 ## System indices
 
-| Index                                   | Description                                                  |
-| --------------------------------------- | ------------------------------------------------------------ |
-| `.opensearch-sap-{category}-findings-*` | Raw findings written by the Security Analytics plugin        |
-| `.opensearch-pre-packaged-rules`        | Wazuh-provided Sigma rules; source for rule metadata         |
-| `.opensearch-custom-rules`              | User-created custom rules; fallback source for rule metadata |
-| `wazuh-findings-v5-{category}*`         | Enriched findings                                             |
+| Index                                       | Description                                                  |
+| -------------------------------------------- | ------------------------------------------------------------ |
+| `.opensearch-sap-{category}-findings-*`     | Raw findings written by the Security Analytics plugin        |
+| `.opensearch-sap-pre-packaged-rules-config` | Wazuh-provided Sigma rules; source for rule metadata         |
+| `.opensearch-sap-custom-rules-config`       | User-created custom rules; fallback source for rule metadata |
+| `.opensearch-sap-log-types-config`          | Integrations                                                 |
+| `.opensearch-sap-detectors-config`          | Threat detector configurations                               |
+| `wazuh-findings-v5-{category}*`             | Enriched findings                                             |
+
+## Access control
+
+Access to Security Analytics is governed by the [default Wazuh roles](../../security/access-control.md). The plugin authorizes requests against two action namespaces: the Wazuh custom actions `cluster:admin/wazuh/securityanalytics/*` and the upstream OpenSearch actions `cluster:admin/opensearch/securityanalytics/*` (see [Permissions](../../security/permissions.md)).
+
+- **`wazuh_admin`** — full access: create/update/delete detectors, rules, log types, and correlations; read findings and alerts.
+- **`wazuh_demo`** — full access, same endpoints as `wazuh_admin`.
+- **`wazuh_readonly`** — read-only: get/search detectors, rules, findings, alerts, mappings, correlations, and threat intel; `rules/evaluate`.
+- **`wazuh_manager`** — no access.

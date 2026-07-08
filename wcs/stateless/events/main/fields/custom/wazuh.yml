@@ -81,6 +81,18 @@
       description: >
         Wazuh schema version.
       example: "1.7.0"
+    - name: case.title
+      type: match_only_text
+      level: custom
+      description: >
+        Title summarizing the case.
+      example: "Sample Case Title"
+    - name: case.description
+      type: match_only_text
+      level: custom
+      description: >
+        Detailed description of the case.
+      example: "This is a sample description for the case."
     - name: case.user.name
       type: keyword
       level: custom
@@ -93,6 +105,24 @@
       description: >
         Current status of the case. One of ACTIVE, ACKNOWLEDGED, COMPLETED, ERROR, DELETED, AUDIT.
       example: "ACTIVE"
+    - name: case.severity
+      type: keyword
+      level: custom
+      description: >
+        Severity of the case. One of INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL.
+      example: "MEDIUM"
+    - name: case.priority
+      type: keyword
+      level: custom
+      description: >
+        Priority of the case. One of LOW, MEDIUM, HIGH, URGENT.
+      example: "MEDIUM"
+    - name: case.tlp
+      type: keyword
+      level: custom
+      description: >
+        Traffic Light Protocol classification of the case. One of TLP:RED, TLP:AMBER, TLP:GREEN, TLP:CLEAR.
+      example: "TLP:CLEAR"
     - name: case.created_at
       type: date
       level: custom
@@ -105,12 +135,6 @@
       description: >
         Timestamp when the case was last updated.
       example: "1623456789000"
-    - name: case.comment
-      type: match_only_text
-      level: custom
-      description: >
-        Free-form comment attached to the case.
-      example: "This is a comment for the case."
     - name: case.tags
       type: keyword
       level: custom
@@ -119,3 +143,34 @@
       normalize:
         - array
       example: '["tag1", "tag2", "tag3"]'
+    - name: case.comments
+      type: nested
+      level: custom
+      description: >
+        Array of comments attached to the case, each authored and timestamped independently.
+      normalize:
+        - array
+    - name: case.comments.author
+      type: keyword
+      level: custom
+      description: >
+        Name of the user that authored the comment.
+      example: "admin"
+    - name: case.comments.created_at
+      type: date
+      level: custom
+      description: >
+        Timestamp when the comment was created.
+      example: "1623456789000"
+    - name: case.comments.updated_at
+      type: date
+      level: custom
+      description: >
+        Timestamp when the comment was last updated.
+      example: "1623456789000"
+    - name: case.comments.comment
+      type: match_only_text
+      level: custom
+      description: >
+        Text content of the comment.
+      example: "This is a comment for the case."

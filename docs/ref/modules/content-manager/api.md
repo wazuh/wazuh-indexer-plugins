@@ -886,7 +886,7 @@ The `message` field contains the UUID of the created rule.
 #### Status codes
 
 - **201** — rule created.
-- **400** — missing fields, duplicate title, integration not in draft space, or validation failure.
+- **400** — missing fields, duplicate title, integration not in draft space, validation failure, or `max_rules` limit reached (default: 100).
 - **500** — internal error or Security Analytics unavailable.
 
 ---
@@ -1118,7 +1118,7 @@ resource:
 #### Status codes
 
 - **201** — decoder created.
-- **400** — missing `integration` field, integration not in draft space, or Engine validation failure (see [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field) if the failure mentions an unrecognized WCS field).
+- **400** — issing `integration` field, integration not in draft space, Engine validation failure, or `max_decoders` limit reached (see [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field) if the failure mentions an unrecognized WCS field).
 - **500** — Engine unavailable or internal error.
 
 ---
@@ -1311,7 +1311,7 @@ resource:
 #### Status codes
 
 - **201** — filter created.
-- **400** — missing `space` field, invalid space, or Engine validation failure.
+- **400** — missing `space` field, invalid space, Engine validation failure, or `max_filters` limit reached (default: 100).
 - **500** — Engine unavailable or internal error.
 
 ---
@@ -1480,7 +1480,7 @@ The `message` field contains the UUID of the created integration.
 #### Status codes
 
 - **201** — integration created.
-- **400** — missing required fields (`title`, `author`, `category`), duplicate title, or validation failure.
+- **400** — missing required fields (`title`, `author`, `category`), duplicate title, validation failure, or `max_integrations` limit reached (default: 100).
 - **500** — internal error or Security Analytics/Engine unavailable.
 
 ---
@@ -1726,7 +1726,7 @@ resource:
 #### Status codes
 
 - **201** — KVDB created.
-- **400** — missing `integration` or required resource fields, integration not in draft space.
+- **400** — issing `integration` or required resource fields, integration not in draft space, or `max_kvdbs` limit reached (default: 100).
 - **500** — internal error.
 
 ---

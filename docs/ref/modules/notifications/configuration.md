@@ -45,6 +45,7 @@ These settings control the plugin's general behavior.
 - **`opensearch.notifications.general.operation_timeout_ms`** (Long, default `60000`, minimum `100`) — timeout in milliseconds for internal operations (index reads/writes).
 - **`opensearch.notifications.general.default_items_query_count`** (Integer, default `100`, minimum `10`) — default number of items returned per query when not specified.
 - **`opensearch.notifications.general.filter_by_backend_roles`** (Boolean, default `false`) — when `true`, users can only see notification configurations created by users who share the same backend role. Inherits from `plugins.alerting.filter_by_backend_roles` if not set.
+- **`opensearch.notifications.general.max_notification_configs`** (Integer, default `100`, minimum `0`, dynamic) — maximum number of notification channel configurations (across all channel types) that can be created. POST requests that would exceed this limit are rejected with HTTP 400.
 
 ---
 
@@ -100,6 +101,7 @@ opensearch.notifications.core.allowed_config_types:
 opensearch.notifications.general.operation_timeout_ms: 60000
 opensearch.notifications.general.default_items_query_count: 100
 opensearch.notifications.general.filter_by_backend_roles: false
+opensearch.notifications.general.max_notification_configs: 100
 ```
 
 ---
@@ -114,7 +116,8 @@ curl -X PUT "https://localhost:9200/_cluster/settings" \
   -d '{
     "persistent": {
       "opensearch.notifications.core.http.max_connections": 100,
-      "opensearch.notifications.general.filter_by_backend_roles": true
+      "opensearch.notifications.general.filter_by_backend_roles": true,
+      "opensearch.notifications.general.max_notification_configs": 50
     }
   }'
 ```
