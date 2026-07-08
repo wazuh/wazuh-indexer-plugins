@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.core.action.ActionListener;
 
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.console.model.Plan;
@@ -105,6 +106,23 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         this.credentialsIndex.storeCredentials(accessToken);
         PluginSettings.getInstance().setAccessToken(accessToken);
         log.info(Constants.I_LOG_ACCESS_TOKEN_SET);
+    }
+
+    @Override
+    public void register(String accessToken, ActionListener<Void> listener) {
+        if (!this.isCredentialsIndexProtected) {
+            listener.onFailure(new IllegalStateException(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX));
+            return;
+        }
+        this.credentialsIndex.storeCredentials(
+                accessToken,
+                ActionListener.wrap(
+                        v -> {
+                            PluginSettings.getInstance().setAccessToken(accessToken);
+                            log.info(Constants.I_LOG_ACCESS_TOKEN_SET);
+                            listener.onResponse(null);
+                        },
+                        listener::onFailure));
     }
 
     @Override

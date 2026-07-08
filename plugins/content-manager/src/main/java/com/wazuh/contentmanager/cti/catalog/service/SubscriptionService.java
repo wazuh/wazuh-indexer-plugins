@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import org.opensearch.core.action.ActionListener;
+
 import com.wazuh.contentmanager.cti.console.model.Plan;
 
 /** Service interface for managing the CTI subscription: get status, register, and unregister. */
@@ -39,6 +41,15 @@ public interface SubscriptionService {
      * @throws Exception if storing the credentials fails.
      */
     void register(String accessToken) throws Exception;
+
+    /**
+     * Async variant of {@link #register(String)}. Stores the access token in the credentials index,
+     * updates the in-memory token, and notifies the listener on completion.
+     *
+     * @param accessToken the CTI access token to persist.
+     * @param listener listener notified on success or failure.
+     */
+    void register(String accessToken, ActionListener<Void> listener);
 
     /**
      * Removes the credentials document from the index and clears the in-memory token.
