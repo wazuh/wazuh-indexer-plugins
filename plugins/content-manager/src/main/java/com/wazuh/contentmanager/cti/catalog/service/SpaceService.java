@@ -274,6 +274,108 @@ public class SpaceService {
     }
 
     /**
+     * Asynchronously fetches all resources (document.id and Hash) for a given space.
+     *
+     * @param spaceName The space to filter by (e.g., "draft", "test")
+     * @param listener receives a map where Key=ResourceType and Value=Map(document.id -> Hash)
+     */
+    public void getSpaceResourcesAsync(
+            String spaceName, ActionListener<Map<String, Map<String, String>>> listener) {
+        List<Map.Entry<String, String>> entries =
+                new ArrayList<>(Constants.RESOURCE_INDICES.entrySet());
+        fetchResourceTypeAsync(spaceName, entries, 0, new HashMap<>(), listener);
+    }
+
+    private void fetchResourceTypeAsync(
+            String spaceName,
+            List<Map.Entry<String, String>> entries,
+            int idx,
+            Map<String, Map<String, String>> accumulator,
+            ActionListener<Map<String, Map<String, String>>> listener) {
+        if (idx >= entries.size()) {
+            listener.onResponse(accumulator);
+            return;
+        }
+
+        String resourceType = entries.get(idx).getKey();
+        String indexName = entries.get(idx).getValue();
+
+        this.client
+                .admin()
+                .indices()
+                .exists(
+                        new IndicesExistsRequest(indexName),
+                        ActionListener.wrap(
+                                existsResponse -> {
+                                    if (!existsResponse.isExists()) {
+                                        log.warn(
+                                                Constants.W_LOG_FETCH_RESOURCE_TYPE_FAILED,
+                                                resourceType,
+                                                indexName,
+                                                spaceName,
+                                                "Index [" + indexName + "] not found.");
+                                        accumulator.put(resourceType, new HashMap<>());
+                                        fetchResourceTypeAsync(spaceName, entries, idx + 1, accumulator, listener);
+                                        return;
+                                    }
+                                    searchResourceTypeAsync(
+                                            spaceName, resourceType, indexName, entries, idx, accumulator, listener);
+                                },
+                                e -> {
+                                    log.warn(
+                                            Constants.W_LOG_FETCH_RESOURCE_TYPE_FAILED,
+                                            resourceType,
+                                            indexName,
+                                            spaceName,
+                                            e.getMessage());
+                                    accumulator.put(resourceType, new HashMap<>());
+                                    fetchResourceTypeAsync(spaceName, entries, idx + 1, accumulator, listener);
+                                }));
+    }
+
+    private void searchResourceTypeAsync(
+            String spaceName,
+            String resourceType,
+            String indexName,
+            List<Map.Entry<String, String>> entries,
+            int idx,
+            Map<String, Map<String, String>> accumulator,
+            ActionListener<Map<String, Map<String, String>>> listener) {
+        SearchRequest searchRequest = new SearchRequest(indexName);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+        sourceBuilder.fetchSource(new String[] {Constants.Q_HASH, Constants.Q_DOCUMENT_ID}, null);
+        sourceBuilder.size(10000);
+        searchRequest.source(sourceBuilder);
+
+        this.client.search(
+                searchRequest,
+                ActionListener.wrap(
+                        response -> {
+                            Map<String, String> items = new HashMap<>();
+                            for (SearchHit hit : response.getHits().getHits()) {
+                                String hash = Resource.extractHash(hit.getSourceAsMap());
+                                String docId = this.getDocumentId(hit.getSourceAsMap());
+                                if (docId != null) {
+                                    items.put(docId, hash);
+                                }
+                            }
+                            accumulator.put(resourceType, items);
+                            fetchResourceTypeAsync(spaceName, entries, idx + 1, accumulator, listener);
+                        },
+                        e -> {
+                            log.warn(
+                                    Constants.W_LOG_FETCH_RESOURCE_TYPE_FAILED,
+                                    resourceType,
+                                    indexName,
+                                    spaceName,
+                                    e.getMessage());
+                            accumulator.put(resourceType, new HashMap<>());
+                            fetchResourceTypeAsync(spaceName, entries, idx + 1, accumulator, listener);
+                        }));
+    }
+
+    /**
      * Consolidates resources after validation by applying ADD/UPDATE operations. This method copies
      * documents from source space to target space and updates the space field.
      *
@@ -367,6 +469,64 @@ public class SpaceService {
     }
 
     /**
+     * Asynchronously fetches all documents from a specific index that belong to a given space.
+     *
+     * @param indexName The index to search.
+     * @param space The space to filter by.
+     * @param listener receives a map of document.id to document content.
+     */
+    public void getResourcesBySpaceAsync(
+            String indexName, Space space, ActionListener<Map<String, Map<String, Object>>> listener) {
+        this.client
+                .admin()
+                .indices()
+                .exists(
+                        new IndicesExistsRequest(indexName),
+                        ActionListener.wrap(
+                                existsResponse -> {
+                                    if (!existsResponse.isExists()) {
+                                        listener.onResponse(new HashMap<>());
+                                        return;
+                                    }
+                                    SearchRequest searchRequest = new SearchRequest(indexName);
+                                    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+                                    sourceBuilder.query(
+                                            QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()));
+                                    sourceBuilder.size(10000);
+                                    searchRequest.source(sourceBuilder);
+
+                                    this.client.search(
+                                            searchRequest,
+                                            ActionListener.wrap(
+                                                    response -> {
+                                                        Map<String, Map<String, Object>> resources = new HashMap<>();
+                                                        for (SearchHit hit : response.getHits().getHits()) {
+                                                            String docId = this.getDocumentId(hit.getSourceAsMap());
+                                                            if (docId != null) {
+                                                                resources.put(docId, hit.getSourceAsMap());
+                                                            }
+                                                        }
+                                                        listener.onResponse(resources);
+                                                    },
+                                                    e -> {
+                                                        log.error(
+                                                                Constants.E_LOG_FETCH_RESOURCES_FAILED,
+                                                                indexName,
+                                                                space,
+                                                                e.getMessage());
+                                                        listener.onFailure(
+                                                                new IOException("Failed to fetch resources: " + e.getMessage(), e));
+                                                    }));
+                                },
+                                e -> {
+                                    log.error(
+                                            Constants.E_LOG_FETCH_RESOURCES_FAILED, indexName, space, e.getMessage());
+                                    listener.onFailure(
+                                            new IOException("Failed to fetch resources: " + e.getMessage(), e));
+                                }));
+    }
+
+    /**
      * Fetches only the document IDs from a specific index that belong to a given space.
      *
      * <p>Use this instead of {@link #getResourcesBySpace} when full document content is not needed,
@@ -440,16 +600,138 @@ public class SpaceService {
 
         Space space = Space.fromValue(targetSpace);
 
-        // Root payload structure
+        Map<String, Map<String, Object>> targetIntegrations =
+                this.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, space);
+        targetIntegrations.putAll(integrationsToApply);
+        integrationsToDelete.forEach(targetIntegrations::remove);
+
+        Map<String, Map<String, Object>> targetKvdbs =
+                this.getResourcesBySpace(Constants.INDEX_KVDBS, space);
+        targetKvdbs.putAll(kvdbsToApply);
+        kvdbsToDelete.forEach(targetKvdbs::remove);
+
+        Map<String, Map<String, Object>> targetDecoders =
+                this.getResourcesBySpace(Constants.INDEX_DECODERS, space);
+        targetDecoders.putAll(decodersToApply);
+        decodersToDelete.forEach(targetDecoders::remove);
+
+        Map<String, Map<String, Object>> targetFilters =
+                this.getResourcesBySpace(Constants.INDEX_FILTERS, space);
+        targetFilters.putAll(filtersToApply);
+        filtersToDelete.forEach(targetFilters::remove);
+
+        return assembleEnginePayload(
+                policyDocument,
+                targetSpace,
+                targetIntegrations,
+                targetKvdbs,
+                targetDecoders,
+                targetFilters);
+    }
+
+    /**
+     * Asynchronously builds the engine payload for validation by gathering all required resources.
+     *
+     * @param policyDocument The base policy document from the source space.
+     * @param targetSpace The target space name.
+     * @param integrationsToApply Map of integration IDs to their documents.
+     * @param kvdbsToApply Map of kvdb IDs to their documents.
+     * @param decodersToApply Map of decoder IDs to their documents.
+     * @param filtersToApply Map of filter IDs to their documents.
+     * @param integrationsToDelete Set of integration IDs to exclude.
+     * @param kvdbsToDelete Set of kvdb IDs to exclude.
+     * @param decodersToDelete Set of decoder IDs to exclude.
+     * @param filtersToDelete Set of filter IDs to exclude.
+     * @param listener receives the assembled engine payload.
+     */
+    public void buildEnginePayloadAsync(
+            Map<String, Object> policyDocument,
+            String targetSpace,
+            Map<String, Map<String, Object>> integrationsToApply,
+            Map<String, Map<String, Object>> kvdbsToApply,
+            Map<String, Map<String, Object>> decodersToApply,
+            Map<String, Map<String, Object>> filtersToApply,
+            Set<String> integrationsToDelete,
+            Set<String> kvdbsToDelete,
+            Set<String> decodersToDelete,
+            Set<String> filtersToDelete,
+            ActionListener<JsonNode> listener) {
+
+        Space space = Space.fromValue(targetSpace);
+
+        List<String> indices =
+                List.of(
+                        Constants.INDEX_INTEGRATIONS,
+                        Constants.INDEX_KVDBS,
+                        Constants.INDEX_DECODERS,
+                        Constants.INDEX_FILTERS);
+        List<Map<String, Map<String, Object>>> applyMaps =
+                List.of(integrationsToApply, kvdbsToApply, decodersToApply, filtersToApply);
+        List<Set<String>> deleteSets =
+                List.of(integrationsToDelete, kvdbsToDelete, decodersToDelete, filtersToDelete);
+
+        List<Map<String, Map<String, Object>>> fetched = new ArrayList<>();
+        fetchEngineResourcesAsync(
+                space,
+                indices,
+                applyMaps,
+                deleteSets,
+                0,
+                fetched,
+                ActionListener.wrap(
+                        v ->
+                                listener.onResponse(
+                                        assembleEnginePayload(
+                                                policyDocument,
+                                                targetSpace,
+                                                fetched.get(0),
+                                                fetched.get(1),
+                                                fetched.get(2),
+                                                fetched.get(3))),
+                        listener::onFailure));
+    }
+
+    private void fetchEngineResourcesAsync(
+            Space space,
+            List<String> indices,
+            List<Map<String, Map<String, Object>>> applyMaps,
+            List<Set<String>> deleteSets,
+            int idx,
+            List<Map<String, Map<String, Object>>> fetched,
+            ActionListener<Void> listener) {
+        if (idx >= indices.size()) {
+            listener.onResponse(null);
+            return;
+        }
+        getResourcesBySpaceAsync(
+                indices.get(idx),
+                space,
+                ActionListener.wrap(
+                        (Map<String, Map<String, Object>> resources) -> {
+                            resources.putAll(applyMaps.get(idx));
+                            deleteSets.get(idx).forEach(resources::remove);
+                            fetched.add(resources);
+                            fetchEngineResourcesAsync(
+                                    space, indices, applyMaps, deleteSets, idx + 1, fetched, listener);
+                        },
+                        listener::onFailure));
+    }
+
+    private JsonNode assembleEnginePayload(
+            Map<String, Object> policyDocument,
+            String targetSpace,
+            Map<String, Map<String, Object>> targetIntegrations,
+            Map<String, Map<String, Object>> targetKvdbs,
+            Map<String, Map<String, Object>> targetDecoders,
+            Map<String, Map<String, Object>> targetFilters) {
+
         ObjectNode rootPayload = this.objectMapper.createObjectNode();
         boolean isTesterSpace = !Space.DRAFT.toString().equals(targetSpace);
         rootPayload.put(Constants.KEY_PROMOTE, isTesterSpace);
         rootPayload.put(Constants.KEY_SPACE, targetSpace);
 
-        // Create the full_policy object
         ObjectNode fullPolicyNode = this.objectMapper.createObjectNode();
 
-        // Build the policy object
         ObjectNode policyNode = this.objectMapper.createObjectNode();
         if (policyDocument != null && policyDocument.containsKey(Constants.KEY_DOCUMENT)) {
             @SuppressWarnings("unchecked")
@@ -460,58 +742,14 @@ public class SpaceService {
         }
         fullPolicyNode.set(Constants.KEY_POLICY, policyNode);
 
-        // Build the resources object
         ObjectNode resourcesNode = this.objectMapper.createObjectNode();
-
-        // Fetch all integrations from target space
-        Map<String, Map<String, Object>> targetIntegrations =
-                this.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, space);
-        // Apply modifications
-        targetIntegrations.putAll(integrationsToApply);
-        // Remove deletions
-        for (String id : integrationsToDelete) {
-            targetIntegrations.remove(id);
-        }
-        // Build array
-        ArrayNode integrationsArray = this.buildResourceArray(targetIntegrations);
-        resourcesNode.set(Constants.KEY_INTEGRATIONS, integrationsArray);
-
-        // Fetch all kvdbs from target space
-        Map<String, Map<String, Object>> targetKvdbs =
-                this.getResourcesBySpace(Constants.INDEX_KVDBS, space);
-        targetKvdbs.putAll(kvdbsToApply);
-        for (String id : kvdbsToDelete) {
-            targetKvdbs.remove(id);
-        }
-        ArrayNode kvdbsArray = this.buildResourceArray(targetKvdbs);
-        resourcesNode.set(Constants.KEY_KVDBS, kvdbsArray);
-
-        // Fetch all decoders from target space
-        Map<String, Map<String, Object>> targetDecoders =
-                this.getResourcesBySpace(Constants.INDEX_DECODERS, space);
-        targetDecoders.putAll(decodersToApply);
-        for (String id : decodersToDelete) {
-            targetDecoders.remove(id);
-        }
-        ArrayNode decodersArray = this.buildResourceArray(targetDecoders);
-        resourcesNode.set(Constants.KEY_DECODERS, decodersArray);
-
-        // Fetch all filters from target space
-        Map<String, Map<String, Object>> targetFilters =
-                this.getResourcesBySpace(Constants.INDEX_FILTERS, space);
-        targetFilters.putAll(filtersToApply);
-        for (String id : filtersToDelete) {
-            targetFilters.remove(id);
-        }
-        ArrayNode filtersArray = this.buildResourceArray(targetFilters);
-        resourcesNode.set(Constants.KEY_FILTERS, filtersArray);
-
-        // Add resources to full_policy
+        resourcesNode.set(Constants.KEY_INTEGRATIONS, this.buildResourceArray(targetIntegrations));
+        resourcesNode.set(Constants.KEY_KVDBS, this.buildResourceArray(targetKvdbs));
+        resourcesNode.set(Constants.KEY_DECODERS, this.buildResourceArray(targetDecoders));
+        resourcesNode.set(Constants.KEY_FILTERS, this.buildResourceArray(targetFilters));
         fullPolicyNode.set(Constants.KEY_RESOURCES, resourcesNode);
 
-        // Add full_policy to root
         rootPayload.set(Constants.KEY_FULL_POLICY, fullPolicyNode);
-
         return rootPayload;
     }
 
@@ -610,6 +848,54 @@ public class SpaceService {
     }
 
     /**
+     * Asynchronously retrieves a document from the specified index by ID.
+     *
+     * @param indexName The name of the index to search.
+     * @param id The document ID.
+     * @param listener receives the document as a Map, or null if not found.
+     */
+    public void getDocumentAsync(
+            String indexName, String id, ActionListener<Map<String, Object>> listener) {
+        this.client.get(
+                new GetRequest(indexName, id),
+                ActionListener.wrap(
+                        response -> listener.onResponse(response.isExists() ? response.getSourceAsMap() : null),
+                        e -> {
+                            log.error(Constants.E_LOG_GET_DOCUMENT_FAILED, id, indexName, e.getMessage());
+                            listener.onFailure(
+                                    new IOException("Failed to retrieve document: " + e.getMessage(), e));
+                        }));
+    }
+
+    /**
+     * Asynchronously retrieves a document by its logical ID (document.id) within a space.
+     *
+     * @param indexName The name of the index to search.
+     * @param space The space name.
+     * @param documentId The logical document ID.
+     * @param listener receives the document as a Map, or null if not found.
+     */
+    public void getDocumentAsync(
+            String indexName,
+            String space,
+            String documentId,
+            ActionListener<Map<String, Object>> listener) {
+        findDocumentIdAsync(
+                indexName,
+                space,
+                documentId,
+                ActionListener.wrap(
+                        realId -> {
+                            if (realId != null) {
+                                getDocumentAsync(indexName, realId, listener);
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        listener::onFailure));
+    }
+
+    /**
      * Fetches the full policy document from the policies index by searching for the space.
      *
      * @param space The space of the policy document.
@@ -677,6 +963,159 @@ public class SpaceService {
             log.error(Constants.E_LOG_DELETE_RESOURCES_FAILED, e.getMessage());
             throw new IOException("Failed to delete resources: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Asynchronously consolidates resources by applying ADD/UPDATE operations.
+     *
+     * @param indexName The index to update.
+     * @param resourcesToConsolidate Map of resource ID (document.id) to resource document.
+     * @param targetSpace The target space name.
+     * @param listener notified on completion or failure.
+     */
+    public void promoteSpaceAsync(
+            String indexName,
+            Map<String, Map<String, Object>> resourcesToConsolidate,
+            String targetSpace,
+            ActionListener<Void> listener) {
+        List<String> docIds = new ArrayList<>(resourcesToConsolidate.keySet());
+        resolveDocumentIdsAsync(
+                indexName,
+                targetSpace,
+                docIds,
+                0,
+                new HashMap<>(),
+                ActionListener.wrap(
+                        resolvedIds -> {
+                            try {
+                                BulkRequest bulkRequest = new BulkRequest();
+                                for (Map.Entry<String, Map<String, Object>> entry :
+                                        resourcesToConsolidate.entrySet()) {
+                                    String docId = entry.getKey();
+                                    Map<String, Object> doc = entry.getValue();
+
+                                    @SuppressWarnings("unchecked")
+                                    Map<String, String> spaceMap =
+                                            (Map<String, String>) doc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
+                                    spaceMap.put(Constants.KEY_NAME, targetSpace);
+                                    doc.put(Constants.KEY_SPACE, spaceMap);
+
+                                    IndexRequest indexRequest = new IndexRequest(indexName);
+                                    String targetId = resolvedIds.get(docId);
+                                    if (targetId != null) {
+                                        indexRequest.id(targetId);
+                                    }
+                                    indexRequest.source(this.objectMapper.writeValueAsString(doc), XContentType.JSON);
+                                    bulkRequest.add(indexRequest);
+                                }
+                                if (bulkRequest.numberOfActions() == 0) {
+                                    listener.onResponse(null);
+                                    return;
+                                }
+                                bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                                this.client.bulk(
+                                        bulkRequest,
+                                        ActionListener.wrap(
+                                                response -> {
+                                                    if (response.hasFailures()) {
+                                                        listener.onFailure(
+                                                                new IOException(
+                                                                        "Bulk consolidation failed: "
+                                                                                + response.buildFailureMessage()));
+                                                    } else {
+                                                        listener.onResponse(null);
+                                                    }
+                                                },
+                                                listener::onFailure));
+                            } catch (Exception e) {
+                                log.error(Constants.E_LOG_CONSOLIDATE_RESOURCES_FAILED, e.getMessage());
+                                listener.onFailure(
+                                        new IOException("Failed to consolidate resources: " + e.getMessage(), e));
+                            }
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Asynchronously deletes resources from the target space.
+     *
+     * @param indexName The index to delete from.
+     * @param resourceIdsToDelete Set of resource IDs (document.id) to delete.
+     * @param targetSpace The target space (for verification).
+     * @param listener notified on completion or failure.
+     */
+    public void deleteResourcesAsync(
+            String indexName,
+            Set<String> resourceIdsToDelete,
+            String targetSpace,
+            ActionListener<Void> listener) {
+        List<String> docIds = new ArrayList<>(resourceIdsToDelete);
+        resolveDocumentIdsAsync(
+                indexName,
+                targetSpace,
+                docIds,
+                0,
+                new HashMap<>(),
+                ActionListener.wrap(
+                        resolvedIds -> {
+                            BulkRequest bulkRequest = new BulkRequest();
+                            for (String docId : resourceIdsToDelete) {
+                                String targetId = resolvedIds.get(docId);
+                                if (targetId != null) {
+                                    bulkRequest.add(new DeleteRequest(indexName, targetId));
+                                } else {
+                                    log.warn(Constants.W_LOG_DOCUMENT_NOT_FOUND_FOR_DELETION, docId, targetSpace);
+                                }
+                            }
+                            if (bulkRequest.numberOfActions() == 0) {
+                                listener.onResponse(null);
+                                return;
+                            }
+                            bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                            this.client.bulk(
+                                    bulkRequest,
+                                    ActionListener.wrap(
+                                            response -> {
+                                                if (response.hasFailures()) {
+                                                    listener.onFailure(
+                                                            new IOException(
+                                                                    "Bulk deletion failed: " + response.buildFailureMessage()));
+                                                } else {
+                                                    listener.onResponse(null);
+                                                }
+                                            },
+                                            listener::onFailure));
+                        },
+                        e -> {
+                            log.error(Constants.E_LOG_DELETE_RESOURCES_FAILED, e.getMessage());
+                            listener.onFailure(
+                                    new IOException("Failed to delete resources: " + e.getMessage(), e));
+                        }));
+    }
+
+    private void resolveDocumentIdsAsync(
+            String indexName,
+            String spaceName,
+            List<String> docIds,
+            int idx,
+            Map<String, String> resolved,
+            ActionListener<Map<String, String>> listener) {
+        if (idx >= docIds.size()) {
+            listener.onResponse(resolved);
+            return;
+        }
+        findDocumentIdAsync(
+                indexName,
+                spaceName,
+                docIds.get(idx),
+                ActionListener.wrap(
+                        realId -> {
+                            if (realId != null) {
+                                resolved.put(docIds.get(idx), realId);
+                            }
+                            resolveDocumentIdsAsync(indexName, spaceName, docIds, idx + 1, resolved, listener);
+                        },
+                        listener::onFailure));
     }
 
     /**
@@ -1371,5 +1810,67 @@ public class SpaceService {
             }
         }
         return false;
+    }
+
+    /**
+     * Asynchronously checks whether the given space contains at least one document in any of the
+     * engine-related indices (decoders, kvdbs, filters).
+     *
+     * @param space The target space to check.
+     * @param listener receives true if the space holds at least one decoder, kvdb, or filter.
+     */
+    public void hasEngineResourcesAsync(Space space, ActionListener<Boolean> listener) {
+        List<String> indices =
+                List.of(Constants.INDEX_DECODERS, Constants.INDEX_KVDBS, Constants.INDEX_FILTERS);
+        checkEngineIndexAsync(space, indices, 0, listener);
+    }
+
+    private void checkEngineIndexAsync(
+            Space space, List<String> indices, int idx, ActionListener<Boolean> listener) {
+        if (idx >= indices.size()) {
+            listener.onResponse(false);
+            return;
+        }
+        String index = indices.get(idx);
+        this.client
+                .admin()
+                .indices()
+                .exists(
+                        new IndicesExistsRequest(index),
+                        ActionListener.wrap(
+                                existsResponse -> {
+                                    if (!existsResponse.isExists()) {
+                                        checkEngineIndexAsync(space, indices, idx + 1, listener);
+                                        return;
+                                    }
+                                    SearchRequest searchRequest = new SearchRequest(index);
+                                    searchRequest
+                                            .source()
+                                            .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()))
+                                            .size(1);
+                                    this.client.search(
+                                            searchRequest,
+                                            ActionListener.wrap(
+                                                    response -> {
+                                                        if (response.getHits().getTotalHits().value() > 0) {
+                                                            listener.onResponse(true);
+                                                        } else {
+                                                            checkEngineIndexAsync(space, indices, idx + 1, listener);
+                                                        }
+                                                    },
+                                                    e -> {
+                                                        log.warn(
+                                                                Constants.W_LOG_CHECK_ENGINE_RESOURCES_FAILED,
+                                                                space,
+                                                                index,
+                                                                e.getMessage());
+                                                        checkEngineIndexAsync(space, indices, idx + 1, listener);
+                                                    }));
+                                },
+                                e -> {
+                                    log.warn(
+                                            Constants.W_LOG_CHECK_ENGINE_RESOURCES_FAILED, space, index, e.getMessage());
+                                    checkEngineIndexAsync(space, indices, idx + 1, listener);
+                                }));
     }
 }
