@@ -296,6 +296,40 @@ public class CredentialsIndex {
     }
 
     /**
+     * Async variant of {@link #deleteDocument()}. Deletes the credentials document from the index and
+     * notifies the listener on completion.
+     *
+     * @param listener listener notified with the DeleteResponse on success, or null if the index does
+     *     not exist.
+     */
+    public void deleteDocument(ActionListener<DeleteResponse> listener) {
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            ClusterInfo.indexExists(
+                    this.client,
+                    INDEX_NAME,
+                    ActionListener.wrap(
+                            exists -> {
+                                if (!exists) {
+                                    log.debug("Index [{}] does not exist, nothing to delete.", INDEX_NAME);
+                                    listener.onResponse(null);
+                                } else {
+                                    executeDelete(listener);
+                                }
+                            },
+                            listener::onFailure));
+        }
+    }
+
+    private void executeDelete(ActionListener<DeleteResponse> listener) {
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            DeleteRequest request =
+                    new DeleteRequest(INDEX_NAME, DOCUMENT_ID)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+            this.client.delete(request, ActionListener.wrap(listener::onResponse, listener::onFailure));
+        }
+    }
+
+    /**
      * Checks whether the credentials index exists.
      *
      * @return true if the index exists, false otherwise.

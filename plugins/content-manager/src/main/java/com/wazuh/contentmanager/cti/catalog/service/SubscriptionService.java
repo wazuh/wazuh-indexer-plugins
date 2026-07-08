@@ -57,4 +57,12 @@ public interface SubscriptionService {
      * @throws Exception if deleting the credentials document fails.
      */
     void unregister() throws Exception;
+
+    /**
+     * Async variant of {@link #unregister()}. Removes the credentials document from the index, clears
+     * the in-memory token, and notifies the listener on completion.
+     *
+     * @param listener listener notified on success or failure.
+     */
+    void unregister(ActionListener<Void> listener);
 }

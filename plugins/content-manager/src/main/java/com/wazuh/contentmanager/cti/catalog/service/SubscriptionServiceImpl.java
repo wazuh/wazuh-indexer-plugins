@@ -131,4 +131,16 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         PluginSettings.getInstance().setAccessToken(null);
         log.info(Constants.I_LOG_ACCESS_TOKEN_REMOVED);
     }
+
+    @Override
+    public void unregister(ActionListener<Void> listener) {
+        this.credentialsIndex.deleteDocument(
+                ActionListener.wrap(
+                        deleteResponse -> {
+                            PluginSettings.getInstance().setAccessToken(null);
+                            log.info(Constants.I_LOG_ACCESS_TOKEN_REMOVED);
+                            listener.onResponse(null);
+                        },
+                        listener::onFailure));
+    }
 }

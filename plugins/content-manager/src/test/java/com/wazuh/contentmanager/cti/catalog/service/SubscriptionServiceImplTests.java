@@ -16,7 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.common.SuppressForbidden;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
 import org.junit.Assert;
@@ -142,5 +144,49 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
 
         verify(this.credentialsIndex).deleteDocument();
         Assert.assertNull(PluginSettings.getInstance().getAccessToken());
+    }
+
+    /** Async unregister() deletes the credentials document and clears the in-memory token. */
+    @SuppressWarnings("unchecked")
+    public void testUnregisterAsync() {
+        PluginSettings.getInstance().setAccessToken("existing-token");
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> asyncListener = invocation.getArgument(0);
+                            asyncListener.onResponse(null);
+                            return null;
+                        })
+                .when(this.credentialsIndex)
+                .deleteDocument(any(ActionListener.class));
+
+        ActionListener<Void> listener = mock(ActionListener.class);
+        this.service.unregister(listener);
+
+        verify(this.credentialsIndex).deleteDocument(any(ActionListener.class));
+        verify(listener).onResponse(null);
+        Assert.assertNull(PluginSettings.getInstance().getAccessToken());
+    }
+
+    /** Async unregister() propagates failure from the credentials index. */
+    @SuppressWarnings("unchecked")
+    public void testUnregisterAsync_Failure() {
+        PluginSettings.getInstance().setAccessToken("existing-token");
+        RuntimeException cause = new RuntimeException("delete failed");
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> asyncListener = invocation.getArgument(0);
+                            asyncListener.onFailure(cause);
+                            return null;
+                        })
+                .when(this.credentialsIndex)
+                .deleteDocument(any(ActionListener.class));
+
+        ActionListener<Void> listener = mock(ActionListener.class);
+        this.service.unregister(listener);
+
+        verify(listener).onFailure(cause);
+        Assert.assertEquals("existing-token", PluginSettings.getInstance().getAccessToken());
     }
 }
