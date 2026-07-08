@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.ActionFilters;
@@ -292,6 +293,10 @@ public abstract class AbstractTransportUpdateActionSpaces
             OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
             if (secEx != null) {
                 return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
+            OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
+            if (osEx != null) {
+                return new RestResponse(osEx.getMessage(), osEx.status().getStatus());
             }
             log.error(Constants.E_LOG_UNEXPECTED, "updating", this.getResourceType(), id, e.getMessage());
             return new RestResponse(

@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.transport;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.ActionFilters;
@@ -147,6 +148,12 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
             OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
             if (secEx != null) {
                 return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+            }
+            OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
+            if (osEx != null) {
+                return new RestResponse(
+                        Constants.E_SECURITY_ANALYTICS_ERROR + " " + osEx.getMessage(),
+                        osEx.status().getStatus());
             }
             String msg = e.getMessage() != null ? e.getMessage() : "Unknown error";
             return new RestResponse(
