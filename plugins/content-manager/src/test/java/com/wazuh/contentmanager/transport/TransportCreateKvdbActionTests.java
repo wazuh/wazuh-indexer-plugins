@@ -59,27 +59,31 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
+public class TransportCreateKvdbActionTests extends OpenSearchTestCase {
+
+    private static final String KVDB_PAYLOAD =
+            "{\"integration\":\"int-1\",\"resource\":{"
+                    + "\"content\":{\"key\":\"value\"},"
+                    + "\"metadata\":{\"title\":\"Test KVDB\",\"author\":\"Wazuh\"}}}";
+
     private Client client;
-    private EngineService engineService;
-    private TransportCreateDecoderAction action;
+    private TransportCreateKvdbAction action;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
         clearPluginSettingsInstance();
-        Settings settings = Settings.builder().put("plugins.content_manager.engine.mock", true).build();
-        PluginSettings.getInstance(settings);
+        PluginSettings.getInstance(
+                Settings.builder().put("plugins.content_manager.engine.mock", true).build());
         this.client = mock(Client.class);
         stubResourceLock(this.client);
-        this.engineService = mock(EngineService.class);
         this.action =
-                new TransportCreateDecoderAction(
+                new TransportCreateKvdbAction(
                         mock(TransportService.class),
                         mock(ActionFilters.class),
                         this.client,
-                        this.engineService);
+                        mock(EngineService.class));
     }
 
     @After
@@ -122,110 +126,8 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
     }
 
     @SuppressWarnings("unchecked")
-    private void mockDraftPolicyExists() {
-        SearchResponse searchResponse = mock(SearchResponse.class);
-        SearchHits searchHits =
-                new SearchHits(
-                        new org.opensearch.search.SearchHit[0],
-                        new TotalHits(1, TotalHits.Relation.EQUAL_TO),
-                        0.0f);
-        when(searchResponse.getHits()).thenReturn(searchHits);
-        ActionFuture<SearchResponse> future = mock(ActionFuture.class);
-        when(future.actionGet()).thenReturn(searchResponse);
-        when(this.client.search(any())).thenReturn(future);
-    }
-
-    @SuppressWarnings("unchecked")
-    private void mockDraftPolicyMissing() {
-        SearchResponse searchResponse = mock(SearchResponse.class);
-        when(searchResponse.getHits()).thenReturn(SearchHits.empty());
-        ActionFuture<SearchResponse> future = mock(ActionFuture.class);
-        when(future.actionGet()).thenReturn(searchResponse);
-        when(this.client.search(any())).thenReturn(future);
-    }
-
-    public void testDoExecute_EmptyBody() {
-        mockDraftPolicyExists();
-        ContentCreateRequest request =
-                new ContentCreateRequest(RestRequest.Method.POST, new byte[0], "json");
-
-        @SuppressWarnings("unchecked")
-        ActionListener<ContentResponse> listener = mock(ActionListener.class);
-        this.action.doExecute(mock(Task.class), request, listener);
-
-        verify(listener)
-                .onResponse(
-                        argThat(
-                                response -> {
-                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
-                                    return true;
-                                }));
-    }
-
-    public void testDoExecute_NullBody() {
-        mockDraftPolicyExists();
-        ContentCreateRequest request = new ContentCreateRequest(RestRequest.Method.POST, null, "json");
-
-        @SuppressWarnings("unchecked")
-        ActionListener<ContentResponse> listener = mock(ActionListener.class);
-        this.action.doExecute(mock(Task.class), request, listener);
-
-        verify(listener)
-                .onResponse(
-                        argThat(
-                                response -> {
-                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
-                                    return true;
-                                }));
-    }
-
-    public void testDoExecute_InvalidJson() {
-        mockDraftPolicyExists();
-        ContentCreateRequest request =
-                new ContentCreateRequest(
-                        RestRequest.Method.POST,
-                        "not valid json".getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                        "json");
-
-        @SuppressWarnings("unchecked")
-        ActionListener<ContentResponse> listener = mock(ActionListener.class);
-        this.action.doExecute(mock(Task.class), request, listener);
-
-        verify(listener)
-                .onResponse(
-                        argThat(
-                                response -> {
-                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
-                                    return true;
-                                }));
-    }
-
-    public void testDoExecute_DraftPolicyMissing() {
-        mockDraftPolicyMissing();
-        ContentCreateRequest request =
-                new ContentCreateRequest(
-                        RestRequest.Method.POST,
-                        "{\"resource\":{\"name\":\"test\"},\"integration\":\"int-1\"}"
-                                .getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                        "json");
-
-        @SuppressWarnings("unchecked")
-        ActionListener<ContentResponse> listener = mock(ActionListener.class);
-        this.action.doExecute(mock(Task.class), request, listener);
-
-        verify(listener)
-                .onResponse(
-                        argThat(
-                                response -> {
-                                    Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
-                                    Assert.assertTrue(response.getMessage().contains("Draft policy"));
-                                    return true;
-                                }));
-    }
-
-    @SuppressWarnings("unchecked")
-    public void testDoExecute_maxDecodersReached() {
-        PluginSettings.getInstance().setMaxDecoders(0);
+    public void testDoExecute_maxKvdbsReached() {
+        PluginSettings.getInstance().setMaxKvdbs(0);
         try {
             SearchResponse policyResp = mock(SearchResponse.class);
             when(policyResp.getHits())
@@ -264,14 +166,12 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
                                     r ->
                                             r != null
                                                     && r.indices().length > 0
-                                                    && Constants.INDEX_DECODERS.equals(r.indices()[0]))))
+                                                    && Constants.INDEX_KVDBS.equals(r.indices()[0]))))
                     .thenReturn(countFuture);
 
             ContentCreateRequest request =
                     new ContentCreateRequest(
-                            RestRequest.Method.POST,
-                            "{\"integration\":\"int-1\",\"resource\":{}}".getBytes(StandardCharsets.UTF_8),
-                            "json");
+                            RestRequest.Method.POST, KVDB_PAYLOAD.getBytes(StandardCharsets.UTF_8), "json");
 
             ActionListener<ContentResponse> listener = mock(ActionListener.class);
             this.action.doExecute(mock(Task.class), request, listener);
@@ -281,33 +181,11 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
                             argThat(
                                     response -> {
                                         Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
-                                        Assert.assertTrue(response.getMessage().contains("allowed decoders [0]"));
+                                        Assert.assertTrue(response.getMessage().contains("allowed kvdbs [0]"));
                                         return true;
                                     }));
         } finally {
-            PluginSettings.getInstance().setMaxDecoders(PluginSettings.DEFAULT_MAX_DECODERS);
+            PluginSettings.getInstance().setMaxKvdbs(PluginSettings.DEFAULT_MAX_KVDBS);
         }
-    }
-
-    public void testDoExecute_DraftPolicyCheckException() {
-        when(this.client.search(any())).thenThrow(new RuntimeException("Search failed"));
-        ContentCreateRequest request =
-                new ContentCreateRequest(
-                        RestRequest.Method.POST,
-                        "{\"resource\":{\"name\":\"test\"},\"integration\":\"int-1\"}"
-                                .getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                        "json");
-
-        @SuppressWarnings("unchecked")
-        ActionListener<ContentResponse> listener = mock(ActionListener.class);
-        this.action.doExecute(mock(Task.class), request, listener);
-
-        verify(listener)
-                .onResponse(
-                        argThat(
-                                response -> {
-                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
-                                    return true;
-                                }));
     }
 }

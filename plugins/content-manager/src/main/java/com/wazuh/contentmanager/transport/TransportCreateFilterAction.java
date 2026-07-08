@@ -38,6 +38,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Transport action for creating Filter resources (Spaces variant). */
@@ -104,6 +105,21 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
         this.spaceName = spaceValue;
 
         return null;
+    }
+
+    @Override
+    protected int getMaxAllowed() {
+        return PluginSettings.getInstance().getMaxFilters();
+    }
+
+    @Override
+    protected String getTooManyResourcesMessageFormat() {
+        return Constants.E_400_TOO_MANY_FILTERS;
+    }
+
+    @Override
+    protected String getMaxReachedLogFormat() {
+        return Constants.I_LOG_MAX_FILTERS_REACHED;
     }
 
     private boolean isValidSpace(String spaceValue) {

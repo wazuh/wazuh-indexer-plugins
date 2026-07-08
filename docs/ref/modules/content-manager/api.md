@@ -908,7 +908,7 @@ The `message` field contains the UUID of the created rule.
 | Code | Description                                                                            |
 | ---- | -------------------------------------------------------------------------------------- |
 | 201  | Rule created                                                                           |
-| 400  | Missing fields, duplicate title, integration not in draft space, or validation failure |
+| 400  | Missing fields, duplicate title, integration not in draft space, validation failure, or `max_rules` limit reached (default: 100) |
 | 500  | Internal error or SAP unavailable                                                      |
 
 ---
@@ -1160,7 +1160,7 @@ resource:
 | Code | Description                                                                               |
 | ---- | ----------------------------------------------------------------------------------------- |
 | 201  | Decoder created                                                                           |
-| 400  | Missing `integration` field, integration not in draft space, or Engine validation failure |
+| 400  | Missing `integration` field, integration not in draft space, Engine validation failure, or `max_decoders` limit reached (default: 100) |
 | 500  | Engine unavailable or internal error                                                      |
 
 ---
@@ -1378,7 +1378,7 @@ resource:
 | Code | Description                                                        |
 | ---- | ------------------------------------------------------------------ |
 | 201  | Filter created                                                     |
-| 400  | Missing `space` field, invalid space, or Engine validation failure |
+| 400  | Missing `space` field, invalid space, Engine validation failure, or `max_filters` limit reached (default: 100) |
 | 500  | Engine unavailable or internal error                               |
 
 ---
@@ -1566,7 +1566,7 @@ The `message` field contains the UUID of the created integration.
 | Code | Description                                                                                     |
 | ---- | ----------------------------------------------------------------------------------------------- |
 | 201  | Integration created                                                                             |
-| 400  | Missing required fields (`title`, `author`, `category`), duplicate title, or validation failure |
+| 400  | Missing required fields (`title`, `author`, `category`), duplicate title, validation failure, or `max_integrations` limit reached (default: 100) |
 | 500  | Internal error or SAP/Engine unavailable                                                        |
 
 ---
@@ -1833,7 +1833,7 @@ resource:
 | Code | Description                                                                       |
 | ---- | --------------------------------------------------------------------------------- |
 | 201  | KVDB created                                                                      |
-| 400  | Missing `integration` or required resource fields, integration not in draft space |
+| 400  | Missing `integration` or required resource fields, integration not in draft space, or `max_kvdbs` limit reached (default: 100) |
 | 500  | Internal error                                                                    |
 
 ---
