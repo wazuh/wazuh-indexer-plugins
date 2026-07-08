@@ -35,6 +35,15 @@ public interface SubscriptionService {
     Plan getPlan();
 
     /**
+     * Async variant of {@link #getPlan()}. Returns the active CTI plan for this environment and
+     * notifies the listener with the result.
+     *
+     * @param listener listener notified with the active {@link Plan}, or the public plan if the token
+     *     is invalid or absent.
+     */
+    void getPlan(ActionListener<Plan> listener);
+
+    /**
      * Stores the access token in the credentials index and updates the in-memory token.
      *
      * @param accessToken the CTI access token to persist.

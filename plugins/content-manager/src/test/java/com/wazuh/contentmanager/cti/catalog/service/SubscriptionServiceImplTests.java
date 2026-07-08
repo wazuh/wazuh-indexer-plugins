@@ -146,6 +146,128 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
         Assert.assertNull(PluginSettings.getInstance().getAccessToken());
     }
 
+    /** Async getPlan: token in memory and valid → returns plan from getMyPlan(). */
+    @SuppressWarnings("unchecked")
+    public void testGetPlanAsync_ValidToken() {
+        PluginSettings.getInstance().setAccessToken("valid-token");
+        Plan plan = mock(Plan.class);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Plan> asyncListener = invocation.getArgument(1);
+                            asyncListener.onResponse(plan);
+                            return null;
+                        })
+                .when(this.plansService)
+                .getMyPlan(any(Token.class), any(ActionListener.class));
+
+        ActionListener<Plan> listener = mock(ActionListener.class);
+        this.service.getPlan(listener);
+
+        verify(listener).onResponse(plan);
+    }
+
+    /** Async getPlan: token in memory but getMyPlan returns null → deletes and falls back. */
+    @SuppressWarnings("unchecked")
+    public void testGetPlanAsync_InvalidToken_FallsBackToPublicPlan() {
+        PluginSettings.getInstance().setAccessToken("bad-token");
+        Plan publicPlan = mock(Plan.class);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Plan> asyncListener = invocation.getArgument(1);
+                            asyncListener.onResponse(null);
+                            return null;
+                        })
+                .when(this.plansService)
+                .getMyPlan(any(Token.class), any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> asyncListener = invocation.getArgument(0);
+                            asyncListener.onResponse(null);
+                            return null;
+                        })
+                .when(this.credentialsIndex)
+                .deleteDocument(any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Plan> asyncListener = invocation.getArgument(0);
+                            asyncListener.onResponse(publicPlan);
+                            return null;
+                        })
+                .when(this.plansService)
+                .getPlan(any(ActionListener.class));
+
+        ActionListener<Plan> listener = mock(ActionListener.class);
+        this.service.getPlan(listener);
+
+        verify(listener).onResponse(publicPlan);
+        Assert.assertNull(PluginSettings.getInstance().getAccessToken());
+    }
+
+    /** Async getPlan: no token in memory or index → returns public plan. */
+    @SuppressWarnings("unchecked")
+    public void testGetPlanAsync_NoToken() {
+        Plan publicPlan = mock(Plan.class);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Boolean> asyncListener = invocation.getArgument(0);
+                            asyncListener.onResponse(false);
+                            return null;
+                        })
+                .when(this.credentialsIndex)
+                .exists(any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Plan> asyncListener = invocation.getArgument(0);
+                            asyncListener.onResponse(publicPlan);
+                            return null;
+                        })
+                .when(this.plansService)
+                .getPlan(any(ActionListener.class));
+
+        ActionListener<Plan> listener = mock(ActionListener.class);
+        this.service.getPlan(listener);
+
+        verify(listener).onResponse(publicPlan);
+        verify(this.plansService, never()).getMyPlan(any(Token.class), any(ActionListener.class));
+    }
+
+    /** Async getPlan: invalid token and deleteDocument fails → still falls back to public plan. */
+    @SuppressWarnings("unchecked")
+    public void testGetPlanAsync_InvalidToken_DeleteFails_StillFallsBack() {
+        PluginSettings.getInstance().setAccessToken("bad-token");
+        Plan publicPlan = mock(Plan.class);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Plan> asyncListener = invocation.getArgument(1);
+                            asyncListener.onResponse(null);
+                            return null;
+                        })
+                .when(this.plansService)
+                .getMyPlan(any(Token.class), any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> asyncListener = invocation.getArgument(0);
+                            asyncListener.onFailure(new RuntimeException("index gone"));
+                            return null;
+                        })
+                .when(this.credentialsIndex)
+                .deleteDocument(any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Plan> asyncListener = invocation.getArgument(0);
+                            asyncListener.onResponse(publicPlan);
+                            return null;
+                        })
+                .when(this.plansService)
+                .getPlan(any(ActionListener.class));
+
+        ActionListener<Plan> listener = mock(ActionListener.class);
+        this.service.getPlan(listener);
+
+        verify(listener).onResponse(publicPlan);
+        Assert.assertNull(PluginSettings.getInstance().getAccessToken());
+    }
+
     /** Async unregister() deletes the credentials document and clears the in-memory token. */
     @SuppressWarnings("unchecked")
     public void testUnregisterAsync() {

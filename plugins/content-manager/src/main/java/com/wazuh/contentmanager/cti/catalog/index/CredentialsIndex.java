@@ -270,6 +270,56 @@ public class CredentialsIndex {
     }
 
     /**
+     * Async variant of {@link #getAccessToken()}. Retrieves the stored access token from the index,
+     * decoded from its base64 form, and notifies the listener with the result.
+     *
+     * @param listener listener notified with the plaintext access token, or null if not found.
+     */
+    public void getAccessToken(ActionListener<String> listener) {
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            ClusterInfo.indexStatusCheck(
+                    this.client,
+                    INDEX_NAME,
+                    this.pluginSettings.getClientTimeout(),
+                    ActionListener.wrap(
+                            ready -> {
+                                if (!ready) {
+                                    listener.onFailure(new RuntimeException("Index not ready: " + INDEX_NAME));
+                                    return;
+                                }
+                                fetchAccessToken(listener);
+                            },
+                            listener::onFailure));
+        }
+    }
+
+    private void fetchAccessToken(ActionListener<String> listener) {
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            GetRequest request = new GetRequest().index(INDEX_NAME).id(DOCUMENT_ID).preference("_local");
+            this.client.get(
+                    request,
+                    ActionListener.wrap(
+                            response -> {
+                                if (!response.isExists()) {
+                                    listener.onResponse(null);
+                                    return;
+                                }
+                                Map<String, Object> source = response.getSourceAsMap();
+                                if (source == null) {
+                                    listener.onResponse(null);
+                                    return;
+                                }
+                                String stored = (String) source.get(ACCESS_TOKEN_FIELD);
+                                listener.onResponse(
+                                        stored != null
+                                                ? new String(Base64.getDecoder().decode(stored), StandardCharsets.UTF_8)
+                                                : null);
+                            },
+                            listener::onFailure));
+        }
+    }
+
+    /**
      * Deletes the credentials document from the index, preserving the index itself.
      *
      * @return the DeleteResponse from the operation.
@@ -339,6 +389,18 @@ public class CredentialsIndex {
         // access.
         try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
             return ClusterInfo.indexExists(this.client, INDEX_NAME);
+        }
+    }
+
+    /**
+     * Async variant of {@link #exists()}. Checks whether the credentials index exists and notifies
+     * the listener with the result.
+     *
+     * @param listener listener notified with true if the index exists, false otherwise.
+     */
+    public void exists(ActionListener<Boolean> listener) {
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            ClusterInfo.indexExists(this.client, INDEX_NAME, listener);
         }
     }
 

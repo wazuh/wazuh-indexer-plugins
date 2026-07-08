@@ -99,6 +99,82 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
+    public void getPlan(ActionListener<Plan> listener) {
+        this.getAccessToken(
+                ActionListener.wrap(
+                        accessToken -> {
+                            if (accessToken != null) {
+                                this.plansService.getMyPlan(
+                                        new Token(accessToken, "Bearer"),
+                                        ActionListener.wrap(
+                                                plan -> {
+                                                    if (plan != null) {
+                                                        listener.onResponse(plan);
+                                                        return;
+                                                    }
+                                                    log.info(Constants.I_LOG_ACCESS_TOKEN_EXPIRED_OR_INVALID);
+                                                    this.credentialsIndex.deleteDocument(
+                                                            ActionListener.wrap(
+                                                                    deleteResponse -> {
+                                                                        PluginSettings.getInstance().setAccessToken(null);
+                                                                        this.plansService.getPlan(listener);
+                                                                    },
+                                                                    e -> {
+                                                                        log.warn(
+                                                                                "Failed to delete"
+                                                                                        + " invalid"
+                                                                                        + " credentials"
+                                                                                        + " document:"
+                                                                                        + " {}",
+                                                                                e.getMessage());
+                                                                        PluginSettings.getInstance().setAccessToken(null);
+                                                                        this.plansService.getPlan(listener);
+                                                                    }));
+                                                },
+                                                listener::onFailure));
+                            } else {
+                                this.plansService.getPlan(listener);
+                            }
+                        },
+                        listener::onFailure));
+    }
+
+    private void getAccessToken(ActionListener<String> listener) {
+        String accessToken = PluginSettings.getInstance().getAccessToken();
+        if (accessToken != null) {
+            listener.onResponse(accessToken);
+            return;
+        }
+        this.credentialsIndex.exists(
+                ActionListener.wrap(
+                        exists -> {
+                            if (!exists) {
+                                listener.onResponse(null);
+                                return;
+                            }
+                            this.credentialsIndex.getAccessToken(
+                                    ActionListener.wrap(
+                                            token -> {
+                                                if (token != null) {
+                                                    PluginSettings.getInstance().setAccessToken(token);
+                                                    log.info(Constants.I_LOG_CTI_TOKEN_LOADED);
+                                                }
+                                                listener.onResponse(token);
+                                            },
+                                            e -> {
+                                                log.warn(
+                                                        "Failed to load access token from" + " credentials index: {}",
+                                                        e.getMessage());
+                                                listener.onResponse(null);
+                                            }));
+                        },
+                        e -> {
+                            log.warn("Failed to load access token from credentials index: {}", e.getMessage());
+                            listener.onResponse(null);
+                        }));
+    }
+
+    @Override
     public void register(String accessToken) throws Exception {
         if (!this.isCredentialsIndexProtected) {
             throw new IllegalStateException(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX);
