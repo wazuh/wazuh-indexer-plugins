@@ -415,4 +415,121 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"error\""));
     }
+
+    // --- Detection-only tests (executeDetectionAsync) ---
+
+    @SuppressWarnings("unchecked")
+    private RestResponse executeDetectionAndCapture(
+            String integrationId, Space space, JsonNode inputEvent) {
+        ActionListener<RestResponse> listener = mock(ActionListener.class);
+        this.service.executeDetectionAsync(integrationId, space, inputEvent, listener);
+        ArgumentCaptor<RestResponse> captor = ArgumentCaptor.forClass(RestResponse.class);
+        verify(listener).onResponse(captor.capture());
+        return captor.getValue();
+    }
+
+    /** Detection: integration not found returns 400. */
+    public void testDetection_IntegrationNotFound() throws Exception {
+        mockClientSearchAsync(createEmptySearchResponse());
+        JsonNode inputEvent = MAPPER.readTree("{\"key\":\"value\"}");
+
+        RestResponse response = executeDetectionAndCapture(INTEGRATION_ID, Space.TEST, inputEvent);
+        Assert.assertEquals(RestStatus.BAD_REQUEST.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains(INTEGRATION_ID));
+    }
+
+    /** Detection: integration search failure returns 500. */
+    public void testDetection_IntegrationSearchFailure() throws Exception {
+        mockClientSearchAsyncFailure(new RuntimeException("search failed"));
+        JsonNode inputEvent = MAPPER.readTree("{\"key\":\"value\"}");
+
+        RestResponse response = executeDetectionAndCapture(INTEGRATION_ID, Space.TEST, inputEvent);
+        Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), response.getStatus());
+    }
+
+    /** Detection: integration with no rules returns empty matches. */
+    public void testDetection_NoRulesReturnsEmptyMatches() throws Exception {
+        // spotless:off
+        SearchHit integrationHit = createHit(1, "int-1",
+            """
+            {"document": {}}
+            """);
+        // spotless:on
+        mockClientSearchAsync(createSearchResponse(integrationHit));
+        JsonNode inputEvent = MAPPER.readTree("{\"key\":\"value\"}");
+
+        RestResponse response = executeDetectionAndCapture(INTEGRATION_ID, Space.TEST, inputEvent);
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("\"rules_evaluated\":0"));
+        Assert.assertTrue(response.getMessage().contains("\"rules_matched\":0"));
+        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
+    }
+
+    /** Detection: full flow with SAP evaluation. */
+    @SuppressWarnings("unchecked")
+    public void testDetection_FullFlowWithRules() throws Exception {
+        // spotless:off
+        SearchHit integrationHit = createHit(1, "int-1",
+            String.format(Locale.ROOT, """
+            {"document": {"rules": ["%s"]}}
+            """, RULE_ID));
+        SearchHit ruleHit = createHit(2, "rule-1",
+            """
+            {"document": {"detection": {"selection": {"event.kind": "event"}, "condition": "selection"}, "logsource": {"product": "test"}, "level": "low", "status": "experimental"}}
+            """);
+        // spotless:on
+        mockClientSearchAsync(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
+
+        // spotless:off
+        doAnswer(invocation -> {
+            ActionListener<String> l = invocation.getArgument(2);
+            l.onResponse(
+                """
+                {"status":"success","rules_evaluated":1,"rules_matched":1,"matches":[{"rule_name":"Test Rule"}],"evaluation_time_ms":10}
+                """
+            );
+            return null;
+        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), any(ActionListener.class));
+        // spotless:on
+
+        JsonNode inputEvent = MAPPER.readTree("{\"event\":{\"kind\":\"event\"}}");
+        RestResponse response = executeDetectionAndCapture(INTEGRATION_ID, Space.TEST, inputEvent);
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("\"rules_matched\":1"));
+        verify(this.securityAnalytics, times(1)).evaluateRulesAsync(anyString(), anyList(), any());
+    }
+
+    /** Detection: rule fetch failure returns empty matches. */
+    @SuppressWarnings("unchecked")
+    public void testDetection_RuleFetchFailureReturnsEmptyMatches() throws Exception {
+        // spotless:off
+        SearchHit integrationHit = createHit(1, "int-1",
+            String.format(Locale.ROOT, """
+            {"document": {"rules": ["%s"]}}
+            """, RULE_ID));
+        // spotless:on
+        // Integration succeeds, rule fetch fails
+        when(this.client.prepareSearch(anyString())).thenReturn(this.searchRequestBuilder);
+        when(this.searchRequestBuilder.setSource(any(SearchSourceBuilder.class)))
+                .thenReturn(this.searchRequestBuilder);
+        AtomicInteger callCount = new AtomicInteger(0);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> l = invocation.getArgument(0);
+                            if (callCount.getAndIncrement() == 0) {
+                                l.onResponse(createSearchResponse(integrationHit));
+                            } else {
+                                l.onFailure(new RuntimeException("rule fetch failed"));
+                            }
+                            return null;
+                        })
+                .when(this.searchRequestBuilder)
+                .execute(any(ActionListener.class));
+
+        JsonNode inputEvent = MAPPER.readTree("{\"key\":\"value\"}");
+        RestResponse response = executeDetectionAndCapture(INTEGRATION_ID, Space.TEST, inputEvent);
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        Assert.assertTrue(response.getMessage().contains("\"rules_evaluated\":0"));
+        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
+    }
 }
