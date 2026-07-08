@@ -351,6 +351,7 @@ The value is set by whoever produces the content: CTI content carries its own `m
 | `user-managed` | `draft` | Fully editable (metadata, category, `enabled`). |
 | `user-managed` | `standard` | Only `enabled` can change; every other field is preserved from the stored document. |
 
+When a `standard` integration's `enabled` is toggled, its related Security Analytics **detector is disabled/enabled in lockstep** as part of the same update flow. The detector shares the integration's document id, so the Content Manager calls the Security Analytics `WSetDetectorEnabledAction` (`setDetectorEnabled(id, enabled)`) to flip **only** the `enabled` flag on the existing detector, preserving its inputs, triggers and monitors. If the detector sync fails the whole update is aborted, so the two never drift.
 
 ---
 

@@ -951,6 +951,53 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
     }
 
     /**
+     * Toggling {@code enabled} on a standard user-managed integration succeeds and leaves the
+     * CTI-owned, immutable {@code document.detector} block untouched. (The SAP detector is toggled
+     * out-of-band; that side effect is verified on a full stack, not here, since these tests run
+     * against a mocked Security Analytics service.)
+     *
+     * <p>Verifies: after disabling then re-enabling, {@code document.enabled} tracks the request
+     * while {@code document.detector.enabled} keeps its original value.
+     *
+     * @throws IOException On request or response parsing failure.
+     */
+    public void testPutIntegration_standardToggleLeavesDetectorBlockImmutable() throws IOException {
+        String integrationId = this.indexIntegrationWithDetector("test-standard-detector", true);
+
+        // Disable the integration.
+        Response disable =
+                this.makeRequest(
+                        "PUT",
+                        PluginSettings.INTEGRATIONS_URI + "/" + integrationId,
+                        "{\"resource\":{\"enabled\":false}}");
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(disable));
+
+        JsonNode doc =
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "standard")
+                        .path(Constants.KEY_DOCUMENT);
+        assertFalse("integration should be disabled", doc.path(Constants.KEY_ENABLED).asBoolean());
+        assertTrue(
+                "document.detector is immutable and must stay as indexed (true)",
+                doc.path(Constants.KEY_DETECTOR).path(Constants.KEY_ENABLED).asBoolean());
+
+        // Re-enable the integration.
+        Response enable =
+                this.makeRequest(
+                        "PUT",
+                        PluginSettings.INTEGRATIONS_URI + "/" + integrationId,
+                        "{\"resource\":{\"enabled\":true}}");
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(enable));
+
+        doc =
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, "standard")
+                        .path(Constants.KEY_DOCUMENT);
+        assertTrue("integration should be enabled", doc.path(Constants.KEY_ENABLED).asBoolean());
+        assertTrue(
+                "document.detector is immutable and must stay as indexed (true)",
+                doc.path(Constants.KEY_DETECTOR).path(Constants.KEY_ENABLED).asBoolean());
+    }
+
+    /**
      * Indexes a protected integration directly into the draft space, bypassing the API (which only
      * ever creates user-managed integrations).
      *
@@ -960,6 +1007,47 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
      */
     private String indexProtectedIntegration(String title) throws IOException {
         return this.indexIntegration(title, "draft", "protected", true);
+    }
+
+    /**
+     * Indexes a standard, user-managed integration that carries a {@code document.detector} object,
+     * so the detector-enabled mirroring can be exercised.
+     *
+     * @param title the integration title.
+     * @param enabled the initial enabled value for both the integration and its detector.
+     * @return the generated integration ID.
+     * @throws IOException On request or response parsing failure.
+     */
+    private String indexIntegrationWithDetector(String title, boolean enabled) throws IOException {
+        String id = UUID.randomUUID().toString();
+        // spotless:off
+        String doc = """
+                {
+                    "document": {
+                        "id": "%s",
+                        "category": "cloud-services",
+                        "enabled": %s,
+                        "mode": "user-managed",
+                        "decoders": [],
+                        "kvdbs": [],
+                        "rules": [],
+                        "detector": {"source": ["wazuh-events-v5-security"], "interval": 2, "enabled": %s},
+                        "metadata": {
+                            "title": "%s",
+                            "author": "Wazuh Inc.",
+                            "description": "Integration indexed by the test suite.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        }
+                    },
+                    "hash": {"sha256": "0000000000000000000000000000000000000000000000000000000000000000"},
+                    "space": {"name": "standard"}
+                }
+                """;
+        // spotless:on
+        doc = String.format(java.util.Locale.ROOT, doc, id, enabled, enabled, title);
+        this.makeRequest("PUT", Constants.INDEX_INTEGRATIONS + "/_doc/" + id + "?refresh=true", doc);
+        return id;
     }
 
     /**
