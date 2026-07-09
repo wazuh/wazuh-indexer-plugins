@@ -6,7 +6,6 @@
   "template": {
     "settings": {
       "index": {
-        "auto_expand_replicas": "0-1",
         "codec": "zstd",
         "max_docvalue_fields_search": 50,
         "number_of_replicas": "0",
