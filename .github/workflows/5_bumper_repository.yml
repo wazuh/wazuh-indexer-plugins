@@ -15,7 +15,7 @@ on:
         required: false
         type: string
       tag:
-        description: 'Pin workflow references using tag format (v{version}-{stage}) instead of branch format'
+        description: 'Set to true when this bump is preparing a tag release'
         default: false
         required: false
         type: boolean
