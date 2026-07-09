@@ -51,6 +51,26 @@ public class PluginSettings {
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
 
+    private static final int MAXIMUM_MAX_INTEGRATIONS = 100;
+    public static final int DEFAULT_MAX_INTEGRATIONS = MAXIMUM_MAX_INTEGRATIONS;
+    private static final int MINIMUM_MAX_INTEGRATIONS = 0;
+
+    private static final int MAXIMUM_MAX_DECODERS = 200;
+    public static final int DEFAULT_MAX_DECODERS = MAXIMUM_MAX_DECODERS;
+    private static final int MINIMUM_MAX_DECODERS = 0;
+
+    private static final int MAXIMUM_MAX_RULES = 200;
+    public static final int DEFAULT_MAX_RULES = MAXIMUM_MAX_RULES;
+    private static final int MINIMUM_MAX_RULES = 0;
+
+    private static final int MAXIMUM_MAX_KVDBS = 100;
+    public static final int DEFAULT_MAX_KVDBS = MAXIMUM_MAX_KVDBS;
+    private static final int MINIMUM_MAX_KVDBS = 0;
+
+    private static final int MAXIMUM_MAX_FILTERS = 100;
+    public static final int DEFAULT_MAX_FILTERS = MAXIMUM_MAX_FILTERS;
+    private static final int MINIMUM_MAX_FILTERS = 0;
+
     private static final long DEFAULT_MAX_BULK_BYTES = 5L * 1024 * 1024;
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
@@ -245,6 +265,71 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /**
+     * Maximum number of user-created integrations allowed in the draft space. Requests that would
+     * exceed this limit are rejected with a 400 error.
+     */
+    public static final Setting<Integer> MAX_INTEGRATIONS =
+            Setting.intSetting(
+                    "plugins.content_manager.max_integrations",
+                    DEFAULT_MAX_INTEGRATIONS,
+                    MINIMUM_MAX_INTEGRATIONS,
+                    MAXIMUM_MAX_INTEGRATIONS,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Maximum number of user-created decoders allowed in the draft space. Requests that would exceed
+     * this limit are rejected with a 400 error.
+     */
+    public static final Setting<Integer> MAX_DECODERS =
+            Setting.intSetting(
+                    "plugins.content_manager.max_decoders",
+                    DEFAULT_MAX_DECODERS,
+                    MINIMUM_MAX_DECODERS,
+                    MAXIMUM_MAX_DECODERS,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Maximum number of user-created rules allowed in the draft space. Requests that would exceed
+     * this limit are rejected with a 400 error.
+     */
+    public static final Setting<Integer> MAX_RULES =
+            Setting.intSetting(
+                    "plugins.content_manager.max_rules",
+                    DEFAULT_MAX_RULES,
+                    MINIMUM_MAX_RULES,
+                    MAXIMUM_MAX_RULES,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Maximum number of user-created kvdbs allowed in the draft space. Requests that would exceed
+     * this limit are rejected with a 400 error.
+     */
+    public static final Setting<Integer> MAX_KVDBS =
+            Setting.intSetting(
+                    "plugins.content_manager.max_kvdbs",
+                    DEFAULT_MAX_KVDBS,
+                    MINIMUM_MAX_KVDBS,
+                    MAXIMUM_MAX_KVDBS,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Maximum number of user-created filters allowed per space. Requests that would exceed this limit
+     * are rejected with a 400 error.
+     */
+    public static final Setting<Integer> MAX_FILTERS =
+            Setting.intSetting(
+                    "plugins.content_manager.max_filters",
+                    DEFAULT_MAX_FILTERS,
+                    MINIMUM_MAX_FILTERS,
+                    MAXIMUM_MAX_FILTERS,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
@@ -262,6 +347,11 @@ public class PluginSettings {
     private final boolean updateOnDemand;
     private final boolean policyUpdateEnabled;
     private volatile boolean isTelemetryEnabled;
+    private volatile int maxIntegrations;
+    private volatile int maxDecoders;
+    private volatile int maxRules;
+    private volatile int maxKvdbs;
+    private volatile int maxFilters;
     private volatile String accessToken;
     private String version;
 
@@ -288,6 +378,11 @@ public class PluginSettings {
         this.updateOnDemand = UPDATE_ON_DEMAND.get(settings);
         this.policyUpdateEnabled = POLICY_UPDATE_ENABLED.get(settings);
         this.isTelemetryEnabled = TELEMETRY_ENABLED.get(settings);
+        this.maxIntegrations = MAX_INTEGRATIONS.get(settings);
+        this.maxDecoders = MAX_DECODERS.get(settings);
+        this.maxRules = MAX_RULES.get(settings);
+        this.maxKvdbs = MAX_KVDBS.get(settings);
+        this.maxFilters = MAX_FILTERS.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -329,6 +424,46 @@ public class PluginSettings {
 
     public void setTelemetryEnabled(boolean isTelemetryEnabled) {
         this.isTelemetryEnabled = isTelemetryEnabled;
+    }
+
+    public int getMaxIntegrations() {
+        return this.maxIntegrations;
+    }
+
+    public void setMaxIntegrations(int maxIntegrations) {
+        this.maxIntegrations = maxIntegrations;
+    }
+
+    public int getMaxDecoders() {
+        return this.maxDecoders;
+    }
+
+    public void setMaxDecoders(int maxDecoders) {
+        this.maxDecoders = maxDecoders;
+    }
+
+    public int getMaxRules() {
+        return this.maxRules;
+    }
+
+    public void setMaxRules(int maxRules) {
+        this.maxRules = maxRules;
+    }
+
+    public int getMaxKvdbs() {
+        return this.maxKvdbs;
+    }
+
+    public void setMaxKvdbs(int maxKvdbs) {
+        this.maxKvdbs = maxKvdbs;
+    }
+
+    public int getMaxFilters() {
+        return this.maxFilters;
+    }
+
+    public void setMaxFilters(int maxFilters) {
+        this.maxFilters = maxFilters;
     }
 
     /**

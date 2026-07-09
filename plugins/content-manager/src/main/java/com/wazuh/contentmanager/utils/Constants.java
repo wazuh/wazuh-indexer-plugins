@@ -60,6 +60,16 @@ public class Constants {
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
     public static final String E_400_DUPLICATE_NAME =
             "A %s with the name '%s' already exists in the %s space.";
+    public static final String E_400_TOO_MANY_INTEGRATIONS =
+            "This request would create more than the allowed integrations [%d].";
+    public static final String E_400_TOO_MANY_DECODERS =
+            "This request would create more than the allowed decoders [%d].";
+    public static final String E_400_TOO_MANY_RULES =
+            "This request would create more than the allowed rules [%d].";
+    public static final String E_400_TOO_MANY_KVDBS =
+            "This request would create more than the allowed kvdbs [%d].";
+    public static final String E_400_TOO_MANY_FILTERS =
+            "This request would create more than the allowed filters [%d].";
     public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
             "ID should not be provided in the payload.";
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine validation failed.";
@@ -88,6 +98,16 @@ public class Constants {
             "Unable to reach the CTI API to check for updates.";
 
     // Log messages
+    public static final String I_LOG_MAX_INTEGRATIONS_REACHED =
+            "This request would create more than the allowed integrations [{}].";
+    public static final String I_LOG_MAX_DECODERS_REACHED =
+            "This request would create more than the allowed decoders [{}].";
+    public static final String I_LOG_MAX_RULES_REACHED =
+            "This request would create more than the allowed rules [{}].";
+    public static final String I_LOG_MAX_KVDBS_REACHED =
+            "This request would create more than the allowed kvdbs [{}].";
+    public static final String I_LOG_MAX_FILTERS_REACHED =
+            "This request would create more than the allowed filters [{}].";
     public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
     public static final String D_LOG_OPERATION = "{} {} (id={})";
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
@@ -690,4 +710,14 @@ public class Constants {
     public static final String SETUP_STATUS_FAILED = "failed";
     public static final int MAX_SETUP_WAIT_RETRIES = 3;
     public static final int SETUP_WAIT_BACKOFF_BASE_SECONDS = 5;
+
+    // Resource-creation limit locks: serialize the count-then-create sequence used to enforce
+    // plugins.content_manager.max_{integrations,decoders,rules,kvdbs,filters}, keyed per
+    // resource type and space.
+    public static final String INDEX_RESOURCE_LOCKS = ".wazuh-content-manager-resource-locks";
+    public static final int MAX_LOCK_ACQUIRE_RETRIES = 20;
+    public static final long LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS = 100;
+    public static final long LOCK_STALE_THRESHOLD_MILLIS = 30_000;
+    public static final String E_503_RESOURCE_LOCK_TIMEOUT =
+            "Too many concurrent requests creating this resource. Please retry.";
 }

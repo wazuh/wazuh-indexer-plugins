@@ -34,7 +34,6 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
@@ -47,6 +46,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -135,8 +135,7 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
     }
 
     private String draftUpdateBody(String modifiedField) {
-        String modifiedLine =
-                modifiedField == null ? "" : "\"modified\": \"" + modifiedField + "\",";
+        String modifiedLine = modifiedField == null ? "" : "\"modified\": \"" + modifiedField + "\",";
         return "{"
                 + "\"type\": \"policy\","
                 + "\"resource\": {"
@@ -168,12 +167,12 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
     }
 
     public void testUpdatePolicy_honorsCallerSuppliedModified() throws Exception {
-        when(this.spaceService.getPolicy(com.wazuh.contentmanager.cti.catalog.model.Space.DRAFT.toString()))
+        when(this.spaceService.getPolicy(
+                        com.wazuh.contentmanager.cti.catalog.model.Space.DRAFT.toString()))
                 .thenReturn(currentDraftPolicy());
 
         String callerModified = "2021-05-05T00:00:00.000Z";
-        UpdatePolicyRequest request =
-                new UpdatePolicyRequest("draft", draftUpdateBody(callerModified));
+        UpdatePolicyRequest request = new UpdatePolicyRequest("draft", draftUpdateBody(callerModified));
 
         @SuppressWarnings("unchecked")
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
@@ -199,7 +198,8 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
     }
 
     public void testUpdatePolicy_generatesModifiedWhenAbsent() throws Exception {
-        when(this.spaceService.getPolicy(com.wazuh.contentmanager.cti.catalog.model.Space.DRAFT.toString()))
+        when(this.spaceService.getPolicy(
+                        com.wazuh.contentmanager.cti.catalog.model.Space.DRAFT.toString()))
                 .thenReturn(currentDraftPolicy());
 
         UpdatePolicyRequest request = new UpdatePolicyRequest("draft", draftUpdateBody(null));
