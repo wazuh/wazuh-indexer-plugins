@@ -15,95 +15,95 @@ These default users and roles definitions are stored in the `internal_users.yml`
 
 Each default user is mapped 1:1 to the role of the matching name in `roles_mapping.yml`. The `wazuh-admin` user is additionally reachable through the `admin` backend role.
 
-| User             | Mapped role       | Description                                                                                                                                                                                    |
-|------------------|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `wazuh-manager`  | `wazuh_manager`   | Service account for the Wazuh Manager: read/write on stateless (events, metrics) indices, read/write/delete on stateful (states) indices, and read on consumers, threat intelligence and active-responses. |
-| `wazuh-admin`    | `wazuh_admin`     | Administrator: read access to all Wazuh indices, write access to Wazuh settings, full Content Manager and Security Analytics access, and management of alerting, notifications, reporting and index management. Excludes super-admin (security configuration). |
-| `wazuh-demo`     | `wazuh_demo`      | Default interactive user: read data, manage threat intelligence content, full Content Manager content operations and Security Analytics, and read-only alerting, notifications, reporting and index management. |
-| `wazuh-readonly` | `wazuh_readonly`  | Read-only access to indices, settings, subscriptions and Security Analytics (detectors, findings, alerts).                                                                                     |
+- **`wazuh-manager`** → `wazuh_manager` — service account for the Wazuh Manager: read/write on stateless (events, metrics) indices, read/write/delete on stateful (states) indices, and read on consumers, threat intelligence and active-responses.
+- **`wazuh-admin`** → `wazuh_admin` — administrator: read access to all Wazuh indices, write access to Wazuh settings, full Content Manager and Security Analytics access, and management of alerting, notifications, reporting and index management. Excludes super-admin (security configuration).
+- **`wazuh-demo`** → `wazuh_demo` — default interactive user: read data, manage threat intelligence content, full Content Manager content operations and Security Analytics, and read-only alerting, notifications, reporting and index management.
+- **`wazuh-readonly`** → `wazuh_readonly` — read-only access to indices, settings, subscriptions and Security Analytics (detectors, findings, alerts).
+
 > **Security note:** The bundled password hashes decode to the username. Change every default password immediately after installation.
+
+There is no dedicated internal user for the `dashboard_server` role below — it is mapped to the built-in OpenSearch `kibanaserver` user, which the Wazuh Dashboard authenticates as internally.
 
 ### Roles
 
-Five default roles are defined in `roles.yml`. Each role is self-contained (it grants everything its user needs on its own) and is `reserved` - it cannot be edited in place. To customize, duplicate the role and edit the copy (see [Defining Users and Roles](./defining-users-and-roles.md)).
+Six default roles are defined in `roles.yml`. Each role is self-contained (it grants everything its user needs on its own) and is `reserved` - it cannot be edited in place. To customize, duplicate the role and edit the copy (see [Defining Users and Roles](./defining-users-and-roles.md)).
+
+#### `dashboard_server`
+
+Internal service account used by the Wazuh Dashboard to read notification configs and query Wazuh indices on behalf of dashboard users. Mapped to the built-in `kibanaserver` user, not to any `wazuh-*` user.
+
+- **Cluster permissions:** `cluster:admin/opensearch/notifications/configs/get`.
+- **Index permissions:** `read` on `wazuh-*`.
 
 #### `wazuh_manager`
 
 Service account used by the Wazuh Manager for data ingestion and content reads.
 
-**Cluster permissions:** `cluster_composite_ops`, `cluster_monitor`.
-
-| Index pattern                                             | Permissions                    |
-|-----------------------------------------------------------|--------------------------------|
-| `.wazuh-cti-consumers`, `wazuh-active-responses*`, `wazuh-threatintel-*` | `read`             |
-| `wazuh-events-v5-*`, `wazuh-metrics-*`                    | `read`, `index`                |
-| `wazuh-states-*`                                          | `read`, `index`, `delete`      |
-| `.wazuh-threatintel-vulnerabilities*`, `wazuh-threatintel-*` | `manage_point_in_time`     |
+- **Cluster permissions:** `cluster_composite_ops`, `cluster_monitor`.
+- **Index permissions:**
+  - `read` on `.wazuh-cti-consumers`, `wazuh-active-responses*`, `wazuh-threatintel-*`.
+  - `read`, `index` on `wazuh-events-v5-*`, `wazuh-metrics-*`.
+  - `read`, `index`, `delete` on `wazuh-states-*`.
+  - `manage_point_in_time` on `.wazuh-threatintel-vulnerabilities*`, `wazuh-threatintel-*`.
 
 #### `wazuh_admin`
 
 Full access to all Wazuh features, excluding super-admin features such as the security configuration.
 
-**Cluster permissions:**
-
-- Base: `cluster_composite_ops`, `cluster_monitor`
-- Wazuh settings (setup plugin): `cluster:admin/setup/settings/update`
-- Content Manager: full
-- Security Analytics: full
-- Alerting: full
-
-| Index pattern                                | Permissions                                                                                                   |
-|----------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| `*`, `.kibana*`                              | `get`, `read`, `indices:admin/aliases/get`, `indices:admin/opensearch/ism/*`, `indices:internal/plugins/replication/index/stop`, `indices:monitor/*` |
-| `.wazuh-settings`                            | `read`, `index`                                                                                               |
-| `wazuh-events-v5*`                           | `index`                                                                                                       |
-| `.wazuh-internal-state`                      | `read`, `index`, `delete`                                                                                     |
-| `wazuh-threatintel-*`, `.opensearch-sap-*`   | `index`, `delete`, `indices:admin/exists`, `indices:admin/refresh`                                            |
+- **Cluster permissions:**
+  - Base: `cluster_composite_ops`, `cluster_monitor`.
+  - Wazuh settings (setup plugin): `plugin:wazuh/settings/write`.
+  - Content Manager: full.
+  - Security Analytics: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
+  - Alerting: full.
+  - Anomaly detection: detector operations.
+  - Notifications: full.
+  - Reporting: full.
+  - Index management: full (ISM, rollups, transforms).
+- **Index permissions:**
+  - `get`, `read`, `indices:admin/aliases/get`, `indices:admin/opensearch/ism/*`, `indices:internal/plugins/replication/index/stop`, `indices:monitor/*` on `*`, `.kibana*`.
+  - `read`, `index` on `.wazuh-settings`.
+  - `index` on `wazuh-events-v5*`.
+  - `read`, `index`, `delete` on `.wazuh-internal-state`.
+  - `index`, `delete`, `indices:admin/exists`, `indices:admin/refresh` on `wazuh-threatintel-*`, `.opensearch-sap-*`.
 
 #### `wazuh_demo`
 
 Default interactive user: can visualize data and manage threat intelligence / Content Manager content.
 
-**Cluster permissions:**
-
-- Base: `cluster_composite_ops`, `cluster_monitor`
-- Content Manager: full content operations(no subscription create/delete, no policy update)
-- Security Analytics: full
-- Alerting, Notifications, Reporting, Index management: **read-only**
-
-| Index pattern                                | Permissions                                                        |
-|----------------------------------------------|--------------------------------------------------------------------|
-| `*`, `.kibana*`                              | `get`, `read`, `indices:admin/aliases/get`, `indices:monitor/*`    |
-| `.wazuh-internal-state`                      | `read`                                                             |
-| `wazuh-threatintel-*`, `.opensearch-sap-*`   | `index`, `delete`, `indices:admin/exists`, `indices:admin/refresh` |
+- **Cluster permissions:**
+  - Base: `cluster_composite_ops`, `cluster_monitor`.
+  - Content Manager: full content operations (no subscription create/delete, no policy update).
+  - Security Analytics: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
+  - Alerting, Anomaly detection, Notifications, Reporting, Index management: **read-only**.
+- **Index permissions:**
+  - `get`, `read`, `indices:admin/aliases/get`, `indices:monitor/*` on `*`, `.kibana*`.
+  - `read` on `.wazuh-internal-state`.
+  - `index`, `delete`, `indices:admin/exists`, `indices:admin/refresh` on `wazuh-threatintel-*`, `.opensearch-sap-*`.
 
 #### `wazuh_readonly`
 
 Read-only access across the platform.
 
-**Cluster permissions:**
-
-- Base: `cluster_composite_ops`, `cluster_monitor`
-- Content Manager: `subscription/get`, `logtest*`, `version/check`
-- Security Analytics: read-only (`cluster:admin/opensearch/securityanalytics/*` get/search actions) plus `rules/evaluate`
-- Alerting, Notifications, Reporting, Index management: **read-only**
-
-| Index pattern           | Permissions                                                     |
-|-------------------------|-----------------------------------------------------------------|
-| `*`, `.kibana*`         | `get`, `read`, `indices:admin/aliases/get`, `indices:monitor/*` |
-| `.wazuh-settings`       | `read`                                                          |
-| `.wazuh-internal-state` | `read`                                                         |
-
+- **Cluster permissions:**
+  - Base: `cluster_composite_ops`, `cluster_monitor`.
+  - Content Manager: `subscription/get`, `logtest*`, `version/check`.
+  - Security Analytics: read-only (upstream `cluster:admin/opensearch/securityanalytics/*` get/search/list actions) plus the Wazuh custom `rules/evaluate`.
+  - Alerting, Anomaly detection, Notifications, Reporting, Index management: **read-only**.
+- **Index permissions:**
+  - `get`, `read`, `indices:admin/aliases/get`, `indices:monitor/*` on `*`, `.kibana*`.
+  - `read` on `.wazuh-settings`.
+  - `read` on `.wazuh-internal-state`.
 
 ## Sensitive configuration endpoints
 
 A small set of endpoints modify configuration with a high impact on the platform. They are protected by two independent controls:
 
-| Endpoint                                      | Method | Permission (cluster action)           |
-|-----------------------------------------------|--------|---------------------------------------|
-| `/_plugins/_content_manager/policy/{space}`   | `PUT`  | `cluster:admin/content_manager/policy/update`   |
-| `/_plugins/_content_manager/update`           | `POST` | `cluster:admin/content_manager/update/trigger`  |
-| `/_plugins/_setup/settings`                   | `PUT`  | `cluster:admin/setup/settings/update`         |
+| Endpoint                                    | Method | Permission (cluster action)                    |
+| ------------------------------------------- | ------ | ---------------------------------------------- |
+| `/_plugins/_content_manager/policy/{space}` | `PUT`  | `cluster:admin/content_manager/policy/update`  |
+| `/_plugins/_content_manager/update`         | `POST` | `cluster:admin/content_manager/update/trigger` |
+| `/_plugins/_setup/settings`                 | `PUT`  | `plugin:wazuh/settings/write`                  |
 
 1. **RBAC** - each endpoint is gated by the cluster permission above, enforced by the OpenSearch Security plugin. Among the bundled users, only `wazuh-admin` holds these permissions; `wazuh-manager`, `wazuh-demo` and `wazuh-readonly` are excluded. The superuser `admin` (role `all_access`, cluster wildcard `*`) also holds them. To delegate any of these actions without granting full superuser, create a dedicated role granting only the permission(s) above and map it to the chosen user.
 2. **Per-endpoint disable settings** - each endpoint can be disabled independently by setting its node setting to `false`, after which it returns `403 Forbidden` for **every** caller, regardless of role (intended for externally managed deployments such as Wazuh Cloud): `plugins.content_manager.catalog.update_on_demand` (content update trigger), `plugins.content_manager.catalog.policy_update.enabled` (policy updates), and `plugins.setup.settings_update.enabled` (setup settings). See [Protecting sensitive configuration](../modules/content-manager/configuration.md#protecting-sensitive-configuration).

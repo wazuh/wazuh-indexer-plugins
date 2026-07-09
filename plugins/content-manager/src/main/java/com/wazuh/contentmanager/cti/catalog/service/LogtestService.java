@@ -431,7 +431,7 @@ public class LogtestService {
 
         Map<String, Object> sapResult = new LinkedHashMap<>();
         sapResult.put(Constants.KEY_STATUS, "skipped");
-        sapResult.put("reason", "integration field not provided");
+        sapResult.put("reason", "'integration' field not provided");
 
         return buildCombinedResponse(engineResult, sapResult);
     }

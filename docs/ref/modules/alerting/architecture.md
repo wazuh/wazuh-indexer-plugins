@@ -2,7 +2,7 @@
 
 The Alerting plugin runs inside the Wazuh Indexer as an OpenSearch plugin. It schedules monitors that query indices, evaluates trigger conditions against the results, and executes actions (typically sending notifications) when conditions are met.
 
-## Core Concepts
+## Core concepts
 
 The alerting pipeline follows a linear flow:
 
@@ -12,7 +12,7 @@ The alerting pipeline follows a linear flow:
 4. An **Alert** record is created to track the triggered condition through its lifecycle.
 5. For document-level monitors, **Findings** record which specific documents matched the trigger.
 
-## Monitor Types
+## Monitor types
 
 | Monitor Type | Description | Trigger Type | Input Type |
 | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ The alerting pipeline follows a linear flow:
 | **Composite** | Chains multiple monitors into a workflow and evaluates conditions across their alerts. See [Workflows](#workflows). | `ChainedAlertTrigger` | `CompositeInput` |
 | **Active Response** | Wazuh-specific extension of document-level monitoring for automated response. See [Active Response](index.md#active-response). | `DocumentLevelTrigger` | `DocLevelMonitorInput` |
 
-### Active Response Monitor Constraints
+### Active Response monitor constraints
 
 The Active Response monitor type enforces stricter validation than standard document-level monitors:
 
@@ -52,7 +52,7 @@ Actions define what happens when a trigger fires. Each action specifies:
 
 When a trigger fires, the plugin calls the Notifications plugin via its internal transport interface to deliver the message.
 
-## Alert Lifecycle
+## Alert lifecycle
 
 Alerts transition through the following states:
 
@@ -81,7 +81,7 @@ Workflows chain multiple monitors into a composite execution unit. A workflow de
 
 Workflows have their own CRUD API and can be executed, searched, and managed independently of individual monitors.
 
-## Alerting Indices
+## Alerting indices
 
 The plugin manages the following system indices:
 
