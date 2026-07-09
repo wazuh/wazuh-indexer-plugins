@@ -166,4 +166,12 @@ public interface SecurityAnalyticsService {
      * @param space The space whose resources should be deleted.
      */
     void deleteSpaceResources(Space space);
+
+    /**
+     * Asynchronously deletes all Security Analytics resources belonging to the given space.
+     *
+     * @param space The space whose resources should be deleted.
+     * @param listener The listener to be notified when the operation completes.
+     */
+    void deleteSpaceResourcesAsync(Space space, ActionListener<? extends ActionResponse> listener);
 }
