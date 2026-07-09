@@ -116,7 +116,7 @@ The `detection` section must always contain:
 
 A **selection** is a named object whose keys correspond to existing WCS fields and whose values define the matching criteria. A selection matches when any or all of its field conditions are satisfied, depending on the chosen syntax:
 
-**Field list (implicit OR)**
+#### Field list (implicit OR)
 
 ```yaml
 detection:
@@ -129,7 +129,7 @@ detection:
 
 This rule matches when `event.action` is either `"login_failed"` **or** `"authentication_error"`.
 
-**Field dictionary (implicit AND)**
+#### Field dictionary (implicit AND)
 
 ```yaml
 detection:
@@ -141,7 +141,7 @@ detection:
 
 This rule matches when `log.level` is `"ERROR"` **and** `event.kind` is `"event"`.
 
-**Keywords (implicit OR)**
+#### Keywords (implicit OR)
 
 The detection by `keywords` performs value-only searches across all event fields, without specifying a target field name:
 
@@ -172,7 +172,7 @@ condition: (selection_one or selection_two) and not filter
 | `( )`    | Groups expressions for precedence | `(sel_a or sel_b) and not exclusion` |
 
 
-**Example: simple condition**
+#### Example: simple condition
 
 ```yaml
 detection:
@@ -181,7 +181,7 @@ detection:
   condition: selection
 ```
 
-**Example: OR condition**
+#### Example: OR condition
 
 ```yaml
 detection:
@@ -192,7 +192,7 @@ detection:
   condition: sel_error or sel_warn
 ```
 
-**Example: AND with NOT (exclusion pattern)**
+#### Example: AND with NOT (exclusion pattern)
 
 ```yaml
 detection:
@@ -203,7 +203,7 @@ detection:
   condition: selection and not filter
 ```
 
-**Example: multi-selection AND**
+#### Example: multi-selection AND
 
 ```yaml
 detection:
@@ -540,7 +540,7 @@ The `mitre` block maps a rule to MITRE ATT&CK tactics, techniques, and subtechni
 - **`technique`**<br />_MITRE technique IDs (e.g., `T1059`, `T1562`)._
 - **`subtechnique`**<br />_MITRE subtechnique IDs (e.g., `T1059.001`)._
 
-**Example**
+#### Example
 
 ```yaml
 mitre:
@@ -562,7 +562,7 @@ Optional
 
 The `compliance` block maps a rule to one or more compliance frameworks. Each key is a normalized framework identifier and its value is an array of requirement ID strings.
 
-**Supported frameworks**
+#### Supported frameworks
 
 - **`gdpr`**<br />_GDPR_
 - **`pci_dss`**<br />_PCI DSS_
@@ -575,7 +575,7 @@ The `compliance` block maps a rule to one or more compliance frameworks. Each ke
 - **`tsc`**<br />_TSC_
 - **`fedramp`**<br />_FedRAMP_
 
-**Example**
+#### Example
 
 ```yaml
 compliance:

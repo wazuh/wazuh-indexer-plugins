@@ -12,47 +12,22 @@ Update check components are:
 
 ## Content synchronization
 
-The Content Manager periodically synchronizes content from the Wazuh CTI API. Three catalog consumers are managed:
+The Content Manager synchronizes three categories of detection content from the Wazuh CTI API, each updated independently:
 
-- **Catalog context**: contains detection rules, decoders, integrations, KVDBs, and the routing policy.
-- **IoC context**: contains Indicators of Compromise (IoC) for threat detection.
-- **CVE context**: contains Common Vulnerabilities and Exposures (CVE) data, stored in the hidden `.wazuh-threatintel-vulnerabilities` index. CVE documents do not have a space and are not subject to removals from CTI.
+- **Catalog content** — detection rules, decoders, integrations, key-value databases (KVDBs), and the routing policy.
+- **IoC feed** — Indicators of Compromise (IoC) for threat detection enrichment.
+- **CVE feed** — Common Vulnerabilities and Exposures (CVE) data for vulnerability detection. CVE entries are only added or updated, never removed.
 
-Each catalog type has an associated consumer state document in `.wazuh-cti-consumers`, keyed by consumer type (for example, `cti:catalog:consumer:ruleset`).
+On first start, the plugin initializes from a snapshot. If a custom CTI catalog URL is configured, it downloads the snapshot from that source; otherwise it uses the snapshot bundled with the Wazuh Indexer package, so detection content is available immediately even without network access.
 
-### Snapshot initialization
+Once initialized, the plugin keeps content current automatically. A sync check runs at startup and again on a regular schedule — every 60 minutes by default. Each check fetches only the changes since the last sync: new or updated resources are added, removed resources are deleted. If the local content cannot be reconciled with the remote state, the plugin recovers by re-downloading the latest snapshot.
 
-On first run (when the local offset is `0`), the Content Manager performs snapshot initialization:
+Both behaviors are configurable in `opensearch.yml`:
 
-1. If a custom catalog URL is configured, it first attempts remote snapshot initialization using that consumer.
-2. If remote initialization fails, it falls back to the local packaged snapshot when available.
-3. If no custom catalog URL is configured, it initializes from the local packaged snapshot.
-4. It indexes content into the appropriate system indices using bulk operations and updates `.wazuh-cti-consumers` offsets.
+- **`plugins.content_manager.catalog.update_on_start`** (Boolean, default `true`) — whether to check for updates when the plugin starts.
+- **`plugins.content_manager.catalog.sync_interval`** (Integer, default `60`) — how often periodic sync runs, in minutes.
 
-### Incremental updates
-
-When the local offset is behind the remote offset, the Content Manager fetches changes in batches (up to 1000 per request) and applies creation, update, and removal operations to the content indices. The local offset is updated after each successful batch.
-
-If the local offset is ahead of the remote offset (e.g., consumer was changed), or if the update fails, the Content Manager resets to the latest snapshot to realign with the CTI API.
-
-### Sync schedule
-
-By default, synchronization runs:
-- **On plugin startup** (`plugins.content_manager.catalog.update_on_start: true`)
-- **Periodically** every 60 minutes (`plugins.content_manager.catalog.sync_interval: 60`)
-
-The periodic job is registered with the OpenSearch Job Scheduler and tracked in the `.wazuh-content-manager-jobs` index.
-
-## Update check service
-
-When `plugins.content_manager.telemetry.enabled` is `true` (default), the Content Manager schedules a daily update check heartbeat job.
-
-- **Frequency:** every 24 hours (with an immediate first ping as soon as the job is registered)
-- **Scheduler document ID:** `wazuh-telemetry-ping-job`
-- **Endpoint:** CTI `/ping`
-- **Data sent:** cluster UUID and deployed Wazuh version (through headers)
-
-This information is used to detect update availability and surface notifications through the Wazuh Dashboard.
+When telemetry is enabled (the default), the plugin also sends a daily heartbeat to the Wazuh CTI service with the cluster UUID and the deployed Wazuh version. This powers the update notification shown in the Wazuh Dashboard when a newer release is available. To opt out, set `plugins.content_manager.telemetry.enabled` to `false`.
 
 ## User-generated content
 

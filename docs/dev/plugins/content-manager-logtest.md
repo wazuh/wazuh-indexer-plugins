@@ -182,7 +182,7 @@ LogtestService.executeNormalization(payload)  LogtestService.executeDetection(id
                                                          → returns Security Analytics result directly
 ```
 
-**Key differences from the combined endpoint:**
+#### Key differences from the combined endpoint
 - **Normalization** returns the raw Engine response (no detection wrapper). The `integration` field is stripped if present but has no effect on behavior.
 - **Detection** accepts a pre-normalized event as the `input` JSON object. It does not call the Engine — it goes straight to integration lookup → rule fetch → Security Analytics evaluation.
 

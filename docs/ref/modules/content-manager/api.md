@@ -40,7 +40,7 @@ The **Decoders**, **KVDBs**, and **Filters** endpoints accept requests with `Con
 
 Both JSON and YAML requests use the same envelope:
 
-**JSON example:**
+#### JSON example
 
 ```json
 {
@@ -53,7 +53,7 @@ Both JSON and YAML requests use the same envelope:
 }
 ```
 
-**Equivalent YAML example:**
+#### Equivalent YAML example
 
 ```yaml
 ---
@@ -691,7 +691,7 @@ Updates the routing policy in the specified space. The policy defines which inte
 
 > **Note**: The `integrations` and `filters` arrays allow reordering but do not allow adding or removing entries — membership is managed via their respective CRUD endpoints.
 
-**Space-specific behavior**
+#### Space-specific behavior
 
 - **Draft space** (`/policy/draft`): all policy fields are accepted. The metadata fields `author`, `description`, `documentation`, and `references` are required in addition to the boolean fields.
 - **Standard space** (`/policy/standard`): only `enrichments`, `filters`, `enabled`, `index_unclassified_events`, and `index_discarded_events` can be modified. All other fields are preserved from the existing standard policy document. If the update changes the space hash, the full standard policy is automatically loaded to the local Engine.

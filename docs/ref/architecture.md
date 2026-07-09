@@ -2,7 +2,7 @@
 
 The Wazuh Indexer is built on top of [OpenSearch](https://opensearch.org/) and extends it with a set of purpose-built plugins that provide security event indexing, content management, access control, and reporting capabilities.
 
-## Component Overview
+## Component overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐

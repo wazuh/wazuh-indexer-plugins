@@ -10,13 +10,13 @@ Common issues and solutions when working with the Notifications plugin.
 
 **Symptoms:** Creating a Slack config succeeds, but test notifications fail with a non-200 status.
 
-**Possible causes:**
+#### Possible causes
 
 1. **Invalid webhook URL.** Verify the Incoming Webhook URL is active in your Slack workspace settings.
 2. **Host deny list.** Check if the Slack domain is included in `opensearch.notifications.core.http.host_deny_list`.
 3. **Network connectivity.** The Wazuh Indexer node must have outbound HTTPS access to `hooks.slack.com`.
 
-**Resolution:**
+#### Resolution
 
 ```bash
 # Verify the config
@@ -36,13 +36,13 @@ Check the `delivery_status` in the response for the HTTP status code and error m
 
 **Symptoms:** Email notifications fail with connection timeout errors.
 
-**Possible causes:**
+#### Possible causes
 
 1. **SMTP server unreachable.** Verify the Wazuh Indexer node can reach the SMTP server on the configured port.
 2. **Timeout too short.** The default connection timeout is 5000 ms and socket timeout is 50000 ms. Increase if needed.
 3. **TLS configuration mismatch.** Ensure the SMTP `method` (none, ssl, start_tls) matches the server's requirements.
 
-**Resolution:**
+#### Resolution
 
 ```bash
 # Increase timeouts via cluster settings
@@ -62,7 +62,9 @@ curl -X PUT "https://localhost:9200/_cluster/settings" \
 
 **Symptoms:** Email delivery fails with "Credential not found for account" error.
 
-**Resolution:** SMTP credentials must be stored in the OpenSearch Keystore, not in `opensearch.yml`.
+#### Resolution
+
+SMTP credentials must be stored in the OpenSearch Keystore, not in `opensearch.yml`.
 
 ```bash
 bin/opensearch-keystore add opensearch.notifications.core.email.<account_name>.username
@@ -81,7 +83,7 @@ Restart the node after adding keystore entries.
 
 **Cause:** The setting `opensearch.notifications.general.filter_by_backend_roles` is `true`, but the current user has no backend roles assigned.
 
-**Resolution:**
+#### Resolution
 
 - Assign backend roles to the user in the Security plugin, or
 - Disable RBAC filtering:
@@ -112,7 +114,7 @@ curl -X PUT "https://localhost:9200/_cluster/settings" \
 
 **Cause:** The response from the webhook destination exceeds `opensearch.notifications.core.max_http_response_size`.
 
-**Resolution:**
+#### Resolution
 
 ```bash
 curl -X PUT "https://localhost:9200/_cluster/settings" \

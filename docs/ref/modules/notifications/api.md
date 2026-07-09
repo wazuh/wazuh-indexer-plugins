@@ -13,7 +13,7 @@ Creates a new notification channel configuration.
 - Method: `POST`
 - Path: `/_plugins/_notifications/configs`
 
-**Request body:**
+#### Request body
 
 ```json
 {
@@ -29,7 +29,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**Slack example:**
+#### Slack example
 
 ```json
 {
@@ -45,7 +45,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**Email example (with SMTP account):**
+#### Email example (with SMTP account)
 
 ```json
 {
@@ -65,7 +65,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**SMTP account example:**
+#### SMTP account example
 
 ```json
 {
@@ -84,7 +84,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**Webhook example:**
+#### Webhook example
 
 ```json
 {
@@ -104,7 +104,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**Microsoft Teams example:**
+#### Microsoft Teams example
 
 ```json
 {
@@ -120,7 +120,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**SNS example:**
+#### SNS example
 
 ```json
 {
@@ -137,7 +137,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -154,7 +154,9 @@ Updates an existing notification channel configuration.
 - Method: `PUT`
 - Path: `/_plugins/_notifications/configs/{config_id}`
 
-**Request body:** Same structure as create. All fields in the `config` object are replaced.
+#### Request body
+
+Same structure as create. All fields in the `config` object are replaced.
 
 ```json
 {
@@ -170,7 +172,7 @@ Updates an existing notification channel configuration.
 }
 ```
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -187,7 +189,7 @@ Retrieves a specific notification configuration by ID.
 - Method: `GET`
 - Path: `/_plugins/_notifications/configs/{config_id}`
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -220,7 +222,7 @@ Retrieves notification configurations with filtering, sorting, and pagination.
 - Method: `GET`
 - Path: `/_plugins/_notifications/configs`
 
-**Query parameters:**
+#### Query parameters
 
 - **`config_id`** (String) — filter by a single config ID.
 - **`config_id_list`** (String) — comma-separated list of config IDs.
@@ -249,7 +251,7 @@ Retrieves notification configurations with filtering, sorting, and pagination.
 - **`query`** (String) — search across all keyword and text filter fields.
 - **`text_query`** (String) — search across text filter fields only.
 
-**Example:**
+#### Example
 
 ```bash
 curl -sk -u admin:admin \
@@ -270,7 +272,7 @@ Or for bulk delete:
 - Method: `DELETE`
 - Path: `/_plugins/_notifications/configs?config_id_list=id1,id2,id3`
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -291,7 +293,7 @@ Returns a simplified list of all configured notification channels (ID, name, typ
 - Method: `GET`
 - Path: `/_plugins/_notifications/channels`
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -318,7 +320,7 @@ Returns the notification features and allowed config types supported by the plug
 - Method: `GET`
 - Path: `/_plugins/_notifications/features`
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -352,14 +354,14 @@ Sends a test notification to a configured channel to validate the configuration.
 
 > **Note:** `GET` is also supported for backwards compatibility but is deprecated and will be removed in a future major version.
 
-**Example:**
+#### Example
 
 ```bash
 curl -sk -u admin:admin -X POST \
   "https://127.0.0.1:9200/_plugins/_notifications/feature/test/<config-id>"
 ```
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -388,7 +390,9 @@ Returns internal plugin metrics and counters.
 - Method: `GET`
 - Path: `/_plugins/_notifications/_local/stats`
 
-**Response:** A JSON object with flattened metric counters including:
+#### Response
+
+A JSON object with flattened metric counters including:
 
 - Request totals and interval counts for each API operation (create, update, delete, info, features, channels, send test).
 

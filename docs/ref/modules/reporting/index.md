@@ -20,6 +20,8 @@ For a walkthrough of configuring an email delivery channel and generating a repo
 The Reporting plugin is configured through cluster settings.
 
 - **`plugins.reports.max_report_definitions`** (Integer, default `50`, range 0–50, dynamic) — maximum number of report definitions allowed. Creation requests that would exceed this limit are rejected with HTTP 400. Existing report definitions are not affected when the limit is lowered.
+- **`opensearch.reports.general.operationTimeoutMs`** (Long, default `60000`, min `100`) — timeout in milliseconds for report generation operations.
+- **`opensearch.reports.general.defaultItemsQueryCount`** (Integer, default `100`, min `10`) — default number of items fetched per query when building report data.
 
 To change it at runtime:
 

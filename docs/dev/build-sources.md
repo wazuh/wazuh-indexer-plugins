@@ -1,4 +1,4 @@
-# How to Build from Sources
+# How to build from sources
 
 The Wazuh Indexer Plugins repository uses Gradle as its build system. The root project contains multiple subprojects, one per plugin.
 

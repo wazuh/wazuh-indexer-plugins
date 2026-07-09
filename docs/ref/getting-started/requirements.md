@@ -24,7 +24,7 @@ The Wazuh indexer can be installed as a single-node or as a multi-node cluster.
     <td>Wazuh indexer</td>
     <td>8</td>
     <td>4</td>
-    <td>32</td>
+    <td>16</td>
     <td>8</td>
   </tr>
 </tbody>

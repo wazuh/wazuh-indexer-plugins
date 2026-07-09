@@ -43,7 +43,7 @@ testClusters.integTest {
 
 {{ #include ../../ref/modules/content-manager/index.md:deploy-key }}
 
-**State diagram**
+#### State diagram
 
 ```mermaid
 ---
@@ -67,7 +67,7 @@ stateDiagram-v2
     initialization --> [*]
 ```
 
-**Sequence diagram**
+#### Sequence diagram
 
 ```mermaid
 ---
@@ -673,7 +673,7 @@ sequenceDiagram
 
 All four resource types follow the same patterns via the abstract class hierarchy:
 
-**Create (POST):**
+#### Create (POST)
 ```mermaid
 sequenceDiagram
     actor User
@@ -691,7 +691,7 @@ sequenceDiagram
     Indexer-->>User: 201 Created + UUID
 ```
 
-**Update (PUT):**
+#### Update (PUT)
 ```mermaid
 sequenceDiagram
     actor User
@@ -707,7 +707,7 @@ sequenceDiagram
     Indexer-->>User: 200 OK + UUID
 ```
 
-**Delete (DELETE):**
+#### Delete (DELETE)
 ```mermaid
 sequenceDiagram
     actor User
@@ -752,7 +752,7 @@ flowchart TD
 
 The `wazuh-threatintel-policies` index stores policy configurations. See [Document structure](#document-structure) above for the envelope format.
 
-**Policy document fields:**
+#### Policy document fields
 
 | Field                       | Type      | Description                                                  | Editable in standard space |
 | --------------------------- | --------- | ------------------------------------------------------------ | :------------------------: |
@@ -778,7 +778,7 @@ Filters follow the same CUD pattern as other resource types but use the `Abstrac
 
 Filters are linked directly to their space's policy document (the `filters` array) rather than to a parent integration.
 
-**Create (POST):**
+#### Create (POST)
 ```mermaid
 sequenceDiagram
     actor User
@@ -796,7 +796,7 @@ sequenceDiagram
     Indexer-->>User: 201 Created + UUID
 ```
 
-**Update (PUT):**
+#### Update (PUT)
 ```mermaid
 sequenceDiagram
     actor User
@@ -813,7 +813,7 @@ sequenceDiagram
     Indexer-->>User: 200 OK + UUID
 ```
 
-**Delete (DELETE):**
+#### Delete (DELETE)
 ```mermaid
 sequenceDiagram
     actor User

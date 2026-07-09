@@ -133,8 +133,6 @@ To ensure system stability, `DetectorFactory` implements a fallback mechanism fo
 
 ## Case management
 
-> **Status:** incoming changes in [issue #1334](https://github.com/wazuh/wazuh-indexer-plugins/issues/1334).
-
 Case management adds triage capabilities to Security Analytics findings, allowing analysts to track status, classification, a multi-comment discussion thread, tags, and user attribution on individual findings.
 
 ### Case fields

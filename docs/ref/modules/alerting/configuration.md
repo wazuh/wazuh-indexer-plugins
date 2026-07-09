@@ -30,6 +30,8 @@ The Alerting plugin is configured through cluster settings under the `plugins.al
 - **`plugins.alerting.alert_history_retention_period`** (TimeValue, default `30d`) — retention period for alert history data.
 - **`plugins.alerting.alert_backoff_millis`** (TimeValue, default `50ms`) — backoff interval between alert write retries.
 - **`plugins.alerting.alert_backoff_count`** (Integer, default `3`) — number of retry attempts for failed alert writes.
+- **`plugins.alerting.move_alerts_backoff_millis`** (TimeValue, default `50ms`) — backoff interval between retries when moving alerts between indices.
+- **`plugins.alerting.move_alerts_backoff_count`** (Integer, default `3`) — number of retry attempts when moving alerts between indices.
 - **`plugins.alerting.max_actionable_alert_count`** (Long, default `50`) — maximum number of alerts that can trigger actions in a single monitor execution.
 
 ## Finding history settings
@@ -38,6 +40,7 @@ The Alerting plugin is configured through cluster settings under the `plugins.al
 - **`plugins.alerting.alert_finding_rollover_period`** (TimeValue, default `12h`) — how often to roll over the finding history index.
 - **`plugins.alerting.finding_history_max_age`** (TimeValue, default `30d`) — maximum age of finding history indices before deletion.
 - **`plugins.alerting.alert_findings_indexing_batch_size`** (Integer, default `1000`) — batch size for bulk-indexing findings.
+- **`plugins.alerting.finding_history_retention_period`** (TimeValue, default `60d`) — retention period for finding history data.
 
 ## Comment settings
 
@@ -54,6 +57,7 @@ The Alerting plugin is configured through cluster settings under the `plugins.al
 - **`plugins.alerting.filter_by_backend_roles`** (Boolean, default `true`) — when enabled, users can only view monitors and alerts created by users who share the same backend role.
 - **`plugins.alerting.action_throttle_max_value`** (TimeValue, default `24h`) — maximum throttle duration for alert actions.
 - **`plugins.alerting.cross_cluster_monitoring_enabled`** (Boolean, default `true`) — enable monitoring of indices on remote clusters via cross-cluster search.
+- **`plugins.alerting.notification_context_results_allowed_roles`** (List&lt;String&gt;, default `[]`) — roles that may receive notification context results. An empty list applies no role-based restriction.
 
 ## Updating settings
 

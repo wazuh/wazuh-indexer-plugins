@@ -8,7 +8,7 @@ Common issues and diagnostic procedures for the Content Manager plugin.
 
 The Wazuh Engine is not running or the Unix socket is not accessible.
 
-**Resolution:**
+Resolution:
 1. Check the socket file exists:
    ```bash
    ls -la /usr/share/wazuh-indexer/engine/sockets/engine-api.sock
@@ -20,7 +20,7 @@ The Wazuh Engine is not running or the Unix socket is not accessible.
 
 No CTI access token has been registered. The Content Manager cannot sync content without a valid token.
 
-**Resolution:**
+#### Resolution
 
 Register credentials by posting the CTI access token:
 ```bash
@@ -38,7 +38,7 @@ A successful registration returns `{"message":"Credentials received","status":20
 
 Content is not being updated despite having a valid subscription.
 
-**Diagnosis:**
+#### Diagnosis
 
 1. Check consumer state and offsets:
    ```bash
@@ -77,7 +77,9 @@ Content is not being updated despite having a valid subscription.
 
 **Cause:** The Engine validates every field referenced in a `check` or `detection` expression against the Wazuh Common Schema (WCS). A field that is intentionally temporary — used only during decoding and not part of the final normalized event — is not in WCS by definition, so the Engine only accepts it if it's prefixed with an underscore.
 
-**Resolution:** Prefix temporary fields with `_` in both the check expression and anywhere else the field is referenced within the same resource:
+#### Resolution
+
+Prefix temporary fields with `_` in both the check expression and anywhere else the field is referenced within the same resource:
 
 ```json
 {
@@ -97,7 +99,7 @@ The Unix socket used for Engine communication does not exist.
 
 **Expected path:** `/usr/share/wazuh-indexer/engine/sockets/engine-api.sock`
 
-**Resolution:**
+#### Resolution
 
 1. Verify the Wazuh Engine is installed and running.
 2. Check the Engine configuration for the socket path.

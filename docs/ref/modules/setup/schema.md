@@ -29,12 +29,13 @@ The **Key** column is the canonical identifier used throughout the system — in
 | Security          | `security`          | `waf`                                            |
 | System Activity   | `system-activity`   | `linux`, `windows`, `others_macos`               |
 | Other             | `other`             | `others_application`, `others_apt`, `others_web` |
+| Unclassified      | `unclassified`      | |
 
 ### Data streams
 
 Each category maps to a dedicated data stream following the pattern `wazuh-events-v5-{key}`:
 
-**Events**
+#### Events
 ```
 wazuh-events-v5-access-management
 wazuh-events-v5-applications
@@ -43,9 +44,10 @@ wazuh-events-v5-network-activity
 wazuh-events-v5-other
 wazuh-events-v5-security
 wazuh-events-v5-system-activity
+wazuh-events-v5-unclassified
 ```
 
-**Findings**
+#### Findings
 ```
 wazuh-findings-v5-access-management
 wazuh-findings-v5-applications
@@ -54,6 +56,7 @@ wazuh-findings-v5-network-activity
 wazuh-findings-v5-other
 wazuh-findings-v5-security
 wazuh-findings-v5-system-activity
+wazuh-findings-v5-unclassified
 ```
 
 Check [Stream indices](./index.md#stream-indices) for details.

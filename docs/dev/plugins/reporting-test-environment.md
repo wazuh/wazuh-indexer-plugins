@@ -38,7 +38,7 @@ working-dir/
 │   └── server.sh
 ```
 
-**Vagrantfile**
+#### Vagrantfile
 
 <details><summary>Details</summary>
 <p>

@@ -286,14 +286,3 @@ in light of that split.
   primary subject is genuinely unmerged — don't add speculative "may change"
   hedging to normal shipped-behavior pages.
 
-## 7. Resolved side item: CLAUDE.md accuracy
-
-Not a `docs/` style rule, but flagged during the audit and fixed immediately
-since it was quick and standalone: the top-level `CLAUDE.md`'s log-type
-category list was missing `Unclassified` (7 listed vs. 8 in
-`LOG_CATEGORY.java`) and attributed enforcement to the wrong class
-(`CustomLogType.java` instead of `LOG_CATEGORY.isValidCategory()` /
-`IndexCustomLogTypeRequest.java`). Both corrected. `CLAUDE.md` is currently
-local/unshared, but worth a periodic accuracy check alongside future doc
-reviews regardless, since it's treated as ground truth by contributors and AI
-agents working in this repo.
