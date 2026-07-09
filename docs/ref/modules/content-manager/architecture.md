@@ -56,7 +56,7 @@ Interfaces with the Security Analytics plugin. Creates, updates, and deletes Sec
 
 **Document ID model**: Security Analytics documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each Security Analytics document stores the UUID of the original CTI document and the space it belongs to (draft, test, custom, or standard), so the same CTI resource can exist across multiple spaces without ID collisions.
 
-> **Note:** Security Analytics enforces a maximum of 100 rules per detector. If an integration has more than 100 enabled rules, the detector creation or update request will be rejected. See [Security Analytics — Detector constraints](../security-analytics/index.md#detector-constraints) for details.
+> **Note:** Security Analytics enforces a configurable maximum number of rules per detector (`plugins.security_analytics.max_rules_per_detector`, default `50`). If an integration has more enabled rules than the configured limit, the detector creation or update request will be rejected. See [Security Analytics — Detector constraints](../security-analytics/index.md#detector-constraints) for details.
 
 ### Space service
 
@@ -78,7 +78,7 @@ Job scheduler triggers
   → If no custom catalog URL: initialize from local packaged snapshot
   → Extracts and bulk-indexes into wazuh-threatintel-rules, wazuh-threatintel-decoders, etc.
   → Updates .wazuh-cti-consumers with new offset
-  → Security Analytics service creates detectors using dynamic CTI configuration (max 100 rules per detector)
+  → Security Analytics service creates detectors using dynamic CTI configuration (max rules per detector configurable, default 50)
 ```
 
 ### CTI sync (incremental)

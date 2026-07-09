@@ -45,7 +45,19 @@ These settings control the plugin's general behavior.
 - **`opensearch.notifications.general.operation_timeout_ms`** (Long, default `60000`, minimum `100`) — timeout in milliseconds for internal operations (index reads/writes).
 - **`opensearch.notifications.general.default_items_query_count`** (Integer, default `100`, minimum `10`) — default number of items returned per query when not specified.
 - **`opensearch.notifications.general.filter_by_backend_roles`** (Boolean, default `false`) — when `true`, users can only see notification configurations created by users who share the same backend role. Inherits from `plugins.alerting.filter_by_backend_roles` if not set.
-- **`opensearch.notifications.general.max_notification_configs`** (Integer, default `100`, minimum `0`, dynamic) — maximum number of notification channel configurations (across all channel types) that can be created. POST requests that would exceed this limit are rejected with HTTP 400.
+
+---
+
+### Resource creation limits (`plugins.notifications.*`)
+
+These settings cap how many notification configuration documents can exist, to bound resource usage. All are dynamic. Creation requests that would exceed a limit are rejected with HTTP 400; existing configurations are unaffected when a limit is lowered.
+
+- **`plugins.notifications.max_notification_configs`** (Integer, default `40`, range 0–40) — global cap on the total number of notification configuration documents of any type (channels, groups, senders, and active responses all count against this shared limit).
+- **`plugins.notifications.max_notification_groups`** (Integer, default `10`, range 0–10) — cap on the number of `email_group` configurations. Counts against, and in addition to, `max_notification_configs`.
+- **`plugins.notifications.max_notification_senders`** (Integer, default `5`, range 0–5) — cap on the number of `smtp_account` and `ses_account` configurations combined. Counts against, and in addition to, `max_notification_configs`.
+- **`plugins.notifications.max_active_responses`** (Integer, default `10`, range 0–10) — cap on the number of `active_response` configurations. Counts against, and in addition to, `max_notification_configs`.
+
+> **Note:** These are separate from `opensearch.notifications.general.default_items_query_count` and other `general.*` settings above — they live under a distinct `plugins.notifications.*` prefix.
 
 ---
 
@@ -101,7 +113,12 @@ opensearch.notifications.core.allowed_config_types:
 opensearch.notifications.general.operation_timeout_ms: 60000
 opensearch.notifications.general.default_items_query_count: 100
 opensearch.notifications.general.filter_by_backend_roles: false
-opensearch.notifications.general.max_notification_configs: 100
+
+# Resource creation limits
+plugins.notifications.max_notification_configs: 40
+plugins.notifications.max_notification_groups: 10
+plugins.notifications.max_notification_senders: 5
+plugins.notifications.max_active_responses: 10
 ```
 
 ---
@@ -117,7 +134,7 @@ curl -X PUT "https://localhost:9200/_cluster/settings" \
     "persistent": {
       "opensearch.notifications.core.http.max_connections": 100,
       "opensearch.notifications.general.filter_by_backend_roles": true,
-      "opensearch.notifications.general.max_notification_configs": 50
+      "plugins.notifications.max_notification_configs": 20
     }
   }'
 ```

@@ -15,6 +15,23 @@ Reports can be delivered by email through the [Notifications](../notifications/i
 
 For a walkthrough of configuring an email delivery channel and generating a report, see [How to configure email notifications for reports](how-to-configure-email.md).
 
+## Configuration
+
+The Reporting plugin is configured through cluster settings.
+
+- **`plugins.reports.max_report_definitions`** (Integer, default `50`, range 0–50, dynamic) — maximum number of report definitions allowed. Creation requests that would exceed this limit are rejected with HTTP 400. Existing report definitions are not affected when the limit is lowered.
+
+To change it at runtime:
+
+```bash
+curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+{
+  "persistent": {
+    "plugins.reports.max_report_definitions": 20
+  }
+}'
+```
+
 ## Managing permissions on reporting via RBAC
 
 The Reporting plugin uses the Wazuh Indexer RBAC (role-based access control) system to manage permissions. This means that users must have the appropriate roles assigned to them in order to create, read, update, or delete reports. The roles can be managed through the Wazuh Dashboard Index Management -> Security -> Roles section. The following [permissions](https://docs.opensearch.org/3.6/security/access-control/permissions/#reporting-permissions) are available for the Reporting plugin:

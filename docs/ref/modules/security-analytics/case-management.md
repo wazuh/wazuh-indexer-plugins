@@ -1,7 +1,5 @@
 # Case management
 
-> **Status:** This page describes the case management schema as revised for [issue #1220 follow-up](https://github.com/wazuh/wazuh-indexer-plugins/issues/1220), which has not yet been merged into the stable branch. The fields, examples, and behavior below reflect the target design.
-
 Case management allows analysts to track and manage the lifecycle of findings produced by Security Analytics detectors. Each finding can be annotated with case metadata enabling triage workflows directly on the indexed data.
 
 ## Overview
@@ -80,7 +78,7 @@ PUT /_plugins/_security_analytics/findings/_update
 
 > **Note:** The fields `user.name`, `comments[].created_at`, and `comments[].updated_at` are automatically managed by the Wazuh Dashboard. They should not be set manually.
 
-- **`findings`** (required) — array of finding updates (max 50 per request).
+- **`findings`** (required) — array of finding updates. Maximum size is controlled by `plugins.security_analytics.max_case_management_bulk_size` (default `10`, dynamic; see [Configuration](configuration.md)). Setting it to `0` disables this endpoint entirely — every request is rejected with `400 Bad Request`.
 - **`findings[]._id`** (required) — document ID of the finding.
 - **`findings[]._index`** (required) — index where the finding is stored.
 - **`findings[].case`** (required) — object with the case fields to set or update.
@@ -106,7 +104,7 @@ All fields inside `case` are optional — you can update only the fields you nee
 
 ### Error responses
 
-- **400** — invalid JSON, missing required fields, empty array, or exceeding the 50-item limit.
+- **400** — invalid JSON, missing required fields, empty array, unknown or invalid `case` field, exceeding the configured bulk-size limit, or case management disabled (limit set to `0`).
 - **207** — partial failure; some items succeeded, some failed (e.g., document not found).
 
 ## Example: triage workflow

@@ -96,7 +96,7 @@ The Engine listens on a local Unix socket with restricted permissions (`750`) an
 
 ## Data storage
 
-The Wazuh Indexer organizes data into purpose-specific indices and data streams. Time-series streams are categorized per event type (access management, applications, cloud services, network activity, security, system activity, unclassified).
+The Wazuh Indexer organizes data into purpose-specific indices and data streams. Time-series streams are categorized per event type (access management, applications, cloud services, network activity, security, system activity, other).
 
 | Index pattern              | Description                                                                                                  |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------ |

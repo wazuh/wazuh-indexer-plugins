@@ -343,7 +343,6 @@ These are registered with the two-arg constructor:
 
 ```java
 new StreamIndex("wazuh-events-raw-v5", "templates/streams/raw");
-new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified");
 new StreamIndex("wazuh-active-responses", "templates/streams/active-responses");
 ```
 

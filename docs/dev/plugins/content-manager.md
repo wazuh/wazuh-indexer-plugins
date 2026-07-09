@@ -304,7 +304,7 @@ The `executeRequest()` workflow:
 1. **Validate request body** — ensures the request has content and valid JSON.
 2. **Validate payload structure** — checks for required `resource` key and optional `integration` key.
 3. **Resource-specific validation** — delegates to `validatePayload()` (abstract). Concrete handlers check required fields, duplicate titles, parent integration existence, and the configured creation limit. The limit check counts existing Draft documents in the target index and returns HTTP 400 if the count is at or above `plugins.content_manager.max_<type>`; if the index does not exist yet, the check is skipped.
-4. **Generate ID and metadata** — creates a UUID, sets `date` and `modified` timestamps, defaults `enabled` to `true`.
+4. **Generate ID and metadata** — creates a UUID; sets `date` and `modified` timestamps to the current time unless the caller already supplied a non-blank value for either (`Resource.setCreationTime()` / `setLastModificationTime()`); defaults `enabled` to `true`.
 5. **External sync** — delegates to `syncExternalServices()` (abstract). Typically upserts the resource in Security Analytics or validates via the Engine.
 6. **Index** — wraps the resource in the CTI document structure and indexes it in the Draft space.
 7. **Link to parent** — delegates to `linkToParent()` (abstract). Usually adds the new resource ID to a parent integration's resource list.
@@ -322,7 +322,7 @@ The `executeRequest()` workflow:
 2. **Check existence and space** — verifies the resource exists and belongs to the Draft space.
 3. **Parse and validate payload** — same structural checks as create.
 4. **Resource-specific validation** — delegates to `validatePayload()` (abstract).
-5. **Update timestamps** — sets `modified` timestamp. Preserves immutable fields (creation date, author) from the existing document.
+5. **Update timestamps** — sets `modified` to the current time unless the caller already supplied a non-blank value. `preserveMetadata()` then unconditionally overwrites `date` with the existing document's stored creation date, ignoring any caller-supplied value — `date` is fully immutable once a resource is created.
 6. **External sync** — delegates to `syncExternalServices()` (abstract).
 7. **Re-index** — overwrites the document in the index.
 8. **Update hash** — recalculates the Draft space hash.

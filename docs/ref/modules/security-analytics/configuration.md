@@ -32,7 +32,9 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 - **`plugins.security_analytics.finding_history_max_age`** (Time, default `30d`) — maximum age of a finding history index before rollover.
 - **`plugins.security_analytics.finding_history_retention_period`** (Time, default `60d`) — retention period after which finding history indices are deleted.
 - **`plugins.security_analytics.index_timeout`** (Time, default `60s`) — timeout for Security Analytics index operations.
-- **`plugins.security_analytics.max_detectors`** (Integer, default `10`, minimum `0`) — maximum number of user-created detectors (Content Manager detectors do not count).
+- **`plugins.security_analytics.max_case_management_bulk_size`** (Integer, default `10`, range 0–100, dynamic) — maximum number of findings that can be updated in a single request to the [update findings](case-management.md#updating-findings) endpoint. Setting it to `0` disables the endpoint entirely.
+- **`plugins.security_analytics.max_detectors`** (Integer, default `10`, range 0–10, dynamic) — maximum number of user-created detectors (Content Manager detectors do not count).
+- **`plugins.security_analytics.max_rules_per_detector`** (Integer, default `50`, range 0–50, dynamic) — maximum number of rules (custom or pre-packaged) allowed in a single detector input. Requests that would exceed this limit are rejected with HTTP 400.
 
 <!-- // ANCHOR_END: settings-table -->
 
@@ -81,6 +83,21 @@ plugins.security_analytics.filter_by_backend_roles: false
 ```
 
 Setting `enriched_findings_index_enabled` to `false` disables the Wazuh enriched findings pipeline described in [Architecture](architecture.md); raw Security Analytics findings continue to be written to `.opensearch-sap-{category}-findings-*`, but no `wazuh-findings-v5-{category}*` documents are produced.
+
+### Resource creation limits
+
+```yaml
+# opensearch.yml
+plugins.security_analytics.max_detectors: 10
+plugins.security_analytics.max_rules_per_detector: 50
+plugins.security_analytics.max_case_management_bulk_size: 10
+```
+
+- **`max_detectors`** — caps the number of user-created detectors; Content Manager–created detectors are exempt.
+- **`max_rules_per_detector`** — caps the number of rules (custom or pre-packaged) a single detector input can reference.
+- **`max_case_management_bulk_size`** — caps the number of findings that can be updated in one call to the [update findings](case-management.md#updating-findings) endpoint. Set it to `0` to disable the endpoint entirely.
+
+All three settings are dynamic.
 
 ### Enrichment tuning
 

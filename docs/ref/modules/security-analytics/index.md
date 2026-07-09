@@ -12,9 +12,10 @@ When the restriction is violated, the API returns `400 Bad Request`.
 
 ## Detector constraints
 
-- **Max rules per detector: 100** — each detector input can reference at most 100 rules (custom or pre-packaged). Requests that exceed this limit are rejected with HTTP 400.
+- **Max rules per detector** — each detector input can reference at most `plugins.security_analytics.max_rules_per_detector` rules (custom or pre-packaged), default `50`. Requests that exceed this limit are rejected with HTTP 400.
+- **Max detectors** — at most `plugins.security_analytics.max_detectors` user-created detectors are allowed, default `10`. Detectors created by the Content Manager plugin do not count towards this limit.
 
-This limit is enforced at the transport layer and applies to all detector creation and update paths, including inter-plugin calls from the Content Manager.
+Both limits are dynamic and enforced at the transport layer, applying to all detector creation and update paths, including inter-plugin calls from the Content Manager. See [Configuration](configuration.md) for the settings' full ranges.
 
 ## Wazuh enriched findings
 
