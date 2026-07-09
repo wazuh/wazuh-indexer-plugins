@@ -67,7 +67,6 @@ DestinationTransport (interface)
 | `NotificationFeaturesRestHandler` | GET | `/_plugins/_notifications/features` |
 | `NotificationChannelListRestHandler` | GET | `/_plugins/_notifications/channels` |
 | `SendTestMessageRestHandler` | POST | `/_plugins/_notifications/feature/test/{config_id}` |
-| `NotificationStatsRestHandler` | GET | `/_plugins/_notifications/_local/stats` |
 
 ---
 

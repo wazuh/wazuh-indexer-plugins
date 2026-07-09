@@ -40,10 +40,6 @@ The Alerting plugin includes a Wazuh-specific **Active Response monitor type** t
 
 When an Active Response monitor triggers, it writes execution requests to the `wazuh-active-responses` data stream. The Wazuh Manager retrieves documents from this data stream to distribute and execute Active Response actions on agents. Each document references the source event that triggered the response.
 
-## Default monitors
-
-On first startup, a sample alerting monitor is created alongside the [default notification channels](../notifications/index.md#default-notification-channels). This monitor serves as a template that users can customize and enable. Review it under **Alerting > Monitors** in the Wazuh Dashboard before enabling alerts.
-
 ## Dependencies
 
 | Dependency | Purpose |

@@ -128,19 +128,6 @@ curl -X PUT "https://localhost:9200/_cluster/settings" \
 
 ---
 
-## Plugin stats
-
-To inspect the plugin's internal metrics and check for anomalies:
-
-```bash
-curl -sk -u admin:admin \
-  "https://localhost:9200/_plugins/_notifications/_local/stats"
-```
-
-This returns counters for all API operations, which can help identify whether requests are reaching the plugin.
-
----
-
 ## Logs
 
 Enable debug logging for the Notifications plugin:

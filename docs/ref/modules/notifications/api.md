@@ -381,23 +381,6 @@ curl -sk -u admin:admin -X POST \
 
 ---
 
-## Stats
-
-### Get plugin stats
-
-Returns internal plugin metrics and counters.
-
-- Method: `GET`
-- Path: `/_plugins/_notifications/_local/stats`
-
-#### Response
-
-A JSON object with flattened metric counters including:
-
-- Request totals and interval counts for each API operation (create, update, delete, info, features, channels, send test).
-
----
-
 ## Summary table
 
 | Endpoint                                     | Method   | Description                                     |
@@ -411,4 +394,3 @@ A JSON object with flattened metric counters including:
 | `/_plugins/_notifications/channels`          | `GET`    | List all channels (simplified view).            |
 | `/_plugins/_notifications/features`          | `GET`    | Get supported features and config types.        |
 | `/_plugins/_notifications/feature/test/{id}` | `POST`   | Send a test notification.                       |
-| `/_plugins/_notifications/_local/stats`      | `GET`    | Get plugin metrics.                             |

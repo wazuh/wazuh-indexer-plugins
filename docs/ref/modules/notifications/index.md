@@ -68,8 +68,6 @@ curl -sk -u admin:admin -X PUT \
   }'
 ```
 
-> **Note:** A sample alerting monitor is created alongside these channels. Review it under **Alerting > Monitors** in the Wazuh Dashboard before enabling alerts.
-
 ## Dependencies
 
 This plugin has a dependency on the [wazuh-indexer-common-utils](https://github.com/wazuh/wazuh-indexer-common-utils) repository. It uses the Common Utils jar to provide shared utility functions and common components required for plugin functionality.
