@@ -21,6 +21,7 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.transport.client.Client;
 
 /**
@@ -53,6 +54,33 @@ public class ClusterInfo {
     }
 
     /**
+     * Async variant of {@link #indexStatusCheck(Client, String, long)}. Checks if a given index is
+     * ready for operations and notifies the listener with the result.
+     *
+     * @param client OpenSearch client.
+     * @param index index name to check.
+     * @param timeoutSeconds maximum time to wait for the index to become ready.
+     * @param listener listener notified with true if the index is ready, false otherwise.
+     */
+    public static void indexStatusCheck(
+            Client client, String index, long timeoutSeconds, ActionListener<Boolean> listener) {
+        client
+                .admin()
+                .cluster()
+                .prepareHealth()
+                .setIndices(index)
+                .setWaitForYellowStatus()
+                .setWaitForActiveShards(1)
+                .setTimeout(TimeValue.timeValueSeconds(timeoutSeconds))
+                .execute(
+                        ActionListener.wrap(
+                                response ->
+                                        listener.onResponse(
+                                                response.getStatus() != ClusterHealthStatus.RED && !response.isTimedOut()),
+                                listener::onFailure));
+    }
+
+    /**
      * Checks whether the given index exists.
      *
      * @param client OpenSearch client.
@@ -63,5 +91,24 @@ public class ClusterInfo {
         IndicesExistsRequest request = new IndicesExistsRequest(index);
         IndicesExistsResponse response = client.admin().indices().exists(request).actionGet();
         return response.isExists();
+    }
+
+    /**
+     * Async variant of {@link #indexExists(Client, String)}. Checks whether the given index exists
+     * and notifies the listener with the result.
+     *
+     * @param client OpenSearch client.
+     * @param index index name to check its existence for.
+     * @param listener listener notified with true if the index exists, false otherwise.
+     */
+    public static void indexExists(Client client, String index, ActionListener<Boolean> listener) {
+        IndicesExistsRequest request = new IndicesExistsRequest(index);
+        client
+                .admin()
+                .indices()
+                .exists(
+                        request,
+                        ActionListener.wrap(
+                                response -> listener.onResponse(response.isExists()), listener::onFailure));
     }
 }

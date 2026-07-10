@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.console.service;
 
+import org.opensearch.core.action.ActionListener;
+
 import java.util.List;
 
 import com.wazuh.contentmanager.cti.console.client.ClosableHttpClient;
@@ -50,4 +52,22 @@ public interface PlansService extends ClosableHttpClient {
      *     request fails.
      */
     Plan getMyPlan(Token token);
+
+    /**
+     * Async variant of {@link #getMyPlan(Token)}. Retrieves the plan for the registered environment
+     * and notifies the listener with the result.
+     *
+     * @param token the authentication {@link Token}.
+     * @param listener listener notified with the active {@link Plan}, or null if the token is invalid
+     *     or the request fails.
+     */
+    void getMyPlan(Token token, ActionListener<Plan> listener);
+
+    /**
+     * Async variant of {@link #getPlan()}. Retrieves the applicable plan and notifies the listener
+     * with the result.
+     *
+     * @param listener listener notified with the applicable {@link Plan}, or null on error.
+     */
+    void getPlan(ActionListener<Plan> listener);
 }

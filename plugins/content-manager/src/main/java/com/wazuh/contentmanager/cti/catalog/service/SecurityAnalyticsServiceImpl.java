@@ -565,6 +565,40 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         }
     }
 
+    @Override
+    public void deleteSpaceResourcesAsync(
+            Space space, ActionListener<? extends ActionResponse> listener) {
+        String source = space.toString();
+        ActionListener<WDeleteSpaceResourcesResponse> wrappedListener =
+                ActionListener.wrap(
+                        response -> {
+                            if (response.hasFailures()) {
+                                log.warn(
+                                        Constants.W_LOG_SAP_SPACE_DELETE_PARTIAL, space, response.getFailureMessage());
+                            }
+                            log.info(
+                                    Constants.I_LOG_SAP_SPACE_DELETED,
+                                    response.getDeletedIntegrations(),
+                                    response.getDeletedRules(),
+                                    space);
+                            listener.onResponse(null);
+                        },
+                        e -> {
+                            String message =
+                                    String.format(
+                                            Locale.ROOT,
+                                            "Failed to delete Security Analytics resources for space [%s]: %s",
+                                            space,
+                                            e.getMessage());
+                            log.error(message);
+                            listener.onFailure(new OpenSearchException(message, e));
+                        });
+        this.executeAsync(
+                WDeleteSpaceResourcesAction.INSTANCE,
+                new WDeleteSpaceResourcesRequest(source, WriteRequest.RefreshPolicy.IMMEDIATE),
+                wrappedListener);
+    }
+
     /**
      * Executes an action asynchronously, bridging between the wildcard listener from the interface
      * and the concrete response type required by {@link Client#execute}.
