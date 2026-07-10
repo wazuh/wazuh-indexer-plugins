@@ -41,6 +41,7 @@ Service account used by the Wazuh Manager for data ingestion and content reads.
 
 - **Cluster permissions:** `cluster_composite_ops`, `cluster_monitor`.
 - **Index permissions:**
+  - `read` on `.wazuh-settings`.
   - `read` on `.wazuh-cti-consumers`, `wazuh-active-responses*`, `wazuh-threatintel-*`.
   - `read`, `index` on `wazuh-events-v5-*`, `wazuh-metrics-*`.
   - `read`, `index`, `delete` on `wazuh-states-*`.
