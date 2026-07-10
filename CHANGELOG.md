@@ -102,6 +102,7 @@
 - Implement registration based content [(#1138)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1138)
 - Add Data retention policies for stream indices [(#1217)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1217)
 - Add alerting documentation [(#1231)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1231)
+- Add limits for the creation of filters, integrations, decoders, rules and kvdbs [(#1291)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1291)
 - Implement RBAC to safeguard sensitive configuration [(#1310)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1310)
 - Add `index.gc_deletes` setting to stateful index templates [(#1330)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1330)
 
@@ -195,6 +196,7 @@
 - Remove ECS object from WCS definitions [(#612)](https://github.com/wazuh/wazuh-indexer-plugins/pull/612)
 - Remove alerts and archives index creation [(#693)](https://github.com/wazuh/wazuh-indexer-plugins/pull/693)
 - Remove `unclassified` module from WCS and index templates [(#1358)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1358)
+- Remove auto expand replicas [(#1371)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1371)
 
 ### Fixed
 - Improve ECS folder structure [(#473)](https://github.com/wazuh/wazuh-indexer-plugins/pull/473)
