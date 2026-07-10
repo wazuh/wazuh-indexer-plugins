@@ -36,7 +36,6 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
@@ -351,48 +350,9 @@ public class ContentIndex {
      *
      * @param id The unique identifier for the document.
      * @param payload The JSON object representing the document content.
-     * @return The IndexResponse object with the result of the indexing operation.
-     * @throws IOException If the indexing operation fails.
-     */
-    public IndexResponse create(String id, JsonNode payload) throws IOException {
-        ObjectNode processedPayload;
-        if (payload.isObject()
-                && payload.has(Constants.KEY_DOCUMENT)
-                && payload.has(Constants.KEY_SPACE)
-                && payload.has(Constants.KEY_HASH)) {
-            processedPayload = payload.deepCopy();
-        } else {
-            processedPayload = this.processPayload(payload);
-        }
-
-        // Ensure floating-point values keep their decimal scale
-        if (processedPayload.has("document")) {
-            YamlUtils.fixDecimalScale(processedPayload.get("document"));
-        }
-
-        IndexRequest request =
-                new IndexRequest(this.getWriteIndex())
-                        .id(id)
-                        .source(processedPayload.toString(), XContentType.JSON)
-                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-        try {
-            return this.client
-                    .index(request)
-                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(Constants.E_LOG_INDEX_DOCUMENT_FAILED, id, e.getMessage());
-            throw new IOException(e);
-        }
-    }
-
-    /**
-     * Asynchronously indexes a new document or overwrites an existing one.
-     *
-     * @param id The unique identifier for the document.
-     * @param payload The JSON object representing the document content.
      * @param listener The listener to notify on completion.
      */
-    public void createAsync(String id, JsonNode payload, ActionListener<IndexResponse> listener) {
+    public void create(String id, JsonNode payload, ActionListener<IndexResponse> listener) {
         ObjectNode processedPayload;
         if (payload.isObject()
                 && payload.has("document")
@@ -519,54 +479,12 @@ public class ContentIndex {
     }
 
     /**
-     * Searches for a document by a specific field name and value.
-     *
-     * @param queryBuilder The query to execute.
-     * @return A JsonObject representing the found document, or null if not found or on
-     */
-    public ObjectNode searchByQuery(QueryBuilder queryBuilder) {
-        try {
-            // Create search request
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);
-            SearchRequest searchRequest = new SearchRequest(this.indexName).source(searchSourceBuilder);
-
-            // Execute search synchronously
-            SearchResponse searchResponse =
-                    this.client
-                            .search(searchRequest)
-                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-
-            // Check if we have results
-            if (searchResponse == null
-                    || searchResponse.getHits() == null
-                    || searchResponse.getHits().getTotalHits() == null
-                    || searchResponse.getHits().getTotalHits().value() == 0L) {
-                log.debug(Constants.D_LOG_NO_DOCUMENT_FOUND_QUERY, this.indexName, queryBuilder.toString());
-                return null;
-            }
-            ArrayNode hitsArray = this.mapper.createArrayNode();
-            for (SearchHit hit : searchResponse.getHits().getHits()) {
-                ObjectNode hitObject = (ObjectNode) this.mapper.readTree(hit.getSourceAsString());
-                hitObject.put(Constants.KEY_ID, hit.getId());
-                hitsArray.add(hitObject);
-            }
-            ObjectNode result = this.mapper.createObjectNode();
-            result.set(Constants.Q_HITS, hitsArray);
-            result.put("total", searchResponse.getHits().getTotalHits().value());
-            return result;
-        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(Constants.E_LOG_SEARCH_BY_QUERY_FAILED, this.indexName, e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Asynchronously searches for documents by a query.
+     * Searches for documents by a query.
      *
      * @param queryBuilder The query to execute.
      * @param listener The listener to notify with the results, or null if none found.
      */
-    public void searchByQueryAsync(QueryBuilder queryBuilder, ActionListener<ObjectNode> listener) {
+    public void searchByQuery(QueryBuilder queryBuilder, ActionListener<ObjectNode> listener) {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder().query(queryBuilder);
         SearchRequest searchRequest = new SearchRequest(this.indexName).source(searchSourceBuilder);
 

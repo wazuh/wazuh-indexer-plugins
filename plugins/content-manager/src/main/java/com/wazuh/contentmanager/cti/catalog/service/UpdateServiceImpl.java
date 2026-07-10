@@ -24,8 +24,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.core.action.ActionListener;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -214,7 +218,17 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                     if (type != null) {
                         index = this.indices.get(type);
                         if (index != null) {
-                            index.create(id, payload);
+                            CompletableFuture<Void> future = new CompletableFuture<>();
+                            index.create(
+                                    id,
+                                    payload,
+                                    ActionListener.wrap(r -> future.complete(null), future::completeExceptionally));
+                            try {
+                                future.get(60, TimeUnit.SECONDS);
+                            } catch (ExecutionException e) {
+                                Throwable cause = e.getCause();
+                                throw (cause instanceof Exception ex) ? ex : e;
+                            }
                         } else {
                             log.warn(Constants.W_LOG_UPDATE_NO_INDEX_FOR_TYPE, type);
                         }

@@ -138,7 +138,7 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
         }
 
         // 2. Send to Security Analytics (async).
-        securityAnalyticsService.upsertIntegrationAsync(
+        securityAnalyticsService.upsertIntegration(
                 resource,
                 Space.DRAFT,
                 POST,
@@ -161,7 +161,7 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
     @Override
     protected void rollbackExternalServices(
             String id, SecurityAnalyticsService securityAnalyticsService) {
-        securityAnalyticsService.deleteIntegrationAsync(
+        securityAnalyticsService.deleteIntegration(
                 id, Space.DRAFT, ActionListener.wrap(response -> {}, e -> {}));
     }
 
@@ -176,7 +176,7 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
         TermQueryBuilder queryBuilder =
                 new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
 
-        policiesIndex.searchByQueryAsync(
+        policiesIndex.searchByQuery(
                 queryBuilder,
                 ActionListener.wrap(
                         searchResult -> {
@@ -200,7 +200,7 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
                             String hash = Resource.computeSha256(document.toString());
                             ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
 
-                            policiesIndex.createAsync(
+                            policiesIndex.create(
                                     draftPolicyId,
                                     draftPolicyHit,
                                     ActionListener.wrap(

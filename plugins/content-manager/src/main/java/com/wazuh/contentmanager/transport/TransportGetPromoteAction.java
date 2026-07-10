@@ -172,11 +172,11 @@ public class TransportGetPromoteAction
     @SuppressWarnings("unchecked")
     private void calculatePolicyDiffAsync(
             String sourceSpace, String targetSpace, ActionListener<List<Map<String, String>>> listener) {
-        this.spaceService.getPolicyAsync(
+        this.spaceService.getPolicy(
                 sourceSpace,
                 ActionListener.wrap(
                         sourcePolicy -> {
-                            this.spaceService.getPolicyAsync(
+                            this.spaceService.getPolicy(
                                     targetSpace,
                                     ActionListener.wrap(
                                             targetPolicy -> {

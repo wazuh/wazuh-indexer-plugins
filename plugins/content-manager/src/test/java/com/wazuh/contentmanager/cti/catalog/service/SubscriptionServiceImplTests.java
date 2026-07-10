@@ -31,9 +31,9 @@ import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 public class SubscriptionServiceImplTests extends OpenSearchTestCase {
@@ -66,84 +66,23 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
         f.set(null, null);
     }
 
-    /** Token present and valid → returns plan from getMyPlan(); does not fall back. */
-    public void testGetPlan_ValidToken() {
-        PluginSettings.getInstance().setAccessToken("valid-token");
-        Plan plan = mock(Plan.class);
-        when(this.plansService.getMyPlan(any(Token.class))).thenReturn(plan);
-
-        Plan result = this.service.getPlan();
-
-        Assert.assertSame(plan, result);
-        ArgumentCaptor<Token> tokenCaptor = ArgumentCaptor.forClass(Token.class);
-        verify(this.plansService).getMyPlan(tokenCaptor.capture());
-        Assert.assertEquals("valid-token", tokenCaptor.getValue().getAccessToken());
-        Assert.assertEquals("Bearer", tokenCaptor.getValue().getTokenType());
-        verify(this.plansService, never()).getPlan();
-    }
-
-    /**
-     * Token present but getMyPlan() returns null (invalid token) → deletes credentials document,
-     * clears in-memory token, and falls back to the public plan.
-     */
-    public void testGetPlan_InvalidToken_FallsBackToPublicPlan() throws Exception {
-        PluginSettings.getInstance().setAccessToken("bad-token");
-        when(this.plansService.getMyPlan(any(Token.class))).thenReturn(null);
-        Plan publicPlan = mock(Plan.class);
-        when(this.plansService.getPlan()).thenReturn(publicPlan);
-
-        Plan result = this.service.getPlan();
-
-        Assert.assertSame(publicPlan, result);
-        verify(this.credentialsIndex).deleteDocument();
-        Assert.assertNull(PluginSettings.getInstance().getAccessToken());
-    }
-
-    /** No token in PluginSettings → calls getPlan() directly without attempting getMyPlan(). */
-    public void testGetPlan_NoToken() {
-        Plan publicPlan = mock(Plan.class);
-        when(this.plansService.getPlan()).thenReturn(publicPlan);
-
-        Plan result = this.service.getPlan();
-
-        Assert.assertSame(publicPlan, result);
-        verify(this.plansService, never()).getMyPlan(any());
-        verify(this.plansService).getPlan();
-    }
-
     /** register() persists credentials and updates the in-memory token. */
+    @SuppressWarnings("unchecked")
     public void testRegister() throws Exception {
-        this.service.register("new-token");
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Void>>getArgument(1).onResponse(null);
+                            return null;
+                        })
+                .when(this.credentialsIndex)
+                .storeCredentials(eq("new-token"), any(ActionListener.class));
 
-        verify(this.credentialsIndex).storeCredentials("new-token");
+        ActionListener<Void> listener = mock(ActionListener.class);
+        this.service.register("new-token", listener);
+
+        verify(this.credentialsIndex).storeCredentials(eq("new-token"), any(ActionListener.class));
+        verify(listener).onResponse(null);
         Assert.assertEquals("new-token", PluginSettings.getInstance().getAccessToken());
-    }
-
-    /**
-     * Token invalid and deleteDocument() throws → exception is swallowed, token still cleared, falls
-     * back to public plan.
-     */
-    public void testGetPlan_InvalidToken_DeleteThrows_StillFallsBackToPublicPlan() throws Exception {
-        PluginSettings.getInstance().setAccessToken("bad-token");
-        when(this.plansService.getMyPlan(any(Token.class))).thenReturn(null);
-        doThrow(new RuntimeException("index gone")).when(this.credentialsIndex).deleteDocument();
-        Plan publicPlan = mock(Plan.class);
-        when(this.plansService.getPlan()).thenReturn(publicPlan);
-
-        Plan result = this.service.getPlan();
-
-        Assert.assertSame(publicPlan, result);
-        Assert.assertNull(PluginSettings.getInstance().getAccessToken());
-    }
-
-    /** unregister() deletes the credentials document and clears the in-memory token. */
-    public void testUnregister() throws Exception {
-        PluginSettings.getInstance().setAccessToken("existing-token");
-
-        this.service.unregister();
-
-        verify(this.credentialsIndex).deleteDocument();
-        Assert.assertNull(PluginSettings.getInstance().getAccessToken());
     }
 
     /** Async getPlan: token in memory and valid → returns plan from getMyPlan(). */

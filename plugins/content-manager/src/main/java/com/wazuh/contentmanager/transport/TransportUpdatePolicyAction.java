@@ -196,7 +196,7 @@ public class TransportUpdatePolicyAction
             }
 
             // 3. Fetch current policy and apply update (async)
-            this.spaceService.getPolicyAsync(
+            this.spaceService.getPolicy(
                     spaceName,
                     ActionListener.wrap(
                             currentPolicy -> afterGetPolicy(currentPolicy, policy, spaceName, listener),
@@ -334,7 +334,7 @@ public class TransportUpdatePolicyAction
 
         // Index the document (async)
         ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
-        index.createAsync(
+        index.create(
                 documentId,
                 document,
                 ActionListener.wrap(
@@ -345,7 +345,7 @@ public class TransportUpdatePolicyAction
     private void afterIndex(
             String policyId, String spaceName, ActionListener<MessageStatusResponse> listener) {
         // Recalculate space hash (async)
-        this.spaceService.calculateAndUpdateAsync(
+        this.spaceService.calculateAndUpdate(
                 List.of(spaceName),
                 ActionListener.wrap(
                         changedSpaces -> {
@@ -467,20 +467,25 @@ public class TransportUpdatePolicyAction
             log.warn(Constants.E_LOG_ENGINE_IS_NULL);
             return;
         }
-        try {
-            JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString());
-            RestResponse response = this.engineService.promote(payload);
-            if (response.getStatus() == RestStatus.OK.getStatus()) {
-                log.info("Engine load for standard space completed successfully.");
-            } else {
-                log.warn(
-                        "Engine load for standard space returned status [{}]: {}",
-                        response.getStatus(),
-                        response.getMessage());
-            }
-        } catch (Exception e) {
-            log.error("Failed to load standard space into Engine: {}", e.getMessage());
-        }
+        this.spaceService.buildEnginePayload(
+                Space.STANDARD.toString(),
+                ActionListener.wrap(
+                        payload -> {
+                            try {
+                                RestResponse response = this.engineService.promote(payload);
+                                if (response.getStatus() == RestStatus.OK.getStatus()) {
+                                    log.info("Engine load for standard space completed successfully.");
+                                } else {
+                                    log.warn(
+                                            "Engine load for standard space returned status [{}]: {}",
+                                            response.getStatus(),
+                                            response.getMessage());
+                                }
+                            } catch (Exception e) {
+                                log.error("Failed to load standard space into Engine: {}", e.getMessage());
+                            }
+                        },
+                        e -> log.error("Failed to load standard space into Engine: {}", e.getMessage())));
     }
 
     private void respondWithError(ActionListener<MessageStatusResponse> listener, Exception e) {

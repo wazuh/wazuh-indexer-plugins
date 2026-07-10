@@ -147,7 +147,7 @@ public class TransportPostPromoteAction
         Space targetSpace = sourceSpace.promote();
         SpaceDiff.Changes changes = spaceDiff.getChanges();
 
-        this.spaceService.getPolicyAsync(
+        this.spaceService.getPolicy(
                 sourceSpace.toString(),
                 ActionListener.wrap(
                         (Map<String, Object> policyDocument) -> {
@@ -242,7 +242,7 @@ public class TransportPostPromoteAction
             Set<String> rulesToDelete,
             SpaceDiff spaceDiff,
             ActionListener<MessageStatusResponse> listener) {
-        this.spaceService.buildEnginePayloadAsync(
+        this.spaceService.buildEnginePayload(
                 policyDocument,
                 targetSpace.toString(),
                 integrationsToApply,
@@ -456,7 +456,7 @@ public class TransportPostPromoteAction
                         listener::onFailure);
 
         if (resourceType.equals(Constants.KEY_POLICY)) {
-            this.spaceService.getPolicyAsync(sourceSpace, docListener);
+            this.spaceService.getPolicy(sourceSpace, docListener);
         } else {
             this.spaceService.getDocumentAsync(indexName, sourceSpace, resourceId, docListener);
         }
@@ -571,7 +571,7 @@ public class TransportPostPromoteAction
                         });
 
         if (resourceType.equals(Constants.KEY_POLICY)) {
-            this.spaceService.getPolicyAsync(context.targetSpace, docListener);
+            this.spaceService.getPolicy(context.targetSpace, docListener);
         } else {
             this.spaceService.getDocumentAsync(indexName, context.targetSpace, docId, docListener);
         }
@@ -847,9 +847,9 @@ public class TransportPostPromoteAction
                         });
 
         if ("rule".equals(kind)) {
-            this.securityAnalyticsService.deleteRuleAsync(id, targetSpaceEnum, itemListener);
+            this.securityAnalyticsService.deleteRule(id, targetSpaceEnum, itemListener);
         } else {
-            this.securityAnalyticsService.deleteIntegrationAsync(id, targetSpaceEnum, itemListener);
+            this.securityAnalyticsService.deleteIntegration(id, targetSpaceEnum, itemListener);
         }
     }
 
@@ -940,10 +940,10 @@ public class TransportPostPromoteAction
                         });
 
         if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
-            this.securityAnalyticsService.upsertIntegrationAsync(
+            this.securityAnalyticsService.upsertIntegration(
                     mapper.valueToTree(document), targetSpaceEnum, method, itemListener);
         } else {
-            this.securityAnalyticsService.upsertRuleAsync(
+            this.securityAnalyticsService.upsertRule(
                     mapper.valueToTree(document), targetSpaceEnum, method, itemListener);
         }
     }
@@ -952,7 +952,7 @@ public class TransportPostPromoteAction
 
     private void afterConsolidationPhase(
             PromotionContext context, ActionListener<MessageStatusResponse> listener) {
-        this.spaceService.calculateAndUpdateAsync(
+        this.spaceService.calculateAndUpdate(
                 List.of(context.targetSpace),
                 ActionListener.wrap(
                         changedSpaces ->
@@ -1173,9 +1173,9 @@ public class TransportPostPromoteAction
 
         if (oldVersion == null) {
             if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
-                this.securityAnalyticsService.deleteIntegrationAsync(id, targetSpaceEnum, sapListener);
+                this.securityAnalyticsService.deleteIntegration(id, targetSpaceEnum, sapListener);
             } else {
-                this.securityAnalyticsService.deleteRuleAsync(id, targetSpaceEnum, sapListener);
+                this.securityAnalyticsService.deleteRule(id, targetSpaceEnum, sapListener);
             }
             log.debug(Constants.D_LOG_SAP_ROLLBACK_DELETED, resourceType, id, targetSpaceEnum);
         } else if (oldVersion.containsKey(Constants.KEY_DOCUMENT)) {
@@ -1183,10 +1183,10 @@ public class TransportPostPromoteAction
             Map<String, Object> document = (Map<String, Object>) oldVersion.get(Constants.KEY_DOCUMENT);
             JsonNode docNode = mapper.valueToTree(document);
             if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
-                this.securityAnalyticsService.upsertIntegrationAsync(
+                this.securityAnalyticsService.upsertIntegration(
                         docNode, targetSpaceEnum, RestRequest.Method.PUT, sapListener);
             } else {
-                this.securityAnalyticsService.upsertRuleAsync(
+                this.securityAnalyticsService.upsertRule(
                         docNode, targetSpaceEnum, RestRequest.Method.PUT, sapListener);
             }
             log.debug(Constants.D_LOG_SAP_ROLLBACK_RESTORED, resourceType, id, targetSpaceEnum);
@@ -1252,10 +1252,10 @@ public class TransportPostPromoteAction
                             next::onFailure);
 
             if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
-                this.securityAnalyticsService.upsertIntegrationAsync(
+                this.securityAnalyticsService.upsertIntegration(
                         docNode, targetSpaceEnum, RestRequest.Method.POST, sapListener);
             } else {
-                this.securityAnalyticsService.upsertRuleAsync(
+                this.securityAnalyticsService.upsertRule(
                         docNode, targetSpaceEnum, RestRequest.Method.POST, sapListener);
             }
         } else {

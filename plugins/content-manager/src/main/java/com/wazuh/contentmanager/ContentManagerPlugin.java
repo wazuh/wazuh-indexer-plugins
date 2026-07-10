@@ -24,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.WriteRequest;
@@ -38,6 +39,7 @@ import org.opensearch.common.inject.Module;
 import org.opensearch.common.settings.*;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -70,7 +72,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
@@ -268,13 +275,15 @@ public class ContentManagerPlugin extends Plugin
                                         // 1. Register key from environment variable
                                         String accessToken = ContentManagerPlugin.preDeploymentKey();
                                         if (!accessToken.isBlank()) {
-                                            try {
-                                                log.info("Pre-registered environment detected.");
-                                                ContentManagerPlugin.this.subscriptionService.register(accessToken);
-                                            } catch (Exception e) {
-                                                log.error(
-                                                        "Unexpected error pre-registering environment: {}", e.getMessage());
-                                            }
+                                            log.info("Pre-registered environment detected.");
+                                            ContentManagerPlugin.this.subscriptionService.register(
+                                                    accessToken,
+                                                    ActionListener.wrap(
+                                                            v -> {},
+                                                            e ->
+                                                                    log.error(
+                                                                            "Unexpected error pre-registering environment: {}",
+                                                                            e.getMessage())));
 
                                             // 2. Delete local snapshots (only for pre-registered
                                             // environments).
@@ -445,15 +454,15 @@ public class ContentManagerPlugin extends Plugin
             if (!this.isCredentialsIndexProtected) {
                 // Credentials index is not a system index — wipe any stored token to prevent
                 // unprotected access and ensure the environment falls back to unregistered mode.
-                if (this.credentialsIndex.exists()) {
-                    this.credentialsIndex.deleteDocument();
+                if (this.awaitResult(this.credentialsIndex::exists)) {
+                    this.<DeleteResponse>awaitResult(this.credentialsIndex::deleteDocument);
                     log.warn(Constants.W_LOG_ACCESS_TOKEN_DELETED_UNPROTECTED);
                 }
                 PluginSettings.getInstance().setAccessToken(null);
                 return;
             }
-            if (this.credentialsIndex.exists()) {
-                String token = this.credentialsIndex.getAccessToken();
+            if (this.awaitResult(this.credentialsIndex::exists)) {
+                String token = this.awaitResult(this.credentialsIndex::getAccessToken);
                 if (token != null) {
                     PluginSettings.getInstance().setAccessToken(token);
                     log.info(Constants.I_LOG_CTI_TOKEN_LOADED);
@@ -465,6 +474,28 @@ public class ContentManagerPlugin extends Plugin
             }
         } catch (Exception e) {
             log.warn(Constants.W_LOG_CTI_TOKEN_LOAD_FAILED, e.getMessage());
+        }
+    }
+
+    /**
+     * Bridges an asynchronous {@link ActionListener}-based operation into a blocking call. Used only
+     * on the generic/startup thread, where blocking is permitted.
+     *
+     * @param <T> the result type
+     * @param op consumer that starts the async operation with the supplied listener
+     * @return the operation result
+     * @throws Exception if the operation fails or times out
+     */
+    private <T> T awaitResult(Consumer<ActionListener<T>> op) throws Exception {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        op.accept(ActionListener.wrap(future::complete, future::completeExceptionally));
+        try {
+            return future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            throw (cause instanceof Exception ex) ? ex : e;
+        } catch (TimeoutException e) {
+            throw new Exception(e);
         }
     }
 
