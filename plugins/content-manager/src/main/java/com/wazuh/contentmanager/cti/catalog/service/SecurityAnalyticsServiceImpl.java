@@ -628,6 +628,17 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         }
     }
 
+    @Override
+    public void evaluateRulesAsync(
+            String eventJson, java.util.List<String> ruleBodies, ActionListener<String> listener) {
+        WEvaluateRulesRequest request = new WEvaluateRulesRequest(eventJson, ruleBodies);
+        this.client.execute(
+                WEvaluateRulesAction.INSTANCE,
+                request,
+                ActionListener.wrap(
+                        response -> listener.onResponse(response.getResultJson()), listener::onFailure));
+    }
+
     /**
      * Formats category strings from CTI documents. Transforms raw category identifiers into
      * human-readable format. This method was moved from CategoryFormatter.

@@ -125,6 +125,14 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     }
 
     @Override
+    public void evaluateRulesAsync(
+            String eventJson, java.util.List<String> ruleBodies, ActionListener<String> listener) {
+        log.debug("MockSecurityAnalyticsService.evaluateRulesAsync called");
+        listener.onResponse(
+                "{\"status\":\"success\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}");
+    }
+
+    @Override
     public void deleteSpaceResources(Space space) {
         log.debug("MockSecurityAnalyticsService.deleteSpaceResources called for space: {}", space);
     }

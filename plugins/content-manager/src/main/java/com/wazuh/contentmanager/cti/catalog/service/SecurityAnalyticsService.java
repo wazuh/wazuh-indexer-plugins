@@ -160,6 +160,16 @@ public interface SecurityAnalyticsService {
     String evaluateRules(String eventJson, List<String> ruleBodies);
 
     /**
+     * Asynchronously evaluates a list of Sigma rules against a normalized event.
+     *
+     * @param eventJson The normalized event as a JSON string.
+     * @param ruleBodies The list of Sigma rule bodies to evaluate.
+     * @param listener The listener to be notified with the evaluation result JSON string.
+     */
+    void evaluateRulesAsync(
+            String eventJson, List<String> ruleBodies, ActionListener<String> listener);
+
+    /**
      * Deletes all Security Analytics resources (integrations, rules, and detectors) belonging to the
      * given space. Sends a single bulk-delete action to SAP, which handles the deletion internally.
      *
