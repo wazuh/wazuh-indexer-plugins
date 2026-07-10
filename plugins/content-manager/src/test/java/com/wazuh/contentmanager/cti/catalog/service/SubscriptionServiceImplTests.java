@@ -33,6 +33,7 @@ import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 public class SubscriptionServiceImplTests extends OpenSearchTestCase {
@@ -66,10 +67,21 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
     }
 
     /** register() persists credentials and updates the in-memory token. */
+    @SuppressWarnings("unchecked")
     public void testRegister() throws Exception {
-        this.service.register("new-token");
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Void>>getArgument(1).onResponse(null);
+                            return null;
+                        })
+                .when(this.credentialsIndex)
+                .storeCredentials(eq("new-token"), any(ActionListener.class));
 
-        verify(this.credentialsIndex).storeCredentials("new-token");
+        ActionListener<Void> listener = mock(ActionListener.class);
+        this.service.register("new-token", listener);
+
+        verify(this.credentialsIndex).storeCredentials(eq("new-token"), any(ActionListener.class));
+        verify(listener).onResponse(null);
         Assert.assertEquals("new-token", PluginSettings.getInstance().getAccessToken());
     }
 

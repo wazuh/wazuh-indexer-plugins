@@ -87,13 +87,13 @@ public class TransportDeleteSpaceAction
         log.info("Starting reset operation for space [{}]", space);
 
         // 1. Remove resources belonging to the space in Security Analytics.
-        this.securityAnalyticsService.deleteSpaceResourcesAsync(
+        this.securityAnalyticsService.deleteSpaceResources(
                 space,
                 ActionListener.wrap(
                         sapResponse -> {
                             // 2. Remove resources belonging to space in the wazuh-threatintel-*
                             // indices.
-                            this.spaceService.deleteSpaceResourcesAsync(
+                            this.spaceService.deleteSpaceResources(
                                     space,
                                     ActionListener.wrap(
                                             v -> {
@@ -102,7 +102,7 @@ public class TransportDeleteSpaceAction
                                                         UUID.nameUUIDFromBytes(
                                                                         "wazuh-default-policy".getBytes(StandardCharsets.UTF_8))
                                                                 .toString();
-                                                this.spaceService.initializeSpaceAsync(
+                                                this.spaceService.initializeSpace(
                                                         space.toString(),
                                                         sharedDocumentId,
                                                         ActionListener.wrap(

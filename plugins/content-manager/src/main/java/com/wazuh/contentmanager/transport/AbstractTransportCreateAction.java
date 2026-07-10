@@ -322,7 +322,7 @@ public abstract class AbstractTransportCreateAction
             }
         }
 
-        index.createAsync(
+        index.create(
                 id,
                 ctiWrapper,
                 ActionListener.wrap(
@@ -372,7 +372,7 @@ public abstract class AbstractTransportCreateAction
     private void afterLink(
             String id, SpaceService spaceService, ActionListener<ContentResponse> listener) {
         // 9. Update Hash (async)
-        spaceService.calculateAndUpdateAsync(
+        spaceService.calculateAndUpdate(
                 List.of(Space.DRAFT.toString()),
                 ActionListener.wrap(
                         changedSpaces -> {

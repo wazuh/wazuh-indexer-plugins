@@ -26,7 +26,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.bulk.BulkRequest;
-import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -100,56 +99,10 @@ public class SpaceService {
     /**
      * Deletes all documents related to a specific space across all resource indices.
      *
-     * @param space The name of the space to wipe.
-     * @throws IOException If the deletion process fails.
-     */
-    public void deleteSpaceResources(Space space) throws IOException {
-        String spaceName = space.toString();
-        try {
-            BulkRequest bulkRequest = new BulkRequest();
-
-            for (String indexName : Constants.RESOURCE_INDICES.values()) {
-                boolean exists =
-                        this.offloadBlocking(
-                                () -> this.client.admin().indices().prepareExists(indexName).get().isExists());
-                if (exists) {
-                    SearchRequest searchRequest = new SearchRequest(indexName);
-                    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-                    sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
-                    sourceBuilder.size(10000);
-                    sourceBuilder.fetchSource(false); // We only need the _id
-                    searchRequest.source(sourceBuilder);
-
-                    SearchResponse response =
-                            this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
-
-                    for (SearchHit hit : response.getHits().getHits()) {
-                        bulkRequest.add(new DeleteRequest(indexName, hit.getId()));
-                    }
-                }
-            }
-
-            if (bulkRequest.numberOfActions() > 0) {
-                bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-                BulkResponse response =
-                        this.offloadBlocking(() -> this.client.bulk(bulkRequest).actionGet());
-                if (response.hasFailures()) {
-                    throw new IOException("Bulk deletion failed: " + response.buildFailureMessage());
-                }
-            }
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_DELETE_SPACE_RESOURCES_FAILED, spaceName, e.getMessage());
-            throw new IOException("Failed to delete space resources: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Asynchronously deletes all documents related to a specific space across all resource indices.
-     *
      * @param space The space to wipe.
      * @param listener notified on completion or failure.
      */
-    public void deleteSpaceResourcesAsync(Space space, ActionListener<Void> listener) {
+    public void deleteSpaceResources(Space space, ActionListener<Void> listener) {
         String spaceName = space.toString();
         List<String> indexNames = new ArrayList<>(Constants.RESOURCE_INDICES.values());
         BulkRequest bulkRequest = new BulkRequest();
@@ -255,78 +208,9 @@ public class SpaceService {
      *
      * @param spaceName The space name.
      * @param documentId Shared policy ID stored inside the document to link all default spaces.
-     */
-    public void initializeSpace(String spaceName, String documentId) {
-        // Deterministic, space-specific OpenSearch _id.
-        // Combined with OpType.CREATE this guarantees exactly-once creation per space,
-        // even when multiple nodes call this method concurrently.
-        String spaceDocId =
-                UUID.nameUUIDFromBytes(("wazuh-space-" + spaceName).getBytes(StandardCharsets.UTF_8))
-                        .toString();
-        try {
-            String date = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
-            String title = "Custom space";
-
-            Policy policy = new Policy();
-            policy.setId(documentId);
-            policy.setTitle(title);
-            policy.setDescription(title);
-            policy.setAuthor("Custom");
-            policy.setRootDecoder(null);
-            policy.setDocumentation("");
-            policy.setIntegrations(Collections.emptyList());
-            policy.setFilters(Collections.emptyList());
-            policy.setEnrichments(Collections.emptyList());
-            policy.setReferences(Collections.emptyList());
-            policy.setDate(date);
-            policy.setModified(date);
-            // Enable the policy by default for the draft space only
-            policy.setEnabled(Space.DRAFT.toString().equals(spaceName));
-            policy.setIndexUnclassifiedEvents(false);
-            policy.setIndexDiscardedEvents(false);
-
-            ObjectNode docNode = this.objectMapper.valueToTree(policy);
-            Resource.nestMetadataFields(docNode);
-            @SuppressWarnings("unchecked")
-            Map<String, Object> docMap = this.objectMapper.convertValue(docNode, Map.class);
-
-            String docJson = this.objectMapper.writeValueAsString(docMap);
-            String docHash = Resource.computeSha256(docJson);
-
-            Map<String, Object> space = new HashMap<>();
-            space.put(Constants.KEY_NAME, spaceName);
-            space.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
-
-            Map<String, Object> source = new HashMap<>();
-            source.put(Constants.KEY_DOCUMENT, docMap);
-            source.put(Constants.KEY_SPACE, space);
-            source.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
-
-            IndexRequest request =
-                    new IndexRequest(Constants.INDEX_POLICIES)
-                            .id(spaceDocId)
-                            .source(this.objectMapper.writeValueAsString(source), XContentType.JSON)
-                            .opType(DocWriteRequest.OpType.CREATE)
-                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-
-            this.client.index(request).actionGet();
-            log.info(Constants.I_LOG_SPACE_INITIALIZED, spaceName);
-        } catch (VersionConflictEngineException e) {
-            log.debug(Constants.D_LOG_SPACE_ALREADY_INITIALIZED, spaceName);
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, spaceName, e.getMessage());
-        }
-    }
-
-    /**
-     * Asynchronously creates a single space policy document if it does not already exist.
-     *
-     * @param spaceName The space name.
-     * @param documentId Shared policy ID stored inside the document to link all default spaces.
      * @param listener notified on completion or failure.
      */
-    public void initializeSpaceAsync(
-            String spaceName, String documentId, ActionListener<Void> listener) {
+    public void initializeSpace(String spaceName, String documentId, ActionListener<Void> listener) {
         String spaceDocId =
                 UUID.nameUUIDFromBytes(("wazuh-space-" + spaceName).getBytes(StandardCharsets.UTF_8))
                         .toString();
@@ -503,47 +387,9 @@ public class SpaceService {
      *
      * @param indexName The index to search.
      * @param space The space to filter by.
-     * @return A map of document.id to document content.
-     * @throws IOException If the search operation fails.
-     */
-    public Map<String, Map<String, Object>> getResourcesBySpace(String indexName, Space space)
-            throws IOException {
-        Map<String, Map<String, Object>> resources = new HashMap<>();
-
-        try {
-            if (this.client.admin().indices().prepareExists(indexName).get().isExists()) {
-                SearchRequest searchRequest = new SearchRequest(indexName);
-                SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-                sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()));
-                sourceBuilder.size(10000);
-                searchRequest.source(sourceBuilder);
-
-                SearchResponse response =
-                        this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
-
-                for (SearchHit hit : response.getHits().getHits()) {
-                    String docId = this.getDocumentId(hit.getSourceAsMap());
-                    if (docId != null) {
-                        resources.put(docId, hit.getSourceAsMap());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_FETCH_RESOURCES_FAILED, indexName, space, e.getMessage());
-            throw new IOException("Failed to fetch resources: " + e.getMessage(), e);
-        }
-
-        return resources;
-    }
-
-    /**
-     * Asynchronously fetches all documents from a specific index that belong to a given space.
-     *
-     * @param indexName The index to search.
-     * @param space The space to filter by.
      * @param listener receives a map of document.id to document content.
      */
-    public void getResourcesBySpaceAsync(
+    public void getResourcesBySpace(
             String indexName, Space space, ActionListener<Map<String, Map<String, Object>>> listener) {
         this.client
                 .admin()
@@ -636,68 +482,6 @@ public class SpaceService {
     }
 
     /**
-     * Builds the engine payload for validation by gathering all required resources. This method
-     * starts with all resources from the target space and applies the modifications from the source
-     * space according to the provided resource maps.
-     *
-     * @param policyDocument The base policy document from target space.
-     * @param targetSpace The target space name.
-     * @param integrationsToApply Map of integration IDs to their documents (from source space).
-     * @param kvdbsToApply Map of kvdb IDs to their documents (from source space).
-     * @param decodersToApply Map of decoder IDs to their documents (from source space).
-     * @param filtersToApply Map of filter IDs to their documents (from source space).
-     * @param integrationsToDelete Set of integration IDs to exclude.
-     * @param kvdbsToDelete Set of kvdb IDs to exclude.
-     * @param decodersToDelete Set of decoder IDs to exclude.
-     * @param filtersToDelete Set of filter IDs to exclude.
-     * @return A JsonNode representing the engine payload.
-     * @throws IOException If any document retrieval fails.
-     */
-    public JsonNode buildEnginePayload(
-            Map<String, Object> policyDocument,
-            String targetSpace,
-            Map<String, Map<String, Object>> integrationsToApply,
-            Map<String, Map<String, Object>> kvdbsToApply,
-            Map<String, Map<String, Object>> decodersToApply,
-            Map<String, Map<String, Object>> filtersToApply,
-            Set<String> integrationsToDelete,
-            Set<String> kvdbsToDelete,
-            Set<String> decodersToDelete,
-            Set<String> filtersToDelete)
-            throws IOException {
-
-        Space space = Space.fromValue(targetSpace);
-
-        Map<String, Map<String, Object>> targetIntegrations =
-                this.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, space);
-        targetIntegrations.putAll(integrationsToApply);
-        integrationsToDelete.forEach(targetIntegrations::remove);
-
-        Map<String, Map<String, Object>> targetKvdbs =
-                this.getResourcesBySpace(Constants.INDEX_KVDBS, space);
-        targetKvdbs.putAll(kvdbsToApply);
-        kvdbsToDelete.forEach(targetKvdbs::remove);
-
-        Map<String, Map<String, Object>> targetDecoders =
-                this.getResourcesBySpace(Constants.INDEX_DECODERS, space);
-        targetDecoders.putAll(decodersToApply);
-        decodersToDelete.forEach(targetDecoders::remove);
-
-        Map<String, Map<String, Object>> targetFilters =
-                this.getResourcesBySpace(Constants.INDEX_FILTERS, space);
-        targetFilters.putAll(filtersToApply);
-        filtersToDelete.forEach(targetFilters::remove);
-
-        return assembleEnginePayload(
-                policyDocument,
-                targetSpace,
-                targetIntegrations,
-                targetKvdbs,
-                targetDecoders,
-                targetFilters);
-    }
-
-    /**
      * Asynchronously builds the engine payload for validation by gathering all required resources.
      *
      * @param policyDocument The base policy document from the source space.
@@ -712,7 +496,7 @@ public class SpaceService {
      * @param filtersToDelete Set of filter IDs to exclude.
      * @param listener receives the assembled engine payload.
      */
-    public void buildEnginePayloadAsync(
+    public void buildEnginePayload(
             Map<String, Object> policyDocument,
             String targetSpace,
             Map<String, Map<String, Object>> integrationsToApply,
@@ -771,7 +555,7 @@ public class SpaceService {
             listener.onResponse(null);
             return;
         }
-        getResourcesBySpaceAsync(
+        getResourcesBySpace(
                 indices.get(idx),
                 space,
                 ActionListener.wrap(
@@ -822,26 +606,30 @@ public class SpaceService {
     }
 
     /**
-     * Builds the engine payload for a full space without any modifications. This is used to load an
-     * entire space into the Engine, such as the standard space after a CTI sync.
+     * Asynchronously builds the engine payload for a full space without any modifications. This is
+     * used to load an entire space into the Engine, such as the standard space after a CTI sync.
      *
      * @param spaceName The space name to build the payload for.
-     * @return A JsonNode representing the engine payload.
-     * @throws IOException If the policy or resource retrieval fails.
+     * @param listener receives a JsonNode representing the engine payload.
      */
-    public JsonNode buildEnginePayload(String spaceName) throws IOException {
-        Map<String, Object> policyDocument = this.getPolicy(spaceName);
-        return this.buildEnginePayload(
-                policyDocument,
+    public void buildEnginePayload(String spaceName, ActionListener<JsonNode> listener) {
+        getPolicy(
                 spaceName,
-                Collections.emptyMap(),
-                Collections.emptyMap(),
-                Collections.emptyMap(),
-                Collections.emptyMap(),
-                Collections.emptySet(),
-                Collections.emptySet(),
-                Collections.emptySet(),
-                Collections.emptySet());
+                ActionListener.wrap(
+                        policyDocument ->
+                                buildEnginePayload(
+                                        policyDocument,
+                                        spaceName,
+                                        Collections.emptyMap(),
+                                        Collections.emptyMap(),
+                                        Collections.emptyMap(),
+                                        Collections.emptyMap(),
+                                        Collections.emptySet(),
+                                        Collections.emptySet(),
+                                        Collections.emptySet(),
+                                        Collections.emptySet(),
+                                        listener),
+                        listener::onFailure));
     }
 
     /**
@@ -919,35 +707,6 @@ public class SpaceService {
                             }
                         },
                         listener::onFailure));
-    }
-
-    /**
-     * Fetches the full policy document from the policies index by searching for the space.
-     *
-     * @param space The space of the policy document.
-     * @return The policy document as a Map, or null if not found.
-     * @throws IOException If the retrieval operation fails.
-     */
-    public Map<String, Object> getPolicy(String space) throws IOException {
-        try {
-            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-            sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space));
-            sourceBuilder.size(1);
-            searchRequest.source(sourceBuilder);
-
-            SearchResponse response =
-                    this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
-
-            if (response.getHits().getTotalHits().value() > 0) {
-                SearchHit hit = response.getHits().getAt(0);
-                return hit.getSourceAsMap();
-            }
-            return null;
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_GET_POLICY_FAILED, space, e.getMessage());
-            throw new IOException("Failed to retrieve policy: " + e.getMessage(), e);
-        }
     }
 
     /**
@@ -1124,7 +883,7 @@ public class SpaceService {
      * @param space The space of the policy document.
      * @param listener receives the policy as a Map, or null if not found.
      */
-    public void getPolicyAsync(String space, ActionListener<Map<String, Object>> listener) {
+    public void getPolicy(String space, ActionListener<Map<String, Object>> listener) {
         SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space));
@@ -1187,136 +946,12 @@ public class SpaceService {
     }
 
     /**
-     * Calculates and updates the aggregate hash for all policies in the given consumer context. This
-     * method was merged from SpaceService.
-     *
-     * @param targetSpaces The list of target spaces to process.
-     * @return The set of space names whose aggregate hashes changed.
-     */
-    public Set<String> calculateAndUpdate(List<String> targetSpaces) {
-        Set<String> changedSpaces = new HashSet<>();
-        try {
-            if (!this.client.admin().indices().prepareExists(Constants.INDEX_POLICIES).get().isExists()) {
-                log.warn(Constants.W_LOG_POLICY_INDEX_MISSING, Constants.INDEX_POLICIES);
-                return changedSpaces;
-            }
-
-            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-            searchRequest.source().query(QueryBuilders.matchAllQuery()).size(10000);
-            SearchResponse response = this.client.search(searchRequest).actionGet();
-
-            BulkRequest bulkUpdateRequest = new BulkRequest();
-
-            for (SearchHit hit : response.getHits().getHits()) {
-                Map<String, Object> source = hit.getSourceAsMap();
-
-                @SuppressWarnings("unchecked")
-                Map<String, Object> space = (Map<String, Object>) source.get(Constants.KEY_SPACE);
-                String spaceName = null;
-                if (space != null) {
-                    spaceName = (String) space.get(Constants.KEY_NAME);
-                    // Check if the policy is in one of the target spaces
-                    if (!targetSpaces.contains(spaceName)) {
-                        continue;
-                    }
-                    log.debug(Constants.D_LOG_RECALCULATING_HASH, hit.getId(), spaceName);
-                }
-
-                List<String> spaceHashes = new ArrayList<>();
-                spaceHashes.add(Resource.extractHash(source));
-
-                @SuppressWarnings("unchecked")
-                Map<String, Object> document = (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
-                if (document != null && document.containsKey(Constants.KEY_INTEGRATIONS)) {
-                    @SuppressWarnings("unchecked")
-                    List<String> integrationIds = (List<String>) document.get(Constants.KEY_INTEGRATIONS);
-
-                    for (String integrationId : integrationIds) {
-                        Map<String, Object> integrationSource =
-                                this.getDocumentSource(Constants.INDEX_INTEGRATIONS, integrationId);
-                        if (integrationSource == null) {
-                            continue;
-                        }
-
-                        spaceHashes.add(Resource.extractHash(integrationSource));
-
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> integration =
-                                (Map<String, Object>) integrationSource.get(Constants.KEY_DOCUMENT);
-                        if (integration != null) {
-                            this.addHashes(
-                                    integration, Constants.KEY_DECODERS, Constants.INDEX_DECODERS, spaceHashes);
-                            this.addHashes(integration, Constants.KEY_KVDBS, Constants.INDEX_KVDBS, spaceHashes);
-                            this.addHashes(integration, Constants.KEY_RULES, Constants.INDEX_RULES, spaceHashes);
-                        }
-                    }
-                }
-
-                // Adding filter hashes that are referenced in the policy
-                if (document != null && document.containsKey(Constants.KEY_FILTERS)) {
-                    @SuppressWarnings("unchecked")
-                    List<String> filterIds = (List<String>) document.get(Constants.KEY_FILTERS);
-
-                    for (String filterId : filterIds) {
-                        Map<String, Object> filterSource =
-                                this.getDocumentSource(Constants.INDEX_FILTERS, filterId);
-                        if (filterSource != null) {
-                            spaceHashes.add(Resource.extractHash(filterSource));
-                        }
-                    }
-                }
-
-                String spaceHash = Resource.computeSha256(String.join("", spaceHashes));
-
-                Map<String, Object> updateMap = new HashMap<>();
-                @SuppressWarnings("unchecked")
-                Map<String, Object> spaceMap =
-                        (Map<String, Object>) source.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
-                @SuppressWarnings("unchecked")
-                Map<String, Object> hashMap =
-                        (Map<String, Object>) spaceMap.getOrDefault(Constants.KEY_HASH, new HashMap<>());
-
-                // Track spaces whose aggregate hash changed
-                String oldHash = (String) hashMap.getOrDefault(Constants.KEY_SHA256, "");
-                if (spaceName != null && !spaceHash.equals(oldHash)) {
-                    changedSpaces.add(spaceName);
-                }
-
-                hashMap.put(Constants.KEY_SHA256, spaceHash);
-                spaceMap.put(Constants.KEY_HASH, hashMap);
-                updateMap.put(Constants.KEY_SPACE, spaceMap);
-
-                bulkUpdateRequest.add(
-                        new UpdateRequest(Constants.INDEX_POLICIES, hit.getId())
-                                .doc(updateMap, XContentType.JSON));
-            }
-
-            if (bulkUpdateRequest.numberOfActions() > 0) {
-                bulkUpdateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-                BulkResponse bulkResponse = this.client.bulk(bulkUpdateRequest).actionGet();
-                if (bulkResponse.hasFailures()) {
-                    log.error(Constants.E_LOG_BULK_UPDATE_HASHES_FAILED, bulkResponse.buildFailureMessage());
-                }
-            }
-
-            if (!changedSpaces.isEmpty()) {
-                log.info(Constants.I_LOG_CONTENT_HASH_CHANGED, changedSpaces);
-            }
-
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
-        }
-        return changedSpaces;
-    }
-
-    /**
      * Asynchronously calculates and updates the aggregate hash for all policies in the given spaces.
      *
      * @param targetSpaces The list of target spaces to process.
      * @param listener The listener to notify with the set of changed space names.
      */
-    public void calculateAndUpdateAsync(
-            List<String> targetSpaces, ActionListener<Set<String>> listener) {
+    public void calculateAndUpdate(List<String> targetSpaces, ActionListener<Set<String>> listener) {
         this.client
                 .admin()
                 .indices()
@@ -1481,7 +1116,7 @@ public class SpaceService {
         }
 
         String integrationId = integrationIds.get(idx);
-        getDocumentSourceAsync(
+        getDocumentSource(
                 Constants.INDEX_INTEGRATIONS,
                 integrationId,
                 ActionListener.wrap(
@@ -1558,7 +1193,7 @@ public class SpaceService {
             listener.onResponse(null);
             return;
         }
-        getDocumentSourceAsync(
+        getDocumentSource(
                 indexName,
                 ids.get(idx),
                 ActionListener.wrap(
@@ -1578,7 +1213,7 @@ public class SpaceService {
      * @param documentId The document ID.
      * @param listener The listener to notify with the source map, or null if not found.
      */
-    public void getDocumentSourceAsync(
+    public void getDocumentSource(
             String indexName, String documentId, ActionListener<Map<String, Object>> listener) {
         this.client.get(
                 new GetRequest(indexName, documentId),
@@ -1623,53 +1258,6 @@ public class SpaceService {
                             log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
                             listener.onResponse(changedSpaces);
                         }));
-    }
-
-    /**
-     * Adds hashes from resources of a specific type within an integration to the hash list. This
-     * method was merged from SpaceService.
-     *
-     * @param integration The integration document.
-     * @param resource The resource type (decoders, kvdbs, rules).
-     * @param resourceIndex The index containing the resources.
-     * @param spaceHashes The list to add hashes to.
-     */
-    private void addHashes(
-            Map<String, Object> integration,
-            String resource,
-            String resourceIndex,
-            List<String> spaceHashes) {
-        if (integration.containsKey(resource)) {
-            @SuppressWarnings("unchecked")
-            List<String> resourceIds = (List<String>) integration.get(resource);
-            for (String id : resourceIds) {
-                Map<String, Object> resourceSource = this.getDocumentSource(resourceIndex, id);
-                if (resourceSource != null) {
-                    spaceHashes.add(Resource.extractHash(resourceSource));
-                }
-            }
-        }
-    }
-
-    /**
-     * Retrieves the source document for a given document ID from the specified index. This method was
-     * moved from IndexHelper.
-     *
-     * @param indexName The name of the index.
-     * @param documentId The document ID.
-     * @return The document source as a Map, or null if not found.
-     */
-    public Map<String, Object> getDocumentSource(String indexName, String documentId) {
-        try {
-            GetRequest request = new GetRequest(indexName, documentId);
-            GetResponse response = this.client.get(request).actionGet();
-            if (response.isExists()) {
-                return response.getSourceAsMap();
-            }
-        } catch (Exception e) {
-            log.warn(Constants.W_LOG_RETRIEVE_DOCUMENT_FAILED, documentId, indexName, e.getMessage());
-        }
-        return null;
     }
 
     /**

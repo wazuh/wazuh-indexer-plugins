@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.transport.TransportService;
@@ -65,81 +66,109 @@ public class TransportDeleteIntegrationAction extends AbstractTransportDeleteAct
     }
 
     @Override
-    protected RestResponse validateDelete(
+    protected void validateDelete(
             Client client,
             String id,
-            com.wazuh.contentmanager.cti.catalog.service.SpaceService spaceService) {
+            com.wazuh.contentmanager.cti.catalog.service.SpaceService spaceService,
+            ActionListener<RestResponse> listener) {
         ContentIndex index = new ContentIndex(client, Constants.INDEX_INTEGRATIONS, null);
         JsonNode doc = index.getDocument(id);
 
         if (doc != null && doc.has(Constants.KEY_DOCUMENT)) {
             JsonNode document = doc.get(Constants.KEY_DOCUMENT);
             if (isListNotEmpty(document.get(Constants.KEY_DECODERS))) {
-                return new RestResponse(
-                        String.format(
-                                Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_DECODERS),
-                        RestStatus.BAD_REQUEST.getStatus());
+                listener.onResponse(
+                        new RestResponse(
+                                String.format(
+                                        Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_DECODERS),
+                                RestStatus.BAD_REQUEST.getStatus()));
+                return;
             }
             if (isListNotEmpty(document.get(Constants.KEY_RULES))) {
-                return new RestResponse(
-                        String.format(
-                                Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_RULES),
-                        RestStatus.BAD_REQUEST.getStatus());
+                listener.onResponse(
+                        new RestResponse(
+                                String.format(
+                                        Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_RULES),
+                                RestStatus.BAD_REQUEST.getStatus()));
+                return;
             }
             if (isListNotEmpty(document.get(Constants.KEY_KVDBS))) {
-                return new RestResponse(
-                        String.format(
-                                Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_KVDBS),
-                        RestStatus.BAD_REQUEST.getStatus());
+                listener.onResponse(
+                        new RestResponse(
+                                String.format(
+                                        Locale.ROOT, Constants.E_400_INTEGRATION_HAS_RESOURCES, Constants.KEY_KVDBS),
+                                RestStatus.BAD_REQUEST.getStatus()));
+                return;
             }
         }
-        return null;
+        listener.onResponse(null);
     }
 
     @Override
     protected void deleteExternalServices(
-            String id, SecurityAnalyticsService securityAnalyticsService) {
-        securityAnalyticsService.deleteIntegration(id, Space.DRAFT);
+            String id, SecurityAnalyticsService securityAnalyticsService, ActionListener<Void> listener) {
+        securityAnalyticsService.deleteIntegration(
+                id,
+                Space.DRAFT,
+                ActionListener.wrap(response -> listener.onResponse(null), listener::onFailure));
     }
 
     @Override
-    protected void unlinkFromParent(Client client, String id, IntegrationService integrationService)
-            throws java.io.IOException {
+    protected void unlinkFromParent(
+            Client client,
+            String id,
+            IntegrationService integrationService,
+            ActionListener<Void> listener) {
         ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
         TermQueryBuilder queryBuilder =
                 new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
-        ObjectNode searchResult = policiesIndex.searchByQuery(queryBuilder);
 
-        if (searchResult == null
-                || !searchResult.has(Constants.Q_HITS)
-                || searchResult.get(Constants.Q_HITS).isEmpty()) {
-            throw new IllegalStateException(Constants.E_500_MISSING_DRAFT_POLICY);
-        }
+        policiesIndex.searchByQuery(
+                queryBuilder,
+                ActionListener.wrap(
+                        searchResult -> {
+                            if (searchResult == null
+                                    || !searchResult.has(Constants.Q_HITS)
+                                    || searchResult.get(Constants.Q_HITS).isEmpty()) {
+                                listener.onFailure(new IllegalStateException(Constants.E_500_MISSING_DRAFT_POLICY));
+                                return;
+                            }
 
-        ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
-        JsonNode draftPolicyHit = hitsArray.get(0);
-        String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
-        JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
+                            ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
+                            JsonNode draftPolicyHit = hitsArray.get(0);
+                            String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
+                            JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
 
-        ArrayNode integrations = (ArrayNode) document.get(Constants.KEY_INTEGRATIONS);
-        if (integrations == null) return;
+                            ArrayNode integrations = (ArrayNode) document.get(Constants.KEY_INTEGRATIONS);
+                            if (integrations == null) {
+                                listener.onResponse(null);
+                                return;
+                            }
 
-        ArrayNode updatedIntegrations = MAPPER.createArrayNode();
-        boolean removed = false;
-        for (JsonNode integrationId : integrations) {
-            if (!integrationId.asText().equals(id)) {
-                updatedIntegrations.add(integrationId);
-            } else {
-                removed = true;
-            }
-        }
+                            ArrayNode updatedIntegrations = MAPPER.createArrayNode();
+                            boolean removed = false;
+                            for (JsonNode integrationId : integrations) {
+                                if (!integrationId.asText().equals(id)) {
+                                    updatedIntegrations.add(integrationId);
+                                } else {
+                                    removed = true;
+                                }
+                            }
 
-        if (removed) {
-            ((ObjectNode) document).set(Constants.KEY_INTEGRATIONS, updatedIntegrations);
-            String hash = Resource.computeSha256(document.toString());
-            ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
-            policiesIndex.create(draftPolicyId, draftPolicyHit);
-        }
+                            if (removed) {
+                                ((ObjectNode) document).set(Constants.KEY_INTEGRATIONS, updatedIntegrations);
+                                String hash = Resource.computeSha256(document.toString());
+                                ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
+                                policiesIndex.create(
+                                        draftPolicyId,
+                                        draftPolicyHit,
+                                        ActionListener.wrap(
+                                                indexResponse -> listener.onResponse(null), listener::onFailure));
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        listener::onFailure));
     }
 
     private boolean isListNotEmpty(JsonNode node) {

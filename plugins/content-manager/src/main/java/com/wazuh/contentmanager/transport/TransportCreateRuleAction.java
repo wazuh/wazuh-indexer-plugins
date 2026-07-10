@@ -170,7 +170,7 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
             JsonNode resource,
             SecurityAnalyticsService securityAnalyticsService,
             ActionListener<RestResponse> listener) {
-        securityAnalyticsService.upsertRuleAsync(
+        securityAnalyticsService.upsertRule(
                 resource,
                 Space.DRAFT,
                 Method.POST,

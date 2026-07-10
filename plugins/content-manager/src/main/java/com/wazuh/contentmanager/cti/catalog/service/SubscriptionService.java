@@ -36,16 +36,8 @@ public interface SubscriptionService {
     void getPlan(ActionListener<Plan> listener);
 
     /**
-     * Stores the access token in the credentials index and updates the in-memory token.
-     *
-     * @param accessToken the CTI access token to persist.
-     * @throws Exception if storing the credentials fails.
-     */
-    void register(String accessToken) throws Exception;
-
-    /**
-     * Async variant of {@link #register(String)}. Stores the access token in the credentials index,
-     * updates the in-memory token, and notifies the listener on completion.
+     * Stores the access token in the credentials index, updates the in-memory token, and notifies the
+     * listener on completion.
      *
      * @param accessToken the CTI access token to persist.
      * @param listener listener notified on success or failure.

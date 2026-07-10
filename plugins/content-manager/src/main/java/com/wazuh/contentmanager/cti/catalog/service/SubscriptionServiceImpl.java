@@ -129,16 +129,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
-    public void register(String accessToken) throws Exception {
-        if (!this.isCredentialsIndexProtected) {
-            throw new IllegalStateException(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX);
-        }
-        this.credentialsIndex.storeCredentials(accessToken);
-        PluginSettings.getInstance().setAccessToken(accessToken);
-        log.info(Constants.I_LOG_ACCESS_TOKEN_SET);
-    }
-
-    @Override
     public void register(String accessToken, ActionListener<Void> listener) {
         if (!this.isCredentialsIndexProtected) {
             listener.onFailure(new IllegalStateException(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX));

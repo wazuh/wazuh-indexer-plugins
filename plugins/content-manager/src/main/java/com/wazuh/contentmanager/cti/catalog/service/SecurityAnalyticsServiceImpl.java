@@ -62,15 +62,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertIntegration(JsonNode doc, Space space, Method method) {
-        WIndexIntegrationRequest request = this.buildIntegrationRequest(doc, space, method);
-        if (request != null) {
-            this.client.execute(WIndexIntegrationAction.INSTANCE, request).actionGet();
-        }
-    }
-
-    @Override
-    public void upsertIntegrationAsync(
+    public void upsertIntegration(
             JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
         WIndexIntegrationRequest request = this.buildIntegrationRequest(doc, space, method);
         if (request != null) {
@@ -120,45 +112,12 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteIntegration(String id, Space space) {
-        try {
-            if (Space.STANDARD.equals(space)) {
-                try {
-                    this.deleteDetector(id);
-                } catch (Exception e) {
-                    log.debug("No detector found for integration [{}], skipping: {}", id, e.getMessage());
-                }
-            }
-            // Use document.id + source=<space> to find and delete
-            // the document in Security Analytics.
-            String source = space.toString();
-            this.client
-                    .execute(
-                            WDeleteIntegrationAction.INSTANCE,
-                            new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source))
-                    .actionGet();
-            log.debug(Constants.D_LOG_SAP_DELETED, "Integration", id, ", source=" + source);
-        } catch (Exception e) {
-            String message =
-                    String.format(
-                            Locale.ROOT,
-                            "Failed to delete %s with id [%s] in space [%s]: %s",
-                            "integration",
-                            id,
-                            space.toString(),
-                            e.getMessage());
-            log.error(message, e);
-            throw new OpenSearchException(message);
-        }
-    }
-
-    @Override
-    public void deleteIntegrationAsync(
+    public void deleteIntegration(
             String id, Space space, ActionListener<? extends ActionResponse> listener) {
         String source = space.toString();
         if (Space.STANDARD.equals(space)) {
             // Delete detector first, then delete integration on success.
-            this.deleteDetectorAsync(
+            this.deleteDetector(
                     id,
                     ActionListener.wrap(
                             detectorResponse -> {
@@ -175,65 +134,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                     WDeleteIntegrationAction.INSTANCE,
                     new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, id, source),
                     listener);
-        }
-    }
-
-    @Override
-    public void upsertRule(JsonNode doc, Space space, Method method)
-            throws SecurityAnalyticsException {
-        if (!doc.has(Constants.KEY_ID)) {
-            log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
-            return;
-        }
-        if (!doc.has(Constants.KEY_METADATA) && !doc.get(Constants.KEY_METADATA).isObject()) {
-            log.error(Constants.E_LOG_MISSING_OBJECT, Constants.KEY_METADATA);
-            return;
-        }
-
-        String id = doc.get(Constants.KEY_ID).asText();
-        String title = doc.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText("");
-        String product = ContentIndex.extractProduct(doc);
-        String body = doc.toString();
-        String sourceName = space.toString();
-
-        log.debug(Constants.D_LOG_SAP_SEND, "rule", title, id);
-        try {
-            if (space != Space.STANDARD) {
-                this.client
-                        .execute(
-                                WIndexCustomRuleAction.INSTANCE,
-                                new WIndexCustomRuleRequest(
-                                        id,
-                                        WriteRequest.RefreshPolicy.IMMEDIATE,
-                                        product,
-                                        method,
-                                        body,
-                                        true,
-                                        id,
-                                        sourceName))
-                        .actionGet();
-            } else {
-                this.client
-                        .execute(
-                                WIndexRuleAction.INSTANCE,
-                                new WIndexRuleRequest(
-                                        id,
-                                        WriteRequest.RefreshPolicy.IMMEDIATE,
-                                        product,
-                                        method,
-                                        body,
-                                        true,
-                                        id,
-                                        sourceName))
-                        .actionGet();
-            }
-        } catch (Exception e) {
-            String message = e.getMessage() != null ? e.getMessage() : "Unknown error";
-            if (message.contains("Wazuh Common Schema (WCS)")) {
-                throw new SecurityAnalyticsException(
-                        SecurityAnalyticsServiceImpl.extractErrorMessage(message), e);
-            }
-            throw e;
         }
     }
 
@@ -261,7 +161,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertRuleAsync(
+    public void upsertRule(
             JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
         if (!doc.has(Constants.KEY_ID)) {
             log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
@@ -309,40 +209,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteRule(String id, Space space) {
-        String source = space.toString();
-        try {
-            if (Space.STANDARD.equals(space)) {
-                this.client
-                        .execute(
-                                WDeleteRuleAction.INSTANCE,
-                                new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source))
-                        .actionGet();
-            } else {
-                this.client
-                        .execute(
-                                WDeleteCustomRuleAction.INSTANCE,
-                                new WDeleteCustomRuleRequest(
-                                        id, WriteRequest.RefreshPolicy.IMMEDIATE, true, id, source))
-                        .actionGet();
-            }
-            log.debug(Constants.D_LOG_SAP_DELETED, "Rule", id, ", source=" + source);
-        } catch (Exception e) {
-            String message =
-                    String.format(
-                            Locale.ROOT,
-                            "Failed to delete %s with id [%s] in space [%s]: %s",
-                            "rule",
-                            id,
-                            space.toString(),
-                            e.getMessage());
-            log.error(message, e);
-            throw new OpenSearchException(message);
-        }
-    }
-
-    @Override
-    public void deleteRuleAsync(
+    public void deleteRule(
             String id, Space space, ActionListener<? extends ActionResponse> listener) {
         String source = space.toString();
         if (Space.STANDARD.equals(space)) {
@@ -500,24 +367,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteDetector(String id) {
-        try {
-            this.client
-                    .execute(
-                            WDeleteDetectorAction.INSTANCE,
-                            new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE))
-                    .actionGet();
-            log.debug(Constants.D_LOG_SAP_DELETED, "Detector", id, "");
-        } catch (Exception e) {
-            String message =
-                    String.format(
-                            Locale.ROOT, "Failed to delete %s with id [%s]: %s", "detector", id, e.getMessage());
-            throw new OpenSearchException(message);
-        }
-    }
-
-    @Override
-    public void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener) {
+    public void deleteDetector(String id, ActionListener<? extends ActionResponse> listener) {
         this.executeAsync(
                 WDeleteDetectorAction.INSTANCE,
                 new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE),
@@ -526,40 +376,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void deleteSpaceResources(Space space) {
-        try {
-            String source = space.toString();
-            WDeleteSpaceResourcesResponse response =
-                    this.client
-                            .execute(
-                                    WDeleteSpaceResourcesAction.INSTANCE,
-                                    new WDeleteSpaceResourcesRequest(source, WriteRequest.RefreshPolicy.IMMEDIATE))
-                            .actionGet();
-
-            if (response.hasFailures()) {
-                log.warn(Constants.W_LOG_SAP_SPACE_DELETE_PARTIAL, space, response.getFailureMessage());
-            }
-
-            log.info(
-                    Constants.I_LOG_SAP_SPACE_DELETED,
-                    response.getDeletedIntegrations(),
-                    response.getDeletedRules(),
-                    space);
-        } catch (Exception e) {
-            String message =
-                    String.format(
-                            Locale.ROOT,
-                            "Failed to delete Security Analytics resources for space [%s]: %s",
-                            space,
-                            e.getMessage());
-            log.error(message);
-            throw new OpenSearchException(message, e);
-        }
-    }
-
-    @Override
-    public void deleteSpaceResourcesAsync(
-            Space space, ActionListener<? extends ActionResponse> listener) {
+    public void deleteSpaceResources(Space space, ActionListener<? extends ActionResponse> listener) {
         String source = space.toString();
         ActionListener<WDeleteSpaceResourcesResponse> wrappedListener =
                 ActionListener.wrap(

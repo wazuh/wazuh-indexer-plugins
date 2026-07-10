@@ -120,7 +120,7 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
                             return null;
                         })
                 .when(this.spaceService)
-                .calculateAndUpdateAsync(any(), any(ActionListener.class));
+                .calculateAndUpdate(any(), any(ActionListener.class));
     }
 
     @After
@@ -197,7 +197,7 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
                             return null;
                         })
                 .when(this.spaceService)
-                .getPolicyAsync(any(), any(ActionListener.class));
+                .getPolicy(any(), any(ActionListener.class));
 
         String callerModified = "2021-05-05T00:00:00.000Z";
         UpdatePolicyRequest request = new UpdatePolicyRequest("draft", draftUpdateBody(callerModified));
@@ -233,7 +233,7 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
                             return null;
                         })
                 .when(this.spaceService)
-                .getPolicyAsync(any(), any(ActionListener.class));
+                .getPolicy(any(), any(ActionListener.class));
 
         UpdatePolicyRequest request = new UpdatePolicyRequest("draft", draftUpdateBody(null));
 

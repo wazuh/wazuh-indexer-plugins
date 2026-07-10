@@ -25,7 +25,6 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
@@ -85,47 +84,8 @@ public class CredentialsIndex {
     }
 
     /**
-     * Stores the access token in the credentials index, base64-encoded at rest. Overwrites any
-     * previously stored value.
-     *
-     * @param accessToken the CTI access token to persist (plaintext).
-     * @throws ExecutionException if the client failed to execute the request.
-     * @throws InterruptedException if the current thread was interrupted.
-     * @throws TimeoutException if the operation exceeded the configured timeout.
-     * @throws IOException if serialization fails.
-     */
-    public void storeCredentials(String accessToken)
-            throws ExecutionException, InterruptedException, TimeoutException, IOException {
-        // Stash the caller's security context so the client runs as the plugin, which has system index
-        // access.
-        try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
-            if (!this.exists()) {
-                log.info("Index [{}] not found. Recreating before storing credentials.", INDEX_NAME);
-                this.createIndex();
-            }
-            if (!ClusterInfo.indexStatusCheck(
-                    this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
-                throw new RuntimeException("Index not ready: " + INDEX_NAME);
-            }
-            String encoded =
-                    Base64.getEncoder().encodeToString(accessToken.getBytes(StandardCharsets.UTF_8));
-            IndexRequest request =
-                    new IndexRequest()
-                            .index(INDEX_NAME)
-                            .id(DOCUMENT_ID)
-                            .source(
-                                    XContentFactory.jsonBuilder()
-                                            .startObject()
-                                            .field(ACCESS_TOKEN_FIELD, encoded)
-                                            .endObject())
-                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-            this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        }
-    }
-
-    /**
-     * Async variant of {@link #storeCredentials(String)}. Stores the access token in the credentials
-     * index, base64-encoded at rest, and notifies the listener on completion.
+     * Stores the access token in the credentials index, base64-encoded at rest, and notifies the
+     * listener on completion. Overwrites any previously stored value.
      *
      * @param accessToken the CTI access token to persist (plaintext).
      * @param listener listener notified on success or failure.
@@ -237,41 +197,8 @@ public class CredentialsIndex {
     }
 
     /**
-     * Retrieves the stored access token from the index, decoded from its base64 form.
-     *
-     * @return the plaintext access token, or null if not found.
-     * @throws ExecutionException if the client failed to execute the request.
-     * @throws InterruptedException if the current thread was interrupted.
-     * @throws TimeoutException if the operation exceeded the configured timeout.
-     */
-    public String getAccessToken() throws ExecutionException, InterruptedException, TimeoutException {
-        // Stash the caller's security context so the client runs as the plugin, which has system index
-        // access.
-        try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
-            if (!ClusterInfo.indexStatusCheck(
-                    this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
-                throw new RuntimeException("Index not ready: " + INDEX_NAME);
-            }
-            GetRequest request = new GetRequest().index(INDEX_NAME).id(DOCUMENT_ID).preference("_local");
-            GetResponse response =
-                    this.client.get(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            if (!response.isExists()) {
-                return null;
-            }
-            Map<String, Object> source = response.getSourceAsMap();
-            if (source == null) {
-                return null;
-            }
-            String stored = (String) source.get(ACCESS_TOKEN_FIELD);
-            return stored != null
-                    ? new String(Base64.getDecoder().decode(stored), StandardCharsets.UTF_8)
-                    : null;
-        }
-    }
-
-    /**
-     * Async variant of {@link #getAccessToken()}. Retrieves the stored access token from the index,
-     * decoded from its base64 form, and notifies the listener with the result.
+     * Retrieves the stored access token from the index, decoded from its base64 form, and notifies
+     * the listener with the result.
      *
      * @param listener listener notified with the plaintext access token, or null if not found.
      */
@@ -320,34 +247,8 @@ public class CredentialsIndex {
     }
 
     /**
-     * Deletes the credentials document from the index, preserving the index itself.
-     *
-     * @return the DeleteResponse from the operation.
-     * @throws ExecutionException if the client failed to execute the request.
-     * @throws InterruptedException if the current thread was interrupted.
-     * @throws TimeoutException if the operation exceeded the configured timeout.
-     */
-    public DeleteResponse deleteDocument()
-            throws ExecutionException, InterruptedException, TimeoutException {
-        // Stash the caller's security context so the client runs as the plugin, which has system index
-        // access.
-        try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
-            if (!this.exists()) {
-                log.debug("Index [{}] does not exist, nothing to delete.", INDEX_NAME);
-                return null;
-            }
-            DeleteRequest request =
-                    new DeleteRequest(INDEX_NAME, DOCUMENT_ID)
-                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-            return this.client
-                    .delete(request)
-                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        }
-    }
-
-    /**
-     * Async variant of {@link #deleteDocument()}. Deletes the credentials document from the index and
-     * notifies the listener on completion.
+     * Deletes the credentials document from the index, preserving the index itself, and notifies the
+     * listener on completion.
      *
      * @param listener listener notified with the DeleteResponse on success, or null if the index does
      *     not exist.
@@ -380,21 +281,7 @@ public class CredentialsIndex {
     }
 
     /**
-     * Checks whether the credentials index exists.
-     *
-     * @return true if the index exists, false otherwise.
-     */
-    public boolean exists() {
-        // Stash the caller's security context so the client runs as the plugin, which has system index
-        // access.
-        try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
-            return ClusterInfo.indexExists(this.client, INDEX_NAME);
-        }
-    }
-
-    /**
-     * Async variant of {@link #exists()}. Checks whether the credentials index exists and notifies
-     * the listener with the result.
+     * Checks whether the credentials index exists and notifies the listener with the result.
      *
      * @param listener listener notified with true if the index exists, false otherwise.
      */
@@ -446,7 +333,7 @@ public class CredentialsIndex {
                 boolean alreadyExists =
                         e instanceof ExecutionException
                                 ? ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null
-                                : this.exists();
+                                : ClusterInfo.indexExists(this.client, INDEX_NAME);
                 if (alreadyExists) {
                     log.debug("Index [{}] already exists, skipping creation.", INDEX_NAME);
                     return null;
