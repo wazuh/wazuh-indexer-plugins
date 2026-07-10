@@ -65,11 +65,6 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertDetector(JsonNode doc, boolean rawCategory, Method method) {
-        log.debug("MockSecurityAnalyticsService.upsertDetector called");
-    }
-
-    @Override
     public void deleteDetector(String id) {
         log.debug("MockSecurityAnalyticsService.deleteDetector called for id: {}", id);
     }
@@ -116,12 +111,6 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     public void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.deleteDetectorAsync called for id: {}", id);
         listener.onResponse(null);
-    }
-
-    @Override
-    public String evaluateRules(String eventJson, java.util.List<String> ruleBodies) {
-        log.debug("MockSecurityAnalyticsService.evaluateRules called");
-        return "{\"status\":\"success\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}";
     }
 
     @Override

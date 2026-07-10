@@ -360,14 +360,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertDetector(JsonNode doc, boolean rawCategory, Method method) {
-        WIndexDetectorRequest request = this.buildDetectorRequest(doc, rawCategory);
-        if (request != null) {
-            this.client.execute(WIndexDetectorAction.INSTANCE, request).actionGet();
-        }
-    }
-
-    @Override
     public void upsertDetectorAsync(
             JsonNode doc,
             boolean rawCategory,
@@ -613,19 +605,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     private <Req extends ActionRequest, Resp extends ActionResponse> void executeAsync(
             ActionType<Resp> action, Req request, ActionListener<? extends ActionResponse> listener) {
         this.client.execute(action, request, (ActionListener<Resp>) listener);
-    }
-
-    @Override
-    public String evaluateRules(String eventJson, java.util.List<String> ruleBodies) {
-        try {
-            WEvaluateRulesRequest request = new WEvaluateRulesRequest(eventJson, ruleBodies);
-            WEvaluateRulesResponse response =
-                    this.client.execute(WEvaluateRulesAction.INSTANCE, request).actionGet();
-            return response.getResultJson();
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_EVALUATE_RULES_FAILED, e);
-            return "{\"status\":\"error\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}";
-        }
     }
 
     @Override

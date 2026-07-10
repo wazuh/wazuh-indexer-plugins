@@ -53,52 +53,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     }
 
     @Override
-    public Plan getPlan() {
-        String accessToken = this.getAccessToken();
-        if (accessToken != null) {
-            Plan plan = this.plansService.getMyPlan(new Token(accessToken, "Bearer"));
-            if (plan != null) {
-                return plan;
-            }
-            log.info(Constants.I_LOG_ACCESS_TOKEN_EXPIRED_OR_INVALID);
-            try {
-                this.credentialsIndex.deleteDocument();
-            } catch (Exception e) {
-                log.warn("Failed to delete invalid credentials document: {}", e.getMessage());
-            }
-            PluginSettings.getInstance().setAccessToken(null);
-        }
-        return this.plansService.getPlan();
-    }
-
-    /**
-     * Retrieves the access token. The method ensures the in-memory access token is populated. If the
-     * token is already loaded, returns it immediately. Otherwise, attempts a single read from the
-     * credentials index.
-     *
-     * @return the access token, or null if no token is stored.
-     */
-    private String getAccessToken() {
-        String accessToken = PluginSettings.getInstance().getAccessToken();
-        if (accessToken != null) {
-            return accessToken;
-        }
-        try {
-            if (this.credentialsIndex.exists()) {
-                String token = this.credentialsIndex.getAccessToken();
-                if (token != null) {
-                    PluginSettings.getInstance().setAccessToken(token);
-                    log.info(Constants.I_LOG_CTI_TOKEN_LOADED);
-                    return token;
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to load access token from credentials index: {}", e.getMessage());
-        }
-        return null;
-    }
-
-    @Override
     public void getPlan(ActionListener<Plan> listener) {
         this.getAccessToken(
                 ActionListener.wrap(
@@ -199,13 +153,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                             listener.onResponse(null);
                         },
                         listener::onFailure));
-    }
-
-    @Override
-    public void unregister() throws Exception {
-        this.credentialsIndex.deleteDocument();
-        PluginSettings.getInstance().setAccessToken(null);
-        log.info(Constants.I_LOG_ACCESS_TOKEN_REMOVED);
     }
 
     @Override

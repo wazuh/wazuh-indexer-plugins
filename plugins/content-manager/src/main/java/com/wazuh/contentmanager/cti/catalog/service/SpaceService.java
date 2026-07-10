@@ -37,7 +37,6 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
@@ -52,7 +51,6 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
@@ -399,62 +397,6 @@ public class SpaceService {
     }
 
     /**
-     * Fetches all resources (document.id and Hash) for a given space. Iterates over all managed
-     * resource types and their corresponding indices.
-     *
-     * @param spaceName The space to filter by (e.g., "draft", "test")
-     * @return A map where Key=ResourceType (e.g. "decoders") and Value=Map(document.id -> Hash)
-     */
-    public Map<String, Map<String, String>> getSpaceResources(String spaceName) {
-        Map<String, Map<String, String>> spaceResources = new HashMap<>();
-
-        for (Map.Entry<String, String> entry : Constants.RESOURCE_INDICES.entrySet()) {
-            String resourceType = entry.getKey();
-            String indexName = entry.getValue();
-
-            Map<String, String> items = new HashMap<>();
-
-            try {
-                // Check if index exists before querying
-                if (this.client.admin().indices().prepareExists(indexName).get().isExists()) {
-                    SearchRequest searchRequest = new SearchRequest(indexName);
-                    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-
-                    // Filter by space and fetch document.id
-                    sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
-                    sourceBuilder.fetchSource(new String[] {Constants.Q_HASH, Constants.Q_DOCUMENT_ID}, null);
-                    sourceBuilder.size(10000);
-
-                    searchRequest.source(sourceBuilder);
-                    SearchResponse response =
-                            this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
-
-                    for (SearchHit hit : response.getHits().getHits()) {
-                        String hash = Resource.extractHash(hit.getSourceAsMap());
-                        String docId = this.getDocumentId(hit.getSourceAsMap());
-                        if (docId != null) {
-                            items.put(docId, hash);
-                        }
-                    }
-                } else {
-                    throw new IndexNotFoundException("Index [" + indexName + "] not found.");
-                }
-            } catch (Exception e) {
-                log.warn(
-                        Constants.W_LOG_FETCH_RESOURCE_TYPE_FAILED,
-                        resourceType,
-                        indexName,
-                        spaceName,
-                        e.getMessage());
-            }
-
-            spaceResources.put(resourceType, items);
-        }
-
-        return spaceResources;
-    }
-
-    /**
      * Asynchronously fetches all resources (document.id and Hash) for a given space.
      *
      * @param spaceName The space to filter by (e.g., "draft", "test")
@@ -554,61 +496,6 @@ public class SpaceService {
                             accumulator.put(resourceType, new HashMap<>());
                             fetchResourceTypeAsync(spaceName, entries, idx + 1, accumulator, listener);
                         }));
-    }
-
-    /**
-     * Consolidates resources after validation by applying ADD/UPDATE operations. This method copies
-     * documents from source space to target space and updates the space field.
-     *
-     * @param indexName The index to update.
-     * @param resourcesToConsolidate Map of resource ID (document.id) to resource document (from
-     *     source space).
-     * @param targetSpace The target space name.
-     * @throws IOException If the bulk update operation fails.
-     */
-    public void promoteSpace(
-            String indexName, Map<String, Map<String, Object>> resourcesToConsolidate, String targetSpace)
-            throws IOException {
-        try {
-            BulkRequest bulkRequest = new BulkRequest();
-
-            for (Map.Entry<String, Map<String, Object>> entry : resourcesToConsolidate.entrySet()) {
-                String docId = entry.getKey();
-                Map<String, Object> doc = entry.getValue();
-
-                // Update the space field to target space
-                @SuppressWarnings("unchecked")
-                Map<String, String> spaceMap =
-                        (Map<String, String>) doc.getOrDefault(Constants.KEY_SPACE, new HashMap<>());
-                spaceMap.put(Constants.KEY_NAME, targetSpace);
-                doc.put(Constants.KEY_SPACE, spaceMap);
-
-                // Find existing _id in target space to overwrite it, otherwise create new
-                String targetId = this.findDocumentId(indexName, targetSpace, docId);
-
-                IndexRequest indexRequest = new IndexRequest(indexName);
-                if (targetId != null) {
-                    indexRequest.id(targetId);
-                }
-
-                indexRequest.source(this.objectMapper.writeValueAsString(doc), XContentType.JSON);
-                bulkRequest.add(indexRequest);
-            }
-
-            if (bulkRequest.numberOfActions() > 0) {
-                bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-                BulkResponse response =
-                        this.client
-                                .bulk(bulkRequest)
-                                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-                if (response.hasFailures()) {
-                    throw new IOException("Bulk consolidation failed: " + response.buildFailureMessage());
-                }
-            }
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_CONSOLIDATE_RESOURCES_FAILED, e.getMessage());
-            throw new IOException("Failed to consolidate resources: " + e.getMessage(), e);
-        }
     }
 
     /**
@@ -987,48 +874,6 @@ public class SpaceService {
     }
 
     /**
-     * Retrieves a document from the specified index by ID.
-     *
-     * @param indexName The name of the index to search.
-     * @param id The document ID.
-     * @return The document as a Map, or null if not found.
-     * @throws IOException If the retrieval operation fails.
-     */
-    public Map<String, Object> getDocument(String indexName, String id) throws IOException {
-        try {
-            GetRequest request = new GetRequest(indexName, id);
-            GetResponse response =
-                    this.client.get(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-
-            if (response.isExists()) {
-                return response.getSourceAsMap();
-            }
-            return null;
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_GET_DOCUMENT_FAILED, id, indexName, e.getMessage());
-            throw new IOException("Failed to retrieve document: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Retrieves a document from the specified index by its logical ID (document.id) within a space.
-     *
-     * @param indexName The name of the index to search.
-     * @param space The space name.
-     * @param documentId The logical document ID.
-     * @return The document as a Map, or null if not found.
-     * @throws IOException If the retrieval operation fails.
-     */
-    public Map<String, Object> getDocument(String indexName, String space, String documentId)
-            throws IOException {
-        String realId = this.findDocumentId(indexName, space, documentId);
-        if (realId != null) {
-            return this.getDocument(indexName, realId);
-        }
-        return null;
-    }
-
-    /**
      * Asynchronously retrieves a document from the specified index by ID.
      *
      * @param indexName The name of the index to search.
@@ -1102,47 +947,6 @@ public class SpaceService {
         } catch (Exception e) {
             log.error(Constants.E_LOG_GET_POLICY_FAILED, space, e.getMessage());
             throw new IOException("Failed to retrieve policy: " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Deletes resources from the target space after validation.
-     *
-     * @param indexName The index to delete from.
-     * @param resourceIdsToDelete Set of resource IDs (document.id) to delete.
-     * @param targetSpace The target space (for verification).
-     * @throws IOException If the delete operation fails.
-     */
-    public void deleteResources(String indexName, Set<String> resourceIdsToDelete, String targetSpace)
-            throws IOException {
-        try {
-            BulkRequest bulkRequest = new BulkRequest();
-
-            for (String docId : resourceIdsToDelete) {
-                // Find the document in the target space using the logical ID
-                String targetId = this.findDocumentId(indexName, targetSpace, docId);
-
-                if (targetId != null) {
-                    DeleteRequest deleteRequest = new DeleteRequest(indexName, targetId);
-                    bulkRequest.add(deleteRequest);
-                } else {
-                    log.warn(Constants.W_LOG_DOCUMENT_NOT_FOUND_FOR_DELETION, docId, targetSpace);
-                }
-            }
-
-            if (bulkRequest.numberOfActions() > 0) {
-                bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-                BulkResponse response =
-                        this.client
-                                .bulk(bulkRequest)
-                                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-                if (response.hasFailures()) {
-                    throw new IOException("Bulk deletion failed: " + response.buildFailureMessage());
-                }
-            }
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_DELETE_RESOURCES_FAILED, e.getMessage());
-            throw new IOException("Failed to delete resources: " + e.getMessage(), e);
         }
     }
 
@@ -1315,37 +1119,6 @@ public class SpaceService {
     }
 
     /**
-     * Finds the real _id of a document given its logical document.id and space.
-     *
-     * @param indexName The index to search.
-     * @param spaceName The space name.
-     * @param documentId The logical document ID.
-     * @return The real _id, or null if not found.
-     */
-    public String findDocumentId(String indexName, String spaceName, String documentId) {
-        try {
-            SearchRequest searchRequest = new SearchRequest(indexName);
-            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-            sourceBuilder.query(
-                    QueryBuilders.boolQuery()
-                            .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName))
-                            .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_ID, documentId)));
-            sourceBuilder.size(1);
-            sourceBuilder.fetchSource(false); // We only need the _id
-            searchRequest.source(sourceBuilder);
-
-            SearchResponse response =
-                    this.offloadBlocking(() -> this.client.search(searchRequest).actionGet());
-            if (response.getHits().getTotalHits().value() > 0) {
-                return response.getHits().getAt(0).getId();
-            }
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_FIND_DOCUMENT_ID_FAILED, spaceName, documentId, e.getMessage());
-        }
-        return null;
-    }
-
-    /**
      * Asynchronously retrieves the policy document for a given space.
      *
      * @param space The space of the policy document.
@@ -1411,23 +1184,6 @@ public class SpaceService {
                                     Constants.E_LOG_FIND_DOCUMENT_ID_FAILED, spaceName, documentId, e.getMessage());
                             listener.onFailure(e);
                         }));
-    }
-
-    /**
-     * This is a wrapper for its overloaded counterpart, intended to provide a default behavior that
-     * processes only production spaces.
-     *
-     * @return The set of space names whose aggregate hashes changed.
-     */
-    public Set<String> calculateAndUpdate() {
-
-        List<String> productionSpaces =
-                Arrays.stream(Space.values())
-                        .filter(space -> !space.equals(Space.DRAFT) && !space.equals(Space.TEST))
-                        .map(Space::toString)
-                        .collect(Collectors.toList());
-
-        return this.calculateAndUpdate(productionSpaces);
     }
 
     /**
@@ -1954,43 +1710,6 @@ public class SpaceService {
             log.error(Constants.E_LOG_RETRIEVE_ENRICHMENT_TYPES_FAILED, e.getMessage());
         }
         return knownEnrichmentTypes;
-    }
-
-    /**
-     * Returns {@code true} when the given space already contains at least one document in any of the
-     * engine-related indices (decoders, kvdbs, filters).
-     *
-     * <p>Used by the promote action to determine whether the engine must be invoked even when the
-     * promotion changeset carries no engine resources — because the resulting destination space will
-     * still contain engine resources from prior promotions.
-     *
-     * <p>Each index is queried with a single-hit term search (size=1) so the cost is at most three
-     * cheap reads regardless of the number of documents in the space.
-     *
-     * @param space The target space to check.
-     * @return true if the space holds at least one decoder, kvdb, or filter.
-     */
-    public boolean hasEngineResources(Space space) {
-        for (String index :
-                List.of(Constants.INDEX_DECODERS, Constants.INDEX_KVDBS, Constants.INDEX_FILTERS)) {
-            try {
-                if (!this.client.admin().indices().prepareExists(index).get().isExists()) {
-                    continue;
-                }
-                SearchRequest searchRequest = new SearchRequest(index);
-                searchRequest
-                        .source()
-                        .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()))
-                        .size(1);
-                SearchResponse response = this.client.search(searchRequest).actionGet();
-                if (response.getHits().getTotalHits().value() > 0) {
-                    return true;
-                }
-            } catch (Exception e) {
-                log.warn(Constants.W_LOG_CHECK_ENGINE_RESOURCES_FAILED, space, index, e.getMessage());
-            }
-        }
-        return false;
     }
 
     /**

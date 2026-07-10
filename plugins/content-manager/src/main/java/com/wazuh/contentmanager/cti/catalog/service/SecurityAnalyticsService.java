@@ -113,15 +113,6 @@ public interface SecurityAnalyticsService {
     // --------------------------------------------------------------------- //
 
     /**
-     * Creates or updates a Threat Detector in SAP.
-     *
-     * @param doc The JSON document containing the integration data used to build the detector.
-     * @param rawCategory Whether to use the raw category string (true) or formatted/pretty (false).
-     * @param method The HTTP method (POST/PUT).
-     */
-    void upsertDetector(JsonNode doc, boolean rawCategory, Method method);
-
-    /**
      * Asynchronously creates or updates a Threat Detector in SAP.
      *
      * @param doc The JSON document containing the integration data used to build the detector.
@@ -149,15 +140,6 @@ public interface SecurityAnalyticsService {
      * @param listener The listener to be notified when the operation completes.
      */
     void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener);
-
-    /**
-     * Evaluates a list of Sigma rules against a normalized event.
-     *
-     * @param eventJson The normalized event as a JSON string.
-     * @param ruleBodies The list of Sigma rule bodies to evaluate.
-     * @return The evaluation result as a JSON string.
-     */
-    String evaluateRules(String eventJson, List<String> ruleBodies);
 
     /**
      * Asynchronously evaluates a list of Sigma rules against a normalized event.
