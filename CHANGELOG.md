@@ -240,6 +240,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix invalid action name warning messages [(#1313)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1313)
 - Fix consumer offset left behind the remote head after a plan-change content swap [(#1343)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1343)
 - Fix promotion changes on fresh install [(#1377)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1377)
+- Fix missing threat-intel indices when content initialization is disabled [(#1385)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1385)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
