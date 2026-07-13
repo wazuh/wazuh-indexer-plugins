@@ -231,7 +231,9 @@ public class SpaceService {
             policy.setReferences(Collections.emptyList());
             policy.setDate(date);
             policy.setModified(date);
-            policy.setEnabled(Space.DRAFT.toString().equals(spaceName));
+            // Enabled by default for every space: draft and test must match, otherwise the
+            // promote preview reports the "enabled" mismatch itself as an unpromoted change.
+            policy.setEnabled(true);
             policy.setIndexUnclassifiedEvents(false);
             policy.setIndexDiscardedEvents(false);
 

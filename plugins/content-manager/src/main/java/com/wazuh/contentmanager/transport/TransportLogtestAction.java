@@ -83,7 +83,7 @@ public class TransportLogtestAction
 
             String space = jsonNode.get(Constants.KEY_SPACE).asText();
 
-            // 3. Validate space is "test" or "standard"
+            // 3. Validate space is "test", "custom" or "standard"
             Space spaceEnum;
             try {
                 spaceEnum = Space.fromValue(space);

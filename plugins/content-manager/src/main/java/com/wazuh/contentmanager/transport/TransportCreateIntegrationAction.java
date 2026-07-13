@@ -39,6 +39,7 @@ import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -115,6 +116,21 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
                             listener.onResponse(null);
                         },
                         listener::onFailure));
+    }
+
+    @Override
+    protected int getMaxAllowed() {
+        return PluginSettings.getInstance().getMaxIntegrations();
+    }
+
+    @Override
+    protected String getTooManyResourcesMessageFormat() {
+        return Constants.E_400_TOO_MANY_INTEGRATIONS;
+    }
+
+    @Override
+    protected String getMaxReachedLogFormat() {
+        return Constants.I_LOG_MAX_INTEGRATIONS_REACHED;
     }
 
     @Override

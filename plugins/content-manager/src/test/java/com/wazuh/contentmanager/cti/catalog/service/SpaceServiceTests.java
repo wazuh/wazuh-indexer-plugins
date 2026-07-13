@@ -177,10 +177,7 @@ public class SpaceServiceTests extends OpenSearchTestCase {
         assertTrue("Failure should be handled gracefully via onResponse", gotResponse.get());
     }
 
-    /**
-     * Tests that initializeSpace sets enabled=true only for the draft space and enabled=false for
-     * other spaces (test, custom, standard).
-     */
+    /** Tests that initializeSpace sets enabled=true for the draft space. */
     public void testInitializeSpace_DraftPolicyEnabledTrue() {
         // Arrange
         org.mockito.ArgumentCaptor<IndexRequest> captor =
@@ -207,9 +204,11 @@ public class SpaceServiceTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests that initializeSpace sets enabled=false for non-draft spaces (test, custom, standard).
+     * Tests that initializeSpace also sets enabled=true for non-draft spaces (test, custom,
+     * standard), matching the draft space so the promote preview does not surface the "enabled"
+     * mismatch as a false unpromoted change on a fresh installation.
      */
-    public void testInitializeSpace_NonDraftPoliciesEnabledFalse() {
+    public void testInitializeSpace_NonDraftPoliciesEnabledTrue() {
         // Test for all non-draft spaces
         for (String spaceName : new String[] {"test", "custom", "standard"}) {
             // Reinitialize mocks for each space
@@ -230,13 +229,13 @@ public class SpaceServiceTests extends OpenSearchTestCase {
             this.policyHashService.initializeSpace(
                     spaceName, "test-doc-id", ActionListener.wrap(r -> {}, e -> {}));
 
-            // Verify the IndexRequest contains enabled=false for non-draft spaces
+            // Verify the IndexRequest contains enabled=true for non-draft spaces too
             verify(this.client).index(captor.capture(), any());
             IndexRequest request = captor.getValue();
             String sourceJson = request.source().utf8ToString();
             assertTrue(
-                    "Policy for space '" + spaceName + "' should contain enabled: false",
-                    sourceJson.contains("\"enabled\":false"));
+                    "Policy for space '" + spaceName + "' should contain enabled: true",
+                    sourceJson.contains("\"enabled\":true"));
         }
     }
 }

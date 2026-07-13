@@ -17,29 +17,42 @@
 package com.wazuh.contentmanager.transport;
 
 import org.apache.lucene.search.TotalHits;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.delete.DeleteResponse;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.SuppressForbidden;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.wazuh.contentmanager.action.ContentCreateRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
@@ -55,6 +68,7 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
         Settings settings = Settings.builder().put("plugins.content_manager.engine.mock", true).build();
         PluginSettings.getInstance(settings);
         this.client = mock(Client.class);
+        stubResourceLock(this.client);
         this.engineService = mock(EngineService.class);
         this.action =
                 new TransportCreateDecoderAction(
@@ -75,6 +89,32 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
         Field instance = PluginSettings.class.getDeclaredField("INSTANCE");
         instance.setAccessible(true);
         instance.set(null, null);
+    }
+
+    /**
+     * Stubs the resource-creation-lock plumbing (ResourceLockService) so create actions can
+     * acquire/release the lock without NPEs: the lock index is reported as already existing, and lock
+     * acquire/release always succeed.
+     */
+    @SuppressWarnings("unchecked")
+    private static void stubResourceLock(Client client) {
+        IndicesExistsResponse existsResponse = mock(IndicesExistsResponse.class);
+        when(existsResponse.isExists()).thenReturn(true);
+        ActionFuture<IndicesExistsResponse> existsFuture = mock(ActionFuture.class);
+        when(existsFuture.actionGet()).thenReturn(existsResponse);
+        IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
+        when(indicesAdminClient.exists(any())).thenReturn(existsFuture);
+        AdminClient adminClient = mock(AdminClient.class);
+        when(adminClient.indices()).thenReturn(indicesAdminClient);
+        when(client.admin()).thenReturn(adminClient);
+
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
+        when(client.index(any())).thenReturn(indexFuture);
+
+        ActionFuture<DeleteResponse> deleteFuture = mock(ActionFuture.class);
+        when(deleteFuture.actionGet()).thenReturn(mock(DeleteResponse.class));
+        when(client.delete(any())).thenReturn(deleteFuture);
     }
 
     @SuppressWarnings("unchecked")
@@ -187,6 +227,66 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
                                     Assert.assertTrue(response.getMessage().contains("Draft policy"));
                                     return true;
                                 }));
+    }
+
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_maxDecodersReached() {
+        PluginSettings.getInstance().setMaxDecoders(0);
+        try {
+            // Draft policy exists (async search on the policies index).
+            mockDraftPolicyExists();
+
+            // Integration resource exists in the draft space (async get on the integrations index).
+            GetResponse integResp = mock(GetResponse.class);
+            when(integResp.isExists()).thenReturn(true);
+            Map<String, Object> source = new HashMap<>();
+            source.put(Constants.KEY_SPACE, Map.of(Constants.KEY_NAME, "draft"));
+            when(integResp.getSourceAsMap()).thenReturn(source);
+            doAnswer(
+                            invocation -> {
+                                invocation.<ActionListener<GetResponse>>getArgument(1).onResponse(integResp);
+                                return null;
+                            })
+                    .when(this.client)
+                    .get(any(), any(ActionListener.class));
+
+            // Existing-decoder count for the limit check (blocking one-arg search on the decoders
+            // index). With maxDecoders=0 any count trips the limit.
+            SearchResponse countResp = mock(SearchResponse.class);
+            when(countResp.getHits())
+                    .thenReturn(
+                            new SearchHits(
+                                    new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f));
+            ActionFuture<SearchResponse> countFuture = mock(ActionFuture.class);
+            when(countFuture.actionGet()).thenReturn(countResp);
+            when(this.client.search(
+                            argThat(
+                                    r ->
+                                            r != null
+                                                    && r.indices().length > 0
+                                                    && Constants.INDEX_DECODERS.equals(r.indices()[0]))))
+                    .thenReturn(countFuture);
+
+            ContentCreateRequest request =
+                    new ContentCreateRequest(
+                            RestRequest.Method.POST,
+                            "{\"integration\":\"int-1\",\"resource\":{}}".getBytes(StandardCharsets.UTF_8),
+                            "json");
+
+            ActionListener<ContentResponse> listener = mock(ActionListener.class);
+            this.action.doExecute(mock(Task.class), request, listener);
+
+            verify(listener)
+                    .onResponse(
+                            argThat(
+                                    response -> {
+                                        Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+                                        Assert.assertTrue(response.getMessage().contains("allowed decoders [0]"));
+                                        return true;
+                                    }));
+        } finally {
+            PluginSettings.getInstance().setMaxDecoders(PluginSettings.DEFAULT_MAX_DECODERS);
+        }
     }
 
     @SuppressWarnings("unchecked")
