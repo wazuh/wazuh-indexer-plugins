@@ -16,16 +16,21 @@
  */
 package com.wazuh.contentmanager;
 
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Before;
 
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.concurrent.ExecutorService;
@@ -240,12 +245,63 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         verify(this.catalogSyncJob, never()).trigger();
     }
 
+    /**
+     * Regression test for issue #1362: {@code ensureResourceIndicesExist} must scan every space-aware
+     * ruleset resource index, so they are bootstrapped at startup even when catalog synchronization
+     * is disabled. Here every index reports as already existing, so the method should only probe for
+     * existence (one {@code prepareExists} per index) and create nothing.
+     */
+    public void testEnsureResourceIndicesChecksAllResourceIndices() throws Exception {
+        PluginSettings.getInstance(Settings.EMPTY);
+
+        AdminClient adminClient = mock(AdminClient.class);
+        IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
+        IndicesExistsRequestBuilder existsBuilder = mock(IndicesExistsRequestBuilder.class);
+        IndicesExistsResponse existsResponse = mock(IndicesExistsResponse.class);
+
+        when(this.client.admin()).thenReturn(adminClient);
+        when(adminClient.indices()).thenReturn(indicesAdminClient);
+        when(indicesAdminClient.prepareExists(anyString())).thenReturn(existsBuilder);
+        when(existsBuilder.get()).thenReturn(existsResponse);
+        when(existsResponse.isExists()).thenReturn(true);
+
+        this.invokePrivateMethod("ensureResourceIndicesExist");
+
+        // Every resource index is probed exactly once; nothing is created because all exist.
+        for (String indexName : Constants.RESOURCE_INDEX_MAPPINGS.keySet()) {
+            verify(indicesAdminClient).prepareExists(eq(indexName));
+        }
+        verify(indicesAdminClient, never()).create(any());
+    }
+
+    /**
+     * Guards against a broken {@link Constants#RESOURCE_INDEX_MAPPINGS} entry: every mapped index
+     * must point at a mapping file that actually exists on the classpath, otherwise startup creation
+     * would silently fail with "no mappings".
+     */
+    public void testResourceIndexMappingsResolveToClasspathResources() throws Exception {
+        assertFalse(Constants.RESOURCE_INDEX_MAPPINGS.isEmpty());
+        for (String mappingPath : Constants.RESOURCE_INDEX_MAPPINGS.values()) {
+            try (InputStream is = ContentManagerPlugin.class.getResourceAsStream(mappingPath)) {
+                assertNotNull("Missing mapping resource on classpath: " + mappingPath, is);
+            }
+        }
+    }
+
     /** Helper to inject private fields via reflection. */
     @SuppressForbidden(reason = "Unit test injection")
     private void injectField(Object target, String fieldName, Object value) throws Exception {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(target, value);
+    }
+
+    /** Helper to invoke a private no-arg {@code void method()} on the plugin via reflection. */
+    @SuppressForbidden(reason = "Unit test reflection")
+    private void invokePrivateMethod(String methodName) throws Exception {
+        Method method = ContentManagerPlugin.class.getDeclaredMethod(methodName);
+        method.setAccessible(true);
+        method.invoke(this.plugin);
     }
 
     /** Helper to invoke a private {@code void method(int)} on the plugin via reflection. */

@@ -138,12 +138,12 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     @Override
     protected Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
-        mappings.put(Constants.KEY_RULE, "/mappings/cti-rules-mappings.json");
-        mappings.put(Constants.KEY_DECODER, "/mappings/cti-decoders-mappings.json");
-        mappings.put(Constants.KEY_KVDB, "/mappings/cti-kvdbs-mappings.json");
-        mappings.put(Constants.KEY_INTEGRATION, "/mappings/cti-integrations-mappings.json");
-        mappings.put(Constants.KEY_POLICY, "/mappings/cti-policies-mappings.json");
-        mappings.put(Constants.KEY_FILTER, "/mappings/cti-filters-mappings.json");
+        mappings.put(Constants.KEY_RULE, Constants.MAPPING_RULES);
+        mappings.put(Constants.KEY_DECODER, Constants.MAPPING_DECODERS);
+        mappings.put(Constants.KEY_KVDB, Constants.MAPPING_KVDBS);
+        mappings.put(Constants.KEY_INTEGRATION, Constants.MAPPING_INTEGRATIONS);
+        mappings.put(Constants.KEY_POLICY, Constants.MAPPING_POLICIES);
+        mappings.put(Constants.KEY_FILTER, Constants.MAPPING_FILTERS);
         return mappings;
     }
 

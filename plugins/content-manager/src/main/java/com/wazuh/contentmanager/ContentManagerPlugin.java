@@ -69,11 +69,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
@@ -418,6 +420,12 @@ public class ContentManagerPlugin extends Plugin
                                                 e);
                                     }
 
+                                    // Create the threat-intel ruleset resource indices up front so
+                                    // custom-ruleset REST endpoints work even when catalog
+                                    // synchronization is disabled. When sync is enabled it will
+                                    // find these already present and skip re-creating them.
+                                    this.ensureResourceIndicesExist();
+
                                     this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();
@@ -462,6 +470,33 @@ public class ContentManagerPlugin extends Plugin
             }
         } catch (Exception e) {
             log.warn(Constants.W_LOG_CTI_TOKEN_LOAD_FAILED, e.getMessage());
+        }
+    }
+
+    /**
+     * Creates the space-aware threat-intel ruleset resource indices (policies, integrations, rules,
+     * kvdbs, decoders, filters) if they do not already exist.
+     *
+     * <p>These indices are otherwise created lazily during catalog synchronization. When both {@code
+     * plugins.content_manager.catalog.update_on_start} and {@code
+     * plugins.content_manager.catalog.update_on_schedule} are disabled no synchronization runs, so
+     * without this step the indices never get created and the custom-ruleset REST endpoints fail with
+     * "no such index". Each missing index is created with its configured mappings and public alias,
+     * matching what a normal first sync would produce.
+     */
+    private void ensureResourceIndicesExist() {
+        for (Map.Entry<String, String> entry : Constants.RESOURCE_INDEX_MAPPINGS.entrySet()) {
+            String indexName = entry.getKey();
+            try {
+                boolean exists = this.client.admin().indices().prepareExists(indexName).get().isExists();
+                if (!exists) {
+                    // ContentIndex.createIndex() creates the physical index and its alias, and logs
+                    // the creation itself.
+                    new ContentIndex(this.client, indexName, entry.getValue()).createIndex();
+                }
+            } catch (Exception e) {
+                log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
+            }
         }
     }
 
