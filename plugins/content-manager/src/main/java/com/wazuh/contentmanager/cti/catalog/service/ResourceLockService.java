@@ -47,9 +47,9 @@ import com.wazuh.contentmanager.utils.Constants;
  *
  * <p>The mutex is a document with a deterministic ID, created via {@link
  * DocWriteRequest.OpType#CREATE} so only one caller can hold it at a time for a given resource type
- * and space -- the same atomic-guard technique used by {@link SpaceService#initializeSpace(String,
- * String)}. The resource count itself remains a live search against the resource index; the lock
- * only prevents two requests from evaluating that count concurrently.
+ * and space -- the same atomic-guard technique used by {@link SpaceService#initializeSpace}. The
+ * resource count itself remains a live search against the resource index; the lock only prevents
+ * two requests from evaluating that count concurrently.
  */
 public class ResourceLockService {
     private static final Logger log = LogManager.getLogger(ResourceLockService.class);
