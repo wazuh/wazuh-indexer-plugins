@@ -25,7 +25,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.core.action.ActionListener;
@@ -288,23 +287,29 @@ public abstract class AbstractTransportCreateAction
         ActionListener<ContentResponse> lockReleasingListener =
                 ActionListener.runAfter(listener, () -> this.resourceLockService.release(heldLockId));
 
-        RestResponse limitError = this.checkResourceLimit(client, space);
-        if (limitError != null) {
-            lockReleasingListener.onResponse(
-                    new ContentResponse(
-                            limitError.getMessage(), RestStatus.fromCode(limitError.getStatus())));
-            return;
-        }
-
-        afterValidation(
-                rootNode,
-                resourceNode,
-                rawYaml,
+        this.checkResourceLimitAsync(
                 client,
-                spaceService,
-                securityAnalyticsService,
-                integrationService,
-                lockReleasingListener);
+                space,
+                ActionListener.wrap(
+                        limitError -> {
+                            if (limitError != null) {
+                                lockReleasingListener.onResponse(
+                                        new ContentResponse(
+                                                limitError.getMessage(),
+                                                RestStatus.fromCode(limitError.getStatus())));
+                                return;
+                            }
+                            afterValidation(
+                                    rootNode,
+                                    resourceNode,
+                                    rawYaml,
+                                    client,
+                                    spaceService,
+                                    securityAnalyticsService,
+                                    integrationService,
+                                    lockReleasingListener);
+                        },
+                        e -> respondWithError(lockReleasingListener, e)));
     }
 
     /**
@@ -314,10 +319,11 @@ public abstract class AbstractTransportCreateAction
      *
      * @param client The OpenSearch client.
      * @param space The space to count existing resources in.
-     * @return A {@code BAD_REQUEST} {@link RestResponse} if the limit would be exceeded, or {@code
-     *     null} if creation may proceed.
+     * @param listener Receives a {@code BAD_REQUEST} {@link RestResponse} if the limit would be
+     *     exceeded, or {@code null} if creation may proceed.
      */
-    private RestResponse checkResourceLimit(Client client, String space) {
+    private void checkResourceLimitAsync(
+            Client client, String space, ActionListener<RestResponse> listener) {
         int max = this.getMaxAllowed();
         SearchRequest countRequest = new SearchRequest(this.getIndexName());
         SearchSourceBuilder countSource = new SearchSourceBuilder();
@@ -325,26 +331,34 @@ public abstract class AbstractTransportCreateAction
         countSource.size(0);
         countSource.trackTotalHits(true);
         countRequest.source(countSource);
-        try {
-            SearchResponse countResponse = client.search(countRequest).actionGet();
-            long count =
-                    countResponse.getHits().getTotalHits() != null
-                            ? countResponse.getHits().getTotalHits().value()
-                            : 0;
-            if (count >= max) {
-                log.info(this.getMaxReachedLogFormat(), max);
-                return new RestResponse(
-                        String.format(Locale.ROOT, this.getTooManyResourcesMessageFormat(), max),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-        } catch (Exception e) {
-            // If counting fails (e.g., index does not exist yet), allow creation to proceed.
-            log.warn(
-                    "Failed to count existing {} for limit check: {}",
-                    this.getResourceType(),
-                    e.getMessage());
-        }
-        return null;
+        client.search(
+                countRequest,
+                ActionListener.wrap(
+                        countResponse -> {
+                            long count =
+                                    countResponse.getHits().getTotalHits() != null
+                                            ? countResponse.getHits().getTotalHits().value()
+                                            : 0;
+                            if (count >= max) {
+                                log.info(this.getMaxReachedLogFormat(), max);
+                                listener.onResponse(
+                                        new RestResponse(
+                                                String.format(
+                                                        Locale.ROOT,
+                                                        this.getTooManyResourcesMessageFormat(),
+                                                        max),
+                                                RestStatus.BAD_REQUEST.getStatus()));
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        e -> {
+                            log.warn(
+                                    "Failed to count existing {} for limit check: {}",
+                                    this.getResourceType(),
+                                    e.getMessage());
+                            listener.onResponse(null);
+                        }));
     }
 
     private void afterValidation(

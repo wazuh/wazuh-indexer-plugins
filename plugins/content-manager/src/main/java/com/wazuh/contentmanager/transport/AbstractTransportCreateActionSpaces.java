@@ -25,7 +25,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.core.action.ActionListener;
@@ -248,12 +247,35 @@ public abstract class AbstractTransportCreateActionSpaces
         ActionListener<ContentResponse> lockReleasingListener =
                 ActionListener.runAfter(listener, () -> this.resourceLockService.release(heldLockId));
 
-        RestResponse limitError = this.checkResourceLimit(client, spaceName);
-        if (limitError != null) {
-            respond(lockReleasingListener, limitError);
-            return;
-        }
+        this.checkResourceLimitAsync(
+                client,
+                spaceName,
+                ActionListener.wrap(
+                        limitError -> {
+                            if (limitError != null) {
+                                respond(lockReleasingListener, limitError);
+                                return;
+                            }
+                            afterLimitCheck(
+                                    rootNode,
+                                    resourceNode,
+                                    rawYaml,
+                                    spaceName,
+                                    client,
+                                    spaceService,
+                                    lockReleasingListener);
+                        },
+                        e -> respondWithError(lockReleasingListener, e)));
+    }
 
+    private void afterLimitCheck(
+            JsonNode rootNode,
+            ObjectNode resourceNode,
+            String rawYaml,
+            String spaceName,
+            Client client,
+            SpaceService spaceService,
+            ActionListener<ContentResponse> lockReleasingListener) {
         // Generate ID and metadata
         final String id = UUID.randomUUID().toString();
         resourceNode.put(Constants.KEY_ID, id);
@@ -303,10 +325,11 @@ public abstract class AbstractTransportCreateActionSpaces
      *
      * @param client The OpenSearch client.
      * @param space The space to count existing resources in.
-     * @return A {@code BAD_REQUEST} {@link RestResponse} if the limit would be exceeded, or {@code
-     *     null} if creation may proceed.
+     * @param listener Receives a {@code BAD_REQUEST} {@link RestResponse} if the limit would be
+     *     exceeded, or {@code null} if creation may proceed.
      */
-    private RestResponse checkResourceLimit(Client client, String space) {
+    private void checkResourceLimitAsync(
+            Client client, String space, ActionListener<RestResponse> listener) {
         int max = this.getMaxAllowed();
         SearchRequest countRequest = new SearchRequest(this.getIndexName());
         SearchSourceBuilder countSource = new SearchSourceBuilder();
@@ -314,26 +337,34 @@ public abstract class AbstractTransportCreateActionSpaces
         countSource.size(0);
         countSource.trackTotalHits(true);
         countRequest.source(countSource);
-        try {
-            SearchResponse countResponse = client.search(countRequest).actionGet();
-            long count =
-                    countResponse.getHits().getTotalHits() != null
-                            ? countResponse.getHits().getTotalHits().value()
-                            : 0;
-            if (count >= max) {
-                log.info(this.getMaxReachedLogFormat(), max);
-                return new RestResponse(
-                        String.format(Locale.ROOT, this.getTooManyResourcesMessageFormat(), max),
-                        RestStatus.BAD_REQUEST.getStatus());
-            }
-        } catch (Exception e) {
-            // If counting fails (e.g., index does not exist yet), allow creation to proceed.
-            log.warn(
-                    "Failed to count existing {} for limit check: {}",
-                    this.getResourceType(),
-                    e.getMessage());
-        }
-        return null;
+        client.search(
+                countRequest,
+                ActionListener.wrap(
+                        countResponse -> {
+                            long count =
+                                    countResponse.getHits().getTotalHits() != null
+                                            ? countResponse.getHits().getTotalHits().value()
+                                            : 0;
+                            if (count >= max) {
+                                log.info(this.getMaxReachedLogFormat(), max);
+                                listener.onResponse(
+                                        new RestResponse(
+                                                String.format(
+                                                        Locale.ROOT,
+                                                        this.getTooManyResourcesMessageFormat(),
+                                                        max),
+                                                RestStatus.BAD_REQUEST.getStatus()));
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        e -> {
+                            log.warn(
+                                    "Failed to count existing {} for limit check: {}",
+                                    this.getResourceType(),
+                                    e.getMessage());
+                            listener.onResponse(null);
+                        }));
     }
 
     private void indexAndLink(
