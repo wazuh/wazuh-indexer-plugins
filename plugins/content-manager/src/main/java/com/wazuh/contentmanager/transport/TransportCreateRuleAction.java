@@ -215,6 +215,7 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
                                         new RestResponse(
                                                 Constants.E_SECURITY_ANALYTICS_ERROR + " " + osEx.getMessage(),
                                                 osEx.status().getStatus()));
+                                return;
                             }
                             listener.onResponse(
                                     new RestResponse(
