@@ -27,18 +27,20 @@ To address review feedback, push new commits on top of the branch and re-request
 
 ### Body template
 
-Use the following template when creating a Pull Request:
+Every repository provides the template below as its default `.github/pull_request_template.md`; it is pre-filled automatically when you open a PR. Every PR **must** be linked to an existing issue, and PRs should not be linked directly to GitHub Projects — track project status at the issue level instead.
 
 ```markdown
-## Description
+### Description
+[Describe what this change achieves]
 
-<!-- Brief description of the changes and the reasoning behind them. -->
+### Related Issues
+Resolves #[Issue number to be closed when this PR is merged]
+<!-- List any other related issues here -->
 
-Resolves #<issue_number>
-
-## Checklist
-
-- [ ] ...
+### Check List
+- [ ] Functionality includes testing.
+- [ ] API changes companion pull request created, if applicable.
+- [ ] Public documentation issue/PR created, if applicable.
 ```
 
 Always link the related issue with `Resolves #<number>` so it auto-closes on merge, and describe **why** rather than just **what** — the diff already shows what changed, so the description should explain the motivation.
@@ -49,7 +51,9 @@ Start from the linked issue to understand the context and acceptance criteria, t
 
 ### Changelog
 
-Every PR is expected to include a changelog entry. The `5_codequality_changelog.yml` workflow enforces this. Apply the **`skip-changelog`** label to bypass the check when the linked issue belongs to a **private repository**, or when the PR is linked to a public issue but genuinely does not require a changelog update.
+Every PR is expected to include a changelog entry, classified as **Added**, **Changed**, **Removed**, or **Fixed**. The `5_codequality_changelog.yml` workflow enforces this. Apply the **`no-changelog`** label to bypass the check when the linked issue belongs to a **private repository**, or when the PR genuinely does not require a changelog update.
+
+Changelog entries must always reference the **issue**, not the pull request, so the entry stays meaningful independently of how the change was implemented. An issue only belongs in the changelog if it affects the product and represents a change from a previously released version — internal/CI changes are never included, and neither are fixes for problems introduced in an unpublished version.
 
 ### Best practices
 
