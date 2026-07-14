@@ -521,7 +521,8 @@ public class ContentManagerPlugin extends Plugin
         for (Map.Entry<String, String> entry : Constants.RESOURCE_INDEX_MAPPINGS.entrySet()) {
             String indexName = entry.getKey();
             try {
-                boolean exists = this.client.admin().indices().prepareExists(indexName).get().isExists();
+                boolean exists =
+                        this.awaitResult(listener -> ClusterInfo.indexExists(this.client, indexName, listener));
                 if (!exists) {
                     // ContentIndex.createIndex() creates the physical index and its alias, and logs
                     // the creation itself.
