@@ -94,14 +94,14 @@ public class TransportLogtestNormalizationAction
             } catch (IllegalArgumentException e) {
                 listener.onResponse(
                         new LogtestResponse(
-                                String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
+                                String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE_STRICT, space),
                                 RestStatus.BAD_REQUEST));
                 return;
             }
             if (spaceEnum != Space.TEST && spaceEnum != Space.STANDARD) {
                 listener.onResponse(
                         new LogtestResponse(
-                                String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
+                                String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE_STRICT, space),
                                 RestStatus.BAD_REQUEST));
                 return;
             }
