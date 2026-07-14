@@ -179,7 +179,7 @@ public class LogtestService {
      * Executes detection only: looks up integration, fetches rules, evaluates via SAP.
      *
      * @param integrationId the integration document ID to look up
-     * @param space the space to search in (test or standard)
+     * @param space the space to search in (test, standard, or custom)
      * @param inputEvent the normalized event JSON object to evaluate
      * @return a {@link RestResponse} with the SAP detection result
      */

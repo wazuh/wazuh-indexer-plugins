@@ -46,7 +46,7 @@ Responsibilities:
 
 1. Validates the request has content and is valid JSON.
 2. Validates the required field `space`.
-3. Validates that `space` is `"test"` or `"standard"` — stricter than the combined endpoint, which also allows `"custom"`.
+3. Validates that `space` is not `"draft"`.
 4. Strips the `integration` field if present (not used for normalization).
 5. Delegates to `LogtestService.executeNormalization(enginePayload)`.
 
@@ -64,7 +64,7 @@ Responsibilities:
 
 1. Validates the request has content and is valid JSON.
 2. Validates the required fields `space`, `integration`, and `input`.
-3. Validates that `space` is `"test"` or `"standard"` — stricter than the combined endpoint, which also allows `"custom"`.
+3. Validates that `space` is not `"draft"`.
 4. Validates that `input` is a JSON object (not a string or array).
 5. Delegates to `LogtestService.executeDetection(integrationId, space, inputEvent)`.
 
