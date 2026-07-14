@@ -28,7 +28,6 @@ import com.wazuh.contentmanager.action.GetSubscriptionAction;
 import com.wazuh.contentmanager.action.GetSubscriptionRequest;
 import com.wazuh.contentmanager.action.GetSubscriptionResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
-import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class TransportGetSubscriptionAction
@@ -48,20 +47,22 @@ public class TransportGetSubscriptionAction
     @Override
     protected void doExecute(
             Task task, GetSubscriptionRequest request, ActionListener<GetSubscriptionResponse> listener) {
-        try {
-            Plan plan = this.subscriptionService.getPlan();
-            boolean isRegistered = PluginSettings.getInstance().getAccessToken() != null;
-
-            listener.onResponse(
-                    new GetSubscriptionResponse(
-                            plan != null ? plan.getName() : null, plan != null && plan.isPublic(), isRegistered));
-        } catch (Exception e) {
-            listener.onResponse(
-                    new GetSubscriptionResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR));
-        }
+        this.subscriptionService.getPlan(
+                ActionListener.wrap(
+                        plan -> {
+                            boolean isRegistered = PluginSettings.getInstance().getAccessToken() != null;
+                            listener.onResponse(
+                                    new GetSubscriptionResponse(
+                                            plan != null ? plan.getName() : null,
+                                            plan != null && plan.isPublic(),
+                                            isRegistered));
+                        },
+                        e ->
+                                listener.onResponse(
+                                        new GetSubscriptionResponse(
+                                                e.getMessage() != null
+                                                        ? e.getMessage()
+                                                        : "An unexpected error occurred while" + " processing your request.",
+                                                RestStatus.INTERNAL_SERVER_ERROR))));
     }
 }

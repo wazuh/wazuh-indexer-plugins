@@ -22,6 +22,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.transport.TransportService;
@@ -31,8 +32,8 @@ import java.util.List;
 
 import com.wazuh.contentmanager.action.UpdateRuleAction;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsException;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
@@ -78,30 +79,46 @@ public class TransportUpdateRuleAction extends AbstractTransportUpdateAction {
     }
 
     @Override
-    protected RestResponse syncExternalServices(
-            String id, JsonNode resource, SecurityAnalyticsService securityAnalyticsService) {
-        try {
-            securityAnalyticsService.upsertRule(resource, Space.DRAFT, Method.PUT);
-            return null;
-        } catch (SecurityAnalyticsException e) {
-            return new RestResponse(
-                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
-        } catch (Exception e) {
-            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
-            if (osEx != null) {
-                return new RestResponse(
-                        Constants.E_SECURITY_ANALYTICS_ERROR + " " + osEx.getMessage(),
-                        osEx.status().getStatus());
-            }
-            String msg = e.getMessage() != null ? e.getMessage() : "Unknown error";
-            return new RestResponse(
-                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + msg,
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
+    protected void syncExternalServices(
+            String id,
+            JsonNode resource,
+            SecurityAnalyticsService securityAnalyticsService,
+            ActionListener<RestResponse> listener) {
+        securityAnalyticsService.upsertRule(
+                resource,
+                Space.DRAFT,
+                Method.PUT,
+                ActionListener.wrap(
+                        response -> listener.onResponse(null),
+                        e -> {
+                            String msg = e.getMessage() != null ? e.getMessage() : "Unknown error";
+                            if (msg.contains("Wazuh Common Schema (WCS)")) {
+                                listener.onResponse(
+                                        new RestResponse(
+                                                Constants.E_SECURITY_ANALYTICS_ERROR
+                                                        + " "
+                                                        + SecurityAnalyticsServiceImpl.extractErrorMessage(msg),
+                                                RestStatus.BAD_REQUEST.getStatus()));
+                                return;
+                            }
+                            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
+                            if (secEx != null) {
+                                listener.onResponse(
+                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
+                                return;
+                            }
+                            OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
+                            if (osEx != null) {
+                                listener.onResponse(
+                                        new RestResponse(
+                                                Constants.E_SECURITY_ANALYTICS_ERROR + " " + osEx.getMessage(),
+                                                osEx.status().getStatus()));
+                                return;
+                            }
+                            listener.onResponse(
+                                    new RestResponse(
+                                            Constants.E_SECURITY_ANALYTICS_ERROR + " " + msg,
+                                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                        }));
     }
 }

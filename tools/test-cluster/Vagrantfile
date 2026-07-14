@@ -1,7 +1,7 @@
 system("
     if [ #{ARGV[0]} = 'up' ]; then
         echo 'Executing pre-start script.'
-        bash ./pre-start.sh
+        sudo bash ./pre-start.sh $(whoami) || exit 1
     fi
 ")
 
@@ -23,10 +23,20 @@ Vagrant.configure("2") do |config|
             # Add node-2 to /etc/hosts
             echo "192.168.56.11 node-2" >> /etc/hosts
             # Copy generated certificates
-            cp /vagrant/wazuh-certificates.tar /home/vagrant/wazuh-certificates.tar
+            cp /vagrant/wazuh-install-files.tar /home/vagrant/wazuh-install-files.tar
             # Copy test scripts
             cp -r /vagrant/scripts /home/vagrant/scripts
             chown -R vagrant:vagrant /home/vagrant/scripts
+
+            # Install using the assistant
+            echo "[INFO] Downloading artifact URLs..."
+            wget -O artifact_urls.yaml https://packages-staging.xdrsiem.wazuh.info/nightly/5.0.0/artifact-urls/artifact_urls_5.0.0-latest.yaml
+
+            echo "[INFO] Downloading the installation assistant..."
+            wget -O wazuh-install.sh https://packages-staging.xdrsiem.wazuh.info/nightly/5.0.0/installation-assistant/wazuh-install-5.0.0-latest.sh
+
+            echo "[INFO] Running the installation assistant (indexer, dashboard, manager)..."
+            bash ./wazuh-install.sh -d local --wazuh-indexer node-1 --wazuh-dashboard dashboard-1 --wazuh-manager manager-1
         SHELL
     end
     config.vm.define "indexer_2" do |indexer_2|
@@ -45,10 +55,25 @@ Vagrant.configure("2") do |config|
             # Add node-1 to /etc/hosts
             echo "192.168.56.10 node-1" >> /etc/hosts
             # Copy generated certificates
-            cp /vagrant/wazuh-certificates.tar /home/vagrant/wazuh-certificates.tar
+            cp /vagrant/wazuh-install-files.tar /home/vagrant/wazuh-install-files.tar
             # Copy test scripts
             cp -r /vagrant/scripts /home/vagrant/scripts
             chown -R vagrant:vagrant /home/vagrant/scripts
+
+            echo "[INFO] Downloading artifact URLs..."
+            wget -O artifact_urls.yaml https://packages-staging.xdrsiem.wazuh.info/nightly/5.0.0/artifact-urls/artifact_urls_5.0.0-latest.yaml
+
+            echo "[INFO] Downloading the installation assistant..."
+            wget -O wazuh-install.sh https://packages-staging.xdrsiem.wazuh.info/nightly/5.0.0/installation-assistant/wazuh-install-5.0.0-latest.sh
+
+            echo "[INFO] Running the installation assistant (indexer)..."
+            bash ./wazuh-install.sh -d local --wazuh-indexer node-2
+
+            echo ""
+            echo ""
+            echo "==============================================================="
+            echo "[INFO] Initialize the cluster running: bash /usr/share/wazuh-indexer/bin/indexer-security-init.sh"
+            echo "==============================================================="
         SHELL
     end
 end

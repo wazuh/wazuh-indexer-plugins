@@ -42,7 +42,7 @@ import static org.opensearch.rest.RestRequest.Method.GET;
  *
  * <p>Returns the subscription status and active plan. Delegates to the transport action {@link
  * GetSubscriptionAction}, which calls {@link
- * com.wazuh.contentmanager.cti.catalog.service.SubscriptionService#getPlan()}.
+ * com.wazuh.contentmanager.cti.catalog.service.SubscriptionService#getPlan}.
  *
  * <p>Possible HTTP responses:
  *

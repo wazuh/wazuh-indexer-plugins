@@ -20,11 +20,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
-
-import java.io.IOException;
 
 import com.wazuh.contentmanager.action.CreateDecoderAction;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
@@ -62,15 +61,28 @@ public class TransportCreateDecoderAction extends AbstractTransportCreateAction 
     }
 
     @Override
-    protected RestResponse validatePayload(
-            Client client, JsonNode root, JsonNode resource, IntegrationService integrationService) {
+    protected void validatePayload(
+            Client client,
+            JsonNode root,
+            JsonNode resource,
+            IntegrationService integrationService,
+            ActionListener<RestResponse> listener) {
         String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
-        String spaceError =
-                this.documentValidations.validateDocumentInSpace(
-                        client, Constants.INDEX_INTEGRATIONS, integrationId, Constants.KEY_INTEGRATION);
-        if (spaceError != null) return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
-
-        return null;
+        this.documentValidations.validateDocumentInSpaceAsync(
+                client,
+                Constants.INDEX_INTEGRATIONS,
+                integrationId,
+                Constants.KEY_INTEGRATION,
+                ActionListener.wrap(
+                        spaceError -> {
+                            if (spaceError != null) {
+                                listener.onResponse(
+                                        new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus()));
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        listener::onFailure));
     }
 
     @Override
@@ -89,22 +101,31 @@ public class TransportCreateDecoderAction extends AbstractTransportCreateAction 
     }
 
     @Override
-    protected RestResponse syncExternalServices(
-            String id, JsonNode resource, SecurityAnalyticsService securityAnalyticsService) {
+    protected void syncExternalServices(
+            String id,
+            JsonNode resource,
+            SecurityAnalyticsService securityAnalyticsService,
+            ActionListener<RestResponse> listener) {
         RestResponse engineValidation = this.engine.validateResource(Constants.KEY_DECODER, resource);
         if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(
-                    Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineValidation.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
+            listener.onResponse(
+                    new RestResponse(
+                            Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineValidation.getMessage(),
+                            RestStatus.BAD_REQUEST.getStatus()));
+            return;
         }
-        return null;
+        listener.onResponse(null);
     }
 
     @Override
     protected void linkToParent(
-            Client client, String id, JsonNode root, IntegrationService integrationService)
-            throws IOException {
+            Client client,
+            String id,
+            JsonNode root,
+            IntegrationService integrationService,
+            ActionListener<Void> listener) {
         String integrationId = root.get(Constants.KEY_INTEGRATION).asText();
-        integrationService.linkResourceToIntegration(integrationId, id, Constants.KEY_DECODERS);
+        integrationService.linkResourceToIntegrationAsync(
+                integrationId, id, Constants.KEY_DECODERS, listener);
     }
 }

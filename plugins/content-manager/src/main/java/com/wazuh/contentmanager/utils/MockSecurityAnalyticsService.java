@@ -25,7 +25,6 @@ import org.opensearch.core.action.ActionResponse;
 import org.opensearch.rest.RestRequest.Method;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsException;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 
 /**
@@ -44,58 +43,31 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     }
 
     @Override
-    public void upsertIntegration(JsonNode doc, Space space, Method method) {
+    public void upsertIntegration(
+            JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.upsertIntegration called");
+        listener.onResponse(null);
     }
 
     @Override
-    public void deleteIntegration(String id, Space space) {
+    public void deleteIntegration(
+            String id, Space space, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.deleteIntegration called for id: {}", id);
+        listener.onResponse(null);
     }
 
     @Override
-    public void upsertRule(JsonNode doc, Space space, Method method)
-            throws SecurityAnalyticsException {
+    public void upsertRule(
+            JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.upsertRule called");
+        listener.onResponse(null);
     }
 
     @Override
-    public void deleteRule(String id, Space space) {
+    public void deleteRule(
+            String id, Space space, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.deleteRule called for id: {}", id);
-    }
-
-    @Override
-    public void upsertDetector(JsonNode doc, boolean rawCategory, Method method) {
-        log.debug("MockSecurityAnalyticsService.upsertDetector called");
-    }
-
-    @Override
-    public void deleteDetector(String id) {
-        log.debug("MockSecurityAnalyticsService.deleteDetector called for id: {}", id);
-    }
-
-    @Override
-    public void upsertIntegrationAsync(
-            JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
-        log.debug("MockSecurityAnalyticsService.upsertIntegrationAsync called");
-    }
-
-    @Override
-    public void deleteIntegrationAsync(
-            String id, Space space, ActionListener<? extends ActionResponse> listener) {
-        log.debug("MockSecurityAnalyticsService.deleteIntegrationAsync called for id: {}", id);
-    }
-
-    @Override
-    public void upsertRuleAsync(
-            JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
-        log.debug("MockSecurityAnalyticsService.upsertRuleAsync called");
-    }
-
-    @Override
-    public void deleteRuleAsync(
-            String id, Space space, ActionListener<? extends ActionResponse> listener) {
-        log.debug("MockSecurityAnalyticsService.deleteRuleAsync called for id: {}", id);
+        listener.onResponse(null);
     }
 
     @Override
@@ -105,21 +77,26 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
             Method method,
             ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.upsertDetectorAsync called");
+        listener.onResponse(null);
     }
 
     @Override
-    public void deleteDetectorAsync(String id, ActionListener<? extends ActionResponse> listener) {
-        log.debug("MockSecurityAnalyticsService.deleteDetectorAsync called for id: {}", id);
+    public void deleteDetector(String id, ActionListener<? extends ActionResponse> listener) {
+        log.debug("MockSecurityAnalyticsService.deleteDetector called for id: {}", id);
+        listener.onResponse(null);
     }
 
     @Override
-    public String evaluateRules(String eventJson, java.util.List<String> ruleBodies) {
-        log.debug("MockSecurityAnalyticsService.evaluateRules called");
-        return "{\"status\":\"success\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}";
+    public void evaluateRulesAsync(
+            String eventJson, java.util.List<String> ruleBodies, ActionListener<String> listener) {
+        log.debug("MockSecurityAnalyticsService.evaluateRulesAsync called");
+        listener.onResponse(
+                "{\"status\":\"success\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}");
     }
 
     @Override
-    public void deleteSpaceResources(Space space) {
+    public void deleteSpaceResources(Space space, ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.deleteSpaceResources called for space: {}", space);
+        listener.onResponse(null);
     }
 }

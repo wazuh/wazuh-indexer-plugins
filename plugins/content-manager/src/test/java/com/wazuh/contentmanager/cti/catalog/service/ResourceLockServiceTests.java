@@ -17,25 +17,32 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.delete.DeleteResponse;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.common.action.ActionFuture;
+import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.Assert;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 
 import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -57,103 +64,173 @@ public class ResourceLockServiceTests extends OpenSearchTestCase {
         IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
         IndicesExistsResponse existsResponse = mock(IndicesExistsResponse.class);
         when(existsResponse.isExists()).thenReturn(true);
-        ActionFuture<IndicesExistsResponse> existsFuture = mock(ActionFuture.class);
-        when(existsFuture.actionGet()).thenReturn(existsResponse);
-        when(indicesAdminClient.exists(any())).thenReturn(existsFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndicesExistsResponse> l = invocation.getArgument(1);
+                            l.onResponse(existsResponse);
+                            return null;
+                        })
+                .when(indicesAdminClient)
+                .exists(any(), any(ActionListener.class));
         when(adminClient.indices()).thenReturn(indicesAdminClient);
         when(client.admin()).thenReturn(adminClient);
     }
 
-    /** Mocks client.get() to report a lock document last acquired {@code ageMillis} ago. */
+    /** Mocks async client.get() to report a lock document last acquired {@code ageMillis} ago. */
     private static void mockLockGet(Client client, long ageMillis) {
         GetResponse getResponse = mock(GetResponse.class);
         when(getResponse.isExists()).thenReturn(true);
         when(getResponse.getSourceAsMap())
                 .thenReturn(Map.of("acquired_at", Instant.now().toEpochMilli() - ageMillis));
-        ActionFuture<GetResponse> getFuture = mock(ActionFuture.class);
-        when(getFuture.actionGet()).thenReturn(getResponse);
-        when(client.get(any())).thenReturn(getFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<GetResponse> l = invocation.getArgument(1);
+                            l.onResponse(getResponse);
+                            return null;
+                        })
+                .when(client)
+                .get(any(GetRequest.class), any(ActionListener.class));
     }
 
-    public void testAcquireSucceedsImmediatelyWhenNoLockExists() throws IOException {
-        Client client = mock(Client.class);
-        mockLockIndexExists(client);
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
-        when(client.index(any())).thenReturn(indexFuture);
-
-        ResourceLockService service = new ResourceLockService(client);
-        String lockId = service.acquire("rule", "draft");
-
-        Assert.assertNotNull(lockId);
-        verify(client, times(1)).index(any());
-        verify(client, never()).get(any());
-        verify(client, never()).delete(any());
+    /** Creates a ThreadPool mock that executes scheduled runnables immediately. */
+    private static ThreadPool immediateThreadPool() {
+        ThreadPool threadPool = mock(ThreadPool.class);
+        doAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(0)).run();
+                            return null;
+                        })
+                .when(threadPool)
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+        return threadPool;
     }
 
-    public void testAcquireRetriesAfterConflictAndSucceeds() throws IOException {
+    public void testAcquireSucceedsImmediatelyWhenNoLockExists() {
         Client client = mock(Client.class);
         mockLockIndexExists(client);
-        mockLockGet(client, 0); // held very recently -> not stale
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
 
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet())
-                .thenThrow(versionConflict())
-                .thenReturn(mock(IndexResponse.class));
-        when(client.index(any())).thenReturn(indexFuture);
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<String> future = new PlainActionFuture<>();
+        service.acquire("rule", "draft", future);
 
-        ResourceLockService service = new ResourceLockService(client);
-        String lockId = service.acquire("rule", "draft");
-
-        Assert.assertNotNull(lockId);
-        verify(client, times(2)).index(any());
-        verify(client, never()).delete(any());
+        Assert.assertNotNull(future.actionGet());
+        verify(client, times(1)).index(any(IndexRequest.class), any(ActionListener.class));
+        verify(client, never()).get(any(GetRequest.class), any(ActionListener.class));
+        verify(client, never()).delete(any(DeleteRequest.class), any(ActionListener.class));
     }
 
-    public void testAcquireStealsStaleLock() throws IOException {
+    public void testAcquireRetriesAfterConflictAndSucceeds() {
         Client client = mock(Client.class);
         mockLockIndexExists(client);
-        mockLockGet(client, Constants.LOCK_STALE_THRESHOLD_MILLIS + 1000); // older than the threshold
+        mockLockGet(client, 0);
 
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet())
-                .thenThrow(versionConflict())
-                .thenReturn(mock(IndexResponse.class));
-        when(client.index(any())).thenReturn(indexFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onFailure(versionConflict());
+                            return null;
+                        })
+                .doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
 
-        ActionFuture<DeleteResponse> deleteFuture = mock(ActionFuture.class);
-        when(deleteFuture.actionGet()).thenReturn(mock(DeleteResponse.class));
-        when(client.delete(any())).thenReturn(deleteFuture);
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<String> future = new PlainActionFuture<>();
+        service.acquire("rule", "draft", future);
 
-        ResourceLockService service = new ResourceLockService(client);
-        String lockId = service.acquire("rule", "draft");
-
-        Assert.assertNotNull(lockId);
-        verify(client, times(1)).delete(any());
-        verify(client, times(2)).index(any());
+        Assert.assertNotNull(future.actionGet());
+        verify(client, times(2)).index(any(IndexRequest.class), any(ActionListener.class));
+        verify(client, never()).delete(any(DeleteRequest.class), any(ActionListener.class));
     }
 
-    public void testAcquireThrowsAfterExhaustingRetriesOnHeldNonStaleLock() {
+    public void testAcquireStealsStaleLock() {
         Client client = mock(Client.class);
         mockLockIndexExists(client);
-        mockLockGet(client, 0); // always held recently -> never stolen
+        mockLockGet(client, Constants.LOCK_STALE_THRESHOLD_MILLIS + 1000);
 
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenThrow(versionConflict());
-        when(client.index(any())).thenReturn(indexFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onFailure(versionConflict());
+                            return null;
+                        })
+                .doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
 
-        ResourceLockService service = new ResourceLockService(client);
-        IOException e = expectThrows(IOException.class, () -> service.acquire("rule", "draft"));
-        Assert.assertTrue(e.getMessage().contains("Timed out"));
-        verify(client, never()).delete(any());
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(DeleteResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .delete(any(DeleteRequest.class), any(ActionListener.class));
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<String> future = new PlainActionFuture<>();
+        service.acquire("rule", "draft", future);
+
+        Assert.assertNotNull(future.actionGet());
+        verify(client, times(1)).delete(any(DeleteRequest.class), any(ActionListener.class));
+        verify(client, times(2)).index(any(IndexRequest.class), any(ActionListener.class));
+    }
+
+    public void testAcquireFailsAfterExhaustingRetriesOnHeldNonStaleLock() {
+        Client client = mock(Client.class);
+        mockLockIndexExists(client);
+        mockLockGet(client, 0);
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onFailure(versionConflict());
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<String> future = new PlainActionFuture<>();
+        service.acquire("rule", "draft", future);
+
+        Exception e = expectThrows(Exception.class, future::actionGet);
+        Throwable cause = e.getCause() != null ? e.getCause() : e;
+        Assert.assertTrue(cause.getMessage().contains("Timed out"));
+        verify(client, never()).delete(any(DeleteRequest.class), any(ActionListener.class));
     }
 
     public void testReleaseSwallowsExceptions() {
         Client client = mock(Client.class);
-        when(client.delete(any())).thenThrow(new RuntimeException("delete failed"));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> l = invocation.getArgument(1);
+                            l.onFailure(new RuntimeException("delete failed"));
+                            return null;
+                        })
+                .when(client)
+                .delete(any(DeleteRequest.class), any(ActionListener.class));
 
-        ResourceLockService service = new ResourceLockService(client);
-        // Should not throw.
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
         service.release("some-lock-id");
+        verify(client, times(1)).delete(any(DeleteRequest.class), any(ActionListener.class));
     }
 }

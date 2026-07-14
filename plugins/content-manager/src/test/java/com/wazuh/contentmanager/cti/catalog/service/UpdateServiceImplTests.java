@@ -22,7 +22,9 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
 import org.junit.Assert;
@@ -44,6 +46,7 @@ import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -96,6 +99,20 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                         this.apiClient,
                         this.consumersIndex,
                         indices);
+
+        // ContentIndex.create is now asynchronous; make the mocks complete their listener so the
+        // service's blocking bridge does not time out.
+        for (ContentIndex index : indices.values()) {
+            lenient()
+                    .doAnswer(
+                            invocation -> {
+                                ActionListener<IndexResponse> listener = invocation.getArgument(2);
+                                listener.onResponse(null);
+                                return null;
+                            })
+                    .when(index)
+                    .create(anyString(), any(JsonNode.class), any());
+        }
     }
 
     @After
@@ -165,7 +182,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         // Assert
         Assert.assertTrue("update() should return true on success", result);
         // Verify CREATE
-        verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class));
+        verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class), any());
 
         // Verify UPDATE (offset is now passed as the third argument)
         verify(this.ruleIndex).update(eq("rule-2"), any(List.class), any());
@@ -216,7 +233,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         doThrow(new RuntimeException("Simulated Indexing Failure"))
                 .when(this.ruleIndex)
-                .create(anyString(), any(JsonNode.class));
+                .create(anyString(), any(JsonNode.class), any());
 
         when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
@@ -284,8 +301,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertTrue("update() should return true on success", result);
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
-        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any());
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), any());
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
@@ -306,7 +323,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(1, 5));
 
         // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any());
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
         Assert.assertEquals(0, consumerCaptor.getValue().getLocalOffset());
@@ -343,7 +360,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         doThrow(new RuntimeException("Simulated Indexing Failure"))
                 .when(this.ruleIndex)
-                .create(anyString(), any(JsonNode.class));
+                .create(anyString(), any(JsonNode.class), any());
 
         // Act
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(29, 30));
@@ -395,8 +412,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertTrue("update() should return true on success", result);
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
-        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any());
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), any());
 
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(captor.capture());
@@ -519,7 +536,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         Assert.assertTrue("update() should return true on success", result);
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(this.cveIndex).create(eq("TID-123"), payloadCaptor.capture());
+        verify(this.cveIndex).create(eq("TID-123"), payloadCaptor.capture(), any());
         Assert.assertEquals("TID", payloadCaptor.getValue().get("type").asText());
         Assert.assertEquals(70L, payloadCaptor.getValue().get("offset").asLong());
     }
