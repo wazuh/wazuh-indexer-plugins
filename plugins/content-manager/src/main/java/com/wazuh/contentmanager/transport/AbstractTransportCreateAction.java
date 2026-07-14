@@ -24,10 +24,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
@@ -37,6 +40,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.action.ContentCreateRequest;
@@ -45,6 +49,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
+import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -70,6 +75,7 @@ public abstract class AbstractTransportCreateAction
     protected final PayloadValidations documentValidations = new PayloadValidations();
     protected final Client client;
     protected final EngineService engine;
+    protected final ResourceLockService resourceLockService;
 
     protected AbstractTransportCreateAction(
             String actionName,
@@ -80,6 +86,7 @@ public abstract class AbstractTransportCreateAction
         super(actionName, transportService, actionFilters, ContentCreateRequest::new);
         this.client = client;
         this.engine = engine;
+        this.resourceLockService = new ResourceLockService(client, transportService.getThreadPool());
     }
 
     @Override
@@ -94,35 +101,34 @@ public abstract class AbstractTransportCreateAction
         SpaceService spaceService = new SpaceService(client);
         IntegrationService integrationService = new IntegrationService(client);
 
-        try {
-            // Validate draft policy exists
-            RestResponse policyError = TransportActionHelper.validateDraftPolicyExists(client);
-            if (policyError != null) {
-                listener.onResponse(
-                        new ContentResponse(
-                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
-                return;
-            }
-
-            RestResponse result =
-                    executeCreateWorkflow(
-                            request, client, spaceService, securityAnalyticsService, integrationService);
-            listener.onResponse(
-                    new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
-        } catch (Exception e) {
-            listener.onResponse(
-                    new ContentResponse(
-                            e.getMessage() != null ? e.getMessage() : "Unexpected error",
-                            RestStatus.INTERNAL_SERVER_ERROR));
-        }
+        TransportActionHelper.validateDraftPolicyExists(
+                client,
+                ActionListener.wrap(
+                        policyError -> {
+                            if (policyError != null) {
+                                listener.onResponse(
+                                        new ContentResponse(
+                                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
+                                return;
+                            }
+                            executeCreateWorkflowAsync(
+                                    request,
+                                    client,
+                                    spaceService,
+                                    securityAnalyticsService,
+                                    integrationService,
+                                    listener);
+                        },
+                        e -> respondWithError(listener, e)));
     }
 
-    private RestResponse executeCreateWorkflow(
+    private void executeCreateWorkflowAsync(
             ContentCreateRequest request,
             Client client,
             SpaceService spaceService,
             SecurityAnalyticsService securityAnalyticsService,
-            IntegrationService integrationService) {
+            IntegrationService integrationService,
+            ActionListener<ContentResponse> listener) {
         // 1. Validate body is present
         byte[] body = request.getBodyContent();
         if (body == null || body.length == 0) {
@@ -131,8 +137,9 @@ public abstract class AbstractTransportCreateAction
                     "Creation",
                     this.getResourceType(),
                     "Request body is missing");
-            return new RestResponse(
-                    Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST.getStatus());
+            listener.onResponse(
+                    new ContentResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
+            return;
         }
 
         try {
@@ -142,7 +149,6 @@ public abstract class AbstractTransportCreateAction
             boolean isYaml = "yaml".equals(request.getContentType());
 
             if (isYaml && this.supportsYamlField()) {
-                // YAML Request
                 try {
                     String yamlBody = new String(body, java.nio.charset.StandardCharsets.UTF_8);
                     rootNode = YamlUtils.fromYaml(yamlBody);
@@ -152,9 +158,10 @@ public abstract class AbstractTransportCreateAction
                             "Creation",
                             this.getResourceType(),
                             "Invalid YAML format. Reason: " + e.getMessage());
-                    return new RestResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(),
-                            RestStatus.BAD_REQUEST.getStatus());
+                    listener.onResponse(
+                            new ContentResponse(
+                                    Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(), RestStatus.BAD_REQUEST));
+                    return;
                 }
 
                 RestResponse validationError =
@@ -166,12 +173,14 @@ public abstract class AbstractTransportCreateAction
                             "Payload structure validation",
                             this.getResourceType(),
                             validationError.getMessage());
-                    return validationError;
+                    listener.onResponse(
+                            new ContentResponse(
+                                    validationError.getMessage(), RestStatus.fromCode(validationError.getStatus())));
+                    return;
                 }
                 resourceNode = (ObjectNode) rootNode.get(Constants.KEY_RESOURCE);
                 rawYaml = YamlUtils.toYaml(resourceNode);
             } else {
-                // JSON Request
                 try {
                     rootNode = MAPPER.readTree(new ByteArrayInputStream(body));
                 } catch (IOException e) {
@@ -180,12 +189,12 @@ public abstract class AbstractTransportCreateAction
                             "Creation",
                             this.getResourceType(),
                             "Invalid JSON format. Reason: " + e.getMessage());
-                    return new RestResponse(
-                            Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(),
-                            RestStatus.BAD_REQUEST.getStatus());
+                    listener.onResponse(
+                            new ContentResponse(
+                                    Constants.E_400_INVALID_REQUEST_BODY + e.getMessage(), RestStatus.BAD_REQUEST));
+                    return;
                 }
 
-                // 2. Validate Payload Structure
                 RestResponse validationError =
                         this.documentValidations.validateResourcePayload(
                                 rootNode, this.requiresIntegrationId());
@@ -195,101 +204,317 @@ public abstract class AbstractTransportCreateAction
                             "Payload structure validation",
                             this.getResourceType(),
                             validationError.getMessage());
-                    return validationError;
+                    listener.onResponse(
+                            new ContentResponse(
+                                    validationError.getMessage(), RestStatus.fromCode(validationError.getStatus())));
+                    return;
                 }
                 resourceNode = (ObjectNode) rootNode.get(Constants.KEY_RESOURCE);
             }
 
-            // 3. Resource Specific Validation
-            RestResponse validationError =
-                    this.validatePayload(client, rootNode, resourceNode, integrationService);
-            if (validationError != null) {
-                log.warn(
-                        Constants.W_LOG_OPERATION_FAILED,
-                        "Validation",
-                        this.getResourceType(),
-                        validationError.getMessage());
-                return validationError;
-            }
-
-            // 4. Generate ID and Metadata
-            String id = UUID.randomUUID().toString();
-            resourceNode.put(Constants.KEY_ID, id);
-
-            String currentTimestamp = getCurrentDate();
-            Resource.setCreationTime(resourceNode, currentTimestamp);
-            Resource.setLastModificationTime(resourceNode, currentTimestamp);
-            Resource.nestMetadataFields(resourceNode);
-
-            if (!resourceNode.has(Constants.KEY_ENABLED)) {
-                resourceNode.put(Constants.KEY_ENABLED, true);
-            }
-
-            // 6. External Sync
-            validationError = this.syncExternalServices(id, resourceNode, securityAnalyticsService);
-            if (validationError != null) {
-                log.error(
-                        Constants.E_LOG_FAILED_TO,
-                        "sync",
-                        this.getResourceType(),
-                        id,
-                        "with external services (Engine/SAP). Reason: " + validationError.getMessage());
-                return validationError;
-            }
-
-            // 7. Indexing
-            ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
-            ObjectNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
-
-            // Populate yaml field for resource types that support it
-            if (this.supportsYamlField()) {
-                if (rawYaml != null) {
-                    ctiWrapper.put(Constants.KEY_YAML, rawYaml);
-                } else {
-                    ctiWrapper.put(Constants.KEY_YAML, YamlUtils.toYaml(resourceNode));
-                }
-            }
-
-            index.create(id, ctiWrapper);
-
-            // 8. Link to Parent
-            try {
-                this.linkToParent(client, id, rootNode, integrationService);
-            } catch (Exception e) {
-                log.error(
-                        Constants.E_LOG_FAILED_TO,
-                        "link",
-                        this.getResourceType(),
-                        id,
-                        "to parent resource. Rolling back. Reason: " + e.getMessage());
-                index.delete(id);
-                this.rollbackExternalServices(id, securityAnalyticsService);
-                throw e;
-            }
-
-            // 9. Update Hash
-            spaceService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            log.info(Constants.I_LOG_SUCCESS, "Created", this.getResourceType(), id);
-            return new RestResponse(id, RestStatus.CREATED.getStatus());
+            // 3. Resource Specific Validation (async)
+            final String finalRawYaml = rawYaml;
+            final JsonNode finalRootNode = rootNode;
+            final ObjectNode finalResourceNode = resourceNode;
+            this.validatePayload(
+                    client,
+                    rootNode,
+                    resourceNode,
+                    integrationService,
+                    ActionListener.wrap(
+                            validationError -> {
+                                if (validationError != null) {
+                                    log.warn(
+                                            Constants.W_LOG_OPERATION_FAILED,
+                                            "Validation",
+                                            this.getResourceType(),
+                                            validationError.getMessage());
+                                    listener.onResponse(
+                                            new ContentResponse(
+                                                    validationError.getMessage(),
+                                                    RestStatus.fromCode(validationError.getStatus())));
+                                    return;
+                                }
+                                createWithLimitGuard(
+                                        finalRootNode,
+                                        finalResourceNode,
+                                        finalRawYaml,
+                                        client,
+                                        spaceService,
+                                        securityAnalyticsService,
+                                        integrationService,
+                                        listener);
+                            },
+                            e -> respondWithError(listener, e)));
 
         } catch (Exception e) {
-            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
-            if (osEx != null) {
-                return new RestResponse(osEx.getMessage(), osEx.status().getStatus());
-            }
-            log.error(
-                    Constants.E_LOG_OPERATION_FAILED,
-                    "creating",
-                    this.getResourceType(),
-                    "Reason: " + e.getMessage());
-            return new RestResponse(
-                    "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            respondWithError(listener, e);
         }
+    }
+
+    /**
+     * Serializes the limit-check-then-create sequence per resource type/space so concurrent requests
+     * cannot all observe a stale count and overshoot the configured max. Acquires the resource lock,
+     * checks the limit, then proceeds with the async creation chain. The lock is released once that
+     * chain completes, whether it succeeds or fails.
+     */
+    private void createWithLimitGuard(
+            JsonNode rootNode,
+            ObjectNode resourceNode,
+            String rawYaml,
+            Client client,
+            SpaceService spaceService,
+            SecurityAnalyticsService securityAnalyticsService,
+            IntegrationService integrationService,
+            ActionListener<ContentResponse> listener) {
+        // 3b. Serialize the limit-check-then-create sequence per resource type/space so concurrent
+        // requests cannot all observe a stale count and overshoot the configured max.
+        String space = Space.DRAFT.toString();
+        this.resourceLockService.acquire(
+                this.getResourceType(),
+                space,
+                ActionListener.wrap(
+                        lockId -> {
+                            ActionListener<ContentResponse> lockReleasingListener =
+                                    ActionListener.runAfter(listener, () -> this.resourceLockService.release(lockId));
+
+                            this.checkResourceLimitAsync(
+                                    client,
+                                    space,
+                                    ActionListener.wrap(
+                                            limitError -> {
+                                                if (limitError != null) {
+                                                    lockReleasingListener.onResponse(
+                                                            new ContentResponse(
+                                                                    limitError.getMessage(),
+                                                                    RestStatus.fromCode(limitError.getStatus())));
+                                                    return;
+                                                }
+                                                afterValidation(
+                                                        rootNode,
+                                                        resourceNode,
+                                                        rawYaml,
+                                                        client,
+                                                        spaceService,
+                                                        securityAnalyticsService,
+                                                        integrationService,
+                                                        lockReleasingListener);
+                                            },
+                                            e -> respondWithError(lockReleasingListener, e)));
+                        },
+                        e -> {
+                            log.warn(
+                                    "Failed to acquire resource-creation lock for [{}]: {}",
+                                    this.getResourceType(),
+                                    e.getMessage());
+                            listener.onResponse(
+                                    new ContentResponse(
+                                            Constants.E_503_RESOURCE_LOCK_TIMEOUT, RestStatus.TOO_MANY_REQUESTS));
+                        }));
+    }
+
+    /**
+     * Checks whether creating another resource of this type in the given space would exceed the
+     * configured limit. Must be called while holding the {@link #resourceLockService} lock for
+     * (resource type, space) so the count it observes stays valid until the resource is created.
+     *
+     * @param client The OpenSearch client.
+     * @param space The space to count existing resources in.
+     * @param listener Receives a {@code BAD_REQUEST} {@link RestResponse} if the limit would be
+     *     exceeded, or {@code null} if creation may proceed.
+     */
+    private void checkResourceLimitAsync(
+            Client client, String space, ActionListener<RestResponse> listener) {
+        int max = this.getMaxAllowed();
+        SearchRequest countRequest = new SearchRequest(this.getIndexName());
+        SearchSourceBuilder countSource = new SearchSourceBuilder();
+        countSource.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space));
+        countSource.size(0);
+        countSource.trackTotalHits(true);
+        countRequest.source(countSource);
+        client.search(
+                countRequest,
+                ActionListener.wrap(
+                        countResponse -> {
+                            long count =
+                                    countResponse.getHits().getTotalHits() != null
+                                            ? countResponse.getHits().getTotalHits().value()
+                                            : 0;
+                            if (count >= max) {
+                                log.info(this.getMaxReachedLogFormat(), max);
+                                listener.onResponse(
+                                        new RestResponse(
+                                                String.format(Locale.ROOT, this.getTooManyResourcesMessageFormat(), max),
+                                                RestStatus.BAD_REQUEST.getStatus()));
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        e -> {
+                            log.warn(
+                                    "Failed to count existing {} for limit check: {}",
+                                    this.getResourceType(),
+                                    e.getMessage());
+                            listener.onResponse(null);
+                        }));
+    }
+
+    private void afterValidation(
+            JsonNode rootNode,
+            ObjectNode resourceNode,
+            String rawYaml,
+            Client client,
+            SpaceService spaceService,
+            SecurityAnalyticsService securityAnalyticsService,
+            IntegrationService integrationService,
+            ActionListener<ContentResponse> listener) {
+        // 4. Generate ID and Metadata
+        String id = UUID.randomUUID().toString();
+        resourceNode.put(Constants.KEY_ID, id);
+
+        String currentTimestamp = getCurrentDate();
+        Resource.setCreationTime(resourceNode, currentTimestamp);
+        Resource.setLastModificationTime(resourceNode, currentTimestamp);
+        Resource.nestMetadataFields(resourceNode);
+
+        if (!resourceNode.has(Constants.KEY_ENABLED)) {
+            resourceNode.put(Constants.KEY_ENABLED, true);
+        }
+
+        // 6. External Sync (async)
+        this.syncExternalServices(
+                id,
+                resourceNode,
+                securityAnalyticsService,
+                ActionListener.wrap(
+                        syncError -> {
+                            if (syncError != null) {
+                                log.error(
+                                        Constants.E_LOG_FAILED_TO,
+                                        "sync",
+                                        this.getResourceType(),
+                                        id,
+                                        "with external services (Engine/SAP). Reason: " + syncError.getMessage());
+                                listener.onResponse(
+                                        new ContentResponse(
+                                                syncError.getMessage(), RestStatus.fromCode(syncError.getStatus())));
+                                return;
+                            }
+                            afterSync(
+                                    id,
+                                    rootNode,
+                                    resourceNode,
+                                    rawYaml,
+                                    client,
+                                    spaceService,
+                                    securityAnalyticsService,
+                                    integrationService,
+                                    listener);
+                        },
+                        e -> respondWithError(listener, e)));
+    }
+
+    private void afterSync(
+            String id,
+            JsonNode rootNode,
+            ObjectNode resourceNode,
+            String rawYaml,
+            Client client,
+            SpaceService spaceService,
+            SecurityAnalyticsService securityAnalyticsService,
+            IntegrationService integrationService,
+            ActionListener<ContentResponse> listener) {
+        // 7. Indexing (async)
+        ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
+        ObjectNode ctiWrapper = new Resource().wrapResource(resourceNode, Space.DRAFT.toString());
+
+        if (this.supportsYamlField()) {
+            if (rawYaml != null) {
+                ctiWrapper.put(Constants.KEY_YAML, rawYaml);
+            } else {
+                ctiWrapper.put(Constants.KEY_YAML, YamlUtils.toYaml(resourceNode));
+            }
+        }
+
+        index.create(
+                id,
+                ctiWrapper,
+                ActionListener.wrap(
+                        indexResponse ->
+                                afterIndex(
+                                        id,
+                                        rootNode,
+                                        index,
+                                        client,
+                                        spaceService,
+                                        securityAnalyticsService,
+                                        integrationService,
+                                        listener),
+                        e -> respondWithError(listener, e)));
+    }
+
+    private void afterIndex(
+            String id,
+            JsonNode rootNode,
+            ContentIndex index,
+            Client client,
+            SpaceService spaceService,
+            SecurityAnalyticsService securityAnalyticsService,
+            IntegrationService integrationService,
+            ActionListener<ContentResponse> listener) {
+        // 8. Link to Parent (async)
+        this.linkToParent(
+                client,
+                id,
+                rootNode,
+                integrationService,
+                ActionListener.wrap(
+                        v -> afterLink(id, spaceService, listener),
+                        e -> {
+                            log.error(
+                                    Constants.E_LOG_FAILED_TO,
+                                    "link",
+                                    this.getResourceType(),
+                                    id,
+                                    "to parent resource. Rolling back. Reason: " + e.getMessage());
+                            index.delete(id);
+                            this.rollbackExternalServices(id, securityAnalyticsService);
+                            respondWithError(listener, e);
+                        }));
+    }
+
+    private void afterLink(
+            String id, SpaceService spaceService, ActionListener<ContentResponse> listener) {
+        // 9. Update Hash (async)
+        spaceService.calculateAndUpdate(
+                List.of(Space.DRAFT.toString()),
+                ActionListener.wrap(
+                        changedSpaces -> {
+                            log.info(Constants.I_LOG_SUCCESS, "Created", this.getResourceType(), id);
+                            listener.onResponse(new ContentResponse(id, RestStatus.CREATED));
+                        },
+                        e -> respondWithError(listener, e)));
+    }
+
+    private void respondWithError(ActionListener<ContentResponse> listener, Exception e) {
+        OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
+        if (secEx != null) {
+            listener.onResponse(new ContentResponse(secEx.getMessage(), secEx.status()));
+            return;
+        }
+        OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
+        if (osEx != null) {
+            listener.onResponse(new ContentResponse(osEx.getMessage(), osEx.status()));
+            return;
+        }
+        log.error(
+                Constants.E_LOG_OPERATION_FAILED,
+                "creating",
+                this.getResourceType(),
+                "Reason: " + e.getMessage());
+        listener.onResponse(
+                new ContentResponse(
+                        "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
     }
 
     protected String getCurrentDate() {
@@ -308,16 +533,43 @@ public abstract class AbstractTransportCreateAction
 
     protected abstract String getResourceType();
 
-    protected abstract RestResponse validatePayload(
-            Client client, JsonNode root, JsonNode resource, IntegrationService integrationService);
+    /**
+     * @return The configured maximum number of resources of this type allowed per space.
+     */
+    protected abstract int getMaxAllowed();
 
-    protected abstract RestResponse syncExternalServices(
-            String id, JsonNode resource, SecurityAnalyticsService securityAnalyticsService);
+    /**
+     * @return The {@code String.format} message template (taking the max as its sole argument)
+     *     returned to the client when the limit is reached.
+     */
+    protected abstract String getTooManyResourcesMessageFormat();
+
+    /**
+     * @return The log message template (taking the max as its sole argument) logged when the limit is
+     *     reached.
+     */
+    protected abstract String getMaxReachedLogFormat();
+
+    protected abstract void validatePayload(
+            Client client,
+            JsonNode root,
+            JsonNode resource,
+            IntegrationService integrationService,
+            ActionListener<RestResponse> listener);
+
+    protected abstract void syncExternalServices(
+            String id,
+            JsonNode resource,
+            SecurityAnalyticsService securityAnalyticsService,
+            ActionListener<RestResponse> listener);
 
     protected void rollbackExternalServices(
             String id, SecurityAnalyticsService securityAnalyticsService) {}
 
     protected abstract void linkToParent(
-            Client client, String id, JsonNode root, IntegrationService integrationService)
-            throws IOException;
+            Client client,
+            String id,
+            JsonNode root,
+            IntegrationService integrationService,
+            ActionListener<Void> listener);
 }

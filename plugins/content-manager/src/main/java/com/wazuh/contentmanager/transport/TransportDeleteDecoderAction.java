@@ -18,11 +18,11 @@ package com.wazuh.contentmanager.transport;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
-import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 
@@ -58,37 +58,53 @@ public class TransportDeleteDecoderAction extends AbstractTransportDeleteAction 
     }
 
     @Override
-    protected RestResponse validateDelete(Client client, String id, SpaceService spaceService) {
-        try {
-            Map<String, Object> policySource = spaceService.getPolicy(Space.DRAFT.toString());
+    protected void validateDelete(
+            Client client, String id, SpaceService spaceService, ActionListener<RestResponse> listener) {
+        spaceService.getPolicy(
+                Space.DRAFT.toString(),
+                ActionListener.wrap(
+                        policySource -> {
+                            if (policySource != null && policySource.containsKey(Constants.KEY_DOCUMENT)) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> document =
+                                        (Map<String, Object>) policySource.get(Constants.KEY_DOCUMENT);
 
-            if (policySource != null && policySource.containsKey(Constants.KEY_DOCUMENT)) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> document =
-                        (Map<String, Object>) policySource.get(Constants.KEY_DOCUMENT);
-
-                if (document != null && id.equals(document.get("root_decoder"))) {
-                    return new RestResponse(
-                            String.format(Locale.ROOT, Constants.E_400_CANNOT_REMOVE_ROOT_DECODER, id),
-                            RestStatus.BAD_REQUEST.getStatus());
-                }
-            }
-        } catch (Exception e) {
-            return new RestResponse(
-                    Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-        return null;
+                                if (document != null && id.equals(document.get("root_decoder"))) {
+                                    listener.onResponse(
+                                            new RestResponse(
+                                                    String.format(
+                                                            Locale.ROOT, Constants.E_400_CANNOT_REMOVE_ROOT_DECODER, id),
+                                                    RestStatus.BAD_REQUEST.getStatus()));
+                                    return;
+                                }
+                            }
+                            listener.onResponse(null);
+                        },
+                        e ->
+                                listener.onResponse(
+                                        new RestResponse(
+                                                Constants.E_500_INTERNAL_SERVER_ERROR,
+                                                RestStatus.INTERNAL_SERVER_ERROR.getStatus()))));
     }
 
     @Override
     protected void deleteExternalServices(
-            String id, SecurityAnalyticsService securityAnalyticsService) {
+            String id, SecurityAnalyticsService securityAnalyticsService, ActionListener<Void> listener) {
         // Decoders are not explicitly deleted from Engine or SAP
+        listener.onResponse(null);
     }
 
     @Override
-    protected void unlinkFromParent(Client client, String id, IntegrationService integrationService)
-            throws IOException {
-        integrationService.unlinkResourceFromIntegrations(id, Constants.KEY_DECODERS);
+    protected void unlinkFromParent(
+            Client client,
+            String id,
+            IntegrationService integrationService,
+            ActionListener<Void> listener) {
+        try {
+            integrationService.unlinkResourceFromIntegrations(id, Constants.KEY_DECODERS);
+            listener.onResponse(null);
+        } catch (Exception e) {
+            listener.onFailure(e);
+        }
     }
 }

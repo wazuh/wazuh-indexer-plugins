@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.transport.client.Client;
@@ -29,7 +30,9 @@ import org.opensearch.transport.client.Client;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
@@ -602,9 +605,20 @@ public abstract class AbstractConsumerService {
                     try {
                         SecurityAnalyticsService securityAnalyticsService =
                                 new SecurityAnalyticsServiceImpl(this.client);
-                        securityAnalyticsService.deleteSpaceResources(Space.STANDARD);
+                        CompletableFuture<Void> sapFuture = new CompletableFuture<>();
+                        securityAnalyticsService.deleteSpaceResources(
+                                Space.STANDARD,
+                                ActionListener.wrap(
+                                        r -> sapFuture.complete(null), sapFuture::completeExceptionally));
+                        sapFuture.get(60, TimeUnit.SECONDS);
+
                         SpaceService spaceService = new SpaceService(this.client);
-                        spaceService.deleteSpaceResources(Space.STANDARD);
+                        CompletableFuture<Void> spaceFuture = new CompletableFuture<>();
+                        spaceService.deleteSpaceResources(
+                                Space.STANDARD,
+                                ActionListener.wrap(
+                                        r -> spaceFuture.complete(null), spaceFuture::completeExceptionally));
+                        spaceFuture.get(60, TimeUnit.SECONDS);
                     } catch (Exception e) {
                         log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
                     }

@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.ActionFilters;
-import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
@@ -34,12 +33,12 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.UpdatePolicyRequest;
@@ -47,9 +46,11 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -70,6 +71,7 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
     private TransportUpdatePolicyAction action;
     private IndexResponse indexResponse;
 
+    @SuppressWarnings("unchecked")
     @Before
     @Override
     public void setUp() throws Exception {
@@ -91,13 +93,34 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
                         this.client);
 
         when(this.spaceService.getKnownEnrichmentTypes()).thenReturn(Collections.emptySet());
-        when(this.spaceService.findDocumentId(any(), any(), any())).thenReturn("draft-doc-id");
-        when(this.spaceService.calculateAndUpdate(any())).thenReturn(Collections.emptySet());
-
         when(this.indexResponse.getId()).thenReturn("draft-doc-id");
-        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
-        future.onResponse(this.indexResponse);
-        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<String> l = invocation.getArgument(3);
+                            l.onResponse("draft-doc-id");
+                            return null;
+                        })
+                .when(this.spaceService)
+                .findDocumentIdAsync(any(), any(), any(), any(ActionListener.class));
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onResponse(this.indexResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
+
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Set<String>> l = invocation.getArgument(1);
+                            l.onResponse(Collections.emptySet());
+                            return null;
+                        })
+                .when(this.spaceService)
+                .calculateAndUpdate(any(), any(ActionListener.class));
     }
 
     @After
@@ -135,8 +158,7 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
     }
 
     private String draftUpdateBody(String modifiedField) {
-        String modifiedLine =
-                modifiedField == null ? "" : "\"modified\": \"" + modifiedField + "\",";
+        String modifiedLine = modifiedField == null ? "" : "\"modified\": \"" + modifiedField + "\",";
         return "{"
                 + "\"type\": \"policy\","
                 + "\"resource\": {"
@@ -162,18 +184,23 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
     /** Captures the {@code document.metadata} node actually sent to the indexing client. */
     private JsonNode capturedIndexedMetadata() throws Exception {
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any(ActionListener.class));
         JsonNode source = MAPPER.readTree(captor.getValue().source().utf8ToString());
         return source.path(Constants.KEY_DOCUMENT).path(Constants.KEY_METADATA);
     }
 
     public void testUpdatePolicy_honorsCallerSuppliedModified() throws Exception {
-        when(this.spaceService.getPolicy(com.wazuh.contentmanager.cti.catalog.model.Space.DRAFT.toString()))
-                .thenReturn(currentDraftPolicy());
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Map<String, Object>> l = invocation.getArgument(1);
+                            l.onResponse(currentDraftPolicy());
+                            return null;
+                        })
+                .when(this.spaceService)
+                .getPolicy(any(), any(ActionListener.class));
 
         String callerModified = "2021-05-05T00:00:00.000Z";
-        UpdatePolicyRequest request =
-                new UpdatePolicyRequest("draft", draftUpdateBody(callerModified));
+        UpdatePolicyRequest request = new UpdatePolicyRequest("draft", draftUpdateBody(callerModified));
 
         @SuppressWarnings("unchecked")
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
@@ -199,8 +226,14 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
     }
 
     public void testUpdatePolicy_generatesModifiedWhenAbsent() throws Exception {
-        when(this.spaceService.getPolicy(com.wazuh.contentmanager.cti.catalog.model.Space.DRAFT.toString()))
-                .thenReturn(currentDraftPolicy());
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Map<String, Object>> l = invocation.getArgument(1);
+                            l.onResponse(currentDraftPolicy());
+                            return null;
+                        })
+                .when(this.spaceService)
+                .getPolicy(any(), any(ActionListener.class));
 
         UpdatePolicyRequest request = new UpdatePolicyRequest("draft", draftUpdateBody(null));
 

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
@@ -211,72 +212,90 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
     }
 
     @Override
-    protected RestResponse syncExternalServices(String id, JsonNode resource, Space space) {
+    protected void syncExternalServices(
+            String id, JsonNode resource, Space space, ActionListener<RestResponse> listener) {
         SecurityAnalyticsService securityAnalyticsService = this.resolveSecurityAnalyticsService();
 
         // Standard integrations: only 'enabled' is mutable, and toggling it keeps the related
         // detector in sync.
         if (Space.STANDARD.equals(space)) {
-            return this.syncDetectorEnabledState(id, resource, securityAnalyticsService);
+            this.syncDetectorEnabledState(id, resource, securityAnalyticsService, listener);
+            return;
         }
 
-        // 1. Validate using the Engine.
+        // 1. Validate using the Engine (synchronous, not a Client call).
         ObjectNode enginePayload = MAPPER.createObjectNode();
         enginePayload.set(Constants.KEY_RESOURCE, resource);
         enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
 
         RestResponse engineResponse = this.engine.validate(enginePayload);
         if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(
-                    Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
+            listener.onResponse(
+                    new RestResponse(
+                            Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
+                            RestStatus.BAD_REQUEST.getStatus()));
+            return;
         }
 
-        // 2. Send to Security Analytics.
-        try {
-            securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, PUT);
-        } catch (Exception e) {
-            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            return new RestResponse(
-                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        return null;
+        // 2. Send to Security Analytics (async).
+        securityAnalyticsService.upsertIntegration(
+                resource,
+                Space.DRAFT,
+                PUT,
+                ActionListener.wrap(
+                        response -> listener.onResponse(null),
+                        e -> {
+                            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
+                            if (secEx != null) {
+                                listener.onResponse(
+                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
+                                return;
+                            }
+                            listener.onResponse(
+                                    new RestResponse(
+                                            Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                        }));
     }
 
     /**
      * Mirrors the integration's {@code enabled} state onto its related Security Analytics detector.
      *
      * <p>The detector shares the integration's document id, so its enabled state is toggled directly
-     * by id via {@link SecurityAnalyticsService#setDetectorEnabled(String, boolean)}, which flips the
-     * existing detector (preserving its inputs, triggers and monitors) and is a no-op when no
-     * detector exists.
+     * by id via {@link SecurityAnalyticsService#setDetectorEnabled(String, boolean, ActionListener)},
+     * which flips the existing detector (preserving its inputs, triggers and monitors) and is a no-op
+     * when no detector exists.
      *
      * @param id the integration/detector document id.
      * @param resource the (restored) integration document being updated.
      * @param securityAnalyticsService the SAP service used to toggle the detector.
-     * @return a {@link RestResponse} error if the detector could not be synced, or null on success.
+     * @param listener notified with {@code null} on success, or a {@link RestResponse} error if the
+     *     detector could not be synced.
      */
-    private RestResponse syncDetectorEnabledState(
-            String id, JsonNode resource, SecurityAnalyticsService securityAnalyticsService) {
+    private void syncDetectorEnabledState(
+            String id,
+            JsonNode resource,
+            SecurityAnalyticsService securityAnalyticsService,
+            ActionListener<RestResponse> listener) {
         boolean enabled = resource.path(Constants.KEY_ENABLED).asBoolean(true);
-
-        try {
-            securityAnalyticsService.setDetectorEnabled(id, enabled);
-        } catch (Exception e) {
-            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            return new RestResponse(
-                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-        return null;
+        securityAnalyticsService.setDetectorEnabled(
+                id,
+                enabled,
+                ActionListener.wrap(
+                        response -> listener.onResponse(null),
+                        e -> {
+                            OpenSearchSecurityException secEx =
+                                    TransportActionHelper.extractSecurityException(e);
+                            if (secEx != null) {
+                                listener.onResponse(
+                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
+                                return;
+                            }
+                            listener.onResponse(
+                                    new RestResponse(
+                                            Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                        }));
     }
 
     private SecurityAnalyticsService resolveSecurityAnalyticsService() {

@@ -33,6 +33,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 public class TransportLogtestDetectionActionTests extends OpenSearchTestCase {
@@ -49,16 +50,22 @@ public class TransportLogtestDetectionActionTests extends OpenSearchTestCase {
                         mock(TransportService.class), mock(ActionFilters.class), this.logtestService);
     }
 
+    @SuppressWarnings("unchecked")
     public void testDoExecute_Success() {
-        when(this.logtestService.executeDetection(
-                        eq("my-integration"), eq(Space.TEST), any(JsonNode.class)))
-                .thenReturn(new RestResponse("OK", RestStatus.OK.getStatus()));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<RestResponse> l = invocation.getArgument(3);
+                            l.onResponse(new RestResponse("OK", RestStatus.OK.getStatus()));
+                            return null;
+                        })
+                .when(this.logtestService)
+                .executeDetectionAsync(
+                        eq("my-integration"), eq(Space.TEST), any(JsonNode.class), any(ActionListener.class));
 
         String body =
                 "{\"space\":\"test\",\"integration\":\"my-integration\",\"input\":{\"key\":\"value\"}}";
         LogtestDetectionRequest request = new LogtestDetectionRequest(body);
 
-        @SuppressWarnings("unchecked")
         ActionListener<LogtestResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
@@ -154,14 +161,20 @@ public class TransportLogtestDetectionActionTests extends OpenSearchTestCase {
                                 }));
     }
 
+    @SuppressWarnings("unchecked")
     public void testDoExecute_Exception() {
-        when(this.logtestService.executeDetection(any(), any(), any()))
-                .thenThrow(new RuntimeException("Unexpected"));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<RestResponse> l = invocation.getArgument(3);
+                            l.onFailure(new RuntimeException("Unexpected"));
+                            return null;
+                        })
+                .when(this.logtestService)
+                .executeDetectionAsync(any(), any(), any(), any(ActionListener.class));
 
         String body = "{\"space\":\"test\",\"integration\":\"int-1\",\"input\":{\"key\":\"value\"}}";
         LogtestDetectionRequest request = new LogtestDetectionRequest(body);
 
-        @SuppressWarnings("unchecked")
         ActionListener<LogtestResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
