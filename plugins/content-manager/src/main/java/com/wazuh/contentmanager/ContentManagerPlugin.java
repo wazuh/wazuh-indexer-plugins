@@ -459,6 +459,13 @@ public class ContentManagerPlugin extends Plugin
                                     // find these already present and skip re-creating them.
                                     this.ensureResourceIndicesExist();
 
+                                    // Seed the default space policies (draft, test, custom) so
+                                    // custom-ruleset operations that require a draft policy work even
+                                    // when catalog synchronization is disabled. Must run after the
+                                    // indices exist. Idempotent (opType=CREATE), so a later sync or
+                                    // another node finds them already present.
+                                    this.ensureDefaultSpacesExist();
+
                                     this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();
@@ -531,6 +538,24 @@ public class ContentManagerPlugin extends Plugin
             } catch (Exception e) {
                 log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Seeds the default space policy documents (draft, test, custom) if they do not already exist.
+     *
+     * <p>These are otherwise created only during catalog synchronization (in {@code
+     * ConsumerRulesetService}). When synchronization is disabled the draft policy never exists, so
+     * custom-ruleset operations that first check for it (e.g. creating an integration) fail with
+     * "Draft policy not found" even though the resource indices are present. This seeds them at
+     * startup via the same idempotent {@code opType=CREATE} logic, so a later sync or another node
+     * finds them already present. Must run after {@link #ensureResourceIndicesExist()}.
+     */
+    private void ensureDefaultSpacesExist() {
+        try {
+            this.<Void>awaitResult(listener -> this.spaceService.initializeDefaultSpaces(listener));
+        } catch (Exception e) {
+            log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, "spaces", e.getMessage());
         }
     }
 

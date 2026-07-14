@@ -283,6 +283,44 @@ public class SpaceService {
     }
 
     /**
+     * Seeds the default space policy documents (draft, test, custom) in the policies index if they do
+     * not already exist.
+     *
+     * <p>All three share one deterministic policy id so they stay linked, and each write goes through
+     * {@link #initializeSpace} which uses {@code opType=CREATE}. This makes the method idempotent and
+     * safe to call repeatedly and concurrently across nodes: a duplicate write raises a {@link
+     * VersionConflictEngineException} that is silently ignored.
+     *
+     * <p>It is invoked both from catalog-sync post-processing and unconditionally at plugin startup,
+     * so the default spaces (and therefore the draft policy that custom-ruleset operations require)
+     * exist even when catalog synchronization is disabled.
+     *
+     * @param listener notified once all three spaces have been processed.
+     */
+    public void initializeDefaultSpaces(ActionListener<Void> listener) {
+        // Deterministic id shared across all default policies so they are linked; a name-based
+        // UUID (v3) ensures every node derives the same id from the same seed.
+        String sharedDocumentId =
+                UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
+        // Seed the three spaces sequentially. initializeSpace never fails its listener (it swallows
+        // and logs), so a simple chain is sufficient and always reaches the caller's listener.
+        this.initializeSpace(
+                Space.DRAFT.toString(),
+                sharedDocumentId,
+                ActionListener.wrap(
+                        ignoredDraft ->
+                                this.initializeSpace(
+                                        Space.TEST.toString(),
+                                        sharedDocumentId,
+                                        ActionListener.wrap(
+                                                ignoredTest ->
+                                                        this.initializeSpace(
+                                                                Space.CUSTOM.toString(), sharedDocumentId, listener),
+                                                listener::onFailure)),
+                        listener::onFailure));
+    }
+
+    /**
      * Asynchronously fetches all resources (document.id and Hash) for a given space.
      *
      * @param spaceName The space to filter by (e.g., "draft", "test")

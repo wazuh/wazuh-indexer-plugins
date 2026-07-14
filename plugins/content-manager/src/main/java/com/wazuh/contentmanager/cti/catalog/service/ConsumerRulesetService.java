@@ -30,7 +30,6 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -602,17 +601,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * Creates default policy documents for user spaces (draft, testing, custom) if they don't exist.
      */
     private void initializeSpaces() {
-        // Generate a deterministic ID shared across all default policies so they are linked.
-        // Using a name-based UUID (v3) ensures all nodes produce the same ID for the same seed.
-        String sharedDocumentId =
-                UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
         try {
-            this.<Void>awaitResult(
-                    l -> this.spaceService.initializeSpace(Space.DRAFT.toString(), sharedDocumentId, l));
-            this.<Void>awaitResult(
-                    l -> this.spaceService.initializeSpace(Space.TEST.toString(), sharedDocumentId, l));
-            this.<Void>awaitResult(
-                    l -> this.spaceService.initializeSpace(Space.CUSTOM.toString(), sharedDocumentId, l));
+            this.<Void>awaitResult(l -> this.spaceService.initializeDefaultSpaces(l));
         } catch (IOException e) {
             log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, "spaces", e.getMessage());
         }
