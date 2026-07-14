@@ -250,11 +250,17 @@ public abstract class AbstractTransportUpdateActionSpaces
                 return;
             }
 
+            // Resolved once, as a local variable, and threaded explicitly through the calls below.
+            // Subclasses used to cache this on an instance field, but transport actions are
+            // singletons shared across concurrently in-flight requests, so any per-request state
+            // must live on the stack, not on `this`.
+            Space space = Space.fromValue(spaceName);
+
             // Update timestamps & preserve metadata
             String currentTimestamp = getCurrentDate();
             Resource.setLastModificationTime(resourceNode, currentTimestamp);
             Resource.nestMetadataFields(resourceNode);
-            validationError = this.preserveMetadata(index, id, resourceNode);
+            validationError = this.preserveMetadata(index, id, resourceNode, space);
             if (validationError != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED_ID,
@@ -273,6 +279,7 @@ public abstract class AbstractTransportUpdateActionSpaces
             this.syncExternalServices(
                     id,
                     resourceNode,
+                    space,
                     ActionListener.wrap(
                             syncError -> {
                                 if (syncError != null) {
@@ -353,7 +360,8 @@ public abstract class AbstractTransportUpdateActionSpaces
                         "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
     }
 
-    protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
+    protected RestResponse preserveMetadata(
+            ContentIndex index, String id, ObjectNode resourceNode, Space space) {
         JsonNode existingDoc = index.getDocument(id);
         if (existingDoc == null || !existingDoc.has(Constants.KEY_DOCUMENT)) return null;
 
@@ -443,5 +451,5 @@ public abstract class AbstractTransportUpdateActionSpaces
      * RestResponse} to abort the update, or {@code null} to proceed.
      */
     protected abstract void syncExternalServices(
-            String id, JsonNode resource, ActionListener<RestResponse> listener);
+            String id, JsonNode resource, Space space, ActionListener<RestResponse> listener);
 }

@@ -71,6 +71,16 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
     }
 
     @Override
+    public void setDetectorEnabled(
+            String id, boolean enabled, ActionListener<? extends ActionResponse> listener) {
+        log.debug(
+                "MockSecurityAnalyticsService.setDetectorEnabled called for id: {}, enabled: {}",
+                id,
+                enabled);
+        listener.onResponse(null);
+    }
+
+    @Override
     public void upsertDetectorAsync(
             JsonNode doc,
             boolean rawCategory,

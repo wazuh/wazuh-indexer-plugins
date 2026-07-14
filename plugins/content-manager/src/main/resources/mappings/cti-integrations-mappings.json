@@ -44,6 +44,9 @@
         "enabled": {
           "type": "boolean"
         },
+        "mode": {
+          "type": "keyword"
+        },
         "decoders": {
           "type": "keyword"
         },

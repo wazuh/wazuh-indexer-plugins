@@ -76,6 +76,14 @@ public class TransportDeleteIntegrationAction extends AbstractTransportDeleteAct
 
         if (doc != null && doc.has(Constants.KEY_DOCUMENT)) {
             JsonNode document = doc.get(Constants.KEY_DOCUMENT);
+            // Protected integrations cannot be deleted, regardless of the space they live in.
+            if (this.documentValidations.isProtected(document)) {
+                listener.onResponse(
+                        new RestResponse(
+                                String.format(Locale.ROOT, Constants.E_400_PROTECTED_INTEGRATION, id),
+                                RestStatus.BAD_REQUEST.getStatus()));
+                return;
+            }
             if (isListNotEmpty(document.get(Constants.KEY_DECODERS))) {
                 listener.onResponse(
                         new RestResponse(
