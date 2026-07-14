@@ -2532,7 +2532,7 @@ components:
             invalid_body:
               summary: Invalid request body
               value:
-                message: "Invalid request body."
+                message: "Invalid request body"
                 status: 400
             invalid_id_format:
               summary: Invalid id path parameter format
@@ -2627,7 +2627,7 @@ components:
             has_dependencies:
               summary: Integration has dependent resources
               value:
-                message: "Cannot delete integration because it has decoders attached."
+                message: "Cannot delete integration because it has decoders attached"
                 status: 400
 
     NotFound:
@@ -2761,11 +2761,7 @@ components:
                 status: 200
 
     BadGateway:
-      description: |
-        Bad Gateway - The CTI API returned a non-2xx response while checking for updates.
-        The status and message are largely a pass-through of the CTI API's own response
-        (falling back to 502 only when the upstream status code cannot be mapped), so both
-        may differ from the example below.
+      description: Bad Gateway - The CTI API returned an error while checking for updates.
       content:
         application/json:
           schema:
