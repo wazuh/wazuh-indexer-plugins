@@ -14,6 +14,7 @@ Wazuh 5.0 consolidates most of the platform's data plane and detection logic ins
 - **Filebeat is no longer used** to forward events between the Wazuh Manager and the Indexer. Events now reach the Indexer through a built-in indexer connector.
 - Time-series data (events, findings, metrics, raw events, active responses) is stored in **data streams** with **ISM policies** for automatic rollover and retention.
 - A new **Content Manager** plugin owns the lifecycle of detection content (ruleset, vulnerabilities feed, IoC feed) and exposes a REST API for user-defined content with a `draft → test → custom` promotion workflow.
+- **Case Management** is introduced as a first-class feature — analysts can create cases directly from findings, attach evidence, assign ownership, track status through a configurable workflow, and generate reports, without leaving the platform.
 - The **Wazuh Common Schema (WCS)** has been reworked and now lives in the `wazuh-indexer-plugins` repository, bumped to ECS 9.1.0, with per-category event and finding data streams.
 
 See the [release notes](release-notes.md) for the full list of changes and breaking changes.
@@ -96,7 +97,7 @@ The Engine listens on a local Unix socket with restricted permissions (`750`) an
 
 ## Data storage
 
-The Wazuh Indexer organizes data into purpose-specific indices and data streams. Time-series streams are categorized per event type (access management, applications, cloud services, network activity, security, system activity, unclassified).
+The Wazuh Indexer organizes data into purpose-specific indices and data streams. Time-series streams are categorized per event type (access management, applications, cloud services, network activity, security, system activity, other).
 
 | Index pattern              | Description                                                                                                  |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
