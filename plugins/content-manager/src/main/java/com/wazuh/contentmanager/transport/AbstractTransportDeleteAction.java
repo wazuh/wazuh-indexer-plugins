@@ -28,7 +28,6 @@ import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
-import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.contentmanager.action.ContentDeleteRequest;
@@ -83,41 +82,44 @@ public abstract class AbstractTransportDeleteAction
         SpaceService spaceService = new SpaceService(client);
         IntegrationService integrationService = new IntegrationService(client);
 
-        try {
-            RestResponse policyError = TransportActionHelper.validateDraftPolicyExists(client);
-            if (policyError != null) {
-                listener.onResponse(
-                        new ContentResponse(
-                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
-                return;
-            }
-
-            RestResponse result =
-                    executeDeleteWorkflow(
-                            request, client, spaceService, securityAnalyticsService, integrationService);
-            listener.onResponse(
-                    new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
-        } catch (Exception e) {
-            listener.onResponse(
-                    new ContentResponse(
-                            e.getMessage() != null ? e.getMessage() : "Unexpected error",
-                            RestStatus.INTERNAL_SERVER_ERROR));
-        }
+        TransportActionHelper.validateDraftPolicyExists(
+                client,
+                ActionListener.wrap(
+                        policyError -> {
+                            if (policyError != null) {
+                                listener.onResponse(
+                                        new ContentResponse(
+                                                policyError.getMessage(), RestStatus.fromCode(policyError.getStatus())));
+                                return;
+                            }
+                            executeDeleteWorkflow(
+                                    request,
+                                    client,
+                                    spaceService,
+                                    securityAnalyticsService,
+                                    integrationService,
+                                    listener);
+                        },
+                        e -> respondWithError(listener, request.getId(), e)));
     }
 
-    private RestResponse executeDeleteWorkflow(
+    private void executeDeleteWorkflow(
             ContentDeleteRequest request,
             Client client,
             SpaceService spaceService,
             SecurityAnalyticsService securityAnalyticsService,
-            IntegrationService integrationService) {
+            IntegrationService integrationService,
+            ActionListener<ContentResponse> listener) {
         String id = request.getId();
 
         try {
             // 1. Validation
             RestResponse validationError =
                     this.documentValidations.validateRequiredParam(id, Constants.KEY_ID);
-            if (validationError != null) return validationError;
+            if (validationError != null) {
+                respond(listener, validationError);
+                return;
+            }
 
             validationError = this.documentValidations.validateIdFormat(id, Constants.KEY_ID);
             if (validationError != null) {
@@ -127,21 +129,27 @@ public abstract class AbstractTransportDeleteAction
                         this.getResourceType(),
                         id,
                         "Invalid ID format");
-                return validationError;
+                respond(listener, validationError);
+                return;
             }
 
             if (!client.admin().indices().prepareExists(this.getIndexName()).get().isExists()) {
                 log.error(Constants.E_LOG_INDEX_NOT_FOUND, this.getIndexName());
-                return new RestResponse(
-                        "Index not found: " + this.getIndexName(),
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                respond(
+                        listener,
+                        new RestResponse(
+                                "Index not found: " + this.getIndexName(),
+                                RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                return;
             }
 
             ContentIndex index = new ContentIndex(client, this.getIndexName(), null);
             if (!index.exists(id)) {
                 log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, this.getResourceType(), id);
-                return new RestResponse(
-                        Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus());
+                respond(
+                        listener,
+                        new RestResponse(Constants.E_404_RESOURCE_NOT_FOUND, RestStatus.NOT_FOUND.getStatus()));
+                return;
             }
 
             String spaceError =
@@ -154,73 +162,133 @@ public abstract class AbstractTransportDeleteAction
                         this.getResourceType(),
                         id,
                         "Resource is not in draft space");
-                return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
+                respond(listener, new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus()));
+                return;
             }
 
-            // 2. Pre-delete validation
-            validationError = this.validateDelete(client, id, spaceService);
-            if (validationError != null) {
-                log.warn(
-                        Constants.W_LOG_OPERATION_FAILED_ID,
-                        "Delete validation",
-                        this.getResourceType(),
-                        id,
-                        validationError.getMessage());
-                return validationError;
-            }
-
-            // 3. External Sync
-            try {
-                this.deleteExternalServices(id, securityAnalyticsService);
-            } catch (Exception e) {
-                if (this.isNotFoundException(e)) {
-                    log.warn(Constants.W_LOG_EXTERNAL_NOT_FOUND, this.getResourceType(), id);
-                } else {
-                    log.error(
-                            Constants.E_LOG_FAILED_TO,
-                            "delete",
-                            this.getResourceType(),
-                            id,
-                            "from external service: " + e.getMessage());
-                    return new RestResponse(
-                            "Failed to delete from external service: " + e.getMessage(),
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-                }
-            }
-
-            // 4. Unlink Parent
-            try {
-                this.unlinkFromParent(client, id, integrationService);
-            } catch (Exception e) {
-                log.error(
-                        Constants.E_LOG_FAILED_TO,
-                        "unlink",
-                        this.getResourceType(),
-                        id,
-                        "from parent: " + e.getMessage());
-                return new RestResponse(
-                        "Failed to unlink from parent: " + e.getMessage(),
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
-
-            // 5. Delete from Index
-            index.delete(id);
-
-            // 6. Hash Update
-            spaceService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
-
-            log.info(Constants.I_LOG_SUCCESS, "Deleted", this.getResourceType(), id);
-            return new RestResponse(id, RestStatus.OK.getStatus());
-
+            // 2. Pre-delete validation (async)
+            this.validateDelete(
+                    client,
+                    id,
+                    spaceService,
+                    ActionListener.wrap(
+                            preError -> {
+                                if (preError != null) {
+                                    log.warn(
+                                            Constants.W_LOG_OPERATION_FAILED_ID,
+                                            "Delete validation",
+                                            this.getResourceType(),
+                                            id,
+                                            preError.getMessage());
+                                    respond(listener, preError);
+                                    return;
+                                }
+                                deleteExternalStep(
+                                        client,
+                                        id,
+                                        index,
+                                        spaceService,
+                                        securityAnalyticsService,
+                                        integrationService,
+                                        listener);
+                            },
+                            e -> respondWithError(listener, id, e)));
         } catch (Exception e) {
-            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            log.error(Constants.E_LOG_UNEXPECTED, "deleting", this.getResourceType(), id, e.getMessage());
-            return new RestResponse(
-                    "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            respondWithError(listener, id, e);
         }
+    }
+
+    private void deleteExternalStep(
+            Client client,
+            String id,
+            ContentIndex index,
+            SpaceService spaceService,
+            SecurityAnalyticsService securityAnalyticsService,
+            IntegrationService integrationService,
+            ActionListener<ContentResponse> listener) {
+        // 3. External Sync (async)
+        this.deleteExternalServices(
+                id,
+                securityAnalyticsService,
+                ActionListener.wrap(
+                        v -> unlinkStep(client, id, index, spaceService, integrationService, listener),
+                        e -> {
+                            if (this.isNotFoundException(e)) {
+                                log.warn(Constants.W_LOG_EXTERNAL_NOT_FOUND, this.getResourceType(), id);
+                                unlinkStep(client, id, index, spaceService, integrationService, listener);
+                            } else {
+                                log.error(
+                                        Constants.E_LOG_FAILED_TO,
+                                        "delete",
+                                        this.getResourceType(),
+                                        id,
+                                        "from external service: " + e.getMessage());
+                                respond(
+                                        listener,
+                                        new RestResponse(
+                                                "Failed to delete from external service: " + e.getMessage(),
+                                                RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                            }
+                        }));
+    }
+
+    private void unlinkStep(
+            Client client,
+            String id,
+            ContentIndex index,
+            SpaceService spaceService,
+            IntegrationService integrationService,
+            ActionListener<ContentResponse> listener) {
+        // 4. Unlink Parent (async)
+        this.unlinkFromParent(
+                client,
+                id,
+                integrationService,
+                ActionListener.wrap(
+                        v -> {
+                            // 5. Delete from Index
+                            index.delete(id);
+
+                            // 6. Hash Update (async)
+                            spaceService.calculateAndUpdate(
+                                    List.of(Space.DRAFT.toString()),
+                                    ActionListener.wrap(
+                                            changed -> {
+                                                log.info(Constants.I_LOG_SUCCESS, "Deleted", this.getResourceType(), id);
+                                                respond(listener, new RestResponse(id, RestStatus.OK.getStatus()));
+                                            },
+                                            e -> respondWithError(listener, id, e)));
+                        },
+                        e -> {
+                            log.error(
+                                    Constants.E_LOG_FAILED_TO,
+                                    "unlink",
+                                    this.getResourceType(),
+                                    id,
+                                    "from parent: " + e.getMessage());
+                            respond(
+                                    listener,
+                                    new RestResponse(
+                                            "Failed to unlink from parent: " + e.getMessage(),
+                                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                        }));
+    }
+
+    private void respond(ActionListener<ContentResponse> listener, RestResponse result) {
+        listener.onResponse(
+                new ContentResponse(result.getMessage(), RestStatus.fromCode(result.getStatus())));
+    }
+
+    private void respondWithError(ActionListener<ContentResponse> listener, String id, Exception e) {
+        OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
+        if (secEx != null) {
+            listener.onResponse(new ContentResponse(secEx.getMessage(), secEx.status()));
+            return;
+        }
+        log.error(Constants.E_LOG_UNEXPECTED, "deleting", this.getResourceType(), id, e.getMessage());
+        listener.onResponse(
+                new ContentResponse(
+                        "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
     }
 
     private boolean isNotFoundException(Exception e) {
@@ -240,13 +308,21 @@ public abstract class AbstractTransportDeleteAction
 
     protected abstract String getResourceType();
 
-    protected RestResponse validateDelete(Client client, String id, SpaceService spaceService) {
-        return null;
+    /**
+     * Pre-delete validation hook. Implementations notify the listener with a non-null {@link
+     * RestResponse} to abort the deletion, or {@code null} to proceed.
+     */
+    protected void validateDelete(
+            Client client, String id, SpaceService spaceService, ActionListener<RestResponse> listener) {
+        listener.onResponse(null);
     }
 
     protected abstract void deleteExternalServices(
-            String id, SecurityAnalyticsService securityAnalyticsService);
+            String id, SecurityAnalyticsService securityAnalyticsService, ActionListener<Void> listener);
 
     protected abstract void unlinkFromParent(
-            Client client, String id, IntegrationService integrationService) throws IOException;
+            Client client,
+            String id,
+            IntegrationService integrationService,
+            ActionListener<Void> listener);
 }

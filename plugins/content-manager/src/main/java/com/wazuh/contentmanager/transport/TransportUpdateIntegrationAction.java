@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
@@ -119,33 +120,43 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
     }
 
     @Override
-    protected RestResponse syncExternalServices(
-            String id, JsonNode resource, SecurityAnalyticsService securityAnalyticsService) {
-        // 1. Validate using the Engine.
+    protected void syncExternalServices(
+            String id,
+            JsonNode resource,
+            SecurityAnalyticsService securityAnalyticsService,
+            ActionListener<RestResponse> listener) {
+        // 1. Validate using the Engine (synchronous, not a Client call).
         ObjectNode enginePayload = MAPPER.createObjectNode();
         enginePayload.set(Constants.KEY_RESOURCE, resource);
         enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
 
         RestResponse engineResponse = this.engine.validate(enginePayload);
         if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(
-                    Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
+            listener.onResponse(
+                    new RestResponse(
+                            Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
+                            RestStatus.BAD_REQUEST.getStatus()));
+            return;
         }
 
-        // 2. Send to Security Analytics.
-        try {
-            securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, PUT);
-        } catch (Exception e) {
-            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            return new RestResponse(
-                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-
-        return null;
+        // 2. Send to Security Analytics (async).
+        securityAnalyticsService.upsertIntegration(
+                resource,
+                Space.DRAFT,
+                PUT,
+                ActionListener.wrap(
+                        response -> listener.onResponse(null),
+                        e -> {
+                            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
+                            if (secEx != null) {
+                                listener.onResponse(
+                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
+                                return;
+                            }
+                            listener.onResponse(
+                                    new RestResponse(
+                                            Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                        }));
     }
 }

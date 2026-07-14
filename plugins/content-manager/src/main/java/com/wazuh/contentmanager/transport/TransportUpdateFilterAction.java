@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
@@ -94,13 +95,16 @@ public class TransportUpdateFilterAction extends AbstractTransportUpdateActionSp
     }
 
     @Override
-    protected RestResponse syncExternalServices(String id, JsonNode resource) {
+    protected void syncExternalServices(
+            String id, JsonNode resource, ActionListener<RestResponse> listener) {
         RestResponse engineValidation = this.engine.validateResource(Constants.KEY_FILTER, resource);
         if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(
-                    Constants.E_400_ENGINE_VALIDATION_FAILED + engineValidation.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
+            listener.onResponse(
+                    new RestResponse(
+                            Constants.E_400_ENGINE_VALIDATION_FAILED + engineValidation.getMessage(),
+                            RestStatus.BAD_REQUEST.getStatus()));
+            return;
         }
-        return null;
+        listener.onResponse(null);
     }
 }

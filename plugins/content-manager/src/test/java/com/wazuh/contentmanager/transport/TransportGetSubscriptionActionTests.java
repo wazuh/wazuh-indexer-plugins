@@ -67,15 +67,22 @@ public class TransportGetSubscriptionActionTests extends OpenSearchTestCase {
         instance.set(null, null);
     }
 
+    @SuppressWarnings("unchecked")
     public void testDoExecute_SuccessWithPlan() throws Exception {
         Plan plan = mock(Plan.class);
         when(plan.getName()).thenReturn("premium");
         when(plan.isPublic()).thenReturn(false);
-        when(this.subscriptionService.getPlan()).thenReturn(plan);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Plan> asyncListener = invocation.getArgument(0);
+                            asyncListener.onResponse(plan);
+                            return null;
+                        })
+                .when(this.subscriptionService)
+                .getPlan(any(ActionListener.class));
 
         GetSubscriptionRequest request = new GetSubscriptionRequest();
 
-        @SuppressWarnings("unchecked")
         ActionListener<GetSubscriptionResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
@@ -88,12 +95,19 @@ public class TransportGetSubscriptionActionTests extends OpenSearchTestCase {
                                 }));
     }
 
+    @SuppressWarnings("unchecked")
     public void testDoExecute_SuccessNullPlan() throws Exception {
-        when(this.subscriptionService.getPlan()).thenReturn(null);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Plan> asyncListener = invocation.getArgument(0);
+                            asyncListener.onResponse(null);
+                            return null;
+                        })
+                .when(this.subscriptionService)
+                .getPlan(any(ActionListener.class));
 
         GetSubscriptionRequest request = new GetSubscriptionRequest();
 
-        @SuppressWarnings("unchecked")
         ActionListener<GetSubscriptionResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
@@ -106,12 +120,19 @@ public class TransportGetSubscriptionActionTests extends OpenSearchTestCase {
                                 }));
     }
 
+    @SuppressWarnings("unchecked")
     public void testDoExecute_Exception() throws Exception {
-        when(this.subscriptionService.getPlan()).thenThrow(new RuntimeException("Service error"));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Plan> asyncListener = invocation.getArgument(0);
+                            asyncListener.onFailure(new RuntimeException("Service error"));
+                            return null;
+                        })
+                .when(this.subscriptionService)
+                .getPlan(any(ActionListener.class));
 
         GetSubscriptionRequest request = new GetSubscriptionRequest();
 
-        @SuppressWarnings("unchecked")
         ActionListener<GetSubscriptionResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
