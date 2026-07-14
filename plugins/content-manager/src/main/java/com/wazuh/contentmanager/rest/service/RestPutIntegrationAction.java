@@ -27,7 +27,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
 /** REST handler for updating Integration resources. Delegates to transport layer. */
-public class RestPutIntegrationAction extends AbstractUpdateAction {
+public class RestPutIntegrationAction extends AbstractUpdateActionSpaces {
 
     private static final String ENDPOINT_NAME = "content_manager_integration_update";
 

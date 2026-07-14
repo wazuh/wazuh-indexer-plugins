@@ -96,7 +96,7 @@ public class TransportUpdateFilterAction extends AbstractTransportUpdateActionSp
 
     @Override
     protected void syncExternalServices(
-            String id, JsonNode resource, ActionListener<RestResponse> listener) {
+            String id, JsonNode resource, Space space, ActionListener<RestResponse> listener) {
         RestResponse engineValidation = this.engine.validateResource(Constants.KEY_FILTER, resource);
         if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
             listener.onResponse(
