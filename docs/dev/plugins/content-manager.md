@@ -345,6 +345,23 @@ The `executeRequest()` workflow:
 
 Returns `200 OK` with the resource UUID on success.
 
+### Integration `mode` field
+
+Integration documents carry a `document.mode` field with one of two values:
+
+- `protected` — the integration is Wazuh core content and **cannot be modified or deleted** through the REST API.
+- `user-managed` — the integration can be modified by the user.
+
+The value is set by whoever produces the content: CTI content carries its own `mode` (core integrations are `protected`, the rest `user-managed`), and integrations created through the REST API are always `user-managed`.
+
+| Integration | Space | `PUT /integrations/{id}` |
+| --- | --- | --- |
+| `protected` | any | Rejected with `400 Bad Request`. |
+| `user-managed` | `draft` | Fully editable (metadata, category, `enabled`). |
+| `user-managed` | `standard` | Only `enabled` can change; every other field is preserved from the stored document. |
+
+When a `standard` integration's `enabled` is toggled, its related Security Analytics **detector is disabled/enabled in lockstep** as part of the same update flow. The detector shares the integration's document id, so the Content Manager calls the Security Analytics `WSetDetectorEnabledAction` (`setDetectorEnabled(id, enabled)`) to flip **only** the `enabled` flag on the existing detector, preserving its inputs, triggers and monitors. If the detector sync fails the whole update is aborted, so the two never drift.
+
 ---
 
 ## YAML content-type support
@@ -906,7 +923,7 @@ The plugin includes integration tests defined in the `tests/content-manager` dir
 | Resource / operation   | Scenario count | Covers                                                                                                                                                                                                                                                                                                                              |
 | ---------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Integrations: create   | 9              | Success; duplicate title; missing title/author/category; explicit `id` in resource; missing resource object; empty body; no authentication                                                                                                                                                                                          |
-| Integrations: update   | 8              | Success; title collision with an existing draft integration; missing required fields; not found; invalid UUID; `id` in request body; attempting to add/remove dependency lists; no authentication                                                                                                                                   |
+| Integrations: update   | 12             | Success; title collision with an existing draft integration; missing required fields; not found; invalid UUID; `id` in request body; attempting to add/remove dependency lists; no authentication; protected integration rejected; toggling `enabled` on a user-managed integration in the standard space; user-managed standard update changes only `enabled` (other fields preserved); protected standard integration rejected |
 | Integrations: delete   | 7              | Success (no attached resources); has attached resources; not found; invalid UUID; missing ID; not in draft space; no authentication                                                                                                                                                                                                 |
 | Decoders: create       | 7              | Success; missing integration reference; explicit `id` in resource; integration not in draft space; missing resource object; empty body; no authentication                                                                                                                                                                           |
 | Decoders: update       | 7              | Success; not found; invalid UUID; not in draft space; missing resource object; empty body; no authentication                                                                                                                                                                                                                        |

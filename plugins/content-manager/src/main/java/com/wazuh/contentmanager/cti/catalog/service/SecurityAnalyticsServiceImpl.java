@@ -367,6 +367,16 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     }
 
     @Override
+    public void setDetectorEnabled(
+            String id, boolean enabled, ActionListener<? extends ActionResponse> listener) {
+        this.executeAsync(
+                WSetDetectorEnabledAction.INSTANCE,
+                new WSetDetectorEnabledRequest(id, enabled, WriteRequest.RefreshPolicy.IMMEDIATE),
+                listener);
+        log.debug("Detector [{}] enabled set to {}.", id, enabled);
+    }
+
+    @Override
     public void deleteDetector(String id, ActionListener<? extends ActionResponse> listener) {
         this.executeAsync(
                 WDeleteDetectorAction.INSTANCE,
