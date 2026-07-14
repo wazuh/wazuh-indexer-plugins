@@ -24,7 +24,6 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
-import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
@@ -65,9 +64,14 @@ public class ResourceLockServiceTests extends OpenSearchTestCase {
         IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
         IndicesExistsResponse existsResponse = mock(IndicesExistsResponse.class);
         when(existsResponse.isExists()).thenReturn(true);
-        ActionFuture<IndicesExistsResponse> existsFuture = mock(ActionFuture.class);
-        when(existsFuture.actionGet()).thenReturn(existsResponse);
-        when(indicesAdminClient.exists(any())).thenReturn(existsFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndicesExistsResponse> l = invocation.getArgument(1);
+                            l.onResponse(existsResponse);
+                            return null;
+                        })
+                .when(indicesAdminClient)
+                .exists(any(), any(ActionListener.class));
         when(adminClient.indices()).thenReturn(indicesAdminClient);
         when(client.admin()).thenReturn(adminClient);
     }

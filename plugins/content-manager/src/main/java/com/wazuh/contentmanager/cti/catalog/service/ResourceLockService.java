@@ -227,10 +227,21 @@ public class ResourceLockService {
     }
 
     private void ensureIndexExists(ActionListener<Void> listener) {
-        if (ClusterInfo.indexExists(this.client, Constants.INDEX_RESOURCE_LOCKS)) {
-            listener.onResponse(null);
-            return;
-        }
+        ClusterInfo.indexExists(
+                this.client,
+                Constants.INDEX_RESOURCE_LOCKS,
+                ActionListener.wrap(
+                        exists -> {
+                            if (exists) {
+                                listener.onResponse(null);
+                                return;
+                            }
+                            this.createIndex(listener);
+                        },
+                        listener::onFailure));
+    }
+
+    private void createIndex(ActionListener<Void> listener) {
         Settings settings =
                 Settings.builder()
                         .put("index.number_of_replicas", 0)

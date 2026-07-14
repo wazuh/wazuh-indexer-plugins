@@ -113,10 +113,15 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
     private static void stubResourceLock(Client client) {
         IndicesExistsResponse existsResponse = mock(IndicesExistsResponse.class);
         when(existsResponse.isExists()).thenReturn(true);
-        ActionFuture<IndicesExistsResponse> existsFuture = mock(ActionFuture.class);
-        when(existsFuture.actionGet()).thenReturn(existsResponse);
         IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
-        when(indicesAdminClient.exists(any())).thenReturn(existsFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndicesExistsResponse> l = invocation.getArgument(1);
+                            l.onResponse(existsResponse);
+                            return null;
+                        })
+                .when(indicesAdminClient)
+                .exists(any(), any(ActionListener.class));
         AdminClient adminClient = mock(AdminClient.class);
         when(adminClient.indices()).thenReturn(indicesAdminClient);
         when(client.admin()).thenReturn(adminClient);
