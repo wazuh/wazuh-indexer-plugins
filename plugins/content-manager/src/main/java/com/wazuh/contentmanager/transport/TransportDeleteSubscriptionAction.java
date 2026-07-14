@@ -52,16 +52,17 @@ public class TransportDeleteSubscriptionAction
             Task task,
             DeleteSubscriptionRequest request,
             ActionListener<MessageStatusResponse> listener) {
-        try {
-            this.subscriptionService.unregister();
-            listener.onResponse(new MessageStatusResponse("Credentials removed", RestStatus.OK));
-        } catch (Exception e) {
-            listener.onResponse(
-                    new MessageStatusResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR));
-        }
+        this.subscriptionService.unregister(
+                ActionListener.wrap(
+                        v ->
+                                listener.onResponse(
+                                        new MessageStatusResponse("Credentials removed", RestStatus.OK)),
+                        e ->
+                                listener.onResponse(
+                                        new MessageStatusResponse(
+                                                e.getMessage() != null
+                                                        ? e.getMessage()
+                                                        : "An unexpected error occurred while processing your request.",
+                                                RestStatus.INTERNAL_SERVER_ERROR))));
     }
 }
