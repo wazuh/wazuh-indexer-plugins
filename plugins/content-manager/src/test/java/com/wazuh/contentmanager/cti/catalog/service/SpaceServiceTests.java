@@ -16,13 +16,16 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
@@ -32,6 +35,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -39,7 +43,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -94,14 +98,21 @@ public class SpaceServiceTests extends OpenSearchTestCase {
     public void testCalculateAndUpdateSkipsWhenPolicyIndexDoesNotExist() {
         when(this.client.admin()).thenReturn(this.adminClient);
         when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
-        when(this.indicesAdminClient.prepareExists(anyString()))
-                .thenReturn(this.indicesExistsRequestBuilder);
-        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
         when(this.indicesExistsResponse.isExists()).thenReturn(false);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
+                                    .onResponse(this.indicesExistsResponse);
+                            return null;
+                        })
+                .when(this.indicesAdminClient)
+                .exists(any(IndicesExistsRequest.class), any());
 
-        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
+        this.policyHashService.calculateAndUpdate(
+                List.of(Space.DRAFT.toString()), ActionListener.wrap(r -> {}, e -> {}));
 
-        verify(this.client, never()).search(any(SearchRequest.class));
+        verify(this.client, never()).search(any(SearchRequest.class), any());
     }
 
     /**
@@ -111,30 +122,59 @@ public class SpaceServiceTests extends OpenSearchTestCase {
     public void testCalculateAndUpdateHandlesEmptyPolicies() {
         when(this.client.admin()).thenReturn(this.adminClient);
         when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
-        when(this.indicesAdminClient.prepareExists(anyString()))
-                .thenReturn(this.indicesExistsRequestBuilder);
-        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
         when(this.indicesExistsResponse.isExists()).thenReturn(true);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
+                                    .onResponse(this.indicesExistsResponse);
+                            return null;
+                        })
+                .when(this.indicesAdminClient)
+                .exists(any(IndicesExistsRequest.class), any());
 
-        when(this.client.search(any(SearchRequest.class))).thenReturn(this.searchFuture);
-        when(this.searchFuture.actionGet()).thenReturn(this.searchResponse);
         SearchHits emptyHits = SearchHits.empty();
         when(this.searchResponse.getHits()).thenReturn(emptyHits);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onResponse(this.searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
 
         // Should not throw any exception
-        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
+        this.policyHashService.calculateAndUpdate(
+                List.of(Space.DRAFT.toString()), ActionListener.wrap(r -> {}, e -> {}));
 
-        verify(this.client).search(any(SearchRequest.class));
+        verify(this.client).search(any(SearchRequest.class), any());
         // No bulk update should be performed when there are no policies
-        verify(this.client, never()).bulk(any());
+        verify(this.client, never()).bulk(any(), any());
     }
 
     /** Tests that calculateAndUpdate handles exceptions gracefully without propagating them. */
     public void testCalculateAndUpdateHandlesException() {
-        when(this.client.admin()).thenThrow(new RuntimeException("Test exception"));
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
+                                    .onFailure(new RuntimeException("Test exception"));
+                            return null;
+                        })
+                .when(this.indicesAdminClient)
+                .exists(any(IndicesExistsRequest.class), any());
 
-        // Should not throw any exception - it should be caught internally
-        this.policyHashService.calculateAndUpdate(List.of(Space.DRAFT.toString()));
+        AtomicReference<Boolean> gotResponse = new AtomicReference<>(false);
+        // Should not propagate the exception - it should be handled and reported as an empty result.
+        this.policyHashService.calculateAndUpdate(
+                List.of(Space.DRAFT.toString()),
+                ActionListener.wrap(r -> gotResponse.set(true), e -> gotResponse.set(false)));
+
+        assertTrue("Failure should be handled gracefully via onResponse", gotResponse.get());
     }
 
     /** Tests that initializeSpace sets enabled=true for the draft space. */
@@ -142,18 +182,21 @@ public class SpaceServiceTests extends OpenSearchTestCase {
         // Arrange
         org.mockito.ArgumentCaptor<IndexRequest> captor =
                 org.mockito.ArgumentCaptor.forClass(IndexRequest.class);
-        org.opensearch.action.index.IndexResponse mockResponse =
-                org.mockito.Mockito.mock(org.opensearch.action.index.IndexResponse.class);
-        org.opensearch.common.action.ActionFuture<org.opensearch.action.index.IndexResponse>
-                mockFuture = org.mockito.Mockito.mock(org.opensearch.common.action.ActionFuture.class);
-        when(this.client.index(any(IndexRequest.class))).thenReturn(mockFuture);
-        when(mockFuture.actionGet()).thenReturn(mockResponse);
+        IndexResponse mockResponse = org.mockito.Mockito.mock(IndexResponse.class);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<IndexResponse>>getArgument(1).onResponse(mockResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
 
         // Act: Initialize draft space
-        this.policyHashService.initializeSpace("draft", "test-doc-id");
+        this.policyHashService.initializeSpace(
+                "draft", "test-doc-id", ActionListener.wrap(r -> {}, e -> {}));
 
         // Verify the IndexRequest contains enabled=true for draft space
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
         IndexRequest request = captor.getValue();
         String sourceJson = request.source().utf8ToString();
         assertTrue(
@@ -173,18 +216,21 @@ public class SpaceServiceTests extends OpenSearchTestCase {
 
             org.mockito.ArgumentCaptor<IndexRequest> captor =
                     org.mockito.ArgumentCaptor.forClass(IndexRequest.class);
-            org.opensearch.action.index.IndexResponse mockResponse =
-                    org.mockito.Mockito.mock(org.opensearch.action.index.IndexResponse.class);
-            org.opensearch.common.action.ActionFuture<org.opensearch.action.index.IndexResponse>
-                    mockFuture = org.mockito.Mockito.mock(org.opensearch.common.action.ActionFuture.class);
-            when(this.client.index(any(IndexRequest.class))).thenReturn(mockFuture);
-            when(mockFuture.actionGet()).thenReturn(mockResponse);
+            IndexResponse mockResponse = org.mockito.Mockito.mock(IndexResponse.class);
+            doAnswer(
+                            invocation -> {
+                                invocation.<ActionListener<IndexResponse>>getArgument(1).onResponse(mockResponse);
+                                return null;
+                            })
+                    .when(this.client)
+                    .index(any(IndexRequest.class), any());
 
             // Act: Initialize non-draft space
-            this.policyHashService.initializeSpace(spaceName, "test-doc-id");
+            this.policyHashService.initializeSpace(
+                    spaceName, "test-doc-id", ActionListener.wrap(r -> {}, e -> {}));
 
             // Verify the IndexRequest contains enabled=true for non-draft spaces too
-            verify(this.client).index(captor.capture());
+            verify(this.client).index(captor.capture(), any());
             IndexRequest request = captor.getValue();
             String sourceJson = request.source().utf8ToString();
             assertTrue(

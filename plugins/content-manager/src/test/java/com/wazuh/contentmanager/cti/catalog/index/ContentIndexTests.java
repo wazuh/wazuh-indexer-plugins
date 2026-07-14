@@ -26,6 +26,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -117,11 +118,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "f0c91fac-d749-4ef0-bdfa-0b3632adf32d";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, ActionListener.wrap(r -> {}, e -> {}));
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         IndexRequest request = captor.getValue();
         Assert.assertEquals(INDEX_NAME, request.index());
@@ -158,11 +159,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
         // Act
         ContentIndex contentIndex1 =
                 new ContentIndex(this.client, Constants.INDEX_DECODERS, MAPPINGS_PATH);
-        contentIndex1.create(id, payload);
+        contentIndex1.create(id, payload, ActionListener.wrap(r -> {}, e -> {}));
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
 
@@ -197,11 +198,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "R1";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, ActionListener.wrap(r -> {}, e -> {}));
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
         JsonNode related = source.get("document").get("related");
@@ -235,11 +236,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "R2";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, ActionListener.wrap(r -> {}, e -> {}));
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
         JsonNode relatedItem = source.get("document").get("related").get(0);
@@ -416,11 +417,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "test-resource-id";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, ActionListener.wrap(r -> {}, e -> {}));
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         IndexRequest request = captor.getValue();
         Assert.assertEquals(INDEX_NAME, request.index());

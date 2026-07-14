@@ -18,15 +18,17 @@ package com.wazuh.contentmanager.transport;
 
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.delete.DeleteResponse;
-import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
@@ -34,6 +36,7 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
@@ -52,12 +55,11 @@ import com.wazuh.contentmanager.action.ContentResponse;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
-import org.mockito.Answers;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
 
 public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
     private Client client;
@@ -74,12 +76,19 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
         this.client = mock(Client.class);
         stubResourceLock(this.client);
         this.engineService = mock(EngineService.class);
+        TransportService transportService = mock(TransportService.class);
+        ThreadPool threadPool = mock(ThreadPool.class);
+        doAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(0)).run();
+                            return null;
+                        })
+                .when(threadPool)
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+        when(transportService.getThreadPool()).thenReturn(threadPool);
         this.action =
                 new TransportCreateDecoderAction(
-                        mock(TransportService.class),
-                        mock(ActionFilters.class),
-                        this.client,
-                        this.engineService);
+                        transportService, mock(ActionFilters.class), this.client, this.engineService);
     }
 
     @After
@@ -104,21 +113,36 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
     private static void stubResourceLock(Client client) {
         IndicesExistsResponse existsResponse = mock(IndicesExistsResponse.class);
         when(existsResponse.isExists()).thenReturn(true);
-        ActionFuture<IndicesExistsResponse> existsFuture = mock(ActionFuture.class);
-        when(existsFuture.actionGet()).thenReturn(existsResponse);
         IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
-        when(indicesAdminClient.exists(any())).thenReturn(existsFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndicesExistsResponse> l = invocation.getArgument(1);
+                            l.onResponse(existsResponse);
+                            return null;
+                        })
+                .when(indicesAdminClient)
+                .exists(any(), any(ActionListener.class));
         AdminClient adminClient = mock(AdminClient.class);
         when(adminClient.indices()).thenReturn(indicesAdminClient);
         when(client.admin()).thenReturn(adminClient);
 
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
-        when(client.index(any())).thenReturn(indexFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
 
-        ActionFuture<DeleteResponse> deleteFuture = mock(ActionFuture.class);
-        when(deleteFuture.actionGet()).thenReturn(mock(DeleteResponse.class));
-        when(client.delete(any())).thenReturn(deleteFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(DeleteResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .delete(any(DeleteRequest.class), any(ActionListener.class));
     }
 
     @SuppressWarnings("unchecked")
@@ -130,18 +154,28 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
                         new TotalHits(1, TotalHits.Relation.EQUAL_TO),
                         0.0f);
         when(searchResponse.getHits()).thenReturn(searchHits);
-        ActionFuture<SearchResponse> future = mock(ActionFuture.class);
-        when(future.actionGet()).thenReturn(searchResponse);
-        when(this.client.search(any())).thenReturn(future);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(), any(ActionListener.class));
     }
 
     @SuppressWarnings("unchecked")
     private void mockDraftPolicyMissing() {
         SearchResponse searchResponse = mock(SearchResponse.class);
         when(searchResponse.getHits()).thenReturn(SearchHits.empty());
-        ActionFuture<SearchResponse> future = mock(ActionFuture.class);
-        when(future.actionGet()).thenReturn(searchResponse);
-        when(this.client.search(any())).thenReturn(future);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(), any(ActionListener.class));
     }
 
     public void testDoExecute_EmptyBody() {
@@ -227,31 +261,25 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
     public void testDoExecute_maxDecodersReached() {
         PluginSettings.getInstance().setMaxDecoders(0);
         try {
-            SearchResponse policyResp = mock(SearchResponse.class);
-            when(policyResp.getHits())
-                    .thenReturn(
-                            new SearchHits(
-                                    new SearchHit[0], new TotalHits(1, TotalHits.Relation.EQUAL_TO), 0.0f));
-            ActionFuture<SearchResponse> policyFuture = mock(ActionFuture.class);
-            when(policyFuture.actionGet()).thenReturn(policyResp);
-            when(this.client.search(
-                            argThat(
-                                    r ->
-                                            r != null
-                                                    && r.indices().length > 0
-                                                    && Constants.INDEX_POLICIES.equals(r.indices()[0]))))
-                    .thenReturn(policyFuture);
+            // Draft policy exists (async search on the policies index).
+            mockDraftPolicyExists();
 
+            // Integration resource exists in the draft space (async get on the integrations index).
             GetResponse integResp = mock(GetResponse.class);
             when(integResp.isExists()).thenReturn(true);
             Map<String, Object> source = new HashMap<>();
             source.put(Constants.KEY_SPACE, Map.of(Constants.KEY_NAME, "draft"));
             when(integResp.getSourceAsMap()).thenReturn(source);
-            GetRequestBuilder getBuilder = mock(GetRequestBuilder.class, Answers.RETURNS_SELF);
-            when(this.client.prepareGet(eq(Constants.INDEX_INTEGRATIONS), anyString()))
-                    .thenReturn(getBuilder);
-            when(getBuilder.get()).thenReturn(integResp);
+            doAnswer(
+                            invocation -> {
+                                invocation.<ActionListener<GetResponse>>getArgument(1).onResponse(integResp);
+                                return null;
+                            })
+                    .when(this.client)
+                    .get(any(), any(ActionListener.class));
 
+            // Existing-decoder count for the limit check (blocking one-arg search on the decoders
+            // index). With maxDecoders=0 any count trips the limit.
             SearchResponse countResp = mock(SearchResponse.class);
             when(countResp.getHits())
                     .thenReturn(
@@ -289,8 +317,17 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public void testDoExecute_DraftPolicyCheckException() {
-        when(this.client.search(any())).thenThrow(new RuntimeException("Search failed"));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onFailure(new RuntimeException("Search failed"));
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(), any(ActionListener.class));
+
         ContentCreateRequest request =
                 new ContentCreateRequest(
                         RestRequest.Method.POST,
@@ -298,7 +335,6 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
                                 .getBytes(java.nio.charset.StandardCharsets.UTF_8),
                         "json");
 
-        @SuppressWarnings("unchecked")
         ActionListener<ContentResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 

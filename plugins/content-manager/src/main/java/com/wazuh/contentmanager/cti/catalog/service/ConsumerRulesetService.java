@@ -32,9 +32,13 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
@@ -194,8 +198,41 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
 
             // Reload STANDARD space, as it was updated.
-            this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()));
+            try {
+                this.<Set<String>>awaitResult(
+                        l -> this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()), l));
+            } catch (IOException e) {
+                log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
+            }
             this.loadStandardSpaceIntoEngine();
+        }
+    }
+
+    /**
+     * Bridges an asynchronous {@link ActionListener}-based operation into a blocking call. Used only
+     * on the background/generic sync thread, where blocking is permitted.
+     *
+     * @param <T> the result type
+     * @param op consumer that starts the async operation with the supplied listener
+     * @return the operation result
+     * @throws IOException if the operation fails or times out
+     */
+    private <T> T awaitResult(Consumer<ActionListener<T>> op) throws IOException {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        op.accept(ActionListener.wrap(future::complete, future::completeExceptionally));
+        try {
+            return future.get(60, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException io) {
+                throw io;
+            }
+            throw new IOException(cause != null ? cause : e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException(e);
+        } catch (TimeoutException e) {
+            throw new IOException(e);
         }
     }
 
@@ -206,7 +243,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
         try {
-            JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString());
+            JsonNode payload =
+                    this.awaitResult(l -> this.spaceService.buildEnginePayload(Space.STANDARD.toString(), l));
             RestResponse response = this.engineService.promote(payload);
             if (response.getStatus() == RestStatus.OK.getStatus()) {
                 log.info(Constants.I_LOG_ENGINE_STANDARD_LOADED);
@@ -233,7 +271,10 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
         try {
             Map<String, Map<String, Object>> integrations =
-                    this.spaceService.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
+                    this.awaitResult(
+                            l ->
+                                    this.spaceService.getResourcesBySpace(
+                                            Constants.INDEX_INTEGRATIONS, Space.STANDARD, l));
             if (integrations.isEmpty()) {
                 log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "integrations");
                 return;
@@ -252,7 +293,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                             return;
                         }
 
-                        this.securityAnalyticsService.upsertIntegrationAsync(
+                        this.securityAnalyticsService.upsertIntegration(
                                 doc,
                                 Space.STANDARD,
                                 RestRequest.Method.POST,
@@ -305,7 +346,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
         try {
             Map<String, Map<String, Object>> rules =
-                    this.spaceService.getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD);
+                    this.awaitResult(
+                            l -> this.spaceService.getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD, l));
             if (rules.isEmpty()) {
                 log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "rules");
                 return;
@@ -324,7 +366,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                             return;
                         }
 
-                        this.securityAnalyticsService.upsertRuleAsync(
+                        this.securityAnalyticsService.upsertRule(
                                 doc,
                                 Space.STANDARD,
                                 RestRequest.Method.POST,
@@ -371,7 +413,10 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         }
 
         Map<String, Map<String, Object>> integrations =
-                this.spaceService.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
+                this.awaitResult(
+                        l ->
+                                this.spaceService.getResourcesBySpace(
+                                        Constants.INDEX_INTEGRATIONS, Space.STANDARD, l));
 
         List<JsonNode> docs = new ArrayList<>();
         integrations.forEach(
@@ -497,7 +542,12 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
             for (String id : staleIntegrationIds) {
                 try {
-                    this.securityAnalyticsService.deleteIntegration(id, Space.STANDARD);
+                    CompletableFuture<Void> future = new CompletableFuture<>();
+                    this.securityAnalyticsService.deleteIntegration(
+                            id,
+                            Space.STANDARD,
+                            ActionListener.wrap(r -> future.complete(null), future::completeExceptionally));
+                    future.get(60, TimeUnit.SECONDS);
                 } catch (Exception e) {
                     log.warn("Failed to delete stale integration [{}]: {}", id, e.getMessage());
                 }
@@ -510,7 +560,12 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
             for (String id : staleRuleIds) {
                 try {
-                    this.securityAnalyticsService.deleteRule(id, Space.STANDARD);
+                    CompletableFuture<Void> future = new CompletableFuture<>();
+                    this.securityAnalyticsService.deleteRule(
+                            id,
+                            Space.STANDARD,
+                            ActionListener.wrap(r -> future.complete(null), future::completeExceptionally));
+                    future.get(60, TimeUnit.SECONDS);
                 } catch (Exception e) {
                     log.warn("Failed to delete stale rule [{}]: {}", id, e.getMessage());
                 }
@@ -551,9 +606,16 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         // Using a name-based UUID (v3) ensures all nodes produce the same ID for the same seed.
         String sharedDocumentId =
                 UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
-        this.spaceService.initializeSpace(Space.DRAFT.toString(), sharedDocumentId);
-        this.spaceService.initializeSpace(Space.TEST.toString(), sharedDocumentId);
-        this.spaceService.initializeSpace(Space.CUSTOM.toString(), sharedDocumentId);
+        try {
+            this.<Void>awaitResult(
+                    l -> this.spaceService.initializeSpace(Space.DRAFT.toString(), sharedDocumentId, l));
+            this.<Void>awaitResult(
+                    l -> this.spaceService.initializeSpace(Space.TEST.toString(), sharedDocumentId, l));
+            this.<Void>awaitResult(
+                    l -> this.spaceService.initializeSpace(Space.CUSTOM.toString(), sharedDocumentId, l));
+        } catch (IOException e) {
+            log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, "spaces", e.getMessage());
+        }
     }
 
     /**

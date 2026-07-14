@@ -1,23 +1,26 @@
 #!/bin/bash
 
-# SPDX-License-Identifier: Apache-2.0
-# The OpenSearch Contributors require contributions made to
-# this file be licensed under the Apache-2.0 license or a
-# compatible open source license.
+# Workaround to keep the config.yml file as the assistant dumbly removes it.
+cp config.yml config.yml.bak
 
-# Download the Wazuh certs tool
-curl -sO https://packages.wazuh.com/4.9/wazuh-certs-tool.sh
+if [ -f "wazuh-install-files.tar" ]; then
+    rm -f wazuh-install-files.tar
+fi
 
-# Make the script executable
-chmod +x ./wazuh-certs-tool.sh
+echo "[INFO] Downloading the installation assistant..."
+wget -O wazuh-install.sh https://packages-staging.xdrsiem.wazuh.info/nightly/5.0.0/installation-assistant/wazuh-install-5.0.0-latest.sh
 
-# Run the Wazuh certs tool
-OPENSSL_CONF="/etc/ssl/openssl.cnf" ./wazuh-certs-tool.sh -A
+echo "[INFO] Generating config files..."
+bash wazuh-install.sh --generate-config-files || exit 1
 
-# Create a tarball of the generated certificates
-tar -cvf ./wazuh-certificates.tar -C ./wazuh-certificates/ .
-
-# Clean up
-rm -rf ./wazuh-certificates wazuh-certs-tool.sh *.log
-
-echo "Setup complete and certificates archived."
+if [ -f "wazuh-install-files.tar" ]; then
+    echo "[INFO] Setup complete."
+    mv config.yml.bak config.yml
+    chmod +r wazuh-install-files.tar
+    chown "$1:$1" wazuh-install-files.tar config.yml
+else
+    echo "[ERROR] Setup failed. Please check the output above for errors."
+    mv config.yml.bak config.yml
+    chown "$1:$1" config.yml
+    exit 1
+fi

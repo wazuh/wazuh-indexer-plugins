@@ -5,3 +5,9 @@ nodes:
       ip: "192.168.56.10"
     - name: node-2
       ip: "192.168.56.11"
+  dashboard:
+    - name: dashboard-1
+      ip: "192.168.56.10"
+  manager:
+    - name: manager-1
+      ip: "192.168.56.10"
