@@ -16,7 +16,10 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -33,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -43,6 +47,7 @@ import java.util.zip.ZipOutputStream;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -69,6 +74,13 @@ import static org.mockito.Mockito.when;
  * access or a running cluster.
  */
 public class SnapshotServiceImplTests extends OpenSearchTestCase {
+
+    /** Mirrors {@code SnapshotServiceImpl.mapper} (plain, no BigDecimal). */
+    private final ObjectMapper plain = new ObjectMapper();
+
+    /** Mirrors {@code ContentIndex.mapper} (BigDecimal for floats). */
+    private final ObjectMapper cti =
+            new ObjectMapper().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
 
     private SnapshotServiceImpl snapshotService;
     private Path tempDir;
@@ -605,6 +617,242 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         } finally {
             PluginSettings.resetForTesting();
         }
+    }
+
+    public void testLazyCve_DocumentWrapperWithOffset() throws Exception {
+        String line =
+                "{\"resource\": \"CVE-2026-0001\", \"offset\": 5, \"payload\": {\"document\": "
+                        + "{\"foo\": \"bar\", \"n\": 42, \"nested\": {\"a\": [1, 2, 3]}}}}";
+        assertLazyMatchesBaseline(line);
+
+        SnapshotServiceImpl.LazyCveDocument result = this.snapshotService.parseLazyCve(line);
+        assertNotNull(result);
+        assertEquals("CVE-2026-0001", result.id);
+        assertTrue(result.hasOffset);
+        assertEquals(5L, result.offset);
+    }
+
+    public void testLazyCve_ResourceFromNameField() throws Exception {
+        String line =
+                "{\"name\": \"TID-123\", \"offset\": 1, \"payload\": {\"document\": {\"foo\": \"bar\"}}}";
+        assertLazyMatchesBaseline(line);
+        assertEquals("TID-123", this.snapshotService.parseLazyCve(line).id);
+    }
+
+    public void testLazyCve_NoOffsetPresent() throws Exception {
+        String line =
+                "{\"resource\": \"CVE-2026-0002\", \"payload\": {\"document\": {\"foo\": \"bar\"}}}";
+        assertLazyMatchesBaseline(line);
+        assertFalse(
+                "no offset field should not be persisted",
+                this.snapshotService.parseLazyCve(line).hasOffset);
+    }
+
+    public void testLazyCve_DocumentContainingBracesAndQuotes() throws Exception {
+        // Braces and quotes inside string values must not confuse the raw offset slicing.
+        String line =
+                "{\"resource\": \"CVE-2026-0003\", \"offset\": 9, \"payload\": {\"document\": "
+                        + "{\"desc\": \"a } b { \\\"c\\\" }\", \"x\": 1}}}";
+        assertLazyMatchesBaseline(line);
+    }
+
+    public void testLazyCve_PrettyPrintedLine() throws Exception {
+        // Whitespace-formatted input: offsets and semantic equality must still hold.
+        String line =
+                "{\n  \"resource\": \"CVE-2026-0004\",\n  \"offset\": 7,\n  \"payload\": {\n"
+                        + "    \"document\": {\n      \"foo\": \"bar\",\n      \"list\": [ 1, 2 ]\n    }\n  }\n}";
+        assertLazyMatchesBaseline(line);
+    }
+
+    public void testLazyCve_ExtraEnvelopeFieldsIgnored() throws Exception {
+        String line =
+                "{\"resource\": \"CVE-2026-0005\", \"version\": 3, \"context\": \"vd\", \"offset\": 2, "
+                        + "\"payload\": {\"document\": {\"foo\": \"bar\"}}}";
+        assertLazyMatchesBaseline(line);
+    }
+
+    public void testLazyCve_FloatFidelityIsValueEqual() throws Exception {
+        // 1.50 (lazy, verbatim) vs 1.5 (full-tree, reformatted) -> numerically equal.
+        String line =
+                "{\"resource\": \"CVE-2026-0006\", \"offset\": 4, \"payload\": {\"document\": "
+                        + "{\"score\": 1.50}}}";
+        assertLazyMatchesBaseline(line);
+    }
+
+    public void testLazyCve_PayloadIsDocumentNoWrapper() throws Exception {
+        // Real CTI vulnerabilities shape: payload IS the CVE document (no "document" wrapper).
+        String line =
+                "{\"name\": \"CVE-1999-0001\", \"offset\": 1, \"payload\": {\"containers\": {\"cna\":"
+                        + " {\"title\": \"t\"}}, \"cveMetadata\": {\"cveId\": \"CVE-1999-0001\"},"
+                        + " \"dataType\": \"CVE_RECORD\", \"dataVersion\": \"5.1\"}}";
+        assertLazyMatchesBaseline(line);
+        SnapshotServiceImpl.LazyCveDocument result = this.snapshotService.parseLazyCve(line);
+        assertEquals("CVE-1999-0001", result.id);
+        assertEquals(1L, result.offset);
+    }
+
+    public void testLazyCve_GlobalResourceNoWrapper() throws Exception {
+        String line =
+                "{\"name\": \"FEED-GLOBAL\", \"offset\": 12, \"payload\": {\"vendors\": [\"a\", \"b\"]}}";
+        assertLazyMatchesBaseline(line);
+    }
+
+    public void testLazyCve_FallbackOnUnknownResourcePattern() throws Exception {
+        String line =
+                "{\"resource\": \"NOT-A-CVE\", \"offset\": 1, \"payload\": {\"document\": {\"foo\": \"bar\"}}}";
+        assertNull("unknown resource pattern must fall back", this.snapshotService.parseLazyCve(line));
+    }
+
+    public void testLazyCve_FallbackNoWrapperWithTypeKey() throws Exception {
+        String line =
+                "{\"resource\": \"CVE-2026-0007\", \"offset\": 1, \"payload\": {\"type\": \"x\","
+                        + " \"foo\": \"bar\"}}";
+        assertNull(
+                "no-wrapper payload with a type key must fall back",
+                this.snapshotService.parseLazyCve(line));
+    }
+
+    public void testLazyCve_FallbackWhenNoPayload() throws Exception {
+        String line = "{\"resource\": \"CVE-2026-0008\", \"offset\": 1}";
+        assertNull("missing payload must fall back", this.snapshotService.parseLazyCve(line));
+    }
+
+    public void testLazyCve_FallbackWhenNotAnObject() throws Exception {
+        assertNull(this.snapshotService.parseLazyCve("[1, 2, 3]"));
+    }
+
+    /**
+     * End-to-end: a CVE-only service must ingest a real-shape CVE line through the lazy fast path —
+     * bypassing {@code processPayload} entirely — and index a correctly-shaped document.
+     */
+    public void testLazyCve_EndToEndBypassesProcessPayload() throws Exception {
+        Map<String, ContentIndex> cveMap = new HashMap<>();
+        cveMap.put("cves", this.contentIndexMock);
+        SnapshotServiceImpl svc =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:vulnerabilities", cveMap, this.consumersIndex, this.environment);
+        svc.setSnapshotClient(this.snapshotClient);
+        when(this.contentIndexMock.getWriteIndex()).thenReturn(".wazuh-threatintel-vulnerabilities");
+
+        String line =
+                "{\"name\": \"CVE-2026-1234\", \"offset\": 7, \"payload\": {\"containers\": {\"cna\":"
+                        + " {\"title\": \"t\"}}, \"dataType\": \"CVE_RECORD\"}}";
+        Path zip = this.createZipFileWithContent("cve.json", line);
+
+        svc.initialize(zip, null);
+
+        // Fast path must bypass the resource-model transformation entirely.
+        verify(this.contentIndexMock, never()).processPayload(any(JsonNode.class));
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
+
+        IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
+        assertEquals("CVE-2026-1234", request.id());
+        JsonNode stored = this.cti.readTree(request.source().utf8ToString());
+        assertEquals("CVE", stored.get("type").asText());
+        assertEquals(7L, stored.get("offset").asLong());
+        assertTrue("document must carry the raw CVE body", stored.get("document").has("containers"));
+    }
+
+    /**
+     * The streaming envelope parse must extract the same {@code resource}/{@code name}, {@code
+     * offset} and {@code payload} that the previous {@code readTree(line)} approach did — the payload
+     * subtree is what every per-type transform consumes.
+     */
+    public void testParseEnvelope_MatchesReadTree() throws Exception {
+        String line =
+                "{\"name\": \"rule-1\", \"version\": 4, \"offset\": 42, \"payload\": {\"type\": \"rule\","
+                        + " \"document\": {\"id\": \"R1\", \"related\": {\"sigma_id\": \"S-1\"}}}}";
+        SnapshotServiceImpl.Envelope env = this.snapshotService.parseEnvelope(line);
+        assertEquals("rule-1", env.resourceName);
+        assertTrue(env.hasOffset);
+        assertEquals(42L, env.offset);
+        assertTrue(env.hasPayload);
+        assertEquals(this.plain.readTree(line).get("payload"), env.payload);
+    }
+
+    public void testParseEnvelope_ResourceTakesPrecedenceOverName() throws Exception {
+        String line =
+                "{\"resource\": \"res-1\", \"name\": \"name-1\", \"payload\": {\"type\": \"kvdb\"}}";
+        SnapshotServiceImpl.Envelope env = this.snapshotService.parseEnvelope(line);
+        assertEquals("res-1", env.resourceName);
+        assertFalse(env.hasOffset);
+        assertTrue(env.hasPayload);
+    }
+
+    public void testParseEnvelope_NoPayload() throws Exception {
+        SnapshotServiceImpl.Envelope env =
+                this.snapshotService.parseEnvelope("{\"name\": \"x\", \"offset\": 1}");
+        assertFalse("no payload field -> hasPayload false", env.hasPayload);
+    }
+
+    public void testParseEnvelope_NonObjectLineHasNoPayload() throws Exception {
+        assertFalse(this.snapshotService.parseEnvelope("[1, 2, 3]").hasPayload);
+    }
+
+    /**
+     * Reproduces the exact stored document the current pipeline would index for a CVE line: envelope
+     * offset + type injection (as {@code processZipEntry} does), then {@link Cve#fromPayload}
+     * serialized via the BigDecimal-enabled mapper (as {@code processPayload} does).
+     */
+    private String baselineStoredDocument(String line) throws Exception {
+        JsonNode root = this.plain.readTree(line);
+        JsonNode payload = root.get("payload");
+        String resourceName =
+                root.has("resource")
+                        ? root.get("resource").asText()
+                        : (root.has("name") ? root.get("name").asText() : null);
+        String cveType = Cve.deriveType(resourceName);
+        if (root.has("offset") && payload.isObject()) {
+            ((ObjectNode) payload).put("offset", root.get("offset").asLong());
+        }
+        if (cveType != null && payload.isObject()) {
+            ((ObjectNode) payload).put("type", cveType);
+        }
+        Cve cve = Cve.fromPayload(payload);
+        return this.cti.valueToTree(cve).toString();
+    }
+
+    private void assertLazyMatchesBaseline(String line) throws Exception {
+        SnapshotServiceImpl.LazyCveDocument result = this.snapshotService.parseLazyCve(line);
+        assertNotNull("expected fast path to handle: " + line, result);
+        JsonNode expected = this.cti.readTree(baselineStoredDocument(line));
+        JsonNode actual = this.cti.readTree(result.toStoredDocument());
+        assertTrue(
+                "lazy output differs from baseline.\n  baseline=" + expected + "\n  lazy    =" + actual,
+                semanticallyEqual(expected, actual));
+    }
+
+    /** Numeric-aware deep equality: numbers compare by value, everything else structurally. */
+    private static boolean semanticallyEqual(JsonNode a, JsonNode b) {
+        if (a.isNumber() && b.isNumber()) {
+            return a.decimalValue().compareTo(b.decimalValue()) == 0;
+        }
+        if (a.isObject() && b.isObject()) {
+            if (a.size() != b.size()) {
+                return false;
+            }
+            Iterator<String> names = a.fieldNames();
+            while (names.hasNext()) {
+                String name = names.next();
+                if (!b.has(name) || !semanticallyEqual(a.get(name), b.get(name))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (a.isArray() && b.isArray()) {
+            if (a.size() != b.size()) {
+                return false;
+            }
+            for (int i = 0; i < a.size(); i++) {
+                if (!semanticallyEqual(a.get(i), b.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return a.equals(b);
     }
 
     /** Helper to create a temporary ZIP file containing a single file with specific content. */

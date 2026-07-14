@@ -555,6 +555,9 @@ public class Constants {
     public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
 
+    //Consumer types
+    public static final String CONSUMER_TYPE_VULNERABILITIES = "cti:catalog:consumer:vulnerabilities";
+
     // Index settings
     public static final String KEY_INDEX_CODEC = "index.codec";
     public static final String CODEC_ZSTD = "zstd";

@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -64,6 +67,13 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final PluginSettings pluginSettings;
     private final ObjectMapper mapper;
 
+    /**
+     * Raw passthrough is only sound when nothing downstream depends on a transformed document:
+     * currently just the CVE/vulnerabilities consumer. The ruleset and IoC consumers require their
+     * transforms, so they never pass through raw.
+     */
+    private final boolean rawDocumentPassthrough;
+
     /** The maximum offset encountered while processing snapshot files. */
     private long maxOffsetSeen;
 
@@ -88,6 +98,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.environment = environment;
         this.pluginSettings = PluginSettings.getInstance();
         this.mapper = new ObjectMapper();
+        this.rawDocumentPassthrough = Constants.CONSUMER_TYPE_VULNERABILITIES.equals(consumerType);
 
         this.snapshotClient = new SnapshotClient(this.environment, urlResolver);
     }
@@ -223,22 +234,42 @@ public class SnapshotServiceImpl implements SnapshotService {
         try (BufferedReader reader = Files.newBufferedReader(entryPath, StandardCharsets.UTF_8)) {
             while ((line = reader.readLine()) != null) {
                 try {
-                    JsonNode rootJson = this.mapper.readTree(line);
+                    // Raw-passthrough fast path
+                    if (this.rawDocumentPassthrough) {
+                        LazyCveDocument lazy = this.parseLazyCve(line);
+                        if (lazy != null) {
+                            if (lazy.hasOffset) {
+                                this.maxOffsetSeen = Math.max(this.maxOffsetSeen, lazy.offset);
+                            }
+                            IndexRequest indexRequest =
+                                    new IndexRequest(executorIndex.getWriteIndex())
+                                            .source(lazy.toStoredDocument(), XContentType.JSON)
+                                            .id(lazy.id);
+                            bulkRequest.add(indexRequest);
+                            docCount++;
+
+                            if (docCount >= this.pluginSettings.getMaxItemsPerBulk()
+                                    || bulkRequest.estimatedSizeInBytes() >= this.pluginSettings.getMaxBulkBytes()) {
+                                executorIndex.executeBulk(bulkRequest);
+                                bulkRequest = new BulkRequest();
+                                docCount = 0;
+                            }
+                            continue;
+                        }
+                    }
+
+                    // Transform path
+                    Envelope envelope = this.parseEnvelope(line);
 
                     // 1. Validate and Extract Payload
-                    if (!rootJson.has(Constants.KEY_PAYLOAD)) {
+                    if (!envelope.hasPayload) {
                         missingPayload++;
                         continue;
                     }
-                    JsonNode payload = rootJson.get(Constants.KEY_PAYLOAD);
+                    JsonNode payload = envelope.payload;
+                    String resourceName = envelope.resourceName;
 
                     // 2. Determine Index.
-                    String resourceName =
-                            rootJson.has(Constants.KEY_RESOURCE)
-                                    ? rootJson.get(Constants.KEY_RESOURCE).asText()
-                                    : (rootJson.has(Constants.KEY_NAME)
-                                            ? rootJson.get(Constants.KEY_NAME).asText()
-                                            : null);
                     String cveType = Cve.deriveType(resourceName);
 
                     String type = null;
@@ -266,10 +297,9 @@ public class SnapshotServiceImpl implements SnapshotService {
                     }
 
                     // Inject the CTI offset value into the payload so it is persisted
-                    if (rootJson.has(Constants.KEY_OFFSET) && payload.isObject()) {
-                        long offset = rootJson.get(Constants.KEY_OFFSET).asLong();
-                        ((ObjectNode) payload).put(Constants.KEY_OFFSET, offset);
-                        this.maxOffsetSeen = Math.max(this.maxOffsetSeen, offset);
+                    if (envelope.hasOffset && payload.isObject()) {
+                        ((ObjectNode) payload).put(Constants.KEY_OFFSET, envelope.offset);
+                        this.maxOffsetSeen = Math.max(this.maxOffsetSeen, envelope.offset);
                     }
 
                     if (Constants.KEY_CVES.equals(type) && payload.isObject() && cveType != null) {
@@ -288,8 +318,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                         indexRequest.id(resourceName);
                     } else {
                         throw new IOException(
-                                "Missing 'resource'/'name' key in CTI resource. {offset}:"
-                                        + rootJson.get("offset").asInt());
+                                "Missing 'resource'/'name' key in CTI resource. {offset}:" + envelope.offset);
                     }
 
                     bulkRequest.add(indexRequest);
@@ -488,5 +517,238 @@ public class SnapshotServiceImpl implements SnapshotService {
         } catch (IOException e) {
             log.warn(Constants.W_LOG_SNAPSHOT_CLEANUP_FAILED, e.getMessage());
         }
+    }
+
+    /**
+     * Result of a lazy/partial CVE envelope parse. Holds only the envelope fields needed to build the
+     * stored document; the deep payload stays as the raw {@link #documentRaw} string.
+     */
+    static final class LazyCveDocument {
+        final String id;
+        final long offset;
+        final boolean hasOffset;
+        private final String type;
+        private final String documentRaw;
+
+        private LazyCveDocument(
+                String id, long offset, boolean hasOffset, String type, String documentRaw) {
+            this.id = id;
+            this.offset = offset;
+            this.hasOffset = hasOffset;
+            this.type = type;
+            this.documentRaw = documentRaw;
+        }
+
+        /**
+         * Builds the stored document JSON string, matching the shape produced by the full-tree CVE
+         * pipeline ({@code {"document": …, "offset": …, "type": …}}) without re-serializing the deep
+         * payload.
+         *
+         * @return The stored document as a compact JSON string.
+         */
+        String toStoredDocument() {
+            StringBuilder sb = new StringBuilder(this.documentRaw.length() + 48);
+            sb.append("{\"").append(Constants.KEY_DOCUMENT).append("\":").append(this.documentRaw);
+            if (this.hasOffset) {
+                sb.append(",\"").append(Constants.KEY_OFFSET).append("\":").append(this.offset);
+            }
+            sb.append(",\"").append(Constants.KEY_TYPE).append("\":\"").append(this.type).append("\"}");
+            return sb.toString();
+        }
+    }
+
+    /**
+     * Lazy/partial parse of a single CVE NDJSON envelope line
+     *
+     * <p>Instead of materializing the whole envelope into a Jackson {@code JsonNode} tree (as {@code
+     * ObjectMapper.readTree} does), this walks the token stream once and captures only the top-level
+     * envelope fields required.
+     *
+     * <p>Returns {@code null} to force the caller onto the full-tree path for any shape it cannot
+     * reproduce exactly. Correctness is never traded for speed.
+     *
+     * @param line The raw NDJSON line.
+     * @return A populated {@link LazyCveDocument}, or {@code null} to signal a full-tree fallback.
+     * @throws IOException If the line is not well-formed JSON.
+     */
+    LazyCveDocument parseLazyCve(String line) throws IOException {
+        String resource = null;
+        String name = null;
+        long offset = 0;
+        boolean hasOffset = false;
+        String documentRaw = null;
+
+        JsonFactory factory = this.mapper.getFactory();
+        try (JsonParser parser = factory.createParser(line)) {
+            if (parser.nextToken() != JsonToken.START_OBJECT) {
+                return null;
+            }
+            while (parser.nextToken() != JsonToken.END_OBJECT) {
+                String field = parser.currentName();
+                JsonToken value = parser.nextToken();
+                if (field == null) {
+                    return null;
+                }
+                switch (field) {
+                    case Constants.KEY_RESOURCE:
+                        resource = parser.getValueAsString();
+                        break;
+                    case Constants.KEY_NAME:
+                        name = parser.getValueAsString();
+                        break;
+                    case Constants.KEY_OFFSET:
+                        if (value == null || !value.isNumeric()) {
+                            return null;
+                        }
+                        offset = parser.getLongValue();
+                        hasOffset = true;
+                        break;
+                    case Constants.KEY_PAYLOAD:
+                        if (value != JsonToken.START_OBJECT) {
+                            return null;
+                        }
+                        documentRaw = this.extractDocumentRaw(parser, line);
+                        break;
+                    default:
+                        parser.skipChildren();
+                        break;
+                }
+            }
+        }
+
+        String resourceName = resource != null ? resource : name;
+        if (resourceName == null || documentRaw == null) {
+            return null;
+        }
+        String type = Cve.deriveType(resourceName);
+        if (type == null) {
+            return null;
+        }
+        return new LazyCveDocument(resourceName, offset, hasOffset, type, documentRaw);
+    }
+
+    /**
+     * Descends into the {@code payload} object and returns the raw JSON text of the CVE document.
+     *
+     * <p>Returns {@code null} to force a fallback for any shape it cannot reproduce exactly.
+     */
+    private String extractDocumentRaw(JsonParser parser, String line) throws IOException {
+        long payloadStart = parser.currentTokenLocation().getCharOffset();
+        String document = null;
+        String legacy = null;
+        boolean hasTypeOrOffset = false;
+
+        while (parser.nextToken() != JsonToken.END_OBJECT) {
+            String field = parser.currentName();
+            JsonToken value = parser.nextToken();
+            boolean wrapper = Constants.KEY_DOCUMENT.equals(field) || Constants.KEY_PAYLOAD.equals(field);
+            if (wrapper && (value == JsonToken.START_OBJECT || value == JsonToken.START_ARRAY)) {
+                String raw = this.sliceCurrentValue(parser, line);
+                if (raw == null) {
+                    return null;
+                }
+                if (Constants.KEY_DOCUMENT.equals(field)) {
+                    document = raw;
+                } else {
+                    legacy = raw;
+                }
+            } else {
+                if (Constants.KEY_TYPE.equals(field) || Constants.KEY_OFFSET.equals(field)) {
+                    hasTypeOrOffset = true;
+                }
+                parser.skipChildren();
+            }
+        }
+        long payloadEnd = parser.currentLocation().getCharOffset();
+
+        if (document != null) {
+            return document;
+        }
+        if (legacy != null) {
+            return legacy;
+        }
+        if (!hasTypeOrOffset
+                && payloadStart >= 0
+                && payloadEnd > payloadStart
+                && payloadEnd <= line.length()) {
+            return line.substring((int) payloadStart, (int) payloadEnd);
+        }
+        return null;
+    }
+
+    /**
+     * Slices the raw JSON text of the value the parser is currently positioned on, consuming the
+     * whole subtree with. Returns {@code null} if the computed offsets are not usable.
+     */
+    private String sliceCurrentValue(JsonParser parser, String line) throws IOException {
+        long start = parser.currentTokenLocation().getCharOffset();
+        parser.skipChildren();
+        long end = parser.currentLocation().getCharOffset();
+        if (start < 0 || end < start || end > line.length()) {
+            return null;
+        }
+        return line.substring((int) start, (int) end);
+    }
+
+    /** The envelope fields extracted from a snapshot NDJSON line by {@link #parseEnvelope(String)} */
+    static final class Envelope {
+        String resourceName;
+        long offset;
+        boolean hasOffset;
+        boolean hasPayload;
+        JsonNode payload;
+    }
+
+    /**
+     * Partial parse of a snapshot NDJSON envelope for the transform path
+     *
+     * <p>Rather than materializing the whole line into a Jackson tree, it walks the token stream
+     * once, reads the small top-level envelope fields, and materializes a {@code JsonNode} for the
+     * {@code payload} value only. The outer envelope wrapper is never turned into objects.
+     *
+     * @param line The raw NDJSON line.
+     * @return The extracted {@link Envelope}. {@code hasPayload} is {@code false} when the line is
+     *     not a JSON object or carries no {@code payload} field.
+     * @throws IOException If the line is not well-formed JSON.
+     */
+    Envelope parseEnvelope(String line) throws IOException {
+        Envelope envelope = new Envelope();
+        String resource = null;
+        String name = null;
+
+        try (JsonParser parser = this.mapper.getFactory().createParser(line)) {
+            if (parser.nextToken() != JsonToken.START_OBJECT) {
+                return envelope;
+            }
+            while (parser.nextToken() != JsonToken.END_OBJECT) {
+                String field = parser.currentName();
+                parser.nextToken();
+                if (field == null) {
+                    return envelope;
+                }
+                switch (field) {
+                    case Constants.KEY_RESOURCE:
+                        resource = parser.getValueAsString();
+                        break;
+                    case Constants.KEY_NAME:
+                        name = parser.getValueAsString();
+                        break;
+                    case Constants.KEY_OFFSET:
+                        envelope.offset = parser.getValueAsLong();
+                        envelope.hasOffset = true;
+                        break;
+                    case Constants.KEY_PAYLOAD:
+                        envelope.hasPayload = true;
+                        envelope.payload = parser.readValueAsTree();
+                        break;
+                    default:
+                        parser.skipChildren();
+                        break;
+                }
+            }
+        }
+
+        envelope.resourceName = resource != null ? resource : name;
+        return envelope;
     }
 }
