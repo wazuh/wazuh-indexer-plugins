@@ -243,11 +243,17 @@ public abstract class AbstractTransportUpdateActionSpaces
                 return new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus());
             }
 
+            // Resolved once, as a local variable, and threaded explicitly through the calls below.
+            // Subclasses used to cache this on an instance field, but transport actions are
+            // singletons shared across concurrently in-flight requests, so any per-request state
+            // must live on the stack, not on `this`.
+            Space space = Space.fromValue(spaceName);
+
             // Update timestamps & preserve metadata
             String currentTimestamp = getCurrentDate();
             Resource.setLastModificationTime(resourceNode, currentTimestamp);
             Resource.nestMetadataFields(resourceNode);
-            validationError = this.preserveMetadata(index, id, resourceNode);
+            validationError = this.preserveMetadata(index, id, resourceNode, space);
             if (validationError != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED_ID,
@@ -259,7 +265,7 @@ public abstract class AbstractTransportUpdateActionSpaces
             }
 
             // External Sync
-            validationError = this.syncExternalServices(id, resourceNode);
+            validationError = this.syncExternalServices(id, resourceNode, space);
             if (validationError != null) {
                 log.error(
                         Constants.E_LOG_FAILED_TO,
@@ -304,7 +310,8 @@ public abstract class AbstractTransportUpdateActionSpaces
         }
     }
 
-    protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
+    protected RestResponse preserveMetadata(
+            ContentIndex index, String id, ObjectNode resourceNode, Space space) {
         JsonNode existingDoc = index.getDocument(id);
         if (existingDoc == null || !existingDoc.has(Constants.KEY_DOCUMENT)) return null;
 
@@ -389,5 +396,5 @@ public abstract class AbstractTransportUpdateActionSpaces
 
     protected abstract RestResponse validatePayload(Client client, JsonNode root, JsonNode resource);
 
-    protected abstract RestResponse syncExternalServices(String id, JsonNode resource);
+    protected abstract RestResponse syncExternalServices(String id, JsonNode resource, Space space);
 }

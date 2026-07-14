@@ -65,9 +65,6 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
 
     private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
 
-    /** Space resolved from the stored document for the request currently being processed. */
-    private Space resolvedSpace;
-
     @Inject
     public TransportUpdateIntegrationAction(
             TransportService transportService,
@@ -113,8 +110,9 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
         // The space is resolved
         String storedSpace = existingDoc.path(Constants.KEY_SPACE).path(Constants.KEY_NAME).asText();
         ((ObjectNode) root).put(Constants.KEY_SPACE, storedSpace);
+        Space resolvedSpace;
         try {
-            this.resolvedSpace = Space.fromValue(storedSpace);
+            resolvedSpace = Space.fromValue(storedSpace);
         } catch (IllegalArgumentException e) {
             return new RestResponse(
                     Constants.E_400_RESOURCE_SPACE_INVALID, RestStatus.BAD_REQUEST.getStatus());
@@ -127,7 +125,7 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
             return fieldValidation;
         }
 
-        if (Space.STANDARD.equals(this.resolvedSpace)) {
+        if (Space.STANDARD.equals(resolvedSpace)) {
             return null;
         }
 
@@ -152,8 +150,9 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
     }
 
     @Override
-    protected RestResponse preserveMetadata(ContentIndex index, String id, ObjectNode resourceNode) {
-        RestResponse response = super.preserveMetadata(index, id, resourceNode);
+    protected RestResponse preserveMetadata(
+            ContentIndex index, String id, ObjectNode resourceNode, Space space) {
+        RestResponse response = super.preserveMetadata(index, id, resourceNode, space);
         if (response != null) {
             return response;
         }
@@ -170,7 +169,7 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
             resourceNode.set(Constants.KEY_MODE, existingDocument.get(Constants.KEY_MODE));
         }
 
-        if (Space.STANDARD.equals(this.resolvedSpace)) {
+        if (Space.STANDARD.equals(space)) {
             // Only 'enabled' is mutable in the standard space
             boolean enabled = resourceNode.path(Constants.KEY_ENABLED).asBoolean(true);
             String modified =
@@ -212,12 +211,12 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
     }
 
     @Override
-    protected RestResponse syncExternalServices(String id, JsonNode resource) {
+    protected RestResponse syncExternalServices(String id, JsonNode resource, Space space) {
         SecurityAnalyticsService securityAnalyticsService = this.resolveSecurityAnalyticsService();
 
         // Standard integrations: only 'enabled' is mutable, and toggling it keeps the related
         // detector in sync.
-        if (Space.STANDARD.equals(this.resolvedSpace)) {
+        if (Space.STANDARD.equals(space)) {
             return this.syncDetectorEnabledState(id, resource, securityAnalyticsService);
         }
 
