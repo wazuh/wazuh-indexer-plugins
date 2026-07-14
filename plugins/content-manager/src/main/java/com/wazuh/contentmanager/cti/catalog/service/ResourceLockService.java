@@ -24,11 +24,13 @@ import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.engine.VersionConflictEngineException;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -57,53 +59,96 @@ public class ResourceLockService {
     private static final String ACQUIRED_AT_FIELD = "acquired_at";
 
     private final Client client;
+    private final ThreadPool threadPool;
 
     /**
      * Constructor.
      *
      * @param client OpenSearch client used for index operations.
+     * @param threadPool Thread pool used for scheduling retry backoff.
      */
-    public ResourceLockService(Client client) {
+    public ResourceLockService(Client client, ThreadPool threadPool) {
         this.client = client;
+        this.threadPool = threadPool;
     }
 
     /**
-     * Acquires the mutex for the given resource type and space, blocking (with bounded retries) until
-     * it becomes available.
+     * Acquires the mutex for the given resource type and space asynchronously, retrying (with bounded
+     * retries) until it becomes available.
      *
      * @param resourceType The resource type (e.g. "rule", "filter").
      * @param space The space the resource is being created in.
-     * @return The lock document ID, to be passed to {@link #release(String)}.
-     * @throws IOException If the lock could not be acquired after {@link
-     *     Constants#MAX_LOCK_ACQUIRE_RETRIES} attempts.
+     * @param listener Notified with the lock document ID on success, or an {@link IOException} if the
+     *     lock could not be acquired after {@link Constants#MAX_LOCK_ACQUIRE_RETRIES} attempts.
      */
-    public String acquire(String resourceType, String space) throws IOException {
-        this.ensureIndexExists();
-        String lockId = lockId(resourceType, space);
+    public void acquire(String resourceType, String space, ActionListener<String> listener) {
+        this.ensureIndexExists(
+                ActionListener.wrap(
+                        v -> {
+                            String lockId = lockId(resourceType, space);
+                            this.tryAcquire(lockId, resourceType, space, 1, listener);
+                        },
+                        listener::onFailure));
+    }
 
-        for (int attempt = 1; attempt <= Constants.MAX_LOCK_ACQUIRE_RETRIES; attempt++) {
-            try {
-                IndexRequest request =
-                        new IndexRequest(Constants.INDEX_RESOURCE_LOCKS)
-                                .id(lockId)
-                                .source(Map.of(ACQUIRED_AT_FIELD, Instant.now().toEpochMilli()))
-                                .opType(DocWriteRequest.OpType.CREATE)
-                                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-                this.client.index(request).actionGet();
-                return lockId;
-            } catch (VersionConflictEngineException e) {
-                if (this.stealIfStale(lockId)) {
-                    continue;
-                }
-                this.backoff();
-            }
+    private void tryAcquire(
+            String lockId,
+            String resourceType,
+            String space,
+            int attempt,
+            ActionListener<String> listener) {
+        if (attempt > Constants.MAX_LOCK_ACQUIRE_RETRIES) {
+            listener.onFailure(
+                    new IOException(
+                            "Timed out waiting for the resource-creation lock on ["
+                                    + resourceType
+                                    + "/"
+                                    + space
+                                    + "]."));
+            return;
         }
-        throw new IOException(
-                "Timed out waiting for the resource-creation lock on ["
-                        + resourceType
-                        + "/"
-                        + space
-                        + "].");
+
+        IndexRequest request =
+                new IndexRequest(Constants.INDEX_RESOURCE_LOCKS)
+                        .id(lockId)
+                        .source(Map.of(ACQUIRED_AT_FIELD, Instant.now().toEpochMilli()))
+                        .opType(DocWriteRequest.OpType.CREATE)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+        this.client.index(
+                request,
+                ActionListener.wrap(
+                        response -> listener.onResponse(lockId),
+                        e -> {
+                            if (ExceptionsHelper.unwrap(e, VersionConflictEngineException.class) == null) {
+                                listener.onFailure(e);
+                                return;
+                            }
+                            this.stealIfStale(
+                                    lockId,
+                                    ActionListener.wrap(
+                                            stolen -> {
+                                                if (stolen) {
+                                                    this.tryAcquire(lockId, resourceType, space, attempt + 1, listener);
+                                                } else {
+                                                    this.threadPool.schedule(
+                                                            () ->
+                                                                    this.tryAcquire(
+                                                                            lockId, resourceType, space, attempt + 1, listener),
+                                                            TimeValue.timeValueMillis(
+                                                                    Constants.LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS),
+                                                            ThreadPool.Names.GENERIC);
+                                                }
+                                            },
+                                            ex ->
+                                                    this.threadPool.schedule(
+                                                            () ->
+                                                                    this.tryAcquire(
+                                                                            lockId, resourceType, space, attempt + 1, listener),
+                                                            TimeValue.timeValueMillis(
+                                                                    Constants.LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS),
+                                                            ThreadPool.Names.GENERIC)));
+                        }));
     }
 
     /**
@@ -111,62 +156,68 @@ public class ResourceLockService {
      * never surfaces as a resource-creation failure; a lock older than {@link
      * Constants#LOCK_STALE_THRESHOLD_MILLIS} is stolen by the next caller regardless.
      *
-     * @param lockId The lock document ID returned by {@link #acquire(String, String)}.
+     * @param lockId The lock document ID returned by {@link #acquire(String, String,
+     *     ActionListener)}.
      */
     public void release(String lockId) {
-        try {
-            this.client
-                    .delete(
-                            new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
-                                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-                    .actionGet();
-        } catch (Exception e) {
-            log.warn("Failed to release resource-creation lock [{}]: {}", lockId, e.getMessage());
-        }
+        this.client.delete(
+                new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
+                ActionListener.wrap(
+                        response -> {},
+                        e ->
+                                log.warn(
+                                        "Failed to release resource-creation lock [{}]: {}", lockId, e.getMessage())));
     }
 
     /**
      * Deletes the lock document if it was acquired more than {@link
      * Constants#LOCK_STALE_THRESHOLD_MILLIS} ago, guarding against a lock orphaned by a crashed node.
+     * Never calls {@link ActionListener#onFailure}; all errors resolve to {@code onResponse(false)}.
      *
      * @param lockId The lock document ID.
-     * @return true if the stale lock was stolen (deleted) and the caller should retry immediately.
+     * @param listener Notified with {@code true} if the stale lock was stolen (deleted) and the
+     *     caller should retry immediately.
      */
-    private boolean stealIfStale(String lockId) {
-        try {
-            GetResponse response =
-                    this.client.get(new GetRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)).actionGet();
-            if (!response.isExists()) {
-                // Released concurrently between our failed acquire and this check; retry immediately.
-                return true;
-            }
-            Map<String, Object> source = response.getSourceAsMap();
-            Object acquiredAt = source != null ? source.get(ACQUIRED_AT_FIELD) : null;
-            long acquiredAtMillis = acquiredAt instanceof Number ? ((Number) acquiredAt).longValue() : 0L;
-            if (Instant.now().toEpochMilli() - acquiredAtMillis
-                    <= Constants.LOCK_STALE_THRESHOLD_MILLIS) {
-                return false;
-            }
-            log.warn("Stealing stale resource-creation lock [{}].", lockId);
-            this.client
-                    .delete(
-                            new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
-                                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
-                    .actionGet();
-            return true;
-        } catch (Exception e) {
-            log.warn(
-                    "Failed to check staleness of resource-creation lock [{}]: {}", lockId, e.getMessage());
-            return false;
-        }
-    }
-
-    private void backoff() {
-        try {
-            Thread.sleep(Constants.LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+    private void stealIfStale(String lockId, ActionListener<Boolean> listener) {
+        this.client.get(
+                new GetRequest(Constants.INDEX_RESOURCE_LOCKS, lockId),
+                ActionListener.wrap(
+                        response -> {
+                            if (!response.isExists()) {
+                                listener.onResponse(true);
+                                return;
+                            }
+                            Map<String, Object> source = response.getSourceAsMap();
+                            Object acquiredAt = source != null ? source.get(ACQUIRED_AT_FIELD) : null;
+                            long acquiredAtMillis =
+                                    acquiredAt instanceof Number ? ((Number) acquiredAt).longValue() : 0L;
+                            if (Instant.now().toEpochMilli() - acquiredAtMillis
+                                    <= Constants.LOCK_STALE_THRESHOLD_MILLIS) {
+                                listener.onResponse(false);
+                                return;
+                            }
+                            log.warn("Stealing stale resource-creation lock [{}].", lockId);
+                            this.client.delete(
+                                    new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
+                                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
+                                    ActionListener.wrap(
+                                            deleteResponse -> listener.onResponse(true),
+                                            e -> {
+                                                log.warn(
+                                                        "Failed to steal stale resource-creation lock" + " [{}]: {}",
+                                                        lockId,
+                                                        e.getMessage());
+                                                listener.onResponse(false);
+                                            }));
+                        },
+                        e -> {
+                            log.warn(
+                                    "Failed to check staleness of resource-creation lock [{}]: {}",
+                                    lockId,
+                                    e.getMessage());
+                            listener.onResponse(false);
+                        }));
     }
 
     private static String lockId(String resourceType, String space) {
@@ -175,8 +226,9 @@ public class ResourceLockService {
                 .toString();
     }
 
-    private void ensureIndexExists() {
+    private void ensureIndexExists(ActionListener<Void> listener) {
         if (ClusterInfo.indexExists(this.client, Constants.INDEX_RESOURCE_LOCKS)) {
+            listener.onResponse(null);
             return;
         }
         Settings settings =
@@ -195,6 +247,7 @@ public class ResourceLockService {
                     "Could not read mappings for index [{}]: {}",
                     Constants.INDEX_RESOURCE_LOCKS,
                     e.getMessage());
+            listener.onResponse(null);
             return;
         }
 
@@ -203,15 +256,23 @@ public class ResourceLockService {
                         .index(Constants.INDEX_RESOURCE_LOCKS)
                         .mapping(mappings)
                         .settings(settings);
-        try {
-            this.client.admin().indices().create(request).actionGet();
-        } catch (Exception e) {
-            if (ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null) {
-                log.debug("Index [{}] already exists, skipping creation.", Constants.INDEX_RESOURCE_LOCKS);
-                return;
-            }
-            throw e;
-        }
+        this.client
+                .admin()
+                .indices()
+                .create(
+                        request,
+                        ActionListener.wrap(
+                                response -> listener.onResponse(null),
+                                e -> {
+                                    if (ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null) {
+                                        log.debug(
+                                                "Index [{}] already exists, skipping creation.",
+                                                Constants.INDEX_RESOURCE_LOCKS);
+                                        listener.onResponse(null);
+                                    } else {
+                                        listener.onFailure(e);
+                                    }
+                                }));
     }
 
     private static String loadMappingFromResources() throws IOException {

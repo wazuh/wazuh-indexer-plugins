@@ -80,7 +80,7 @@ public abstract class AbstractTransportCreateActionSpaces
         super(actionName, transportService, actionFilters, ContentCreateRequest::new);
         this.client = client;
         this.engine = engine;
-        this.resourceLockService = new ResourceLockService(client);
+        this.resourceLockService = new ResourceLockService(client, transportService.getThreadPool());
     }
 
     @Override
@@ -230,42 +230,43 @@ public abstract class AbstractTransportCreateActionSpaces
             ActionListener<ContentResponse> listener) {
         // Serialize the limit-check-then-create sequence per resource type/space so concurrent
         // requests cannot all observe a stale count and overshoot the configured max.
-        String lockId;
-        try {
-            lockId = this.resourceLockService.acquire(this.getResourceType(), spaceName);
-        } catch (IOException e) {
-            log.warn(
-                    "Failed to acquire resource-creation lock for [{}]: {}",
-                    this.getResourceType(),
-                    e.getMessage());
-            listener.onResponse(
-                    new ContentResponse(Constants.E_503_RESOURCE_LOCK_TIMEOUT, RestStatus.TOO_MANY_REQUESTS));
-            return;
-        }
-
-        final String heldLockId = lockId;
-        ActionListener<ContentResponse> lockReleasingListener =
-                ActionListener.runAfter(listener, () -> this.resourceLockService.release(heldLockId));
-
-        this.checkResourceLimitAsync(
-                client,
+        this.resourceLockService.acquire(
+                this.getResourceType(),
                 spaceName,
                 ActionListener.wrap(
-                        limitError -> {
-                            if (limitError != null) {
-                                respond(lockReleasingListener, limitError);
-                                return;
-                            }
-                            afterLimitCheck(
-                                    rootNode,
-                                    resourceNode,
-                                    rawYaml,
-                                    spaceName,
+                        lockId -> {
+                            ActionListener<ContentResponse> lockReleasingListener =
+                                    ActionListener.runAfter(listener, () -> this.resourceLockService.release(lockId));
+
+                            this.checkResourceLimitAsync(
                                     client,
-                                    spaceService,
-                                    lockReleasingListener);
+                                    spaceName,
+                                    ActionListener.wrap(
+                                            limitError -> {
+                                                if (limitError != null) {
+                                                    respond(lockReleasingListener, limitError);
+                                                    return;
+                                                }
+                                                afterLimitCheck(
+                                                        rootNode,
+                                                        resourceNode,
+                                                        rawYaml,
+                                                        spaceName,
+                                                        client,
+                                                        spaceService,
+                                                        lockReleasingListener);
+                                            },
+                                            e -> respondWithError(lockReleasingListener, e)));
                         },
-                        e -> respondWithError(lockReleasingListener, e)));
+                        e -> {
+                            log.warn(
+                                    "Failed to acquire resource-creation lock for [{}]: {}",
+                                    this.getResourceType(),
+                                    e.getMessage());
+                            listener.onResponse(
+                                    new ContentResponse(
+                                            Constants.E_503_RESOURCE_LOCK_TIMEOUT, RestStatus.TOO_MANY_REQUESTS));
+                        }));
     }
 
     private void afterLimitCheck(
@@ -349,10 +350,7 @@ public abstract class AbstractTransportCreateActionSpaces
                                 log.info(this.getMaxReachedLogFormat(), max);
                                 listener.onResponse(
                                         new RestResponse(
-                                                String.format(
-                                                        Locale.ROOT,
-                                                        this.getTooManyResourcesMessageFormat(),
-                                                        max),
+                                                String.format(Locale.ROOT, this.getTooManyResourcesMessageFormat(), max),
                                                 RestStatus.BAD_REQUEST.getStatus()));
                             } else {
                                 listener.onResponse(null);

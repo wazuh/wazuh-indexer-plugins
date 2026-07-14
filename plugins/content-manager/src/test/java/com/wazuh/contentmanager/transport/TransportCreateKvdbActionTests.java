@@ -18,8 +18,10 @@ package com.wazuh.contentmanager.transport;
 
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
@@ -27,6 +29,7 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
@@ -34,6 +37,7 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
@@ -53,8 +57,10 @@ import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
 
 public class TransportCreateKvdbActionTests extends OpenSearchTestCase {
 
@@ -75,12 +81,19 @@ public class TransportCreateKvdbActionTests extends OpenSearchTestCase {
                 Settings.builder().put("plugins.content_manager.engine.mock", true).build());
         this.client = mock(Client.class);
         stubResourceLock(this.client);
+        TransportService transportService = mock(TransportService.class);
+        ThreadPool threadPool = mock(ThreadPool.class);
+        doAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(0)).run();
+                            return null;
+                        })
+                .when(threadPool)
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+        when(transportService.getThreadPool()).thenReturn(threadPool);
         this.action =
                 new TransportCreateKvdbAction(
-                        mock(TransportService.class),
-                        mock(ActionFilters.class),
-                        this.client,
-                        mock(EngineService.class));
+                        transportService, mock(ActionFilters.class), this.client, mock(EngineService.class));
     }
 
     @After
@@ -113,13 +126,23 @@ public class TransportCreateKvdbActionTests extends OpenSearchTestCase {
         when(adminClient.indices()).thenReturn(indicesAdminClient);
         when(client.admin()).thenReturn(adminClient);
 
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
-        when(client.index(any())).thenReturn(indexFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
 
-        ActionFuture<DeleteResponse> deleteFuture = mock(ActionFuture.class);
-        when(deleteFuture.actionGet()).thenReturn(mock(DeleteResponse.class));
-        when(client.delete(any())).thenReturn(deleteFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(DeleteResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .delete(any(DeleteRequest.class), any(ActionListener.class));
     }
 
     @SuppressWarnings("unchecked")
