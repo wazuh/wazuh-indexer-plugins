@@ -180,20 +180,37 @@ public abstract class AbstractConsumerService {
      * LocalConsumer.Status#FAILED} if an unexpected exception interrupts the sync; the exception is
      * then rethrown so the caller ({@code CatalogSyncJob}) can log it and continue with the remaining
      * synchronizers.
+     *
+     * @return {@code true} when a catalog URL was configured but the remote feed could not be reached
+     *     (the pass still completes by falling back to the local snapshot, and the status is still
+     *     moved to {@link LocalConsumer.Status#READY}, but the caller should treat this as a failure
+     *     worth retrying so a transiently-blocked feed recovers immediately). {@code false} when the
+     *     feed was reached, or when no catalog was configured (nothing to reach).
      */
-    public void synchronize() {
+    public boolean synchronize() {
         this.setConsumerStatus(LocalConsumer.Status.RUNNING);
         try {
-            boolean isUpdated = this.syncConsumerServices();
-            log.debug(Constants.D_LOG_SYNC_COMPLETED, this.getConsumerType(), isUpdated);
-            this.onSyncComplete(isUpdated);
+            SyncResult result = this.syncConsumerServices();
+            log.debug(Constants.D_LOG_SYNC_COMPLETED, this.getConsumerType(), result.updated());
+            this.onSyncComplete(result.updated());
             this.setConsumerStatus(LocalConsumer.Status.READY);
+            return result.feedUnreachable();
         } catch (Exception e) {
             this.setConsumerStatus(LocalConsumer.Status.FAILED);
             throw new RuntimeException(
                     "Synchronization failed for consumer [" + this.getConsumerType() + "]", e);
         }
     }
+
+    /**
+     * Outcome of {@link #syncConsumerServices()}.
+     *
+     * @param updated {@code true} if any content update (snapshot or incremental) was applied.
+     * @param feedUnreachable {@code true} if a catalog URL was configured but the remote consumer
+     *     could not be fetched, so the pass relied on the local-snapshot fallback (or applied no
+     *     remote changes at all).
+     */
+    private record SyncResult(boolean updated, boolean feedUnreachable) {}
 
     /**
      * Updates the consumer status in the {@code .wazuh-cti-consumers} index. This is a partial
@@ -374,10 +391,10 @@ public abstract class AbstractConsumerService {
      * snapshot if this is a first-time sync (offset = 0), and applies incremental updates if the
      * remote offset is ahead.
      *
-     * @return True if any updates were applied (snapshot or incremental), false if already up to
-     *     date.
+     * @return a {@link SyncResult} carrying whether content was updated and whether a configured feed
+     *     could not be reached.
      */
-    private boolean syncConsumerServices() {
+    private SyncResult syncConsumerServices() {
         String consumerType = this.getConsumerType();
 
         // Resolve the snapshots directory and load the external manifest entry once up front. The
@@ -501,8 +518,15 @@ public abstract class AbstractConsumerService {
                                 this.consumersIndex,
                                 new ApiClient(urlResolver));
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
-        RemoteConsumer remoteConsumer =
-                (catalogUri != null && !catalogUri.isBlank()) ? consumerService.getRemoteConsumer() : null;
+        boolean catalogConfigured = catalogUri != null && !catalogUri.isBlank();
+        RemoteConsumer remoteConsumer = catalogConfigured ? consumerService.getRemoteConsumer() : null;
+
+        // A configured catalog whose remote consumer could not be fetched signals an unreachable
+        // feed. The pass still completes (falling back to the local snapshot / applying no remote
+        // changes), but the caller retries so a transiently-blocked feed recovers immediately.
+        // getRemoteConsumer() swallows the network failure and returns null, so this is the only
+        // place the unreachable-feed condition is observable.
+        boolean feedUnreachable = catalogConfigured && remoteConsumer == null;
 
         Map<String, ContentIndex> indicesMap = new HashMap<>();
 
@@ -529,7 +553,7 @@ public abstract class AbstractConsumerService {
         if (shadowSwapRequired) {
             if (!this.performShadowSwap(
                     consumerType, catalogUri, swapTargetResource, indicesMap, remoteConsumer, urlResolver)) {
-                return false;
+                return new SyncResult(false, feedUnreachable);
             }
             // The swapped snapshot only carries data up to its snapshot offset. Close the gap to
             // the remote head in the same pass; otherwise the consumer would be reported as READY
@@ -545,7 +569,7 @@ public abstract class AbstractConsumerService {
                         remoteConsumer.getSnapshotOffset(),
                         remoteConsumer.getOffset());
             }
-            return true;
+            return new SyncResult(true, feedUnreachable);
         }
 
         boolean updated = false;
@@ -689,7 +713,7 @@ public abstract class AbstractConsumerService {
                             currentOffset,
                             remoteConsumer.getOffset());
         }
-        return updated;
+        return new SyncResult(updated, feedUnreachable);
     }
 
     /**

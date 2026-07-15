@@ -211,8 +211,20 @@ public class CatalogSyncJob implements JobExecutor {
         boolean anyFailure = false;
         for (AbstractConsumerService synchronizer : this.synchronizers) {
             try {
-                synchronizer.synchronize();
-                log.debug("{} synchronized.", synchronizer.getClass().getSimpleName());
+                boolean feedUnreachable = synchronizer.synchronize();
+                if (feedUnreachable) {
+                    // The synchronizer fell back to its local snapshot because the configured CTI
+                    // feed was unreachable. Treat it as a failure so a single immediate retry fires;
+                    // a transient network block then recovers without waiting for the next scheduled
+                    // run.
+                    anyFailure = true;
+                    log.warn(
+                            "{} could not reach its configured feed; content served from the local"
+                                    + " snapshot.",
+                            synchronizer.getClass().getSimpleName());
+                } else {
+                    log.debug("{} synchronized.", synchronizer.getClass().getSimpleName());
+                }
             } catch (Exception e) {
                 anyFailure = true;
                 log.error(
