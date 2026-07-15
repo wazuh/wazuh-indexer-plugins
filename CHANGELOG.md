@@ -185,6 +185,7 @@
 - Disable automatic refresh for low-activity indices [(#1304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1304)
 - Extend findings case management fields with title, description, severity, priority, tlp and a comments array [(#1338)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1338)
 - Allow dates on Content Manager's REST API [(#1359)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1359)
+- Update Content Manager OpenAPI documentation to match current API behavior [(#1384)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1384)
 
 ### Removed
 - Delete files not needed for `5.0.0` [(#439)](https://github.com/wazuh/wazuh-indexer-plugins/pull/439)
@@ -232,6 +233,7 @@
 - Fix invalid action name warning messages [(#1313)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1313)
 - Fix consumer offset left behind the remote head after a plan-change content swap [(#1343)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1343)
 - Fix promotion changes on fresh install [(#1377)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1377)
+- Fix `custom` space rejection on `/logtest/normalization` and `/logtest/detection` [(#1384)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1384)
 
 ## Prior versions
 - []()
