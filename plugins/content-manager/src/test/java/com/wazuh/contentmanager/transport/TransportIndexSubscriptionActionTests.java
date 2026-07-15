@@ -46,14 +46,23 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
                         mock(TransportService.class), mock(ActionFilters.class), this.subscriptionService);
     }
 
-    public void testDoExecute_Created() throws Exception {
-        IndexSubscriptionRequest request = new IndexSubscriptionRequest("valid-token");
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_Created() {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Void> asyncListener = invocation.getArgument(1);
+                            asyncListener.onResponse(null);
+                            return null;
+                        })
+                .when(this.subscriptionService)
+                .register(eq("valid-token"), any(ActionListener.class));
 
-        @SuppressWarnings("unchecked")
+        IndexSubscriptionRequest request = new IndexSubscriptionRequest("valid-token");
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
-        verify(this.subscriptionService, times(1)).register("valid-token");
+        verify(this.subscriptionService, times(1))
+                .register(eq("valid-token"), any(ActionListener.class));
         verify(listener)
                 .onResponse(
                         argThat(
@@ -64,13 +73,19 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
                                 }));
     }
 
-    public void testDoExecute_PreconditionFailed() throws Exception {
-        doThrow(new IllegalStateException(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX))
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_PreconditionFailed() {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Void> asyncListener = invocation.getArgument(1);
+                            asyncListener.onFailure(
+                                    new IllegalStateException(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX));
+                            return null;
+                        })
                 .when(this.subscriptionService)
-                .register(anyString());
-        IndexSubscriptionRequest request = new IndexSubscriptionRequest("valid-token");
+                .register(anyString(), any(ActionListener.class));
 
-        @SuppressWarnings("unchecked")
+        IndexSubscriptionRequest request = new IndexSubscriptionRequest("valid-token");
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
@@ -85,12 +100,19 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
                                 }));
     }
 
-    public void testDoExecute_OtherIllegalState() throws Exception {
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_OtherIllegalState() {
         IllegalStateException cause = new IllegalStateException("Some other illegal state");
-        doThrow(cause).when(this.subscriptionService).register(anyString());
-        IndexSubscriptionRequest request = new IndexSubscriptionRequest("valid-token");
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Void> asyncListener = invocation.getArgument(1);
+                            asyncListener.onFailure(cause);
+                            return null;
+                        })
+                .when(this.subscriptionService)
+                .register(anyString(), any(ActionListener.class));
 
-        @SuppressWarnings("unchecked")
+        IndexSubscriptionRequest request = new IndexSubscriptionRequest("valid-token");
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
@@ -98,13 +120,18 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
         verify(listener, never()).onResponse(any());
     }
 
-    public void testDoExecute_Exception() throws Exception {
-        doThrow(new RuntimeException("Unexpected failure"))
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_Exception() {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Void> asyncListener = invocation.getArgument(1);
+                            asyncListener.onFailure(new RuntimeException("Unexpected failure"));
+                            return null;
+                        })
                 .when(this.subscriptionService)
-                .register(anyString());
-        IndexSubscriptionRequest request = new IndexSubscriptionRequest("valid-token");
+                .register(anyString(), any(ActionListener.class));
 
-        @SuppressWarnings("unchecked")
+        IndexSubscriptionRequest request = new IndexSubscriptionRequest("valid-token");
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 

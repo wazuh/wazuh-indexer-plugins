@@ -18,13 +18,17 @@ package com.wazuh.contentmanager.transport;
 
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.delete.DeleteResponse;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
@@ -32,6 +36,7 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
@@ -49,6 +54,7 @@ import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
@@ -72,12 +78,19 @@ public class TransportCreateIntegrationActionTests extends OpenSearchTestCase {
                 Settings.builder().put("plugins.content_manager.engine.mock", true).build());
         this.client = mock(Client.class);
         stubResourceLock(this.client);
+        TransportService transportService = mock(TransportService.class);
+        ThreadPool threadPool = mock(ThreadPool.class);
+        doAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(0)).run();
+                            return null;
+                        })
+                .when(threadPool)
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+        when(transportService.getThreadPool()).thenReturn(threadPool);
         this.action =
                 new TransportCreateIntegrationAction(
-                        mock(TransportService.class),
-                        mock(ActionFilters.class),
-                        this.client,
-                        mock(EngineService.class));
+                        transportService, mock(ActionFilters.class), this.client, mock(EngineService.class));
     }
 
     @After
@@ -102,21 +115,36 @@ public class TransportCreateIntegrationActionTests extends OpenSearchTestCase {
     private static void stubResourceLock(Client client) {
         IndicesExistsResponse existsResponse = mock(IndicesExistsResponse.class);
         when(existsResponse.isExists()).thenReturn(true);
-        ActionFuture<IndicesExistsResponse> existsFuture = mock(ActionFuture.class);
-        when(existsFuture.actionGet()).thenReturn(existsResponse);
         IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
-        when(indicesAdminClient.exists(any())).thenReturn(existsFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndicesExistsResponse> l = invocation.getArgument(1);
+                            l.onResponse(existsResponse);
+                            return null;
+                        })
+                .when(indicesAdminClient)
+                .exists(any(), any(ActionListener.class));
         AdminClient adminClient = mock(AdminClient.class);
         when(adminClient.indices()).thenReturn(indicesAdminClient);
         when(client.admin()).thenReturn(adminClient);
 
-        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
-        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
-        when(client.index(any())).thenReturn(indexFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
 
-        ActionFuture<DeleteResponse> deleteFuture = mock(ActionFuture.class);
-        when(deleteFuture.actionGet()).thenReturn(mock(DeleteResponse.class));
-        when(client.delete(any())).thenReturn(deleteFuture);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(DeleteResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .delete(any(DeleteRequest.class), any(ActionListener.class));
     }
 
     /**
@@ -128,23 +156,31 @@ public class TransportCreateIntegrationActionTests extends OpenSearchTestCase {
     public void testDoExecute_maxIntegrationsReached() {
         PluginSettings.getInstance().setMaxIntegrations(0);
         try {
-            SearchResponse policyResp = mock(SearchResponse.class);
-            when(policyResp.getHits())
-                    .thenReturn(
-                            new SearchHits(
-                                    new SearchHit[0], new TotalHits(1, TotalHits.Relation.EQUAL_TO), 0.0f));
-            ActionFuture<SearchResponse> policyFuture = mock(ActionFuture.class);
-            when(policyFuture.actionGet()).thenReturn(policyResp);
-            when(this.client.search(
-                            argThat(
-                                    r ->
-                                            r != null
-                                                    && r.indices().length > 0
-                                                    && Constants.INDEX_POLICIES.equals(r.indices()[0]))))
-                    .thenReturn(policyFuture);
+            // Draft policy exists (async search on the policies index); the async duplicate-title
+            // search on the integrations index returns no conflict (0 hits).
+            doAnswer(
+                            invocation -> {
+                                SearchRequest req = invocation.getArgument(0);
+                                ActionListener<SearchResponse> l = invocation.getArgument(1);
+                                long total =
+                                        req.indices().length > 0 && Constants.INDEX_POLICIES.equals(req.indices()[0])
+                                                ? 1
+                                                : 0;
+                                SearchResponse resp = mock(SearchResponse.class);
+                                when(resp.getHits())
+                                        .thenReturn(
+                                                new SearchHits(
+                                                        new SearchHit[0],
+                                                        new TotalHits(total, TotalHits.Relation.EQUAL_TO),
+                                                        0.0f));
+                                l.onResponse(resp);
+                                return null;
+                            })
+                    .when(this.client)
+                    .search(any(), any(ActionListener.class));
 
-            // 0 hits serves both the duplicate-title check (no conflict) and the count check
-            // (count=0 >= max=0 → rejected).
+            // Existing-integration count for the limit check (blocking one-arg search). count=0 >=
+            // max=0 → rejected.
             SearchResponse integResp = mock(SearchResponse.class);
             when(integResp.getHits())
                     .thenReturn(
