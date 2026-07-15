@@ -128,7 +128,7 @@ public class LogtestIT extends ContentManagerRestTestCase {
         JsonNode detectionNode = body.path("message").path("detection");
 
         assertEquals("skipped", detectionNode.path("status").asText());
-        assertEquals("integration field not provided", detectionNode.path("reason").asText());
+        assertEquals("'integration' field not provided", detectionNode.path("reason").asText());
     }
 
     /**

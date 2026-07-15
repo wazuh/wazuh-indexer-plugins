@@ -6,9 +6,9 @@ This documentation assumes basic knowledge of certain tools and technologies, su
 
 Before you start coding, read the sections below: they cover how to open good pull requests and how our GitHub Actions behave when you do. Getting this right up front saves CI minutes and review cycles for everyone.
 
-## Pull Requests
+## Pull requests
 
-These are the standard procedures for creating, updating, and reviewing Pull Requests across the Wazuh Indexer repositories.
+These are the standard procedures for creating, updating, and reviewing pull requests across the Wazuh Indexer repositories.
 
 ### Lifecycle
 
@@ -19,7 +19,7 @@ These are the standard procedures for creating, updating, and reviewing Pull Req
 └──────────┘    └──────────────┘    └─────────────────┘    └───────┘
 ```
 
-Every Pull Request **must** start in **Draft** status. Workflows do not run on Draft PRs — this is enforced across all repositories to avoid wasting GitHub Actions minutes on work in progress — so use Draft status freely while iterating on your changes.
+Every pull request **must** start in **Draft** status. Workflows do not run on Draft PRs — this is enforced across all repositories to avoid wasting GitHub Actions minutes on work in progress — so use Draft status freely while iterating on your changes.
 
 Before marking the PR as ready, **build** the project successfully and **run the tests** locally to verify they pass. This prevents avoidable CI failures that waste runner time and delay reviews. Once everything is complete and locally validated, click **"Ready for review"** and move the linked issue to **Pending review**. This is the moment workflows are triggered for the first time.
 
@@ -27,7 +27,7 @@ To address review feedback, push new commits on top of the branch and re-request
 
 ### Body template
 
-Use the following template when creating a Pull Request:
+Use the following template when creating a pull request:
 
 ```markdown
 ## Description
@@ -42,6 +42,8 @@ Resolves #<issue_number>
 ```
 
 Always link the related issue with `Resolves #<number>` so it auto-closes on merge, and describe **why** rather than just **what** — the diff already shows what changed, so the description should explain the motivation.
+
+Include instructions to test your changes, and any other relevant information for reviewers. Use the checklist to indicate that you have completed all required steps before requesting review.
 
 ### Reviewing a PR
 
@@ -102,10 +104,8 @@ When composing jobs from Actions, a single job step **cannot** mix Actions with 
 
 Two types of runners are available:
 
-| Runner | Type | Usage |
-|--------|------|-------|
-| **Default** | GitHub-hosted | All workflows unless there is a justified reason to use the dedicated runner. |
-| **Dedicated** | Self-hosted | Reserved for resource-intensive workflows only. Currently used exclusively by `5_builderpackage_indexer` (the full package builder). |
+- **Default** (GitHub-hosted) — used for all workflows unless there is a justified reason to use the dedicated runner.
+- **Dedicated** (self-hosted) — reserved for resource-intensive workflows only. Currently used exclusively by `5_builderpackage_indexer` (the full package builder).
 
 **Always prefer the default runner.** The dedicated runner is a shared, limited resource — use it only when the workflow genuinely requires the extra capacity (e.g. the full product builder).
 

@@ -1,8 +1,8 @@
-# How to Build from Sources
+# How to build from sources
 
 The Wazuh Indexer Plugins repository uses Gradle as its build system. The root project contains multiple subprojects, one per plugin.
 
-## Building the Entire Project
+## Building the entire project
 
 To build all plugins (compile, test, and package):
 
@@ -12,7 +12,7 @@ To build all plugins (compile, test, and package):
 
 When completed, distribution artifacts for each plugin are located in their respective `build/distributions/` directories.
 
-## Building a Specific Plugin
+## Building a specific plugin
 
 To build only the Content Manager plugin:
 
@@ -26,7 +26,7 @@ Other plugin targets follow the same pattern. To see all available projects:
 ./gradlew projects
 ```
 
-## Compile Only (No Tests)
+## Compile only (no tests)
 
 For a faster feedback loop during development, compile without running tests:
 
@@ -36,7 +36,7 @@ For a faster feedback loop during development, compile without running tests:
 
 This is useful for checking that your code changes compile correctly before running the full test suite.
 
-## Output Locations
+## Output locations
 
 | Artifact | Location |
 |---|---|
@@ -45,9 +45,9 @@ This is useful for checking that your code changes compile correctly before runn
 | Test reports | `plugins/<plugin-name>/build/reports/tests/` |
 | Generated JARs | `plugins/<plugin-name>/build/libs/` |
 
-## Common Build Issues
+## Common build issues
 
-### JDK Version Mismatch
+### JDK version mismatch
 
 The project requires a specific JDK version (currently JDK 24, Eclipse Temurin). If you see compilation errors related to Java version, check:
 
@@ -57,7 +57,7 @@ java --version
 
 Ensure `JAVA_HOME` points to the correct JDK. See [Setup](setup.md) for details.
 
-### Dependency Resolution Failures
+### Dependency resolution failures
 
 If Gradle cannot resolve dependencies:
 
@@ -65,7 +65,7 @@ If Gradle cannot resolve dependencies:
 2. Try clearing the Gradle cache: `rm -rf ~/.gradle/caches/`
 3. Re-run with `--refresh-dependencies`: `./gradlew build --refresh-dependencies`
 
-### Out of Memory
+### Out of memory
 
 For large builds, increase Gradle's heap size in `gradle.properties`:
 
@@ -73,7 +73,7 @@ For large builds, increase Gradle's heap size in `gradle.properties`:
 org.gradle.jvmargs=-Xmx4g
 ```
 
-### Linting and Formatting Errors
+### Linting and formatting errors
 
 The build includes code quality checks (Spotless, etc.). If formatting checks fail:
 
@@ -83,13 +83,11 @@ The build includes code quality checks (Spotless, etc.). If formatting checks fa
 
 Then rebuild.
 
-## Useful Gradle Flags
+## Useful Gradle flags
 
-| Flag | Description |
-|---|---|
-| `--info` | Verbose output |
-| `--debug` | Debug-level output |
-| `--stacktrace` | Print stack traces on failure |
-| `--parallel` | Run tasks in parallel (faster on multi-core) |
-| `-x test` | Skip tests: `./gradlew build -x test` |
-| `--continuous` | Watch mode — rebuilds on file changes |
+- **`--info`** — verbose output.
+- **`--debug`** — debug-level output.
+- **`--stacktrace`** — print stack traces on failure.
+- **`--parallel`** — run tasks in parallel (faster on multi-core).
+- **`-x test`** — skip tests: `./gradlew build -x test`.
+- **`--continuous`** — watch mode; rebuilds on file changes.

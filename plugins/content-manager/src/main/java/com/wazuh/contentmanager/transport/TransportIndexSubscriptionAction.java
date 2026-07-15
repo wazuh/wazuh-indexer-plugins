@@ -52,24 +52,29 @@ public class TransportIndexSubscriptionAction
     protected void doExecute(
             Task task, IndexSubscriptionRequest request, ActionListener<MessageStatusResponse> listener) {
         String accessToken = request.getToken();
-        try {
-            this.subscriptionService.register(accessToken);
-            listener.onResponse(
-                    new MessageStatusResponse(Constants.S_201_ACCESS_TOKEN_RECEIVED, RestStatus.CREATED));
-        } catch (IllegalStateException e) {
-            if (e.getMessage().equals(Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX)) {
-                listener.onResponse(
-                        new MessageStatusResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED));
-                return;
-            }
-            listener.onFailure(e);
-        } catch (Exception e) {
-            listener.onResponse(
-                    new MessageStatusResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR));
-        }
+        this.subscriptionService.register(
+                accessToken,
+                ActionListener.wrap(
+                        v ->
+                                listener.onResponse(
+                                        new MessageStatusResponse(
+                                                Constants.S_201_ACCESS_TOKEN_RECEIVED, RestStatus.CREATED)),
+                        e -> {
+                            if (e instanceof IllegalStateException) {
+                                if (Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX.equals(e.getMessage())) {
+                                    listener.onResponse(
+                                            new MessageStatusResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED));
+                                    return;
+                                }
+                                listener.onFailure(e);
+                                return;
+                            }
+                            listener.onResponse(
+                                    new MessageStatusResponse(
+                                            e.getMessage() != null
+                                                    ? e.getMessage()
+                                                    : "An unexpected error occurred while processing your request.",
+                                            RestStatus.INTERNAL_SERVER_ERROR));
+                        }));
     }
 }

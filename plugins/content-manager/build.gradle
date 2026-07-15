@@ -1,6 +1,20 @@
 import org.opensearch.gradle.test.RestIntegTestTask
+import org.opensearch.gradle.testclusters.OpenSearchCluster
 
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLSession
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.security.GeneralSecurityException
+import java.security.cert.X509Certificate
 import java.util.concurrent.Callable
+import java.util.concurrent.TimeUnit
+import java.util.function.Predicate
+import java.util.stream.Collectors
 
 buildscript {
   ext {
@@ -78,6 +92,12 @@ configurations {
   zipArchive
 }
 
+// Enabled via -Dsecurity=true: installs the OpenSearch Security plugin and its
+// demo TLS setup on the integTest cluster.
+ext {
+  securityEnabled = System.getProperty("security", "false") == "true"
+}
+
 dependencies {
   // log4j
   compileOnly "org.apache.logging.log4j:log4j-slf4j-impl:2.25.4"
@@ -106,6 +126,36 @@ dependencies {
 
   // Provides the zstd/zstd_no_dict index codecs
   zipArchive "org.opensearch.plugin:opensearch-custom-codecs:$opensearch_build"
+
+  if (securityEnabled) {
+    // Security plugin, installed on the integTest cluster only when -Dsecurity=true.
+    // Must not be installed unconditionally: without the TLS settings applied below
+    // (also gated on securityEnabled) it fails to boot with "No SSL configuration found".
+    zipArchive "org.opensearch.plugin:opensearch-security:$opensearch_build"
+  }
+}
+
+// === Security plugin support for the integTest cluster ===
+// Downloads the demo TLS certs used by the OpenSearch Security plugin's demo
+// configuration so the test cluster can start with a minimal, non-interactive
+// TLS setup.
+//
+// The certs are fetched eagerly at configuration time (rather than via a lazy
+// Gradle task) because testClusters' extraConfigFile(...) registers them as
+// task inputs on whichever task starts the cluster (integTest, test, or run),
+// and that input validation happens before any task-graph download task would run.
+if (securityEnabled) {
+  ['esnode.pem', 'esnode-key.pem', 'kirk.pem', 'kirk-key.pem', 'root-ca.pem'].forEach { certFile ->
+    File local = getLayout().getBuildDirectory().file(certFile).get().getAsFile()
+    if (!local.exists()) {
+      local.parentFile.mkdirs()
+      ant.get(
+        src: "https://raw.githubusercontent.com/opensearch-project/security/main/bwc-test/src/test/resources/security/" + certFile,
+        dest: local,
+        httpusecaches: false
+      )
+    }
+  }
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -152,10 +202,46 @@ tasks.named("check").configure { dependsOn(integTest) }
 
 tasks.named("publishNebulaPublicationToMavenLocal").configure { dependsOn("generatePomFileForPluginZipPublication") }
 
+// Number of nodes to bring up for the integTest cluster. Override with -PnumNodes=N.
+def _numNodes = findProperty('numNodes') as Integer ?: 2
+
 integTest {
   // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
   if (System.getProperty("test.debug") != null) {
     jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+  }
+
+  // Forwarded to the test JVM so REST clients can pick up TLS + credentials when
+  // the integTest cluster is started with -Dsecurity=true.
+  systemProperty "security", System.getProperty("security")
+  systemProperty "https", System.getProperty("https", securityEnabled as String)
+  systemProperty "user", System.getProperty("user", "admin")
+  systemProperty "password", System.getProperty("password", "admin")
+
+  // ContentManagerPluginIT and SpaceInitializationIT extend OpenSearchIntegTestCase
+  // and, once the Gradle testcluster is up, connect to it as an ExternalTestCluster
+  // over the plain (non-TLS) transport protocol. That connection can't join a
+  // security-enabled cluster's TLS-only transport layer, so it always times out
+  // with ClusterManagerNotDiscoveredException under -Dsecurity=true. Every other
+  // *IT test uses the REST layer (ContentManagerRestTestCase / OpenSearchRestTestCase),
+  // which is security-aware, and is unaffected.
+  if (securityEnabled) {
+    filter {
+      excludeTestsMatching "com.wazuh.contentmanager.ContentManagerPluginIT"
+      excludeTestsMatching "com.wazuh.contentmanager.SpaceInitializationIT"
+    }
+  }
+
+  doFirst {
+    // Set number of nodes system property to be used in tests
+    systemProperty 'cluster.number_of_nodes', "${_numNodes}"
+    // Ensures unicast_hosts is written before tests hit the cluster in multi-node runs.
+    // With -Dsecurity=true the default wait condition (a plain-HTTP cluster health
+    // check) can't reach the TLS-only HTTP layer, so it's replaced with an
+    // HTTPS-aware check - see waitForClusterSetup() below.
+    getClusters().forEach { cluster ->
+      waitForClusterSetup(cluster, securityEnabled)
+    }
   }
 }
 
@@ -174,7 +260,7 @@ testClusters.integTest {
   systemProperty "INDEXER_TEST_ENV", "true"
   systemProperty "DEPLOY_KEY", ""
   systemProperty "wazuh.version", "${wazuh_version}-beta3"
-  setting 'plugins.content_manager.catalog.update_on_start', 'false'
+  setting 'plugins.content_manager.catalog.update_on_start', 'true'
   setting 'plugins.content_manager.catalog.update_on_schedule', 'false'
   setting 'plugins.content_manager.catalog.create_detectors', 'false'
   setting 'plugins.content_manager.telemetry.enabled', 'false'
@@ -182,8 +268,24 @@ testClusters.integTest {
   setting 'plugins.content_manager.catalog.ruleset', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta3-t1-ruleset-5/consumers/public-ruleset-5"
   setting 'plugins.content_manager.catalog.iocs', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5"
   setting 'plugins.content_manager.catalog.vulnerabilities', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5"
+    
+  // Cluster shrink exception thrown if numberOfNodes is set to 1, so only apply if > 1
+  if (_numNodes > 1) numberOfNodes = _numNodes
 
-  // Installs all registered zipArchive dependencies on integTest cluster nodes
+  // When running integration tests it doesn't forward the --debug-jvm to the cluster.
+  // Use -Dcluster.debug to debug the OpenSearch JVM(s); since multi-node is supported,
+  // each node gets its own incrementing debug port.
+  if (System.getProperty("cluster.debug") != null) {
+    def debugPort = 5005
+    nodes.forEach { node ->
+      node.jvmArgs("-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=*:${debugPort}")
+      debugPort += 1
+    }
+  }
+
+  // Installs all registered zipArchive dependencies on integTest cluster nodes.
+  // With -Dsecurity=true this also installs opensearch-security (see the
+  // "security plugin support" dependency block above).
   configurations.zipArchive.asFileTree.each {
     plugin(provider(new Callable<RegularFile>(){
       @Override
@@ -200,6 +302,33 @@ testClusters.integTest {
   testDistribution = "ARCHIVE"
   // This installs our plugin into the testClusters
   plugin(project.tasks.bundlePlugin.archiveFile)
+
+  // Configure the demo TLS/security settings when -Dsecurity=true.
+  if (securityEnabled) {
+    nodes.each { node ->
+      node.extraConfigFile("kirk.pem", file("build/kirk.pem"))
+      node.extraConfigFile("kirk-key.pem", file("build/kirk-key.pem"))
+      node.extraConfigFile("esnode.pem", file("build/esnode.pem"))
+      node.extraConfigFile("esnode-key.pem", file("build/esnode-key.pem"))
+      node.extraConfigFile("root-ca.pem", file("build/root-ca.pem"))
+      node.setting("plugins.security.ssl.transport.pemcert_filepath", "esnode.pem")
+      node.setting("plugins.security.ssl.transport.pemkey_filepath", "esnode-key.pem")
+      node.setting("plugins.security.ssl.transport.pemtrustedcas_filepath", "root-ca.pem")
+      node.setting("plugins.security.ssl.transport.enforce_hostname_verification", "false")
+      node.setting("plugins.security.ssl.http.enabled", "true")
+      node.setting("plugins.security.ssl.http.pemcert_filepath", "esnode.pem")
+      node.setting("plugins.security.ssl.http.pemkey_filepath", "esnode-key.pem")
+      node.setting("plugins.security.ssl.http.pemtrustedcas_filepath", "root-ca.pem")
+      node.setting("plugins.security.allow_unsafe_democertificates", "true")
+      node.setting("plugins.security.allow_default_init_securityindex", "true")
+      node.setting("plugins.security.authcz.admin_dn", "\n - CN=kirk,OU=client,O=client,L=test,C=de")
+      node.setting("plugins.security.audit.type", "internal_opensearch")
+      node.setting("plugins.security.enable_snapshot_restore_privilege", "true")
+      node.setting("plugins.security.check_snapshot_restore_write_privileges", "true")
+      node.setting("plugins.security.restapi.roles_enabled", "[\"all_access\", \"security_rest_api_access\"]")
+      node.setting("plugins.security.system_indices.enabled", "true")
+    }
+  }
 }
 
 // Install the setup plugin from the local sibling project (must be deferred until the
@@ -211,6 +340,15 @@ project(':wazuh-indexer-setup').afterEvaluate { setupProject ->
 }
 
 run {
+  doFirst {
+    // There seems to be an issue when running multi node run or integ tasks with unicast_hosts
+    // not being written, the waitForAllConditions ensures it's written. With
+    // -Dsecurity=true the default wait condition is replaced with an HTTPS-aware
+    // one - see waitForClusterSetup() below.
+    getClusters().forEach { cluster ->
+      waitForClusterSetup(cluster, securityEnabled)
+    }
+  }
   useCluster testClusters.integTest
 }
 
@@ -231,4 +369,136 @@ task updateVersion {
     // String tokenization to support -SNAPSHOT
     ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
   }
+}
+
+// Gradle testclusters' built-in wait condition performs a plain-HTTP cluster
+// health check. When -Dsecurity=true the node's HTTP layer is TLS-only
+// (plugins.security.ssl.http.enabled), so the default check never gets a valid
+// response and instead floods the node with rejected connections until it
+// becomes unresponsive. This replaces the wait condition with an HTTPS-aware
+// check that also authenticates as admin/admin (the demo security config's
+// default user).
+class WaitForClusterYellow {
+
+  private URL url
+  private String username
+  private String password
+  Set<Integer> validResponseCodes = Collections.singleton(200)
+
+  WaitForClusterYellow(String protocol, String host, int numberOfNodes) throws MalformedURLException {
+    this(new URL(protocol + "://" + host + "/_cluster/health?wait_for_nodes=>=" + numberOfNodes + "&wait_for_status=yellow"))
+  }
+
+  WaitForClusterYellow(URL url) {
+    this.url = url
+  }
+
+  boolean wait(int durationInMs) throws GeneralSecurityException, InterruptedException, IOException {
+    final long waitUntil = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(durationInMs)
+    final long sleep = 100
+
+    IOException failure = null
+    while (true) {
+      try {
+        checkResource()
+        return true
+      } catch (IOException e) {
+        failure = e
+      }
+      if (System.nanoTime() < waitUntil) {
+        Thread.sleep(sleep)
+      } else {
+        throw failure
+      }
+    }
+  }
+
+  void setUsername(String username) {
+    this.username = username
+  }
+
+  void setPassword(String password) {
+    this.password = password
+  }
+
+  void checkResource() throws IOException {
+    final HttpURLConnection connection = buildConnection()
+    connection.connect()
+    final Integer response = connection.getResponseCode()
+    if (validResponseCodes.contains(response)) {
+      return
+    } else {
+      throw new IOException(response + " " + connection.getResponseMessage())
+    }
+  }
+
+  HttpURLConnection buildConnection() throws IOException {
+    final HttpURLConnection connection = (HttpURLConnection) this.@url.openConnection()
+
+    if (connection instanceof HttpsURLConnection) {
+      TrustManager[] trustAllCerts = [new X509TrustManager() {
+        X509Certificate[] getAcceptedIssuers() {
+          return null
+        }
+
+        void checkClientTrusted(X509Certificate[] certs, String authType) {
+        }
+
+        void checkServerTrusted(X509Certificate[] certs, String authType) {
+        }
+      }
+      ] as TrustManager[]
+      SSLContext sc = SSLContext.getInstance("SSL")
+      sc.init(null, trustAllCerts, new java.security.SecureRandom())
+      connection.setSSLSocketFactory(sc.getSocketFactory())
+      HostnameVerifier allHostsValid = new HostnameVerifier() {
+        boolean verify(String hostname, SSLSession session) {
+          return true
+        }
+      }
+      connection.setHostnameVerifier(allHostsValid)
+    }
+
+    configureBasicAuth(connection)
+    connection.setRequestMethod("GET")
+    return connection
+  }
+
+  void configureBasicAuth(HttpURLConnection connection) {
+    if (username != null) {
+      if (password == null) {
+        throw new IllegalStateException("Basic Auth user [" + username + "] has been set, but no password has been configured")
+      }
+      connection.setRequestProperty(
+        "Authorization",
+        "Basic " + Base64.getEncoder().encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8))
+      )
+    }
+  }
+}
+
+def waitForClusterSetup(OpenSearchCluster cluster, Boolean securityEnabled) {
+  cluster.@waitConditions.clear()
+  String unicastUris = cluster.nodes.stream().flatMap { node ->
+    node.getAllTransportPortURI().stream()
+  }.collect(Collectors.joining("\n"))
+  cluster.nodes.forEach { node ->
+    try {
+      Files.write(node.getConfigDir().resolve("unicast_hosts.txt"), unicastUris.getBytes(StandardCharsets.UTF_8))
+    } catch (IOException e) {
+      throw new java.io.UncheckedIOException("Failed to write configuration files for " + this, e)
+    }
+  }
+
+  Predicate pred = {
+    String protocol = securityEnabled ? "https" : "http"
+    String host = System.getProperty("tests.cluster", cluster.getFirstNode().getHttpSocketURI())
+    WaitForClusterYellow wait = new WaitForClusterYellow(protocol, host, cluster.nodes.size())
+    wait.setUsername(System.getProperty("user", "admin"))
+    wait.setPassword(System.getProperty("password", "admin"))
+    return wait.wait(180000)
+  }
+
+  cluster.@waitConditions.put("cluster health yellow", pred)
+  cluster.waitForAllConditions()
 }

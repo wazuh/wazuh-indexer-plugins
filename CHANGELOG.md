@@ -105,6 +105,7 @@
 - Add limits for the creation of filters, integrations, decoders, rules and kvdbs [(#1291)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1291)
 - Implement RBAC to safeguard sensitive configuration [(#1310)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1310)
 - Add `index.gc_deletes` setting to stateful index templates [(#1330)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1330)
+- Include integration's mode management [(#1365)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1365)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -233,6 +234,7 @@
 - Fix race condition between Content Manager and Setup plugin initialization [(#1262)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1262)
 - Fix invalid action name warning messages [(#1313)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1313)
 - Fix consumer offset left behind the remote head after a plan-change content swap [(#1343)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1343)
+- Fix promotion changes on fresh install [(#1377)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1377)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
