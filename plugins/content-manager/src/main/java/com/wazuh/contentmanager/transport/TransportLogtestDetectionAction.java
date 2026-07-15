@@ -85,7 +85,7 @@ public class TransportLogtestDetectionAction
 
             String space = jsonNode.get(Constants.KEY_SPACE).asText();
 
-            // 3. Validate space is "test" or "standard"
+            // 3. Validate space is not "draft"
             Space spaceEnum;
             try {
                 spaceEnum = Space.fromValue(space);
@@ -96,7 +96,7 @@ public class TransportLogtestDetectionAction
                                 RestStatus.BAD_REQUEST));
                 return;
             }
-            if (spaceEnum != Space.TEST && spaceEnum != Space.STANDARD) {
+            if (spaceEnum == Space.DRAFT) {
                 listener.onResponse(
                         new LogtestResponse(
                                 String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
