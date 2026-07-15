@@ -591,7 +591,13 @@ public abstract class AbstractConsumerService {
                     this.snapshotServiceOverride != null
                             ? this.snapshotServiceOverride
                             : new SnapshotServiceImpl(
-                                    consumerType, indicesMap, this.consumersIndex, this.environment, urlResolver);
+                                    consumerType,
+                                    indicesMap,
+                                    this.consumersIndex,
+                                    this.environment,
+                                    urlResolver,
+                                    snapshotsDir,
+                                    this.getSnapshotFilename());
 
             // When a catalog URL is available, prefer remote initialization and fall back to local
             // snapshot on failure. The catalog URL comes from the configured setting, or from a
@@ -634,17 +640,47 @@ public abstract class AbstractConsumerService {
                     if (snapshotExists) {
                         SnapshotServiceImpl.deleteSnapshot(localSnapshot);
                     }
-                } else if (snapshotExists) {
-                    log.warn(Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_FALLBACK, consumerType, localSnapshot);
-                    boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
-                    if (localSuccess) {
-                        currentOffset = snapshotService.getMaxOffsetSeen();
-                        updated = true;
-                    } else {
-                        log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_FALLBACK_FAILED, consumerType);
-                    }
                 } else {
-                    log.warn(Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_NO_LOCAL, consumerType, localSnapshot);
+                    // Three-tier fallback: stable snapshot -> packaged local -> give up
+                    Path stableSnapshot = snapshotService.getStablePath();
+                    boolean stableExists = false;
+                    if (stableSnapshot != null) {
+                        try {
+                            final Path stableFinal = stableSnapshot;
+                            stableExists = AccessController.doPrivilegedChecked(() -> Files.exists(stableFinal));
+                        } catch (Exception e) {
+                            log.debug("Failed to check stable snapshot [{}]: {}", stableSnapshot, e.getMessage());
+                        }
+                    }
+
+                    if (stableExists) {
+                        log.warn(Constants.I_LOG_ROLLBACK_FROM_STABLE, consumerType, stableSnapshot);
+                        boolean rollbackSuccess = snapshotService.initialize(stableSnapshot, manifestEntry);
+                        if (rollbackSuccess) {
+                            currentOffset = snapshotService.getMaxOffsetSeen();
+                            updated = true;
+                        } else if (snapshotExists) {
+                            log.warn(Constants.W_LOG_STABLE_ROLLBACK_FAILED, consumerType, localSnapshot);
+                            boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
+                            if (localSuccess) {
+                                currentOffset = snapshotService.getMaxOffsetSeen();
+                                updated = true;
+                            } else {
+                                log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_FALLBACK_FAILED, consumerType);
+                            }
+                        }
+                    } else if (snapshotExists) {
+                        log.warn(Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_FALLBACK, consumerType, localSnapshot);
+                        boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
+                        if (localSuccess) {
+                            currentOffset = snapshotService.getMaxOffsetSeen();
+                            updated = true;
+                        } else {
+                            log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_FALLBACK_FAILED, consumerType);
+                        }
+                    } else {
+                        log.warn(Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_NO_LOCAL, consumerType, localSnapshot);
+                    }
                 }
             } else if (snapshotExists) {
                 if (hasEffectiveCatalog) {

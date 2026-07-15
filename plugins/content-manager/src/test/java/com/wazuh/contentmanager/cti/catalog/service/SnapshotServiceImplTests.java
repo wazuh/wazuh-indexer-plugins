@@ -798,4 +798,213 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Assert.assertFalse("initialize should return false for missing file", result);
         verify(this.snapshotClient, never()).downloadFile(anyString());
     }
+
+    // ---- Stable snapshot tests ----
+
+    private SnapshotServiceImpl createServiceWithStablePath(Path snapshotsDir, String filename) {
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put("kvdb", this.contentIndexMock);
+        indicesMap.put("policy", this.contentIndexMock);
+        indicesMap.put("decoder", this.contentIndexMock);
+        indicesMap.put("rule", this.contentIndexMock);
+        indicesMap.put("reputation", this.contentIndexMock);
+
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset",
+                        indicesMap,
+                        this.consumersIndex,
+                        this.environment,
+                        new com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver(),
+                        snapshotsDir,
+                        filename);
+        service.setSnapshotClient(this.snapshotClient);
+        return service;
+    }
+
+    private void mockT0ConsumerDoc() throws Exception {
+        String existingConsumerJson =
+                "{\"name\":\"test-consumer\",\"context\":\"test-context\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\","
+                        + "\"resource\":\"https://cti.example/catalog/contexts/test-context/consumers/test-consumer\","
+                        + "\"is_public\":true,\"status\":\"running\",\"local_offset\":0,\"remote_offset\":100}";
+        org.opensearch.action.get.GetResponse t0Response =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(t0Response.isExists()).thenReturn(true);
+        when(t0Response.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset")).thenReturn(t0Response);
+    }
+
+    public void testRemoteInit_Success_PromotesToStable() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(100L);
+        mockT0ConsumerDoc();
+
+        Path zipPath =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"1\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"1\"}}}");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        boolean result = service.initialize(this.remoteConsumer);
+
+        Assert.assertTrue("Remote init should succeed", result);
+        Assert.assertFalse("Temp file should be gone", Files.exists(zipPath));
+
+        Path stableFile = snapshotsDir.resolve("ruleset.stable.zip");
+        Assert.assertTrue("Stable snapshot should exist", Files.exists(stableFile));
+    }
+
+    public void testRemoteInit_Failure_CleansUpTemp_StableUntouched() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+
+        Path existingStable = snapshotsDir.resolve("ruleset.stable.zip");
+        Path existingStableSrc =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"old\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"old\"}}}");
+        Files.copy(existingStableSrc, existingStable);
+        long stableSize = Files.size(existingStable);
+
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+
+        // Download returns a valid path but processZip will fail (corrupt content)
+        Path brokenZip = this.tempDir.resolve("broken.zip");
+        Files.write(brokenZip, "not a zip".getBytes(StandardCharsets.UTF_8));
+        when(this.snapshotClient.downloadFile(url)).thenReturn(brokenZip);
+
+        boolean result = service.initialize(this.remoteConsumer);
+
+        Assert.assertFalse("Remote init should fail", result);
+        Assert.assertFalse("Broken temp file should be cleaned up", Files.exists(brokenZip));
+        Assert.assertTrue("Stable snapshot should be untouched", Files.exists(existingStable));
+        Assert.assertEquals(
+                "Stable snapshot size should not change", stableSize, Files.size(existingStable));
+    }
+
+    public void testRemoteInit_Failure_NoStable() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(null);
+
+        boolean result = service.initialize(this.remoteConsumer);
+
+        Assert.assertFalse("Remote init should fail", result);
+        Path stableFile = snapshotsDir.resolve("ruleset.stable.zip");
+        Assert.assertFalse("No stable file should exist", Files.exists(stableFile));
+    }
+
+    public void testLocalInit_Success_PromotesToStable() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+        mockT0ConsumerDoc();
+
+        Path localZip = snapshotsDir.resolve("ruleset.zip");
+        try (java.util.zip.ZipOutputStream zos =
+                new java.util.zip.ZipOutputStream(Files.newOutputStream(localZip))) {
+            java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry("data.json");
+            zos.putNextEntry(entry);
+            zos.write(
+                    "{\"name\": \"1\", \"offset\": 50, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"1\"}}}"
+                            .getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+
+        boolean result = service.initialize(localZip, null);
+
+        Assert.assertTrue("Local init should succeed", result);
+        Assert.assertFalse("Packaged file should be gone", Files.exists(localZip));
+
+        Path stableFile = snapshotsDir.resolve("ruleset.stable.zip");
+        Assert.assertTrue("Stable snapshot should exist", Files.exists(stableFile));
+    }
+
+    public void testLocalInit_Success_StableIsSource_NoMove() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+        mockT0ConsumerDoc();
+
+        Path stableFile = snapshotsDir.resolve("ruleset.stable.zip");
+        try (java.util.zip.ZipOutputStream zos =
+                new java.util.zip.ZipOutputStream(Files.newOutputStream(stableFile))) {
+            java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry("data.json");
+            zos.putNextEntry(entry);
+            zos.write(
+                    "{\"name\": \"1\", \"offset\": 50, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"1\"}}}"
+                            .getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+
+        boolean result = service.initialize(stableFile, null);
+
+        Assert.assertTrue("Re-index from stable should succeed", result);
+        Assert.assertTrue("Stable file should remain in place", Files.exists(stableFile));
+    }
+
+    public void testLocalInit_Failure_SourcePreserved() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+
+        Path localZip = snapshotsDir.resolve("ruleset.zip");
+        Files.write(localZip, "not a zip".getBytes(StandardCharsets.UTF_8));
+
+        boolean result = service.initialize(localZip, null);
+
+        Assert.assertFalse("Local init should fail on corrupt zip", result);
+        Assert.assertTrue("Source file should be preserved for retry", Files.exists(localZip));
+    }
+
+    public void testDeleteSnapshots_PreservesStableFiles() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+
+        Path packaged = snapshotsDir.resolve("ruleset.zip");
+        Path stable = snapshotsDir.resolve("ruleset.stable.zip");
+        Path iocs = snapshotsDir.resolve("iocs.zip");
+        Files.write(packaged, "data".getBytes(StandardCharsets.UTF_8));
+        Files.write(stable, "data".getBytes(StandardCharsets.UTF_8));
+        Files.write(iocs, "data".getBytes(StandardCharsets.UTF_8));
+
+        SnapshotServiceImpl.deleteSnapshots(snapshotsDir);
+
+        Assert.assertFalse("Packaged ruleset.zip should be deleted", Files.exists(packaged));
+        Assert.assertFalse("Packaged iocs.zip should be deleted", Files.exists(iocs));
+        Assert.assertTrue("Stable snapshot should be preserved", Files.exists(stable));
+    }
+
+    public void testShadowSwap_NullStablePath_CleansUpTemp() throws Exception {
+        // Use default 4-arg constructor (no snapshotsDir) to mimic shadow swap path
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(100L);
+        mockT0ConsumerDoc();
+
+        Path zipPath =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"1\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"1\"}}}");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        boolean result = this.snapshotService.initialize(this.remoteConsumer);
+
+        Assert.assertTrue("Shadow-swap-like init should succeed", result);
+        Assert.assertFalse("Temp file should be cleaned up", Files.exists(zipPath));
+        Assert.assertNull(
+                "stablePath should be null for default constructor", this.snapshotService.getStablePath());
+    }
 }
