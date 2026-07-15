@@ -193,6 +193,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Immediate recovery when feed update fails [(#1360)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1360)
 - Extend findings case management fields with title, description, severity, priority, tlp and a comments array [(#1338)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1338)
 - Allow dates on Content Manager's REST API [(#1359)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1359)
+- Update Content Manager OpenAPI documentation to match current API behavior [(#1384)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1384)
 
 ### Deprecated
 -
@@ -242,6 +243,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix invalid action name warning messages [(#1313)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1313)
 - Fix consumer offset left behind the remote head after a plan-change content swap [(#1343)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1343)
 - Fix promotion changes on fresh install [(#1377)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1377)
+- Fix `custom` space rejection on `/logtest/normalization` and `/logtest/detection` [(#1384)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1384)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
