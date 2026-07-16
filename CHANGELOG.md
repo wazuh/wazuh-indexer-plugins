@@ -1,9 +1,3 @@
-# CHANGELOG
-
-All notable changes to this project are documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See the [CONTRIBUTING guide](./CONTRIBUTING.md#Changelog) for instructions on how to add changelog entries.
-
 ## [v5.0.0]
 
 ### Added
@@ -73,16 +67,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement RBAC to safeguard sensitive configuration [(#1277)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1277)
 - Add `index.gc_deletes` setting to stateful index templates [(#1328)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1328)
 
-### Dependencies
-- Upgrade to Gradle 8.14.3 [(#630)](https://github.com/wazuh/wazuh-indexer-plugins/issues/630)
-- Update to JDK 25 [(#1341)](https://github.com/wazuh/wazuh-indexer/issues/1341)
-
 ### Changed
 - Replace dependabot's directories keys with wildcard [(#442)](https://github.com/wazuh/wazuh-indexer-plugins/issues/442)
 - Adapt setup plugin for 5.x [(#448)](https://github.com/wazuh/wazuh-indexer-plugins/issues/448)
 - Third-party integrations maintenance [(#477)](https://github.com/wazuh/wazuh-indexer-plugins/issues/477) [(#539)](https://github.com/wazuh/wazuh-indexer-plugins/issues/539) [(#547)](https://github.com/wazuh/wazuh-indexer-plugins/issues/547) [(#562)](https://github.com/wazuh/wazuh-indexer-plugins/issues/562) [(#582)](https://github.com/wazuh/wazuh-indexer-plugins/issues/582) [(#641)](https://github.com/wazuh/wazuh-indexer-plugins/issues/641) [(#697)](https://github.com/wazuh/wazuh-indexer-plugins/issues/697) [(#741)](https://github.com/wazuh/wazuh-indexer-plugins/issues/741) [(#811)](https://github.com/wazuh/wazuh-indexer-plugins/issues/811) [(#906)](https://github.com/wazuh/wazuh-indexer-plugins/issues/906) [(#1015)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1015) [(#1123)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1123)
 - Replace and remove deprecated settings [(#475)](https://github.com/wazuh/wazuh-indexer-plugins/issues/475)
 - Migrate WCS changes from 4.x [(#482)](https://github.com/wazuh/wazuh-indexer-plugins/issues/482) [(#1068)](https://github.com/wazuh/wazuh-indexer/issues/1068) [(#1114)](https://github.com/wazuh/wazuh-indexer/issues/1114)
+- Bump requests in /integrations/amazon-security-lake/tests [(#491)](https://github.com/wazuh/wazuh-indexer-plugins/pull/491)
 - Implement checksum fields into stateful ECS mappings [(#515)](https://github.com/wazuh/wazuh-indexer-plugins/issues/515)
 - FIM indices rework [(#506)](https://github.com/wazuh/wazuh-indexer-plugins/issues/506)
 - Update GitHub Actions versions in main branch [(#1129)](https://github.com/wazuh/wazuh-indexer/issues/1129)
@@ -97,6 +88,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Restructuring of the repository tooling [(#624)](https://github.com/wazuh/wazuh-indexer-plugins/issues/624)
 - Fix mdbook to version 0.4.x [(#626)](https://github.com/wazuh/wazuh-indexer-plugins/issues/626)
 - Adapt WCS generation script to save the ECS flat of stateless module [(#645)](https://github.com/wazuh/wazuh-indexer-plugins/issues/645)
+- Upgrade to Gradle 8.14.3 [(#630)](https://github.com/wazuh/wazuh-indexer-plugins/issues/630)
 - Replace time-series indices with data streams [(#562)](https://github.com/wazuh/wazuh-indexer-plugins/issues/562)
 - Rename index templates [(#647)](https://github.com/wazuh/wazuh-indexer-plugins/issues/647)
 - Update WCS compliance fields [(#688)](https://github.com/wazuh/wazuh-indexer-plugins/issues/688)
@@ -105,6 +97,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Index Ioc per-type hashes [(#852)](https://github.com/wazuh/wazuh-indexer-plugins/issues/852)
 - Update draft Policy management [(#804)](https://github.com/wazuh/wazuh-indexer-plugins/issues/804)
 - Use the new consumer and Ioc types [(#852)](https://github.com/wazuh/wazuh-indexer-plugins/issues/852)
+- Update to JDK 25 [(#1341)](https://github.com/wazuh/wazuh-indexer/issues/1341)
 - Update Reset Space Endpoint to Allow Reset on Draft Space Only [(#869)](https://github.com/wazuh/wazuh-indexer-plugins/issues/869)
 - Update templates to use minimal WCS [(#637)](https://github.com/wazuh/wazuh-indexer-plugins/issues/637)
 - Restructure ecs folder [(#879)](https://github.com/wazuh/wazuh-indexer-plugins/issues/879)
@@ -139,9 +132,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Disable automatic refresh for low-activity indices [(#1275)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1275)
 - Extend findings case management fields with title, description, severity, priority, tlp and a comments array [(#1334)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1334)
 - Allow dates on Content Manager's REST API [(#1349)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1349)
-
-### Deprecated
--
 
 ### Removed
 - Delete files not needed for `5.0.0` [(#440)](https://github.com/wazuh/wazuh-indexer-plugins/issues/440)
@@ -182,11 +172,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix consumer offset left behind the remote head after a plan-change content swap [(#1342)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1342)
 - Fix promotion changes on fresh install [(#1373)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1373)
 
-### Security
-- Bump requests in /integrations/amazon-security-lake/tests [(#491)](https://github.com/wazuh/wazuh-indexer-plugins/pull/491)
-
-
 ## Prior versions
 - []()
-
-[Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/205f222d0d246129917fa211766e1735aae13ed7...5.0.0
