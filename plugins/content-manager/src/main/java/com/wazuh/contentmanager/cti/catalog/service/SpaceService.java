@@ -302,15 +302,15 @@ public class SpaceService {
         // Deterministic id shared across all default policies so they are linked; a name-based
         // UUID (v3) ensures every node derives the same id from the same seed.
         String sharedDocumentId =
-            UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
+                UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
 
         List<String> spaces =
-            List.of(Space.DRAFT.toString(), Space.TEST.toString(), Space.CUSTOM.toString());
+                List.of(Space.DRAFT.toString(), Space.TEST.toString(), Space.CUSTOM.toString());
 
         GroupedActionListener<Void> group =
-            new GroupedActionListener<>(
-                ActionListener.wrap(ignored -> listener.onResponse(null), listener::onFailure),
-                spaces.size());
+                new GroupedActionListener<>(
+                        ActionListener.wrap(ignored -> listener.onResponse(null), listener::onFailure),
+                        spaces.size());
 
         spaces.forEach(space -> this.initializeSpace(space, sharedDocumentId, group));
     }
