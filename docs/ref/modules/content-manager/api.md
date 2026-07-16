@@ -481,7 +481,7 @@ Sends a log event to the Wazuh Engine for decoding and normalization without per
 
 #### Request body
 
-- **`space`** (String, required) — `"test"` or `"standard"`.
+- **`space`** (String, required) — `"test"`, `"standard"`, or `"custom"`.
 - **`queue`** (Integer, optional) — queue number for logtest execution.
 - **`location`** (String, optional) — log file path or logical source location.
 - **`event`** (String, optional) — raw log event to normalize.
@@ -579,7 +579,7 @@ Use this after obtaining a normalized event from the `/logtest/normalization` en
 
 #### Request body
 
-- **`space`** (String, required) — `"test"` or `"standard"`.
+- **`space`** (String, required) — `"test"`, `"standard"`, or `"custom"`.
 - **`integration`** (String, required) — UUID of the integration whose rules to evaluate.
 - **`input`** (Object, required) — normalized event object to evaluate rules against.
 
