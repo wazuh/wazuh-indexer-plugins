@@ -30,17 +30,81 @@ To address review feedback, push new commits on top of the branch and re-request
 Every repository provides the template below as its default `.github/pull_request_template.md`; it is pre-filled automatically when you open a PR. Every PR **must** be linked to an existing issue, and PRs should not be linked directly to GitHub Projects — track project status at the issue level instead.
 
 ```markdown
-### Description
-[Describe what this change achieves]
+## Description
 
-### Related Issues
-Resolves #[Issue number to be closed when this PR is merged]
-<!-- List any other related issues here -->
+<!--
+Provide a brief description of the problem this pull request addresses. Include relevant context to help reviewers understand the purpose and scope of the changes.
 
-### Check List
-- [ ] Functionality includes testing.
-- [ ] API changes companion pull request created, if applicable.
-- [ ] Public documentation issue/PR created, if applicable.
+If this pull request resolves an existing issue, reference it here. For example:
+Closes #<issue_number>
+-->
+
+## Proposed Changes
+
+<!--
+Summarize the changes made in this pull request. Include:
+- Features added
+- Bugs fixed
+- Any relevant technical details
+-->
+
+### Results and Evidence
+
+<!--
+Provide evidence of the changes made, such as:
+- Logs
+- Screenshots
+- Before/after comparisons
+-->
+
+### Artifacts Affected
+
+<!--
+List the artifacts impacted by this pull request, such as:
+- Executables (specify platforms if applicable)
+- Default configuration files
+- Packages
+-->
+
+### Configuration Changes
+
+<!--
+If applicable, list any configuration changes introduced by this pull request, including:
+- New configuration parameters
+- Changes to default values
+- Backward compatibility notes
+-->
+
+### Documentation Updates
+
+<!--
+If applicable, list the sections of documentation that have been updated as part of this pull request.
+-->
+
+### Tests Introduced
+
+<!--
+If applicable, describe any new unit or integration tests added as part of this pull request. Include:
+- Scope of the tests
+- Any relevant details about test coverage
+-->
+
+## Review Checklist
+
+<!--
+List any manual tests completed to verify the functionality of the changes. Include any manual tests that are still required for final approval.
+-->
+
+- [ ] Code changes reviewed
+- [ ] Relevant evidence provided
+- [ ] Tests cover the new functionality
+- [ ] Configuration changes documented
+- [ ] Developer documentation reflects the changes
+- [ ] Meets requirements and/or definition of done
+- [ ] No unresolved dependencies with other issues
+- [ ] PR is linked to the relevant issue(s)
+- [ ] Correct labels applied (e.g., `no-changelog`)
+- [ ] ...
 ```
 
 Always link the related issue with `Resolves #<number>` so it auto-closes on merge, and describe **why** rather than just **what** — the diff already shows what changed, so the description should explain the motivation.
