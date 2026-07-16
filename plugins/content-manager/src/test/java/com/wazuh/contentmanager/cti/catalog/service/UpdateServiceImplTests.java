@@ -112,6 +112,15 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                             })
                     .when(index)
                     .create(anyString(), any(JsonNode.class), any());
+            lenient()
+                    .doAnswer(
+                            invocation -> {
+                                ActionListener<IndexResponse> listener = invocation.getArgument(2);
+                                listener.onResponse(null);
+                                return null;
+                            })
+                    .when(index)
+                    .create(anyString(), any(JsonNode.class), any(), any());
         }
     }
 
@@ -182,7 +191,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         // Assert
         Assert.assertTrue("update() should return true on success", result);
         // Verify CREATE
-        verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class), any());
+        verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class), any(), any());
 
         // Verify UPDATE (offset is now passed as the third argument)
         verify(this.ruleIndex).update(eq("rule-2"), any(List.class), any());
@@ -205,11 +214,11 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests that consumer identity fields are preserved during reset after an update exception.
+     * Tests that no consumer state is written when the first batch fails before any checkpoint.
      *
      * @throws Exception
      */
-    public void testUpdate_ExceptionResetPreservesExistingIdentityFields() throws Exception {
+    public void testUpdate_ExceptionDoesNotWriteConsumerState() throws Exception {
         // Response
         // spotless:off
         String changesJson =
@@ -233,7 +242,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         doThrow(new RuntimeException("Simulated Indexing Failure"))
                 .when(this.ruleIndex)
-                .create(anyString(), any(JsonNode.class), any());
+                .create(anyString(), any(JsonNode.class), any(), any());
 
         when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
@@ -248,21 +257,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         // Act
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(29, 30));
 
-        // Assert
-        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
-
-        LocalConsumer resetConsumer = consumerCaptor.getValue();
-        Assert.assertEquals(0, resetConsumer.getLocalOffset());
-        Assert.assertEquals("public-ruleset-5", resetConsumer.getName());
-        Assert.assertEquals("t1-ruleset-5", resetConsumer.getContext());
-        Assert.assertEquals(
-                "https://cti.example/api/v1/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5",
-                resetConsumer.getResource());
-        Assert.assertEquals(
-                "Reset consumer must be marked FAILED, not the default status",
-                LocalConsumer.Status.FAILED,
-                resetConsumer.getStatus());
+        // Assert — no checkpoint written because the batch failed before completing
+        verify(this.consumersIndex, never()).setConsumer(any());
     }
 
     /**
@@ -301,8 +297,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertTrue("update() should return true on success", result);
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any());
-        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), any());
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any(), any());
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), any(), any());
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
@@ -322,20 +318,18 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         // Act
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(1, 5));
 
-        // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any());
-        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
-        Assert.assertEquals(0, consumerCaptor.getValue().getLocalOffset());
-        Assert.assertEquals(LocalConsumer.Status.FAILED, consumerCaptor.getValue().getStatus());
+        // Assert — no checkpoint written because no batch completed
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any(), any());
+        verify(this.consumersIndex, never()).setConsumer(any());
     }
 
     /**
-     * Tests that the consumer state is reset to 0 if an exception occurs during processing.
+     * Tests that an exception during processing does not write consumer state when no batch
+     * completed.
      *
      * @throws Exception
      */
-    public void testUpdate_ExceptionResetsConsumer() throws Exception {
+    public void testUpdate_ExceptionPreservesExistingConsumerState() throws Exception {
         // Response
         // spotless:off
         String changesJson =
@@ -360,19 +354,56 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         doThrow(new RuntimeException("Simulated Indexing Failure"))
                 .when(this.ruleIndex)
-                .create(anyString(), any(JsonNode.class), any());
+                .create(anyString(), any(JsonNode.class), any(), any());
 
         // Act
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(29, 30));
 
-        // Assert
-        ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
+        // Assert — no checkpoint written, existing consumer state is untouched
+        verify(this.consumersIndex, never()).setConsumer(any());
+    }
 
-        LocalConsumer resetConsumer = consumerCaptor.getValue();
-        Assert.assertEquals(0, resetConsumer.getLocalOffset());
-        Assert.assertEquals(CONSUMER, resetConsumer.getName());
-        Assert.assertEquals(LocalConsumer.Status.FAILED, resetConsumer.getStatus());
+    /**
+     * Tests that partial progress is preserved when a later batch fails.
+     *
+     * @throws Exception
+     */
+    public void testUpdate_PartialProgressPreserved() throws Exception {
+        // spotless:off
+        String batch1Json =
+            """
+                {
+                  "data": [
+                    {
+                      "offset": 1,
+                      "resource": "rule-ok",
+                      "type": "CREATE",
+                      "payload": { "type": "rule", "id": "rule-ok", "name": "OK" }
+                    }
+                  ]
+                }""";
+        // spotless:on
+
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, batch1Json.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON))
+                .thenReturn(SimpleHttpResponse.create(500, "Internal Error", ContentType.TEXT_PLAIN));
+
+        when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(false);
+
+        // Act — range spans 2 batches (0-999, 999-1998)
+        LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(0, 1998));
+
+        // Assert — first batch checkpoint was persisted
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(captor.capture());
+
+        LocalConsumer checkpoint = captor.getValue();
+        Assert.assertEquals(999, checkpoint.getLocalOffset());
+        Assert.assertEquals(1998, checkpoint.getRemoteOffset());
+        Assert.assertEquals(LocalConsumer.Status.RUNNING, checkpoint.getStatus());
     }
 
     /**
@@ -412,8 +443,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         Assert.assertTrue("update() should return true on success", result);
-        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any());
-        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), any());
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any(), any());
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), any(), any());
 
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(captor.capture());
@@ -536,7 +567,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         Assert.assertTrue("update() should return true on success", result);
         ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
-        verify(this.cveIndex).create(eq("TID-123"), payloadCaptor.capture(), any());
+        verify(this.cveIndex).create(eq("TID-123"), payloadCaptor.capture(), any(), any());
         Assert.assertEquals("TID", payloadCaptor.getValue().get("type").asText());
         Assert.assertEquals(70L, payloadCaptor.getValue().get("offset").asLong());
     }

@@ -732,9 +732,8 @@ public abstract class AbstractConsumerService {
      * Fetches and applies incremental changes from the CTI API between the given offsets and persists
      * the resulting consumer state. Shared by the regular sync path and the post-swap catch-up: a
      * swapped snapshot only carries data up to its snapshot offset, so the remaining changes up to
-     * the remote head must be applied in the same pass. Failures propagate to the caller, matching
-     * the regular sync path semantics ({@link UpdateServiceImpl#update} resets the consumer before
-     * rethrowing).
+     * the remote head must be applied in the same pass. Failures propagate to the caller; {@link
+     * UpdateServiceImpl#update} persists batch-level checkpoints so progress survives.
      *
      * @param context The CTI context name.
      * @param consumer The CTI consumer name.

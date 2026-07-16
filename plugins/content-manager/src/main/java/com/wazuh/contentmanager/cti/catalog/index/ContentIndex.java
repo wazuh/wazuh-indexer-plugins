@@ -346,13 +346,30 @@ public class ContentIndex {
     }
 
     /**
-     * Indexes a new document or overwrites an existing one.
+     * Indexes a new document or overwrites an existing one with {@link
+     * WriteRequest.RefreshPolicy#IMMEDIATE}.
      *
      * @param id The unique identifier for the document.
      * @param payload The JSON object representing the document content.
      * @param listener The listener to notify on completion.
      */
     public void create(String id, JsonNode payload, ActionListener<IndexResponse> listener) {
+        this.create(id, payload, listener, WriteRequest.RefreshPolicy.IMMEDIATE);
+    }
+
+    /**
+     * Indexes a new document or overwrites an existing one with the given refresh policy.
+     *
+     * @param id The unique identifier for the document.
+     * @param payload The JSON object representing the document content.
+     * @param listener The listener to notify on completion.
+     * @param refreshPolicy The refresh policy to apply after indexing.
+     */
+    public void create(
+            String id,
+            JsonNode payload,
+            ActionListener<IndexResponse> listener,
+            WriteRequest.RefreshPolicy refreshPolicy) {
         ObjectNode processedPayload;
         if (payload.isObject()
                 && payload.has("document")
@@ -371,7 +388,7 @@ public class ContentIndex {
                 new IndexRequest(this.getWriteIndex())
                         .id(id)
                         .source(processedPayload.toString(), XContentType.JSON)
-                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                        .setRefreshPolicy(refreshPolicy);
         this.client.index(request, listener);
     }
 
@@ -584,6 +601,18 @@ public class ContentIndex {
             log.debug(Constants.D_LOG_INDEX_WIPED_RECREATED, this.indexName, this.physicalName);
         } catch (Exception e) {
             log.error(Constants.E_LOG_CLEAR_INDEX_FAILED, this.indexName, e.getMessage());
+        }
+    }
+
+    /**
+     * Flushes the index, committing the translog to Lucene and triggering segment merges. Use between
+     * batches during long-running ingestion to free heap held by translog buffers and small segments.
+     */
+    public void flush() {
+        try {
+            this.client.admin().indices().prepareFlush(this.indexName).get();
+        } catch (Exception e) {
+            log.warn("Failed to flush index [{}]: {}", this.indexName, e.getMessage());
         }
     }
 

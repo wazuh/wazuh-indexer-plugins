@@ -334,9 +334,6 @@ public class Constants {
             "Skipping DELETE for CVE resource [{}] (CVE removals are not applied).";
     public static final String W_LOG_UPDATE_UNSUPPORTED_OPERATION =
             "Unsupported JSON patch operation [{}]";
-    public static final String W_LOG_UPDATE_RESET_CONSUMER =
-            "Resetting consumer [{}] offset to 0 due to update failure.";
-    public static final String E_LOG_UPDATE_RESET_CONSUMER_FAILED = "Failed to reset consumer: {}";
     public static final String D_LOG_IOC_EXPORT_SKIPPED_TEST_ENV =
             "IOCs export skipped: test environment";
     public static final String D_LOG_IOC_TYPE_HASHES_STORED = "IOC type hashes stored successfully.";

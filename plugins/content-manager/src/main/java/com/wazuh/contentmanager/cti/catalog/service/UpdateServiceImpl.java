@@ -24,6 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.action.ActionListener;
 
 import java.util.Map;
@@ -44,6 +45,7 @@ import com.wazuh.contentmanager.utils.Constants;
 /** Service responsible for keeping the catalog content up-to-date. */
 public class UpdateServiceImpl extends AbstractService implements UpdateService {
     private static final Logger log = LogManager.getLogger(UpdateServiceImpl.class);
+    private static final int FLUSH_EVERY_N_BATCHES = 10;
 
     private final ConsumersIndex consumersIndex;
     private final Map<String, ContentIndex> indices;
@@ -51,6 +53,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private final String consumer;
     private final String consumerType;
     private final String consumerUri;
+    private final ContentIndex singleIndex;
     private final boolean cveCatalog;
 
     /**
@@ -83,8 +86,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         this.consumer = consumer;
         this.consumerType = consumerType;
         this.consumerUri = consumerUri;
-        // Optimization: fast-path to skip individual ID checks during DELETE if updating CVEs only.
-        this.cveCatalog = indices.size() == 1 && indices.containsKey(Constants.KEY_CVES);
+        this.singleIndex = indices.size() == 1 ? indices.values().iterator().next() : null;
+        this.cveCatalog = this.singleIndex != null && indices.containsKey(Constants.KEY_CVES);
     }
 
     /**
@@ -92,18 +95,33 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      *
      * <p>Implementation details: 1. Fetches the changes JSON from the API for the given range. 2.
      * Parses the response into {@link Changes} and {@link Offset} objects. 3. Iterates through
-     * offsets. 4. Delegates specific operations to {@link #applyOffset(Offset)}. 5. Updates the
-     * {@link LocalConsumer} record in the index with the last successfully applied offset.
+     * offsets. 4. Delegates specific operations to {@link #applyOffset(Offset)}. 5. Persists a
+     * checkpoint to the {@link LocalConsumer} record after each successful batch so that progress
+     * survives failures.
      *
-     * <p>If an exception occurs, the consumer state is reset to prevent data corruption or stuck
-     * states.
+     * <p>On failure the exception propagates to the caller without resetting the consumer offset,
+     * allowing the next sync cycle to resume from the last checkpoint.
      */
     @Override
     public boolean update(long fromOffset, long toOffset) {
         log.debug(Constants.D_LOG_UPDATE_START, this.consumer, fromOffset, toOffset);
         try {
+            GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
+            LocalConsumer current =
+                    (getResponse != null && getResponse.isExists())
+                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
+                            : new LocalConsumer(
+                                    this.context, this.consumer, this.consumerType, this.consumerUri, true);
+
+            String effectiveContext = this.firstNonBlank(current.getContext(), this.context);
+            String effectiveName = this.firstNonBlank(current.getName(), this.consumer);
+            String effectiveType = this.firstNonBlank(current.getType(), this.consumerType);
+            String effectiveResource = this.firstNonBlank(current.getResource(), this.consumerUri);
+            boolean effectiveIsPublic = current.isPublic();
+
             long currentFromOffset = fromOffset;
             long lastAppliedOffset = fromOffset;
+            int batchCount = 0;
 
             while (currentFromOffset < toOffset) {
                 long currentToOffset =
@@ -118,10 +136,6 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             currentFromOffset,
                             currentToOffset,
                             response.getCode());
-                    // Whether this is the first batch (no progress at all) or a later one (partial
-                    // progress already applied), a non-200 response means the consumer did not reach
-                    // toOffset. Treating partial progress as success would silently report a consumer
-                    // as up-to-date when it isn't, so this always falls through to the catch below.
                     throw new RuntimeException(
                             "Failed to fetch changes for consumer ["
                                     + this.consumerType
@@ -148,35 +162,34 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
                 lastAppliedOffset = currentToOffset;
                 currentFromOffset = currentToOffset;
+
+                this.consumersIndex.setConsumer(
+                        new LocalConsumer(
+                                effectiveContext,
+                                effectiveName,
+                                effectiveType,
+                                effectiveResource,
+                                effectiveIsPublic,
+                                LocalConsumer.Status.RUNNING,
+                                lastAppliedOffset,
+                                toOffset));
+
+                batchCount++;
+                if (batchCount % FLUSH_EVERY_N_BATCHES == 0) {
+                    for (ContentIndex idx : this.indices.values()) {
+                        idx.flush();
+                    }
+                }
             }
-            // Update consumer state
-            LocalConsumer consumer =
-                    new LocalConsumer(this.context, this.consumer, this.consumerType, this.consumerUri, true);
 
-            // Properly handle the GetResponse to check if the document exists before parsing
-            GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
-            LocalConsumer current =
-                    (getResponse != null && getResponse.isExists())
-                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                            : consumer;
+            for (ContentIndex idx : this.indices.values()) {
+                idx.flush();
+            }
 
-            LocalConsumer updated =
-                    new LocalConsumer(
-                            this.firstNonBlank(current.getContext(), this.context),
-                            this.firstNonBlank(current.getName(), this.consumer),
-                            this.firstNonBlank(current.getType(), this.consumerType),
-                            this.firstNonBlank(current.getResource(), this.consumerUri),
-                            current.isPublic(),
-                            current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.RUNNING,
-                            lastAppliedOffset,
-                            toOffset);
-            this.consumersIndex.setConsumer(updated);
-
-            log.info(Constants.I_LOG_UPDATE_CONSUMER_SUCCESS, consumer.getType(), lastAppliedOffset);
+            log.info(Constants.I_LOG_UPDATE_CONSUMER_SUCCESS, this.consumerType, lastAppliedOffset);
             return true;
         } catch (Exception e) {
             log.error(Constants.E_LOG_UPDATE_FAILED, e.getMessage());
-            this.resetConsumer();
             throw new RuntimeException("Update failed for consumer [" + this.consumerType + "]", e);
         }
     }
@@ -222,7 +235,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             index.create(
                                     id,
                                     payload,
-                                    ActionListener.wrap(r -> future.complete(null), future::completeExceptionally));
+                                    ActionListener.wrap(r -> future.complete(null), future::completeExceptionally),
+                                    WriteRequest.RefreshPolicy.NONE);
                             try {
                                 future.get(60, TimeUnit.SECONDS);
                             } catch (ExecutionException e) {
@@ -275,13 +289,16 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      *     specified ID.
      */
     private ContentIndex findIndexForId(String id) throws ResourceNotFoundException {
-        // When it is a policy document, it must be treated special, since the id policy doesn't exist
         if (Constants.KEY_POLICY.equals(id)) {
             ContentIndex policyIndex = this.indices.get(Constants.KEY_POLICY);
             if (policyIndex != null) {
                 return policyIndex;
             }
             throw new ResourceNotFoundException("Policy index not found.");
+        }
+
+        if (this.singleIndex != null) {
+            return this.singleIndex;
         }
 
         for (ContentIndex index : this.indices.values()) {
@@ -291,37 +308,6 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         }
         throw new ResourceNotFoundException(
                 "Document with ID '" + id + "' could not be found in any ContentIndex.");
-    }
-
-    /**
-     * Resets the local consumer offset to 0 and marks it {@link LocalConsumer.Status#FAILED}. Called
-     * only from the failure path of {@link #update(long, long)}, right before that method rethrows —
-     * the explicit {@code FAILED} status must not be left to the constructor's default, which reports
-     * a successfully synced consumer.
-     */
-    private void resetConsumer() {
-        log.warn(Constants.W_LOG_UPDATE_RESET_CONSUMER, this.consumer);
-        try {
-            GetResponse getResponse = this.consumersIndex.getConsumer(this.consumerType);
-            LocalConsumer current =
-                    (getResponse != null && getResponse.isExists())
-                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                            : null;
-            boolean effectiveIsPublic = current == null || current.isPublic();
-            LocalConsumer reset =
-                    new LocalConsumer(
-                            this.firstNonBlank(current != null ? current.getContext() : null, this.context),
-                            this.firstNonBlank(current != null ? current.getName() : null, this.consumer),
-                            this.firstNonBlank(current != null ? current.getType() : null, this.consumerType),
-                            this.firstNonBlank(current != null ? current.getResource() : null, this.consumerUri),
-                            effectiveIsPublic,
-                            LocalConsumer.Status.FAILED,
-                            0,
-                            0);
-            this.consumersIndex.setConsumer(reset);
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_UPDATE_RESET_CONSUMER_FAILED, e.getMessage());
-        }
     }
 
     private String firstNonBlank(String value, String fallback) {
