@@ -353,6 +353,7 @@ public class PluginSettings {
     private volatile int maxKvdbs;
     private volatile int maxFilters;
     private volatile String accessToken;
+    private volatile String wazuhUid;
     private String version;
 
     /**
@@ -492,6 +493,24 @@ public class PluginSettings {
      */
     public boolean isRegistered() {
         return this.accessToken != null && !this.accessToken.isBlank();
+    }
+
+    /**
+     * Sets the cluster UUID used as the wazuh-uid header in CTI API requests.
+     *
+     * @param wazuhUid the cluster UUID string, or null to clear it.
+     */
+    public void setWazuhUid(String wazuhUid) {
+        this.wazuhUid = wazuhUid;
+    }
+
+    /**
+     * Retrieves the cluster UUID used as the wazuh-uid header.
+     *
+     * @return the cluster UUID string, or null if not yet set.
+     */
+    public String getWazuhUid() {
+        return this.wazuhUid;
     }
 
     /**

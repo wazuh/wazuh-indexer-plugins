@@ -277,6 +277,7 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
+        PluginSettings.getInstance().setWazuhUid(this.clusterService.state().metadata().clusterUUID());
         this.threadPool.generic().execute(this::tryLoadAccessToken);
 
         AtomicBoolean started = new AtomicBoolean(false);

@@ -247,4 +247,33 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         pluginSettings.setAccessToken("");
         Assert.assertFalse(pluginSettings.isRegistered());
     }
+
+    /** Tests that wazuhUid is null by default. */
+    public void testWazuhUidIsNullByDefault() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        Assert.assertNull(pluginSettings.getWazuhUid());
+    }
+
+    /** Tests that setWazuhUid persists the value and getWazuhUid returns it. */
+    public void testSetAndGetWazuhUid() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setWazuhUid("test-cluster-uuid");
+        Assert.assertEquals("test-cluster-uuid", pluginSettings.getWazuhUid());
+    }
+
+    /** Tests that setWazuhUid can be updated and the latest value is returned. */
+    public void testWazuhUidUpdates() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setWazuhUid("first-uuid");
+        pluginSettings.setWazuhUid("second-uuid");
+        Assert.assertEquals("second-uuid", pluginSettings.getWazuhUid());
+    }
+
+    /** Tests that setWazuhUid(null) clears the value. */
+    public void testWazuhUidCanBeCleared() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        pluginSettings.setWazuhUid("a-uuid");
+        pluginSettings.setWazuhUid(null);
+        Assert.assertNull(pluginSettings.getWazuhUid());
+    }
 }
