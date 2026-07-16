@@ -32,6 +32,7 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.GroupedActionListener;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
@@ -301,23 +302,17 @@ public class SpaceService {
         // Deterministic id shared across all default policies so they are linked; a name-based
         // UUID (v3) ensures every node derives the same id from the same seed.
         String sharedDocumentId =
-                UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
-        // Seed the three spaces sequentially. initializeSpace never fails its listener (it swallows
-        // and logs), so a simple chain is sufficient and always reaches the caller's listener.
-        this.initializeSpace(
-                Space.DRAFT.toString(),
-                sharedDocumentId,
-                ActionListener.wrap(
-                        ignoredDraft ->
-                                this.initializeSpace(
-                                        Space.TEST.toString(),
-                                        sharedDocumentId,
-                                        ActionListener.wrap(
-                                                ignoredTest ->
-                                                        this.initializeSpace(
-                                                                Space.CUSTOM.toString(), sharedDocumentId, listener),
-                                                listener::onFailure)),
-                        listener::onFailure));
+            UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
+
+        List<String> spaces =
+            List.of(Space.DRAFT.toString(), Space.TEST.toString(), Space.CUSTOM.toString());
+
+        GroupedActionListener<Void> group =
+            new GroupedActionListener<>(
+                ActionListener.wrap(ignored -> listener.onResponse(null), listener::onFailure),
+                spaces.size());
+
+        spaces.forEach(space -> this.initializeSpace(space, sharedDocumentId, group));
     }
 
     /**
