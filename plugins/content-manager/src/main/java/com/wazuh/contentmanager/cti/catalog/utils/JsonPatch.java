@@ -20,6 +20,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 
 /**
@@ -32,6 +35,8 @@ import com.wazuh.contentmanager.cti.catalog.model.Operation;
  * responsible for logging it with the appropriate context.
  */
 public class JsonPatch {
+
+    private static final Logger log = LogManager.getLogger(JsonPatch.class);
 
     /**
      * Applies a single JSON Patch operation to a document.
@@ -125,9 +130,15 @@ public class JsonPatch {
         JsonNode target = JsonPatch.navigateToParent(document, path);
         String key = JsonPatch.extractKeyFromPath(path);
 
+        if (target == null) {
+            log.warn("Skipping remove operation: parent path not found for {}", path);
+            return;
+        }
+
         if (target instanceof ObjectNode objNode) {
             if (!objNode.has(key)) {
-                throw new IllegalArgumentException("Path not found for remove operation: " + path);
+                log.warn("Skipping remove operation: path not found {}", path);
+                return;
             }
             objNode.remove(key);
         } else if (target instanceof ArrayNode arrayNode) {
@@ -142,7 +153,7 @@ public class JsonPatch {
                 throw new IllegalArgumentException("Invalid array index for remove operation: " + key);
             }
         } else {
-            throw new IllegalArgumentException("Target for remove operation is not a container");
+            log.warn("Skipping remove operation: target is not a container for {}", path);
         }
     }
 

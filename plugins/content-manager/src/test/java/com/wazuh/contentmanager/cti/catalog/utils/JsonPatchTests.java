@@ -283,4 +283,31 @@ public class JsonPatchTests extends OpenSearchTestCase {
                         });
         Assert.assertEquals("Unsupported JSON Patch operation: unsupported", exception.getMessage());
     }
+
+    /** Test that removing a missing field is a no-op instead of throwing. */
+    public void testApplyOperationRemoveMissingField() {
+        ObjectNode document = this.mapper.createObjectNode();
+        document.put("existing", "value");
+
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "remove");
+        operation.put(Operation.PATH, "/nonexistent");
+        JsonPatch.applyOperation(document, operation);
+
+        Assert.assertTrue(document.has("existing"));
+        Assert.assertFalse(document.has("nonexistent"));
+    }
+
+    /** Test that removing a path whose parent does not exist is a no-op instead of throwing. */
+    public void testApplyOperationRemoveMissingParent() {
+        ObjectNode document = this.mapper.createObjectNode();
+        document.put("existing", "value");
+
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "remove");
+        operation.put(Operation.PATH, "/a/b/c");
+        JsonPatch.applyOperation(document, operation);
+
+        Assert.assertTrue(document.has("existing"));
+    }
 }
