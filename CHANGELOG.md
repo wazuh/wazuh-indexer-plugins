@@ -183,6 +183,7 @@
 - Unify Setup and Content Manager plugin states into running/ready/failed [(#1293)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1293)
 - Use the zstd codec by default for indices created by Wazuh plugins [(#1294)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1294)
 - Disable automatic refresh for low-activity indices [(#1304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1304)
+- Immediate recovery when feed update fails [(#1360)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1360)
 - Extend findings case management fields with title, description, severity, priority, tlp and a comments array [(#1338)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1338)
 - Allow dates on Content Manager's REST API [(#1359)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1359)
 - Update Content Manager OpenAPI documentation to match current API behavior [(#1384)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1384)
