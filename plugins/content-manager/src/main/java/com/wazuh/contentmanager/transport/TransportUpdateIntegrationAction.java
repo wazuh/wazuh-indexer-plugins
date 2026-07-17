@@ -284,8 +284,7 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
                 ActionListener.wrap(
                         response -> listener.onResponse(null),
                         e -> {
-                            OpenSearchSecurityException secEx =
-                                    TransportActionHelper.extractSecurityException(e);
+                            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
                             if (secEx != null) {
                                 listener.onResponse(
                                         new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
