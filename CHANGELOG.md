@@ -233,6 +233,7 @@
 - Fix invalid action name warning messages [(#1313)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1313)
 - Fix consumer offset left behind the remote head after a plan-change content swap [(#1343)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1343)
 - Fix promotion changes on fresh install [(#1377)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1377)
+- Fix missing threat-intel indices when content initialization is disabled [(#1385)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1385)
 - Fix `custom` space rejection on `/logtest/normalization` and `/logtest/detection` [(#1384)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1384)
 
 ## Prior versions
