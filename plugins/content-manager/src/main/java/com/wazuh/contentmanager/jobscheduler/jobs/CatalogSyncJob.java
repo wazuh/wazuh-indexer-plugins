@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.AbstractConsumerService;
@@ -51,6 +52,14 @@ public class CatalogSyncJob implements JobExecutor {
 
     /** Semaphore to control concurrency - only one job can run at a time. */
     private final Semaphore semaphore = new Semaphore(1);
+
+    /**
+     * Tracks whether an immediate retry has already been fired for the current failure episode. Set
+     * by {@link #handleOutcome(SyncOutcome)} on a fresh {@link SyncOutcome#FAILURE}; cleared on
+     * {@link SyncOutcome#SUCCESS} or once the retry's own outcome has been evaluated. Guarantees at
+     * most one immediate retry per failure episode.
+     */
+    private final AtomicBoolean retryPending = new AtomicBoolean(false);
 
     private final Client client;
     private final ThreadPool threadPool;
@@ -95,24 +104,8 @@ public class CatalogSyncJob implements JobExecutor {
                     context.getJobId());
             return;
         }
-
-        this.threadPool
-                .generic()
-                .execute(
-                        () -> {
-                            try {
-                                log.debug("Executing Consumer Sync Job (ID: {})", context.getJobId());
-                                this.performSynchronization();
-                            } catch (Exception e) {
-                                log.error(
-                                        "Error executing Consumer Sync Job (ID: {}): {}",
-                                        context.getJobId(),
-                                        e.getMessage(),
-                                        e);
-                            } finally {
-                                this.semaphore.release();
-                            }
-                        });
+        log.debug("Executing Consumer Sync Job (ID: {})", context.getJobId());
+        this.threadPool.generic().execute(this::runSynchronizationPass);
     }
 
     /**
@@ -130,19 +123,72 @@ public class CatalogSyncJob implements JobExecutor {
             log.warn("Attempted to trigger CatalogSyncJob manually while it is already running.");
             return;
         }
+        this.threadPool.generic().execute(this::runSynchronizationPass);
+    }
 
-        this.threadPool
-                .generic()
-                .execute(
-                        () -> {
-                            try {
-                                this.performSynchronization();
-                            } catch (Exception e) {
-                                log.error("Error running CatalogSyncJob: {}", e.getMessage(), e);
-                            } finally {
-                                this.semaphore.release();
-                            }
-                        });
+    /**
+     * Runs one synchronization pass and, once the semaphore has been released, hands the outcome to
+     * {@link #handleOutcome(SyncOutcome)} so a failed pass can immediately trigger a single retry.
+     * Shared by both {@link #execute(JobExecutionContext)} and {@link #trigger()}.
+     */
+    private void runSynchronizationPass() {
+        SyncOutcome outcome = SyncOutcome.SETUP_NOT_READY;
+        try {
+            outcome = this.performSynchronization();
+        } catch (Exception e) {
+            log.error("Error running CatalogSyncJob: {}", e.getMessage(), e);
+        } finally {
+            this.semaphore.release();
+        }
+        // Must run after the semaphore is released, otherwise the retry's trigger() would find the
+        // permit unavailable and silently no-op.
+        this.handleOutcome(outcome);
+    }
+
+    /**
+     * Reacts to the outcome of a synchronization pass. A fresh failure triggers exactly one immediate
+     * retry via {@link #trigger()}; the retry's own outcome is evaluated the same way but the {@link
+     * #retryPending} flag prevents it from triggering a second retry, so a persistently failing sync
+     * falls back to waiting for the next scheduled run.
+     *
+     * @param outcome The result of the synchronization pass that just completed.
+     */
+    void handleOutcome(SyncOutcome outcome) {
+        switch (outcome) {
+            case SUCCESS -> this.retryPending.set(false);
+            case FAILURE -> {
+                if (this.retryPending.compareAndSet(false, true)) {
+                    log.warn("Synchronization failed; triggering one immediate retry.");
+                    this.trigger();
+                } else {
+                    log.error("Immediate retry also failed; waiting for the next scheduled run.");
+                    this.retryPending.set(false);
+                }
+            }
+            // waitForSetup() already retried internally; not a synchronization failure. Still clears
+            // retryPending: if this was the immediate retry's own outcome, leaving the flag set would
+            // cause the next unrelated FAILURE to be misread as that retry's outcome and skip its own
+            // immediate retry.
+            case SETUP_NOT_READY -> this.retryPending.set(false);
+        }
+    }
+
+    /**
+     * Reports whether an immediate retry is currently pending (i.e., the next {@link
+     * SyncOutcome#FAILURE} evaluated will be treated as that retry's own outcome rather than a fresh
+     * failure). Exposed for tests.
+     *
+     * @return true if a retry is pending, false otherwise.
+     */
+    boolean isRetryPending() {
+        return this.retryPending.get();
+    }
+
+    /** The result of a single synchronization pass, used to decide whether to retry immediately. */
+    enum SyncOutcome {
+        SUCCESS,
+        FAILURE,
+        SETUP_NOT_READY
     }
 
     /**
@@ -150,19 +196,37 @@ public class CatalogSyncJob implements JobExecutor {
      * plugin to finish creating its indices before iterating through all registered synchronizers and
      * executing them. If the Setup plugin does not complete in time, the pass is skipped; the
      * periodic job will retry on its next scheduled run.
+     *
+     * @return {@link SyncOutcome#SETUP_NOT_READY} if the Setup plugin did not become ready in time,
+     *     {@link SyncOutcome#FAILURE} if any synchronizer threw, {@link SyncOutcome#SUCCESS}
+     *     otherwise.
      */
-    private void performSynchronization() {
+    SyncOutcome performSynchronization() {
         if (!this.waitForSetup()) {
             log.error(
                     "Setup plugin initialization did not complete in time. Skipping catalog"
                             + " synchronization; it will be retried on the next scheduled run.");
-            return;
+            return SyncOutcome.SETUP_NOT_READY;
         }
+        boolean anyFailure = false;
         for (AbstractConsumerService synchronizer : this.synchronizers) {
             try {
-                synchronizer.synchronize();
-                log.debug("{} synchronized.", synchronizer.getClass().getSimpleName());
+                boolean feedUnreachable = synchronizer.synchronize();
+                if (feedUnreachable) {
+                    // The synchronizer fell back to its local snapshot because the configured CTI
+                    // feed was unreachable. Treat it as a failure so a single immediate retry fires;
+                    // a transient network block then recovers without waiting for the next scheduled
+                    // run.
+                    anyFailure = true;
+                    log.warn(
+                            "{} could not reach its configured feed; content served from the local"
+                                    + " snapshot.",
+                            synchronizer.getClass().getSimpleName());
+                } else {
+                    log.debug("{} synchronized.", synchronizer.getClass().getSimpleName());
+                }
             } catch (Exception e) {
+                anyFailure = true;
                 log.error(
                         "Error during synchronization of {}: {}",
                         synchronizer.getClass().getSimpleName(),
@@ -170,6 +234,7 @@ public class CatalogSyncJob implements JobExecutor {
                         e);
             }
         }
+        return anyFailure ? SyncOutcome.FAILURE : SyncOutcome.SUCCESS;
     }
 
     /**
