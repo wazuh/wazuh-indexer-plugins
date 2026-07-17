@@ -319,8 +319,6 @@ public class Constants {
             "Remote snapshot failed for consumer [{}]. Rolling back from stable snapshot [{}].";
     public static final String W_LOG_STABLE_ROLLBACK_FAILED =
             "Stable snapshot rollback failed for consumer [{}]. Falling back to packaged snapshot [{}].";
-    public static final String D_LOG_NO_STABLE_FOR_ROLLBACK =
-            "No stable snapshot found for consumer [{}] at [{}].";
     public static final String D_LOG_UPDATE_START =
             "Starting content update for consumer [{}] from [{}] to [{}]";
     public static final String E_LOG_UPDATE_FETCH_CHANGES_FAILED = "Failed to fetch changes: {} {}";

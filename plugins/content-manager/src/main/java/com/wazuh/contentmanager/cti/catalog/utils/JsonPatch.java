@@ -158,13 +158,24 @@ public class JsonPatch {
     }
 
     /**
-     * Handles the "replace" operation.
+     * Handles the "replace" operation. Per RFC 6902 section 4.3 the target location MUST exist;
+     * unlike {@link #removeOperation}, this method throws when the path is absent so that a missing
+     * field is never silently added.
      *
      * @param document The target JSON document.
      * @param path The JSON path where the value should be replaced.
      * @param value The new value to be added.
      */
     private static void replaceOperation(ObjectNode document, String path, JsonNode value) {
+        if (!path.isEmpty()) {
+            JsonNode target = JsonPatch.navigateToParent(document, path);
+            String key = JsonPatch.extractKeyFromPath(path);
+            if (target == null
+                    || (target.isObject() && !((ObjectNode) target).has(key))
+                    || (target.isArray() && Integer.parseInt(key) >= target.size())) {
+                throw new IllegalArgumentException("Path not found for replace operation: " + path);
+            }
+        }
         JsonPatch.removeOperation(document, path);
         JsonPatch.addOperation(document, path, value);
     }

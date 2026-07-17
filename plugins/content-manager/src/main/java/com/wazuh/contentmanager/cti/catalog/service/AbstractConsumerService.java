@@ -736,18 +736,28 @@ public abstract class AbstractConsumerService {
             }
         }
 
-        // Incremental Update
+        // Incremental Update — skip when no snapshot was loaded and the gap spans the full
+        // catalog, since fetching all changes incrementally from offset 0 will always exceed the
+        // request timeout (issue #1383).
         if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
-            updated =
-                    this.performIncrementalUpdate(
-                            context,
-                            consumer,
-                            consumerType,
-                            catalogUri,
-                            urlResolver,
-                            indicesMap,
-                            currentOffset,
-                            remoteConsumer.getOffset());
+            if (currentOffset == 0 && !updated) {
+                log.warn(
+                        "Skipping incremental update for [{}]: no snapshot loaded,"
+                                + " full catalog gap [0 -> {}] would timeout",
+                        consumerType,
+                        remoteConsumer.getOffset());
+            } else {
+                updated =
+                        this.performIncrementalUpdate(
+                                context,
+                                consumer,
+                                consumerType,
+                                catalogUri,
+                                urlResolver,
+                                indicesMap,
+                                currentOffset,
+                                remoteConsumer.getOffset());
+            }
         }
         return new SyncResult(updated, feedUnreachable);
     }

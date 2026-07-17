@@ -203,7 +203,9 @@ public class SnapshotServiceImpl implements SnapshotService {
             }
             // Promote to stable or clean up temp
             if (this.stablePath != null) {
-                promoteToStable(snapshotZip, this.stablePath);
+                if (!promoteToStable(snapshotZip, this.stablePath)) {
+                    this.cleanup(snapshotZip);
+                }
             } else {
                 this.cleanup(snapshotZip);
             }
@@ -487,8 +489,9 @@ public class SnapshotServiceImpl implements SnapshotService {
      *
      * @param candidate the path of the successfully-indexed snapshot.
      * @param stablePath the target stable path.
+     * @return {@code true} if the promotion succeeded, {@code false} on any I/O error.
      */
-    static void promoteToStable(Path candidate, Path stablePath) {
+    static boolean promoteToStable(Path candidate, Path stablePath) {
         try {
             AccessController.doPrivilegedChecked(
                     () -> {
@@ -505,8 +508,10 @@ public class SnapshotServiceImpl implements SnapshotService {
                         return null;
                     });
             log.debug(Constants.D_LOG_SNAPSHOT_PROMOTED_TO_STABLE, stablePath);
+            return true;
         } catch (Exception e) {
             log.warn(Constants.W_LOG_SNAPSHOT_PROMOTE_FAILED, stablePath, e.getMessage());
+            return false;
         }
     }
 
