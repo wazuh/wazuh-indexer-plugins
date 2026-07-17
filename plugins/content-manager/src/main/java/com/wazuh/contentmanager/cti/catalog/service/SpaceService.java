@@ -32,6 +32,7 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.GroupedActionListener;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
@@ -280,6 +281,38 @@ public class SpaceService {
             log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, spaceName, e.getMessage());
             listener.onResponse(null);
         }
+    }
+
+    /**
+     * Seeds the default space policy documents (draft, test, custom) in the policies index if they do
+     * not already exist.
+     *
+     * <p>All three share one deterministic policy id so they stay linked, and each write goes through
+     * {@link #initializeSpace} which uses {@code opType=CREATE}. This makes the method idempotent and
+     * safe to call repeatedly and concurrently across nodes: a duplicate write raises a {@link
+     * VersionConflictEngineException} that is silently ignored.
+     *
+     * <p>It is invoked both from catalog-sync post-processing and unconditionally at plugin startup,
+     * so the default spaces (and therefore the draft policy that custom-ruleset operations require)
+     * exist even when catalog synchronization is disabled.
+     *
+     * @param listener notified once all three spaces have been processed.
+     */
+    public void initializeDefaultSpaces(ActionListener<Void> listener) {
+        // Deterministic id shared across all default policies so they are linked; a name-based
+        // UUID (v3) ensures every node derives the same id from the same seed.
+        String sharedDocumentId =
+                UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
+
+        List<String> spaces =
+                List.of(Space.DRAFT.toString(), Space.TEST.toString(), Space.CUSTOM.toString());
+
+        GroupedActionListener<Void> group =
+                new GroupedActionListener<>(
+                        ActionListener.wrap(ignored -> listener.onResponse(null), listener::onFailure),
+                        spaces.size());
+
+        spaces.forEach(space -> this.initializeSpace(space, sharedDocumentId, group));
     }
 
     /**

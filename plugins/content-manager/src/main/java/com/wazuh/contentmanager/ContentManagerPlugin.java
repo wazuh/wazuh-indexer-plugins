@@ -72,6 +72,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -83,6 +84,7 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
@@ -255,6 +257,10 @@ public class ContentManagerPlugin extends Plugin
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
                         PluginSettings.MAX_FILTERS, v -> PluginSettings.getInstance().setMaxFilters(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.WAZUH_UID, v -> PluginSettings.getInstance().setWazuhUid(v));
 
         return List.of(
                 this.subscriptionService,
@@ -277,6 +283,10 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
+        if (PluginSettings.getInstance().getWazuhUid() == null) {
+            PluginSettings.getInstance()
+                    .setWazuhUid(this.clusterService.state().metadata().clusterUUID());
+        }
         this.threadPool.generic().execute(this::tryLoadAccessToken);
 
         AtomicBoolean started = new AtomicBoolean(false);
@@ -451,6 +461,19 @@ public class ContentManagerPlugin extends Plugin
                                                 e);
                                     }
 
+                                    // Create the threat-intel ruleset resource indices up front so
+                                    // custom-ruleset REST endpoints work even when catalog
+                                    // synchronization is disabled. When sync is enabled it will
+                                    // find these already present and skip re-creating them.
+                                    this.ensureResourceIndicesExist();
+
+                                    // Seed the default space policies (draft, test, custom) so
+                                    // custom-ruleset operations that require a draft policy work even
+                                    // when catalog synchronization is disabled. Must run after the
+                                    // indices exist. Idempotent (opType=CREATE), so a later sync or
+                                    // another node finds them already present.
+                                    this.ensureDefaultSpacesExist();
+
                                     this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();
@@ -495,6 +518,52 @@ public class ContentManagerPlugin extends Plugin
             }
         } catch (Exception e) {
             log.warn(Constants.W_LOG_CTI_TOKEN_LOAD_FAILED, e.getMessage());
+        }
+    }
+
+    /**
+     * Creates the space-aware threat-intel ruleset resource indices (policies, integrations, rules,
+     * kvdbs, decoders, filters) if they do not already exist.
+     *
+     * <p>These indices are otherwise created lazily during catalog synchronization. When both {@code
+     * plugins.content_manager.catalog.update_on_start} and {@code
+     * plugins.content_manager.catalog.update_on_schedule} are disabled no synchronization runs, so
+     * without this step the indices never get created and the custom-ruleset REST endpoints fail with
+     * "no such index". Each missing index is created with its configured mappings and public alias,
+     * matching what a normal first sync would produce.
+     */
+    private void ensureResourceIndicesExist() {
+        for (Map.Entry<String, String> entry : Constants.RESOURCE_INDEX_MAPPINGS.entrySet()) {
+            String indexName = entry.getKey();
+            try {
+                boolean exists =
+                        this.awaitResult(listener -> ClusterInfo.indexExists(this.client, indexName, listener));
+                if (!exists) {
+                    // ContentIndex.createIndex() creates the physical index and its alias, and logs
+                    // the creation itself.
+                    new ContentIndex(this.client, indexName, entry.getValue()).createIndex();
+                }
+            } catch (Exception e) {
+                log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Seeds the default space policy documents (draft, test, custom) if they do not already exist.
+     *
+     * <p>These are otherwise created only during catalog synchronization (in {@code
+     * ConsumerRulesetService}). When synchronization is disabled the draft policy never exists, so
+     * custom-ruleset operations that first check for it (e.g. creating an integration) fail with
+     * "Draft policy not found" even though the resource indices are present. This seeds them at
+     * startup via the same idempotent {@code opType=CREATE} logic, so a later sync or another node
+     * finds them already present. Must run after {@link #ensureResourceIndicesExist()}.
+     */
+    private void ensureDefaultSpacesExist() {
+        try {
+            this.<Void>awaitResult(listener -> this.spaceService.initializeDefaultSpaces(listener));
+        } catch (Exception e) {
+            log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, "spaces", e.getMessage());
         }
     }
 
@@ -799,7 +868,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_DECODERS,
                 PluginSettings.MAX_RULES,
                 PluginSettings.MAX_KVDBS,
-                PluginSettings.MAX_FILTERS);
+                PluginSettings.MAX_FILTERS,
+                PluginSettings.WAZUH_UID);
     }
 
     @Override
