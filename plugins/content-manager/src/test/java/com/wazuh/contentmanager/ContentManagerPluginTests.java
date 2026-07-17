@@ -20,6 +20,7 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.LocalNodeClusterManagerListener;
+import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
@@ -77,6 +78,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     @Mock private ConsumersIndex consumersIndex;
     @Mock private ClusterState clusterState;
     @Mock private DiscoveryNodes discoveryNodes;
+    @Mock private Metadata metadata;
 
     /** Sets up the test environment before each test method. */
     @Before
@@ -98,6 +100,8 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
 
         when(this.clusterService.state()).thenReturn(this.clusterState);
         when(this.clusterState.nodes()).thenReturn(this.discoveryNodes);
+        when(this.clusterState.metadata()).thenReturn(this.metadata);
+        when(this.metadata.clusterUUID()).thenReturn("test-cluster-uuid");
         when(this.discoveryNodes.isLocalNodeElectedClusterManager()).thenReturn(false);
 
         this.injectField(this.plugin, "client", this.client);

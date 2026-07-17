@@ -257,6 +257,10 @@ public class ContentManagerPlugin extends Plugin
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
                         PluginSettings.MAX_FILTERS, v -> PluginSettings.getInstance().setMaxFilters(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.WAZUH_UID, v -> PluginSettings.getInstance().setWazuhUid(v));
 
         return List.of(
                 this.subscriptionService,
@@ -279,6 +283,10 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
+        if (PluginSettings.getInstance().getWazuhUid() == null) {
+            PluginSettings.getInstance()
+                    .setWazuhUid(this.clusterService.state().metadata().clusterUUID());
+        }
         this.threadPool.generic().execute(this::tryLoadAccessToken);
 
         AtomicBoolean started = new AtomicBoolean(false);
@@ -860,7 +868,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_DECODERS,
                 PluginSettings.MAX_RULES,
                 PluginSettings.MAX_KVDBS,
-                PluginSettings.MAX_FILTERS);
+                PluginSettings.MAX_FILTERS,
+                PluginSettings.WAZUH_UID);
     }
 
     @Override
