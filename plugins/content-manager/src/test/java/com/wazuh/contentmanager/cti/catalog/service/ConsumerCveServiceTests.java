@@ -206,9 +206,12 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
                 new TestableConsumerCveService(this.client, this.consumersIndex, this.environment);
         fallbackService.setConsumerService(this.consumerService);
         fallbackService.setSnapshotService(this.snapshotService);
+        boolean feedUnreachable = fallbackService.synchronize();
 
-        fallbackService.synchronize();
-
+        assertTrue(
+                "A configured feed that could not be reached must be reported as unreachable so the"
+                        + " job retries, even though the local snapshot fallback succeeded",
+                feedUnreachable);
         verify(this.snapshotService).initialize(eq(localSnapshot), any());
         verify(this.snapshotService, never())
                 .initialize(any(com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer.class));
@@ -305,8 +308,9 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         fallbackService.setConsumerService(this.consumerService);
         fallbackService.setSnapshotService(this.snapshotService);
 
-        fallbackService.synchronize();
+        boolean feedUnreachable = fallbackService.synchronize();
 
+        assertFalse("A reachable feed must not be reported as unreachable", feedUnreachable);
         verify(this.snapshotService).initialize(eq(remoteConsumer));
         verify(this.snapshotService, never()).initialize(eq(localSnapshot), any());
         assertFalse(Files.exists(localSnapshot));
