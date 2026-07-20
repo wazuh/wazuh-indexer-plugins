@@ -27,6 +27,8 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.breaker.CircuitBreaker;
+import org.opensearch.core.common.breaker.CircuitBreakingException;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -47,6 +49,7 @@ import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -507,5 +510,44 @@ public class ContentIndexTests extends OpenSearchTestCase {
         JsonNode updatedDoc = this.mapper.readTree(captor.getValue().source().utf8ToString());
         Assert.assertTrue("Should contain 'offset'", updatedDoc.has("offset"));
         Assert.assertEquals(expectedOffset, updatedDoc.get("offset").asLong());
+    }
+
+    /** Test that update retries on CircuitBreakingException from GET and succeeds. */
+    public void testUpdate_RetriesOnCircuitBreakerException() throws Exception {
+        String id = "retry-test-id";
+
+        String originalDocJson =
+                "{"
+                        + "\"type\": \"rule\","
+                        + "\"document\": {"
+                        + "  \"id\": \"R1\","
+                        + "  \"title\": \"Test Rule\""
+                        + "}"
+                        + "}";
+
+        // First GET fails with CircuitBreakingException, second succeeds
+        PlainActionFuture<GetResponse> failFuture = PlainActionFuture.newFuture();
+        failFuture.onFailure(
+                new CircuitBreakingException(
+                        "Data too large", 100, 50, CircuitBreaker.Durability.TRANSIENT));
+
+        PlainActionFuture<GetResponse> successFuture = PlainActionFuture.newFuture();
+        successFuture.onResponse(this.getResponse);
+
+        when(this.client.get(any(GetRequest.class))).thenReturn(failFuture).thenReturn(successFuture);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString()).thenReturn(originalDocJson);
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        List<Operation> operations = new ArrayList<>();
+        operations.add(new Operation("replace", "/document/title", null, "Updated"));
+
+        this.contentIndex.update(id, operations, 10L);
+
+        verify(this.client, times(2)).get(any(GetRequest.class));
+        verify(this.client).index(any(IndexRequest.class));
     }
 }

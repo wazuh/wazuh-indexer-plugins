@@ -147,7 +147,11 @@ public class JsonPatch {
                 if (index >= 0 && index < arrayNode.size()) {
                     arrayNode.remove(index);
                 } else {
-                    throw new IndexOutOfBoundsException("Index out of bounds for remove operation: " + index);
+                    log.warn(
+                            "Skipping remove operation: index [{}] out of bounds (size: {}) for {}",
+                            index,
+                            arrayNode.size(),
+                            path);
                 }
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid array index for remove operation: " + key);

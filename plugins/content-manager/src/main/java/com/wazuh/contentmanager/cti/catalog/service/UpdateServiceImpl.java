@@ -149,6 +149,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 for (Offset offset : changes.get()) {
                     try {
                         this.applyOffset(offset);
+                        lastAppliedOffset = offset.getOffset();
                     } catch (Exception e) {
                         log.error(
                                 Constants.E_LOG_UPDATE_APPLY_OFFSET_FAILED,
@@ -156,6 +157,25 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 offset.getType(),
                                 offset.getResource(),
                                 e.getMessage());
+                        if (lastAppliedOffset > fromOffset) {
+                            try {
+                                this.consumersIndex.setConsumer(
+                                        new LocalConsumer(
+                                                effectiveContext,
+                                                effectiveName,
+                                                effectiveType,
+                                                effectiveResource,
+                                                effectiveIsPublic,
+                                                LocalConsumer.Status.RUNNING,
+                                                lastAppliedOffset,
+                                                toOffset));
+                            } catch (Exception ce) {
+                                log.error(
+                                        "Failed to persist failure checkpoint at offset [{}]: {}",
+                                        lastAppliedOffset,
+                                        ce.getMessage());
+                            }
+                        }
                         throw e;
                     }
                 }

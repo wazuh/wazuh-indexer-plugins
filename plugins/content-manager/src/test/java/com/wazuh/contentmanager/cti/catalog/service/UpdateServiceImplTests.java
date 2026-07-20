@@ -45,6 +45,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -538,6 +539,78 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
      *
      * @throws Exception if update execution fails.
      */
+    public void testUpdate_MidBatchFailurePersistsCheckpointAtLastSuccessfulOffset()
+            throws Exception {
+        // spotless:off
+        String changesJson =
+            """
+                {
+                  "data": [
+                    {
+                      "offset": 101,
+                      "resource": "rule-ok",
+                      "type": "CREATE",
+                      "payload": { "type": "rule", "id": "rule-ok" }
+                    },
+                    {
+                      "offset": 102,
+                      "resource": "rule-ok2",
+                      "type": "CREATE",
+                      "payload": { "type": "rule", "id": "rule-ok2" }
+                    },
+                    {
+                      "offset": 103,
+                      "resource": "rule-bad",
+                      "type": "CREATE",
+                      "payload": { "type": "rule", "id": "rule-bad" }
+                    }
+                  ]
+                }""";
+        // spotless:on
+
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+        // First two creates succeed, third throws
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(2);
+                            listener.onResponse(null);
+                            return null;
+                        })
+                .doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> listener = invocation.getArgument(2);
+                            listener.onResponse(null);
+                            return null;
+                        })
+                .doThrow(new RuntimeException("Simulated circuit breaker"))
+                .when(this.ruleIndex)
+                .create(anyString(), any(JsonNode.class), any(), any());
+
+        when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString())
+                .thenReturn(
+                        "{\"name\":\"test\",\"context\":\"rules_dev\","
+                                + "\"type\":\"cti:catalog:consumer:ruleset\","
+                                + "\"resource\":\"https://cti.example/api\","
+                                + "\"is_public\":true,"
+                                + "\"local_offset\":100,\"remote_offset\":200}");
+
+        LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(100, 200));
+
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(captor.capture());
+
+        LocalConsumer checkpoint = captor.getValue();
+        Assert.assertEquals(102, checkpoint.getLocalOffset());
+        Assert.assertEquals(200, checkpoint.getRemoteOffset());
+        Assert.assertEquals(LocalConsumer.Status.RUNNING, checkpoint.getStatus());
+    }
+
     public void testUpdate_CreateTIdResourceIsIndexedAsCveWithDerivedType() throws Exception {
         // spotless:off
         String changesJson =

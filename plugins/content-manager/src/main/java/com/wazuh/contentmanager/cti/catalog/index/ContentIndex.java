@@ -75,6 +75,9 @@ public class ContentIndex {
     public static final String SUFFIX_B = "-b";
 
     private static final long MAX_BACKPRESSURE_WAIT_MS = 5L * 60 * 1000;
+    private static final int MAX_UPDATE_RETRIES = 3;
+    private static final long UPDATE_INITIAL_BACKOFF_MS = 1000;
+    private static final long UPDATE_MAX_BACKOFF_MS = 30_000;
 
     private final Client client;
     private final PluginSettings pluginSettings;
@@ -417,6 +420,32 @@ public class ContentIndex {
      * @throws Exception If the document does not exist, or if patching/indexing fails.
      */
     public void update(String id, List<Operation> operations, Long offset) throws Exception {
+        long backoffMs = UPDATE_INITIAL_BACKOFF_MS;
+
+        for (int attempt = 0; ; attempt++) {
+            try {
+                this.awaitHeapPressureRelief();
+                this.doUpdate(id, operations, offset);
+                return;
+            } catch (Exception e) {
+                if (attempt < MAX_UPDATE_RETRIES && isCircuitBreakerException(e)) {
+                    log.warn(
+                            "Circuit breaker tripped during update of [{}], retry {}/{} in {}ms",
+                            id,
+                            attempt + 1,
+                            MAX_UPDATE_RETRIES,
+                            backoffMs);
+                    this.circuitBreakerTripped = true;
+                    Thread.sleep(backoffMs);
+                    backoffMs = Math.min(backoffMs * 2, UPDATE_MAX_BACKOFF_MS);
+                } else {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private void doUpdate(String id, List<Operation> operations, Long offset) throws Exception {
         // 1. Fetch
         GetResponse response =
                 this.client
@@ -585,14 +614,14 @@ public class ContentIndex {
             return;
         }
 
-        log.warn("Heap usage above {}% or circuit breaker tripped, pausing bulk indexing", threshold);
+        log.warn("Heap usage above {}% or circuit breaker tripped, pausing indexing", threshold);
         long backoffMs = 500;
         long totalWaitMs = 0;
 
         do {
             if (totalWaitMs >= MAX_BACKPRESSURE_WAIT_MS) {
                 throw new RuntimeException(
-                        "Aborting bulk indexing: heap pressure exceeded "
+                        "Aborting indexing: heap pressure exceeded "
                                 + threshold
                                 + "% for over "
                                 + (totalWaitMs / 1000)
@@ -609,7 +638,7 @@ public class ContentIndex {
             this.circuitBreakerTripped = false;
         } while (isHeapAboveThreshold(threshold));
 
-        log.info("Heap pressure relieved after {}ms, resuming bulk indexing", totalWaitMs);
+        log.info("Heap pressure relieved after {}ms, resuming indexing", totalWaitMs);
     }
 
     private static boolean isHeapAboveThreshold(int thresholdPercent) {
