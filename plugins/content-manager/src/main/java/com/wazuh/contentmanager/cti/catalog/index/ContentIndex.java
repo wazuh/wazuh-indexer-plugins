@@ -40,6 +40,7 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.breaker.CircuitBreakingException;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -73,9 +74,12 @@ public class ContentIndex {
     /** The second physical suffix, used as the shadow slot during blue/green swaps. */
     public static final String SUFFIX_B = "-b";
 
+    private static final long MAX_BACKPRESSURE_WAIT_MS = 5L * 60 * 1000;
+
     private final Client client;
     private final PluginSettings pluginSettings;
     private final Semaphore semaphore;
+    private volatile boolean circuitBreakerTripped;
 
     /**
      * The public alias name (e.g., {@code "wazuh-threatintel-rules"}). All read operations use this
@@ -539,12 +543,14 @@ public class ContentIndex {
     }
 
     /**
-     * Executes a bulk request asynchronously.
+     * Executes a bulk request asynchronously. Pauses when JVM heap usage exceeds the configured
+     * threshold or a circuit breaker has tripped, resuming once pressure is relieved.
      *
      * @param bulkRequest The BulkRequest containing multiple index/delete operations.
      */
     public void executeBulk(BulkRequest bulkRequest) {
         try {
+            this.awaitHeapPressureRelief();
             this.semaphore.acquire();
             this.client.bulk(
                     bulkRequest,
@@ -561,6 +567,9 @@ public class ContentIndex {
                         @Override
                         public void onFailure(Exception e) {
                             ContentIndex.this.semaphore.release();
+                            if (isCircuitBreakerException(e)) {
+                                ContentIndex.this.circuitBreakerTripped = true;
+                            }
                             log.error(Constants.E_LOG_BULK_INDEX_OPERATION_FAILED, e.getMessage());
                         }
                     });
@@ -568,6 +577,56 @@ public class ContentIndex {
             log.error(Constants.E_LOG_SEMAPHORE_INTERRUPTED, e.getMessage());
             Thread.currentThread().interrupt();
         }
+    }
+
+    private void awaitHeapPressureRelief() {
+        int threshold = this.pluginSettings.getHeapPressureThreshold();
+        if (!this.circuitBreakerTripped && !isHeapAboveThreshold(threshold)) {
+            return;
+        }
+
+        log.warn("Heap usage above {}% or circuit breaker tripped, pausing bulk indexing", threshold);
+        long backoffMs = 500;
+        long totalWaitMs = 0;
+
+        do {
+            if (totalWaitMs >= MAX_BACKPRESSURE_WAIT_MS) {
+                throw new RuntimeException(
+                        "Aborting bulk indexing: heap pressure exceeded "
+                                + threshold
+                                + "% for over "
+                                + (totalWaitMs / 1000)
+                                + "s");
+            }
+            try {
+                Thread.sleep(backoffMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            totalWaitMs += backoffMs;
+            backoffMs = Math.min(backoffMs * 2, 30_000);
+            this.circuitBreakerTripped = false;
+        } while (isHeapAboveThreshold(threshold));
+
+        log.info("Heap pressure relieved after {}ms, resuming bulk indexing", totalWaitMs);
+    }
+
+    private static boolean isHeapAboveThreshold(int thresholdPercent) {
+        Runtime rt = Runtime.getRuntime();
+        long used = rt.totalMemory() - rt.freeMemory();
+        return used * 100L / rt.maxMemory() >= thresholdPercent;
+    }
+
+    private static boolean isCircuitBreakerException(Exception e) {
+        Throwable cause = e;
+        while (cause != null) {
+            if (cause instanceof CircuitBreakingException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     /**

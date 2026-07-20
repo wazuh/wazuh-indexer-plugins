@@ -248,9 +248,12 @@ public class SnapshotServiceImpl implements SnapshotService {
      * @param entryPath the {@link Path} to the entry inside the ZIP {@link FileSystem}.
      * @throws IOException if the entry stream cannot be opened.
      */
+    private static final int FLUSH_EVERY_N_BULKS = 10;
+
     private void processZipEntry(Path entryPath) throws IOException {
         String line;
         int docCount = 0;
+        int bulkCount = 0;
         int missingPayload = 0;
         int unknownType = 0;
         int unmappedType = 0;
@@ -350,6 +353,17 @@ public class SnapshotServiceImpl implements SnapshotService {
                         executorIndex.executeBulk(bulkRequest);
                         bulkRequest = new BulkRequest();
                         docCount = 0;
+                        bulkCount++;
+
+                        if (bulkCount % FLUSH_EVERY_N_BULKS == 0) {
+                            try {
+                                executorIndex.waitForPendingUpdates();
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                throw new IOException("Interrupted while waiting for pending bulks", e);
+                            }
+                            executorIndex.flush();
+                        }
                     }
 
                 } catch (IOException e) {
