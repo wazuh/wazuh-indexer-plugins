@@ -19,9 +19,14 @@ package com.wazuh.contentmanager.cti.catalog.index;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.get.MultiGetItemResponse;
+import org.opensearch.action.get.MultiGetRequest;
+import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
@@ -510,6 +515,91 @@ public class ContentIndexTests extends OpenSearchTestCase {
         JsonNode updatedDoc = this.mapper.readTree(captor.getValue().source().utf8ToString());
         Assert.assertTrue("Should contain 'offset'", updatedDoc.has("offset"));
         Assert.assertEquals(expectedOffset, updatedDoc.get("offset").asLong());
+    }
+
+    /** Test that batchUpdate uses a single MultiGet + BulkRequest for multiple documents. */
+    public void testBatchUpdate_MultiGetAndBulk() throws Exception {
+        String doc1Json = "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"}}";
+        String doc2Json = "{\"type\":\"rule\",\"document\":{\"id\":\"R2\",\"title\":\"Rule 2\"}}";
+
+        GetResponse getResp1 = mock(GetResponse.class);
+        when(getResp1.isExists()).thenReturn(true);
+        when(getResp1.getSourceAsString()).thenReturn(doc1Json);
+
+        GetResponse getResp2 = mock(GetResponse.class);
+        when(getResp2.isExists()).thenReturn(true);
+        when(getResp2.getSourceAsString()).thenReturn(doc2Json);
+
+        MultiGetItemResponse item1 = mock(MultiGetItemResponse.class);
+        when(item1.isFailed()).thenReturn(false);
+        when(item1.getResponse()).thenReturn(getResp1);
+
+        MultiGetItemResponse item2 = mock(MultiGetItemResponse.class);
+        when(item2.isFailed()).thenReturn(false);
+        when(item2.getResponse()).thenReturn(getResp2);
+
+        MultiGetResponse mgetResponse = mock(MultiGetResponse.class);
+        when(mgetResponse.getResponses()).thenReturn(new MultiGetItemResponse[] {item1, item2});
+
+        PlainActionFuture<MultiGetResponse> mgetFuture = PlainActionFuture.newFuture();
+        mgetFuture.onResponse(mgetResponse);
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(mgetFuture);
+
+        BulkResponse bulkResponse = mock(BulkResponse.class);
+        when(bulkResponse.hasFailures()).thenReturn(false);
+
+        PlainActionFuture<BulkResponse> bulkFuture = PlainActionFuture.newFuture();
+        bulkFuture.onResponse(bulkResponse);
+        when(this.client.bulk(any(BulkRequest.class))).thenReturn(bulkFuture);
+
+        List<ContentIndex.UpdateTask> tasks =
+                List.of(
+                        new ContentIndex.UpdateTask(
+                                "R1",
+                                List.of(new Operation("replace", "/document/title", null, "Updated 1")),
+                                101L),
+                        new ContentIndex.UpdateTask(
+                                "R2",
+                                List.of(new Operation("replace", "/document/title", null, "Updated 2")),
+                                102L));
+
+        long result = this.contentIndex.batchUpdate(tasks);
+
+        Assert.assertEquals(102L, result);
+        verify(this.client).multiGet(any(MultiGetRequest.class));
+        verify(this.client).bulk(any(BulkRequest.class));
+    }
+
+    /** Test that batchUpdate skips documents whose stored offset already matches the target. */
+    public void testBatchUpdate_SkipsAlreadyAppliedOffset() throws Exception {
+        String docJson =
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"},\"offset\":101}";
+
+        GetResponse getResp = mock(GetResponse.class);
+        when(getResp.isExists()).thenReturn(true);
+        when(getResp.getSourceAsString()).thenReturn(docJson);
+
+        MultiGetItemResponse item = mock(MultiGetItemResponse.class);
+        when(item.isFailed()).thenReturn(false);
+        when(item.getResponse()).thenReturn(getResp);
+
+        MultiGetResponse mgetResponse = mock(MultiGetResponse.class);
+        when(mgetResponse.getResponses()).thenReturn(new MultiGetItemResponse[] {item});
+
+        PlainActionFuture<MultiGetResponse> mgetFuture = PlainActionFuture.newFuture();
+        mgetFuture.onResponse(mgetResponse);
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(mgetFuture);
+
+        List<ContentIndex.UpdateTask> tasks =
+                List.of(
+                        new ContentIndex.UpdateTask(
+                                "R1", List.of(new Operation("replace", "/document/title", null, "Updated")), 101L));
+
+        long result = this.contentIndex.batchUpdate(tasks);
+
+        Assert.assertEquals(101L, result);
+        verify(this.client).multiGet(any(MultiGetRequest.class));
+        verify(this.client, times(0)).bulk(any(BulkRequest.class));
     }
 
     /** Test that update retries on CircuitBreakingException from GET and succeeds. */

@@ -202,7 +202,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Verify Consumer State Update
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
+        verify(this.consumersIndex).setConsumer(consumerCaptor.capture(), eq(true));
 
         LocalConsumer updated = consumerCaptor.getValue();
         Assert.assertEquals(12, updated.getLocalOffset());
@@ -259,7 +259,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(29, 30));
 
         // Assert — no checkpoint written because the batch failed before completing
-        verify(this.consumersIndex, never()).setConsumer(any());
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class), anyBoolean());
     }
 
     /**
@@ -302,7 +302,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), any(), any());
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
+        verify(this.consumersIndex).setConsumer(consumerCaptor.capture(), eq(true));
         Assert.assertEquals(20, consumerCaptor.getValue().getLocalOffset());
     }
 
@@ -321,7 +321,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Assert — no checkpoint written because no batch completed
         verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class), any(), any());
-        verify(this.consumersIndex, never()).setConsumer(any());
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class), anyBoolean());
     }
 
     /**
@@ -361,7 +361,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(29, 30));
 
         // Assert — no checkpoint written, existing consumer state is untouched
-        verify(this.consumersIndex, never()).setConsumer(any());
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class), anyBoolean());
     }
 
     /**
@@ -399,7 +399,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Assert — first batch checkpoint was persisted
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(this.consumersIndex).setConsumer(captor.capture());
+        verify(this.consumersIndex).setConsumer(captor.capture(), eq(true));
 
         LocalConsumer checkpoint = captor.getValue();
         Assert.assertEquals(999, checkpoint.getLocalOffset());
@@ -448,7 +448,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class), any(), any());
 
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(this.consumersIndex).setConsumer(captor.capture());
+        verify(this.consumersIndex).setConsumer(captor.capture(), eq(true));
         Assert.assertEquals(40, captor.getValue().getLocalOffset());
     }
 
@@ -530,7 +530,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         verify(this.decoderIndex, never()).delete(anyString());
 
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(this.consumersIndex).setConsumer(captor.capture());
+        verify(this.consumersIndex).setConsumer(captor.capture(), eq(true));
         Assert.assertEquals(60, captor.getValue().getLocalOffset());
     }
 
@@ -603,7 +603,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(100, 200));
 
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(this.consumersIndex).setConsumer(captor.capture());
+        verify(this.consumersIndex).setConsumer(captor.capture(), eq(true));
 
         LocalConsumer checkpoint = captor.getValue();
         Assert.assertEquals(102, checkpoint.getLocalOffset());

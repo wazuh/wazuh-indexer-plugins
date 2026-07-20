@@ -27,6 +27,8 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.core.action.ActionListener;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -145,11 +147,27 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 }
 
                 Changes changes = this.mapper.readValue(response.getBodyBytes(), Changes.class);
+                List<ContentIndex.UpdateTask> updateBatch = new ArrayList<>();
 
                 for (Offset offset : changes.get()) {
                     try {
-                        this.applyOffset(offset);
-                        lastAppliedOffset = offset.getOffset();
+                        if (offset.getType() != Offset.Type.UPDATE && !updateBatch.isEmpty()) {
+                            lastAppliedOffset = this.singleIndex.batchUpdate(updateBatch);
+                            updateBatch.clear();
+                        }
+
+                        if (offset.getType() == Offset.Type.UPDATE && this.singleIndex != null) {
+                            updateBatch.add(
+                                    new ContentIndex.UpdateTask(
+                                            offset.getResource(), offset.getOperations(), offset.getOffset()));
+                            if (updateBatch.size() >= ContentIndex.UPDATE_SUB_BATCH_SIZE) {
+                                lastAppliedOffset = this.singleIndex.batchUpdate(updateBatch);
+                                updateBatch.clear();
+                            }
+                        } else {
+                            this.applyOffset(offset);
+                            lastAppliedOffset = offset.getOffset();
+                        }
                     } catch (Exception e) {
                         log.error(
                                 Constants.E_LOG_UPDATE_APPLY_OFFSET_FAILED,
@@ -157,25 +175,33 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 offset.getType(),
                                 offset.getResource(),
                                 e.getMessage());
-                        if (lastAppliedOffset > fromOffset) {
-                            try {
-                                this.consumersIndex.setConsumer(
-                                        new LocalConsumer(
-                                                effectiveContext,
-                                                effectiveName,
-                                                effectiveType,
-                                                effectiveResource,
-                                                effectiveIsPublic,
-                                                LocalConsumer.Status.RUNNING,
-                                                lastAppliedOffset,
-                                                toOffset));
-                            } catch (Exception ce) {
-                                log.error(
-                                        "Failed to persist failure checkpoint at offset [{}]: {}",
-                                        lastAppliedOffset,
-                                        ce.getMessage());
-                            }
-                        }
+                        this.persistCheckpoint(
+                                lastAppliedOffset,
+                                fromOffset,
+                                toOffset,
+                                effectiveContext,
+                                effectiveName,
+                                effectiveType,
+                                effectiveResource,
+                                effectiveIsPublic);
+                        throw e;
+                    }
+                }
+
+                if (!updateBatch.isEmpty()) {
+                    try {
+                        lastAppliedOffset = this.singleIndex.batchUpdate(updateBatch);
+                    } catch (Exception e) {
+                        log.error("Batch update flush failed: {}", e.getMessage());
+                        this.persistCheckpoint(
+                                lastAppliedOffset,
+                                fromOffset,
+                                toOffset,
+                                effectiveContext,
+                                effectiveName,
+                                effectiveType,
+                                effectiveResource,
+                                effectiveIsPublic);
                         throw e;
                     }
                 }
@@ -192,7 +218,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 effectiveIsPublic,
                                 LocalConsumer.Status.RUNNING,
                                 lastAppliedOffset,
-                                toOffset));
+                                toOffset),
+                        true);
 
                 batchCount++;
                 if (batchCount % FLUSH_EVERY_N_BATCHES == 0) {
@@ -328,6 +355,37 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         }
         throw new ResourceNotFoundException(
                 "Document with ID '" + id + "' could not be found in any ContentIndex.");
+    }
+
+    private void persistCheckpoint(
+            long lastAppliedOffset,
+            long fromOffset,
+            long toOffset,
+            String effectiveContext,
+            String effectiveName,
+            String effectiveType,
+            String effectiveResource,
+            boolean effectiveIsPublic) {
+        if (lastAppliedOffset > fromOffset) {
+            try {
+                this.consumersIndex.setConsumer(
+                        new LocalConsumer(
+                                effectiveContext,
+                                effectiveName,
+                                effectiveType,
+                                effectiveResource,
+                                effectiveIsPublic,
+                                LocalConsumer.Status.RUNNING,
+                                lastAppliedOffset,
+                                toOffset),
+                        true);
+            } catch (Exception ce) {
+                log.error(
+                        "Failed to persist failure checkpoint at offset [{}]: {}",
+                        lastAppliedOffset,
+                        ce.getMessage());
+            }
+        }
     }
 
     private String firstNonBlank(String value, String fallback) {

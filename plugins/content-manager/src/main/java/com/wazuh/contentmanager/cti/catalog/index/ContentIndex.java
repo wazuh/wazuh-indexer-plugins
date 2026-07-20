@@ -27,12 +27,16 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.get.MultiGetItemResponse;
+import org.opensearch.action.get.MultiGetRequest;
+import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -78,6 +82,12 @@ public class ContentIndex {
     private static final int MAX_UPDATE_RETRIES = 3;
     private static final long UPDATE_INITIAL_BACKOFF_MS = 1000;
     private static final long UPDATE_MAX_BACKOFF_MS = 30_000;
+
+    /** Maximum number of UPDATE offsets to batch into a single MultiGet + BulkRequest. */
+    public static final int UPDATE_SUB_BATCH_SIZE = 50;
+
+    /** Describes a single document update: the document ID, patch operations, and CTI offset. */
+    public record UpdateTask(String id, List<Operation> operations, long offset) {}
 
     private final Client client;
     private final PluginSettings pluginSettings;
@@ -486,6 +496,130 @@ public class ContentIndex {
     }
 
     /**
+     * Applies a batch of update tasks using a single MultiGet + BulkRequest round-trip pair.
+     * Documents whose stored offset already matches the target offset are skipped (idempotency guard
+     * for partial-failure retries).
+     *
+     * @param tasks The update tasks to apply. Must not be empty.
+     * @return The offset of the last successfully applied task.
+     * @throws Exception If fetching or indexing fails.
+     */
+    public long batchUpdate(List<UpdateTask> tasks) throws Exception {
+        this.awaitHeapPressureRelief();
+
+        long timeout = this.pluginSettings.getClientTimeout();
+        long maxBytes = this.pluginSettings.getMaxBulkBytes();
+
+        // 1. MultiGet all documents
+        MultiGetRequest mgetRequest = new MultiGetRequest();
+        for (UpdateTask task : tasks) {
+            mgetRequest.add(this.indexName, task.id());
+        }
+        MultiGetResponse mgetResponse =
+                this.client.multiGet(mgetRequest).get(timeout, TimeUnit.SECONDS);
+        MultiGetItemResponse[] responses = mgetResponse.getResponses();
+
+        // 2. Stream: patch each document and flush when size limit is reached
+        BulkRequest bulkRequest = new BulkRequest();
+        boolean isCve = this.indexName.equals(Constants.INDEX_CVES);
+
+        for (int i = 0; i < tasks.size(); i++) {
+            UpdateTask task = tasks.get(i);
+            MultiGetItemResponse item = responses[i];
+
+            if (item.isFailed()) {
+                throw new IOException(
+                        "MultiGet failed for document [" + task.id() + "]: " + item.getFailure().getMessage());
+            }
+            GetResponse getResp = item.getResponse();
+            if (!getResp.isExists()) {
+                throw new IOException("Document [" + task.id() + "] not found for update.");
+            }
+
+            ObjectNode currentDoc = (ObjectNode) this.mapper.readTree(getResp.getSourceAsString());
+
+            // Idempotency guard: skip if already at this offset
+            if (currentDoc.has(Constants.KEY_OFFSET)
+                    && currentDoc.get(Constants.KEY_OFFSET).asLong() == task.offset()) {
+                continue;
+            }
+
+            ObjectNode patchTarget =
+                    isCve ? (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT) : currentDoc;
+
+            for (Operation op : task.operations()) {
+                JsonNode opJson = this.mapper.valueToTree(op);
+                JsonPatch.applyOperation(patchTarget, opJson);
+            }
+            patchTarget.put(Constants.KEY_OFFSET, task.offset());
+
+            ObjectNode processedDoc = this.processPayload(patchTarget);
+            bulkRequest.add(
+                    new IndexRequest(this.getWriteIndex())
+                            .id(task.id())
+                            .source(processedDoc.toString(), XContentType.JSON));
+
+            if (bulkRequest.estimatedSizeInBytes() >= maxBytes) {
+                this.awaitHeapPressureRelief();
+                this.executeBulkUpdate(bulkRequest, timeout);
+                bulkRequest = new BulkRequest();
+            }
+        }
+
+        if (bulkRequest.numberOfActions() > 0) {
+            this.awaitHeapPressureRelief();
+            this.executeBulkUpdate(bulkRequest, timeout);
+        }
+
+        return tasks.get(tasks.size() - 1).offset();
+    }
+
+    private void executeBulkUpdate(BulkRequest bulkRequest, long timeout) throws Exception {
+        BulkResponse bulkResponse = this.client.bulk(bulkRequest).get(timeout, TimeUnit.SECONDS);
+        if (bulkResponse.hasFailures()) {
+            for (BulkItemResponse item : bulkResponse.getItems()) {
+                if (item.isFailed()) {
+                    throw new IOException(
+                            "Bulk update failed for document ["
+                                    + item.getId()
+                                    + "]: "
+                                    + item.getFailureMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * Processes a payload and returns an IndexRequest ready to be added to a BulkRequest.
+     *
+     * @param id The document ID.
+     * @param payload The JSON payload to process and index.
+     * @param refreshPolicy The refresh policy for the request.
+     * @return An IndexRequest with the processed payload.
+     */
+    public IndexRequest prepareCreateRequest(
+            String id, JsonNode payload, WriteRequest.RefreshPolicy refreshPolicy) {
+        ObjectNode processedPayload;
+        if (payload.isObject()
+                && payload.has("document")
+                && payload.has("space")
+                && payload.has("hash")) {
+            processedPayload = payload.deepCopy();
+        } else {
+            processedPayload = this.processPayload(payload);
+        }
+
+        if (processedPayload.has("document")) {
+            YamlUtils.fixDecimalScale(processedPayload.get("document"));
+        }
+
+        return new IndexRequest(this.getWriteIndex())
+                .id(id)
+                .source(processedPayload.toString(), XContentType.JSON)
+                .setRefreshPolicy(refreshPolicy);
+    }
+
+    /**
      * Asynchronously deletes a document from the index.
      *
      * @param id The ID of the document to delete.
@@ -493,7 +627,7 @@ public class ContentIndex {
     public void delete(String id) {
         this.client.delete(
                 new DeleteRequest(this.getWriteIndex(), id)
-                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.NONE),
                 new ActionListener<>() {
                     @Override
                     public void onResponse(DeleteResponse response) {
