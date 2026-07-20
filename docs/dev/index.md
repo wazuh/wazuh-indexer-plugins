@@ -27,17 +27,83 @@ To address review feedback, push new commits on top of the branch and re-request
 
 ### Body template
 
-Use the following template when creating a Pull Request:
+Every repository provides the template below as its default `.github/pull_request_template.md`; it is pre-filled automatically when you open a PR. Every PR **must** be linked to an existing issue, and PRs should not be linked directly to GitHub Projects — track project status at the issue level instead.
 
 ```markdown
 ## Description
 
-<!-- Brief description of the changes and the reasoning behind them. -->
+<!--
+Provide a brief description of the problem this pull request addresses. Include relevant context to help reviewers understand the purpose and scope of the changes.
 
-Resolves #<issue_number>
+If this pull request resolves an existing issue, reference it here. For example:
+Closes #<issue_number>
+-->
 
-## Checklist
+## Proposed Changes
 
+<!--
+Summarize the changes made in this pull request. Include:
+- Features added
+- Bugs fixed
+- Any relevant technical details
+-->
+
+### Results and Evidence
+
+<!--
+Provide evidence of the changes made, such as:
+- Logs
+- Screenshots
+- Before/after comparisons
+-->
+
+### Artifacts Affected
+
+<!--
+List the artifacts impacted by this pull request, such as:
+- Executables (specify platforms if applicable)
+- Default configuration files
+- Packages
+-->
+
+### Configuration Changes
+
+<!--
+If applicable, list any configuration changes introduced by this pull request, including:
+- New configuration parameters
+- Changes to default values
+- Backward compatibility notes
+-->
+
+### Documentation Updates
+
+<!--
+If applicable, list the sections of documentation that have been updated as part of this pull request.
+-->
+
+### Tests Introduced
+
+<!--
+If applicable, describe any new unit or integration tests added as part of this pull request. Include:
+- Scope of the tests
+- Any relevant details about test coverage
+-->
+
+## Review Checklist
+
+<!--
+List any manual tests completed to verify the functionality of the changes. Include any manual tests that are still required for final approval.
+-->
+
+- [ ] Code changes reviewed
+- [ ] Relevant evidence provided
+- [ ] Tests cover the new functionality
+- [ ] Configuration changes documented
+- [ ] Developer documentation reflects the changes
+- [ ] Meets requirements and/or definition of done
+- [ ] No unresolved dependencies with other issues
+- [ ] PR is linked to the relevant issue(s)
+- [ ] Correct labels applied (e.g., `no-changelog`)
 - [ ] ...
 ```
 
@@ -49,7 +115,9 @@ Start from the linked issue to understand the context and acceptance criteria, t
 
 ### Changelog
 
-Every PR is expected to include a changelog entry. The `5_codequality_changelog.yml` workflow enforces this. Apply the **`skip-changelog`** label to bypass the check when the linked issue belongs to a **private repository**, or when the PR is linked to a public issue but genuinely does not require a changelog update.
+Every PR is expected to include a changelog entry, classified as **Added**, **Changed**, **Removed**, or **Fixed**. The `5_codequality_changelog.yml` workflow enforces this. Apply the **`no-changelog`** label to bypass the check when the linked issue belongs to a **private repository**, or when the PR genuinely does not require a changelog update.
+
+Changelog entries must always reference the **issue**, not the pull request, so the entry stays meaningful independently of how the change was implemented. An issue only belongs in the changelog if it affects the product and represents a change from a previously released version — internal/CI changes are never included, and neither are fixes for problems introduced in an unpublished version.
 
 ### Best practices
 
