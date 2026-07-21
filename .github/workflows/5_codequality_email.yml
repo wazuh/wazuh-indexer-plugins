@@ -10,7 +10,7 @@ jobs:
     runs-on:
       - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - uses: wazuh/wazuh-indexer/.github/actions/5_codeanalysis_emailchecker@5.0.0
+      - uses: wazuh/wazuh-indexer/.github/actions/5_codeanalysis_emailchecker@v5.0.0-beta4
         with:
             email_domain: 'wazuh.com, @users.noreply.github.com'
             github_token: ${{ secrets.GITHUB_TOKEN }}
