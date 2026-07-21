@@ -257,6 +257,12 @@ public class Constants {
             "Engine load for standard space returned status [{}]: {}";
     public static final String E_LOG_ENGINE_STANDARD_LOAD_FAILED =
             "Failed to load standard space into Engine: {}";
+    public static final String D_LOG_ENGINE_STANDARD_NO_POLICY =
+            "No standard policy found; skipping Engine load.";
+    public static final String D_LOG_ENGINE_STANDARD_NO_HASH =
+            "Standard policy has no aggregate hash yet; skipping Engine load.";
+    public static final String D_LOG_ENGINE_STANDARD_UNCHANGED =
+            "Standard content hash unchanged; Engine already up to date.";
     public static final String E_LOG_SAP_INDEX_MISSING =
             "{} index is missing. Cannot sync {} to Security Analytics Plugin.";
     public static final String D_LOG_SAP_NOTHING_TO_SYNC =

@@ -28,6 +28,7 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.LocalNodeClusterManagerListener;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -86,6 +87,7 @@ import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
+import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
@@ -128,6 +130,8 @@ public class ContentManagerPlugin extends Plugin
     private CatalogSyncJob catalogSyncJob;
     private TelemetryPingJob telemetryPingJob;
     private EngineService engine;
+    private EngineContentLoader engineContentLoader;
+    private ClusterStateListener engineContentListener;
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
     private Environment environment;
@@ -207,10 +211,20 @@ public class ContentManagerPlugin extends Plugin
             this.engine = new EngineServiceImpl();
         }
 
+        // Initialize services shared by the sync path and the per-node engine loader
+        this.spaceService = new SpaceService(this.client);
+        this.engineContentLoader =
+                new EngineContentLoader(this.engine, this.spaceService, this.threadPool);
+
         // Initialize CatalogSyncJob
         this.catalogSyncJob =
                 new CatalogSyncJob(
-                        this.client, this.consumersIndex, environment, this.threadPool, this.engine);
+                        this.client,
+                        this.consumersIndex,
+                        environment,
+                        this.threadPool,
+                        this.engine,
+                        this.engineContentLoader);
 
         // Initialize TelemetryPingJob
         this.telemetryPingJob =
@@ -221,7 +235,6 @@ public class ContentManagerPlugin extends Plugin
         runner.registerExecutor(TelemetryPingJob.JOB_TYPE, this.telemetryPingJob);
 
         // Initialize services
-        this.spaceService = new SpaceService(this.client);
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             this.securityAnalyticsService = new MockSecurityAnalyticsService();
         } else {
@@ -289,6 +302,17 @@ public class ContentManagerPlugin extends Plugin
         }
         this.threadPool.generic().execute(this::tryLoadAccessToken);
 
+        // Load the STANDARD space into this node's local Engine on every node, not just the elected
+        // cluster manager. Engine communication is node-local (a Unix socket), so each node must
+        // load the content itself; the content data lives in cluster-wide indices. The listener
+        // fires on every cluster-state update, so a load that failed because the Engine was not yet
+        // ready is retried on a subsequent event, and late/rejoining nodes converge on join — with
+        // no dedicated timer or poll. Once loaded, each call is a cheap in-memory hash comparison.
+        this.engineContentListener = event -> this.engineContentLoader.reloadIfChanged();
+        this.clusterService.addListener(this.engineContentListener);
+        // Attempt an initial load immediately; if the Engine is not ready yet the listener retries.
+        this.engineContentLoader.reloadIfChanged();
+
         AtomicBoolean started = new AtomicBoolean(false);
         LocalNodeClusterManagerListener listener =
                 new LocalNodeClusterManagerListener() {
@@ -348,6 +372,17 @@ public class ContentManagerPlugin extends Plugin
         // runs), trigger the callback explicitly.
         if (this.clusterService.state().nodes().isLocalNodeElectedClusterManager()) {
             listener.onClusterManager();
+        }
+    }
+
+    /**
+     * Deregisters the cluster-state listener that drives the per-node Engine content load. Invoked by
+     * OpenSearch when the plugin is closed (node shutdown).
+     */
+    @Override
+    public void close() {
+        if (this.engineContentListener != null && this.clusterService != null) {
+            this.clusterService.removeListener(this.engineContentListener);
         }
     }
 
