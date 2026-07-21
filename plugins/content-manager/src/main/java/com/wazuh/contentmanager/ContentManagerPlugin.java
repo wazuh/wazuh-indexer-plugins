@@ -655,6 +655,7 @@ public class ContentManagerPlugin extends Plugin
                                 boolean jobExists =
                                         this.client
                                                 .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, CATALOG_SYNC_JOB_ID)
+                                                .setFetchSource(false)
                                                 .get()
                                                 .isExists();
 
@@ -755,6 +756,7 @@ public class ContentManagerPlugin extends Plugin
                                 boolean jobExists =
                                         this.client
                                                 .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                .setFetchSource(false)
                                                 .get()
                                                 .isExists();
 
@@ -822,6 +824,7 @@ public class ContentManagerPlugin extends Plugin
                                     boolean jobExists =
                                             this.client
                                                     .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                    .setFetchSource(false)
                                                     .get()
                                                     .isExists();
                                     if (jobExists) {

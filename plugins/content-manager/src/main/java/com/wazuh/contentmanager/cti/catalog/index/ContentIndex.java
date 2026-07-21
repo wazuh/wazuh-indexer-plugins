@@ -48,6 +48,7 @@ import org.opensearch.core.common.breaker.CircuitBreakingException;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -456,10 +457,12 @@ public class ContentIndex {
     }
 
     private void doUpdate(String id, List<Operation> operations, Long offset) throws Exception {
-        // 1. Fetch
+        // 1. Fetch, excluding the derived yaml field to reduce allocation
+        FetchSourceContext excludeYaml =
+                new FetchSourceContext(true, new String[0], new String[] {"yaml"});
         GetResponse response =
                 this.client
-                        .get(new GetRequest(this.indexName, id))
+                        .get(new GetRequest(this.indexName, id).fetchSourceContext(excludeYaml))
                         .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         if (!response.isExists()) {
             throw new IOException("Document [" + id + "] not found for update.");
@@ -510,10 +513,13 @@ public class ContentIndex {
         long timeout = this.pluginSettings.getClientTimeout();
         long maxBytes = this.pluginSettings.getMaxBulkBytes();
 
-        // 1. MultiGet all documents
+        // 1. MultiGet all documents, excluding the derived yaml field to reduce allocation
+        FetchSourceContext excludeYaml =
+                new FetchSourceContext(true, new String[0], new String[] {"yaml"});
         MultiGetRequest mgetRequest = new MultiGetRequest();
         for (UpdateTask task : tasks) {
-            mgetRequest.add(this.indexName, task.id());
+            mgetRequest.add(
+                    new MultiGetRequest.Item(this.indexName, task.id()).fetchSourceContext(excludeYaml));
         }
         MultiGetResponse mgetResponse =
                 this.client.multiGet(mgetRequest).get(timeout, TimeUnit.SECONDS);

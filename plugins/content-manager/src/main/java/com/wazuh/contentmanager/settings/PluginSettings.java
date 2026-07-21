@@ -85,7 +85,7 @@ public class PluginSettings {
     private static final String DEFAULT_CATALOG_VULNERABILITIES = "";
 
     private static final long DEFAULT_PIT_KEEPALIVE = 120;
-    private static final int DEFAULT_HEAP_PRESSURE_THRESHOLD = 75;
+    private static final int DEFAULT_HEAP_PRESSURE_THRESHOLD = 90;
 
     private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
 

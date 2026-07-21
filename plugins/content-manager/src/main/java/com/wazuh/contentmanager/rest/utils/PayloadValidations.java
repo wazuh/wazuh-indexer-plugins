@@ -28,6 +28,7 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.transport.client.Client;
 
 import java.util.ArrayList;
@@ -62,7 +63,10 @@ public class PayloadValidations {
      * @return an error message if validation fails, null otherwise
      */
     public String validateDocumentInSpace(Client client, String index, String docId, String docType) {
-        GetResponse response = client.prepareGet(index, docId).get();
+        FetchSourceContext spaceOnly =
+                new FetchSourceContext(true, new String[] {"space.name"}, new String[0]);
+        GetResponse response =
+                client.get(new GetRequest(index, docId).fetchSourceContext(spaceOnly)).actionGet();
         docType = Strings.capitalize(docType);
 
         if (!response.isExists()) {
@@ -116,8 +120,10 @@ public class PayloadValidations {
     public void validateDocumentInSpaceAsync(
             Client client, String index, String docId, String docType, ActionListener<String> listener) {
         String capitalizedDocType = Strings.capitalize(docType);
+        FetchSourceContext spaceOnly =
+                new FetchSourceContext(true, new String[] {"space.name"}, new String[0]);
         client.get(
-                new GetRequest(index, docId),
+                new GetRequest(index, docId).fetchSourceContext(spaceOnly),
                 ActionListener.wrap(
                         response -> {
                             if (!response.isExists()) {

@@ -24,12 +24,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
@@ -395,7 +397,10 @@ public abstract class AbstractTransportUpdateActionSpaces
             String docType,
             Set<Space> validSpaces,
             String spaceNameFromRequest) {
-        GetResponse response = client.prepareGet(index, docId).get();
+        FetchSourceContext spaceOnly =
+                new FetchSourceContext(true, new String[] {"space.name"}, new String[0]);
+        GetResponse response =
+                client.get(new GetRequest(index, docId).fetchSourceContext(spaceOnly)).actionGet();
         docType = Strings.capitalize(docType);
 
         if (!response.isExists()) {
