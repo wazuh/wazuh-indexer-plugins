@@ -79,7 +79,6 @@ public class ContentIndex {
     /** The second physical suffix, used as the shadow slot during blue/green swaps. */
     public static final String SUFFIX_B = "-b";
 
-    private static final long MAX_BACKPRESSURE_WAIT_MS = 5L * 60 * 1000;
     private static final int MAX_UPDATE_RETRIES = 3;
     private static final long UPDATE_INITIAL_BACKOFF_MS = 1000;
     private static final long UPDATE_MAX_BACKOFF_MS = 30_000;
@@ -93,7 +92,6 @@ public class ContentIndex {
     private final Client client;
     private final PluginSettings pluginSettings;
     private final Semaphore semaphore;
-    private volatile boolean circuitBreakerTripped;
 
     /**
      * The public alias name (e.g., {@code "wazuh-threatintel-rules"}). All read operations use this
@@ -435,7 +433,6 @@ public class ContentIndex {
 
         for (int attempt = 0; ; attempt++) {
             try {
-                this.awaitHeapPressureRelief();
                 this.doUpdate(id, operations, offset);
                 return;
             } catch (Exception e) {
@@ -446,7 +443,6 @@ public class ContentIndex {
                             attempt + 1,
                             MAX_UPDATE_RETRIES,
                             backoffMs);
-                    this.circuitBreakerTripped = true;
                     Thread.sleep(backoffMs);
                     backoffMs = Math.min(backoffMs * 2, UPDATE_MAX_BACKOFF_MS);
                 } else {
@@ -508,8 +504,6 @@ public class ContentIndex {
      * @throws Exception If fetching or indexing fails.
      */
     public long batchUpdate(List<UpdateTask> tasks) throws Exception {
-        this.awaitHeapPressureRelief();
-
         long timeout = this.pluginSettings.getClientTimeout();
         long maxBytes = this.pluginSettings.getMaxBulkBytes();
 
@@ -566,14 +560,12 @@ public class ContentIndex {
                             .source(processedDoc.toString(), XContentType.JSON));
 
             if (bulkRequest.estimatedSizeInBytes() >= maxBytes) {
-                this.awaitHeapPressureRelief();
                 this.executeBulkUpdate(bulkRequest, timeout);
                 bulkRequest = new BulkRequest();
             }
         }
 
         if (bulkRequest.numberOfActions() > 0) {
-            this.awaitHeapPressureRelief();
             this.executeBulkUpdate(bulkRequest, timeout);
         }
 
@@ -712,14 +704,12 @@ public class ContentIndex {
     }
 
     /**
-     * Executes a bulk request asynchronously. Pauses when JVM heap usage exceeds the configured
-     * threshold or a circuit breaker has tripped, resuming once pressure is relieved.
+     * Executes a bulk request asynchronously.
      *
      * @param bulkRequest The BulkRequest containing multiple index/delete operations.
      */
     public void executeBulk(BulkRequest bulkRequest) {
         try {
-            this.awaitHeapPressureRelief();
             this.semaphore.acquire();
             this.client.bulk(
                     bulkRequest,
@@ -736,9 +726,6 @@ public class ContentIndex {
                         @Override
                         public void onFailure(Exception e) {
                             ContentIndex.this.semaphore.release();
-                            if (isCircuitBreakerException(e)) {
-                                ContentIndex.this.circuitBreakerTripped = true;
-                            }
                             log.error(Constants.E_LOG_BULK_INDEX_OPERATION_FAILED, e.getMessage());
                         }
                     });
@@ -746,45 +733,6 @@ public class ContentIndex {
             log.error(Constants.E_LOG_SEMAPHORE_INTERRUPTED, e.getMessage());
             Thread.currentThread().interrupt();
         }
-    }
-
-    private void awaitHeapPressureRelief() {
-        int threshold = this.pluginSettings.getHeapPressureThreshold();
-        if (!this.circuitBreakerTripped && !isHeapAboveThreshold(threshold)) {
-            return;
-        }
-
-        log.warn("Heap usage above {}% or circuit breaker tripped, pausing indexing", threshold);
-        long backoffMs = 500;
-        long totalWaitMs = 0;
-
-        do {
-            if (totalWaitMs >= MAX_BACKPRESSURE_WAIT_MS) {
-                throw new RuntimeException(
-                        "Aborting indexing: heap pressure exceeded "
-                                + threshold
-                                + "% for over "
-                                + (totalWaitMs / 1000)
-                                + "s");
-            }
-            try {
-                Thread.sleep(backoffMs);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-            totalWaitMs += backoffMs;
-            backoffMs = Math.min(backoffMs * 2, 30_000);
-            this.circuitBreakerTripped = false;
-        } while (isHeapAboveThreshold(threshold));
-
-        log.info("Heap pressure relieved after {}ms, resuming indexing", totalWaitMs);
-    }
-
-    private static boolean isHeapAboveThreshold(int thresholdPercent) {
-        Runtime rt = Runtime.getRuntime();
-        long used = rt.totalMemory() - rt.freeMemory();
-        return used * 100L / rt.maxMemory() >= thresholdPercent;
     }
 
     private static boolean isCircuitBreakerException(Exception e) {

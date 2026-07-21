@@ -855,7 +855,6 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_CONCURRENT_BULKS,
                 PluginSettings.MAX_ITEMS_PER_BULK,
                 PluginSettings.MAX_BULK_BYTES,
-                PluginSettings.HEAP_PRESSURE_THRESHOLD,
                 PluginSettings.CATALOG_SYNC_INTERVAL,
                 PluginSettings.UPDATE_ON_START,
                 PluginSettings.UPDATE_ON_SCHEDULE,

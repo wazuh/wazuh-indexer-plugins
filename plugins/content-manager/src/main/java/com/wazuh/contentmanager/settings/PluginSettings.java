@@ -85,8 +85,6 @@ public class PluginSettings {
     private static final String DEFAULT_CATALOG_VULNERABILITIES = "";
 
     private static final long DEFAULT_PIT_KEEPALIVE = 120;
-    private static final int DEFAULT_HEAP_PRESSURE_THRESHOLD = 90;
-
     private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
 
     private static final Pattern CATALOG_URI_PATTERN =
@@ -225,20 +223,6 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /**
-     * JVM heap usage percentage at which bulk indexing pauses until pressure is relieved. Prevents
-     * the snapshot ingestion loop from pushing bulk requests faster than the node can absorb,
-     * avoiding circuit-breaker trips and OOM kills.
-     */
-    public static final Setting<Integer> HEAP_PRESSURE_THRESHOLD =
-            Setting.intSetting(
-                    "plugins.content_manager.heap_pressure_threshold",
-                    DEFAULT_HEAP_PRESSURE_THRESHOLD,
-                    50,
-                    90,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-
     /** Setting to enable mock engine service for testing environments. */
     public static final Setting<Boolean> ENGINE_MOCK_ENABLED =
             Setting.boolSetting(
@@ -369,7 +353,6 @@ public class PluginSettings {
     private final String catalogIocs;
     private final String catalogVulnerabilities;
     private final long pitKeepalive;
-    private final int heapPressureThreshold;
     private final boolean engineMockEnabled;
     private final boolean createDetectors;
     private final boolean updateOnDemand;
@@ -402,7 +385,6 @@ public class PluginSettings {
         this.catalogIocs = CATALOG_IOCS.get(settings);
         this.catalogVulnerabilities = CATALOG_VULNERABILITIES.get(settings);
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
-        this.heapPressureThreshold = HEAP_PRESSURE_THRESHOLD.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
         this.updateOnDemand = UPDATE_ON_DEMAND.get(settings);
@@ -738,15 +720,6 @@ public class PluginSettings {
      */
     public Long getPitKeepalive() {
         return this.pitKeepalive;
-    }
-
-    /**
-     * Retrieves the JVM heap usage percentage at which bulk indexing pauses.
-     *
-     * @return the heap pressure threshold as a percentage (50-90).
-     */
-    public int getHeapPressureThreshold() {
-        return this.heapPressureThreshold;
     }
 
     /**
