@@ -33,6 +33,7 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,6 +49,8 @@ import java.util.Set;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.PostPromoteAction;
 import com.wazuh.contentmanager.action.PostPromoteRequest;
+import com.wazuh.contentmanager.action.ReloadEngineContentAction;
+import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -87,6 +90,7 @@ public class TransportPostPromoteAction
     private final SpaceService spaceService;
     private final EngineService engine;
     private final SecurityAnalyticsService securityAnalyticsService;
+    private final Client client;
 
     @Inject
     public TransportPostPromoteAction(
@@ -94,11 +98,13 @@ public class TransportPostPromoteAction
             ActionFilters actionFilters,
             SpaceService spaceService,
             EngineService engine,
-            SecurityAnalyticsService securityAnalyticsService) {
+            SecurityAnalyticsService securityAnalyticsService,
+            Client client) {
         super(PostPromoteAction.NAME, transportService, actionFilters, PostPromoteRequest::new);
         this.spaceService = spaceService;
         this.engine = engine;
         this.securityAnalyticsService = securityAnalyticsService;
+        this.client = client;
     }
 
     // ── Entry point ──────────────────────────────────────────────────────────
@@ -955,10 +961,30 @@ public class TransportPostPromoteAction
         this.spaceService.calculateAndUpdate(
                 List.of(context.targetSpace),
                 ActionListener.wrap(
-                        changedSpaces ->
-                                listener.onResponse(
-                                        new MessageStatusResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK)),
+                        changedSpaces -> {
+                            // Promote loaded the content into this (coordinating) node's Engine only; the
+                            // Engine socket is node-local. Broadcast a reload so every node loads the
+                            // now-consolidated content into its own Engine, keyed off the target space's
+                            // freshly recomputed hash. Reuses the same node-local, hash-gated loader as the
+                            // STANDARD path; nodes that are down converge later via the cluster-state listener.
+                            broadcastEngineReload();
+                            listener.onResponse(
+                                    new MessageStatusResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK));
+                        },
                         e -> respondWithError(listener, e)));
+    }
+
+    /**
+     * Fires the cluster-wide Engine reload broadcast (fire-and-forget). Each node reloads any tracked
+     * space whose hash changed; failures are logged and never affect the promote response.
+     */
+    private void broadcastEngineReload() {
+        this.client.execute(
+                ReloadEngineContentAction.INSTANCE,
+                new ReloadEngineContentRequest(),
+                ActionListener.wrap(
+                        r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
+                        e -> log.warn(Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
     }
 
     // ── Rollback ─────────────────────────────────────────────────────────────

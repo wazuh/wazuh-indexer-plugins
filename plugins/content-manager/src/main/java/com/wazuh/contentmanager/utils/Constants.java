@@ -251,18 +251,23 @@ public class Constants {
             "Partial failures deleting Security Analytics resources for space [{}]: {}";
     public static final String I_LOG_SAP_SPACE_DELETED =
             "Deleted [{}] integrations and [{}] rules from Security Analytics for space [{}]";
-    public static final String I_LOG_ENGINE_STANDARD_LOADED =
-            "Engine load for standard space completed successfully.";
-    public static final String W_LOG_ENGINE_STANDARD_LOAD_STATUS =
-            "Engine load for standard space returned status [{}]: {}";
-    public static final String E_LOG_ENGINE_STANDARD_LOAD_FAILED =
-            "Failed to load standard space into Engine: {}";
-    public static final String D_LOG_ENGINE_STANDARD_NO_POLICY =
-            "No standard policy found; skipping Engine load.";
-    public static final String D_LOG_ENGINE_STANDARD_NO_HASH =
-            "Standard policy has no aggregate hash yet; skipping Engine load.";
-    public static final String D_LOG_ENGINE_STANDARD_UNCHANGED =
-            "Standard content hash unchanged; Engine already up to date.";
+    // Space-parameterized Engine load logs (space name is the first {}). The "standard" rendering of
+    // I_LOG_ENGINE_SPACE_LOADED is intentionally byte-identical to the original standard-only message
+    // so existing log-based validation keeps matching.
+    public static final String I_LOG_ENGINE_SPACE_LOADED =
+            "Engine load for {} space completed successfully.";
+    public static final String W_LOG_ENGINE_SPACE_LOAD_STATUS =
+            "Engine load for {} space returned status [{}]: {}";
+    public static final String E_LOG_ENGINE_SPACE_LOAD_FAILED =
+            "Failed to load {} space into Engine: {}";
+    public static final String E_LOG_ENGINE_RELOAD_SCHEDULE_FAILED =
+            "Failed to schedule Engine content reload: {}";
+    public static final String D_LOG_ENGINE_SPACE_NO_POLICY =
+            "No policy found for {} space; skipping Engine load.";
+    public static final String D_LOG_ENGINE_SPACE_NO_HASH =
+            "No aggregate hash for {} space yet; skipping Engine load.";
+    public static final String D_LOG_ENGINE_SPACE_UNCHANGED =
+            "Content hash unchanged for {} space; Engine already up to date.";
     public static final String D_LOG_ENGINE_RELOAD_BROADCAST_SENT =
             "Broadcast engine content reload to all nodes after content update.";
     public static final String W_LOG_ENGINE_RELOAD_BROADCAST_FAILED =
