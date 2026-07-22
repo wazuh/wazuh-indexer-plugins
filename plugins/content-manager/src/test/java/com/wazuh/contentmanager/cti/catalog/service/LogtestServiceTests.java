@@ -351,6 +351,55 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         Assert.assertTrue(normalizedEvent.contains("event"));
     }
 
+    /**
+     * The rule-fetch query must filter to {@code document.enabled: true} -- a disabled rule must
+     * never be evaluated in Log Test, matching the same gate {@code fetchEnabledRuleIds} applies
+     * when building a Security Analytics detector.
+     */
+    @SuppressWarnings("unchecked")
+    public void testFetchRuleBodiesFiltersDisabledRules() throws Exception {
+        // spotless:off
+        SearchHit integrationHit = createHit(1, "int-1",
+            String.format(Locale.ROOT, """
+            {"document": {"rules": ["%s"]}}
+            """, RULE_ID));
+        SearchHit ruleHit = createHit(2, "rule-1",
+            """
+            {"document": {"detection": {"selection": {"event.kind": "event"}, "condition": "selection"}, "logsource": {"product": "test"}, "level": "low", "status": "experimental"}}
+            """);
+        // spotless:on
+        mockClientSearchAsync(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
+
+        // spotless:off
+        when(this.engine.logtest(any(JsonNode.class)))
+            .thenReturn(createEngineSuccess(
+                """
+                {"output": {"event": {"kind": "event"}}, "asset_traces": []}
+                """
+            ));
+        doAnswer(invocation -> {
+            ActionListener<String> l = invocation.getArgument(2);
+            l.onResponse(
+                """
+                {"status":"success","rules_evaluated":1,"rules_matched":0,"matches":[]}
+                """
+            );
+            return null;
+        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), any(ActionListener.class));
+        // spotless:on
+
+        executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
+
+        ArgumentCaptor<SearchSourceBuilder> sourceCaptor =
+                ArgumentCaptor.forClass(SearchSourceBuilder.class);
+        verify(this.searchRequestBuilder, times(2)).setSource(sourceCaptor.capture());
+        // First setSource call is the integration lookup; second is the rule-body fetch.
+        String rulesQuery = sourceCaptor.getAllValues().get(1).toString();
+        Assert.assertTrue(
+                "Rule fetch query must filter by document.enabled=true, got: " + rulesQuery,
+                rulesQuery.contains("document.enabled"));
+    }
+
     /** Integration with rules but rule index unavailable still returns empty SAP matches. */
     public void testRuleFetchFailureReturnsEmptyMatches() throws Exception {
         // Integration has rules, but we mock an empty rule fetch result (simulating failure)
