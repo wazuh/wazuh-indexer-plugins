@@ -37,10 +37,7 @@ import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.settings.PluginSettings;
-
-import static org.mockito.Mockito.mock;
 
 /**
  * Integration test that verifies space initialization does not create duplicate policy documents
@@ -102,8 +99,7 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
                 new ConsumerRulesetService(
                         OpenSearchIntegTestCase.client(),
                         new ConsumersIndex(OpenSearchIntegTestCase.client()),
-                        null,
-                        mock(EngineContentLoader.class));
+                        null);
 
         // First call — simulates the cluster manager node completing a sync
         synchronizer.onSyncComplete(true);

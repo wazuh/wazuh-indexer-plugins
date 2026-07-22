@@ -219,12 +219,7 @@ public class ContentManagerPlugin extends Plugin
         // Initialize CatalogSyncJob
         this.catalogSyncJob =
                 new CatalogSyncJob(
-                        this.client,
-                        this.consumersIndex,
-                        environment,
-                        this.threadPool,
-                        this.engine,
-                        this.engineContentLoader);
+                        this.client, this.consumersIndex, environment, this.threadPool, this.engine);
 
         // Initialize TelemetryPingJob
         this.telemetryPingJob =
@@ -279,6 +274,7 @@ public class ContentManagerPlugin extends Plugin
                 this.subscriptionService,
                 this.catalogSyncJob,
                 this.engine,
+                this.engineContentLoader,
                 this.logtestService,
                 this.spaceService,
                 this.securityAnalyticsService);
@@ -927,6 +923,8 @@ public class ContentManagerPlugin extends Plugin
                 new ActionHandler<>(
                         IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
                 new ActionHandler<>(TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class),
+                new ActionHandler<>(
+                        ReloadEngineContentAction.INSTANCE, TransportReloadEngineContentAction.class),
                 // Group 2: Subscription GET/DELETE + Space DELETE
                 new ActionHandler<>(GetSubscriptionAction.INSTANCE, TransportGetSubscriptionAction.class),
                 new ActionHandler<>(

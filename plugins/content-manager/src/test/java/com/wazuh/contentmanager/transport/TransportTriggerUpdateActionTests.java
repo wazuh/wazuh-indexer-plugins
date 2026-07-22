@@ -37,7 +37,6 @@ import java.util.concurrent.ExecutorService;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.TriggerUpdateRequest;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -149,8 +148,7 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                         mock(ConsumersIndex.class),
                         mock(Environment.class),
                         threadPool,
-                        mock(EngineService.class),
-                        mock(EngineContentLoader.class));
+                        mock(EngineService.class));
         TransportTriggerUpdateAction realAction =
                 new TransportTriggerUpdateAction(
                         mock(TransportService.class), mock(ActionFilters.class), realCatalogSyncJob);

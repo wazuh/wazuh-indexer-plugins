@@ -35,7 +35,6 @@ import com.wazuh.contentmanager.cti.catalog.service.AbstractConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerCveService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerIocService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 import com.wazuh.contentmanager.utils.Constants;
@@ -75,20 +74,18 @@ public class CatalogSyncJob implements JobExecutor {
      * @param threadPool The thread pool manager, used to offload blocking tasks to the generic
      *     executor.
      * @param engineService The engine service for notifying the Engine about IOC updates.
-     * @param engineContentLoader The loader that reloads the standard space into the local Engine.
      */
     public CatalogSyncJob(
             Client client,
             ConsumersIndex consumersIndex,
             Environment environment,
             ThreadPool threadPool,
-            EngineService engineService,
-            EngineContentLoader engineContentLoader) {
+            EngineService engineService) {
         this.client = client;
         this.threadPool = threadPool;
         this.synchronizers =
                 List.of(
-                        new ConsumerRulesetService(client, consumersIndex, environment, engineContentLoader),
+                        new ConsumerRulesetService(client, consumersIndex, environment),
                         new ConsumerIocService(client, consumersIndex, environment, engineService),
                         new ConsumerCveService(client, consumersIndex, environment));
     }

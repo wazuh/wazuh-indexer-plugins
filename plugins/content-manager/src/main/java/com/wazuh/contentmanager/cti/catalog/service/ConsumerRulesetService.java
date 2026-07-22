@@ -38,6 +38,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
+import com.wazuh.contentmanager.action.ReloadEngineContentAction;
+import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -56,7 +58,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
     private final SecurityAnalyticsServiceImpl securityAnalyticsService;
     private final SpaceService spaceService;
-    private final EngineContentLoader engineContentLoader;
 
     private Set<String> preSwapIntegrationIds = Collections.emptySet();
     private Set<String> preSwapRuleIds = Collections.emptySet();
@@ -67,17 +68,12 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * @param client The OpenSearch client.
      * @param consumersIndex The consumers index wrapper.
      * @param environment The OpenSearch environment settings.
-     * @param engineContentLoader The loader that reloads the standard space into the local Engine.
      */
     public ConsumerRulesetService(
-            Client client,
-            ConsumersIndex consumersIndex,
-            Environment environment,
-            EngineContentLoader engineContentLoader) {
+            Client client, ConsumersIndex consumersIndex, Environment environment) {
         super(client, consumersIndex, environment);
         this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
         this.spaceService = new SpaceService(client);
-        this.engineContentLoader = engineContentLoader;
 
         this.mapper = new ObjectMapper();
         this.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
@@ -200,9 +196,18 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             } catch (IOException e) {
                 log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
             }
-            // Prompt nudge on the node that ran the sync (the cluster manager). Every node also
-            // converges independently via the cluster-state listener that drives this same loader.
-            this.engineContentLoader.reloadIfChanged();
+            // Broadcast a reload trigger to every node so each one loads the updated STANDARD space
+            // into its own local Engine. A routine incremental update changes only index documents
+            // (no cluster-state event), so peer nodes would otherwise not react until some unrelated
+            // cluster-state event happened to fire their listener. The broadcast targets all nodes
+            // including this one, and the per-node loader is hash-gated, so the call is idempotent
+            // and a node that is down simply converges later via the cluster-state listener.
+            this.client.execute(
+                    ReloadEngineContentAction.INSTANCE,
+                    new ReloadEngineContentRequest(),
+                    ActionListener.wrap(
+                            r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
+                            e -> log.warn(Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
         }
     }
 

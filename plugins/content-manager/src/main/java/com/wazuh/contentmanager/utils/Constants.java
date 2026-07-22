@@ -263,6 +263,10 @@ public class Constants {
             "Standard policy has no aggregate hash yet; skipping Engine load.";
     public static final String D_LOG_ENGINE_STANDARD_UNCHANGED =
             "Standard content hash unchanged; Engine already up to date.";
+    public static final String D_LOG_ENGINE_RELOAD_BROADCAST_SENT =
+            "Broadcast engine content reload to all nodes after content update.";
+    public static final String W_LOG_ENGINE_RELOAD_BROADCAST_FAILED =
+            "Failed to broadcast engine content reload to cluster nodes: {}";
     public static final String E_LOG_SAP_INDEX_MISSING =
             "{} index is missing. Cannot sync {} to Security Analytics Plugin.";
     public static final String D_LOG_SAP_NOTHING_TO_SYNC =
