@@ -1234,6 +1234,9 @@ paths:
 
         If the rollback itself encounters errors on individual steps, those steps are logged
         and skipped so that remaining steps can still proceed.
+
+        A space can be promoted regardless of its policy's `enabled` value — promoting a space
+        whose policy has `enabled: false` is expected behavior, not an error condition.
       operationId: promote
       requestBody:
         required: true
