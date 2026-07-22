@@ -895,6 +895,7 @@ public class ContentManagerPlugin extends Plugin
                 new ActionHandler<>(
                         IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
                 new ActionHandler<>(TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class),
+                new ActionHandler<>(PromoteSnapshotAction.INSTANCE, TransportPromoteSnapshotAction.class),
                 // Group 2: Subscription GET/DELETE + Space DELETE
                 new ActionHandler<>(GetSubscriptionAction.INSTANCE, TransportGetSubscriptionAction.class),
                 new ActionHandler<>(

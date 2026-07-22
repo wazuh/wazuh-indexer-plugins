@@ -505,7 +505,7 @@ public class SnapshotServiceImpl implements SnapshotService {
      * @param stablePath the target stable path.
      * @return {@code true} if the promotion succeeded, {@code false} on any I/O error.
      */
-    static boolean promoteToStable(Path candidate, Path stablePath) {
+    public static boolean promoteToStable(Path candidate, Path stablePath) {
         try {
             AccessController.doPrivilegedChecked(
                     () -> {

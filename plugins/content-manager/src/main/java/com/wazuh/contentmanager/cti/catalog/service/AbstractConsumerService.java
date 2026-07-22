@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
+import com.wazuh.contentmanager.action.PromoteSnapshotAction;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
@@ -52,6 +53,7 @@ import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.transport.TransportPromoteSnapshotAction;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.UrlUtils;
 
@@ -787,6 +789,10 @@ public abstract class AbstractConsumerService {
                 }
             }
 
+            if (updated && snapshotsDir != null) {
+                this.broadcastSnapshotPromote(this.getSnapshotFilename());
+            }
+
             // Incremental Update — skip when no snapshot was loaded and the gap spans the full
             // catalog, since fetching all changes incrementally from offset 0 will always exceed the
             // request timeout (issue #1383).
@@ -894,6 +900,42 @@ public abstract class AbstractConsumerService {
         } catch (Exception e) {
             log.error(Constants.E_LOG_MANIFEST_READ_FAILED, manifestPath, e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Broadcasts a snapshot-promote request to every node in the cluster so each node moves its local
+     * packaged snapshot to the stable path. Fire-and-forget: failures are logged but do not block the
+     * synchronization.
+     *
+     * @param snapshotFilename the snapshot filename to promote (e.g., "ruleset.zip").
+     */
+    private void broadcastSnapshotPromote(String snapshotFilename) {
+        try {
+            TransportPromoteSnapshotAction.NodesRequest request =
+                    new TransportPromoteSnapshotAction.NodesRequest(snapshotFilename);
+            this.client.execute(
+                    PromoteSnapshotAction.INSTANCE,
+                    request,
+                    ActionListener.wrap(
+                            response -> {
+                                long succeeded =
+                                        response.getNodes().stream()
+                                                .filter(TransportPromoteSnapshotAction.NodeResponse::isSuccess)
+                                                .count();
+                                log.debug(
+                                        Constants.D_LOG_SNAPSHOT_PROMOTE_BROADCAST_DONE,
+                                        snapshotFilename,
+                                        succeeded,
+                                        response.failures().size());
+                            },
+                            e ->
+                                    log.warn(
+                                            Constants.W_LOG_SNAPSHOT_PROMOTE_BROADCAST_FAILED,
+                                            snapshotFilename,
+                                            e.getMessage())));
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_SNAPSHOT_PROMOTE_BROADCAST_FAILED, snapshotFilename, e.getMessage());
         }
     }
 
