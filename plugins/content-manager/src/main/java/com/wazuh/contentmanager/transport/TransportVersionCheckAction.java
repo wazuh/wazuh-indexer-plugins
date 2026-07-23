@@ -86,8 +86,12 @@ public class TransportVersionCheckAction
             }
 
             String tag = "v" + version;
-            ApiClient apiClient = new ApiClient();
-            SimpleHttpResponse ctiResponse = apiClient.getReleaseUpdates(tag);
+            // The ApiClient starts an I/O reactor (selector threads holding epoll/eventfd FDs);
+            // close it on every path to avoid leaking descriptors per request (issue #1763).
+            SimpleHttpResponse ctiResponse;
+            try (ApiClient apiClient = new ApiClient()) {
+                ctiResponse = apiClient.getReleaseUpdates(tag);
+            }
 
             int ctiStatusCode = ctiResponse.getCode();
             if (ctiStatusCode < 200 || ctiStatusCode >= 300) {
