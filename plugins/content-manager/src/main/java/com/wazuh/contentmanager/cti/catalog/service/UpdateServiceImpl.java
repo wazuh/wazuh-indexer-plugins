@@ -77,11 +77,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             ApiClient client,
             ConsumersIndex consumersIndex,
             Map<String, ContentIndex> indices) {
-        if (this.client != null) {
-            this.client.close();
-        }
-
-        this.client = client;
+        super(client);
         this.consumersIndex = consumersIndex;
         this.indices = indices;
         this.context = context;
@@ -285,7 +281,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                     ActionListener.wrap(r -> future.complete(null), future::completeExceptionally),
                                     WriteRequest.RefreshPolicy.NONE);
                             try {
-                                future.get(60, TimeUnit.SECONDS);
+                                future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
                             } catch (ExecutionException e) {
                                 Throwable cause = e.getCause();
                                 throw (cause instanceof Exception ex) ? ex : e;

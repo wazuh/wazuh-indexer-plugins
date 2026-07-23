@@ -64,12 +64,12 @@ public class SpaceService {
     private static final Logger log = LogManager.getLogger(SpaceService.class);
 
     private static final FetchSourceContext HASH_ONLY_SOURCE =
-            new FetchSourceContext(true, new String[] {"hash.sha256"}, new String[0]);
+            new FetchSourceContext(true, new String[] {Constants.Q_HASH}, new String[0]);
 
     private static final FetchSourceContext INTEGRATION_HASH_SOURCE =
             new FetchSourceContext(
                     true,
-                    new String[] {"hash.sha256", "document.rules", "document.decoders", "document.kvdbs"},
+                    new String[] {Constants.Q_HASH, "document.rules", "document.decoders", "document.kvdbs"},
                     new String[0]);
 
     private final Client client;

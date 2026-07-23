@@ -388,16 +388,16 @@ public class ContentIndex {
             WriteRequest.RefreshPolicy refreshPolicy) {
         ObjectNode processedPayload;
         if (payload.isObject()
-                && payload.has("document")
-                && payload.has("space")
-                && payload.has("hash")) {
+                && payload.has(Constants.KEY_DOCUMENT)
+                && payload.has(Constants.KEY_SPACE)
+                && payload.has(Constants.KEY_HASH)) {
             processedPayload = payload.deepCopy();
         } else {
             processedPayload = this.processPayload(payload);
         }
 
-        if (processedPayload.has("document")) {
-            YamlUtils.fixDecimalScale(processedPayload.get("document"));
+        if (processedPayload.has(Constants.KEY_DOCUMENT)) {
+            YamlUtils.fixDecimalScale(processedPayload.get(Constants.KEY_DOCUMENT));
         }
 
         IndexRequest request =
@@ -455,7 +455,7 @@ public class ContentIndex {
     private void doUpdate(String id, List<Operation> operations, Long offset) throws Exception {
         // 1. Fetch, excluding the derived yaml field to reduce allocation
         FetchSourceContext excludeYaml =
-                new FetchSourceContext(true, new String[0], new String[] {"yaml"});
+                new FetchSourceContext(true, new String[0], new String[] {Constants.KEY_YAML});
         GetResponse response =
                 this.client
                         .get(new GetRequest(this.indexName, id).fetchSourceContext(excludeYaml))
@@ -471,6 +471,10 @@ public class ContentIndex {
         // document instead of the "document" node.
         if (this.indexName.equals(Constants.INDEX_CVES)) {
             currentDoc = (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT);
+            if (currentDoc == null) {
+                throw new IOException(
+                        "Document [" + id + "] is missing the '" + Constants.KEY_DOCUMENT + "' field.");
+            }
         }
 
         for (Operation op : operations) {
@@ -509,7 +513,7 @@ public class ContentIndex {
 
         // 1. MultiGet all documents, excluding the derived yaml field to reduce allocation
         FetchSourceContext excludeYaml =
-                new FetchSourceContext(true, new String[0], new String[] {"yaml"});
+                new FetchSourceContext(true, new String[0], new String[] {Constants.KEY_YAML});
         MultiGetRequest mgetRequest = new MultiGetRequest();
         for (UpdateTask task : tasks) {
             mgetRequest.add(
@@ -546,6 +550,10 @@ public class ContentIndex {
 
             ObjectNode patchTarget =
                     isCve ? (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT) : currentDoc;
+            if (patchTarget == null) {
+                throw new IOException(
+                        "Document [" + task.id() + "] is missing the '" + Constants.KEY_DOCUMENT + "' field.");
+            }
 
             for (Operation op : task.operations()) {
                 JsonNode opJson = this.mapper.valueToTree(op);
@@ -599,16 +607,16 @@ public class ContentIndex {
             String id, JsonNode payload, WriteRequest.RefreshPolicy refreshPolicy) {
         ObjectNode processedPayload;
         if (payload.isObject()
-                && payload.has("document")
-                && payload.has("space")
-                && payload.has("hash")) {
+                && payload.has(Constants.KEY_DOCUMENT)
+                && payload.has(Constants.KEY_SPACE)
+                && payload.has(Constants.KEY_HASH)) {
             processedPayload = payload.deepCopy();
         } else {
             processedPayload = this.processPayload(payload);
         }
 
-        if (processedPayload.has("document")) {
-            YamlUtils.fixDecimalScale(processedPayload.get("document"));
+        if (processedPayload.has(Constants.KEY_DOCUMENT)) {
+            YamlUtils.fixDecimalScale(processedPayload.get(Constants.KEY_DOCUMENT));
         }
 
         return new IndexRequest(this.getWriteIndex())

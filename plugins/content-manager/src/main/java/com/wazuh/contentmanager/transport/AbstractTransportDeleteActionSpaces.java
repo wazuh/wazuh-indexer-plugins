@@ -283,7 +283,7 @@ public abstract class AbstractTransportDeleteActionSpaces
     private String validateDocumentInSpace(
             Client client, String index, String docId, String docType) {
         FetchSourceContext spaceOnly =
-                new FetchSourceContext(true, new String[] {"space.name"}, new String[0]);
+                new FetchSourceContext(true, new String[] {Constants.Q_SPACE_NAME}, new String[0]);
         GetResponse response =
                 client.get(new GetRequest(index, docId).fetchSourceContext(spaceOnly)).actionGet();
         docType = Strings.capitalize(docType);

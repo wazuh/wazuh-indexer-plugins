@@ -126,7 +126,7 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
         FetchSourceContext logsourceFields =
                 new FetchSourceContext(
                         true,
-                        new String[] {"document.metadata.title", "document.logsource.product"},
+                        new String[] {Constants.Q_DOCUMENT_TITLE, "document.logsource.product"},
                         new String[0]);
         client.get(
                 new GetRequest(Constants.INDEX_INTEGRATIONS, integrationId)

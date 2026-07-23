@@ -64,7 +64,7 @@ public class PayloadValidations {
      */
     public String validateDocumentInSpace(Client client, String index, String docId, String docType) {
         FetchSourceContext spaceOnly =
-                new FetchSourceContext(true, new String[] {"space.name"}, new String[0]);
+                new FetchSourceContext(true, new String[] {Constants.Q_SPACE_NAME}, new String[0]);
         GetResponse response =
                 client.get(new GetRequest(index, docId).fetchSourceContext(spaceOnly)).actionGet();
         docType = Strings.capitalize(docType);
@@ -121,7 +121,7 @@ public class PayloadValidations {
             Client client, String index, String docId, String docType, ActionListener<String> listener) {
         String capitalizedDocType = Strings.capitalize(docType);
         FetchSourceContext spaceOnly =
-                new FetchSourceContext(true, new String[] {"space.name"}, new String[0]);
+                new FetchSourceContext(true, new String[] {Constants.Q_SPACE_NAME}, new String[0]);
         client.get(
                 new GetRequest(index, docId).fetchSourceContext(spaceOnly),
                 ActionListener.wrap(
