@@ -647,6 +647,26 @@ public class Constants {
     public static final String TYPE_PREFILTER = "pre-filter";
     public static final String TYPE_POSTFILTER = "post-filter";
 
+    // CTI resource index mapping files (classpath resources).
+    public static final String MAPPING_POLICIES = "/mappings/cti-policies-mappings.json";
+    public static final String MAPPING_INTEGRATIONS = "/mappings/cti-integrations-mappings.json";
+    public static final String MAPPING_RULES = "/mappings/cti-rules-mappings.json";
+    public static final String MAPPING_KVDBS = "/mappings/cti-kvdbs-mappings.json";
+    public static final String MAPPING_DECODERS = "/mappings/cti-decoders-mappings.json";
+    public static final String MAPPING_FILTERS = "/mappings/cti-filters-mappings.json";
+
+    // Index name -> mapping file for the space-aware ruleset resource indices. These are created
+    // unconditionally at startup so the custom-ruleset REST endpoints work even when catalog
+    // synchronization is disabled (update_on_start=false and update_on_schedule=false).
+    public static final Map<String, String> RESOURCE_INDEX_MAPPINGS =
+            Map.of(
+                    INDEX_POLICIES, MAPPING_POLICIES,
+                    INDEX_INTEGRATIONS, MAPPING_INTEGRATIONS,
+                    INDEX_RULES, MAPPING_RULES,
+                    INDEX_KVDBS, MAPPING_KVDBS,
+                    INDEX_DECODERS, MAPPING_DECODERS,
+                    INDEX_FILTERS, MAPPING_FILTERS);
+
     // Resources Indices Mapping for space-aware resources (used by SpaceService for promotion).
     // Note: IoCs and CVEs are NOT included here because they use flat storage without spaces.
     public static final Map<String, String> RESOURCE_INDICES =

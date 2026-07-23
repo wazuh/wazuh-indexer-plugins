@@ -21,17 +21,23 @@ import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.env.Environment;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.ExecutorService;
 
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.TriggerUpdateRequest;
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -123,5 +129,52 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                                     Assert.assertEquals("Unexpected failure", response.getMessage());
                                     return true;
                                 }));
+    }
+
+    /**
+     * Integration-style test wiring a real (non-mocked) {@link CatalogSyncJob} into the transport
+     * action, proving the 409 Conflict path reflects the job's genuine semaphore state rather than a
+     * stubbed {@code isRunning()} return value. A never-running executor keeps the first triggered
+     * pass "in flight" so the second REST-level request is deterministically rejected.
+     */
+    public void testDoExecute_concurrentRequests_secondIsRejectedByRealSemaphore() throws Exception {
+        ExecutorService neverRunsExecutor = mock(ExecutorService.class);
+        ThreadPool threadPool = mock(ThreadPool.class);
+        when(threadPool.generic()).thenReturn(neverRunsExecutor);
+
+        CatalogSyncJob realCatalogSyncJob =
+                new CatalogSyncJob(
+                        mock(Client.class),
+                        mock(ConsumersIndex.class),
+                        mock(Environment.class),
+                        threadPool,
+                        mock(EngineService.class));
+        TransportTriggerUpdateAction realAction =
+                new TransportTriggerUpdateAction(
+                        mock(TransportService.class), mock(ActionFilters.class), realCatalogSyncJob);
+
+        @SuppressWarnings("unchecked")
+        ActionListener<MessageStatusResponse> firstListener = mock(ActionListener.class);
+        realAction.doExecute(mock(Task.class), new TriggerUpdateRequest(), firstListener);
+        verify(firstListener)
+                .onResponse(argThat(response -> response.getStatus() == RestStatus.ACCEPTED));
+        Assert.assertTrue(
+                "The real CatalogSyncJob must be running after the first accepted request",
+                realCatalogSyncJob.isRunning());
+
+        @SuppressWarnings("unchecked")
+        ActionListener<MessageStatusResponse> secondListener = mock(ActionListener.class);
+        realAction.doExecute(mock(Task.class), new TriggerUpdateRequest(), secondListener);
+
+        verify(secondListener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.CONFLICT, response.getStatus());
+                                    Assert.assertEquals(
+                                            "A content update is already in progress.", response.getMessage());
+                                    return true;
+                                }));
+        verify(neverRunsExecutor, times(1)).execute(any());
     }
 }
