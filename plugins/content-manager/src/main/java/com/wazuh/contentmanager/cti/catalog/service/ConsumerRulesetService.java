@@ -55,6 +55,7 @@ import com.wazuh.contentmanager.utils.Constants;
 public class ConsumerRulesetService extends AbstractConsumerService {
 
     private static final Logger log = LogManager.getLogger(ConsumerRulesetService.class);
+    private static final String[] DOCUMENT_ONLY_SOURCE = new String[] {Constants.KEY_DOCUMENT};
     private final ObjectMapper mapper;
 
     private final SecurityAnalyticsServiceImpl securityAnalyticsService;
@@ -169,8 +170,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     Constants.INDEX_POLICIES);
 
             // Sync Integrations
+            Map<String, JsonNode> integrationDocs = Collections.emptyMap();
             try {
-                this.syncIntegrations();
+                integrationDocs = this.syncIntegrations();
             } catch (Exception e) {
                 log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_INTEGRATIONS, e.getMessage(), e);
             }
@@ -182,10 +184,10 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_RULES, e.getMessage(), e);
             }
 
-            // Sync Detectors
+            // Sync Detectors (reuses integration docs already fetched above)
             if (PluginSettings.getInstance().getCreateDetectors()) {
                 try {
-                    this.syncDetectors();
+                    this.syncDetectors(integrationDocs);
                 } catch (Exception e) {
                     log.error(Constants.E_LOG_SAP_SYNC_FAILED, "detectors", e.getMessage(), e);
                 }
@@ -261,11 +263,16 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     /**
      * Synchronizes Integrations from the internal index to the Security Analytics Plugin. Uses
      * parallel execution with a CountDownLatch to ensure all async requests complete.
+     *
+     * @return the extracted document nodes keyed by document ID, for reuse by {@link
+     *     #syncDetectors(Map)}.
      */
-    private void syncIntegrations() {
+    private Map<String, JsonNode> syncIntegrations() {
+        Map<String, JsonNode> docs = new LinkedHashMap<>();
+
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
             log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Integrations", "integrations");
-            return;
+            return docs;
         }
 
         try {
@@ -273,25 +280,30 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     this.awaitResult(
                             l ->
                                     this.spaceService.getResourcesBySpace(
-                                            Constants.INDEX_INTEGRATIONS, Space.STANDARD, l));
+                                            Constants.INDEX_INTEGRATIONS, Space.STANDARD, DOCUMENT_ONLY_SOURCE, l));
             if (integrations.isEmpty()) {
                 log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "integrations");
-                return;
+                return docs;
             }
-
-            CountDownLatch latch = new CountDownLatch(integrations.size());
-            AtomicInteger sent = new AtomicInteger();
-            List<String> failed = Collections.synchronizedList(new ArrayList<>());
 
             integrations.forEach(
                     (id, sourceMap) -> {
-                        JsonNode source = this.mapper.valueToTree(sourceMap);
-                        JsonNode doc = this.extractDocument(source, id);
-                        if (doc == null) {
-                            latch.countDown();
-                            return;
+                        JsonNode doc = this.extractDocumentFromMap(sourceMap, id);
+                        if (doc != null) {
+                            docs.put(id, doc);
                         }
+                    });
 
+            if (docs.isEmpty()) {
+                return docs;
+            }
+
+            CountDownLatch latch = new CountDownLatch(docs.size());
+            AtomicInteger sent = new AtomicInteger();
+            List<String> failed = Collections.synchronizedList(new ArrayList<>());
+
+            docs.forEach(
+                    (id, doc) -> {
                         this.securityAnalyticsService.upsertIntegration(
                                 doc,
                                 Space.STANDARD,
@@ -311,8 +323,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "integrations");
             }
-            // One INFO summary instead of one line per item (per-item sends are at
-            // DEBUG); skipped entirely when nothing was sent to keep no-op syncs quiet.
             if (sent.get() > 0) {
                 log.info(
                         Constants.I_LOG_SAP_SUMMARY,
@@ -331,6 +341,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         } catch (Exception e) {
             log.error(Constants.E_LOG_SAP_SYNC_UNEXPECTED, "integrations", e.getMessage());
         }
+        return docs;
     }
 
     /**
@@ -346,25 +357,33 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         try {
             Map<String, Map<String, Object>> rules =
                     this.awaitResult(
-                            l -> this.spaceService.getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD, l));
+                            l ->
+                                    this.spaceService.getResourcesBySpace(
+                                            Constants.INDEX_RULES, Space.STANDARD, DOCUMENT_ONLY_SOURCE, l));
             if (rules.isEmpty()) {
                 log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "rules");
                 return;
             }
 
-            CountDownLatch latch = new CountDownLatch(rules.size());
+            Map<String, JsonNode> docs = new LinkedHashMap<>();
+            rules.forEach(
+                    (id, sourceMap) -> {
+                        JsonNode doc = this.extractDocumentFromMap(sourceMap, id);
+                        if (doc != null) {
+                            docs.put(id, doc);
+                        }
+                    });
+
+            if (docs.isEmpty()) {
+                return;
+            }
+
+            CountDownLatch latch = new CountDownLatch(docs.size());
             AtomicInteger sent = new AtomicInteger();
             List<String> failed = Collections.synchronizedList(new ArrayList<>());
 
-            rules.forEach(
-                    (id, sourceMap) -> {
-                        JsonNode source = this.mapper.valueToTree(sourceMap);
-                        JsonNode doc = this.extractDocument(source, id);
-                        if (doc == null) {
-                            latch.countDown();
-                            return;
-                        }
-
+            docs.forEach(
+                    (id, doc) -> {
                         this.securityAnalyticsService.upsertRule(
                                 doc,
                                 Space.STANDARD,
@@ -384,8 +403,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "rules");
             }
-            // One INFO summary instead of one line per item (per-item sends are at
-            // DEBUG); skipped entirely when nothing was sent to keep no-op syncs quiet.
             if (sent.get() > 0) {
                 log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), rules.size(), "rules", Space.STANDARD);
             }
@@ -404,26 +421,15 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * Synchronizes Threat Detectors to the Security Analytics Plugin. The first detector is created
      * sequentially to ensure the SAP detectors config index exists, then the remaining detectors are
      * created in parallel.
+     *
+     * @param integrationDocs the integration document nodes already extracted by {@link
+     *     #syncIntegrations()}, keyed by document ID.
      */
-    private void syncDetectors() throws IOException {
-        if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
-            log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Integrations", "detectors");
-            return;
-        }
-
-        Map<String, Map<String, Object>> integrations =
-                this.awaitResult(
-                        l ->
-                                this.spaceService.getResourcesBySpace(
-                                        Constants.INDEX_INTEGRATIONS, Space.STANDARD, l));
-
+    private void syncDetectors(Map<String, JsonNode> integrationDocs) throws IOException {
         List<JsonNode> docs = new ArrayList<>();
-        integrations.forEach(
-                (id, sourceMap) -> {
-                    JsonNode source = this.mapper.valueToTree(sourceMap);
-                    JsonNode doc = this.extractDocument(source, id);
-                    if (doc != null
-                            && this.securityAnalyticsService.buildDetectorRequest(doc, true) != null) {
+        integrationDocs.forEach(
+                (id, doc) -> {
+                    if (this.securityAnalyticsService.buildDetectorRequest(doc, true) != null) {
                         docs.add(doc);
                     }
                 });
@@ -669,5 +675,22 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return null;
         }
         return source.get(Constants.KEY_DOCUMENT);
+    }
+
+    /**
+     * Extracts the inner "document" sub-map from a source map and converts only that sub-map to a
+     * {@link JsonNode}, avoiding a full-source {@code valueToTree()} conversion.
+     *
+     * @param sourceMap The source map from the search hit.
+     * @param hitId The ID of the hit, used for logging if the document field is missing.
+     * @return The inner "document" as a {@link JsonNode}, or null if the key is missing.
+     */
+    private JsonNode extractDocumentFromMap(Map<String, Object> sourceMap, String hitId) {
+        Object docObj = sourceMap.get(Constants.KEY_DOCUMENT);
+        if (docObj == null) {
+            log.warn(Constants.W_LOG_HIT_MISSING_DOCUMENT, hitId);
+            return null;
+        }
+        return this.mapper.valueToTree(docObj);
     }
 }

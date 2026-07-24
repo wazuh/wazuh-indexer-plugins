@@ -107,7 +107,8 @@ public class ContentIndex {
     private final String physicalName;
 
     private final String mappingsPath;
-    private final ObjectMapper mapper;
+    private static final ObjectMapper MAPPER =
+            new ObjectMapper().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
 
     /**
      * Whether this instance targets a shadow physical index during a blue/green swap. Normal
@@ -161,8 +162,6 @@ public class ContentIndex {
         this.physicalName = physicalName;
         this.mappingsPath = mappingsPath;
         this.isShadow = isShadow;
-        this.mapper = new ObjectMapper();
-        this.mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     }
 
     /**
@@ -353,7 +352,7 @@ public class ContentIndex {
         try {
             GetResponse response = this.client.prepareGet(this.indexName, id).get();
             if (response.isExists() && response.getSourceAsString() != null) {
-                return this.mapper.readTree(response.getSourceAsString());
+                return MAPPER.readTree(response.getSourceAsString());
             }
         } catch (Exception e) {
             log.error(Constants.E_LOG_GET_DOCUMENT_FAILED, id, this.indexName, e.getMessage());
@@ -465,7 +464,7 @@ public class ContentIndex {
         }
 
         // 2. Patch
-        ObjectNode currentDoc = (ObjectNode) this.mapper.readTree(response.getSourceAsString());
+        ObjectNode currentDoc = (ObjectNode) MAPPER.readTree(response.getSourceAsString());
 
         // Resources from the VD feed do not contain a "document" object, so we need to patch the root
         // document instead of the "document" node.
@@ -478,7 +477,7 @@ public class ContentIndex {
         }
 
         for (Operation op : operations) {
-            JsonNode opJson = this.mapper.valueToTree(op);
+            JsonNode opJson = MAPPER.valueToTree(op);
             JsonPatch.applyOperation(currentDoc, opJson);
         }
 
@@ -540,7 +539,7 @@ public class ContentIndex {
                 throw new IOException("Document [" + task.id() + "] not found for update.");
             }
 
-            ObjectNode currentDoc = (ObjectNode) this.mapper.readTree(getResp.getSourceAsString());
+            ObjectNode currentDoc = (ObjectNode) MAPPER.readTree(getResp.getSourceAsString());
 
             // Idempotency guard: skip if already at this offset
             if (currentDoc.has(Constants.KEY_OFFSET)
@@ -556,7 +555,7 @@ public class ContentIndex {
             }
 
             for (Operation op : task.operations()) {
-                JsonNode opJson = this.mapper.valueToTree(op);
+                JsonNode opJson = MAPPER.valueToTree(op);
                 JsonPatch.applyOperation(patchTarget, opJson);
             }
             patchTarget.put(Constants.KEY_OFFSET, task.offset());
@@ -694,13 +693,13 @@ public class ContentIndex {
                                 return;
                             }
                             try {
-                                ArrayNode hitsArray = this.mapper.createArrayNode();
+                                ArrayNode hitsArray = MAPPER.createArrayNode();
                                 for (SearchHit hit : searchResponse.getHits().getHits()) {
-                                    ObjectNode hitObject = (ObjectNode) this.mapper.readTree(hit.getSourceAsString());
+                                    ObjectNode hitObject = (ObjectNode) MAPPER.readTree(hit.getSourceAsString());
                                     hitObject.put(Constants.KEY_ID, hit.getId());
                                     hitsArray.add(hitObject);
                                 }
-                                ObjectNode result = this.mapper.createObjectNode();
+                                ObjectNode result = MAPPER.createObjectNode();
                                 result.set(Constants.Q_HITS, hitsArray);
                                 result.put("total", searchResponse.getHits().getTotalHits().value());
                                 listener.onResponse(result);
@@ -813,7 +812,7 @@ public class ContentIndex {
             switch (this.indexName) {
                 case Constants.INDEX_IOCS:
                     Ioc ioc = Ioc.fromPayload(payload);
-                    return this.mapper.valueToTree(ioc);
+                    return MAPPER.valueToTree(ioc);
                 case Constants.INDEX_DECODERS:
                     resource = Decoder.fromPayload(payload);
                     break;
@@ -831,7 +830,7 @@ public class ContentIndex {
                         // always present in the indexed document, and recompute the document
                         // hash to match the normalized payload.
                         Policy policy = Policy.fromPayload(payload.get(Constants.KEY_DOCUMENT));
-                        ObjectNode policyNode = this.mapper.valueToTree(policy);
+                        ObjectNode policyNode = MAPPER.valueToTree(policy);
                         Resource.nestMetadataFields(policyNode);
                         resource.setDocument(policyNode);
                         java.util.Map<String, String> hashMap = new java.util.HashMap<>();
@@ -841,16 +840,16 @@ public class ContentIndex {
                     break;
                 case Constants.INDEX_CVES:
                     Cve cve = Cve.fromPayload(payload);
-                    return this.mapper.valueToTree(cve);
+                    return MAPPER.valueToTree(cve);
                 default:
                     resource = Resource.fromPayload(payload);
                     break;
             }
 
-            return this.mapper.valueToTree(resource);
+            return MAPPER.valueToTree(resource);
         } catch (Exception e) {
             log.error(Constants.E_LOG_PROCESS_PAYLOAD_FAILED, e.getMessage(), e);
-            return this.mapper.createObjectNode();
+            return MAPPER.createObjectNode();
         }
     }
 }

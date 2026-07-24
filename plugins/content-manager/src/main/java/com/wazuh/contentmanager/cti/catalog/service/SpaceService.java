@@ -436,6 +436,23 @@ public class SpaceService {
      */
     public void getResourcesBySpace(
             String indexName, Space space, ActionListener<Map<String, Map<String, Object>>> listener) {
+        this.getResourcesBySpace(indexName, space, null, listener);
+    }
+
+    /**
+     * Fetches documents from a specific index that belong to a given space, keyed by document.id,
+     * returning only the specified source fields.
+     *
+     * @param indexName The index to search.
+     * @param space The space to filter by.
+     * @param includes Source fields to include (null for all fields).
+     * @param listener receives a map of document.id to document content.
+     */
+    public void getResourcesBySpace(
+            String indexName,
+            Space space,
+            String[] includes,
+            ActionListener<Map<String, Map<String, Object>>> listener) {
         this.client
                 .admin()
                 .indices()
@@ -452,6 +469,9 @@ public class SpaceService {
                                     sourceBuilder.query(
                                             QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()));
                                     sourceBuilder.size(10000);
+                                    if (includes != null) {
+                                        sourceBuilder.fetchSource(includes, null);
+                                    }
                                     searchRequest.source(sourceBuilder);
 
                                     this.client.search(
