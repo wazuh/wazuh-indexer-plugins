@@ -655,6 +655,7 @@ public class ContentManagerPlugin extends Plugin
                                 boolean jobExists =
                                         this.client
                                                 .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, CATALOG_SYNC_JOB_ID)
+                                                .setFetchSource(false)
                                                 .get()
                                                 .isExists();
 
@@ -755,6 +756,7 @@ public class ContentManagerPlugin extends Plugin
                                 boolean jobExists =
                                         this.client
                                                 .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                .setFetchSource(false)
                                                 .get()
                                                 .isExists();
 
@@ -822,6 +824,7 @@ public class ContentManagerPlugin extends Plugin
                                     boolean jobExists =
                                             this.client
                                                     .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                    .setFetchSource(false)
                                                     .get()
                                                     .isExists();
                                     if (jobExists) {
@@ -892,6 +895,7 @@ public class ContentManagerPlugin extends Plugin
                 new ActionHandler<>(
                         IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
                 new ActionHandler<>(TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class),
+                new ActionHandler<>(PromoteSnapshotAction.INSTANCE, TransportPromoteSnapshotAction.class),
                 // Group 2: Subscription GET/DELETE + Space DELETE
                 new ActionHandler<>(GetSubscriptionAction.INSTANCE, TransportGetSubscriptionAction.class),
                 new ActionHandler<>(

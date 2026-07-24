@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.jobscheduler.jobs;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.env.Environment;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.threadpool.ThreadPool;
@@ -201,40 +202,46 @@ public class CatalogSyncJob implements JobExecutor {
      *     {@link SyncOutcome#FAILURE} if any synchronizer threw, {@link SyncOutcome#SUCCESS}
      *     otherwise.
      */
+    private ThreadContext.StoredContext stashContext() {
+        return this.threadPool.getThreadContext().stashContext();
+    }
+
     SyncOutcome performSynchronization() {
-        if (!this.waitForSetup()) {
-            log.error(
-                    "Setup plugin initialization did not complete in time. Skipping catalog"
-                            + " synchronization; it will be retried on the next scheduled run.");
-            return SyncOutcome.SETUP_NOT_READY;
-        }
-        boolean anyFailure = false;
-        for (AbstractConsumerService synchronizer : this.synchronizers) {
-            try {
-                boolean feedUnreachable = synchronizer.synchronize();
-                if (feedUnreachable) {
-                    // The synchronizer fell back to its local snapshot because the configured CTI
-                    // feed was unreachable. Treat it as a failure so a single immediate retry fires;
-                    // a transient network block then recovers without waiting for the next scheduled
-                    // run.
-                    anyFailure = true;
-                    log.warn(
-                            "{} could not reach its configured feed; content served from the local"
-                                    + " snapshot.",
-                            synchronizer.getClass().getSimpleName());
-                } else {
-                    log.debug("{} synchronized.", synchronizer.getClass().getSimpleName());
-                }
-            } catch (Exception e) {
-                anyFailure = true;
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            if (!this.waitForSetup()) {
                 log.error(
-                        "Error during synchronization of {}: {}",
-                        synchronizer.getClass().getSimpleName(),
-                        e.getMessage(),
-                        e);
+                        "Setup plugin initialization did not complete in time. Skipping catalog"
+                                + " synchronization; it will be retried on the next scheduled run.");
+                return SyncOutcome.SETUP_NOT_READY;
             }
+            boolean anyFailure = false;
+            for (AbstractConsumerService synchronizer : this.synchronizers) {
+                try {
+                    boolean feedUnreachable = synchronizer.synchronize();
+                    if (feedUnreachable) {
+                        // The synchronizer fell back to its local snapshot because the configured CTI
+                        // feed was unreachable. Treat it as a failure so a single immediate retry fires;
+                        // a transient network block then recovers without waiting for the next scheduled
+                        // run.
+                        anyFailure = true;
+                        log.warn(
+                                "{} could not reach its configured feed; content served from the local"
+                                        + " snapshot.",
+                                synchronizer.getClass().getSimpleName());
+                    } else {
+                        log.debug("{} synchronized.", synchronizer.getClass().getSimpleName());
+                    }
+                } catch (Exception e) {
+                    anyFailure = true;
+                    log.error(
+                            "Error during synchronization of {}: {}",
+                            synchronizer.getClass().getSimpleName(),
+                            e.getMessage(),
+                            e);
+                }
+            }
+            return anyFailure ? SyncOutcome.FAILURE : SyncOutcome.SUCCESS;
         }
-        return anyFailure ? SyncOutcome.FAILURE : SyncOutcome.SUCCESS;
     }
 
     /**

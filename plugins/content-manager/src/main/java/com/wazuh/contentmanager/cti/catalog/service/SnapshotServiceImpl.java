@@ -63,12 +63,50 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final Environment environment;
     private final PluginSettings pluginSettings;
     private final ObjectMapper mapper;
+    private final Path stablePath;
 
     /** The maximum offset encountered while processing snapshot files. */
     private long maxOffsetSeen;
 
     /**
      * Constructs a new SnapshotServiceImpl.
+     *
+     * @param consumerType The consumer type identifier used as local document id.
+     * @param indicesMap A map of content types to their corresponding ContentIndex.
+     * @param consumersIndex The consumers index to update consumer state.
+     * @param environment The OpenSearch environment.
+     * @param urlResolver The resolver used to transform resource URLs before making HTTP requests.
+     * @param snapshotsDir The plugin's local snapshots directory, or {@code null} when stable
+     *     snapshot retention is not needed (e.g. shadow swap, tests).
+     * @param snapshotFilename The consumer's snapshot filename (e.g. "ruleset.zip"), or {@code null}.
+     */
+    public SnapshotServiceImpl(
+            String consumerType,
+            Map<String, ContentIndex> indicesMap,
+            ConsumersIndex consumersIndex,
+            Environment environment,
+            ResourceUrlResolver urlResolver,
+            Path snapshotsDir,
+            String snapshotFilename) {
+        this.consumerType = consumerType;
+        this.indicesMap = indicesMap;
+        this.consumersIndex = consumersIndex;
+        this.environment = environment;
+        this.pluginSettings = PluginSettings.getInstance();
+        this.mapper = new ObjectMapper();
+
+        this.snapshotClient = new SnapshotClient(this.environment, urlResolver);
+
+        if (snapshotsDir != null && snapshotFilename != null) {
+            String stableFilename = snapshotFilename.replace(".zip", Constants.STABLE_SNAPSHOT_SUFFIX);
+            this.stablePath = snapshotsDir.resolve(stableFilename);
+        } else {
+            this.stablePath = null;
+        }
+    }
+
+    /**
+     * Constructs a new SnapshotServiceImpl without stable snapshot retention.
      *
      * @param consumerType The consumer type identifier used as local document id.
      * @param indicesMap A map of content types to their corresponding ContentIndex.
@@ -82,18 +120,12 @@ public class SnapshotServiceImpl implements SnapshotService {
             ConsumersIndex consumersIndex,
             Environment environment,
             ResourceUrlResolver urlResolver) {
-        this.consumerType = consumerType;
-        this.indicesMap = indicesMap;
-        this.consumersIndex = consumersIndex;
-        this.environment = environment;
-        this.pluginSettings = PluginSettings.getInstance();
-        this.mapper = new ObjectMapper();
-
-        this.snapshotClient = new SnapshotClient(this.environment, urlResolver);
+        this(consumerType, indicesMap, consumersIndex, environment, urlResolver, null, null);
     }
 
     /**
-     * Constructs a new SnapshotServiceImpl with an regular URL resolver.
+     * Constructs a new SnapshotServiceImpl with a regular URL resolver and no stable snapshot
+     * retention.
      *
      * @param consumerType The consumer type identifier used as local document id.
      * @param indicesMap A map of content types to their corresponding ContentIndex.
@@ -137,6 +169,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         log.debug(Constants.D_LOG_SNAPSHOT_INIT_START, this.consumerType);
         Path snapshotZip = null;
         long startMs = 0;
+        boolean success = false;
 
         try {
             // 1. Download Snapshot
@@ -156,24 +189,35 @@ public class SnapshotServiceImpl implements SnapshotService {
                 this.indicesMap.values().iterator().next().waitForPendingUpdates();
             }
 
+            success = true;
         } catch (Exception e) {
             log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, e.getMessage());
-            return false;
-        } finally {
-            // Cleanup downloaded ZIP
-            this.cleanup(snapshotZip);
+        }
+
+        if (success) {
             if (startMs != 0) {
                 log.debug(
                         Constants.D_LOG_SNAPSHOT_ELAPSED,
-                        snapshotZip != null ? snapshotZip.getFileName() : "unknown",
+                        snapshotZip.getFileName(),
                         System.currentTimeMillis() - startMs);
             }
+            // Promote to stable or clean up temp
+            if (this.stablePath != null) {
+                if (!promoteToStable(snapshotZip, this.stablePath)) {
+                    this.cleanup(snapshotZip);
+                }
+            } else {
+                this.cleanup(snapshotZip);
+            }
+            // 3. Partial update of consumer state: bump local_offset to the snapshot offset and
+            // keep the remote_offset (set at t0 from RemoteConsumer.last_offset) so the
+            // incremental update path can close the gap. Identity fields and status are preserved
+            // from the t0 write.
+            return this.updateLocalOffset(consumer.getSnapshotOffset());
+        } else {
+            this.cleanup(snapshotZip);
+            return false;
         }
-
-        // 3. Partial update of consumer state: bump local_offset to the snapshot offset and keep
-        // the remote_offset (set at t0 from RemoteConsumer.last_offset) so the incremental update
-        // path can close the gap. Identity fields and status are preserved from the t0 write.
-        return this.updateLocalOffset(consumer.getSnapshotOffset());
     }
 
     /**
@@ -204,9 +248,12 @@ public class SnapshotServiceImpl implements SnapshotService {
      * @param entryPath the {@link Path} to the entry inside the ZIP {@link FileSystem}.
      * @throws IOException if the entry stream cannot be opened.
      */
+    private static final int FLUSH_EVERY_N_BULKS = 10;
+
     private void processZipEntry(Path entryPath) throws IOException {
         String line;
         int docCount = 0;
+        int bulkCount = 0;
         int missingPayload = 0;
         int unknownType = 0;
         int unmappedType = 0;
@@ -306,6 +353,17 @@ public class SnapshotServiceImpl implements SnapshotService {
                         executorIndex.executeBulk(bulkRequest);
                         bulkRequest = new BulkRequest();
                         docCount = 0;
+                        bulkCount++;
+
+                        if (bulkCount % FLUSH_EVERY_N_BULKS == 0) {
+                            try {
+                                executorIndex.waitForPendingUpdates();
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                throw new IOException("Interrupted while waiting for pending bulks", e);
+                            }
+                            executorIndex.flush();
+                        }
                     }
 
                 } catch (IOException e) {
@@ -385,8 +443,13 @@ public class SnapshotServiceImpl implements SnapshotService {
             return false;
         }
 
-        // 3. Delete source zip file
-        SnapshotServiceImpl.deleteSnapshot(localZip);
+        // 3. Promote to stable, delete source, or leave in place (rollback re-index)
+        if (this.stablePath != null && !localZip.equals(this.stablePath)) {
+            promoteToStable(localZip, this.stablePath);
+        } else if (this.stablePath == null) {
+            SnapshotServiceImpl.deleteSnapshot(localZip);
+        }
+
         log.debug(
                 Constants.D_LOG_SNAPSHOT_LOCAL_ELAPSED,
                 localZip.getFileName(),
@@ -435,6 +498,46 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
+     * Moves the candidate snapshot to the stable path, replacing any existing stable file. Uses
+     * atomic move when possible, falling back to copy-then-delete for cross-filesystem scenarios.
+     *
+     * @param candidate the path of the successfully-indexed snapshot.
+     * @param stablePath the target stable path.
+     * @return {@code true} if the promotion succeeded, {@code false} on any I/O error.
+     */
+    public static boolean promoteToStable(Path candidate, Path stablePath) {
+        try {
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        try {
+                            Files.move(
+                                    candidate,
+                                    stablePath,
+                                    StandardCopyOption.REPLACE_EXISTING,
+                                    StandardCopyOption.ATOMIC_MOVE);
+                        } catch (AtomicMoveNotSupportedException e) {
+                            Files.copy(candidate, stablePath, StandardCopyOption.REPLACE_EXISTING);
+                            Files.deleteIfExists(candidate);
+                        }
+                        return null;
+                    });
+            log.debug(Constants.D_LOG_SNAPSHOT_PROMOTED_TO_STABLE, stablePath);
+            return true;
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_SNAPSHOT_PROMOTE_FAILED, stablePath, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Returns the path to the stable snapshot, or {@code null} if stable snapshot retention is not
+     * configured for this instance.
+     */
+    public Path getStablePath() {
+        return this.stablePath;
+    }
+
+    /**
      * Deletes a local snapshot zip file. Logs success at info level and failures at warn level. Safe
      * to call when the file does not exist. Only files under the plugin's local snapshots directory
      * should be passed in — remote snapshots are managed by the CTI service.
@@ -469,7 +572,10 @@ public class SnapshotServiceImpl implements SnapshotService {
                         }
                         try (DirectoryStream<Path> stream = Files.newDirectoryStream(snapshotsDir, "*.zip")) {
                             for (Path snapshot : stream) {
-                                deleteSnapshot(snapshot);
+                                String name = snapshot.getFileName().toString();
+                                if (!name.endsWith(Constants.STABLE_SNAPSHOT_SUFFIX)) {
+                                    deleteSnapshot(snapshot);
+                                }
                             }
                         }
                         return null;
