@@ -20,6 +20,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 
 /**
@@ -32,6 +35,8 @@ import com.wazuh.contentmanager.cti.catalog.model.Operation;
  * responsible for logging it with the appropriate context.
  */
 public class JsonPatch {
+
+    private static final Logger log = LogManager.getLogger(JsonPatch.class);
 
     /**
      * Applies a single JSON Patch operation to a document.
@@ -125,9 +130,15 @@ public class JsonPatch {
         JsonNode target = JsonPatch.navigateToParent(document, path);
         String key = JsonPatch.extractKeyFromPath(path);
 
+        if (target == null) {
+            log.warn("Skipping remove operation: parent path not found for {}", path);
+            return;
+        }
+
         if (target instanceof ObjectNode objNode) {
             if (!objNode.has(key)) {
-                throw new IllegalArgumentException("Path not found for remove operation: " + path);
+                log.warn("Skipping remove operation: path not found {}", path);
+                return;
             }
             objNode.remove(key);
         } else if (target instanceof ArrayNode arrayNode) {
@@ -136,24 +147,39 @@ public class JsonPatch {
                 if (index >= 0 && index < arrayNode.size()) {
                     arrayNode.remove(index);
                 } else {
-                    throw new IndexOutOfBoundsException("Index out of bounds for remove operation: " + index);
+                    log.warn(
+                            "Skipping remove operation: index [{}] out of bounds (size: {}) for {}",
+                            index,
+                            arrayNode.size(),
+                            path);
                 }
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid array index for remove operation: " + key);
             }
         } else {
-            throw new IllegalArgumentException("Target for remove operation is not a container");
+            log.warn("Skipping remove operation: target is not a container for {}", path);
         }
     }
 
     /**
-     * Handles the "replace" operation.
+     * Handles the "replace" operation. Per RFC 6902 section 4.3 the target location MUST exist;
+     * unlike {@link #removeOperation}, this method throws when the path is absent so that a missing
+     * field is never silently added.
      *
      * @param document The target JSON document.
      * @param path The JSON path where the value should be replaced.
      * @param value The new value to be added.
      */
     private static void replaceOperation(ObjectNode document, String path, JsonNode value) {
+        if (!path.isEmpty()) {
+            JsonNode target = JsonPatch.navigateToParent(document, path);
+            String key = JsonPatch.extractKeyFromPath(path);
+            if (target == null
+                    || (target.isObject() && !((ObjectNode) target).has(key))
+                    || (target.isArray() && Integer.parseInt(key) >= target.size())) {
+                throw new IllegalArgumentException("Path not found for replace operation: " + path);
+            }
+        }
         JsonPatch.removeOperation(document, path);
         JsonPatch.addOperation(document, path, value);
     }

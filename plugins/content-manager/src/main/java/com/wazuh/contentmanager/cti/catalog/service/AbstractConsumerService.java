@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
+import com.wazuh.contentmanager.action.PromoteSnapshotAction;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
@@ -52,6 +53,7 @@ import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.transport.TransportPromoteSnapshotAction;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.UrlUtils;
 
@@ -497,212 +499,90 @@ public abstract class AbstractConsumerService {
 
         // Build URL resolver based on registration status
         ResourceUrlResolver urlResolver;
+        TokenExchangeServiceImpl tokenExchangeService = null;
         if (PluginSettings.getInstance().isRegistered()) {
             log.debug(Constants.D_LOG_SIGNED_URL_RESOLVER, consumerType);
+            tokenExchangeService = new TokenExchangeServiceImpl();
             urlResolver =
                     new SignedUrlResolver(
-                            new TokenExchangeServiceImpl(), PluginSettings.getInstance().getAccessToken());
+                            tokenExchangeService, PluginSettings.getInstance().getAccessToken());
         } else {
             log.debug(Constants.D_LOG_REGULAR_URL_RESOLVER, consumerType);
             urlResolver = new RegularUrlResolver();
         }
+        try {
 
-        ConsumerService consumerService =
-                this.consumerServiceOverride != null
-                        ? this.consumerServiceOverride
-                        : new ConsumerServiceImpl(
-                                context,
-                                consumer,
-                                consumerType,
-                                catalogUri,
-                                this.consumersIndex,
-                                new ApiClient(urlResolver));
-        LocalConsumer localConsumer = consumerService.getLocalConsumer();
-        boolean catalogConfigured = catalogUri != null && !catalogUri.isBlank();
-        RemoteConsumer remoteConsumer = catalogConfigured ? consumerService.getRemoteConsumer() : null;
-
-        // A configured catalog whose remote consumer could not be fetched signals an unreachable
-        // feed. The pass still completes (falling back to the local snapshot / applying no remote
-        // changes), but the caller retries so a transiently-blocked feed recovers immediately.
-        // getRemoteConsumer() swallows the network failure and returns null, so this is the only
-        // place the unreachable-feed condition is observable.
-        boolean feedUnreachable = catalogConfigured && remoteConsumer == null;
-
-        Map<String, ContentIndex> indicesMap = new HashMap<>();
-
-        for (Map.Entry<String, String> entry : this.getMappings().entrySet()) {
-            String indexName = this.getIndexName(entry.getKey());
-            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
-            indicesMap.put(entry.getKey(), index);
-
-            // Check if index exists to avoid creation exception
-            boolean indexExists = this.client.admin().indices().prepareExists(indexName).get().isExists();
-
-            if (!indexExists) {
-                try {
-                    // ContentIndex.createIndex() already logs the creation; avoid a duplicate here.
-                    index.createIndex();
-                } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                    log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
+            LocalConsumer localConsumer;
+            boolean catalogConfigured = catalogUri != null && !catalogUri.isBlank();
+            RemoteConsumer remoteConsumer;
+            ConsumerServiceImpl ownedConsumerService = null;
+            try {
+                ConsumerService consumerService;
+                if (this.consumerServiceOverride != null) {
+                    consumerService = this.consumerServiceOverride;
+                } else {
+                    ownedConsumerService =
+                            new ConsumerServiceImpl(
+                                    context,
+                                    consumer,
+                                    consumerType,
+                                    catalogUri,
+                                    this.consumersIndex,
+                                    new ApiClient(urlResolver));
+                    consumerService = ownedConsumerService;
+                }
+                localConsumer = consumerService.getLocalConsumer();
+                remoteConsumer = catalogConfigured ? consumerService.getRemoteConsumer() : null;
+            } finally {
+                if (ownedConsumerService != null) {
+                    ownedConsumerService.close();
                 }
             }
-        }
 
-        // When a plan change is detected, download into hidden shadow indices and atomically
-        // swap aliases. This avoids any window where users see empty/partial data.
-        if (shadowSwapRequired) {
-            if (!this.performShadowSwap(
-                    consumerType, catalogUri, swapTargetResource, indicesMap, remoteConsumer, urlResolver)) {
-                return new SyncResult(false, feedUnreachable);
+            // A configured catalog whose remote consumer could not be fetched signals an unreachable
+            // feed. The pass still completes (falling back to the local snapshot / applying no remote
+            // changes), but the caller retries so a transiently-blocked feed recovers immediately.
+            // getRemoteConsumer() swallows the network failure and returns null, so this is the only
+            // place the unreachable-feed condition is observable.
+            boolean feedUnreachable = catalogConfigured && remoteConsumer == null;
+
+            Map<String, ContentIndex> indicesMap = new HashMap<>();
+
+            for (Map.Entry<String, String> entry : this.getMappings().entrySet()) {
+                String indexName = this.getIndexName(entry.getKey());
+                ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
+                indicesMap.put(entry.getKey(), index);
+
+                // Check if index exists to avoid creation exception
+                boolean indexExists =
+                        this.client.admin().indices().prepareExists(indexName).get().isExists();
+
+                if (!indexExists) {
+                    try {
+                        // ContentIndex.createIndex() already logs the creation; avoid a duplicate here.
+                        index.createIndex();
+                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                        log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
+                    }
+                }
             }
-            // The swapped snapshot only carries data up to its snapshot offset. Close the gap to
-            // the remote head in the same pass; otherwise the consumer would be reported as READY
-            // while trailing the remote offset (local_offset < remote_offset) until the next sync.
-            if (remoteConsumer.getSnapshotOffset() < remoteConsumer.getOffset()) {
-                this.performIncrementalUpdate(
-                        context,
-                        consumer,
+
+            // When a plan change is detected, download into hidden shadow indices and atomically
+            // swap aliases. This avoids any window where users see empty/partial data.
+            if (shadowSwapRequired) {
+                if (!this.performShadowSwap(
                         consumerType,
                         catalogUri,
-                        urlResolver,
+                        swapTargetResource,
                         indicesMap,
-                        remoteConsumer.getSnapshotOffset(),
-                        remoteConsumer.getOffset());
-            }
-            return new SyncResult(true, feedUnreachable);
-        }
-
-        boolean updated = false;
-        long currentOffset = localConsumer != null ? localConsumer.getLocalOffset() : 0;
-
-        // Offset mismatch resilience
-        if (localConsumer != null && remoteConsumer != null) {
-            if (currentOffset > remoteConsumer.getOffset()) {
-                log.warn(
-                        Constants.W_LOG_LOCAL_OFFSET_EXCEEDS_REMOTE,
-                        currentOffset,
-                        remoteConsumer.getOffset(),
-                        consumerType);
-                currentOffset = 0;
-            }
-        }
-
-        if (currentOffset == 0) {
-            final Path localSnapshotPath = localSnapshot;
-            boolean snapshotExists;
-            if (localSnapshotPath == null) {
-                snapshotExists = false;
-            } else {
-                try {
-                    snapshotExists =
-                            AccessController.doPrivilegedChecked(() -> Files.exists(localSnapshotPath));
-                } catch (Exception e) {
-                    log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_CHECK_FAILED, localSnapshotPath, e.getMessage());
-                    snapshotExists = false;
+                        remoteConsumer,
+                        urlResolver)) {
+                    return new SyncResult(false, feedUnreachable);
                 }
-            }
-
-            boolean hasEffectiveCatalog = catalogUri != null && !catalogUri.isBlank();
-
-            // t0: persist the initial consumer state (status=running, local_offset=0,
-            // remote_offset=<latest known>) before snapshot loading begins, so external observers
-            // can see the in-progress state. Identity fields come from the remote response when a
-            // catalog URL is available (either setting or existing doc's resource), otherwise from
-            // the manifest entry.
-            this.writeInitialConsumer(remoteConsumer, manifestEntry, catalogUri, consumerType);
-
-            SnapshotServiceImpl snapshotService =
-                    this.snapshotServiceOverride != null
-                            ? this.snapshotServiceOverride
-                            : new SnapshotServiceImpl(
-                                    consumerType, indicesMap, this.consumersIndex, this.environment, urlResolver);
-
-            // When a catalog URL is available, prefer remote initialization and fall back to local
-            // snapshot on failure. The catalog URL comes from the configured setting, or from a
-            // previous run's persisted `resource` when the setting is empty.
-            if (hasEffectiveCatalog
-                    && remoteConsumer != null
-                    && remoteConsumer.getSnapshotLink() != null) {
-                // Ruleset snapshots also affect Security Analytics/Space resources; other catalogs only
-                // clear indices.
-                if (this.isRulesetConsumer()) {
-                    try {
-                        SecurityAnalyticsService securityAnalyticsService =
-                                new SecurityAnalyticsServiceImpl(this.client);
-                        CompletableFuture<Void> sapFuture = new CompletableFuture<>();
-                        securityAnalyticsService.deleteSpaceResources(
-                                Space.STANDARD,
-                                ActionListener.wrap(
-                                        r -> sapFuture.complete(null), sapFuture::completeExceptionally));
-                        sapFuture.get(60, TimeUnit.SECONDS);
-
-                        SpaceService spaceService = new SpaceService(this.client);
-                        CompletableFuture<Void> spaceFuture = new CompletableFuture<>();
-                        spaceService.deleteSpaceResources(
-                                Space.STANDARD,
-                                ActionListener.wrap(
-                                        r -> spaceFuture.complete(null), spaceFuture::completeExceptionally));
-                        spaceFuture.get(60, TimeUnit.SECONDS);
-                    } catch (Exception e) {
-                        log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
-                    }
-                } else {
-                    indicesMap.values().forEach(ContentIndex::clear);
-                }
-
-                log.debug(Constants.D_LOG_SNAPSHOT_INIT_CUSTOM_URL, catalogUri);
-                boolean remoteSuccess = snapshotService.initialize(remoteConsumer);
-                if (remoteSuccess) {
-                    currentOffset = remoteConsumer.getSnapshotOffset();
-                    updated = true;
-                    if (snapshotExists) {
-                        SnapshotServiceImpl.deleteSnapshot(localSnapshot);
-                    }
-                } else if (snapshotExists) {
-                    log.warn(Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_FALLBACK, consumerType, localSnapshot);
-                    boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
-                    if (localSuccess) {
-                        currentOffset = snapshotService.getMaxOffsetSeen();
-                        updated = true;
-                    } else {
-                        log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_FALLBACK_FAILED, consumerType);
-                    }
-                } else {
-                    log.warn(Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_NO_LOCAL, consumerType, localSnapshot);
-                }
-            } else if (snapshotExists) {
-                if (hasEffectiveCatalog) {
-                    // Catalog URL was set but the remote attempt did not yield a usable response
-                    // (invalid URL, network failure, missing snapshot link). Fall back to the
-                    // packaged local snapshot.
-                    log.warn(
-                            Constants.W_LOG_CATALOG_UNREACHABLE_FALLBACK,
-                            catalogUri,
-                            consumerType,
-                            localSnapshot.getFileName());
-                } else {
-                    log.debug(
-                            Constants.D_LOG_INIT_FROM_LOCAL_SNAPSHOT, consumerType, localSnapshot.getFileName());
-                }
-                boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
-                if (localSuccess) {
-                    currentOffset = snapshotService.getMaxOffsetSeen();
-                    updated = true;
-                } else {
-                    log.error(Constants.E_LOG_LOCAL_SNAPSHOT_INIT_FAILED, consumerType);
-                }
-            } else if (hasEffectiveCatalog) {
-                log.error(
-                        Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_REACH, consumerType, localSnapshot);
-            } else {
-                log.error(
-                        Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_CONFIG, consumerType, localSnapshot);
-            }
-        }
-
-        // Incremental Update
-        if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
-            updated =
+                // The swapped snapshot only carries data up to its snapshot offset. Close the gap to
+                // the remote head in the same pass; otherwise the consumer would be reported as READY
+                // while trailing the remote offset (local_offset < remote_offset) until the next sync.
+                if (remoteConsumer.getSnapshotOffset() < remoteConsumer.getOffset()) {
                     this.performIncrementalUpdate(
                             context,
                             consumer,
@@ -710,19 +590,246 @@ public abstract class AbstractConsumerService {
                             catalogUri,
                             urlResolver,
                             indicesMap,
-                            currentOffset,
+                            remoteConsumer.getSnapshotOffset(),
                             remoteConsumer.getOffset());
+                }
+                return new SyncResult(true, feedUnreachable);
+            }
+
+            boolean updated = false;
+            long currentOffset = localConsumer != null ? localConsumer.getLocalOffset() : 0;
+
+            // Offset mismatch resilience
+            if (localConsumer != null && remoteConsumer != null) {
+                if (currentOffset > remoteConsumer.getOffset()) {
+                    log.warn(
+                            Constants.W_LOG_LOCAL_OFFSET_EXCEEDS_REMOTE,
+                            currentOffset,
+                            remoteConsumer.getOffset(),
+                            consumerType);
+                    currentOffset = 0;
+                }
+            }
+
+            if (currentOffset == 0) {
+                final Path localSnapshotPath = localSnapshot;
+                boolean snapshotExists;
+                if (localSnapshotPath == null) {
+                    snapshotExists = false;
+                } else {
+                    try {
+                        snapshotExists =
+                                AccessController.doPrivilegedChecked(() -> Files.exists(localSnapshotPath));
+                    } catch (Exception e) {
+                        log.warn(
+                                Constants.W_LOG_LOCAL_SNAPSHOT_CHECK_FAILED, localSnapshotPath, e.getMessage());
+                        snapshotExists = false;
+                    }
+                }
+
+                boolean hasEffectiveCatalog = catalogUri != null && !catalogUri.isBlank();
+
+                // t0: persist the initial consumer state (status=running, local_offset=0,
+                // remote_offset=<latest known>) before snapshot loading begins, so external observers
+                // can see the in-progress state. Identity fields come from the remote response when a
+                // catalog URL is available (either setting or existing doc's resource), otherwise from
+                // the manifest entry.
+                this.writeInitialConsumer(remoteConsumer, manifestEntry, catalogUri, consumerType);
+
+                SnapshotServiceImpl snapshotService =
+                        this.snapshotServiceOverride != null
+                                ? this.snapshotServiceOverride
+                                : new SnapshotServiceImpl(
+                                        consumerType,
+                                        indicesMap,
+                                        this.consumersIndex,
+                                        this.environment,
+                                        urlResolver,
+                                        snapshotsDir,
+                                        this.getSnapshotFilename());
+
+                // When a catalog URL is available, prefer remote initialization and fall back to local
+                // snapshot on failure. The catalog URL comes from the configured setting, or from a
+                // previous run's persisted `resource` when the setting is empty.
+                if (hasEffectiveCatalog
+                        && remoteConsumer != null
+                        && remoteConsumer.getSnapshotLink() != null) {
+                    // Ruleset snapshots also affect Security Analytics/Space resources; other catalogs only
+                    // clear indices.
+                    if (this.isRulesetConsumer()) {
+                        try {
+                            SecurityAnalyticsService securityAnalyticsService =
+                                    new SecurityAnalyticsServiceImpl(this.client);
+                            CompletableFuture<Void> sapFuture = new CompletableFuture<>();
+                            securityAnalyticsService.deleteSpaceResources(
+                                    Space.STANDARD,
+                                    ActionListener.wrap(
+                                            r -> sapFuture.complete(null), sapFuture::completeExceptionally));
+                            sapFuture.get(60, TimeUnit.SECONDS);
+
+                            SpaceService spaceService = new SpaceService(this.client);
+                            CompletableFuture<Void> spaceFuture = new CompletableFuture<>();
+                            spaceService.deleteSpaceResources(
+                                    Space.STANDARD,
+                                    ActionListener.wrap(
+                                            r -> spaceFuture.complete(null), spaceFuture::completeExceptionally));
+                            spaceFuture.get(60, TimeUnit.SECONDS);
+                        } catch (Exception e) {
+                            log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
+                        }
+                    } else {
+                        indicesMap.values().forEach(ContentIndex::clear);
+                    }
+
+                    log.debug(Constants.D_LOG_SNAPSHOT_INIT_CUSTOM_URL, catalogUri);
+                    boolean remoteSuccess = snapshotService.initialize(remoteConsumer);
+                    if (remoteSuccess) {
+                        currentOffset = remoteConsumer.getSnapshotOffset();
+                        updated = true;
+                        if (snapshotExists) {
+                            SnapshotServiceImpl.deleteSnapshot(localSnapshot);
+                        }
+                    } else {
+                        // Three-tier fallback: stable snapshot -> packaged local -> give up
+                        Path stableSnapshot = snapshotService.getStablePath();
+                        boolean stableExists = false;
+                        if (stableSnapshot != null) {
+                            try {
+                                final Path stableFinal = stableSnapshot;
+                                stableExists =
+                                        AccessController.doPrivilegedChecked(() -> Files.exists(stableFinal));
+                            } catch (Exception e) {
+                                log.debug(
+                                        "Failed to check stable snapshot [{}]: {}", stableSnapshot, e.getMessage());
+                            }
+                        }
+
+                        if (stableExists) {
+                            log.warn(Constants.I_LOG_ROLLBACK_FROM_STABLE, consumerType, stableSnapshot);
+                            boolean rollbackSuccess = snapshotService.initialize(stableSnapshot, manifestEntry);
+                            if (rollbackSuccess) {
+                                currentOffset = snapshotService.getMaxOffsetSeen();
+                                updated = true;
+                            } else if (snapshotExists) {
+                                log.warn(Constants.W_LOG_STABLE_ROLLBACK_FAILED, consumerType, localSnapshot);
+                                boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
+                                if (localSuccess) {
+                                    currentOffset = snapshotService.getMaxOffsetSeen();
+                                    updated = true;
+                                } else {
+                                    log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_FALLBACK_FAILED, consumerType);
+                                }
+                            }
+                        } else if (snapshotExists) {
+                            log.warn(
+                                    Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_FALLBACK, consumerType, localSnapshot);
+                            boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
+                            if (localSuccess) {
+                                currentOffset = snapshotService.getMaxOffsetSeen();
+                                updated = true;
+                            } else {
+                                log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_FALLBACK_FAILED, consumerType);
+                            }
+                        } else {
+                            log.warn(
+                                    Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_NO_LOCAL, consumerType, localSnapshot);
+                        }
+                    }
+                } else if (snapshotExists) {
+                    if (hasEffectiveCatalog) {
+                        // Catalog URL was set but the remote attempt did not yield a usable response
+                        // (invalid URL, network failure, missing snapshot link). Fall back to the
+                        // packaged local snapshot.
+                        log.warn(
+                                Constants.W_LOG_CATALOG_UNREACHABLE_FALLBACK,
+                                catalogUri,
+                                consumerType,
+                                localSnapshot.getFileName());
+                    } else {
+                        log.debug(
+                                Constants.D_LOG_INIT_FROM_LOCAL_SNAPSHOT,
+                                consumerType,
+                                localSnapshot.getFileName());
+                    }
+                    boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
+                    if (localSuccess) {
+                        currentOffset = snapshotService.getMaxOffsetSeen();
+                        updated = true;
+                    } else {
+                        log.error(Constants.E_LOG_LOCAL_SNAPSHOT_INIT_FAILED, consumerType);
+                    }
+                } else {
+                    Path stableSnapshot = snapshotService.getStablePath();
+                    boolean stableExists = false;
+                    if (stableSnapshot != null) {
+                        try {
+                            final Path stableFinal = stableSnapshot;
+                            stableExists = AccessController.doPrivilegedChecked(() -> Files.exists(stableFinal));
+                        } catch (Exception e) {
+                            log.debug("Failed to check stable snapshot [{}]: {}", stableSnapshot, e.getMessage());
+                        }
+                    }
+
+                    if (stableExists) {
+                        log.info(Constants.I_LOG_ROLLBACK_FROM_STABLE, consumerType, stableSnapshot);
+                        boolean rollbackSuccess = snapshotService.initialize(stableSnapshot, manifestEntry);
+                        if (rollbackSuccess) {
+                            currentOffset = snapshotService.getMaxOffsetSeen();
+                            updated = true;
+                        } else {
+                            log.error(Constants.E_LOG_LOCAL_SNAPSHOT_INIT_FAILED, consumerType);
+                        }
+                    } else if (hasEffectiveCatalog) {
+                        log.error(
+                                Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_REACH, consumerType, localSnapshot);
+                    } else {
+                        log.error(
+                                Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_CONFIG, consumerType, localSnapshot);
+                    }
+                }
+            }
+
+            if (updated && snapshotsDir != null) {
+                this.broadcastSnapshotPromote(this.getSnapshotFilename());
+            }
+
+            // Incremental Update — skip when no snapshot was loaded and the gap spans the full
+            // catalog, since fetching all changes incrementally from offset 0 will always exceed the
+            // request timeout (issue #1383).
+            if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
+                if (currentOffset == 0 && !updated) {
+                    log.warn(
+                            "Skipping incremental update for [{}]: no snapshot loaded,"
+                                    + " full catalog gap [0 -> {}] would timeout",
+                            consumerType,
+                            remoteConsumer.getOffset());
+                } else {
+                    updated =
+                            this.performIncrementalUpdate(
+                                    context,
+                                    consumer,
+                                    consumerType,
+                                    catalogUri,
+                                    urlResolver,
+                                    indicesMap,
+                                    currentOffset,
+                                    remoteConsumer.getOffset());
+                }
+            }
+            return new SyncResult(updated, feedUnreachable);
+        } finally {
+            if (tokenExchangeService != null) {
+                tokenExchangeService.close();
+            }
         }
-        return new SyncResult(updated, feedUnreachable);
     }
 
     /**
      * Fetches and applies incremental changes from the CTI API between the given offsets and persists
      * the resulting consumer state. Shared by the regular sync path and the post-swap catch-up: a
      * swapped snapshot only carries data up to its snapshot offset, so the remaining changes up to
-     * the remote head must be applied in the same pass. Failures propagate to the caller, matching
-     * the regular sync path semantics ({@link UpdateServiceImpl#update} resets the consumer before
-     * rethrowing).
+     * the remote head must be applied in the same pass. Failures propagate to the caller; {@link
+     * UpdateServiceImpl#update} persists batch-level checkpoints so progress survives.
      *
      * @param context The CTI context name.
      * @param consumer The CTI consumer name.
@@ -793,6 +900,42 @@ public abstract class AbstractConsumerService {
         } catch (Exception e) {
             log.error(Constants.E_LOG_MANIFEST_READ_FAILED, manifestPath, e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Broadcasts a snapshot-promote request to every node in the cluster so each node moves its local
+     * packaged snapshot to the stable path. Fire-and-forget: failures are logged but do not block the
+     * synchronization.
+     *
+     * @param snapshotFilename the snapshot filename to promote (e.g., "ruleset.zip").
+     */
+    private void broadcastSnapshotPromote(String snapshotFilename) {
+        try {
+            TransportPromoteSnapshotAction.NodesRequest request =
+                    new TransportPromoteSnapshotAction.NodesRequest(snapshotFilename);
+            this.client.execute(
+                    PromoteSnapshotAction.INSTANCE,
+                    request,
+                    ActionListener.wrap(
+                            response -> {
+                                long succeeded =
+                                        response.getNodes().stream()
+                                                .filter(TransportPromoteSnapshotAction.NodeResponse::isSuccess)
+                                                .count();
+                                log.debug(
+                                        Constants.D_LOG_SNAPSHOT_PROMOTE_BROADCAST_DONE,
+                                        snapshotFilename,
+                                        succeeded,
+                                        response.failures().size());
+                            },
+                            e ->
+                                    log.warn(
+                                            Constants.W_LOG_SNAPSHOT_PROMOTE_BROADCAST_FAILED,
+                                            snapshotFilename,
+                                            e.getMessage())));
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_SNAPSHOT_PROMOTE_BROADCAST_FAILED, snapshotFilename, e.getMessage());
         }
     }
 

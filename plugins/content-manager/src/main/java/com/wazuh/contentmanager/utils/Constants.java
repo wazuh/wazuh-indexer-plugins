@@ -308,10 +308,25 @@ public class Constants {
     public static final String W_LOG_SNAPSHOT_TEMP_FILE_DELETE_FAILED =
             "Failed to delete temp file {}";
     public static final String W_LOG_SNAPSHOT_CLEANUP_FAILED = "Error during cleanup: {}";
-    public static final String D_LOG_SNAPSHOT_ELAPSED =
-            "Snapshot [{}] processed and removed in {} ms";
+    public static final String D_LOG_SNAPSHOT_ELAPSED = "Snapshot [{}] processed in {} ms";
     public static final String D_LOG_SNAPSHOT_LOCAL_ELAPSED =
-            "Local snapshot [{}] processed and removed in {} ms";
+            "Local snapshot [{}] processed in {} ms";
+    public static final String D_LOG_SNAPSHOT_PROMOTED_TO_STABLE =
+            "Promoted snapshot to stable path [{}]";
+    public static final String W_LOG_SNAPSHOT_PROMOTE_FAILED =
+            "Failed to promote snapshot to stable path [{}]: {}";
+    public static final String D_LOG_SNAPSHOT_PROMOTE_SOURCE_MISSING =
+            "Packaged snapshot [{}] not found; skipping promote (already consumed).";
+    public static final String W_LOG_SNAPSHOT_PROMOTE_CHECK_FAILED =
+            "Failed to check packaged snapshot [{}]: {}";
+    public static final String D_LOG_SNAPSHOT_PROMOTE_BROADCAST_DONE =
+            "Snapshot promote broadcast for [{}] completed: {} succeeded, {} failed.";
+    public static final String W_LOG_SNAPSHOT_PROMOTE_BROADCAST_FAILED =
+            "Snapshot promote broadcast for [{}] failed: {}";
+    public static final String I_LOG_ROLLBACK_FROM_STABLE =
+            "Remote snapshot failed for consumer [{}]. Rolling back from stable snapshot [{}].";
+    public static final String W_LOG_STABLE_ROLLBACK_FAILED =
+            "Stable snapshot rollback failed for consumer [{}]. Falling back to packaged snapshot [{}].";
     public static final String D_LOG_UPDATE_START =
             "Starting content update for consumer [{}] from [{}] to [{}]";
     public static final String E_LOG_UPDATE_FETCH_CHANGES_FAILED = "Failed to fetch changes: {} {}";
@@ -325,9 +340,6 @@ public class Constants {
             "Skipping DELETE for CVE resource [{}] (CVE removals are not applied).";
     public static final String W_LOG_UPDATE_UNSUPPORTED_OPERATION =
             "Unsupported JSON patch operation [{}]";
-    public static final String W_LOG_UPDATE_RESET_CONSUMER =
-            "Resetting consumer [{}] offset to 0 due to update failure.";
-    public static final String E_LOG_UPDATE_RESET_CONSUMER_FAILED = "Failed to reset consumer: {}";
     public static final String D_LOG_IOC_EXPORT_SKIPPED_TEST_ENV =
             "IOCs export skipped: test environment";
     public static final String D_LOG_IOC_TYPE_HASHES_STORED = "IOC type hashes stored successfully.";
@@ -691,6 +703,7 @@ public class Constants {
     public static final String IOC_SNAPSHOT_FILENAME = "iocs.zip";
     public static final String CVE_SNAPSHOT_FILENAME = "vulnerabilities.zip";
     public static final String MANIFEST_FILENAME = "manifest.json";
+    public static final String STABLE_SNAPSHOT_SUFFIX = ".stable.zip";
 
     // HTTP headers
     public static final String USER_AGENT_PREFIX = "Wazuh Indexer ";
