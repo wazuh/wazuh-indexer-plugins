@@ -66,6 +66,7 @@ public class SettingsIndexTests extends OpenSearchTestCase {
 
         when(this.client.prepareGet(SettingsIndex.INDEX_NAME, SettingsIndex.SETTINGS_ID))
                 .thenReturn(this.getRequestBuilder);
+        when(this.getRequestBuilder.setFetchSource(false)).thenReturn(this.getRequestBuilder);
         when(this.getRequestBuilder.get()).thenReturn(this.getResponse);
     }
 
