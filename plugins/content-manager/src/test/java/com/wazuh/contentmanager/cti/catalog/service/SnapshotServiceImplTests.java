@@ -619,113 +619,117 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         }
     }
 
-    public void testLazyCve_DocumentWrapperWithOffset() throws Exception {
+    public void testLazyEnvelope_DocumentWrapperWithOffset() throws Exception {
         String line =
                 "{\"resource\": \"CVE-2026-0001\", \"offset\": 5, \"payload\": {\"document\": "
                         + "{\"foo\": \"bar\", \"n\": 42, \"nested\": {\"a\": [1, 2, 3]}}}}";
         assertLazyMatchesBaseline(line);
 
-        SnapshotServiceImpl.LazyCveDocument result = this.snapshotService.parseLazyCve(line);
-        assertNotNull(result);
-        assertEquals("CVE-2026-0001", result.id);
+        SnapshotServiceImpl.LazyEnvelope result = this.snapshotService.parseLazyEnvelope(line);
+        assertTrue(result.hasPayload);
+        assertEquals("CVE-2026-0001", result.resourceName);
         assertTrue(result.hasOffset);
         assertEquals(5L, result.offset);
     }
 
-    public void testLazyCve_ResourceFromNameField() throws Exception {
+    public void testLazyEnvelope_ResourceFromNameField() throws Exception {
         String line =
                 "{\"name\": \"TID-123\", \"offset\": 1, \"payload\": {\"document\": {\"foo\": \"bar\"}}}";
         assertLazyMatchesBaseline(line);
-        assertEquals("TID-123", this.snapshotService.parseLazyCve(line).id);
+        assertEquals("TID-123", this.snapshotService.parseLazyEnvelope(line).resourceName);
     }
 
-    public void testLazyCve_NoOffsetPresent() throws Exception {
+    public void testLazyEnvelope_NoOffsetPresent() throws Exception {
         String line =
                 "{\"resource\": \"CVE-2026-0002\", \"payload\": {\"document\": {\"foo\": \"bar\"}}}";
         assertLazyMatchesBaseline(line);
         assertFalse(
                 "no offset field should not be persisted",
-                this.snapshotService.parseLazyCve(line).hasOffset);
+                this.snapshotService.parseLazyEnvelope(line).hasOffset);
     }
 
-    public void testLazyCve_DocumentContainingBracesAndQuotes() throws Exception {
-        // Braces and quotes inside string values must not confuse the raw offset slicing.
+    public void testLazyEnvelope_DocumentContainingBracesAndQuotes() throws Exception {
         String line =
                 "{\"resource\": \"CVE-2026-0003\", \"offset\": 9, \"payload\": {\"document\": "
                         + "{\"desc\": \"a } b { \\\"c\\\" }\", \"x\": 1}}}";
         assertLazyMatchesBaseline(line);
     }
 
-    public void testLazyCve_PrettyPrintedLine() throws Exception {
-        // Whitespace-formatted input: offsets and semantic equality must still hold.
+    public void testLazyEnvelope_PrettyPrintedLine() throws Exception {
         String line =
                 "{\n  \"resource\": \"CVE-2026-0004\",\n  \"offset\": 7,\n  \"payload\": {\n"
                         + "    \"document\": {\n      \"foo\": \"bar\",\n      \"list\": [ 1, 2 ]\n    }\n  }\n}";
         assertLazyMatchesBaseline(line);
     }
 
-    public void testLazyCve_ExtraEnvelopeFieldsIgnored() throws Exception {
+    public void testLazyEnvelope_ExtraEnvelopeFieldsIgnored() throws Exception {
         String line =
                 "{\"resource\": \"CVE-2026-0005\", \"version\": 3, \"context\": \"vd\", \"offset\": 2, "
                         + "\"payload\": {\"document\": {\"foo\": \"bar\"}}}";
         assertLazyMatchesBaseline(line);
     }
 
-    public void testLazyCve_FloatFidelityIsValueEqual() throws Exception {
-        // 1.50 (lazy, verbatim) vs 1.5 (full-tree, reformatted) -> numerically equal.
+    public void testLazyEnvelope_FloatFidelityIsValueEqual() throws Exception {
         String line =
                 "{\"resource\": \"CVE-2026-0006\", \"offset\": 4, \"payload\": {\"document\": "
                         + "{\"score\": 1.50}}}";
         assertLazyMatchesBaseline(line);
     }
 
-    public void testLazyCve_PayloadIsDocumentNoWrapper() throws Exception {
-        // Real CTI vulnerabilities shape: payload IS the CVE document (no "document" wrapper).
+    public void testLazyEnvelope_PayloadIsDocumentNoWrapper() throws Exception {
         String line =
                 "{\"name\": \"CVE-1999-0001\", \"offset\": 1, \"payload\": {\"containers\": {\"cna\":"
                         + " {\"title\": \"t\"}}, \"cveMetadata\": {\"cveId\": \"CVE-1999-0001\"},"
                         + " \"dataType\": \"CVE_RECORD\", \"dataVersion\": \"5.1\"}}";
         assertLazyMatchesBaseline(line);
-        SnapshotServiceImpl.LazyCveDocument result = this.snapshotService.parseLazyCve(line);
-        assertEquals("CVE-1999-0001", result.id);
+        SnapshotServiceImpl.LazyEnvelope result = this.snapshotService.parseLazyEnvelope(line);
+        assertEquals("CVE-1999-0001", result.resourceName);
         assertEquals(1L, result.offset);
     }
 
-    public void testLazyCve_GlobalResourceNoWrapper() throws Exception {
+    public void testLazyEnvelope_GlobalResourceNoWrapper() throws Exception {
         String line =
                 "{\"name\": \"FEED-GLOBAL\", \"offset\": 12, \"payload\": {\"vendors\": [\"a\", \"b\"]}}";
         assertLazyMatchesBaseline(line);
     }
 
-    public void testLazyCve_FallbackOnUnknownResourcePattern() throws Exception {
+    public void testLazyEnvelope_NonCveResourceParsesFields() throws Exception {
         String line =
-                "{\"resource\": \"NOT-A-CVE\", \"offset\": 1, \"payload\": {\"document\": {\"foo\": \"bar\"}}}";
-        assertNull("unknown resource pattern must fall back", this.snapshotService.parseLazyCve(line));
+                "{\"resource\": \"NOT-A-CVE\", \"offset\": 1, \"payload\": {\"type\": \"rule\","
+                        + " \"document\": {\"foo\": \"bar\"}}}";
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        assertTrue(env.hasPayload);
+        assertEquals("NOT-A-CVE", env.resourceName);
+        assertEquals("rule", env.type);
+        assertNotNull("document must be captured as raw string", env.documentRaw);
+        assertNull("non-CVE resource should not use CVE fast path", Cve.deriveType(env.resourceName));
     }
 
-    public void testLazyCve_FallbackNoWrapperWithTypeKey() throws Exception {
+    public void testLazyEnvelope_NoWrapperWithTypeKey() throws Exception {
         String line =
                 "{\"resource\": \"CVE-2026-0007\", \"offset\": 1, \"payload\": {\"type\": \"x\","
                         + " \"foo\": \"bar\"}}";
-        assertNull(
-                "no-wrapper payload with a type key must fall back",
-                this.snapshotService.parseLazyCve(line));
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        assertTrue(env.hasPayload);
+        assertEquals("x", env.type);
+        assertNull("no document key and structural type present -> documentRaw null", env.documentRaw);
     }
 
-    public void testLazyCve_FallbackWhenNoPayload() throws Exception {
+    public void testLazyEnvelope_NoPayload() throws Exception {
         String line = "{\"resource\": \"CVE-2026-0008\", \"offset\": 1}";
-        assertNull("missing payload must fall back", this.snapshotService.parseLazyCve(line));
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        assertFalse("missing payload must set hasPayload false", env.hasPayload);
     }
 
-    public void testLazyCve_FallbackWhenNotAnObject() throws Exception {
-        assertNull(this.snapshotService.parseLazyCve("[1, 2, 3]"));
+    public void testLazyEnvelope_NonObjectLineHasNoPayload() throws Exception {
+        assertFalse(this.snapshotService.parseLazyEnvelope("[1, 2, 3]").hasPayload);
     }
 
     /**
-     * End-to-end: a CVE-only service must ingest a real-shape CVE line through the lazy fast path —
-     * bypassing {@code processPayload} entirely — and index a correctly-shaped document.
+     * End-to-end: a CVE-pattern resource must be ingested through the lazy fast path — bypassing
+     * {@code processPayload} entirely — and index a correctly-shaped document.
      */
-    public void testLazyCve_EndToEndBypassesProcessPayload() throws Exception {
+    public void testLazyEnvelope_EndToEndBypassesProcessPayload() throws Exception {
         Map<String, ContentIndex> cveMap = new HashMap<>();
         cveMap.put("cves", this.contentIndexMock);
         SnapshotServiceImpl svc =
@@ -741,7 +745,6 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         svc.initialize(zip, null);
 
-        // Fast path must bypass the resource-model transformation entirely.
         verify(this.contentIndexMock, never()).processPayload(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
@@ -755,39 +758,50 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
-     * The streaming envelope parse must extract the same {@code resource}/{@code name}, {@code
-     * offset} and {@code payload} that the previous {@code readTree(line)} approach did — the payload
-     * subtree is what every per-type transform consumes.
+     * The lazy envelope parse must produce a synthetic payload equivalent to the previous full-tree
+     * {@code readValueAsTree} approach for non-CVE document types.
      */
-    public void testParseEnvelope_MatchesReadTree() throws Exception {
+    public void testLazyEnvelope_ToPayloadNodeMatchesReadTree() throws Exception {
         String line =
                 "{\"name\": \"rule-1\", \"version\": 4, \"offset\": 42, \"payload\": {\"type\": \"rule\","
                         + " \"document\": {\"id\": \"R1\", \"related\": {\"sigma_id\": \"S-1\"}}}}";
-        SnapshotServiceImpl.Envelope env = this.snapshotService.parseEnvelope(line);
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
         assertEquals("rule-1", env.resourceName);
         assertTrue(env.hasOffset);
         assertEquals(42L, env.offset);
         assertTrue(env.hasPayload);
-        assertEquals(this.plain.readTree(line).get("payload"), env.payload);
+        assertEquals("rule", env.type);
+
+        ObjectNode syntheticPayload = env.toPayloadNode(this.plain);
+
+        JsonNode expectedPayload = this.plain.readTree(line).get("payload");
+        if (env.hasOffset) {
+            ((ObjectNode) expectedPayload).put("offset", env.offset);
+        }
+        assertTrue(
+                "synthetic payload must match full-tree payload",
+                semanticallyEqual(expectedPayload, syntheticPayload));
     }
 
-    public void testParseEnvelope_ResourceTakesPrecedenceOverName() throws Exception {
+    public void testLazyEnvelope_ResourceTakesPrecedenceOverName() throws Exception {
         String line =
                 "{\"resource\": \"res-1\", \"name\": \"name-1\", \"payload\": {\"type\": \"kvdb\"}}";
-        SnapshotServiceImpl.Envelope env = this.snapshotService.parseEnvelope(line);
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
         assertEquals("res-1", env.resourceName);
         assertFalse(env.hasOffset);
         assertTrue(env.hasPayload);
+        assertEquals("kvdb", env.type);
     }
 
-    public void testParseEnvelope_NoPayload() throws Exception {
-        SnapshotServiceImpl.Envelope env =
-                this.snapshotService.parseEnvelope("{\"name\": \"x\", \"offset\": 1}");
-        assertFalse("no payload field -> hasPayload false", env.hasPayload);
-    }
-
-    public void testParseEnvelope_NonObjectLineHasNoPayload() throws Exception {
-        assertFalse(this.snapshotService.parseEnvelope("[1, 2, 3]").hasPayload);
+    public void testLazyEnvelope_StreamsSpaceField() throws Exception {
+        String line =
+                "{\"resource\": \"r-1\", \"payload\": {\"type\": \"rule\","
+                        + " \"document\": {\"id\": \"R1\"},"
+                        + " \"space\": {\"name\": \"custom\"}}}";
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        assertEquals("custom", env.spaceName);
+        ObjectNode payload = env.toPayloadNode(this.plain);
+        assertEquals("custom", payload.get("space").get("name").asText());
     }
 
     /**
@@ -814,10 +828,13 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     private void assertLazyMatchesBaseline(String line) throws Exception {
-        SnapshotServiceImpl.LazyCveDocument result = this.snapshotService.parseLazyCve(line);
-        assertNotNull("expected fast path to handle: " + line, result);
+        SnapshotServiceImpl.LazyEnvelope result = this.snapshotService.parseLazyEnvelope(line);
+        assertTrue("expected lazy envelope to have payload: " + line, result.hasPayload);
+        assertNotNull("expected documentRaw to be captured: " + line, result.documentRaw);
+        String cveType = Cve.deriveType(result.resourceName);
+        assertNotNull("expected CVE-pattern resource: " + result.resourceName, cveType);
         JsonNode expected = this.cti.readTree(baselineStoredDocument(line));
-        JsonNode actual = this.cti.readTree(result.toStoredDocument());
+        JsonNode actual = this.cti.readTree(result.toCveStoredDocument(cveType));
         assertTrue(
                 "lazy output differs from baseline.\n  baseline=" + expected + "\n  lazy    =" + actual,
                 semanticallyEqual(expected, actual));
