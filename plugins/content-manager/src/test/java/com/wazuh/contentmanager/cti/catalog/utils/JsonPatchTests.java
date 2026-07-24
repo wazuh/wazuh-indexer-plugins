@@ -283,4 +283,50 @@ public class JsonPatchTests extends OpenSearchTestCase {
                         });
         Assert.assertEquals("Unsupported JSON Patch operation: unsupported", exception.getMessage());
     }
+
+    /** Test that removing a missing field is a no-op instead of throwing. */
+    public void testApplyOperationRemoveMissingField() {
+        ObjectNode document = this.mapper.createObjectNode();
+        document.put("existing", "value");
+
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "remove");
+        operation.put(Operation.PATH, "/nonexistent");
+        JsonPatch.applyOperation(document, operation);
+
+        Assert.assertTrue(document.has("existing"));
+        Assert.assertFalse(document.has("nonexistent"));
+    }
+
+    /** Test that removing an out-of-bounds array index is a no-op instead of throwing. */
+    public void testApplyOperationRemoveArrayOutOfBounds() {
+        ObjectNode document = this.mapper.createObjectNode();
+        ArrayNode array = this.mapper.createArrayNode();
+        array.add("a");
+        array.add("b");
+        document.set("arr", array);
+
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "remove");
+        operation.put(Operation.PATH, "/arr/5");
+        JsonPatch.applyOperation(document, operation);
+
+        ArrayNode updatedArray = (ArrayNode) document.get("arr");
+        Assert.assertEquals(2, updatedArray.size());
+        Assert.assertEquals("a", updatedArray.get(0).asText());
+        Assert.assertEquals("b", updatedArray.get(1).asText());
+    }
+
+    /** Test that removing a path whose parent does not exist is a no-op instead of throwing. */
+    public void testApplyOperationRemoveMissingParent() {
+        ObjectNode document = this.mapper.createObjectNode();
+        document.put("existing", "value");
+
+        ObjectNode operation = this.mapper.createObjectNode();
+        operation.put(Operation.OP, "remove");
+        operation.put(Operation.PATH, "/a/b/c");
+        JsonPatch.applyOperation(document, operation);
+
+        Assert.assertTrue(document.has("existing"));
+    }
 }

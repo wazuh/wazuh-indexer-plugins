@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
+import com.wazuh.contentmanager.action.PromoteSnapshotAction;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
@@ -52,6 +53,7 @@ import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.transport.TransportPromoteSnapshotAction;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.UrlUtils;
 
@@ -70,6 +72,7 @@ import com.wazuh.contentmanager.utils.UrlUtils;
  */
 public abstract class AbstractConsumerService {
     private static final Logger log = LogManager.getLogger(AbstractConsumerService.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** The OpenSearch client used for index operations. */
     protected final Client client;
@@ -228,8 +231,7 @@ public abstract class AbstractConsumerService {
                 log.debug(Constants.D_LOG_CONSUMER_DOC_ABSENT, consumerType, status);
                 return;
             }
-            LocalConsumer current =
-                    new ObjectMapper().readValue(response.getSourceAsString(), LocalConsumer.class);
+            LocalConsumer current = MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class);
             LocalConsumer updated =
                     new LocalConsumer(
                             current.getContext(),
@@ -258,8 +260,7 @@ public abstract class AbstractConsumerService {
             if (response == null || !response.isExists()) {
                 return null;
             }
-            LocalConsumer current =
-                    new ObjectMapper().readValue(response.getSourceAsString(), LocalConsumer.class);
+            LocalConsumer current = MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class);
             String resource = current.getResource();
             return (resource != null && !resource.isBlank()) ? resource : null;
         } catch (Exception e) {
@@ -497,36 +498,45 @@ public abstract class AbstractConsumerService {
 
         // Build URL resolver based on registration status
         ResourceUrlResolver urlResolver;
+        TokenExchangeServiceImpl tokenExchangeService = null;
         if (PluginSettings.getInstance().isRegistered()) {
             log.debug(Constants.D_LOG_SIGNED_URL_RESOLVER, consumerType);
+            tokenExchangeService = new TokenExchangeServiceImpl();
             urlResolver =
                     new SignedUrlResolver(
-                            new TokenExchangeServiceImpl(), PluginSettings.getInstance().getAccessToken());
+                            tokenExchangeService, PluginSettings.getInstance().getAccessToken());
         } else {
             log.debug(Constants.D_LOG_REGULAR_URL_RESOLVER, consumerType);
             urlResolver = new RegularUrlResolver();
         }
-
-        ConsumerService consumerService =
-                this.consumerServiceOverride != null
-                        ? this.consumerServiceOverride
-                        : new ConsumerServiceImpl(
-                                context,
-                                consumer,
-                                consumerType,
-                                catalogUri,
-                                this.consumersIndex,
-                                new ApiClient(urlResolver));
-        // The consumerService and urlResolver each own an HTTP client whose I/O reactor starts
-        // selector threads holding epoll/eventfd descriptors. They must be closed on every exit
-        // path (including exceptions) or the process leaks FDs on each sync (issue #1763). The
-        // injected test override is owned by the caller, so it must not be closed here.
-        boolean ownsConsumerService = this.consumerServiceOverride == null;
         try {
-            LocalConsumer localConsumer = consumerService.getLocalConsumer();
+
+            LocalConsumer localConsumer;
             boolean catalogConfigured = catalogUri != null && !catalogUri.isBlank();
-            RemoteConsumer remoteConsumer =
-                    catalogConfigured ? consumerService.getRemoteConsumer() : null;
+            RemoteConsumer remoteConsumer;
+            ConsumerServiceImpl ownedConsumerService = null;
+            try {
+                ConsumerService consumerService;
+                if (this.consumerServiceOverride != null) {
+                    consumerService = this.consumerServiceOverride;
+                } else {
+                    ownedConsumerService =
+                            new ConsumerServiceImpl(
+                                    context,
+                                    consumer,
+                                    consumerType,
+                                    catalogUri,
+                                    this.consumersIndex,
+                                    new ApiClient(urlResolver));
+                    consumerService = ownedConsumerService;
+                }
+                localConsumer = consumerService.getLocalConsumer();
+                remoteConsumer = catalogConfigured ? consumerService.getRemoteConsumer() : null;
+            } finally {
+                if (ownedConsumerService != null) {
+                    ownedConsumerService.close();
+                }
+            }
 
             // A configured catalog whose remote consumer could not be fetched signals an unreachable
             // feed. The pass still completes (falling back to the local snapshot / applying no remote
@@ -629,7 +639,13 @@ public abstract class AbstractConsumerService {
                         this.snapshotServiceOverride != null
                                 ? this.snapshotServiceOverride
                                 : new SnapshotServiceImpl(
-                                        consumerType, indicesMap, this.consumersIndex, this.environment, urlResolver);
+                                        consumerType,
+                                        indicesMap,
+                                        this.consumersIndex,
+                                        this.environment,
+                                        urlResolver,
+                                        snapshotsDir,
+                                        this.getSnapshotFilename());
 
                 // When a catalog URL is available, prefer remote initialization and fall back to local
                 // snapshot on failure. The catalog URL comes from the configured setting, or from a
@@ -672,17 +688,51 @@ public abstract class AbstractConsumerService {
                         if (snapshotExists) {
                             SnapshotServiceImpl.deleteSnapshot(localSnapshot);
                         }
-                    } else if (snapshotExists) {
-                        log.warn(Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_FALLBACK, consumerType, localSnapshot);
-                        boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
-                        if (localSuccess) {
-                            currentOffset = snapshotService.getMaxOffsetSeen();
-                            updated = true;
-                        } else {
-                            log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_FALLBACK_FAILED, consumerType);
-                        }
                     } else {
-                        log.warn(Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_NO_LOCAL, consumerType, localSnapshot);
+                        // Three-tier fallback: stable snapshot -> packaged local -> give up
+                        Path stableSnapshot = snapshotService.getStablePath();
+                        boolean stableExists = false;
+                        if (stableSnapshot != null) {
+                            try {
+                                final Path stableFinal = stableSnapshot;
+                                stableExists =
+                                        AccessController.doPrivilegedChecked(() -> Files.exists(stableFinal));
+                            } catch (Exception e) {
+                                log.debug(
+                                        "Failed to check stable snapshot [{}]: {}", stableSnapshot, e.getMessage());
+                            }
+                        }
+
+                        if (stableExists) {
+                            log.warn(Constants.I_LOG_ROLLBACK_FROM_STABLE, consumerType, stableSnapshot);
+                            boolean rollbackSuccess = snapshotService.initialize(stableSnapshot, manifestEntry);
+                            if (rollbackSuccess) {
+                                currentOffset = snapshotService.getMaxOffsetSeen();
+                                updated = true;
+                            } else if (snapshotExists) {
+                                log.warn(Constants.W_LOG_STABLE_ROLLBACK_FAILED, consumerType, localSnapshot);
+                                boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
+                                if (localSuccess) {
+                                    currentOffset = snapshotService.getMaxOffsetSeen();
+                                    updated = true;
+                                } else {
+                                    log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_FALLBACK_FAILED, consumerType);
+                                }
+                            }
+                        } else if (snapshotExists) {
+                            log.warn(
+                                    Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_FALLBACK, consumerType, localSnapshot);
+                            boolean localSuccess = snapshotService.initialize(localSnapshot, manifestEntry);
+                            if (localSuccess) {
+                                currentOffset = snapshotService.getMaxOffsetSeen();
+                                updated = true;
+                            } else {
+                                log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_FALLBACK_FAILED, consumerType);
+                            }
+                        } else {
+                            log.warn(
+                                    Constants.W_LOG_REMOTE_SNAPSHOT_FAILED_NO_LOCAL, consumerType, localSnapshot);
+                        }
                     }
                 } else if (snapshotExists) {
                     if (hasEffectiveCatalog) {
@@ -707,35 +757,69 @@ public abstract class AbstractConsumerService {
                     } else {
                         log.error(Constants.E_LOG_LOCAL_SNAPSHOT_INIT_FAILED, consumerType);
                     }
-                } else if (hasEffectiveCatalog) {
-                    log.error(
-                            Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_REACH, consumerType, localSnapshot);
                 } else {
-                    log.error(
-                            Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_CONFIG, consumerType, localSnapshot);
+                    Path stableSnapshot = snapshotService.getStablePath();
+                    boolean stableExists = false;
+                    if (stableSnapshot != null) {
+                        try {
+                            final Path stableFinal = stableSnapshot;
+                            stableExists = AccessController.doPrivilegedChecked(() -> Files.exists(stableFinal));
+                        } catch (Exception e) {
+                            log.debug("Failed to check stable snapshot [{}]: {}", stableSnapshot, e.getMessage());
+                        }
+                    }
+
+                    if (stableExists) {
+                        log.info(Constants.I_LOG_ROLLBACK_FROM_STABLE, consumerType, stableSnapshot);
+                        boolean rollbackSuccess = snapshotService.initialize(stableSnapshot, manifestEntry);
+                        if (rollbackSuccess) {
+                            currentOffset = snapshotService.getMaxOffsetSeen();
+                            updated = true;
+                        } else {
+                            log.error(Constants.E_LOG_LOCAL_SNAPSHOT_INIT_FAILED, consumerType);
+                        }
+                    } else if (hasEffectiveCatalog) {
+                        log.error(
+                                Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_REACH, consumerType, localSnapshot);
+                    } else {
+                        log.error(
+                                Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_CONFIG, consumerType, localSnapshot);
+                    }
                 }
             }
 
-            // Incremental Update
+            if (updated && snapshotsDir != null) {
+                this.broadcastSnapshotPromote(this.getSnapshotFilename());
+            }
+
+            // Incremental Update — skip when no snapshot was loaded and the gap spans the full
+            // catalog, since fetching all changes incrementally from offset 0 will always exceed the
+            // request timeout (issue #1383).
             if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
-                updated =
-                        this.performIncrementalUpdate(
-                                context,
-                                consumer,
-                                consumerType,
-                                catalogUri,
-                                urlResolver,
-                                indicesMap,
-                                currentOffset,
-                                remoteConsumer.getOffset());
+                if (currentOffset == 0 && !updated) {
+                    log.warn(
+                            "Skipping incremental update for [{}]: no snapshot loaded,"
+                                    + " full catalog gap [0 -> {}] would timeout",
+                            consumerType,
+                            remoteConsumer.getOffset());
+                } else {
+                    updated =
+                            this.performIncrementalUpdate(
+                                    context,
+                                    consumer,
+                                    consumerType,
+                                    catalogUri,
+                                    urlResolver,
+                                    indicesMap,
+                                    currentOffset,
+                                    remoteConsumer.getOffset());
+                }
             }
             return new SyncResult(updated, feedUnreachable);
         } finally {
-            if (ownsConsumerService) {
-                consumerService.close();
+            if (tokenExchangeService != null) {
+                tokenExchangeService.close();
             }
-            // SignedUrlResolver closes its token-exchange client; RegularUrlResolver.close() is a no-op.
-            urlResolver.close();
         }
     }
 
@@ -743,9 +827,8 @@ public abstract class AbstractConsumerService {
      * Fetches and applies incremental changes from the CTI API between the given offsets and persists
      * the resulting consumer state. Shared by the regular sync path and the post-swap catch-up: a
      * swapped snapshot only carries data up to its snapshot offset, so the remaining changes up to
-     * the remote head must be applied in the same pass. Failures propagate to the caller, matching
-     * the regular sync path semantics ({@link UpdateServiceImpl#update} resets the consumer before
-     * rethrowing).
+     * the remote head must be applied in the same pass. Failures propagate to the caller; {@link
+     * UpdateServiceImpl#update} persists batch-level checkpoints so progress survives.
      *
      * @param context The CTI context name.
      * @param consumer The CTI consumer name.
@@ -802,7 +885,7 @@ public abstract class AbstractConsumerService {
             }
 
             byte[] bytes = AccessController.doPrivilegedChecked(() -> Files.readAllBytes(manifestPath));
-            JsonNode root = new ObjectMapper().readTree(bytes);
+            JsonNode root = MAPPER.readTree(bytes);
             String snapshotFilename = this.getSnapshotFilename();
             JsonNode entry = root.get(snapshotFilename);
             if (entry == null || entry.isNull()) {
@@ -816,6 +899,42 @@ public abstract class AbstractConsumerService {
         } catch (Exception e) {
             log.error(Constants.E_LOG_MANIFEST_READ_FAILED, manifestPath, e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Broadcasts a snapshot-promote request to every node in the cluster so each node moves its local
+     * packaged snapshot to the stable path. Fire-and-forget: failures are logged but do not block the
+     * synchronization.
+     *
+     * @param snapshotFilename the snapshot filename to promote (e.g., "ruleset.zip").
+     */
+    private void broadcastSnapshotPromote(String snapshotFilename) {
+        try {
+            TransportPromoteSnapshotAction.NodesRequest request =
+                    new TransportPromoteSnapshotAction.NodesRequest(snapshotFilename);
+            this.client.execute(
+                    PromoteSnapshotAction.INSTANCE,
+                    request,
+                    ActionListener.wrap(
+                            response -> {
+                                long succeeded =
+                                        response.getNodes().stream()
+                                                .filter(TransportPromoteSnapshotAction.NodeResponse::isSuccess)
+                                                .count();
+                                log.debug(
+                                        Constants.D_LOG_SNAPSHOT_PROMOTE_BROADCAST_DONE,
+                                        snapshotFilename,
+                                        succeeded,
+                                        response.failures().size());
+                            },
+                            e ->
+                                    log.warn(
+                                            Constants.W_LOG_SNAPSHOT_PROMOTE_BROADCAST_FAILED,
+                                            snapshotFilename,
+                                            e.getMessage())));
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_SNAPSHOT_PROMOTE_BROADCAST_FAILED, snapshotFilename, e.getMessage());
         }
     }
 

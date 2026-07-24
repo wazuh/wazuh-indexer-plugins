@@ -80,18 +80,38 @@ public class ConsumersIndex {
      */
     public IndexResponse setConsumer(LocalConsumer consumer)
             throws ExecutionException, InterruptedException, TimeoutException, IOException {
-        // Avoid faulty requests if the cluster is unstable.
-        if (!ClusterInfo.indexStatusCheck(
-                this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
+        return this.setConsumer(consumer, false);
+    }
+
+    /**
+     * Persists a consumer document to the index.
+     *
+     * @param consumer The consumer to persist.
+     * @param lightweight When true, skips the cluster health check and uses {@link
+     *     WriteRequest.RefreshPolicy#NONE} for faster batch checkpoint writes.
+     * @return The index response.
+     * @throws ExecutionException If the client failed to execute the request.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException If the operation exceeded the configured client timeout.
+     * @throws IOException If there is an error serializing the consumer to XContent.
+     * @throws RuntimeException If the target index is not currently ready or available.
+     */
+    public IndexResponse setConsumer(LocalConsumer consumer, boolean lightweight)
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
+        if (!lightweight
+                && !ClusterInfo.indexStatusCheck(
+                        this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
             throw new RuntimeException("Index not ready");
         }
         String id = consumer.getType();
+        WriteRequest.RefreshPolicy refreshPolicy =
+                lightweight ? WriteRequest.RefreshPolicy.NONE : WriteRequest.RefreshPolicy.IMMEDIATE;
         IndexRequest request =
                 new IndexRequest()
                         .index(INDEX_NAME)
                         .id(id)
                         .source(consumer.toXContent())
-                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                        .setRefreshPolicy(refreshPolicy);
 
         return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }

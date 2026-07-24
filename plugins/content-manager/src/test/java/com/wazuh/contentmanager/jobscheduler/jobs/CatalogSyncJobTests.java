@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.jobscheduler.jobs;
 import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.env.Environment;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.test.OpenSearchTestCase;
@@ -75,6 +76,9 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
+
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        when(this.threadPool.getThreadContext()).thenReturn(threadContext);
 
         this.catalogSyncJob =
                 new CatalogSyncJob(
