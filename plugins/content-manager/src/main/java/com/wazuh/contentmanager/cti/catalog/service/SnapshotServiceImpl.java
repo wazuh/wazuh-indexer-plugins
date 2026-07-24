@@ -601,8 +601,8 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         /**
          * Returns the document as an ObjectNode, lazily parsing {@link #documentRaw} on first call. The
-         * returned node is a fresh parse (not shared with any other tree), so callers may mutate it in
-         * place.
+         * result is cached and returned on subsequent calls, so callers must not mutate it if they
+         * intend to call this method again.
          */
         ObjectNode getDocumentNode(ObjectMapper mapper) throws IOException {
             if (this.documentNode == null && this.documentRaw != null) {

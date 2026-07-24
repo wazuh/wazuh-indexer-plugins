@@ -51,6 +51,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -444,7 +445,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         SnapshotServiceImpl cveSnapshotService =
                 new SnapshotServiceImpl(
-                        "cti:catalog:consumer:vulnerabilities",
+                        Constants.CONSUMER_TYPE_VULNERABILITIES,
                         cveOnlyMap,
                         this.consumersIndex,
                         this.environment);
@@ -734,7 +735,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         cveMap.put("cves", this.contentIndexMock);
         SnapshotServiceImpl svc =
                 new SnapshotServiceImpl(
-                        "cti:catalog:consumer:vulnerabilities", cveMap, this.consumersIndex, this.environment);
+                        Constants.CONSUMER_TYPE_VULNERABILITIES, cveMap, this.consumersIndex, this.environment);
         svc.setSnapshotClient(this.snapshotClient);
         when(this.contentIndexMock.getWriteIndex()).thenReturn(".wazuh-threatintel-vulnerabilities");
 
@@ -752,9 +753,11 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
         assertEquals("CVE-2026-1234", request.id());
         JsonNode stored = this.cti.readTree(request.source().utf8ToString());
-        assertEquals("CVE", stored.get("type").asText());
-        assertEquals(7L, stored.get("offset").asLong());
-        assertTrue("document must carry the raw CVE body", stored.get("document").has("containers"));
+        assertEquals("CVE", stored.get(Constants.KEY_TYPE).asText());
+        assertEquals(7L, stored.get(Constants.KEY_OFFSET).asLong());
+        assertTrue(
+                "document must carry the raw CVE body",
+                stored.get(Constants.KEY_DOCUMENT).has("containers"));
     }
 
     /**
@@ -774,9 +777,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         ObjectNode syntheticPayload = env.toPayloadNode(this.plain);
 
-        JsonNode expectedPayload = this.plain.readTree(line).get("payload");
+        JsonNode expectedPayload = this.plain.readTree(line).get(Constants.KEY_PAYLOAD);
         if (env.hasOffset) {
-            ((ObjectNode) expectedPayload).put("offset", env.offset);
+            ((ObjectNode) expectedPayload).put(Constants.KEY_OFFSET, env.offset);
         }
         assertTrue(
                 "synthetic payload must match full-tree payload",
@@ -801,7 +804,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
         assertEquals("custom", env.spaceName);
         ObjectNode payload = env.toPayloadNode(this.plain);
-        assertEquals("custom", payload.get("space").get("name").asText());
+        assertEquals("custom", payload.get(Constants.KEY_SPACE).get(Constants.KEY_NAME).asText());
     }
 
     /**
@@ -811,17 +814,17 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
      */
     private String baselineStoredDocument(String line) throws Exception {
         JsonNode root = this.plain.readTree(line);
-        JsonNode payload = root.get("payload");
+        JsonNode payload = root.get(Constants.KEY_PAYLOAD);
         String resourceName =
-                root.has("resource")
-                        ? root.get("resource").asText()
-                        : (root.has("name") ? root.get("name").asText() : null);
+                root.has(Constants.KEY_RESOURCE)
+                        ? root.get(Constants.KEY_RESOURCE).asText()
+                        : (root.has(Constants.KEY_NAME) ? root.get(Constants.KEY_NAME).asText() : null);
         String cveType = Cve.deriveType(resourceName);
-        if (root.has("offset") && payload.isObject()) {
-            ((ObjectNode) payload).put("offset", root.get("offset").asLong());
+        if (root.has(Constants.KEY_OFFSET) && payload.isObject()) {
+            ((ObjectNode) payload).put(Constants.KEY_OFFSET, root.get(Constants.KEY_OFFSET).asLong());
         }
         if (cveType != null && payload.isObject()) {
-            ((ObjectNode) payload).put("type", cveType);
+            ((ObjectNode) payload).put(Constants.KEY_TYPE, cveType);
         }
         Cve cve = Cve.fromPayload(payload);
         return this.cti.valueToTree(cve).toString();

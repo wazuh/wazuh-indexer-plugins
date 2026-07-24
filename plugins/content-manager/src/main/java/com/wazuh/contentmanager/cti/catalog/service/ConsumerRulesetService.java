@@ -92,7 +92,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
     @Override
     protected String getConsumerType() {
-        return "cti:catalog:consumer:ruleset";
+        return Constants.CONSUMER_TYPE_RULESET;
     }
 
     @Override
