@@ -317,8 +317,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                         if (Constants.KEY_CVES.equals(type) && cveType != null) {
                             syntheticPayload.put(Constants.KEY_TYPE, cveType);
                         }
-                        ObjectNode processedPayload = indexHandler.processPayload(syntheticPayload);
-                        sourceJson = processedPayload.toString();
+                        sourceJson = indexHandler.processPayloadToString(syntheticPayload);
                     }
 
                     IndexRequest indexRequest =
@@ -327,6 +326,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                                     .id(envelope.resourceName);
 
                     bulkRequest.add(indexRequest);
+                    envelope = null;
                     docCount++;
 
                     if (docCount >= this.pluginSettings.getMaxItemsPerBulk()
