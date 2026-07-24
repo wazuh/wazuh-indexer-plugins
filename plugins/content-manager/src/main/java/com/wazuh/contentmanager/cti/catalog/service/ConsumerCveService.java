@@ -45,7 +45,7 @@ public class ConsumerCveService extends AbstractConsumerService {
 
     @Override
     protected String getConsumerType() {
-        return "cti:catalog:consumer:vulnerabilities";
+        return Constants.CONSUMER_TYPE_VULNERABILITIES;
     }
 
     @Override

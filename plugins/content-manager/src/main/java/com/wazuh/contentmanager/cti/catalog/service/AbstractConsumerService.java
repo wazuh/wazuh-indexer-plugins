@@ -72,6 +72,7 @@ import com.wazuh.contentmanager.utils.UrlUtils;
  */
 public abstract class AbstractConsumerService {
     private static final Logger log = LogManager.getLogger(AbstractConsumerService.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** The OpenSearch client used for index operations. */
     protected final Client client;
@@ -230,8 +231,7 @@ public abstract class AbstractConsumerService {
                 log.debug(Constants.D_LOG_CONSUMER_DOC_ABSENT, consumerType, status);
                 return;
             }
-            LocalConsumer current =
-                    new ObjectMapper().readValue(response.getSourceAsString(), LocalConsumer.class);
+            LocalConsumer current = MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class);
             LocalConsumer updated =
                     new LocalConsumer(
                             current.getContext(),
@@ -260,8 +260,7 @@ public abstract class AbstractConsumerService {
             if (response == null || !response.isExists()) {
                 return null;
             }
-            LocalConsumer current =
-                    new ObjectMapper().readValue(response.getSourceAsString(), LocalConsumer.class);
+            LocalConsumer current = MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class);
             String resource = current.getResource();
             return (resource != null && !resource.isBlank()) ? resource : null;
         } catch (Exception e) {
@@ -886,7 +885,7 @@ public abstract class AbstractConsumerService {
             }
 
             byte[] bytes = AccessController.doPrivilegedChecked(() -> Files.readAllBytes(manifestPath));
-            JsonNode root = new ObjectMapper().readTree(bytes);
+            JsonNode root = MAPPER.readTree(bytes);
             String snapshotFilename = this.getSnapshotFilename();
             JsonNode entry = root.get(snapshotFilename);
             if (entry == null || entry.isNull()) {

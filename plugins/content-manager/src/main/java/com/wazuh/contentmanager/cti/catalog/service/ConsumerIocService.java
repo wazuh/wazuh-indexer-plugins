@@ -91,7 +91,7 @@ public class ConsumerIocService extends AbstractConsumerService {
 
     @Override
     protected String getConsumerType() {
-        return "cti:catalog:consumer:iocs";
+        return Constants.CONSUMER_TYPE_IOCS;
     }
 
     @Override
