@@ -50,7 +50,7 @@ public class IocTests extends OpenSearchTestCase {
     }
 
     /** Test fromPayload with a complete IoC payload matching the CTI structure. */
-    public void testFromPayload_CompletePayload() {
+    public void testFromPayload_CompletePayload() throws Exception {
         // Arrange
         ObjectNode payload = this.buildCompletePayload();
 
@@ -92,7 +92,7 @@ public class IocTests extends OpenSearchTestCase {
     }
 
     /** Test that offset is extracted from the payload and stored at root level. */
-    public void testFromPayload_OffsetExtracted() {
+    public void testFromPayload_OffsetExtracted() throws Exception {
         // Arrange
         ObjectNode payload = this.buildCompletePayload();
         payload.put("offset", 42L);
@@ -106,7 +106,7 @@ public class IocTests extends OpenSearchTestCase {
     }
 
     /** Test that offset is serialized at the root level in the output JSON. */
-    public void testFromPayload_OffsetSerializedAtRoot() {
+    public void testFromPayload_OffsetSerializedAtRoot() throws Exception {
         // Arrange
         ObjectNode payload = this.buildCompletePayload();
         payload.put("offset", 99L);
@@ -121,7 +121,7 @@ public class IocTests extends OpenSearchTestCase {
     }
 
     /** Test that offset is null when not present in the payload. */
-    public void testFromPayload_OffsetNullWhenMissing() {
+    public void testFromPayload_OffsetNullWhenMissing() throws Exception {
         // Arrange
         ObjectNode payload = this.buildCompletePayload();
 
@@ -137,7 +137,7 @@ public class IocTests extends OpenSearchTestCase {
     }
 
     /** Test that serializing an Ioc back to JSON produces the correct nested structure. */
-    public void testRoundTrip_SerializationPreservesNestedStructure() {
+    public void testRoundTrip_SerializationPreservesNestedStructure() throws Exception {
         // Arrange
         ObjectNode payload = this.buildCompletePayload();
 
@@ -163,7 +163,7 @@ public class IocTests extends OpenSearchTestCase {
     }
 
     /** Test fromPayload with null values for optional fields. */
-    public void testFromPayload_NullOptionalFields() {
+    public void testFromPayload_NullOptionalFields() throws Exception {
         // Arrange
         ObjectNode document = this.mapper.createObjectNode();
         document.put("id", "12345");
@@ -189,7 +189,7 @@ public class IocTests extends OpenSearchTestCase {
     }
 
     /** Test fromPayload with an empty document. */
-    public void testFromPayload_EmptyDocument() {
+    public void testFromPayload_EmptyDocument() throws Exception {
         // Arrange
         ObjectNode payload = this.mapper.createObjectNode();
         payload.set("document", this.mapper.createObjectNode());
@@ -219,9 +219,9 @@ public class IocTests extends OpenSearchTestCase {
         payload.set("document", document);
 
         // Act & Assert
-        IllegalArgumentException exception =
+        com.fasterxml.jackson.core.JsonProcessingException exception =
                 expectThrows(
-                        IllegalArgumentException.class,
+                        com.fasterxml.jackson.core.JsonProcessingException.class,
                         () -> {
                             Ioc.fromPayload(payload);
                         });
@@ -230,7 +230,7 @@ public class IocTests extends OpenSearchTestCase {
     }
 
     /** Test fromPayload with minimal payload (only required structure). */
-    public void testFromPayload_MinimalPayload() {
+    public void testFromPayload_MinimalPayload() throws Exception {
         // Arrange
         ObjectNode payload = this.mapper.createObjectNode();
 
@@ -243,7 +243,7 @@ public class IocTests extends OpenSearchTestCase {
     }
 
     /** Test that confidence is deserialized as Long. */
-    public void testFromPayload_ConfidenceAsLong() {
+    public void testFromPayload_ConfidenceAsLong() throws Exception {
         // Arrange
         ObjectNode document = this.mapper.createObjectNode();
         document.put("id", "1");

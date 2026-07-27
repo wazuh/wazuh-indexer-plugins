@@ -60,16 +60,14 @@ public class Decoder extends Resource {
      */
     public static Decoder fromPayload(JsonNode payload) {
         Decoder decoder = new Decoder();
-        // 1. Basic logic for every resource
-        Resource resource = new Resource();
-        resource.populateResource(decoder, payload);
 
-        // 2. Decoder-specific logic (YAML generation)
+        // YAML from the raw document before in-place mutations
         if (payload.has(Constants.KEY_DOCUMENT)) {
             JsonNode docNode = payload.get(Constants.KEY_DOCUMENT);
             decoder.setYaml(YamlUtils.toYaml(docNode, DECODER_ORDER_KEYS));
         }
 
+        new Resource().populateResourceInPlace(decoder, payload);
         return decoder;
     }
 
