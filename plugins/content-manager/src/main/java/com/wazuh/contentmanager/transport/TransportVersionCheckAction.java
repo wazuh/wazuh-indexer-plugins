@@ -87,46 +87,50 @@ public class TransportVersionCheckAction
 
             String tag = "v" + version;
             ApiClient apiClient = new ApiClient();
-            SimpleHttpResponse ctiResponse = apiClient.getReleaseUpdates(tag);
+            try {
+                SimpleHttpResponse ctiResponse = apiClient.getReleaseUpdates(tag);
 
-            int ctiStatusCode = ctiResponse.getCode();
-            if (ctiStatusCode < 200 || ctiStatusCode >= 300) {
-                log.error(
-                        "CTI API returned error for version check: status={}, body={}",
-                        ctiStatusCode,
-                        ctiResponse.getBodyText());
-                RestStatus status =
-                        RestStatus.fromCode(ctiStatusCode) != null
-                                ? RestStatus.fromCode(ctiStatusCode)
-                                : RestStatus.BAD_GATEWAY;
-                listener.onResponse(
-                        new VersionCheckResponse(ctiResponse.getBodyText(), status).parseMessageAsJson());
-                return;
+                int ctiStatusCode = ctiResponse.getCode();
+                if (ctiStatusCode < 200 || ctiStatusCode >= 300) {
+                    log.error(
+                            "CTI API returned error for version check: status={}, body={}",
+                            ctiStatusCode,
+                            ctiResponse.getBodyText());
+                    RestStatus status =
+                            RestStatus.fromCode(ctiStatusCode) != null
+                                    ? RestStatus.fromCode(ctiStatusCode)
+                                    : RestStatus.BAD_GATEWAY;
+                    listener.onResponse(
+                            new VersionCheckResponse(ctiResponse.getBodyText(), status).parseMessageAsJson());
+                    return;
+                }
+
+                JsonNode root = this.mapper.readTree(ctiResponse.getBodyText());
+                JsonNode data = root.get("data");
+
+                Release lastMajor = this.getLastRelease(data, "major");
+                Release lastMinor = this.getLastRelease(data, "minor");
+                Release lastPatch = this.getLastRelease(data, "patch");
+
+                String uuid = this.clusterService.state().metadata().clusterUUID();
+                String lastCheckDate =
+                        OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+
+                // Build the structured message object matching VersionCheckResponse format
+                Map<String, Object> messageMap = new HashMap<>();
+                messageMap.put("uuid", uuid);
+                messageMap.put("last_check_date", lastCheckDate);
+                messageMap.put("current_version", tag);
+                messageMap.put("last_available_major", releaseToMap(lastMajor));
+                messageMap.put("last_available_minor", releaseToMap(lastMinor));
+                messageMap.put("last_available_patch", releaseToMap(lastPatch));
+
+                // Serialize message as JSON string but pass parsed object for structured output
+                String messageJson = this.mapper.writeValueAsString(messageMap);
+                listener.onResponse(new VersionCheckResponse(messageJson, RestStatus.OK, messageMap));
+            } finally {
+                apiClient.close();
             }
-
-            JsonNode root = this.mapper.readTree(ctiResponse.getBodyText());
-            JsonNode data = root.get("data");
-
-            Release lastMajor = this.getLastRelease(data, "major");
-            Release lastMinor = this.getLastRelease(data, "minor");
-            Release lastPatch = this.getLastRelease(data, "patch");
-
-            String uuid = this.clusterService.state().metadata().clusterUUID();
-            String lastCheckDate =
-                    OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-
-            // Build the structured message object matching VersionCheckResponse format
-            Map<String, Object> messageMap = new HashMap<>();
-            messageMap.put("uuid", uuid);
-            messageMap.put("last_check_date", lastCheckDate);
-            messageMap.put("current_version", tag);
-            messageMap.put("last_available_major", releaseToMap(lastMajor));
-            messageMap.put("last_available_minor", releaseToMap(lastMinor));
-            messageMap.put("last_available_patch", releaseToMap(lastPatch));
-
-            // Serialize message as JSON string but pass parsed object for structured output
-            String messageJson = this.mapper.writeValueAsString(messageMap);
-            listener.onResponse(new VersionCheckResponse(messageJson, RestStatus.OK, messageMap));
 
         } catch (Exception e) {
             log.error("Unexpected error during version check: {}", e.getMessage(), e);

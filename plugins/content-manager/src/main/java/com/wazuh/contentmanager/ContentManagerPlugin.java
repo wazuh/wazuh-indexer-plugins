@@ -116,6 +116,7 @@ import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 public class ContentManagerPlugin extends Plugin
         implements ActionPlugin, ClusterPlugin, JobSchedulerExtension, SystemIndexPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String CONTENT_MANAGER_JOBS_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String CATALOG_SYNC_JOB_ID = "wazuh-catalog-sync-job";
     private static final String TELEMETRY_JOB_ID = "wazuh-telemetry-ping-job";
@@ -686,6 +687,7 @@ public class ContentManagerPlugin extends Plugin
                                 boolean jobExists =
                                         this.client
                                                 .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, CATALOG_SYNC_JOB_ID)
+                                                .setFetchSource(false)
                                                 .get()
                                                 .isExists();
 
@@ -786,6 +788,7 @@ public class ContentManagerPlugin extends Plugin
                                 boolean jobExists =
                                         this.client
                                                 .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                .setFetchSource(false)
                                                 .get()
                                                 .isExists();
 
@@ -853,6 +856,7 @@ public class ContentManagerPlugin extends Plugin
                                     boolean jobExists =
                                             this.client
                                                     .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                    .setFetchSource(false)
                                                     .get()
                                                     .isExists();
                                     if (jobExists) {
@@ -925,6 +929,7 @@ public class ContentManagerPlugin extends Plugin
                 new ActionHandler<>(TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class),
                 new ActionHandler<>(
                         ReloadEngineContentAction.INSTANCE, TransportReloadEngineContentAction.class),
+                new ActionHandler<>(PromoteSnapshotAction.INSTANCE, TransportPromoteSnapshotAction.class),
                 // Group 2: Subscription GET/DELETE + Space DELETE
                 new ActionHandler<>(GetSubscriptionAction.INSTANCE, TransportGetSubscriptionAction.class),
                 new ActionHandler<>(
@@ -1041,7 +1046,7 @@ public class ContentManagerPlugin extends Plugin
                     AccessController.doPrivilegedChecked(
                             () -> {
                                 String content = Files.readString(versionFilePath, StandardCharsets.UTF_8);
-                                JsonNode json = new ObjectMapper().readTree(content);
+                                JsonNode json = MAPPER.readTree(content);
                                 JsonNode versionNode = json.get("version");
                                 if (versionNode == null || versionNode.asText().isBlank()) {
                                     return null;

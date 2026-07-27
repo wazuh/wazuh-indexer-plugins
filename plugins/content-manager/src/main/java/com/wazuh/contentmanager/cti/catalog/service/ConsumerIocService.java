@@ -46,6 +46,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -89,7 +91,7 @@ public class ConsumerIocService extends AbstractConsumerService {
 
     @Override
     protected String getConsumerType() {
-        return "cti:catalog:consumer:iocs";
+        return Constants.CONSUMER_TYPE_IOCS;
     }
 
     @Override
@@ -191,7 +193,7 @@ public class ConsumerIocService extends AbstractConsumerService {
      * @return A map of IOC type names to their computed SHA-256 hashes.
      */
     private Map<String, String> computeAllTypeHashes(String pitId, TimeValue keepalive) {
-        Map<String, StringBuilder> hashBuilders = new LinkedHashMap<>();
+        Map<String, MessageDigest> digestsByType = new LinkedHashMap<>();
         Object[] searchAfter = null;
 
         while (true) {
@@ -230,7 +232,9 @@ public class ConsumerIocService extends AbstractConsumerService {
                 if (hashMap != null) {
                     Object sha256 = hashMap.get(Constants.KEY_SHA256);
                     if (sha256 != null) {
-                        hashBuilders.computeIfAbsent(type, k -> new StringBuilder()).append(sha256);
+                        digestsByType
+                                .computeIfAbsent(type, k -> newSha256Digest())
+                                .update(sha256.toString().getBytes(StandardCharsets.UTF_8));
                     }
                 }
             }
@@ -238,10 +242,30 @@ public class ConsumerIocService extends AbstractConsumerService {
         }
 
         Map<String, String> result = new LinkedHashMap<>();
-        for (Map.Entry<String, StringBuilder> entry : hashBuilders.entrySet()) {
-            result.put(entry.getKey(), Resource.computeSha256(entry.getValue().toString()));
+        for (Map.Entry<String, MessageDigest> entry : digestsByType.entrySet()) {
+            result.put(entry.getKey(), hexEncode(entry.getValue().digest()));
         }
         return result;
+    }
+
+    private static MessageDigest newSha256Digest() {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new AssertionError("SHA-256 must be available in every JVM", e);
+        }
+    }
+
+    private static String hexEncode(byte[] hash) {
+        StringBuilder hex = new StringBuilder(2 * hash.length);
+        for (byte b : hash) {
+            String h = Integer.toHexString(0xff & b);
+            if (h.length() == 1) {
+                hex.append('0');
+            }
+            hex.append(h);
+        }
+        return hex.toString();
     }
 
     /**

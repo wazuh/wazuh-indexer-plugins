@@ -41,6 +41,7 @@ import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -61,6 +62,15 @@ import com.wazuh.contentmanager.utils.Constants;
 /** Service for retrieving resource information based on their Space. */
 public class SpaceService {
     private static final Logger log = LogManager.getLogger(SpaceService.class);
+
+    private static final FetchSourceContext HASH_ONLY_SOURCE =
+            new FetchSourceContext(true, new String[] {Constants.Q_HASH}, new String[0]);
+
+    private static final FetchSourceContext INTEGRATION_HASH_SOURCE =
+            new FetchSourceContext(
+                    true,
+                    new String[] {Constants.Q_HASH, "document.rules", "document.decoders", "document.kvdbs"},
+                    new String[0]);
 
     private final Client client;
     private final ObjectMapper objectMapper;
@@ -426,6 +436,23 @@ public class SpaceService {
      */
     public void getResourcesBySpace(
             String indexName, Space space, ActionListener<Map<String, Map<String, Object>>> listener) {
+        this.getResourcesBySpace(indexName, space, null, listener);
+    }
+
+    /**
+     * Fetches documents from a specific index that belong to a given space, keyed by document.id,
+     * returning only the specified source fields.
+     *
+     * @param indexName The index to search.
+     * @param space The space to filter by.
+     * @param includes Source fields to include (null for all fields).
+     * @param listener receives a map of document.id to document content.
+     */
+    public void getResourcesBySpace(
+            String indexName,
+            Space space,
+            String[] includes,
+            ActionListener<Map<String, Map<String, Object>>> listener) {
         this.client
                 .admin()
                 .indices()
@@ -442,6 +469,9 @@ public class SpaceService {
                                     sourceBuilder.query(
                                             QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()));
                                     sourceBuilder.size(10000);
+                                    if (includes != null) {
+                                        sourceBuilder.fetchSource(includes, null);
+                                    }
                                     searchRequest.source(sourceBuilder);
 
                                     this.client.search(
@@ -1154,6 +1184,7 @@ public class SpaceService {
         getDocumentSource(
                 Constants.INDEX_INTEGRATIONS,
                 integrationId,
+                INTEGRATION_HASH_SOURCE,
                 ActionListener.wrap(
                         integrationSource -> {
                             if (integrationSource == null) {
@@ -1231,6 +1262,7 @@ public class SpaceService {
         getDocumentSource(
                 indexName,
                 ids.get(idx),
+                HASH_ONLY_SOURCE,
                 ActionListener.wrap(
                         source -> {
                             if (source != null) {
@@ -1250,8 +1282,28 @@ public class SpaceService {
      */
     public void getDocumentSource(
             String indexName, String documentId, ActionListener<Map<String, Object>> listener) {
+        getDocumentSource(indexName, documentId, null, listener);
+    }
+
+    /**
+     * Asynchronously retrieves a filtered source document for a given document ID.
+     *
+     * @param indexName The name of the index.
+     * @param documentId The document ID.
+     * @param fetchSourceContext Source filtering context, or null for full source.
+     * @param listener The listener to notify with the source map, or null if not found.
+     */
+    public void getDocumentSource(
+            String indexName,
+            String documentId,
+            FetchSourceContext fetchSourceContext,
+            ActionListener<Map<String, Object>> listener) {
+        GetRequest request = new GetRequest(indexName, documentId);
+        if (fetchSourceContext != null) {
+            request.fetchSourceContext(fetchSourceContext);
+        }
         this.client.get(
-                new GetRequest(indexName, documentId),
+                request,
                 ActionListener.wrap(
                         response -> {
                             if (response.isExists()) {
