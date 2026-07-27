@@ -56,7 +56,8 @@ public class Ioc {
      * @param payload The raw JSON object containing the IoC data.
      * @return A fully populated Ioc instance.
      */
-    public static Ioc fromPayload(JsonNode payload) {
+    public static Ioc fromPayload(JsonNode payload)
+            throws com.fasterxml.jackson.core.JsonProcessingException {
         Long offsetValue = null;
         if (payload.has(Constants.KEY_OFFSET)) {
             offsetValue = payload.get(Constants.KEY_OFFSET).asLong();
@@ -69,7 +70,7 @@ public class Ioc {
             ((ObjectNode) payload).remove(Constants.KEY_TYPE);
         }
 
-        Ioc ioc = Ioc.MAPPER.convertValue(payload, Ioc.class);
+        Ioc ioc = Ioc.MAPPER.treeToValue(payload, Ioc.class);
         ioc.setOffset(offsetValue);
         if (payload.has(Constants.KEY_DOCUMENT)) {
             String sha256 = Resource.computeSha256(payload.get(Constants.KEY_DOCUMENT).toString());

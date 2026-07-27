@@ -154,6 +154,36 @@ public class Resource {
         this.populateSpaceObject(resource, payload);
     }
 
+    /**
+     * Same as {@link #populateResource} but mutates the document node in place instead of
+     * deep-copying it. Callers that need the original document (e.g. for YAML generation) must
+     * capture it before calling this method.
+     */
+    protected void populateResourceInPlace(Resource resource, JsonNode payload) {
+        if (payload.has(Constants.KEY_OFFSET)) {
+            resource.setOffset(payload.get(Constants.KEY_OFFSET).asLong());
+            if (payload.isObject()) {
+                ((ObjectNode) payload).remove(Constants.KEY_OFFSET);
+            }
+        }
+
+        if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isObject()) {
+            ObjectNode rawDoc = (ObjectNode) payload.get(JSON_DOCUMENT_KEY);
+            Resource.preprocessDocument(rawDoc);
+            Resource.nestMetadataFields(rawDoc);
+
+            resource.setDocument(rawDoc);
+
+            String hashStr = Resource.computeSha256(rawDoc.toString());
+            if (!hashStr.isEmpty()) {
+                Map<String, String> hashMap = new HashMap<>();
+                hashMap.put("sha256", hashStr);
+                resource.setHash(hashMap);
+            }
+        }
+        this.populateSpaceObject(resource, payload);
+    }
+
     private void populateSpaceObject(Resource resource, JsonNode payload) {
         Map<String, Object> spaceMap = new HashMap<>();
         String spaceName = Space.STANDARD.toString();
