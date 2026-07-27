@@ -64,15 +64,12 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
             String resource,
             ConsumersIndex consumerIndex,
             ApiClient client) {
+        super(client);
         this.context = context;
         this.consumer = consumer;
         this.consumerType = consumerType;
         this.resource = resource;
         this.consumerIndex = consumerIndex;
-        if (this.client != null) {
-            this.client.close();
-        }
-        this.client = client;
     }
 
     /**

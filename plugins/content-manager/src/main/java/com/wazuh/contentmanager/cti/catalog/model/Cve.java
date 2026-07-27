@@ -87,9 +87,7 @@ public class Cve {
         // Extract offset from the incoming node so it is always indexed at document root.
         if (normalized.isObject() && normalized.has(Constants.KEY_OFFSET)) {
             cve.setOffset(normalized.get(Constants.KEY_OFFSET).asLong());
-            ObjectNode stripped = normalized.deepCopy();
-            stripped.remove(Constants.KEY_OFFSET);
-            normalized = stripped;
+            ((ObjectNode) normalized).remove(Constants.KEY_OFFSET);
         }
 
         String explicitType = null;

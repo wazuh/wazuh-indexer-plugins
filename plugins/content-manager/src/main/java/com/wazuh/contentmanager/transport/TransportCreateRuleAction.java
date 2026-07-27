@@ -26,6 +26,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest.Method;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
@@ -122,8 +123,14 @@ public class TransportCreateRuleAction extends AbstractTransportCreateAction {
             String integrationId,
             JsonNode resource,
             ActionListener<RestResponse> listener) {
+        FetchSourceContext logsourceFields =
+                new FetchSourceContext(
+                        true,
+                        new String[] {Constants.Q_DOCUMENT_TITLE, "document.logsource.product"},
+                        new String[0]);
         client.get(
-                new GetRequest(Constants.INDEX_INTEGRATIONS, integrationId),
+                new GetRequest(Constants.INDEX_INTEGRATIONS, integrationId)
+                        .fetchSourceContext(logsourceFields),
                 ActionListener.wrap(
                         integrationResponse -> {
                             if (integrationResponse.isExists()) {
