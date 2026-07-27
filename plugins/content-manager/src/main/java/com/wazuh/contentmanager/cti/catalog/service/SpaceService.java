@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.bulk.BulkRequest;
@@ -35,8 +36,10 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.GroupedActionListener;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
@@ -967,7 +970,16 @@ public class SpaceService {
                             }
                         },
                         e -> {
-                            log.error(Constants.E_LOG_GET_POLICY_FAILED, space, e.getMessage());
+                            // A missing policies index or a cluster block (typically "state not
+                            // recovered / initialized") is an expected pre-initialization state, not an
+                            // operational error: every node reads policies from startup onwards.
+                            // Callers still get the failure and decide.
+                            if (ExceptionsHelper.unwrap(e, IndexNotFoundException.class) != null
+                                    || ExceptionsHelper.unwrap(e, ClusterBlockException.class) != null) {
+                                log.debug(Constants.D_LOG_POLICY_INDEX_NOT_READY, space, e.getMessage());
+                            } else {
+                                log.error(Constants.E_LOG_GET_POLICY_FAILED, space, e.getMessage());
+                            }
                             listener.onFailure(
                                     new IOException("Failed to retrieve policy: " + e.getMessage(), e));
                         }));

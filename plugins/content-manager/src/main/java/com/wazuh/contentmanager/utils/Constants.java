@@ -262,6 +262,12 @@ public class Constants {
             "Failed to load {} space into Engine: {}";
     public static final String E_LOG_ENGINE_RELOAD_SCHEDULE_FAILED =
             "Failed to schedule Engine content reload: {}";
+    public static final String D_LOG_ENGINE_POLICIES_INDEX_NOT_READY =
+            "Index [{}] does not exist yet; deferring Engine content load until it is created.";
+    public static final String D_LOG_ENGINE_CLUSTER_NOT_READY =
+            "Cluster cannot serve content reads yet ({}); deferring Engine content load.";
+    public static final String W_LOG_ENGINE_RELOAD_TIMED_OUT =
+            "Engine content reload did not complete within [{}]; releasing the in-flight guard.";
     public static final String D_LOG_ENGINE_SPACE_NO_POLICY =
             "No policy found for {} space; skipping Engine load.";
     public static final String D_LOG_ENGINE_SPACE_NO_HASH =
@@ -378,6 +384,8 @@ public class Constants {
     public static final String E_LOG_GET_DOCUMENT_FAILED =
             "Failed to get document [{}] from index [{}]: {}";
     public static final String E_LOG_GET_POLICY_FAILED = "Failed to get policy for space [{}]: {}";
+    public static final String D_LOG_POLICY_INDEX_NOT_READY =
+            "Policies are not readable yet; cannot read the policy for space [{}]: {}";
     public static final String W_LOG_DOCUMENT_NOT_FOUND_FOR_DELETION =
             "Document with document.id [{}] not found in space [{}] for deletion";
     public static final String E_LOG_DELETE_RESOURCES_FAILED = "Failed to delete resources: {}";

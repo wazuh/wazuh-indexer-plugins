@@ -90,6 +90,14 @@ public class TransportReloadEngineContentAction
         return new ReloadEngineContentNodeResponse(in);
     }
 
+    /**
+     * Triggers the node-local reload and responds immediately: the response acknowledges that the
+     * reload was started, not that the Engine finished loading. {@link TransportNodesAction} sends
+     * the response from this method's return value, so waiting for {@link
+     * EngineContentLoader#reloadIfChanged(org.opensearch.core.action.ActionListener)} to complete
+     * would mean parking this generic-pool thread for the whole reload — exactly what the loader's
+     * async design avoids. Nodes converge via the per-node cluster-state listener regardless.
+     */
     @Override
     protected ReloadEngineContentNodeResponse nodeOperation(NodeRequest request) {
         this.engineContentLoader.reloadIfChanged();
