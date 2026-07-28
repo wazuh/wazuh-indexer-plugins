@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.rest.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.ContentManagerRestTestCase;
+import com.wazuh.contentmanager.cti.catalog.index.IntegrationEnabledResolver;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -801,13 +803,15 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
     }
 
     /**
-     * Toggle {@code enabled} on a user-managed integration living in the standard space.
+     * Toggle {@code enabled} on a user-managed integration living in the standard space, by sending
+     * {@code user_enabled} (the only field the client is allowed to change in that space).
      *
      * <p>Verifies:
      *
      * <ul>
      *   <li>Response status code is 200 OK.
-     *   <li>The stored {@code enabled} flag reflects the new value.
+     *   <li>The stored {@code user_enabled} field records the user's decision.
+     *   <li>The stored {@code enabled} flag, derived from it, reflects the new value.
      *   <li>The document stays in the standard space and keeps its {@code user-managed} mode.
      * </ul>
      *
@@ -829,7 +833,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                             "references": ["https://wazuh.com"]
                         },
                         "category": "cloud-services",
-                        "enabled": false,
+                        "user_enabled": false,
                         "rules": [],
                         "decoders": [],
                         "kvdbs": []
@@ -847,6 +851,9 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         assertNotNull("Standard integration should still exist", source);
         JsonNode document = source.path(Constants.KEY_DOCUMENT);
         assertFalse(
+                "user_enabled should record the requested value",
+                document.path(Constants.KEY_USER_ENABLED).asBoolean());
+        assertFalse(
                 "enabled should have been toggled to false",
                 document.path(Constants.KEY_ENABLED).asBoolean());
         assertEquals(
@@ -856,9 +863,9 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
     }
 
     /**
-     * Update a user-managed integration in the standard space, changing {@code enabled} together with
-     * other fields. Only {@code enabled} must take effect; every other field is preserved from the
-     * stored document.
+     * Update a user-managed integration in the standard space, changing {@code user_enabled} together
+     * with other fields. Only {@code user_enabled} must take effect; every other field is preserved
+     * from the stored document.
      *
      * <p>Verifies: Response status code is 200 OK, {@code enabled} changed, and {@code category} /
      * {@code metadata.title} are unchanged.
@@ -881,7 +888,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                             "references": ["https://example.com"]
                         },
                         "category": "changed-category",
-                        "enabled": false,
+                        "user_enabled": false,
                         "rules": [],
                         "decoders": [],
                         "kvdbs": []
@@ -951,7 +958,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
     }
 
     /**
-     * Toggling {@code enabled} on a standard user-managed integration succeeds and leaves the
+     * Toggling {@code user_enabled} on a standard user-managed integration succeeds and leaves the
      * CTI-owned, immutable {@code document.detector} block untouched. (The SAP detector is toggled
      * out-of-band; that side effect is verified on a full stack, not here, since these tests run
      * against a mocked Security Analytics service.)
@@ -969,7 +976,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 this.makeRequest(
                         "PUT",
                         PluginSettings.INTEGRATIONS_URI + "/" + integrationId,
-                        "{\"resource\":{\"enabled\":false}}");
+                        "{\"resource\":{\"user_enabled\":false}}");
         assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(disable));
 
         JsonNode doc =
@@ -985,7 +992,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 this.makeRequest(
                         "PUT",
                         PluginSettings.INTEGRATIONS_URI + "/" + integrationId,
-                        "{\"resource\":{\"enabled\":true}}");
+                        "{\"resource\":{\"user_enabled\":true}}");
         assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(enable));
 
         doc =
@@ -995,6 +1002,152 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
         assertTrue(
                 "document.detector is immutable and must stay as indexed (true)",
                 doc.path(Constants.KEY_DETECTOR).path(Constants.KEY_ENABLED).asBoolean());
+    }
+
+    /**
+     * Exercises the REST update path end to end — the client sends {@code user_enabled} and the
+     * stored document comes back with the derived {@code enabled} — then applies the same {@link
+     * IntegrationEnabledResolver} calls the snapshot pipeline uses, to confirm the override is
+     * carried onto a document republished under a new {@code document.id} with an unchanged title.
+     *
+     * <p>This does NOT drive the CTI snapshot pipeline, which is not reachable from this REST-only
+     * harness; that path is covered by {@code SnapshotServiceImplTests}.
+     *
+     * <p>Verifies:
+     *
+     * <ul>
+     *   <li>PUT with {@code user_enabled=true} sets both {@code user_enabled} and the derived {@code
+     *       enabled} to {@code true} on the original document.
+     *   <li>After carrying that override onto a document with a different id but the same title, and
+     *       {@code cti_enabled=false}, the effective {@code enabled} still tracks the user's choice
+     *       (true), not the freshly published CTI value (false).
+     * </ul>
+     *
+     * @throws IOException On request or response parsing failure.
+     */
+    public void testStandardUserManagedOverrideSurvivesDocumentIdChange() throws IOException {
+        // 1. Seed a standard user-managed integration with enabled=false, cti_enabled=false.
+        String title = "test-standard-survives-reindex";
+        String originalId = this.indexIntegrationWithCtiEnabled(title, false, false);
+
+        // 2. PUT user_enabled=true through the API (the only field mutable in the standard space).
+        Response response =
+                this.makeRequest(
+                        "PUT",
+                        PluginSettings.INTEGRATIONS_URI + "/" + originalId,
+                        "{\"resource\":{\"user_enabled\":true}}");
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
+
+        // 3. Assert the stored document now has enabled=true AND user_enabled=true.
+        JsonNode originalDocument =
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, originalId, "standard")
+                        .path(Constants.KEY_DOCUMENT);
+        assertTrue(
+                "user_enabled should record the user's decision",
+                originalDocument.path(Constants.KEY_USER_ENABLED).asBoolean());
+        assertTrue(
+                "enabled should be derived from user_enabled",
+                originalDocument.path(Constants.KEY_ENABLED).asBoolean());
+        boolean storedOverride = originalDocument.path(Constants.KEY_USER_ENABLED).asBoolean();
+
+        // 4. Re-index the same document from a simulated CTI payload carrying cti_enabled=false,
+        // same title, DIFFERENT document.id, to mimic a plan change. This drives the exact same
+        // production functions SnapshotServiceImpl uses to carry a stored override across a
+        // full resync: IntegrationEnabledResolver.carryOverUserOverride() + .resolve().
+        String newId = UUID.randomUUID().toString();
+        // spotless:off
+        String ctiPayload = """
+                {
+                    "document": {
+                        "id": "%s",
+                        "category": "cloud-services",
+                        "cti_enabled": false,
+                        "mode": "user-managed",
+                        "decoders": [],
+                        "kvdbs": [],
+                        "rules": [],
+                        "metadata": {
+                            "title": "%s",
+                            "author": "Wazuh Inc.",
+                            "description": "Republished by CTI under a new id.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        }
+                    },
+                    "hash": {"sha256": "0000000000000000000000000000000000000000000000000000000000000000"},
+                    "space": {"name": "standard"}
+                }
+                """;
+        // spotless:on
+        ctiPayload = String.format(java.util.Locale.ROOT, ctiPayload, newId, title);
+
+        ObjectNode ctiRoot = (ObjectNode) MAPPER.readTree(ctiPayload);
+        ObjectNode ctiDocument = (ObjectNode) ctiRoot.get(Constants.KEY_DOCUMENT);
+        IntegrationEnabledResolver.carryOverUserOverride(ctiDocument, storedOverride);
+        IntegrationEnabledResolver.resolve(ctiDocument);
+
+        this.makeRequest(
+                "PUT",
+                Constants.INDEX_INTEGRATIONS + "/_doc/" + newId + "?refresh=true",
+                ctiRoot.toString());
+
+        // 5. Assert the result: enabled=true, user_enabled=true, cti_enabled=false.
+        JsonNode reindexedDocument =
+                this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, newId, "standard")
+                        .path(Constants.KEY_DOCUMENT);
+        assertTrue(
+                "user_enabled must survive the reindex under the new id",
+                reindexedDocument.path(Constants.KEY_USER_ENABLED).asBoolean());
+        assertTrue(
+                "enabled must keep tracking the carried-over user override, not the fresh cti_enabled",
+                reindexedDocument.path(Constants.KEY_ENABLED).asBoolean());
+        assertFalse(
+                "cti_enabled should still reflect what CTI just published",
+                reindexedDocument.path(Constants.KEY_CTI_ENABLED).asBoolean());
+    }
+
+    /**
+     * Indexes a standard, user-managed integration that carries both {@code enabled} and {@code
+     * cti_enabled}, but no {@code user_enabled} (mirroring an integration CTI has published but the
+     * user has never touched).
+     *
+     * @param title the integration title.
+     * @param enabled the initial {@code document.enabled} value.
+     * @param ctiEnabled the initial {@code document.cti_enabled} value.
+     * @return the generated integration ID.
+     * @throws IOException On request or response parsing failure.
+     */
+    private String indexIntegrationWithCtiEnabled(String title, boolean enabled, boolean ctiEnabled)
+            throws IOException {
+        String id = UUID.randomUUID().toString();
+        // spotless:off
+        String doc = """
+                {
+                    "document": {
+                        "id": "%s",
+                        "category": "cloud-services",
+                        "enabled": %s,
+                        "cti_enabled": %s,
+                        "mode": "user-managed",
+                        "decoders": [],
+                        "kvdbs": [],
+                        "rules": [],
+                        "metadata": {
+                            "title": "%s",
+                            "author": "Wazuh Inc.",
+                            "description": "Integration indexed by the test suite.",
+                            "documentation": "doc",
+                            "references": ["https://wazuh.com"]
+                        }
+                    },
+                    "hash": {"sha256": "0000000000000000000000000000000000000000000000000000000000000000"},
+                    "space": {"name": "standard"}
+                }
+                """;
+        // spotless:on
+        doc = String.format(java.util.Locale.ROOT, doc, id, enabled, ctiEnabled, title);
+        this.makeRequest("PUT", Constants.INDEX_INTEGRATIONS + "/_doc/" + id + "?refresh=true", doc);
+        return id;
     }
 
     /**

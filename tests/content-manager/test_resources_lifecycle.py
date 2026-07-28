@@ -30,6 +30,8 @@ class TestIntegrationLifecycle:
         A.assert_hash_present(source)
         # Integrations created through the API are always user-managed.
         assert source["document"]["mode"] == "user-managed", source["document"]
+        # Integrations created through the API carry no user override yet.
+        assert "user_enabled" not in source["document"], source["document"]
         A.assert_listed_in_draft_policy(client, "integrations", iid)
         A.assert_space_hash_changed(before, A.space_hash(client, C.SPACE_DRAFT))
 
@@ -56,6 +58,44 @@ class TestIntegrationLifecycle:
         assert updated["metadata"]["description"] == "updated description"
         # The mode is server-managed and preserved across updates.
         assert updated["mode"] == "user-managed", updated
+
+    def test_update_standard_space_toggles_user_enabled(self, client):
+        """Standard-space integrations only accept ``user_enabled``; ``enabled`` is
+        derived from it. The API never creates integrations in 'standard' (that's CTI's
+        job), so the starting document is seeded directly, the same way CTI content
+        lands in the index.
+        """
+        iid = str(uuid.uuid4())
+        doc = {
+            "document": {
+                "id": iid,
+                "category": "other",
+                "enabled": False,
+                "cti_enabled": False,
+                "mode": "user-managed",
+                "decoders": [],
+                "kvdbs": [],
+                "rules": [],
+                "metadata": {
+                    "title": f"ct-standard-{iid[:8]}",
+                    "author": "Wazuh Inc.",
+                    "description": "Seeded directly to simulate CTI content.",
+                    "documentation": "docs",
+                    "references": ["https://wazuh.com"],
+                },
+            },
+            "hash": {"sha256": "0" * 64},
+            "space": {"name": C.SPACE_STANDARD},
+        }
+        seed = client.put(f"/{C.INDEX_INTEGRATIONS}/_doc/{iid}", json=doc, params={"refresh": "true"})
+        assert seed.status_code in (200, 201), seed.text
+
+        resp = client.put(f"{C.INTEGRATIONS}/{iid}", json={"resource": {"user_enabled": True}})
+        assert resp.status_code == 200, resp.text
+
+        updated = client.get_doc_in_space(C.INDEX_INTEGRATIONS, iid, C.SPACE_STANDARD)["document"]
+        # Toggling enabled records the user's decision.
+        assert updated["user_enabled"] == updated["enabled"], updated
 
     def test_update_rejects_dependency_add(self, client, integration):
         source = client.get_doc(C.INDEX_INTEGRATIONS, integration["id"])["document"]
