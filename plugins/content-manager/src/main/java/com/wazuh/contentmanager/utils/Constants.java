@@ -604,6 +604,13 @@ public class Constants {
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_OFFSET = "offset";
     public static final String KEY_ENABLED = "enabled";
+
+    /** Document field holding the user's explicit enabled choice. Absent means never set. */
+    public static final String KEY_USER_ENABLED = "user_enabled";
+
+    /** Document field holding the enabled state published by CTI. */
+    public static final String KEY_CTI_ENABLED = "cti_enabled";
+
     public static final String KEY_MODE = "mode";
     public static final String KEY_DETECTOR = "detector";
     public static final String KEY_SOURCE = "source";

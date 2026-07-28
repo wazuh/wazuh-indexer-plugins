@@ -44,6 +44,12 @@
         "enabled": {
           "type": "boolean"
         },
+        "user_enabled": {
+          "type": "boolean"
+        },
+        "cti_enabled": {
+          "type": "boolean"
+        },
         "mode": {
           "type": "keyword"
         },
