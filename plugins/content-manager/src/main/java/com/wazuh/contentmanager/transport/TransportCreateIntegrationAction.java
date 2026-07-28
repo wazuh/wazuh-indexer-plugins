@@ -116,6 +116,12 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
                             // Integrations created through the API are always user-managed.
                             ((ObjectNode) resource).put(Constants.KEY_MODE, Constants.MODE_USER_MANAGED);
 
+                            // Integrations are created in 'draft', where neither field has any
+                            // meaning: stop a forged override from entering here and surviving
+                            // promotion to 'standard'.
+                            ((ObjectNode) resource).remove(Constants.KEY_USER_ENABLED);
+                            ((ObjectNode) resource).remove(Constants.KEY_CTI_ENABLED);
+
                             listener.onResponse(null);
                         },
                         listener::onFailure));
