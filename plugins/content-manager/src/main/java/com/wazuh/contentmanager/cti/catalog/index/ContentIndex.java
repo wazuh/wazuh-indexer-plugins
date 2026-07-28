@@ -486,6 +486,8 @@ public class ContentIndex {
             currentDoc.put(Constants.KEY_OFFSET, offset);
         }
 
+        this.resolveIntegrationEnabled(currentDoc);
+
         // 3. Process
         ObjectNode processedDoc = this.processPayload(currentDoc);
 
@@ -560,6 +562,8 @@ public class ContentIndex {
             }
             patchTarget.put(Constants.KEY_OFFSET, task.offset());
 
+            this.resolveIntegrationEnabled(patchTarget);
+
             ObjectNode processedDoc = this.processPayload(patchTarget);
             bulkRequest.add(
                     new IndexRequest(this.getWriteIndex())
@@ -577,6 +581,22 @@ public class ContentIndex {
         }
 
         return tasks.get(tasks.size() - 1).offset();
+    }
+
+    /**
+     * Re-resolves an integration's effective enabled state after a patch has been applied. No-op for
+     * every other index, so the shared update paths stay untouched for rules, decoders and kvdbs.
+     *
+     * @param patchTarget the patched root node.
+     */
+    private void resolveIntegrationEnabled(ObjectNode patchTarget) {
+        if (!Constants.INDEX_INTEGRATIONS.equals(this.indexName)) {
+            return;
+        }
+        JsonNode document = patchTarget.get(Constants.KEY_DOCUMENT);
+        if (document instanceof ObjectNode documentNode) {
+            IntegrationEnabledResolver.resolve(documentNode);
+        }
     }
 
     private void executeBulkUpdate(BulkRequest bulkRequest, long timeout) throws Exception {

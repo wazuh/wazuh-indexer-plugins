@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
@@ -78,6 +79,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
     private static final String INDEX_NAME = ".test-index";
     private static final String MAPPINGS_PATH = "/mappings/test-mapping.json";
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Before
     @Override
@@ -600,6 +602,102 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertEquals(101L, result);
         verify(this.client).multiGet(any(MultiGetRequest.class));
         verify(this.client, times(0)).bulk(any(BulkRequest.class));
+    }
+
+    /**
+     * Drives {@code batchUpdate} for a single integration document through the mocked client and
+     * returns the captured indexed source as an {@link ObjectNode}. Modeled on {@link
+     * #testBatchUpdate_MultiGetAndBulk()}.
+     *
+     * @param stored the currently stored root document (as returned by multiGet).
+     * @param operations the patch operations to apply.
+     * @return the processed document that was indexed.
+     */
+    private ObjectNode applyPatchForIntegration(ObjectNode stored, List<Operation> operations)
+            throws Exception {
+        ContentIndex integrationsIndex =
+                new ContentIndex(this.client, Constants.INDEX_INTEGRATIONS, MAPPINGS_PATH);
+
+        GetResponse getResp = mock(GetResponse.class);
+        when(getResp.isExists()).thenReturn(true);
+        when(getResp.getSourceAsString()).thenReturn(stored.toString());
+
+        MultiGetItemResponse item = mock(MultiGetItemResponse.class);
+        when(item.isFailed()).thenReturn(false);
+        when(item.getResponse()).thenReturn(getResp);
+
+        MultiGetResponse mgetResponse = mock(MultiGetResponse.class);
+        when(mgetResponse.getResponses()).thenReturn(new MultiGetItemResponse[] {item});
+
+        PlainActionFuture<MultiGetResponse> mgetFuture = PlainActionFuture.newFuture();
+        mgetFuture.onResponse(mgetResponse);
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(mgetFuture);
+
+        BulkResponse bulkResponse = mock(BulkResponse.class);
+        when(bulkResponse.hasFailures()).thenReturn(false);
+
+        PlainActionFuture<BulkResponse> bulkFuture = PlainActionFuture.newFuture();
+        bulkFuture.onResponse(bulkResponse);
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        when(this.client.bulk(bulkCaptor.capture())).thenReturn(bulkFuture);
+
+        List<ContentIndex.UpdateTask> tasks =
+                List.of(new ContentIndex.UpdateTask("integration-1", operations, 1L));
+
+        integrationsIndex.batchUpdate(tasks);
+
+        BulkRequest bulkRequest = bulkCaptor.getValue();
+        IndexRequest indexRequest = (IndexRequest) bulkRequest.requests().get(0);
+        return (ObjectNode) MAPPER.readTree(indexRequest.source().utf8ToString());
+    }
+
+    /** A CTI patch that flips its own value must not defeat the user's stored choice. */
+    public void testIntegrationPatchKeepsUserOverride() throws Exception {
+        ObjectNode stored = MAPPER.createObjectNode();
+        ObjectNode document = MAPPER.createObjectNode();
+        document.put(Constants.KEY_ENABLED, false);
+        document.put(Constants.KEY_USER_ENABLED, true);
+        document.put(Constants.KEY_CTI_ENABLED, false);
+        stored.set(Constants.KEY_DOCUMENT, document);
+
+        ObjectNode result =
+                applyPatchForIntegration(
+                        stored, List.of(new Operation("replace", "/document/cti_enabled", null, Boolean.TRUE)));
+
+        JsonNode resultDocument = result.get(Constants.KEY_DOCUMENT);
+        assertTrue(resultDocument.get(Constants.KEY_CTI_ENABLED).asBoolean());
+        assertTrue(resultDocument.get(Constants.KEY_USER_ENABLED).asBoolean());
+        assertTrue(resultDocument.get(Constants.KEY_ENABLED).asBoolean());
+    }
+
+    /** With no user override, CTI's new value becomes the effective one. */
+    public void testIntegrationPatchFollowsCtiWithoutOverride() throws Exception {
+        ObjectNode stored = MAPPER.createObjectNode();
+        ObjectNode document = MAPPER.createObjectNode();
+        document.put(Constants.KEY_ENABLED, false);
+        document.put(Constants.KEY_CTI_ENABLED, false);
+        stored.set(Constants.KEY_DOCUMENT, document);
+
+        ObjectNode result =
+                applyPatchForIntegration(
+                        stored, List.of(new Operation("replace", "/document/cti_enabled", null, Boolean.TRUE)));
+
+        assertTrue(result.get(Constants.KEY_DOCUMENT).get(Constants.KEY_ENABLED).asBoolean());
+    }
+
+    /** Transition: CTI still writes enabled directly, and the user's override still wins. */
+    public void testIntegrationPatchDuringTransitionKeepsUserOverride() throws Exception {
+        ObjectNode stored = MAPPER.createObjectNode();
+        ObjectNode document = MAPPER.createObjectNode();
+        document.put(Constants.KEY_ENABLED, true);
+        document.put(Constants.KEY_USER_ENABLED, true);
+        stored.set(Constants.KEY_DOCUMENT, document);
+
+        ObjectNode result =
+                applyPatchForIntegration(
+                        stored, List.of(new Operation("replace", "/document/enabled", null, Boolean.FALSE)));
+
+        assertTrue(result.get(Constants.KEY_DOCUMENT).get(Constants.KEY_ENABLED).asBoolean());
     }
 
     /** Test that update retries on CircuitBreakingException from GET and succeeds. */
