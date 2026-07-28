@@ -1426,4 +1426,95 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         assertTrue(document.get(Constants.KEY_USER_ENABLED).asBoolean());
         assertFalse(document.get(Constants.KEY_CTI_ENABLED).asBoolean());
     }
+
+    /**
+     * If reading the stored user overrides fails (e.g. a search timeout, or a cluster-level search
+     * failure such as "Failed to execute phase [query], all shards failed"), the remote snapshot must
+     * ABORT rather than proceed with an empty override map. An empty map is indistinguishable from
+     * "the user never set any override", so proceeding would silently rebuild every integration with
+     * CTI's values and permanently lose every user override — exactly the data loss this feature
+     * exists to prevent.
+     */
+    public void testInitialize_AbortsWhenUserOverrideReadFails() throws Exception {
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        // Stubbed exactly like the passing-path tests (e.g. runSnapshotForSingleIntegration) so that,
+        // if the abort did NOT happen, the snapshot would run to completion and this test would fail
+        // for the right reason instead of being masked by an unrelated NPE from an unstubbed mock.
+        when(integrationsIndex.processPayload(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
+        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
+                .thenThrow(new IOException("search timeout"));
+
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
+
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
+        service.setSnapshotClient(this.snapshotClient);
+        this.mockT0ConsumerDoc();
+
+        String url = "http://example.com/integration-abort.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(1L);
+
+        Path zipPath =
+                this.createZipFileWithContent(
+                        "integration-abort.json",
+                        "{\"name\": \"abort-id\", \"offset\": 1, \"payload\": {\"type\": \"integration\", "
+                                + "\"document\": {\"id\": \"abort-id\", \"metadata\": {\"title\": \"abort\"}, "
+                                + "\"cti_enabled\": true}}}");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        boolean success = service.initialize(this.remoteConsumer);
+
+        Assert.assertFalse(
+                "Snapshot must abort when the user-override read fails, not proceed as if there were no"
+                        + " overrides",
+                success);
+        verify(integrationsIndex, never()).executeBulk(any(BulkRequest.class));
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
+    }
+
+    /**
+     * Same failure, but through the local/stable snapshot path used on plan changes and rollbacks
+     * (remote feed unreachable). The read happens before {@code ContentIndex#clear}, so aborting here
+     * must leave the live integrations index untouched — verified by asserting {@code clear()} is
+     * never invoked.
+     */
+    public void testInitializeFromPath_AbortsWhenUserOverrideReadFails() throws Exception {
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        // Stubbed exactly like the passing-path tests so that, if the abort did NOT happen, the
+        // snapshot would run to completion (and the assertFalse below would fail for the right
+        // reason instead of being masked by an unrelated NPE from an unstubbed mock).
+        when(integrationsIndex.processPayload(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
+        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
+                .thenThrow(new IOException("Failed to execute phase [query], all shards failed"));
+
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
+
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
+        this.mockT0ConsumerDoc();
+
+        String jsonContent =
+                "{\"name\": \"abort-id\", \"offset\": 1, \"payload\": {\"type\": \"integration\", "
+                        + "\"document\": {\"id\": \"abort-id\", \"metadata\": {\"title\": \"abort\"}, "
+                        + "\"cti_enabled\": true}}}";
+        Path localZip = this.createZipFileWithContent("local-integration-abort.json", jsonContent);
+
+        boolean success = service.initialize(localZip, null);
+
+        Assert.assertFalse(
+                "Local snapshot must abort when the user-override read fails, not proceed as if there"
+                        + " were no overrides",
+                success);
+        verify(integrationsIndex, never()).clear();
+        verify(integrationsIndex, never()).executeBulk(any(BulkRequest.class));
+    }
 }

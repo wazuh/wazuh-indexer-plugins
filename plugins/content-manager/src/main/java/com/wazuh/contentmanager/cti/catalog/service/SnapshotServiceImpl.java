@@ -237,16 +237,35 @@ public class SnapshotServiceImpl implements SnapshotService {
      * Loads the current user overrides for standard integrations. Reads through the alias, so during
      * a plan-change swap this captures the live pre-swap state while the shadow index is being
      * populated.
+     *
+     * <p>If the read fails, the failure is logged at ERROR and rethrown so the caller aborts the
+     * snapshot instead of proceeding with an empty override map — an empty map is indistinguishable
+     * from "the user never set any override", so treating a failed read as "no overrides" would
+     * silently rebuild every integration with CTI's values and permanently lose every user override.
+     * Both {@code initialize} overloads call this before any destructive step (before {@link
+     * #processZip} and before {@code ContentIndex#clear}), so aborting here is safe: nothing has been
+     * written or cleared yet, and the sync retries on the next cycle.
+     *
+     * @throws IOException if a stored override document cannot be parsed as JSON.
+     * @throws InterruptedException if the thread is interrupted while waiting for the read.
+     * @throws ExecutionException if the underlying search request fails.
+     * @throws TimeoutException if the read exceeds the client timeout setting.
      */
-    private void loadUserOverrides() {
+    private void loadUserOverrides()
+            throws IOException, InterruptedException, ExecutionException, TimeoutException {
         ContentIndex integrations = this.indicesMap.get(Constants.KEY_INTEGRATION);
         if (integrations == null) {
             this.userEnabledByTitle = Collections.emptyMap();
             return;
         }
-        this.userEnabledByTitle =
-                integrations.fetchBooleanFieldByTitle(
-                        Space.STANDARD.toString(), Constants.KEY_USER_ENABLED);
+        try {
+            this.userEnabledByTitle =
+                    integrations.fetchBooleanFieldByTitle(
+                            Space.STANDARD.toString(), Constants.KEY_USER_ENABLED);
+        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
+            log.error(Constants.E_LOG_USER_OVERRIDES_READ_FAILED, this.consumerType, e.getMessage());
+            throw e;
+        }
         if (!this.userEnabledByTitle.isEmpty()) {
             log.info(
                     "Loaded {} integration enabled override(s) to carry across the snapshot",
