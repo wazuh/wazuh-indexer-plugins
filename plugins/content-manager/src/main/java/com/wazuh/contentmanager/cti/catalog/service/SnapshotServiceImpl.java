@@ -45,9 +45,11 @@ import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.IntegrationEnabledResolver;
 import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -71,6 +73,9 @@ public class SnapshotServiceImpl implements SnapshotService {
 
     /** The maximum offset encountered while processing snapshot files. */
     private long maxOffsetSeen;
+
+    /** Title to user override, loaded once per snapshot run before any document is written. */
+    private Map<String, Boolean> userEnabledByTitle = Collections.emptyMap();
 
     /**
      * Constructs a new SnapshotServiceImpl.
@@ -182,7 +187,9 @@ public class SnapshotServiceImpl implements SnapshotService {
                 return false;
             }
 
-            // 2. Stream and index JSON entries directly from the ZIP
+            // 2. Load user overrides (through the alias, so this sees live pre-swap state), then
+            // stream and index JSON entries directly from the ZIP.
+            this.loadUserOverrides();
             startMs = System.currentTimeMillis();
             this.processZip(snapshotZip);
 
@@ -224,6 +231,46 @@ public class SnapshotServiceImpl implements SnapshotService {
             this.cleanup(snapshotZip);
             return false;
         }
+    }
+
+    /**
+     * Loads the current user overrides for standard integrations. Reads through the alias, so during
+     * a plan-change swap this captures the live pre-swap state while the shadow index is being
+     * populated.
+     */
+    private void loadUserOverrides() {
+        ContentIndex integrations = this.indicesMap.get(Constants.KEY_INTEGRATION);
+        if (integrations == null) {
+            this.userEnabledByTitle = Collections.emptyMap();
+            return;
+        }
+        this.userEnabledByTitle =
+                integrations.fetchBooleanFieldByTitle(
+                        Space.STANDARD.toString(), Constants.KEY_USER_ENABLED);
+        if (!this.userEnabledByTitle.isEmpty()) {
+            log.info(
+                    "Loaded {} integration enabled override(s) to carry across the snapshot",
+                    this.userEnabledByTitle.size());
+        }
+    }
+
+    /**
+     * Re-applies the user's override, if any, to an integration document rebuilt from the snapshot,
+     * then resolves the effective state.
+     *
+     * @param processedPayload the processed document wrapper about to be indexed.
+     */
+    private void mergeIntegrationEnabled(ObjectNode processedPayload) {
+        JsonNode document = processedPayload.get(Constants.KEY_DOCUMENT);
+        if (!(document instanceof ObjectNode documentNode)) {
+            return;
+        }
+        String title = documentNode.path(Constants.KEY_METADATA).path(Constants.KEY_TITLE).asText(null);
+        if (title != null) {
+            IntegrationEnabledResolver.carryOverUserOverride(
+                    documentNode, this.userEnabledByTitle.get(title));
+        }
+        IntegrationEnabledResolver.resolve(documentNode);
     }
 
     /**
@@ -318,6 +365,9 @@ public class SnapshotServiceImpl implements SnapshotService {
                             syntheticPayload.put(Constants.KEY_TYPE, cveType);
                         }
                         ObjectNode processedPayload = indexHandler.processPayload(syntheticPayload);
+                        if (Constants.KEY_INTEGRATION.equals(type)) {
+                            this.mergeIntegrationEnabled(processedPayload);
+                        }
                         sourceJson = processedPayload.toString();
                     }
 
@@ -403,6 +453,10 @@ public class SnapshotServiceImpl implements SnapshotService {
         long startMs = System.currentTimeMillis();
 
         try {
+            // Capture user overrides before the indices are cleared, so they can be
+            // re-applied as the snapshot repopulates them.
+            this.loadUserOverrides();
+
             // 1. Clear indices
             this.indicesMap.values().forEach(ContentIndex::clear);
 

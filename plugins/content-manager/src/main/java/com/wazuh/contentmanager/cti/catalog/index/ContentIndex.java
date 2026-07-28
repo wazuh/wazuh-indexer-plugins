@@ -40,12 +40,14 @@ import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.breaker.CircuitBreakingException;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
@@ -54,7 +56,9 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -358,6 +362,50 @@ public class ContentIndex {
             log.error(Constants.E_LOG_GET_DOCUMENT_FAILED, id, this.indexName, e.getMessage());
         }
         return null;
+    }
+
+    /**
+     * Reads a boolean {@code document} field for every document in the given space, keyed by {@code
+     * document.metadata.title}. Documents without the field are omitted, so the caller can tell
+     * "absent" from "false".
+     *
+     * <p>Reads resolve through the alias, so during a shadow swap this returns the <b>live</b>
+     * content while the shadow index is still being populated.
+     *
+     * @param spaceName the space to read, e.g. {@code "standard"}.
+     * @param fieldName the boolean field under {@code document} to collect.
+     * @return title to value; empty when nothing matches or the read fails.
+     */
+    public Map<String, Boolean> fetchBooleanFieldByTitle(String spaceName, String fieldName) {
+        Map<String, Boolean> values = new HashMap<>();
+        String titlePath =
+                Constants.KEY_DOCUMENT + "." + Constants.KEY_METADATA + "." + Constants.KEY_TITLE;
+        String fieldPath = Constants.KEY_DOCUMENT + "." + fieldName;
+        try {
+            SearchSourceBuilder source =
+                    new SearchSourceBuilder()
+                            .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName))
+                            .fetchSource(new String[] {titlePath, fieldPath}, new String[0])
+                            .size(10000);
+            SearchResponse response =
+                    this.client
+                            .search(new SearchRequest(this.indexName).source(source))
+                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+
+            for (SearchHit hit : response.getHits().getHits()) {
+                JsonNode root = MAPPER.readTree(hit.getSourceAsString());
+                JsonNode document = root.path(Constants.KEY_DOCUMENT);
+                JsonNode value = document.path(fieldName);
+                JsonNode title = document.path(Constants.KEY_METADATA).path(Constants.KEY_TITLE);
+                if (value.isBoolean() && title.isTextual()) {
+                    values.put(title.asText(), value.asBoolean());
+                }
+            }
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to read [{}] by title from [{}]: {}", fieldName, this.indexName, e.getMessage());
+        }
+        return values;
     }
 
     /**
