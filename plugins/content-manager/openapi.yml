@@ -939,7 +939,12 @@ paths:
         Behaviour depends on the integration's `mode` and the space it lives in:
         - `mode: protected` (Wazuh core content) — cannot be modified in any space; returns `400 Bad Request`.
         - `mode: user-managed` in the `draft` space — fully editable; validated against the Wazuh engine before being stored.
-        - `mode: user-managed` in the `standard` space — only the `enabled` field can change; every other field is preserved from the stored document.
+        - `mode: user-managed` in the `standard` space — only `user_enabled` can change; every other field, including `enabled`, is preserved from the stored document. `enabled` is derived by the indexer from `user_enabled` and `cti_enabled` and is NOT accepted from the request.
+
+        A change to `user_enabled` on a `user-managed` integration in the `standard` space is
+        recorded as the user's explicit choice and is preserved across all subsequent content
+        updates from CTI, including incremental updates, full resynchronisations and
+        subscription plan changes.
 
         The `mode` field is server-managed: it must NOT be included in the request body and is preserved from the stored document.
 
@@ -951,6 +956,10 @@ paths:
         - `kvdbs` - Array of KVDB references
         - `rules` - Array of rule references
         - `title` - Integration title
+
+        **Note:** The fields above apply to a `draft`-space update. A `standard`-space update
+        only accepts `user_enabled`; sending `enabled` there has no effect since it is derived,
+        not stored.
 
         **Note:** The `id` field must NOT be included in the request body; the ID is taken from the URL path parameter.
       operationId: updateIntegration
@@ -1774,6 +1783,20 @@ components:
           type: boolean
           description: Whether the integration is enabled
 
+        user_enabled:
+          type: boolean
+          readOnly: true
+          description: >-
+            The user's explicit enabled choice for a standard user-managed integration. Has no
+            meaning for a newly created integration, which is always created in the `draft`
+            space; it must NOT be included in the request body and is stripped if sent.
+        cti_enabled:
+          type: boolean
+          readOnly: true
+          description: >-
+            The enabled state published by CTI. Never accepted from a request body in any
+            space; it must NOT be included in the request body and is stripped if sent.
+
     # Request schema for updating an integration (PUT)
     IntegrationResourceUpdate:
       type: object
@@ -1803,7 +1826,27 @@ components:
 
         enabled:
           type: boolean
-          description: Whether the integration is enabled
+          description: >-
+            Whether the integration is enabled. Applies to a `draft`-space update, where it is
+            the only source of the integration's enabled state. Has no effect on a
+            `standard`-space update: there `enabled` is derived by the indexer from
+            `user_enabled` and `cti_enabled` and is NOT accepted from the request.
+
+        user_enabled:
+          type: boolean
+          description: >-
+            The user's explicit enabled choice for a `standard` user-managed integration. It is
+            the only field a `standard`-space update accepts; the effective `enabled` is then
+            derived by the indexer as `user_enabled ?? cti_enabled`, and that choice is
+            preserved across subsequent CTI content updates, full resynchronisations and
+            subscription plan changes. Has no meaning in the `draft` space, where it is stripped
+            if sent.
+        cti_enabled:
+          type: boolean
+          readOnly: true
+          description: >-
+            The enabled state published by CTI. Never accepted from a request body, in any
+            space; it must NOT be included in the request body and is stripped if sent.
 
         # The following arrays are mandatory to allow reordering
         rules:

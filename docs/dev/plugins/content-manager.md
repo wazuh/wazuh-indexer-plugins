@@ -358,9 +358,38 @@ The value is set by whoever produces the content: CTI content carries its own `m
 | --- | --- | --- |
 | `protected` | any | Rejected with `400 Bad Request`. |
 | `user-managed` | `draft` | Fully editable (metadata, category, `enabled`). |
-| `user-managed` | `standard` | Only `enabled` can change; every other field is preserved from the stored document. |
+| `user-managed` | `standard` | Only `user_enabled` can change; every other field, including `enabled`, is preserved from the stored document. |
 
-When a `standard` integration's `enabled` is toggled, its related Security Analytics **detector is disabled/enabled in lockstep** as part of the same update flow. The detector shares the integration's document id, so the Content Manager calls the Security Analytics `WSetDetectorEnabledAction` (`setDetectorEnabled(id, enabled)`) to flip **only** the `enabled` flag on the existing detector, preserving its inputs, triggers and monitors. If the detector sync fails the whole update is aborted, so the two never drift.
+When a `standard` integration's effective `enabled` changes, its related Security Analytics **detector is disabled/enabled in lockstep** as part of the same update flow. The detector shares the integration's document id, so the Content Manager calls the Security Analytics `WSetDetectorEnabledAction` (`setDetectorEnabled(id, enabled)`) to flip **only** the `enabled` flag on the existing detector, preserving its inputs, triggers and monitors. If the detector sync fails the whole update is aborted, so the two never drift.
+
+---
+
+### Integration `enabled` resolution
+
+A standard integration carries three boolean fields, each with a single writer:
+
+| Field | Written by | Meaning |
+| --- | --- | --- |
+| `document.cti_enabled` | CTI | The state CTI publishes. |
+| `document.user_enabled` | Content Manager | The user's explicit choice. **Absent** means the user never set it. |
+| `document.enabled` | Content Manager | The effective state. Everything that reads an integration's enabled state reads this. |
+
+The resolution rule is `enabled = user_enabled ?? cti_enabled`, evaluated when content is
+ingested from CTI and when the user toggles the integration — never on read. Once a user has
+set a value it wins over every subsequent CTI update, including full resynchronisations and
+subscription plan changes. In a plan change CTI reassigns `document.id`, so overrides are
+carried across by `document.metadata.title`.
+
+Until CTI publishes `cti_enabled`, it still writes `document.enabled` directly; in that case the
+resolution leaves `enabled` as received, so the user's override still takes precedence and
+current behaviour is otherwise unchanged.
+
+On a `standard`-space update, `user_enabled` is the field the client sends — it is the only
+mutable field there, and `enabled` is not accepted from the request. `cti_enabled` is
+server-managed in every space: it is stripped from request bodies and cannot be set by a
+client, exactly like `mode`. `user_enabled` has no meaning outside the `standard` space and is
+likewise stripped from `draft`-space requests, including integration creation (which always
+starts in `draft`).
 
 ---
 
@@ -923,7 +952,7 @@ The plugin includes integration tests defined in the `tests/content-manager` dir
 | Resource / operation   | Scenario count | Covers                                                                                                                                                                                                                                                                                                                              |
 | ---------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Integrations: create   | 9              | Success; duplicate title; missing title/author/category; explicit `id` in resource; missing resource object; empty body; no authentication                                                                                                                                                                                          |
-| Integrations: update   | 12             | Success; title collision with an existing draft integration; missing required fields; not found; invalid UUID; `id` in request body; attempting to add/remove dependency lists; no authentication; protected integration rejected; toggling `enabled` on a user-managed integration in the standard space; user-managed standard update changes only `enabled` (other fields preserved); protected standard integration rejected |
+| Integrations: update   | 13             | Success; title collision with an existing draft integration; missing required fields; not found; invalid UUID; `id` in request body; attempting to add/remove dependency lists; no authentication; protected integration rejected; toggling `user_enabled` on a user-managed integration in the standard space derives `enabled`; user-managed standard update changes only `user_enabled` (other fields preserved); protected standard integration rejected; toggling `user_enabled` leaves the CTI-owned `detector` block immutable; a user's `enabled` override survives a document republished under a new `document.id` with the same title (resync / plan change) |
 | Integrations: delete   | 7              | Success (no attached resources); has attached resources; not found; invalid UUID; missing ID; not in draft space; no authentication                                                                                                                                                                                                 |
 | Decoders: create       | 7              | Success; missing integration reference; explicit `id` in resource; integration not in draft space; missing resource object; empty body; no authentication                                                                                                                                                                           |
 | Decoders: update       | 7              | Success; not found; invalid UUID; not in draft space; missing resource object; empty body; no authentication                                                                                                                                                                                                                        |
