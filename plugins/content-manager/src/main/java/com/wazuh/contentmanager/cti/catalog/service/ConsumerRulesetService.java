@@ -30,11 +30,14 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
@@ -52,6 +55,7 @@ import com.wazuh.contentmanager.utils.Constants;
 public class ConsumerRulesetService extends AbstractConsumerService {
 
     private static final Logger log = LogManager.getLogger(ConsumerRulesetService.class);
+    private static final String[] DOCUMENT_ONLY_SOURCE = new String[] {Constants.KEY_DOCUMENT};
     private final ObjectMapper mapper;
 
     private final SecurityAnalyticsServiceImpl securityAnalyticsService;
@@ -89,7 +93,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
     @Override
     protected String getConsumerType() {
-        return "cti:catalog:consumer:ruleset";
+        return Constants.CONSUMER_TYPE_RULESET;
     }
 
     @Override
@@ -138,12 +142,12 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     @Override
     protected Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
-        mappings.put(Constants.KEY_RULE, "/mappings/cti-rules-mappings.json");
-        mappings.put(Constants.KEY_DECODER, "/mappings/cti-decoders-mappings.json");
-        mappings.put(Constants.KEY_KVDB, "/mappings/cti-kvdbs-mappings.json");
-        mappings.put(Constants.KEY_INTEGRATION, "/mappings/cti-integrations-mappings.json");
-        mappings.put(Constants.KEY_POLICY, "/mappings/cti-policies-mappings.json");
-        mappings.put(Constants.KEY_FILTER, "/mappings/cti-filters-mappings.json");
+        mappings.put(Constants.KEY_RULE, Constants.MAPPING_RULES);
+        mappings.put(Constants.KEY_DECODER, Constants.MAPPING_DECODERS);
+        mappings.put(Constants.KEY_KVDB, Constants.MAPPING_KVDBS);
+        mappings.put(Constants.KEY_INTEGRATION, Constants.MAPPING_INTEGRATIONS);
+        mappings.put(Constants.KEY_POLICY, Constants.MAPPING_POLICIES);
+        mappings.put(Constants.KEY_FILTER, Constants.MAPPING_FILTERS);
         return mappings;
     }
 
@@ -166,8 +170,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     Constants.INDEX_POLICIES);
 
             // Sync Integrations
+            Map<String, JsonNode> integrationDocs = Collections.emptyMap();
             try {
-                this.syncIntegrations();
+                integrationDocs = this.syncIntegrations();
             } catch (Exception e) {
                 log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_INTEGRATIONS, e.getMessage(), e);
             }
@@ -179,10 +184,10 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_RULES, e.getMessage(), e);
             }
 
-            // Sync Detectors
+            // Sync Detectors (reuses integration docs already fetched above)
             if (PluginSettings.getInstance().getCreateDetectors()) {
                 try {
-                    this.syncDetectors();
+                    this.syncDetectors(integrationDocs);
                 } catch (Exception e) {
                     log.error(Constants.E_LOG_SAP_SYNC_FAILED, "detectors", e.getMessage(), e);
                 }
@@ -194,8 +199,41 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
 
             // Reload STANDARD space, as it was updated.
-            this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()));
+            try {
+                this.<Set<String>>awaitResult(
+                        l -> this.spaceService.calculateAndUpdate(List.of(Space.STANDARD.toString()), l));
+            } catch (IOException e) {
+                log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
+            }
             this.loadStandardSpaceIntoEngine();
+        }
+    }
+
+    /**
+     * Bridges an asynchronous {@link ActionListener}-based operation into a blocking call. Used only
+     * on the background/generic sync thread, where blocking is permitted.
+     *
+     * @param <T> the result type
+     * @param op consumer that starts the async operation with the supplied listener
+     * @return the operation result
+     * @throws IOException if the operation fails or times out
+     */
+    private <T> T awaitResult(Consumer<ActionListener<T>> op) throws IOException {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        op.accept(ActionListener.wrap(future::complete, future::completeExceptionally));
+        try {
+            return future.get(60, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException io) {
+                throw io;
+            }
+            throw new IOException(cause != null ? cause : e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException(e);
+        } catch (TimeoutException e) {
+            throw new IOException(e);
         }
     }
 
@@ -206,7 +244,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
         try {
-            JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString());
+            JsonNode payload =
+                    this.awaitResult(l -> this.spaceService.buildEnginePayload(Space.STANDARD.toString(), l));
             RestResponse response = this.engineService.promote(payload);
             if (response.getStatus() == RestStatus.OK.getStatus()) {
                 log.info(Constants.I_LOG_ENGINE_STANDARD_LOADED);
@@ -224,35 +263,48 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     /**
      * Synchronizes Integrations from the internal index to the Security Analytics Plugin. Uses
      * parallel execution with a CountDownLatch to ensure all async requests complete.
+     *
+     * @return the extracted document nodes keyed by document ID, for reuse by {@link
+     *     #syncDetectors(Map)}.
      */
-    private void syncIntegrations() {
+    private Map<String, JsonNode> syncIntegrations() {
+        Map<String, JsonNode> docs = new LinkedHashMap<>();
+
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
             log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Integrations", "integrations");
-            return;
+            return docs;
         }
 
         try {
             Map<String, Map<String, Object>> integrations =
-                    this.spaceService.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
+                    this.awaitResult(
+                            l ->
+                                    this.spaceService.getResourcesBySpace(
+                                            Constants.INDEX_INTEGRATIONS, Space.STANDARD, DOCUMENT_ONLY_SOURCE, l));
             if (integrations.isEmpty()) {
                 log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "integrations");
-                return;
+                return docs;
             }
-
-            CountDownLatch latch = new CountDownLatch(integrations.size());
-            AtomicInteger sent = new AtomicInteger();
-            List<String> failed = Collections.synchronizedList(new ArrayList<>());
 
             integrations.forEach(
                     (id, sourceMap) -> {
-                        JsonNode source = this.mapper.valueToTree(sourceMap);
-                        JsonNode doc = this.extractDocument(source, id);
-                        if (doc == null) {
-                            latch.countDown();
-                            return;
+                        JsonNode doc = this.extractDocumentFromMap(sourceMap, id);
+                        if (doc != null) {
+                            docs.put(id, doc);
                         }
+                    });
 
-                        this.securityAnalyticsService.upsertIntegrationAsync(
+            if (docs.isEmpty()) {
+                return docs;
+            }
+
+            CountDownLatch latch = new CountDownLatch(docs.size());
+            AtomicInteger sent = new AtomicInteger();
+            List<String> failed = Collections.synchronizedList(new ArrayList<>());
+
+            docs.forEach(
+                    (id, doc) -> {
+                        this.securityAnalyticsService.upsertIntegration(
                                 doc,
                                 Space.STANDARD,
                                 RestRequest.Method.POST,
@@ -271,8 +323,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "integrations");
             }
-            // One INFO summary instead of one line per item (per-item sends are at
-            // DEBUG); skipped entirely when nothing was sent to keep no-op syncs quiet.
             if (sent.get() > 0) {
                 log.info(
                         Constants.I_LOG_SAP_SUMMARY,
@@ -291,6 +341,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         } catch (Exception e) {
             log.error(Constants.E_LOG_SAP_SYNC_UNEXPECTED, "integrations", e.getMessage());
         }
+        return docs;
     }
 
     /**
@@ -305,26 +356,35 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
         try {
             Map<String, Map<String, Object>> rules =
-                    this.spaceService.getResourcesBySpace(Constants.INDEX_RULES, Space.STANDARD);
+                    this.awaitResult(
+                            l ->
+                                    this.spaceService.getResourcesBySpace(
+                                            Constants.INDEX_RULES, Space.STANDARD, DOCUMENT_ONLY_SOURCE, l));
             if (rules.isEmpty()) {
                 log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "rules");
                 return;
             }
 
-            CountDownLatch latch = new CountDownLatch(rules.size());
+            Map<String, JsonNode> docs = new LinkedHashMap<>();
+            rules.forEach(
+                    (id, sourceMap) -> {
+                        JsonNode doc = this.extractDocumentFromMap(sourceMap, id);
+                        if (doc != null) {
+                            docs.put(id, doc);
+                        }
+                    });
+
+            if (docs.isEmpty()) {
+                return;
+            }
+
+            CountDownLatch latch = new CountDownLatch(docs.size());
             AtomicInteger sent = new AtomicInteger();
             List<String> failed = Collections.synchronizedList(new ArrayList<>());
 
-            rules.forEach(
-                    (id, sourceMap) -> {
-                        JsonNode source = this.mapper.valueToTree(sourceMap);
-                        JsonNode doc = this.extractDocument(source, id);
-                        if (doc == null) {
-                            latch.countDown();
-                            return;
-                        }
-
-                        this.securityAnalyticsService.upsertRuleAsync(
+            docs.forEach(
+                    (id, doc) -> {
+                        this.securityAnalyticsService.upsertRule(
                                 doc,
                                 Space.STANDARD,
                                 RestRequest.Method.POST,
@@ -343,8 +403,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "rules");
             }
-            // One INFO summary instead of one line per item (per-item sends are at
-            // DEBUG); skipped entirely when nothing was sent to keep no-op syncs quiet.
             if (sent.get() > 0) {
                 log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), rules.size(), "rules", Space.STANDARD);
             }
@@ -363,23 +421,15 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * Synchronizes Threat Detectors to the Security Analytics Plugin. The first detector is created
      * sequentially to ensure the SAP detectors config index exists, then the remaining detectors are
      * created in parallel.
+     *
+     * @param integrationDocs the integration document nodes already extracted by {@link
+     *     #syncIntegrations()}, keyed by document ID.
      */
-    private void syncDetectors() throws IOException {
-        if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
-            log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Integrations", "detectors");
-            return;
-        }
-
-        Map<String, Map<String, Object>> integrations =
-                this.spaceService.getResourcesBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
-
+    private void syncDetectors(Map<String, JsonNode> integrationDocs) throws IOException {
         List<JsonNode> docs = new ArrayList<>();
-        integrations.forEach(
-                (id, sourceMap) -> {
-                    JsonNode source = this.mapper.valueToTree(sourceMap);
-                    JsonNode doc = this.extractDocument(source, id);
-                    if (doc != null
-                            && this.securityAnalyticsService.buildDetectorRequest(doc, true) != null) {
+        integrationDocs.forEach(
+                (id, doc) -> {
+                    if (this.securityAnalyticsService.buildDetectorRequest(doc, true) != null) {
                         docs.add(doc);
                     }
                 });
@@ -497,7 +547,12 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
             for (String id : staleIntegrationIds) {
                 try {
-                    this.securityAnalyticsService.deleteIntegration(id, Space.STANDARD);
+                    CompletableFuture<Void> future = new CompletableFuture<>();
+                    this.securityAnalyticsService.deleteIntegration(
+                            id,
+                            Space.STANDARD,
+                            ActionListener.wrap(r -> future.complete(null), future::completeExceptionally));
+                    future.get(60, TimeUnit.SECONDS);
                 } catch (Exception e) {
                     log.warn("Failed to delete stale integration [{}]: {}", id, e.getMessage());
                 }
@@ -510,7 +565,12 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
             for (String id : staleRuleIds) {
                 try {
-                    this.securityAnalyticsService.deleteRule(id, Space.STANDARD);
+                    CompletableFuture<Void> future = new CompletableFuture<>();
+                    this.securityAnalyticsService.deleteRule(
+                            id,
+                            Space.STANDARD,
+                            ActionListener.wrap(r -> future.complete(null), future::completeExceptionally));
+                    future.get(60, TimeUnit.SECONDS);
                 } catch (Exception e) {
                     log.warn("Failed to delete stale rule [{}]: {}", id, e.getMessage());
                 }
@@ -547,13 +607,11 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * Creates default policy documents for user spaces (draft, testing, custom) if they don't exist.
      */
     private void initializeSpaces() {
-        // Generate a deterministic ID shared across all default policies so they are linked.
-        // Using a name-based UUID (v3) ensures all nodes produce the same ID for the same seed.
-        String sharedDocumentId =
-                UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8)).toString();
-        this.spaceService.initializeSpace(Space.DRAFT.toString(), sharedDocumentId);
-        this.spaceService.initializeSpace(Space.TEST.toString(), sharedDocumentId);
-        this.spaceService.initializeSpace(Space.CUSTOM.toString(), sharedDocumentId);
+        try {
+            this.<Void>awaitResult(l -> this.spaceService.initializeDefaultSpaces(l));
+        } catch (IOException e) {
+            log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, "spaces", e.getMessage());
+        }
     }
 
     /**
@@ -617,5 +675,22 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return null;
         }
         return source.get(Constants.KEY_DOCUMENT);
+    }
+
+    /**
+     * Extracts the inner "document" sub-map from a source map and converts only that sub-map to a
+     * {@link JsonNode}, avoiding a full-source {@code valueToTree()} conversion.
+     *
+     * @param sourceMap The source map from the search hit.
+     * @param hitId The ID of the hit, used for logging if the document field is missing.
+     * @return The inner "document" as a {@link JsonNode}, or null if the key is missing.
+     */
+    private JsonNode extractDocumentFromMap(Map<String, Object> sourceMap, String hitId) {
+        Object docObj = sourceMap.get(Constants.KEY_DOCUMENT);
+        if (docObj == null) {
+            log.warn(Constants.W_LOG_HIT_MISSING_DOCUMENT, hitId);
+            return null;
+        }
+        return this.mapper.valueToTree(docObj);
     }
 }

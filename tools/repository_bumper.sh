@@ -3,23 +3,22 @@
 # =========================
 # Repository Bumper Script
 # =========================
-# This script updates the VERSION.json file for a new version release.
+# Updates VERSION.json for a new version release, then (depending on flags)
+# reinitializes CHANGELOG.md and pins workflow references to the right
+# branch/tag.
 #
-# It takes three arguments:
-# 1. The new version to set (e.g., 4.5.0)
-# 2. The new stage to set (alpha, beta, rc, stable)
-#
+# Usage: repository_bumper.sh --version VERSION --stage STAGE [--tag] [--set-as-main]
 
 set -euo pipefail
 
-# ====
-# Print usage instructions
-# ====
 function usage() {
-    echo "Usage: $0 <version> <stage>"
-    echo "  version:  The new version to set in VERSION.json (e.g., 4.5.0)"
-    echo "  stage:    The new stage to set in VERSION.json (alpha, beta, rc, stable)"
-    echo "  --set-as-main: (Optional) Enable main branch mode: bump version values only,"
+    echo "Usage: $0 --version VERSION --stage STAGE [--tag] [--set-as-main]"
+    echo "  --version VERSION   The new version to set in VERSION.json (e.g., 4.5.0)"
+    echo "  --stage STAGE       The new stage to set in VERSION.json (alpha0, beta1, rc1, stable...)"
+    echo "  --tag               Pin workflow references using tag format (v{version}-{stage})"
+    echo "                      instead of branch format ({version})"
+    echo "  --set-as-main       Enable main branch mode: bump version values only, keep"
+    echo "                      workflow references pointing to main"
     exit 1
 }
 
@@ -93,7 +92,6 @@ function validate_inputs() {
     fi
 }
 
-
 # ====
 # Check if jq is installed
 # ====
@@ -102,6 +100,13 @@ function check_jq_installed() {
         log "Error: 'jq' is not installed. Please install it to use this script."
         exit 1
     fi
+}
+
+# ====
+# Print the version currently set in VERSION.json
+# ====
+function current_version() {
+    jq -r '.version' VERSION.json
 }
 
 # ====
@@ -126,31 +131,33 @@ function update_version_file() {
     log "Updated $file with version=$version and stage=$stage"
 }
 
-
 # ====
-# Main logic
+# Parse command-line arguments
+# Globals:
+#   arg_version, arg_stage, arg_tag, arg_set_as_main
 # ====
-function main() {
-    if [ "$#" -lt 2 ]; then
-        log "Error: Invalid number of arguments. Expected at least 2, got $#."
-        usage
-    fi
+function parse_args() {
+    declare -g arg_version=""
+    declare -g arg_stage=""
+    declare -g arg_tag=""
+    declare -g arg_set_as_main=""
 
-    if [[ $# -gt 3 ]]; then
-        log "Error: Too many arguments. Expected at most 3, got $#."
-        usage
-    fi
-
-    local version="$1"
-    local stage="$2"
-    local set_as_main=""
-
-    # Parse optional flags
-    shift 2
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            --version)
+                arg_version="$2"
+                shift 2
+                ;;
+            --stage)
+                arg_stage="$2"
+                shift 2
+                ;;
+            --tag)
+                arg_tag="yes"
+                shift 1
+                ;;
             --set-as-main)
-                set_as_main="yes"
+                arg_set_as_main="yes"
                 shift 1
                 ;;
             *)
@@ -160,13 +167,51 @@ function main() {
         esac
     done
 
+    if [[ -z "$arg_version" || -z "$arg_stage" ]]; then
+        log "Error: --version and --stage are both required."
+        usage
+    fi
+
+    if [[ -n "$arg_tag" && -n "$arg_set_as_main" ]]; then
+        log "Error: --set-as-main cannot be used with --tag. --set-as-main keeps workflow" \
+             "references pointing to main; --tag exists to convert them to a tag reference," \
+             "which is never done on main."
+        exit 1
+    fi
+}
+
+# ====
+# Main logic
+# ====
+function main() {
+    parse_args "$@"
+
     init_logging
-    log "Starting update for VERSION.json with version=$version, stage=$stage"
+    log "Starting update for VERSION.json with version=$arg_version, stage=$arg_stage"
 
     navigate_to_project_root
     check_jq_installed
-    validate_inputs "$version" "$stage"
-    update_version_file "$version" "$stage"
+    validate_inputs "$arg_version" "$arg_stage"
+
+    local old_version
+    old_version="$(current_version)"
+
+    update_version_file "$arg_version" "$arg_stage"
+
+    if [[ "$arg_version" != "$old_version" ]]; then
+        log "Version changed: $old_version -> $arg_version"
+        bash "$(dirname "${BASH_SOURCE[0]}")/changelog_sync.sh" "$arg_version"
+    else
+        log "Version unchanged ($arg_version); stage-only bump."
+    fi
+
+    if [[ -z "$arg_set_as_main" ]]; then
+        local refs_args=("$arg_version" "$arg_stage")
+        [[ -n "$arg_tag" ]] && refs_args+=("--tag")
+        bash "$(dirname "${BASH_SOURCE[0]}")/workflow_refs_sync.sh" "${refs_args[@]}"
+    else
+        log "Main branch mode enabled: workflow references left pointing to main."
+    fi
 
     log "Update complete."
 }

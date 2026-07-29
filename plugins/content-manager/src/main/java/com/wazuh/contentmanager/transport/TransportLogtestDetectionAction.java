@@ -85,7 +85,7 @@ public class TransportLogtestDetectionAction
 
             String space = jsonNode.get(Constants.KEY_SPACE).asText();
 
-            // 3. Validate space is "test" or "standard"
+            // 3. Validate space is not "draft"
             Space spaceEnum;
             try {
                 spaceEnum = Space.fromValue(space);
@@ -96,7 +96,7 @@ public class TransportLogtestDetectionAction
                                 RestStatus.BAD_REQUEST));
                 return;
             }
-            if (spaceEnum != Space.TEST && spaceEnum != Space.STANDARD) {
+            if (spaceEnum == Space.DRAFT) {
                 listener.onResponse(
                         new LogtestResponse(
                                 String.format(Locale.ROOT, Constants.E_400_INVALID_SPACE, space),
@@ -119,11 +119,23 @@ public class TransportLogtestDetectionAction
             }
 
             // 6. Delegate execution to Service
-            RestResponse serviceResponse =
-                    this.logtestService.executeDetection(integrationId, spaceEnum, inputEvent);
-            listener.onResponse(
-                    new LogtestResponse(
-                            serviceResponse.getMessage(), RestStatus.fromCode(serviceResponse.getStatus())));
+            this.logtestService.executeDetectionAsync(
+                    integrationId,
+                    spaceEnum,
+                    inputEvent,
+                    ActionListener.wrap(
+                            serviceResponse ->
+                                    listener.onResponse(
+                                            new LogtestResponse(
+                                                    serviceResponse.getMessage(),
+                                                    RestStatus.fromCode(serviceResponse.getStatus()))),
+                            e ->
+                                    listener.onResponse(
+                                            new LogtestResponse(
+                                                    e.getMessage() != null
+                                                            ? e.getMessage()
+                                                            : "An unexpected error occurred while" + " processing your request.",
+                                                    RestStatus.INTERNAL_SERVER_ERROR))));
         } catch (Exception e) {
             listener.onResponse(
                     new LogtestResponse(

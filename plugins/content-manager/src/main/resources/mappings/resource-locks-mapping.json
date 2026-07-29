@@ -1,0 +1,8 @@
+{
+  "dynamic": "strict",
+  "properties": {
+    "acquired_at": {
+      "type": "long"
+    }
+  }
+}

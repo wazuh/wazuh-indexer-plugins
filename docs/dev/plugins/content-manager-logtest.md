@@ -1,40 +1,52 @@
-# Logtest Architecture and Developer Guide
+# Logtest architecture and developer guide
 
-## Component Overview
+## Component overview
 
-The logtest flow involves three layers:
+The logtest flow involves four layers: a thin REST handler, a transport action that owns request validation, an orchestration service, and the external services it calls.
 
 ```
-RestPostLogtestAction               →  LogtestService  →  EngineService + SecurityAnalyticsService
-RestPostLogtestNormalizationAction  →       ↑                    ↑
-RestPostLogtestDetectionAction      →       ↑                    ↑
-       (REST handlers)                (Orchestration)       (External services)
+RestPostLogtestAction               →  TransportLogtestAction               →  LogtestService  →  EngineService + SecurityAnalyticsService
+RestPostLogtestNormalizationAction  →  TransportLogtestNormalizationAction  →       ↑                    ↑
+RestPostLogtestDetectionAction      →  TransportLogtestDetectionAction      →       ↑                    ↑
+       (REST handlers)                      (Validation)                     (Orchestration)       (External services)
 ```
+
+REST handlers no longer validate requests or contain any business logic — that responsibility moved to the transport action layer. This is a plugin-wide pattern, not specific to logtest: every REST handler in `rest/service/` delegates to a same-named `Transport*Action` via `client.execute()`, per `AbstractContentAction`'s own javadoc ("Business logic has been moved to transport actions; REST handlers now delegate to the transport layer via `client.execute()`").
 
 ### RestPostLogtestAction (combined)
 
 **Path**: `rest/service/RestPostLogtestAction.java`
 
-The REST handler for `POST /_plugins/_content_manager/logtest`. Responsibilities:
+The REST handler for `POST /_plugins/_content_manager/logtest`. It reads the raw request body into a `LogtestRequest` and calls `client.execute(LogtestAction.INSTANCE, logtestRequest, listener)`. It performs no validation and does not interact with indices or external services directly.
+
+### TransportLogtestAction
+
+**Path**: `transport/TransportLogtestAction.java`
+
+The validation and dispatch layer for the combined endpoint. Responsibilities:
 
 1. Validates the request has content and is valid JSON.
 2. Validates the required field `space`.
-3. Validates that `space` is `"test"` or `"standard"`.
+3. Validates that `space` is not `"draft"`.
 4. Extracts the optional `integration` field (if present) and strips it from the Engine payload.
 5. Delegates to `LogtestService.executeLogtest(integrationId, space, enginePayload)`.
    If `integrationId` is `null`, only engine normalization is performed.
-
-The handler does **not** interact with indices or external services directly, all business logic is in the service.
 
 ### RestPostLogtestNormalizationAction
 
 **Path**: `rest/service/RestPostLogtestNormalizationAction.java`
 
-The REST handler for `POST /_plugins/_content_manager/logtest/normalization`. Responsibilities:
+The REST handler for `POST /_plugins/_content_manager/logtest/normalization`. Reads the request body and calls `client.execute(LogtestNormalizationAction.INSTANCE, ...)`. No validation.
+
+### TransportLogtestNormalizationAction
+
+**Path**: `transport/TransportLogtestNormalizationAction.java`
+
+Responsibilities:
 
 1. Validates the request has content and is valid JSON.
 2. Validates the required field `space`.
-3. Validates that `space` is `"test"` or `"standard"`.
+3. Validates that `space` is not `"draft"`.
 4. Strips the `integration` field if present (not used for normalization).
 5. Delegates to `LogtestService.executeNormalization(enginePayload)`.
 
@@ -42,11 +54,17 @@ The REST handler for `POST /_plugins/_content_manager/logtest/normalization`. Re
 
 **Path**: `rest/service/RestPostLogtestDetectionAction.java`
 
-The REST handler for `POST /_plugins/_content_manager/logtest/detection`. Responsibilities:
+The REST handler for `POST /_plugins/_content_manager/logtest/detection`. Reads the request body and calls `client.execute(LogtestDetectionAction.INSTANCE, ...)`. No validation.
+
+### TransportLogtestDetectionAction
+
+**Path**: `transport/TransportLogtestDetectionAction.java`
+
+Responsibilities:
 
 1. Validates the request has content and is valid JSON.
 2. Validates the required fields `space`, `integration`, and `input`.
-3. Validates that `space` is `"test"` or `"standard"`.
+3. Validates that `space` is not `"draft"`.
 4. Validates that `input` is a JSON object (not a string or array).
 5. Delegates to `LogtestService.executeDetection(integrationId, space, inputEvent)`.
 
@@ -58,7 +76,7 @@ The orchestrator. Provides three public entry points:
 
 - **`executeLogtest()`** — Full combined flow (normalization + detection)
 - **`executeNormalization()`** — Engine-only: forwards payload to `EngineService.logtest()` and returns the response directly with `parseMessageAsJson()`
-- **`executeDetection()`** — SAP-only: looks up integration, fetches rule IDs/bodies, evaluates via `SecurityAnalyticsService.evaluateRules()`, and returns the SAP result
+- **`executeDetection()`** — Security Analytics-only: looks up integration, fetches rule IDs/bodies, evaluates via `SecurityAnalyticsService.evaluateRules()`, and returns the result
 
 The full logtest flow:
 
@@ -66,18 +84,18 @@ The full logtest flow:
 2. **Integration lookup** — Queries `wazuh-threatintel-integrations` for a document matching `document.id == integrationId` and `space.name == space`. Returns 400 if not found.
 3. **Engine processing** — Sends the event payload to the Wazuh Engine via `EngineService.logtest()`. Extracts the normalized event from the `output` field. The engine result fields (`output`, `asset_traces`, `validation`) are included directly in the response (no wrapper).
 4. **Rule fetching** — Extracts rule IDs from the integration's `document.rules` array, then fetches rule bodies from `wazuh-threatintel-rules` by `document.id`, filtered by the same space.
-5. **SAP evaluation** — Passes the normalized event JSON and rule bodies to `SecurityAnalyticsService.evaluateRules()`.
-6. **Response building** — Combines engine and SAP results into a single JSON response under the keys `normalization` and `detection`.
+5. **Security Analytics evaluation** — Passes the normalized event JSON and rule bodies to `SecurityAnalyticsService.evaluateRules()`.
+6. **Response building** — Combines engine and Security Analytics results into a single JSON response under the keys `normalization` and `detection`.
 
 **Error handling**:
-- If the Engine fails (HTTP error or exception), SAP evaluation is **skipped** and the response includes `status: "skipped"` with the reason.
+- If the Engine fails (HTTP error or exception), Security Analytics evaluation is **skipped** and the response includes `status: "skipped"` with the reason.
 - If no integration is provided, detection is skipped (normalization-only mode).
-- If the integration has no rules, SAP returns `rules_evaluated: 0, rules_matched: 0` with success status.
-- If SAP evaluation returns unparseable JSON, the SAP result is `status: "error"`.
+- If the integration has no rules, Security Analytics returns `rules_evaluated: 0, rules_matched: 0` with success status.
+- If Security Analytics evaluation returns unparseable JSON, the result is `status: "error"`.
 
 ### SecurityAnalyticsService / EventMatcher
 
-The SAP evaluation happens in the `security-analytics`:
+The Security Analytics evaluation happens in the `security-analytics` repository:
 
 - **`SecurityAnalyticsServiceImpl.evaluateRules()`** — Parses Sigma rule YAML strings into `SigmaRule` objects, then delegates to `EventMatcher`.
 - **`EventMatcher.evaluate()`** — Flattens the normalized event JSON into dot-notation keys, then evaluates each rule's detection conditions against the flat map. Returns a JSON result string.
@@ -101,13 +119,17 @@ Match results use a nested `rule` object per match entry:
 }
 ```
 
-## Data Flow
+## Data flow
 
 ```
 Client request
     │
     ▼
 RestPostLogtestAction (combined)
+    │  reads body into LogtestRequest, no validation
+    │  client.execute(LogtestAction.INSTANCE, ...)
+    ▼
+TransportLogtestAction
     │  validates request
     │  strips "integration" field
     ▼
@@ -138,12 +160,15 @@ LogtestService.executeLogtest(integrationId, space, payload)
             { normalization: {...}, detection: {...} }
 ```
 
-### Split Endpoints
+### Split endpoints
 
 In addition to the combined flow, there are two dedicated endpoints that execute normalization and detection independently:
 
 ```
 RestPostLogtestNormalizationAction           RestPostLogtestDetectionAction
+    │  no validation, delegates via client.execute()  │  no validation, delegates via client.execute()
+    ▼                                            ▼
+TransportLogtestNormalizationAction          TransportLogtestDetectionAction
     │  validates: space                          │  validates: space, integration, input
     │  strips integration field                  │
     ▼                                            ▼
@@ -154,14 +179,14 @@ LogtestService.executeNormalization(payload)  LogtestService.executeDetection(id
                                                  ├──► extractRuleIds() + fetchRuleBodies()
                                                  │       → fetches rule content from .cti-rules
                                                  └──► securityAnalytics.evaluateRules(inputJson, ruleBodies)
-                                                         → returns SAP result directly
+                                                         → returns Security Analytics result directly
 ```
 
-**Key differences from the combined endpoint:**
+#### Key differences from the combined endpoint
 - **Normalization** returns the raw Engine response (no detection wrapper). The `integration` field is stripped if present but has no effect on behavior.
-- **Detection** accepts a pre-normalized event as the `input` JSON object. It does not call the Engine — it goes straight to integration lookup → rule fetch → SAP evaluation.
+- **Detection** accepts a pre-normalized event as the `input` JSON object. It does not call the Engine — it goes straight to integration lookup → rule fetch → Security Analytics evaluation.
 
-## Index Dependencies
+## Index dependencies
 
 | Index | Usage | Query |
 | --- | --- | --- |
@@ -172,31 +197,31 @@ Both indices must exist and have `document.id` mapped as `keyword` for term quer
 
 ## Testing
 
-### Unit Tests
+### Unit tests
 
 | Test class | Covers |
 | --- | --- |
-| `RestPostLogtestActionTests` | Request validation for combined endpoint (empty body, invalid JSON, missing fields, wrong space, delegation to service) |
-| `RestPostLogtestNormalizationActionTests` | Request validation for normalization endpoint (empty body, invalid JSON, missing space, invalid space, delegation, integration stripping) |
-| `RestPostLogtestDetectionActionTests` | Request validation for detection endpoint (empty body, invalid JSON, missing fields, invalid space, non-object input, delegation) |
-| `LogtestServiceTests` | Orchestration logic (integration lookup, engine errors, rule fetching, SAP evaluation, response structure) |
+| `TransportLogtestActionTests` | Request validation for combined endpoint (empty body, invalid JSON, missing fields, wrong space, delegation to service) |
+| `TransportLogtestNormalizationActionTests` | Request validation for normalization endpoint (empty body, invalid JSON, missing space, invalid space, delegation, integration stripping) |
+| `TransportLogtestDetectionActionTests` | Request validation for detection endpoint (empty body, invalid JSON, missing fields, invalid space, non-object input, delegation) |
+| `LogtestServiceTests` | Orchestration logic (integration lookup, engine errors, rule fetching, Security Analytics evaluation, response structure) |
 | `EventMatcherTests` | Sigma rule evaluation (field matching, wildcards, numerics, booleans, nulls, AND/OR/NOT conditions) |
 
-### Integration Tests
+### Integration tests
 
 | Test class | Covers |
 | --- | --- |
 | `LogtestIT` | End-to-end REST workflow against a live test cluster (request validation, integration lookup, promote + logtest, response structure) |
 
-Integration tests extend `ContentManagerRestTestCase` and run against a real OpenSearch cluster. Since the Wazuh Engine is not available in the test environment, engine-dependent tests validate graceful error handling (engine error → SAP skipped).
+Integration tests extend `ContentManagerRestTestCase` and run against a real OpenSearch cluster. Since the Wazuh Engine is not available in the test environment, engine-dependent tests validate graceful error handling (engine error → Security Analytics skipped).
 
 
-## Adding New Logtest Features
+## Adding new logtest features
 
 ### Supporting a new validation field
 
 1. Add the field constant to `Constants.java`.
-2. Add validation logic in the relevant handler(s): `RestPostLogtestAction`, `RestPostLogtestNormalizationAction`, and/or `RestPostLogtestDetectionAction`.
+2. Add validation logic in the relevant transport action(s): `TransportLogtestAction`, `TransportLogtestNormalizationAction`, and/or `TransportLogtestDetectionAction`. The REST handlers themselves need no changes — they only read the body and dispatch.
 3. Add unit tests in the corresponding test classes.
 4. Add integration test in `LogtestIT`.
 
@@ -207,7 +232,7 @@ Integration tests extend `ContentManagerRestTestCase` and run against a real Ope
 3. Add unit test scenarios in `LogtestServiceTests`.
 4. Update the API docs (`api.md`) response fields table.
 
-### Extending SAP evaluation
+### Extending Security Analytics evaluation
 
 1. Modify `EventMatcher.matchValue()` to handle new `SigmaType` subclasses.
 2. Add test cases in `EventMatcherTests`.

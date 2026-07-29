@@ -42,7 +42,7 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  *
  * <p>Removes stored CTI credentials by delegating to the transport action {@link
  * DeleteSubscriptionAction}, which calls {@link
- * com.wazuh.contentmanager.cti.catalog.service.SubscriptionService#unregister()}.
+ * com.wazuh.contentmanager.cti.catalog.service.SubscriptionService#unregister}.
  *
  * <p>Possible HTTP responses:
  *

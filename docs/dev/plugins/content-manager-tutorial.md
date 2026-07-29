@@ -1,4 +1,4 @@
-# Tutorial: Adding a REST Endpoint to the Content Manager Plugin
+# Tutorial: adding a REST endpoint to the Content Manager plugin
 
 This tutorial walks through adding a new REST endpoint to the Content Manager plugin, using a concrete example: **a GET endpoint to retrieve a single rule by ID**.
 
@@ -13,7 +13,7 @@ By the end, you will have a working `GET /_plugins/_content_manager/rules/{id}` 
 
 ---
 
-## Step 1: Add the URI Constant
+## Step 1: add the URI constant
 
 If your endpoint uses a new base URI, add it to `PluginSettings`. In this case, rules already have `RULES_URI`, and our GET endpoint uses the same base path with an `{id}` parameter, so no changes are needed.
 
@@ -27,7 +27,7 @@ Our endpoint will match `/_plugins/_content_manager/rules/{id}` using the same b
 
 ---
 
-## Step 2: Create the Handler Class
+## Step 2: create the handler class
 
 Create a new file at:
 
@@ -139,7 +139,7 @@ public class RestGetRuleAction extends BaseRestHandler {
 }
 ```
 
-### Key Concepts
+### Key concepts
 
 - **`getName()`** — Returns a short identifier used in logs and debugging.
 - **`routes()`** — Defines the HTTP method and URI pattern. Uses `Route` to register the endpoint with OpenSearch's REST framework.
@@ -148,7 +148,7 @@ public class RestGetRuleAction extends BaseRestHandler {
 
 ---
 
-## Step 3: Register the Handler
+## Step 3: register the handler
 
 Open `ContentManagerPlugin.java` and add the new handler to `getRestHandlers()`:
 
@@ -184,7 +184,7 @@ import com.wazuh.contentmanager.rest.service.RestGetRuleAction;
 
 ---
 
-## Step 4: Build and Verify
+## Step 4: build and verify
 
 Compile the plugin to check for errors:
 
@@ -200,9 +200,9 @@ If compilation succeeds, run the full build (including tests):
 
 ---
 
-## Step 5: Test the Endpoint
+## Step 5: test the endpoint
 
-### Manual Testing
+### Manual testing
 
 Start a local cluster (see [tools/test-cluster](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/tools/test-cluster)) and test:
 
@@ -223,7 +223,7 @@ curl -X GET "https://localhost:9200/_plugins/_content_manager/rules/<uuid>" \
   -u admin:admin --insecure
 ```
 
-### Writing a Unit Test
+### Writing a unit test
 
 Create a test file at:
 
