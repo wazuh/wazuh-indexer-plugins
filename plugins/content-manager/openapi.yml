@@ -891,6 +891,12 @@ paths:
 
         **Note:** Integrations created through this endpoint are always stored with `mode: user-managed`.
         The `mode` field is set server-side and must NOT be included in the request body.
+
+        **Note:** `user_enabled` is optional. When omitted or `null`, it defaults to `true` — the
+        same way `enabled` used to be defaulted. The effective `enabled` is then derived by the
+        indexer as `user_enabled ?? cti_enabled`; there is no `cti_enabled` for an integration
+        created here, since this content does not come from CTI, so the derivation always yields
+        `user_enabled`. `enabled` is never accepted from the request body.
       operationId: createIntegration
       requestBody:
         required: true
@@ -917,7 +923,7 @@ paths:
                       references:
                         - "https://wazuh.com"
                     category: "cloud-services"
-                    enabled: true
+                    user_enabled: true
       responses:
         "201":
           $ref: "#/components/responses/ResourceCreated"
@@ -949,17 +955,20 @@ paths:
         The `mode` field is server-managed: it must NOT be included in the request body and is preserved from the stored document.
 
         **Required fields in resource:**
-        - `author` - Integration author name
-        - `category` - Integration category
-        - `decoders` - Array of decoder definitions
-        - `enabled` - Whether the integration is enabled
-        - `kvdbs` - Array of KVDB references
-        - `rules` - Array of rule references
-        - `title` - Integration title
+        - `user_enabled` - The user's enabled/disabled choice
+        - `author` - Integration author name (also required for a `draft`-space update)
+        - `category` - Integration category (also required for a `draft`-space update)
+        - `decoders` - Array of decoder definitions (also required for a `draft`-space update)
+        - `kvdbs` - Array of KVDB references (also required for a `draft`-space update)
+        - `rules` - Array of rule references (also required for a `draft`-space update)
+        - `title` - Integration title (also required for a `draft`-space update)
 
-        **Note:** The fields above apply to a `draft`-space update. A `standard`-space update
-        only accepts `user_enabled`; sending `enabled` there has no effect since it is derived,
-        not stored.
+        **Note:** The request body has the same shape in every space — `user_enabled` is always
+        the field the client sends, the same way `mode` already is. Only `user_enabled` is
+        required and read on a `standard`-space update; every other field the client sends is
+        ignored and the stored document's values are preserved untouched (`metadata.modified` is
+        the one exception, kept if supplied). The fields marked above as also required apply only
+        to a `draft`-space update.
 
         **Note:** The `id` field must NOT be included in the request body; the ID is taken from the URL path parameter.
       operationId: updateIntegration
@@ -991,7 +1000,7 @@ paths:
                         - "https://wazuh.com"
                         - "https://azure.microsoft.com"
                     category: "cloud-services"
-                    enabled: true
+                    user_enabled: true
                     rules: []
                     decoders: []
                     kvdbs: []
@@ -1781,21 +1790,26 @@ components:
 
         enabled:
           type: boolean
-          description: Whether the integration is enabled
+          readOnly: true
+          description: >-
+            The effective enabled state. Derived by the indexer as `user_enabled ?? cti_enabled`
+            and never accepted from a request body; it must NOT be included in the request body
+            and is stripped if sent.
 
         user_enabled:
           type: boolean
-          readOnly: true
           description: >-
-            The user's explicit enabled choice for a standard user-managed integration. Has no
-            meaning for a newly created integration, which is always created in the `draft`
-            space; it must NOT be included in the request body and is stripped if sent.
+            The user's explicit enabled choice. Optional: when omitted or `null`, it defaults to
+            `true`, the same way `enabled` used to be defaulted. Present the same way in every
+            space, exactly like `mode`.
         cti_enabled:
           type: boolean
           readOnly: true
           description: >-
             The enabled state published by CTI. Never accepted from a request body in any
-            space; it must NOT be included in the request body and is stripped if sent.
+            space; it must NOT be included in the request body and is stripped if sent. Absent on
+            integrations created through this endpoint, since that content does not come from
+            CTI — the derivation of `enabled` above then always yields `user_enabled`.
 
     # Request schema for updating an integration (PUT)
     IntegrationResourceUpdate:
@@ -1804,10 +1818,16 @@ components:
       required:
         - metadata
         - category
-        - enabled
+        - user_enabled
         - rules
         - decoders
         - kvdbs
+      # NOTE: This single schema cannot express that only `user_enabled` is actually enforced on
+      # a `standard`-space update — the target space is resolved from the stored document, not
+      # from the request, so the schema cannot discriminate on it. `metadata`, `category`,
+      # `rules`, `decoders` and `kvdbs` above are required for a `draft`-space update; a
+      # `standard`-space update reads only `user_enabled` and ignores the rest. See the endpoint
+      # description for the full breakdown.
       properties:
         metadata:
           allOf:
@@ -1826,27 +1846,28 @@ components:
 
         enabled:
           type: boolean
+          readOnly: true
           description: >-
-            Whether the integration is enabled. Applies to a `draft`-space update, where it is
-            the only source of the integration's enabled state. Has no effect on a
-            `standard`-space update: there `enabled` is derived by the indexer from
-            `user_enabled` and `cti_enabled` and is NOT accepted from the request.
+            The effective enabled state. Derived by the indexer as `user_enabled ?? cti_enabled`
+            and never accepted from a request body, in any space; it must NOT be included in the
+            request body and is stripped if sent.
 
         user_enabled:
           type: boolean
           description: >-
-            The user's explicit enabled choice for a `standard` user-managed integration. It is
-            the only field a `standard`-space update accepts; the effective `enabled` is then
-            derived by the indexer as `user_enabled ?? cti_enabled`, and that choice is
-            preserved across subsequent CTI content updates, full resynchronisations and
-            subscription plan changes. Has no meaning in the `draft` space, where it is stripped
-            if sent.
+            The user's explicit enabled choice. Required and present the same way in every
+            space, exactly like `mode`. It is the only field a `standard`-space update reads —
+            every other field sent there is ignored and the stored document is preserved as-is.
+            The effective `enabled` is derived by the indexer as `user_enabled ?? cti_enabled`,
+            and that choice is preserved across subsequent CTI content updates, full
+            resynchronisations and subscription plan changes.
         cti_enabled:
           type: boolean
           readOnly: true
           description: >-
             The enabled state published by CTI. Never accepted from a request body, in any
-            space; it must NOT be included in the request body and is stripped if sent.
+            space; it must NOT be included in the request body and is stripped if sent. Absent on
+            user-created integrations, since that content does not come from CTI.
 
         # The following arrays are mandatory to allow reordering
         rules:

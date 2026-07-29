@@ -357,7 +357,7 @@ The value is set by whoever produces the content: CTI content carries its own `m
 | Integration | Space | `PUT /integrations/{id}` |
 | --- | --- | --- |
 | `protected` | any | Rejected with `400 Bad Request`. |
-| `user-managed` | `draft` | Fully editable (metadata, category, `enabled`). |
+| `user-managed` | `draft` | Fully editable (metadata, category, `user_enabled`). |
 | `user-managed` | `standard` | Only `user_enabled` can change; every other field, including `enabled`, is preserved from the stored document. |
 
 When a `standard` integration's effective `enabled` changes, its related Security Analytics **detector is disabled/enabled in lockstep** as part of the same update flow. The detector shares the integration's document id, so the Content Manager calls the Security Analytics `WSetDetectorEnabledAction` (`setDetectorEnabled(id, enabled)`) to flip **only** the `enabled` flag on the existing detector, preserving its inputs, triggers and monitors. If the detector sync fails the whole update is aborted, so the two never drift.
@@ -366,30 +366,47 @@ When a `standard` integration's effective `enabled` changes, its related Securit
 
 ### Integration `enabled` resolution
 
-A standard integration carries three boolean fields, each with a single writer:
+Every integration document carries three boolean fields, each with a single writer. All three
+are present the same way in every space (`standard`, `draft`, `test`, `custom`), exactly like
+`mode`:
 
 | Field | Written by | Meaning |
 | --- | --- | --- |
-| `document.cti_enabled` | CTI | The state CTI publishes. |
-| `document.user_enabled` | Content Manager | The user's explicit choice. **Absent** means the user never set it. |
-| `document.enabled` | Content Manager | The effective state. Everything that reads an integration's enabled state reads this. |
+| `document.cti_enabled` | CTI | The state CTI publishes. Absent on integrations created through the REST API, since that content does not come from CTI. |
+| `document.user_enabled` | Content Manager | The user's explicit choice, set from the `user_enabled` field the client sends. |
+| `document.enabled` | Content Manager | The effective state, derived and never accepted from a request. Everything that reads an integration's enabled state reads this. |
 
 The resolution rule is `enabled = user_enabled ?? cti_enabled`, evaluated when content is
-ingested from CTI and when the user toggles the integration — never on read. Once a user has
-set a value it wins over every subsequent CTI update, including full resynchronisations and
-subscription plan changes. In a plan change CTI reassigns `document.id`, so overrides are
-carried across by `document.metadata.title`.
+ingested from CTI and whenever the client creates or updates an integration — never on read.
+Once a user has set a value it wins over every subsequent CTI update, including full
+resynchronisations and subscription plan changes. In a plan change CTI reassigns `document.id`,
+so overrides are carried across by `document.metadata.title`.
 
 Until CTI publishes `cti_enabled`, it still writes `document.enabled` directly; in that case the
 resolution leaves `enabled` as received, so the user's override still takes precedence and
 current behaviour is otherwise unchanged.
 
-On a `standard`-space update, `user_enabled` is the field the client sends — it is the only
-mutable field there, and `enabled` is not accepted from the request. `cti_enabled` is
-server-managed in every space: it is stripped from request bodies and cannot be set by a
-client, exactly like `mode`. `user_enabled` has no meaning outside the `standard` space and is
-likewise stripped from `draft`-space requests, including integration creation (which always
-starts in `draft`).
+The client always sends `user_enabled`, uniformly across spaces, so the request shape is
+identical regardless of where an integration lives. The parallel with `mode` is that the field
+is present in every space even where its value is predictable — but unlike `mode`, which is
+server-set and never accepted from a request, `user_enabled` is the one field the client does
+send:
+
+- On create, `user_enabled` is optional and defaults to `true` when absent or `null`, the same
+  way `enabled` used to be defaulted.
+- On a `draft`-space update, `user_enabled` is required, alongside `category` and the metadata
+  fields.
+- On a `standard`-space update, `user_enabled` is the only field read; every other field the
+  client sends is ignored and the stored document is preserved untouched.
+
+`enabled` and `cti_enabled` are server-managed in every space: both are stripped from request
+bodies and cannot be set by a client, exactly like `mode`.
+
+"Absent `user_enabled` means the user never decided" still holds, but since create always
+defaults the field and update always requires it, the absent case now only arises for a
+CTI-published `standard` integration the user has not yet touched. Readers should still test for
+presence rather than truthiness — an explicit `false` is a real decision — but should not expect
+the absent case on integrations created through the API.
 
 ---
 
