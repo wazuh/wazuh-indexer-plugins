@@ -63,6 +63,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -1330,6 +1331,76 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         BulkRequest bulkRequest = bulkCaptor.getValue();
         IndexRequest indexRequest = (IndexRequest) bulkRequest.requests().get(0);
         return (ObjectNode) this.plain.readTree(indexRequest.source().utf8ToString());
+    }
+
+    /**
+     * Regression test for the reinitialisation path.
+     *
+     * <p>{@code AbstractConsumerService} deletes every standard-space document <b>before</b> calling
+     * {@code initialize}, so by the time {@code initialize} runs the overrides are already gone from
+     * the index. The fix is for that caller to invoke {@link
+     * SnapshotServiceImpl#captureUserOverrides()} while the documents still exist, and for {@code
+     * initialize} not to re-read afterwards.
+     *
+     * <p>This reproduces exactly that sequence: the first read (the caller's explicit capture) sees
+     * the override, every later read sees an emptied index. Before the fix, {@code initialize}
+     * re-read unconditionally, replaced the captured map with the empty one, and the user's choice
+     * was silently overwritten with CTI's value — the original bug, verified live on a real cluster.
+     */
+    public void testInitializeKeepsOverridesCapturedBeforeTheIndicesWereWiped() throws Exception {
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0).toString());
+        when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
+        // First read: the live index, still holding the user's choice. Every read after that: the
+        // index as the caller left it once it deleted the standard-space documents.
+        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
+                .thenReturn(Map.of("suricata", true))
+                .thenReturn(Map.of());
+
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
+
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
+        service.setSnapshotClient(this.snapshotClient);
+        this.mockT0ConsumerDoc();
+
+        String url = "http://example.com/integration-suricata.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(1L);
+
+        // spotless:off
+        String jsonContent =
+                "{\"name\": \"suricata-id\", \"offset\": 1, \"payload\": {\"type\": \"integration\", "
+                        + "\"document\": {\"id\": \"suricata-id\", "
+                        + "\"metadata\": {\"title\": \"suricata\"}, "
+                        + "\"cti_enabled\": false}}}";
+        // spotless:on
+        Path zipPath = this.createZipFileWithContent("integration-suricata.json", jsonContent);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        // The caller captures while the documents still exist, then wipes, then initialises.
+        service.captureUserOverrides();
+        Assert.assertTrue(service.initialize(this.remoteConsumer));
+
+        // Exactly one read: initialize must not go back to an index the caller already emptied.
+        verify(integrationsIndex, times(1))
+                .fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED);
+
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        verify(integrationsIndex, atLeastOnce()).executeBulk(bulkCaptor.capture());
+        IndexRequest indexRequest = (IndexRequest) bulkCaptor.getValue().requests().get(0);
+        JsonNode document =
+                this.plain.readTree(indexRequest.source().utf8ToString()).get(Constants.KEY_DOCUMENT);
+
+        assertTrue(
+                "the captured override must survive the wipe",
+                document.get(Constants.KEY_USER_ENABLED).asBoolean());
+        assertTrue(
+                "enabled must be derived from the override, not from CTI",
+                document.get(Constants.KEY_ENABLED).asBoolean());
     }
 
     /** A CTI resync/plan-change must not clobber a live user override matched by title. */

@@ -78,6 +78,16 @@ public class SnapshotServiceImpl implements SnapshotService {
     private Map<String, Boolean> userEnabledByTitle = Collections.emptyMap();
 
     /**
+     * Whether {@link #captureUserOverrides()} already ran for this snapshot service.
+     *
+     * <p>The overrides must be read while the documents that carry them still exist. Some callers
+     * wipe the live indices <b>before</b> invoking {@code initialize}, so they capture explicitly
+     * beforehand and this flag stops {@code initialize} from re-reading an already-emptied index and
+     * discarding what was captured.
+     */
+    private boolean overridesCaptured;
+
+    /**
      * Constructs a new SnapshotServiceImpl.
      *
      * @param consumerType The consumer type identifier used as local document id.
@@ -188,8 +198,9 @@ public class SnapshotServiceImpl implements SnapshotService {
             }
 
             // 2. Load user overrides (through the alias, so this sees live pre-swap state), then
-            // stream and index JSON entries directly from the ZIP.
-            this.loadUserOverrides();
+            // stream and index JSON entries directly from the ZIP. Skipped when the caller already
+            // captured them before wiping the live indices.
+            this.captureUserOverridesIfNeeded();
             startMs = System.currentTimeMillis();
             this.processZip(snapshotZip);
 
@@ -238,24 +249,31 @@ public class SnapshotServiceImpl implements SnapshotService {
      * a plan-change swap this captures the live pre-swap state while the shadow index is being
      * populated.
      *
+     * <p><b>Must be called while the documents carrying the overrides still exist.</b> Not every
+     * caller wipes the indices inside {@code initialize}: the reinitialisation path in {@code
+     * AbstractConsumerService} deletes every standard-space document <i>before</i> calling {@code
+     * initialize}, so it must invoke this method itself beforehand. Reading afterwards would search
+     * an already-emptied index, silently yield an empty map and drop every override. The {@link
+     * #overridesCaptured} flag then stops {@code initialize} from re-reading and undoing that
+     * capture.
+     *
      * <p>If the read fails, the failure is logged at ERROR and rethrown so the caller aborts the
      * snapshot instead of proceeding with an empty override map — an empty map is indistinguishable
      * from "the user never set any override", so treating a failed read as "no overrides" would
      * silently rebuild every integration with CTI's values and permanently lose every user override.
-     * Both {@code initialize} overloads call this before any destructive step (before {@link
-     * #processZip} and before {@code ContentIndex#clear}), so aborting here is safe: nothing has been
-     * written or cleared yet, and the sync retries on the next cycle.
+     * Callers must abort <i>before</i> their own destructive step for that to be worth anything.
      *
      * @throws IOException if a stored override document cannot be parsed as JSON.
      * @throws InterruptedException if the thread is interrupted while waiting for the read.
      * @throws ExecutionException if the underlying search request fails.
      * @throws TimeoutException if the read exceeds the client timeout setting.
      */
-    private void loadUserOverrides()
+    public void captureUserOverrides()
             throws IOException, InterruptedException, ExecutionException, TimeoutException {
         ContentIndex integrations = this.indicesMap.get(Constants.KEY_INTEGRATION);
         if (integrations == null) {
             this.userEnabledByTitle = Collections.emptyMap();
+            this.overridesCaptured = true;
             return;
         }
         try {
@@ -266,11 +284,26 @@ public class SnapshotServiceImpl implements SnapshotService {
             log.error(Constants.E_LOG_USER_OVERRIDES_READ_FAILED, this.consumerType, e.getMessage());
             throw e;
         }
-        if (!this.userEnabledByTitle.isEmpty()) {
-            log.info(
-                    "Loaded {} integration enabled override(s) to carry across the snapshot",
-                    this.userEnabledByTitle.size());
+        this.overridesCaptured = true;
+        log.info(
+                "Captured {} integration enabled override(s) to carry across the snapshot",
+                this.userEnabledByTitle.size());
+    }
+
+    /**
+     * Captures the overrides unless a caller already did it before wiping the indices.
+     *
+     * @throws IOException if the read fails.
+     * @throws InterruptedException if the thread is interrupted while reading.
+     * @throws ExecutionException if the read fails asynchronously.
+     * @throws TimeoutException if the read exceeds the client timeout setting.
+     */
+    private void captureUserOverridesIfNeeded()
+            throws IOException, InterruptedException, ExecutionException, TimeoutException {
+        if (this.overridesCaptured) {
+            return;
         }
+        this.captureUserOverrides();
     }
 
     /**
@@ -476,8 +509,9 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         try {
             // Capture user overrides before the indices are cleared, so they can be
-            // re-applied as the snapshot repopulates them.
-            this.loadUserOverrides();
+            // re-applied as the snapshot repopulates them. Skipped when the caller already
+            // captured them before wiping the live indices.
+            this.captureUserOverridesIfNeeded();
 
             // 1. Clear indices
             this.indicesMap.values().forEach(ContentIndex::clear);

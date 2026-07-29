@@ -42,12 +42,15 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -55,12 +58,15 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -521,5 +527,50 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
                 "type_hashes should be empty when no documents exist",
                 0,
                 root.get(Constants.KEY_TYPE_HASHES).size());
+    }
+
+    /**
+     * The user's integration enabled overrides live in the very documents the wipe deletes, so the
+     * capture has to happen first. Reading afterwards searches an emptied index, yields an empty map
+     * indistinguishable from "the user never chose anything", and silently rebuilds every integration
+     * with CTI's values — the bug this guards against, reproduced on a live cluster.
+     *
+     * <p>What is asserted is the ordering, not merely that both steps ran.
+     */
+    public void testCaptureOverridesThenWipe_capturesBeforeClearing() throws Exception {
+        SnapshotServiceImpl snapshotService = mock(SnapshotServiceImpl.class);
+        ContentIndex integrations = mock(ContentIndex.class);
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put(Constants.KEY_INTEGRATION, integrations);
+
+        boolean proceed =
+                this.service.captureOverridesThenWipe(
+                        snapshotService, indicesMap, "cti:catalog:consumer:iocs");
+
+        assertTrue("the wipe should have been attempted", proceed);
+        InOrder order = inOrder(snapshotService, integrations);
+        order.verify(snapshotService).captureUserOverrides();
+        order.verify(integrations).clear();
+    }
+
+    /**
+     * A failed override read must abort before anything is deleted. An unreadable map cannot be told
+     * apart from "no overrides", so proceeding would wipe the indices and repopulate them from CTI,
+     * destroying every user choice. Aborting first leaves the index intact for the next sync cycle.
+     */
+    public void testCaptureOverridesThenWipe_abortsWithoutDeletingWhenCaptureFails()
+            throws Exception {
+        SnapshotServiceImpl snapshotService = mock(SnapshotServiceImpl.class);
+        doThrow(new IOException("all shards failed")).when(snapshotService).captureUserOverrides();
+        ContentIndex integrations = mock(ContentIndex.class);
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put(Constants.KEY_INTEGRATION, integrations);
+
+        boolean proceed =
+                this.service.captureOverridesThenWipe(
+                        snapshotService, indicesMap, "cti:catalog:consumer:iocs");
+
+        assertFalse("the sync must abort when the overrides cannot be read", proceed);
+        verify(integrations, never()).clear();
     }
 }
