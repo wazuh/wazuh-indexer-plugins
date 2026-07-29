@@ -41,12 +41,12 @@ public class Filter extends Resource {
      */
     public static Filter fromPayload(JsonNode payload) {
         Filter filter = new Filter();
-        new Resource().populateResource(filter, payload);
 
         if (payload.has(Constants.KEY_DOCUMENT)) {
             filter.setYaml(YamlUtils.toYaml(payload.get(Constants.KEY_DOCUMENT)));
         }
 
+        new Resource().populateResourceInPlace(filter, payload);
         return filter;
     }
 

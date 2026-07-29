@@ -30,4 +30,10 @@ public interface ResourceUrlResolver {
      * @return the resolved URL to use for the request.
      */
     String resolve(String originalUrl);
+
+    /**
+     * Releases any resources held by this resolver (e.g. an HTTP client used to obtain signed URLs).
+     * No-op by default; implementations that own closeable resources should override it.
+     */
+    default void close() {}
 }

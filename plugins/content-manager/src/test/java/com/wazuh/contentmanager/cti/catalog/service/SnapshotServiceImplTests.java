@@ -122,9 +122,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
-        // Updated matchers to use JsonNode instead of JsonObject
-        when(this.contentIndexMock.processPayload(any(JsonNode.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(this.contentIndexMock.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, JsonNode.class).toString());
         when(this.contentIndexMock.getWriteIndex()).thenReturn(".test-context-test-consumer-kvdb");
     }
 
@@ -217,7 +216,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         verify(this.contentIndexMock, never()).clear();
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -267,7 +266,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
 
@@ -297,8 +296,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        // Verify delegation to ContentIndex.processPayload
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        // Verify delegation to ContentIndex.processPayloadToString
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -322,7 +321,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -369,7 +368,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -399,7 +398,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock, atLeastOnce()).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock, atLeastOnce()).processPayloadToString(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -433,7 +432,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -748,7 +747,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         svc.initialize(zip, null);
 
-        verify(this.contentIndexMock, never()).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock, never()).processPayloadToString(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -947,7 +946,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock, atLeastOnce()).clear();
 
         // Documents should be processed and indexed
-        verify(this.contentIndexMock, atLeastOnce()).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock, atLeastOnce()).processPayloadToString(any(JsonNode.class));
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(any(BulkRequest.class));
         verify(this.contentIndexMock).waitForPendingUpdates();
 
@@ -1294,8 +1293,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     private ObjectNode runSnapshotForSingleIntegration(
             String title, boolean ctiEnabled, Map<String, Boolean> overrides) throws Exception {
         ContentIndex integrationsIndex = mock(ContentIndex.class);
-        when(integrationsIndex.processPayload(any(JsonNode.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0).toString());
         when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
         when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
                 .thenReturn(overrides);
@@ -1370,8 +1369,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     private ObjectNode runLocalSnapshotForSingleIntegration(
             String title, boolean ctiEnabled, Map<String, Boolean> overrides) throws Exception {
         ContentIndex integrationsIndex = mock(ContentIndex.class);
-        when(integrationsIndex.processPayload(any(JsonNode.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0).toString());
         when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
         when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
                 .thenReturn(overrides);
@@ -1440,8 +1439,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // Stubbed exactly like the passing-path tests (e.g. runSnapshotForSingleIntegration) so that,
         // if the abort did NOT happen, the snapshot would run to completion and this test would fail
         // for the right reason instead of being masked by an unrelated NPE from an unstubbed mock.
-        when(integrationsIndex.processPayload(any(JsonNode.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0).toString());
         when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
         when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
                 .thenThrow(new IOException("search timeout"));
@@ -1488,8 +1487,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // Stubbed exactly like the passing-path tests so that, if the abort did NOT happen, the
         // snapshot would run to completion (and the assertFalse below would fail for the right
         // reason instead of being masked by an unrelated NPE from an unstubbed mock).
-        when(integrationsIndex.processPayload(any(JsonNode.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0).toString());
         when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
         when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
                 .thenThrow(new IOException("Failed to execute phase [query], all shards failed"));

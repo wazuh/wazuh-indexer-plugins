@@ -41,12 +41,12 @@ public class Kvdb extends Resource {
      */
     public static Kvdb fromPayload(JsonNode payload) {
         Kvdb kvdb = new Kvdb();
-        new Resource().populateResource(kvdb, payload);
 
         if (payload.has(Constants.KEY_DOCUMENT)) {
             kvdb.setYaml(YamlUtils.toYaml(payload.get(Constants.KEY_DOCUMENT)));
         }
 
+        new Resource().populateResourceInPlace(kvdb, payload);
         return kvdb;
     }
 
