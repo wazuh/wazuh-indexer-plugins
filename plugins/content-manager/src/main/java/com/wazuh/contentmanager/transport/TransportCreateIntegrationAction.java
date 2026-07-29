@@ -33,6 +33,7 @@ import java.util.List;
 
 import com.wazuh.contentmanager.action.CreateIntegrationAction;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.IntegrationEnabledResolver;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
@@ -116,11 +117,16 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
                             // Integrations created through the API are always user-managed.
                             ((ObjectNode) resource).put(Constants.KEY_MODE, Constants.MODE_USER_MANAGED);
 
-                            // Integrations are created in 'draft', where neither field has any
-                            // meaning: stop a forged override from entering here and surviving
-                            // promotion to 'standard'.
-                            ((ObjectNode) resource).remove(Constants.KEY_USER_ENABLED);
-                            ((ObjectNode) resource).remove(Constants.KEY_CTI_ENABLED);
+                            // 'user_enabled' carries the user's choice in every space. Default it
+                            // the way 'enabled' used to be defaulted, then derive 'enabled' from it
+                            // so the resolution rule lives in exactly one place.
+                            ObjectNode resourceNode = (ObjectNode) resource;
+                            resourceNode.remove(Constants.KEY_CTI_ENABLED);
+                            if (!resourceNode.has(Constants.KEY_USER_ENABLED)
+                                    || resourceNode.get(Constants.KEY_USER_ENABLED).isNull()) {
+                                resourceNode.put(Constants.KEY_USER_ENABLED, true);
+                            }
+                            IntegrationEnabledResolver.resolve(resourceNode);
 
                             listener.onResponse(null);
                         },

@@ -134,4 +134,74 @@ public class TransportUpdateIntegrationActionTests extends OpenSearchTestCase {
 
         assertTrue(payload.get(Constants.KEY_ENABLED).asBoolean());
     }
+
+    /** Stored draft document: fully editable, no CTI value. */
+    private ObjectNode storedDraftDocument() {
+        ObjectNode document = MAPPER.createObjectNode();
+        document.put(Constants.KEY_ID, ID);
+        document.put(Constants.KEY_ENABLED, false);
+        document.put(Constants.KEY_MODE, "user-managed");
+        document.put(Constants.KEY_CATEGORY, "other");
+        document.set(Constants.KEY_METADATA, MAPPER.createObjectNode().put("title", "my-integration"));
+
+        ObjectNode wrapper = MAPPER.createObjectNode();
+        wrapper.set(Constants.KEY_DOCUMENT, document);
+        wrapper.set(Constants.KEY_SPACE, MAPPER.createObjectNode().put("name", "draft"));
+        return wrapper;
+    }
+
+    public void testDraftPutStoresUserChoiceAndDerivesEnabled() {
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put(Constants.KEY_ID, ID);
+        payload.put(Constants.KEY_CATEGORY, "other");
+        payload.put(Constants.KEY_USER_ENABLED, true);
+        payload.set(Constants.KEY_METADATA, MAPPER.createObjectNode().put("title", "my-integration"));
+
+        this.action.preserveMetadata(indexReturning(storedDraftDocument()), ID, payload, Space.DRAFT);
+
+        assertTrue(payload.get(Constants.KEY_USER_ENABLED).asBoolean());
+        assertTrue(payload.get(Constants.KEY_ENABLED).asBoolean());
+    }
+
+    /** A false choice is a real decision in draft too. */
+    public void testDraftPutStoresFalseChoice() {
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put(Constants.KEY_ID, ID);
+        payload.put(Constants.KEY_CATEGORY, "other");
+        payload.put(Constants.KEY_USER_ENABLED, false);
+        payload.set(Constants.KEY_METADATA, MAPPER.createObjectNode().put("title", "my-integration"));
+
+        this.action.preserveMetadata(indexReturning(storedDraftDocument()), ID, payload, Space.DRAFT);
+
+        assertFalse(payload.get(Constants.KEY_USER_ENABLED).asBoolean());
+        assertFalse(payload.get(Constants.KEY_ENABLED).asBoolean());
+    }
+
+    /** On draft, an 'enabled' sent by the client must not win over the derivation. */
+    public void testDraftEnabledSentByClientIsIgnored() {
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put(Constants.KEY_ID, ID);
+        payload.put(Constants.KEY_CATEGORY, "other");
+        payload.put(Constants.KEY_USER_ENABLED, true);
+        payload.put(Constants.KEY_ENABLED, false);
+        payload.set(Constants.KEY_METADATA, MAPPER.createObjectNode().put("title", "my-integration"));
+
+        this.action.preserveMetadata(indexReturning(storedDraftDocument()), ID, payload, Space.DRAFT);
+
+        assertTrue(payload.get(Constants.KEY_ENABLED).asBoolean());
+    }
+
+    /** A client cannot forge cti_enabled in draft either. */
+    public void testDraftInjectedCtiEnabledIsStripped() {
+        ObjectNode payload = MAPPER.createObjectNode();
+        payload.put(Constants.KEY_ID, ID);
+        payload.put(Constants.KEY_CATEGORY, "other");
+        payload.put(Constants.KEY_USER_ENABLED, true);
+        payload.put(Constants.KEY_CTI_ENABLED, true);
+        payload.set(Constants.KEY_METADATA, MAPPER.createObjectNode().put("title", "my-integration"));
+
+        this.action.preserveMetadata(indexReturning(storedDraftDocument()), ID, payload, Space.DRAFT);
+
+        assertFalse(payload.has(Constants.KEY_CTI_ENABLED));
+    }
 }

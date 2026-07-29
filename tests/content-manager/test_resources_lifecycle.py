@@ -30,8 +30,10 @@ class TestIntegrationLifecycle:
         A.assert_hash_present(source)
         # Integrations created through the API are always user-managed.
         assert source["document"]["mode"] == "user-managed", source["document"]
-        # Integrations created through the API carry no user override yet.
-        assert "user_enabled" not in source["document"], source["document"]
+        # 'user_enabled' defaults to the requested value (True here), and 'enabled'
+        # is derived from it.
+        assert source["document"]["user_enabled"] is True, source["document"]
+        assert source["document"]["enabled"] is True, source["document"]
         A.assert_listed_in_draft_policy(client, "integrations", iid)
         A.assert_space_hash_changed(before, A.space_hash(client, C.SPACE_DRAFT))
 

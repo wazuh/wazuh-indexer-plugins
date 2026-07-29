@@ -649,7 +649,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                 {
                     "resource": {
                         "category": "cloud-services",
-                        "enabled": true,
+                        "user_enabled": true,
                         "metadata": {
                             "title": "%s",
                             "author": "Wazuh Inc.",

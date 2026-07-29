@@ -120,16 +120,22 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
                     Constants.E_400_RESOURCE_SPACE_INVALID, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // 'user_enabled' is the only field that can be changed for standard integrations
+        // 'user_enabled' carries the user's decision in every space; 'enabled' is derived.
+        RestResponse fieldValidation =
+                this.documentValidations.validateRequiredFields(
+                        resource, List.of(Constants.KEY_USER_ENABLED));
+        if (fieldValidation != null) {
+            return fieldValidation;
+        }
+
+        // Only 'user_enabled' is mutable for standard integrations
         if (Space.STANDARD.equals(resolvedSpace)) {
-            return this.documentValidations.validateRequiredFields(
-                    resource, List.of(Constants.KEY_USER_ENABLED));
+            return null;
         }
 
         // Draft integrations are fully editable
-        RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_CATEGORY, Constants.KEY_ENABLED));
+        fieldValidation =
+                this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_CATEGORY));
         if (fieldValidation != null) {
             return fieldValidation;
         }
@@ -186,8 +192,9 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
             return null;
         }
 
-        // 'user_enabled' has no meaning outside the standard space.
-        resourceNode.remove(Constants.KEY_USER_ENABLED);
+        // Outside the standard space there is no CTI value, so the effective 'enabled' is the
+        // user's choice. Deriving it through the resolver keeps the rule in one place.
+        IntegrationEnabledResolver.resolve(resourceNode);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> existing = MAPPER.convertValue(existingDocument, Map.class);
