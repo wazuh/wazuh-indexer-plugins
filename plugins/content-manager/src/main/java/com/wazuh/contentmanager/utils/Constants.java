@@ -55,11 +55,23 @@ public class Constants {
     public static final String E_400_DUPLICATE_ENRICHMENT = "Duplicate enrichment type '%s'.";
     public static final String E_400_INTEGRATION_HAS_RESOURCES =
             "Cannot delete integration because it has %s attached.";
+    public static final String E_400_PROTECTED_INTEGRATION =
+            "Integration [%s] is protected and cannot be modified.";
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
             "Only 'update' operation is supported for policy.";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
     public static final String E_400_DUPLICATE_NAME =
             "A %s with the name '%s' already exists in the %s space.";
+    public static final String E_400_TOO_MANY_INTEGRATIONS =
+            "This request would create more than the allowed integrations [%d].";
+    public static final String E_400_TOO_MANY_DECODERS =
+            "This request would create more than the allowed decoders [%d].";
+    public static final String E_400_TOO_MANY_RULES =
+            "This request would create more than the allowed rules [%d].";
+    public static final String E_400_TOO_MANY_KVDBS =
+            "This request would create more than the allowed kvdbs [%d].";
+    public static final String E_400_TOO_MANY_FILTERS =
+            "This request would create more than the allowed filters [%d].";
     public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
             "ID should not be provided in the payload.";
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine validation failed.";
@@ -88,6 +100,16 @@ public class Constants {
             "Unable to reach the CTI API to check for updates.";
 
     // Log messages
+    public static final String I_LOG_MAX_INTEGRATIONS_REACHED =
+            "This request would create more than the allowed integrations [{}].";
+    public static final String I_LOG_MAX_DECODERS_REACHED =
+            "This request would create more than the allowed decoders [{}].";
+    public static final String I_LOG_MAX_RULES_REACHED =
+            "This request would create more than the allowed rules [{}].";
+    public static final String I_LOG_MAX_KVDBS_REACHED =
+            "This request would create more than the allowed kvdbs [{}].";
+    public static final String I_LOG_MAX_FILTERS_REACHED =
+            "This request would create more than the allowed filters [{}].";
     public static final String I_LOG_SUCCESS = "{} {} successfully (id={})";
     public static final String D_LOG_OPERATION = "{} {} (id={})";
     public static final String E_LOG_ENGINE_IS_NULL = "Engine instance unavailable.";
@@ -286,10 +308,25 @@ public class Constants {
     public static final String W_LOG_SNAPSHOT_TEMP_FILE_DELETE_FAILED =
             "Failed to delete temp file {}";
     public static final String W_LOG_SNAPSHOT_CLEANUP_FAILED = "Error during cleanup: {}";
-    public static final String D_LOG_SNAPSHOT_ELAPSED =
-            "Snapshot [{}] processed and removed in {} ms";
+    public static final String D_LOG_SNAPSHOT_ELAPSED = "Snapshot [{}] processed in {} ms";
     public static final String D_LOG_SNAPSHOT_LOCAL_ELAPSED =
-            "Local snapshot [{}] processed and removed in {} ms";
+            "Local snapshot [{}] processed in {} ms";
+    public static final String D_LOG_SNAPSHOT_PROMOTED_TO_STABLE =
+            "Promoted snapshot to stable path [{}]";
+    public static final String W_LOG_SNAPSHOT_PROMOTE_FAILED =
+            "Failed to promote snapshot to stable path [{}]: {}";
+    public static final String D_LOG_SNAPSHOT_PROMOTE_SOURCE_MISSING =
+            "Packaged snapshot [{}] not found; skipping promote (already consumed).";
+    public static final String W_LOG_SNAPSHOT_PROMOTE_CHECK_FAILED =
+            "Failed to check packaged snapshot [{}]: {}";
+    public static final String D_LOG_SNAPSHOT_PROMOTE_BROADCAST_DONE =
+            "Snapshot promote broadcast for [{}] completed: {} succeeded, {} failed.";
+    public static final String W_LOG_SNAPSHOT_PROMOTE_BROADCAST_FAILED =
+            "Snapshot promote broadcast for [{}] failed: {}";
+    public static final String I_LOG_ROLLBACK_FROM_STABLE =
+            "Remote snapshot failed for consumer [{}]. Rolling back from stable snapshot [{}].";
+    public static final String W_LOG_STABLE_ROLLBACK_FAILED =
+            "Stable snapshot rollback failed for consumer [{}]. Falling back to packaged snapshot [{}].";
     public static final String D_LOG_UPDATE_START =
             "Starting content update for consumer [{}] from [{}] to [{}]";
     public static final String E_LOG_UPDATE_FETCH_CHANGES_FAILED = "Failed to fetch changes: {} {}";
@@ -303,9 +340,6 @@ public class Constants {
             "Skipping DELETE for CVE resource [{}] (CVE removals are not applied).";
     public static final String W_LOG_UPDATE_UNSUPPORTED_OPERATION =
             "Unsupported JSON patch operation [{}]";
-    public static final String W_LOG_UPDATE_RESET_CONSUMER =
-            "Resetting consumer [{}] offset to 0 due to update failure.";
-    public static final String E_LOG_UPDATE_RESET_CONSUMER_FAILED = "Failed to reset consumer: {}";
     public static final String D_LOG_IOC_EXPORT_SKIPPED_TEST_ENV =
             "IOCs export skipped: test environment";
     public static final String D_LOG_IOC_TYPE_HASHES_STORED = "IOC type hashes stored successfully.";
@@ -535,6 +569,11 @@ public class Constants {
     public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
 
+    // Consumer types
+    public static final String CONSUMER_TYPE_VULNERABILITIES = "cti:catalog:consumer:vulnerabilities";
+    public static final String CONSUMER_TYPE_IOCS = "cti:catalog:consumer:iocs";
+    public static final String CONSUMER_TYPE_RULESET = "cti:catalog:consumer:ruleset";
+
     // Index settings
     public static final String KEY_INDEX_CODEC = "index.codec";
     public static final String CODEC_ZSTD = "zstd";
@@ -565,6 +604,7 @@ public class Constants {
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_OFFSET = "offset";
     public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_MODE = "mode";
     public static final String KEY_DETECTOR = "detector";
     public static final String KEY_SOURCE = "source";
     public static final String KEY_INTERVAL = "interval";
@@ -601,6 +641,10 @@ public class Constants {
     public static final String KEY_CATEGORY = "category";
     public static final String KEY_FILTER = "filter";
 
+    // Integration mode values. Protected integrations cannot be modified; user-managed ones can.
+    public static final String MODE_PROTECTED = "protected";
+    public static final String MODE_USER_MANAGED = "user-managed";
+
     // Engine promotion payload keys
     public static final String KEY_RESOURCES = "resources";
     public static final String KEY_FULL_POLICY = "full_policy";
@@ -616,6 +660,26 @@ public class Constants {
     public static final String TYPE_FILTER = "filter";
     public static final String TYPE_PREFILTER = "pre-filter";
     public static final String TYPE_POSTFILTER = "post-filter";
+
+    // CTI resource index mapping files (classpath resources).
+    public static final String MAPPING_POLICIES = "/mappings/cti-policies-mappings.json";
+    public static final String MAPPING_INTEGRATIONS = "/mappings/cti-integrations-mappings.json";
+    public static final String MAPPING_RULES = "/mappings/cti-rules-mappings.json";
+    public static final String MAPPING_KVDBS = "/mappings/cti-kvdbs-mappings.json";
+    public static final String MAPPING_DECODERS = "/mappings/cti-decoders-mappings.json";
+    public static final String MAPPING_FILTERS = "/mappings/cti-filters-mappings.json";
+
+    // Index name -> mapping file for the space-aware ruleset resource indices. These are created
+    // unconditionally at startup so the custom-ruleset REST endpoints work even when catalog
+    // synchronization is disabled (update_on_start=false and update_on_schedule=false).
+    public static final Map<String, String> RESOURCE_INDEX_MAPPINGS =
+            Map.of(
+                    INDEX_POLICIES, MAPPING_POLICIES,
+                    INDEX_INTEGRATIONS, MAPPING_INTEGRATIONS,
+                    INDEX_RULES, MAPPING_RULES,
+                    INDEX_KVDBS, MAPPING_KVDBS,
+                    INDEX_DECODERS, MAPPING_DECODERS,
+                    INDEX_FILTERS, MAPPING_FILTERS);
 
     // Resources Indices Mapping for space-aware resources (used by SpaceService for promotion).
     // Note: IoCs and CVEs are NOT included here because they use flat storage without spaces.
@@ -641,6 +705,7 @@ public class Constants {
     public static final String IOC_SNAPSHOT_FILENAME = "iocs.zip";
     public static final String CVE_SNAPSHOT_FILENAME = "vulnerabilities.zip";
     public static final String MANIFEST_FILENAME = "manifest.json";
+    public static final String STABLE_SNAPSHOT_SUFFIX = ".stable.zip";
 
     // HTTP headers
     public static final String USER_AGENT_PREFIX = "Wazuh Indexer ";
@@ -690,4 +755,14 @@ public class Constants {
     public static final String SETUP_STATUS_FAILED = "failed";
     public static final int MAX_SETUP_WAIT_RETRIES = 3;
     public static final int SETUP_WAIT_BACKOFF_BASE_SECONDS = 5;
+
+    // Resource-creation limit locks: serialize the count-then-create sequence used to enforce
+    // plugins.content_manager.max_{integrations,decoders,rules,kvdbs,filters}, keyed per
+    // resource type and space.
+    public static final String INDEX_RESOURCE_LOCKS = ".wazuh-content-manager-resource-locks";
+    public static final int MAX_LOCK_ACQUIRE_RETRIES = 20;
+    public static final long LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS = 100;
+    public static final long LOCK_STALE_THRESHOLD_MILLIS = 30_000;
+    public static final String E_503_RESOURCE_LOCK_TIMEOUT =
+            "Too many concurrent requests creating this resource. Please retry.";
 }

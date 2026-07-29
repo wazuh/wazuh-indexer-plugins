@@ -20,7 +20,6 @@ import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.SuppressForbidden;
-import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -87,18 +86,28 @@ public class TransportDeleteDecoderActionTests extends OpenSearchTestCase {
                         new TotalHits(1, TotalHits.Relation.EQUAL_TO),
                         0.0f);
         when(searchResponse.getHits()).thenReturn(searchHits);
-        ActionFuture<SearchResponse> future = mock(ActionFuture.class);
-        when(future.actionGet()).thenReturn(searchResponse);
-        when(this.client.search(any())).thenReturn(future);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(), any());
     }
 
     @SuppressWarnings("unchecked")
     private void mockDraftPolicyMissing() {
         SearchResponse searchResponse = mock(SearchResponse.class);
         when(searchResponse.getHits()).thenReturn(SearchHits.empty());
-        ActionFuture<SearchResponse> future = mock(ActionFuture.class);
-        when(future.actionGet()).thenReturn(searchResponse);
-        when(this.client.search(any())).thenReturn(future);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onResponse(searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(), any());
     }
 
     public void testDoExecute_InvalidIdFormat() {
@@ -139,7 +148,14 @@ public class TransportDeleteDecoderActionTests extends OpenSearchTestCase {
     }
 
     public void testDoExecute_DraftPolicyCheckException() {
-        when(this.client.search(any())).thenThrow(new RuntimeException("Search failed"));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener = invocation.getArgument(1);
+                            listener.onFailure(new RuntimeException("Search failed"));
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(), any());
         ContentDeleteRequest request =
                 new ContentDeleteRequest(RestRequest.Method.DELETE, "550e8400-e29b-41d4-a716-446655440000");
 

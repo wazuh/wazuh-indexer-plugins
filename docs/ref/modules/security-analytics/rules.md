@@ -8,7 +8,7 @@ This page describes the supported rule format, including field requirements, det
 
 ---
 
-## Starting Example
+## Starting example
 
 The following example demonstrates a complete Sigma rule using all supported blocks:
 
@@ -70,24 +70,22 @@ The sections below describe each component in detail.
 
 ---
 
-## Top-Level Fields
+## Top-level fields
 
-The following table lists all supported top-level fields in a Wazuh Sigma rule. Fields marked as **Required** must be present for the rule to pass validation.
+The following fields are the supported top-level fields in a Wazuh Sigma rule. Fields marked **Required** must be present for the rule to pass validation.
 
-| Field            | Type    | Required | Description                                                             |
-| ---------------- | ------- | -------- | ----------------------------------------------------------------------- |
-| `id`             | String  | Yes      | Globally unique rule identifier (UUIDv4 recommended)                    |
-| `status`         | String  | Yes      | Rule maturity status: `experimental`, `test`, or `stable`               |
-| `level`          | String  | Yes      | Alert severity: `informational`, `low`, `medium`, `high`, or `critical` |
-| `sigma_id`       | String  | No       | Original Sigma rule identifier (UUID), preserved when importing from upstream |
-| `enabled`        | Boolean | No       | Whether the rule is active (default: `true`)                            |
-| `tags`           | Array   | No       | Categorization tags (e.g., `attack.initial-access`)                     |
-| `falsepositives` | Array   | No       | Known sources of false positives                                        |
-| `detection`      | Object  | Yes      | Detection logic: selections, keywords, and conditions                   |
-| `logsource`      | Object  | Yes      | Classifies the type of log data the rule targets                        |
-| `mitre`          | Object  | No       | MITRE ATT&CK threat intelligence mapping                                |
-| `compliance`     | Object  | No       | Compliance framework mapping                                            |
-| `metadata`       | Object  | Yes      | Other information                                                       |
+- **`id`** (String, required) — globally unique rule identifier (UUIDv4 recommended).
+- **`status`** (String, required) — rule maturity status: `experimental`, `test`, or `stable`.
+- **`level`** (String, required) — alert severity: `informational`, `low`, `medium`, `high`, or `critical`.
+- **`sigma_id`** (String, optional) — original Sigma rule identifier (UUID), preserved when importing from upstream.
+- **`enabled`** (Boolean, optional, default `true`) — whether the rule is active.
+- **`tags`** (Array, optional) — categorization tags (e.g., `attack.initial-access`).
+- **`falsepositives`** (Array, optional) — known sources of false positives.
+- **`detection`** (Object, required) — detection logic: selections, keywords, and conditions.
+- **`logsource`** (Object, required) — classifies the type of log data the rule targets.
+- **`mitre`** (Object, optional) — MITRE ATT&CK threat intelligence mapping.
+- **`compliance`** (Object, optional) — compliance framework mapping.
+- **`metadata`** (Object, required) — other information.
 
 ---
 
@@ -118,7 +116,7 @@ The `detection` section must always contain:
 
 A **selection** is a named object whose keys correspond to existing WCS fields and whose values define the matching criteria. A selection matches when any or all of its field conditions are satisfied, depending on the chosen syntax:
 
-**Field list (implicit OR)**
+#### Field list (implicit OR)
 
 ```yaml
 detection:
@@ -131,7 +129,7 @@ detection:
 
 This rule matches when `event.action` is either `"login_failed"` **or** `"authentication_error"`.
 
-**Field dictionary (implicit AND)**
+#### Field dictionary (implicit AND)
 
 ```yaml
 detection:
@@ -143,7 +141,7 @@ detection:
 
 This rule matches when `log.level` is `"ERROR"` **and** `event.kind` is `"event"`.
 
-**Keywords (implicit OR)**
+#### Keywords (implicit OR)
 
 The detection by `keywords` performs value-only searches across all event fields, without specifying a target field name:
 
@@ -174,7 +172,7 @@ condition: (selection_one or selection_two) and not filter
 | `( )`    | Groups expressions for precedence | `(sel_a or sel_b) and not exclusion` |
 
 
-**Example: simple condition**
+#### Example: simple condition
 
 ```yaml
 detection:
@@ -183,7 +181,7 @@ detection:
   condition: selection
 ```
 
-**Example: OR condition**
+#### Example: OR condition
 
 ```yaml
 detection:
@@ -194,7 +192,7 @@ detection:
   condition: sel_error or sel_warn
 ```
 
-**Example: AND with NOT (exclusion pattern)**
+#### Example: AND with NOT (exclusion pattern)
 
 ```yaml
 detection:
@@ -205,7 +203,7 @@ detection:
   condition: selection and not filter
 ```
 
-**Example: multi-selection AND**
+#### Example: multi-selection AND
 
 ```yaml
 detection:
@@ -374,7 +372,7 @@ event.duration|gte: 5000
 
 ---
 
-## Log Source
+## Log source
 
 Required
 
@@ -542,7 +540,7 @@ The `mitre` block maps a rule to MITRE ATT&CK tactics, techniques, and subtechni
 - **`technique`**<br />_MITRE technique IDs (e.g., `T1059`, `T1562`)._
 - **`subtechnique`**<br />_MITRE subtechnique IDs (e.g., `T1059.001`)._
 
-**Example**
+#### Example
 
 ```yaml
 mitre:
@@ -564,7 +562,7 @@ Optional
 
 The `compliance` block maps a rule to one or more compliance frameworks. Each key is a normalized framework identifier and its value is an array of requirement ID strings.
 
-**Supported frameworks**
+#### Supported frameworks
 
 - **`gdpr`**<br />_GDPR_
 - **`pci_dss`**<br />_PCI DSS_
@@ -577,7 +575,7 @@ The `compliance` block maps a rule to one or more compliance frameworks. Each ke
 - **`tsc`**<br />_TSC_
 - **`fedramp`**<br />_FedRAMP_
 
-**Example**
+#### Example
 
 ```yaml
 compliance:
@@ -598,7 +596,7 @@ compliance:
 
 ---
 
-## Dynamic Event Field Referencing
+## Dynamic event field referencing
 
 A Sigma rule's metadata is normally static: the `title`, `tags`, `mitre`, and `compliance` blocks describe the rule itself and are attached unchanged to every finding it generates. Wazuh extends Sigma with **dynamic event-field referencing**, allowing those metadata fields to embed placeholders that resolve against the triggering event at enrichment time. Each finding written to the `wazuh-findings-v5-{logtype}-*` index then reflects the specific context of the event that matched — for example, the agent ID, hostname, or any other field present in the normalized event.
 

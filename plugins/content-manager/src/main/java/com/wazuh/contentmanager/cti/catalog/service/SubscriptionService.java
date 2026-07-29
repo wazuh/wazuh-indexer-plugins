@@ -16,34 +16,39 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import org.opensearch.core.action.ActionListener;
+
 import com.wazuh.contentmanager.cti.console.model.Plan;
 
 /** Service interface for managing the CTI subscription: get status, register, and unregister. */
 public interface SubscriptionService {
 
     /**
-     * Returns the active CTI plan for this environment.
+     * Returns the active CTI plan for this environment and notifies the listener with the result.
      *
      * <p>If a valid access token is present, the authenticated plan is returned. If the token is
      * invalid or expired, the credentials document is deleted, the in-memory token is cleared, and
      * the public plan is returned as a fallback.
      *
-     * @return the active {@link Plan}, or the public plan if the token is invalid or absent.
+     * @param listener listener notified with the active {@link Plan}, or the public plan if the token
+     *     is invalid or absent.
      */
-    Plan getPlan();
+    void getPlan(ActionListener<Plan> listener);
 
     /**
-     * Stores the access token in the credentials index and updates the in-memory token.
+     * Stores the access token in the credentials index, updates the in-memory token, and notifies the
+     * listener on completion.
      *
      * @param accessToken the CTI access token to persist.
-     * @throws Exception if storing the credentials fails.
+     * @param listener listener notified on success or failure.
      */
-    void register(String accessToken) throws Exception;
+    void register(String accessToken, ActionListener<Void> listener);
 
     /**
-     * Removes the credentials document from the index and clears the in-memory token.
+     * Removes the credentials document from the index, clears the in-memory token, and notifies the
+     * listener on completion.
      *
-     * @throws Exception if deleting the credentials document fails.
+     * @param listener listener notified on success or failure.
      */
-    void unregister() throws Exception;
+    void unregister(ActionListener<Void> listener);
 }

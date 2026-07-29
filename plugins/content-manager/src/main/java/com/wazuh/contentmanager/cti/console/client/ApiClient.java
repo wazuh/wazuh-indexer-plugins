@@ -29,6 +29,7 @@ import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.util.Timeout;
+import org.opensearch.core.action.ActionListener;
 
 import javax.net.ssl.SSLContext;
 
@@ -169,6 +170,7 @@ public class ApiClient {
                 SimpleRequestBuilder.post(RESOURCE_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
                         .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
                         .build();
 
@@ -205,6 +207,7 @@ public class ApiClient {
                 SimpleRequestBuilder.get(PRODUCTS_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
                         .build();
 
@@ -236,6 +239,7 @@ public class ApiClient {
                 SimpleRequestBuilder.get(ENVIRONMENTS_ME_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
                         .build();
 
@@ -245,6 +249,50 @@ public class ApiClient {
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
         return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Async variant of {@link #getEnvironmentMe(Token)}. Notifies the listener with the HTTP response
+     * instead of blocking.
+     *
+     * @param permanentToken permanent token for the instance.
+     * @param listener listener notified with the HTTP response on success, or on failure.
+     */
+    public void getEnvironmentMe(Token permanentToken, ActionListener<SimpleHttpResponse> listener) {
+        String token =
+                String.format(
+                        Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
+
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(ENVIRONMENTS_ME_URI)
+                        .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
+                        .addHeader(HttpHeaders.AUTHORIZATION, token)
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
+                        .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .build();
+
+        this.client.execute(
+                SimpleRequestProducer.create(request),
+                SimpleResponseConsumer.create(),
+                new HttpResponseCallback(request, "Outgoing request failed") {
+                    @Override
+                    public void completed(SimpleHttpResponse response) {
+                        super.completed(response);
+                        listener.onResponse(response);
+                    }
+
+                    @Override
+                    public void failed(Exception ex) {
+                        super.failed(ex);
+                        listener.onFailure(ex);
+                    }
+
+                    @Override
+                    public void cancelled() {
+                        super.cancelled();
+                        listener.onFailure(new InterruptedException("HTTP request cancelled"));
+                    }
+                });
     }
 
     /**
@@ -272,5 +320,44 @@ public class ApiClient {
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
         return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Async variant of {@link #getCatalogPlans()}. Notifies the listener with the HTTP response
+     * instead of blocking.
+     *
+     * @param listener listener notified with the HTTP response on success, or on failure.
+     */
+    public void getCatalogPlans(ActionListener<SimpleHttpResponse> listener) {
+        String url = PluginSettings.getInstance().getCtiBaseUrl() + CATALOG_PLANS_PATH;
+
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(url)
+                        .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
+                        .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .build();
+
+        this.client.execute(
+                SimpleRequestProducer.create(request),
+                SimpleResponseConsumer.create(),
+                new HttpResponseCallback(request, "Outgoing request failed") {
+                    @Override
+                    public void completed(SimpleHttpResponse response) {
+                        super.completed(response);
+                        listener.onResponse(response);
+                    }
+
+                    @Override
+                    public void failed(Exception ex) {
+                        super.failed(ex);
+                        listener.onFailure(ex);
+                    }
+
+                    @Override
+                    public void cancelled() {
+                        super.cancelled();
+                        listener.onFailure(new InterruptedException("HTTP request cancelled"));
+                    }
+                });
     }
 }

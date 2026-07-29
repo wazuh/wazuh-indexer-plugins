@@ -1,21 +1,19 @@
-# API Reference
+# API reference
 
 All Notification plugin endpoints use the base path `/_plugins/_notifications`.
 
 ---
 
-## Notification Configs
+## Notification configs
 
-### Create a Notification Config
+### Create a notification config
 
 Creates a new notification channel configuration.
 
-|            |                                    |
-| ---------- | ---------------------------------- |
-| **Method** | `POST`                             |
-| **URI**    | `/_plugins/_notifications/configs` |
+- Method: `POST`
+- Path: `/_plugins/_notifications/configs`
 
-**Request body:**
+#### Request body
 
 ```json
 {
@@ -31,7 +29,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**Slack example:**
+#### Slack example
 
 ```json
 {
@@ -47,7 +45,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**Email example (with SMTP account):**
+#### Email example (with SMTP account)
 
 ```json
 {
@@ -67,7 +65,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**SMTP account example:**
+#### SMTP account example
 
 ```json
 {
@@ -86,7 +84,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**Webhook example:**
+#### Webhook example
 
 ```json
 {
@@ -106,7 +104,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**Microsoft Teams example:**
+#### Microsoft Teams example
 
 ```json
 {
@@ -122,7 +120,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**SNS example:**
+#### SNS example
 
 ```json
 {
@@ -139,7 +137,7 @@ Creates a new notification channel configuration.
 }
 ```
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -149,16 +147,16 @@ Creates a new notification channel configuration.
 
 ---
 
-### Update a Notification Config
+### Update a notification config
 
 Updates an existing notification channel configuration.
 
-|            |                                                |
-| ---------- | ---------------------------------------------- |
-| **Method** | `PUT`                                          |
-| **URI**    | `/_plugins/_notifications/configs/{config_id}` |
+- Method: `PUT`
+- Path: `/_plugins/_notifications/configs/{config_id}`
 
-**Request body:** Same structure as create. All fields in the `config` object are replaced.
+#### Request body
+
+Same structure as create. All fields in the `config` object are replaced.
 
 ```json
 {
@@ -174,7 +172,7 @@ Updates an existing notification channel configuration.
 }
 ```
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -184,16 +182,14 @@ Updates an existing notification channel configuration.
 
 ---
 
-### Get a Notification Config
+### Get a notification config
 
 Retrieves a specific notification configuration by ID.
 
-|            |                                                |
-| ---------- | ---------------------------------------------- |
-| **Method** | `GET`                                          |
-| **URI**    | `/_plugins/_notifications/configs/{config_id}` |
+- Method: `GET`
+- Path: `/_plugins/_notifications/configs/{config_id}`
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -219,72 +215,64 @@ Retrieves a specific notification configuration by ID.
 
 ---
 
-### List Notification Configs
+### List notification configs
 
 Retrieves notification configurations with filtering, sorting, and pagination.
 
-|            |                                    |
-| ---------- | ---------------------------------- |
-| **Method** | `GET`                              |
-| **URI**    | `/_plugins/_notifications/configs` |
+- Method: `GET`
+- Path: `/_plugins/_notifications/configs`
 
-**Query parameters:**
+#### Query parameters
 
-| Parameter                   | Type    | Description                                                             |
-| --------------------------- | ------- | ----------------------------------------------------------------------- |
-| `config_id`                 | String  | Filter by a single config ID.                                           |
-| `config_id_list`            | String  | Comma-separated list of config IDs.                                     |
-| `from_index`                | Integer | Pagination offset (default: `0`).                                       |
-| `max_items`                 | Integer | Maximum items to return (default: `100`).                               |
-| `sort_field`                | String  | Field to sort by (e.g., `config_type`, `name`, `last_updated_time_ms`). |
-| `sort_order`                | String  | Sort order: `asc` or `desc`.                                            |
-| `config_type`               | String  | Filter by channel type (e.g., `slack,email`).                           |
-| `is_enabled`                | Boolean | Filter by enabled status.                                               |
-| `name`                      | String  | Filter by name (text search).                                           |
-| `description`               | String  | Filter by description (text search).                                    |
-| `last_updated_time_ms`      | String  | Range filter (e.g., `1609459200000..1640995200000`).                    |
-| `created_time_ms`           | String  | Range filter.                                                           |
-| `slack.url`                 | String  | Filter by Slack webhook URL (text search).                              |
-| `chime.url`                 | String  | Filter by Chime webhook URL.                                            |
-| `microsoft_teams.url`       | String  | Filter by Teams webhook URL.                                            |
-| `webhook.url`               | String  | Filter by custom webhook URL.                                           |
-| `smtp_account.host`         | String  | Filter by SMTP host.                                                    |
-| `smtp_account.from_address` | String  | Filter by SMTP from address.                                            |
-| `smtp_account.method`       | String  | Filter by SMTP method (`ssl`, `start_tls`, `none`).                     |
-| `sns.topic_arn`             | String  | Filter by SNS topic ARN.                                                |
-| `sns.role_arn`              | String  | Filter by SNS role ARN.                                                 |
-| `ses_account.region`        | String  | Filter by SES region.                                                   |
-| `ses_account.role_arn`      | String  | Filter by SES role ARN.                                                 |
-| `ses_account.from_address`  | String  | Filter by SES from address.                                             |
-| `query`                     | String  | Search across all keyword and text filter fields.                       |
-| `text_query`                | String  | Search across text filter fields only.                                  |
+- **`config_id`** (String) — filter by a single config ID.
+- **`config_id_list`** (String) — comma-separated list of config IDs.
+- **`from_index`** (Integer, default `0`) — pagination offset.
+- **`max_items`** (Integer, default `100`) — maximum items to return.
+- **`sort_field`** (String) — field to sort by (e.g., `config_type`, `name`, `last_updated_time_ms`).
+- **`sort_order`** (String) — sort order: `asc` or `desc`.
+- **`config_type`** (String) — filter by channel type (e.g., `slack,email`).
+- **`is_enabled`** (Boolean) — filter by enabled status.
+- **`name`** (String) — filter by name (text search).
+- **`description`** (String) — filter by description (text search).
+- **`last_updated_time_ms`** (String) — range filter (e.g., `1609459200000..1640995200000`).
+- **`created_time_ms`** (String) — range filter.
+- **`slack.url`** (String) — filter by Slack webhook URL (text search).
+- **`chime.url`** (String) — filter by Chime webhook URL.
+- **`microsoft_teams.url`** (String) — filter by Teams webhook URL.
+- **`webhook.url`** (String) — filter by custom webhook URL.
+- **`smtp_account.host`** (String) — filter by SMTP host.
+- **`smtp_account.from_address`** (String) — filter by SMTP from address.
+- **`smtp_account.method`** (String) — filter by SMTP method (`ssl`, `start_tls`, `none`).
+- **`sns.topic_arn`** (String) — filter by SNS topic ARN.
+- **`sns.role_arn`** (String) — filter by SNS role ARN.
+- **`ses_account.region`** (String) — filter by SES region.
+- **`ses_account.role_arn`** (String) — filter by SES role ARN.
+- **`ses_account.from_address`** (String) — filter by SES from address.
+- **`query`** (String) — search across all keyword and text filter fields.
+- **`text_query`** (String) — search across text filter fields only.
 
-**Example:**
+#### Example
 
 ```bash
 curl -sk -u admin:admin \
-  "https://localhost:9200/_plugins/_notifications/configs?config_type=slack&max_items=10&sort_order=desc"
+  "https://127.0.0.1:9200/_plugins/_notifications/configs?config_type=slack&max_items=10&sort_order=desc"
 ```
 
 ---
 
-### Delete a Notification Config
+### Delete a notification config
 
 Deletes one or more notification configurations.
 
-|            |                                                |
-| ---------- | ---------------------------------------------- |
-| **Method** | `DELETE`                                       |
-| **URI**    | `/_plugins/_notifications/configs/{config_id}` |
+- Method: `DELETE`
+- Path: `/_plugins/_notifications/configs/{config_id}`
 
 Or for bulk delete:
 
-|            |                                                               |
-| ---------- | ------------------------------------------------------------- |
-| **Method** | `DELETE`                                                      |
-| **URI**    | `/_plugins/_notifications/configs?config_id_list=id1,id2,id3` |
+- Method: `DELETE`
+- Path: `/_plugins/_notifications/configs?config_id_list=id1,id2,id3`
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -298,16 +286,14 @@ Or for bulk delete:
 
 ## Channels
 
-### List Notification Channels
+### List notification channels
 
 Returns a simplified list of all configured notification channels (ID, name, type, and enabled status).
 
-|            |                                     |
-| ---------- | ----------------------------------- |
-| **Method** | `GET`                               |
-| **URI**    | `/_plugins/_notifications/channels` |
+- Method: `GET`
+- Path: `/_plugins/_notifications/channels`
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -327,16 +313,14 @@ Returns a simplified list of all configured notification channels (ID, name, typ
 
 ## Features
 
-### Get Plugin Features
+### Get plugin features
 
 Returns the notification features and allowed config types supported by the plugin.
 
-|            |                                     |
-| ---------- | ----------------------------------- |
-| **Method** | `GET`                               |
-| **URI**    | `/_plugins/_notifications/features` |
+- Method: `GET`
+- Path: `/_plugins/_notifications/features`
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -359,27 +343,25 @@ Returns the notification features and allowed config types supported by the plug
 
 ---
 
-## Test Notifications
+## Test notifications
 
-### Send Test Notification
+### Send test notification
 
 Sends a test notification to a configured channel to validate the configuration.
 
-|            |                                                     |
-| ---------- | --------------------------------------------------- |
-| **Method** | `POST`                                              |
-| **URI**    | `/_plugins/_notifications/feature/test/{config_id}` |
+- Method: `POST`
+- Path: `/_plugins/_notifications/feature/test/{config_id}`
 
 > **Note:** `GET` is also supported for backwards compatibility but is deprecated and will be removed in a future major version.
 
-**Example:**
+#### Example
 
 ```bash
 curl -sk -u admin:admin -X POST \
-  "https://localhost:9200/_plugins/_notifications/feature/test/<config-id>"
+  "https://127.0.0.1:9200/_plugins/_notifications/feature/test/<config-id>"
 ```
 
-**Response:**
+#### Response
 
 ```json
 {
@@ -399,24 +381,7 @@ curl -sk -u admin:admin -X POST \
 
 ---
 
-## Stats
-
-### Get Plugin Stats
-
-Returns internal plugin metrics and counters.
-
-|            |                                         |
-| ---------- | --------------------------------------- |
-| **Method** | `GET`                                   |
-| **URI**    | `/_plugins/_notifications/_local/stats` |
-
-**Response:** A JSON object with flattened metric counters including:
-
-- Request totals and interval counts for each API operation (create, update, delete, info, features, channels, send test).
-
----
-
-## Summary Table
+## Summary table
 
 | Endpoint                                     | Method   | Description                                     |
 | -------------------------------------------- | -------- | ----------------------------------------------- |
@@ -429,4 +394,3 @@ Returns internal plugin metrics and counters.
 | `/_plugins/_notifications/channels`          | `GET`    | List all channels (simplified view).            |
 | `/_plugins/_notifications/features`          | `GET`    | Get supported features and config types.        |
 | `/_plugins/_notifications/feature/test/{id}` | `POST`   | Send a test notification.                       |
-| `/_plugins/_notifications/_local/stats`      | `GET`    | Get plugin metrics.                             |

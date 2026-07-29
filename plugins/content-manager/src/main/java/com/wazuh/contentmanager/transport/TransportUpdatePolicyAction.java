@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.index.IndexResponse;
+import org.opensearch.OpenSearchException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -195,64 +195,173 @@ public class TransportUpdatePolicyAction
                 return;
             }
 
-            // 3. Update policy based on target space
-            String policyId;
-            if (Space.STANDARD.equals(spaceName)) {
-                policyId = this.updateStandardPolicy(policy);
-            } else {
-                policyId = this.updatePolicy(policy);
-            }
+            // 3. Fetch current policy and apply update (async)
+            this.spaceService.getPolicy(
+                    spaceName,
+                    ActionListener.wrap(
+                            currentPolicy -> afterGetPolicy(currentPolicy, policy, spaceName, listener),
+                            e -> respondWithError(listener, e)));
 
-            // Regenerate space hash
-            Set<String> changedSpaces = this.spaceService.calculateAndUpdate(List.of(spaceName));
-
-            // Load the standard space into the Engine only if its hash changed
-            if (changedSpaces.contains(Space.STANDARD.toString())) {
-                this.loadStandardSpaceIntoEngine();
-            }
-
-            listener.onResponse(new MessageStatusResponse(policyId, RestStatus.OK));
         } catch (IllegalArgumentException e) {
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             listener.onResponse(
                     new MessageStatusResponse(
                             Constants.E_400_INVALID_REQUEST_BODY + " " + e.getMessage(), RestStatus.BAD_REQUEST));
         } catch (Exception e) {
-            log.error(
-                    Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);
-            listener.onResponse(
-                    new MessageStatusResponse(
-                            Constants.E_500_INTERNAL_SERVER_ERROR + " " + e.getMessage(),
-                            RestStatus.INTERNAL_SERVER_ERROR));
+            respondWithError(listener, e);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private String updateStandardPolicy(Policy incomingPolicy)
-            throws IOException, IllegalStateException {
-        Map<String, Object> currentPolicy = this.spaceService.getPolicy(Space.STANDARD.toString());
-        Map<String, Object> currentPolicyDoc =
-                (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
-        if (currentPolicyDoc == null) {
-            throw new IllegalStateException(
-                    Constants.E_500_INTERNAL_SERVER_ERROR + " Policy document not found in standard space.");
+    private void afterGetPolicy(
+            Map<String, Object> currentPolicy,
+            Policy incomingPolicy,
+            String spaceName,
+            ActionListener<MessageStatusResponse> listener) {
+        try {
+            if (currentPolicy == null) {
+                listener.onResponse(
+                        new MessageStatusResponse(
+                                "Policy document not found in " + spaceName + " space.",
+                                RestStatus.INTERNAL_SERVER_ERROR));
+                return;
+            }
+
+            Map<String, Object> currentPolicyDoc =
+                    (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
+            if (currentPolicyDoc == null) {
+                listener.onResponse(
+                        new MessageStatusResponse(
+                                "Policy document not found in " + spaceName + " space.",
+                                RestStatus.INTERNAL_SERVER_ERROR));
+                return;
+            }
+
+            // Validate immutable lists
+            if (Space.STANDARD.equals(spaceName)) {
+                List<String> currentFilters =
+                        (List<String>)
+                                currentPolicyDoc.getOrDefault(Constants.KEY_FILTERS, Collections.emptyList());
+                RestResponse filtersValidationError =
+                        this.payloadValidations.validateListEquality(
+                                currentFilters, incomingPolicy.getFilters(), Constants.KEY_FILTERS);
+                if (filtersValidationError != null) {
+                    listener.onResponse(
+                            new MessageStatusResponse(
+                                    filtersValidationError.getMessage(), RestStatus.BAD_REQUEST));
+                    return;
+                }
+            } else {
+                List<String> currentIntegrations =
+                        (List<String>)
+                                currentPolicyDoc.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyList());
+                RestResponse validationError =
+                        this.payloadValidations.validateListEquality(
+                                currentIntegrations, incomingPolicy.getIntegrations(), Constants.KEY_INTEGRATIONS);
+                if (validationError != null) {
+                    listener.onResponse(
+                            new MessageStatusResponse(validationError.getMessage(), RestStatus.BAD_REQUEST));
+                    return;
+                }
+
+                List<String> currentFilters =
+                        (List<String>)
+                                currentPolicyDoc.getOrDefault(Constants.KEY_FILTERS, Collections.emptyList());
+                RestResponse filtersValidationError =
+                        this.payloadValidations.validateListEquality(
+                                currentFilters, incomingPolicy.getFilters(), Constants.KEY_FILTERS);
+                if (filtersValidationError != null) {
+                    listener.onResponse(
+                            new MessageStatusResponse(
+                                    filtersValidationError.getMessage(), RestStatus.BAD_REQUEST));
+                    return;
+                }
+            }
+
+            // Merge policy
+            ObjectNode policyNode;
+            String docId;
+            if (Space.STANDARD.equals(spaceName)) {
+                policyNode = mergeStandardPolicy(incomingPolicy, currentPolicyDoc);
+                docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();
+            } else {
+                policyNode = mergeDraftPolicy(incomingPolicy, currentPolicyDoc);
+                docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();
+            }
+
+            // Build index document
+            ObjectNode document = mapper.createObjectNode();
+            document.set(Constants.KEY_DOCUMENT, policyNode);
+            ObjectNode spaceNode = mapper.createObjectNode();
+            spaceNode.put(Constants.KEY_NAME, spaceName);
+            document.set(Constants.KEY_SPACE, spaceNode);
+            String hash = Resource.computeSha256(policyNode.toString());
+            ObjectNode hashNode = mapper.createObjectNode();
+            hashNode.put(Constants.KEY_SHA256, hash);
+            document.set(Constants.KEY_HASH, hashNode);
+
+            // Find the real document _id (async)
+            this.spaceService.findDocumentIdAsync(
+                    Constants.INDEX_POLICIES,
+                    spaceName,
+                    docId,
+                    ActionListener.wrap(
+                            realId -> afterFindDocumentId(realId, document, spaceName, listener),
+                            e -> respondWithError(listener, e)));
+
+        } catch (IllegalArgumentException e) {
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
+            listener.onResponse(
+                    new MessageStatusResponse(
+                            Constants.E_400_INVALID_REQUEST_BODY + " " + e.getMessage(), RestStatus.BAD_REQUEST));
+        } catch (Exception e) {
+            respondWithError(listener, e);
+        }
+    }
+
+    private void afterFindDocumentId(
+            String documentId,
+            ObjectNode document,
+            String spaceName,
+            ActionListener<MessageStatusResponse> listener) {
+        if (documentId == null) {
+            listener.onResponse(
+                    new MessageStatusResponse(
+                            "Policy document not found in " + spaceName + " space.",
+                            RestStatus.INTERNAL_SERVER_ERROR));
+            return;
         }
 
-        List<String> currentFilters =
-                (List<String>)
-                        currentPolicyDoc.getOrDefault(Constants.KEY_FILTERS, Collections.emptyList());
-        List<String> newFilters = incomingPolicy.getFilters();
+        // Index the document (async)
+        ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
+        index.create(
+                documentId,
+                document,
+                ActionListener.wrap(
+                        indexResponse -> afterIndex(indexResponse.getId(), spaceName, listener),
+                        e -> respondWithError(listener, e)));
+    }
 
-        RestResponse filtersValidationError =
-                this.payloadValidations.validateListEquality(
-                        currentFilters, newFilters, Constants.KEY_FILTERS);
-        if (filtersValidationError != null) {
-            throw new IllegalArgumentException(filtersValidationError.getMessage());
-        }
+    private void afterIndex(
+            String policyId, String spaceName, ActionListener<MessageStatusResponse> listener) {
+        // Recalculate space hash (async)
+        this.spaceService.calculateAndUpdate(
+                List.of(spaceName),
+                ActionListener.wrap(
+                        changedSpaces -> {
+                            if (changedSpaces.contains(Space.STANDARD.toString())) {
+                                this.loadStandardSpaceIntoEngine();
+                            }
+                            listener.onResponse(new MessageStatusResponse(policyId, RestStatus.OK));
+                        },
+                        e -> respondWithError(listener, e)));
+    }
 
+    @SuppressWarnings("unchecked")
+    private ObjectNode mergeStandardPolicy(
+            Policy incomingPolicy, Map<String, Object> currentPolicyDoc) {
         String docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();
 
-        @SuppressWarnings("unchecked")
         Map<String, Object> existingMetadata =
                 (Map<String, Object>)
                         currentPolicyDoc.getOrDefault(Constants.KEY_METADATA, Collections.emptyMap());
@@ -261,10 +370,14 @@ public class TransportUpdatePolicyAction
         if (dateObj == null) dateObj = currentPolicyDoc.get(Constants.KEY_DATE);
         String docCreationDate = dateObj != null ? dateObj.toString() : "";
 
+        String incomingModified = incomingPolicy.getModified();
         Policy mergedPolicy = new Policy();
         mergedPolicy.setId(docId);
         mergedPolicy.setDate(docCreationDate);
-        mergedPolicy.setModified(Instant.now().toString());
+        mergedPolicy.setModified(
+                incomingModified != null && !incomingModified.isBlank()
+                        ? incomingModified
+                        : Instant.now().toString());
 
         Object titleObj = existingMetadata.get(Constants.KEY_TITLE);
         if (titleObj == null) titleObj = currentPolicyDoc.get(Constants.KEY_TITLE);
@@ -284,7 +397,6 @@ public class TransportUpdatePolicyAction
 
         Object refObj = existingMetadata.get(Constants.KEY_REFERENCES);
         if (refObj == null) refObj = currentPolicyDoc.get(Constants.KEY_REFERENCES);
-        @SuppressWarnings("unchecked")
         List<String> existingReferences =
                 (List<String>) (refObj != null ? refObj : Collections.emptyList());
         mergedPolicy.setReferences(existingReferences);
@@ -293,7 +405,6 @@ public class TransportUpdatePolicyAction
         if (compatObj == null) {
             compatObj = currentPolicyDoc.get(Constants.KEY_COMPATIBILITY);
         }
-        @SuppressWarnings("unchecked")
         List<String> existingCompatibility =
                 (List<String>) (compatObj != null ? compatObj : Collections.emptyList());
         mergedPolicy.getMetadata().setCompatibility(existingCompatibility);
@@ -314,65 +425,13 @@ public class TransportUpdatePolicyAction
 
         ObjectNode policyNode = mapper.valueToTree(mergedPolicy);
         Resource.nestMetadataFields(policyNode);
-
-        ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
-        try {
-            ObjectNode document = mapper.createObjectNode();
-            document.set(Constants.KEY_DOCUMENT, policyNode);
-            ObjectNode spaceNode = mapper.createObjectNode();
-            spaceNode.put(Constants.KEY_NAME, Space.STANDARD.toString());
-            document.set(Constants.KEY_SPACE, spaceNode);
-            String hash = Resource.computeSha256(policyNode.toString());
-            ObjectNode hashNode = mapper.createObjectNode();
-            hashNode.put(Constants.KEY_SHA256, hash);
-            document.set(Constants.KEY_HASH, hashNode);
-            String standardPolicyId =
-                    this.spaceService.findDocumentId(
-                            Constants.INDEX_POLICIES, Space.STANDARD.toString(), docId);
-            IndexResponse indexResponse = index.create(standardPolicyId, document);
-            return indexResponse.getId();
-        } catch (Exception e) {
-            throw new IllegalStateException("Standard policy not found: " + e.getMessage());
-        }
+        return policyNode;
     }
 
     @SuppressWarnings("unchecked")
-    private String updatePolicy(Policy policy) throws IOException, IllegalStateException {
-        Map<String, Object> currentPolicy = this.spaceService.getPolicy(Space.DRAFT.toString());
-
-        Map<String, Object> currentPolicyDoc =
-                (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
-        if (currentPolicyDoc == null) {
-            throw new IllegalStateException(
-                    Constants.E_500_INTERNAL_SERVER_ERROR + " Policy document not found in draft space.");
-        }
-
-        List<String> currentIntegrations =
-                (List<String>)
-                        currentPolicyDoc.getOrDefault(Constants.KEY_INTEGRATIONS, Collections.emptyList());
-        List<String> newIntegrations = policy.getIntegrations();
-
-        RestResponse validationError =
-                this.payloadValidations.validateListEquality(
-                        currentIntegrations, newIntegrations, Constants.KEY_INTEGRATIONS);
-        if (validationError != null) {
-            throw new IllegalArgumentException(validationError.getMessage());
-        }
-
-        List<String> currentFilters =
-                (List<String>)
-                        currentPolicyDoc.getOrDefault(Constants.KEY_FILTERS, Collections.emptyList());
-        List<String> newFilters = policy.getFilters();
-
-        RestResponse filtersValidationError =
-                this.payloadValidations.validateListEquality(
-                        currentFilters, newFilters, Constants.KEY_FILTERS);
-        if (filtersValidationError != null) {
-            throw new IllegalArgumentException(filtersValidationError.getMessage());
-        }
-
+    private ObjectNode mergeDraftPolicy(Policy incomingPolicy, Map<String, Object> currentPolicyDoc) {
         String docId = currentPolicyDoc.getOrDefault(Constants.KEY_ID, "").toString();
-        @SuppressWarnings("unchecked")
+
         Map<String, Object> existingMeta =
                 (Map<String, Object>)
                         currentPolicyDoc.getOrDefault(Constants.KEY_METADATA, Collections.emptyMap());
@@ -380,42 +439,27 @@ public class TransportUpdatePolicyAction
         Object dateObj = existingMeta.get(Constants.KEY_DATE);
         if (dateObj == null) dateObj = currentPolicyDoc.get(Constants.KEY_DATE);
         String docCreationDate = dateObj != null ? dateObj.toString() : "";
-        String docModificationDate = Instant.now().toString();
+        String incomingModified = incomingPolicy.getModified();
+        String docModificationDate =
+                incomingModified != null && !incomingModified.isBlank()
+                        ? incomingModified
+                        : Instant.now().toString();
 
-        policy.setId(docId);
-        policy.setDate(docCreationDate);
-        policy.setModified(docModificationDate);
+        incomingPolicy.setId(docId);
+        incomingPolicy.setDate(docCreationDate);
+        incomingPolicy.setModified(docModificationDate);
 
         Object compatObj = existingMeta.get(Constants.KEY_COMPATIBILITY);
         if (compatObj == null) {
             compatObj = currentPolicyDoc.get(Constants.KEY_COMPATIBILITY);
         }
-        @SuppressWarnings("unchecked")
         List<String> existingCompatibility =
                 (List<String>) (compatObj != null ? compatObj : Collections.emptyList());
-        policy.getMetadata().setCompatibility(existingCompatibility);
+        incomingPolicy.getMetadata().setCompatibility(existingCompatibility);
 
-        ObjectNode policyNode = mapper.valueToTree(policy);
+        ObjectNode policyNode = mapper.valueToTree(incomingPolicy);
         Resource.nestMetadataFields(policyNode);
-
-        ContentIndex index = new ContentIndex(this.client, Constants.INDEX_POLICIES, null);
-        try {
-            ObjectNode document = mapper.createObjectNode();
-            document.set(Constants.KEY_DOCUMENT, policyNode);
-            ObjectNode spaceNode = mapper.createObjectNode();
-            spaceNode.put(Constants.KEY_NAME, Space.DRAFT.toString());
-            document.set(Constants.KEY_SPACE, spaceNode);
-            String hash = Resource.computeSha256(policyNode.toString());
-            ObjectNode hashNode = mapper.createObjectNode();
-            hashNode.put(Constants.KEY_SHA256, hash);
-            document.set(Constants.KEY_HASH, hashNode);
-            String draftPolicyId =
-                    this.spaceService.findDocumentId(Constants.INDEX_POLICIES, Space.DRAFT.toString(), docId);
-            IndexResponse indexResponse = index.create(draftPolicyId, document);
-            return indexResponse.getId();
-        } catch (Exception e) {
-            throw new IllegalStateException("Draft policy not found: " + e.getMessage());
-        }
+        return policyNode;
     }
 
     private void loadStandardSpaceIntoEngine() {
@@ -423,19 +467,39 @@ public class TransportUpdatePolicyAction
             log.warn(Constants.E_LOG_ENGINE_IS_NULL);
             return;
         }
-        try {
-            JsonNode payload = this.spaceService.buildEnginePayload(Space.STANDARD.toString());
-            RestResponse response = this.engineService.promote(payload);
-            if (response.getStatus() == RestStatus.OK.getStatus()) {
-                log.info("Engine load for standard space completed successfully.");
-            } else {
-                log.warn(
-                        "Engine load for standard space returned status [{}]: {}",
-                        response.getStatus(),
-                        response.getMessage());
-            }
-        } catch (Exception e) {
-            log.error("Failed to load standard space into Engine: {}", e.getMessage());
+        this.spaceService.buildEnginePayload(
+                Space.STANDARD.toString(),
+                ActionListener.wrap(
+                        payload -> {
+                            try {
+                                RestResponse response = this.engineService.promote(payload);
+                                if (response.getStatus() == RestStatus.OK.getStatus()) {
+                                    log.info("Engine load for standard space completed successfully.");
+                                } else {
+                                    log.warn(
+                                            "Engine load for standard space returned status [{}]: {}",
+                                            response.getStatus(),
+                                            response.getMessage());
+                                }
+                            } catch (Exception e) {
+                                log.error("Failed to load standard space into Engine: {}", e.getMessage());
+                            }
+                        },
+                        e -> log.error("Failed to load standard space into Engine: {}", e.getMessage())));
+    }
+
+    private void respondWithError(ActionListener<MessageStatusResponse> listener, Exception e) {
+        OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
+        if (osEx != null && osEx.status().getStatus() < 500) {
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, osEx.getMessage());
+            listener.onResponse(new MessageStatusResponse(osEx.getMessage(), osEx.status()));
+            return;
         }
+        log.error(
+                Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);
+        listener.onResponse(
+                new MessageStatusResponse(
+                        Constants.E_500_INTERNAL_SERVER_ERROR + " " + e.getMessage(),
+                        RestStatus.INTERNAL_SERVER_ERROR));
     }
 }

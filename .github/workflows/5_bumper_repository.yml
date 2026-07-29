@@ -14,6 +14,11 @@ on:
         default: ''
         required: false
         type: string
+      tag:
+        description: 'Set to true when this bump is preparing a tag release'
+        default: false
+        required: false
+        type: boolean
       issue-link:
         description: 'Issue link in format https://github.com/wazuh/<REPO>/issues/<ISSUE-NUMBER>'
         required: true
@@ -90,9 +95,17 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
           STAGE: ${{ inputs.stage }}
+          TAG: ${{ inputs.tag }}
         run: |
           version=${{ env.VERSION }}
           stage=${{ env.STAGE }}
+          tag=${{ env.TAG }}
+          set_as_main=${{ inputs.set_as_main }}
+
+          if [[ "$tag" == "true" && "$set_as_main" == "true" ]]; then
+            echo "Error: 'tag' and 'set_as_main' inputs cannot both be true."
+            exit 1
+          fi
 
           # In revert mode, version/stage are not required
           if [[ "${{ inputs.revert }}" != "true" ]]; then
@@ -100,8 +113,14 @@ jobs:
               echo "Error: Version and stage must be provided. Got version=${version} stage=${stage}"
               exit 1
             fi
-            echo "version=${version}" >> $GITHUB_OUTPUT
-            echo "stage=${stage}" >> $GITHUB_OUTPUT
+            script_params="--version ${version} --stage ${stage}"
+            if [[ "$tag" == "true" ]]; then
+              script_params="${script_params} --tag"
+            fi
+            if [[ "$set_as_main" == "true" ]]; then
+              script_params="${script_params} --set-as-main"
+            fi
+            echo "script_params=${script_params}" >> $GITHUB_OUTPUT
           fi
 
           issue_number=$(echo "${{ inputs.issue-link }}" | awk -F'/' '{print $NF}')
@@ -123,12 +142,7 @@ jobs:
         if: inputs.revert != true
         run: |
           echo "Running bump script"
-          set_as_main=${{ inputs.set_as_main }}
-          script_params=("${{ steps.vars.outputs.version }}" "${{ steps.vars.outputs.stage }}")
-          if [[ "$set_as_main" == "true" ]]; then
-            script_params+=("--set-as-main")
-          fi
-          bash "${{ env.BUMP_SCRIPT_PATH }}" "${script_params[@]}"
+          bash "${{ env.BUMP_SCRIPT_PATH }}" ${{ steps.vars.outputs.script_params }}
 
       - name: Check for changes
         id: check_changes

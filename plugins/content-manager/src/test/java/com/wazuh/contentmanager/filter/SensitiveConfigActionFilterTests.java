@@ -33,7 +33,7 @@ import static org.mockito.Mockito.verify;
 /** Unit tests for {@link SensitiveConfigActionFilter}. */
 public class SensitiveConfigActionFilterTests extends OpenSearchTestCase {
 
-    private static final String POLICY_ACTION = "indices:data/write/content_manager/policy/update";
+    private static final String POLICY_ACTION = "cluster:admin/content_manager/policy/update";
     private static final String UPDATE_ACTION = "cluster:admin/content_manager/update/trigger";
 
     private final SensitiveConfigActionFilter filter = new SensitiveConfigActionFilter();
@@ -99,6 +99,6 @@ public class SensitiveConfigActionFilterTests extends OpenSearchTestCase {
 
     public void testIgnoresUnprotectedAction() {
         this.configure(false, false);
-        this.assertAllowed("indices:data/write/index");
+        this.assertAllowed("cluster:admin/");
     }
 }

@@ -50,7 +50,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
  * <p>This client manages an asynchronous HTTP client to perform requests against the catalog
  * service, specifically handling consumer context retrieval.
  */
-public class ApiClient {
+public class ApiClient implements AutoCloseable {
 
     private final String baseUri;
     private final ResourceUrlResolver urlResolver;
@@ -111,6 +111,7 @@ public class ApiClient {
     }
 
     /** Closes the underlying HTTP asynchronous client gracefully. */
+    @Override
     public void close() {
         this.client.close(CloseMode.GRACEFUL);
     }

@@ -45,14 +45,22 @@ public class TransportDeleteSubscriptionActionTests extends OpenSearchTestCase {
                         mock(TransportService.class), mock(ActionFilters.class), this.subscriptionService);
     }
 
-    public void testDoExecute_OK() throws Exception {
-        DeleteSubscriptionRequest request = new DeleteSubscriptionRequest();
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_OK() {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Void> asyncListener = invocation.getArgument(0);
+                            asyncListener.onResponse(null);
+                            return null;
+                        })
+                .when(this.subscriptionService)
+                .unregister(any(ActionListener.class));
 
-        @SuppressWarnings("unchecked")
+        DeleteSubscriptionRequest request = new DeleteSubscriptionRequest();
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
-        verify(this.subscriptionService, times(1)).unregister();
+        verify(this.subscriptionService, times(1)).unregister(any(ActionListener.class));
         verify(listener)
                 .onResponse(
                         argThat(
@@ -63,11 +71,18 @@ public class TransportDeleteSubscriptionActionTests extends OpenSearchTestCase {
                                 }));
     }
 
-    public void testDoExecute_Exception() throws Exception {
-        doThrow(new RuntimeException("Unexpected failure")).when(this.subscriptionService).unregister();
-        DeleteSubscriptionRequest request = new DeleteSubscriptionRequest();
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_Exception() {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Void> asyncListener = invocation.getArgument(0);
+                            asyncListener.onFailure(new RuntimeException("Unexpected failure"));
+                            return null;
+                        })
+                .when(this.subscriptionService)
+                .unregister(any(ActionListener.class));
 
-        @SuppressWarnings("unchecked")
+        DeleteSubscriptionRequest request = new DeleteSubscriptionRequest();
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
@@ -81,11 +96,18 @@ public class TransportDeleteSubscriptionActionTests extends OpenSearchTestCase {
                                 }));
     }
 
-    public void testDoExecute_ExceptionNullMessage() throws Exception {
-        doThrow(new RuntimeException((String) null)).when(this.subscriptionService).unregister();
-        DeleteSubscriptionRequest request = new DeleteSubscriptionRequest();
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_ExceptionNullMessage() {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Void> asyncListener = invocation.getArgument(0);
+                            asyncListener.onFailure(new RuntimeException((String) null));
+                            return null;
+                        })
+                .when(this.subscriptionService)
+                .unregister(any(ActionListener.class));
 
-        @SuppressWarnings("unchecked")
+        DeleteSubscriptionRequest request = new DeleteSubscriptionRequest();
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 

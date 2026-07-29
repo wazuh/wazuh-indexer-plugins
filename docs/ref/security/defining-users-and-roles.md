@@ -1,4 +1,4 @@
-# Defining Users and Roles
+# Defining users and roles
 
 You can create and manage users and roles through the Wazuh Dashboard UI.
 
@@ -8,7 +8,7 @@ Default users and roles cannot be modified. Instead, duplicate them and modify t
 
 </div>
 
-## Creating a New User, Role, and Role Mapping via the Wazuh Dashboard
+## Creating a new user, role, and role mapping via the Wazuh Dashboard
 
 > **Prerequisites**
 >
@@ -16,7 +16,7 @@ Default users and roles cannot be modified. Instead, duplicate them and modify t
 
 Follow these steps:
 
-### 1. Create a Role
+### 1. Create a role
 
 1. In the Wazuh Dashboard, go to **Index Management** -> **Security** -> **Roles**.
 2. Click **Create role**.
@@ -30,7 +30,7 @@ Follow these steps:
     * Optionally, configure [**Document-level security (DLS)**](https://docs.opensearch.org/3.6/security/access-control/index/) or [**Field-level security (FLS)**](https://docs.opensearch.org/3.6/security/access-control/field-level-security/).
 6. Click **Create** to save the role.
 
-### 2. Create a User
+### 2. Create a user
 
 1. In the Wazuh Dashboard, go to **Index Management** -> **Security** -> **Internal users**.
 2. Click **Create internal user**.
@@ -40,7 +40,7 @@ Follow these steps:
     * **Description** (optional)
 4. Click **Create** to create the user.
 
-### 3. Verify Role Mapping
+### 3. Verify role mapping
 
 When you assign a role to a user during creation, the mapping is created automatically. To review or edit:
 
@@ -53,7 +53,7 @@ When you assign a role to a user during creation, the mapping is created automat
    * **Backend roles** (optional).
 6. Click **Map** to save the mapping.
 
-### 4. Test Access
+### 4. Test access
 
 After creating the user and role:
 
@@ -67,7 +67,7 @@ After creating the user and role:
 
 ---
 
-## Additional Resources
+## Additional resources
 
 * [OpenSearch Security Plugin - User-Roles Management](https://docs.opensearch.org/3.6/security/access-control/users-roles/)
 

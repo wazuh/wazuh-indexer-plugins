@@ -20,13 +20,22 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
+import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.WarningsHandler;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 import org.junit.Before;
@@ -34,6 +43,8 @@ import org.junit.Before;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -65,6 +76,72 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     @Override
     protected boolean preserveIndicesUponCompletion() {
         return true;
+    }
+
+    /**
+     * True when the integTest cluster was started with {@code -Dsecurity=true}. Set by build.gradle,
+     * which forwards the flag to the test JVM as the {@code https} system property.
+     */
+    private static final boolean SECURITY_ENABLED = Boolean.parseBoolean(System.getProperty("https"));
+
+    /**
+     * {@link OpenSearchRestTestCase} defaults to plain HTTP. When the cluster is secured, the HTTP
+     * layer is TLS-only, so the test client must speak HTTPS instead.
+     */
+    @Override
+    protected String getProtocol() {
+        return SECURITY_ENABLED ? "https" : "http";
+    }
+
+    /**
+     * Adds HTTP Basic auth credentials so the test client can authenticate against a security-enabled
+     * cluster. No-op when security is disabled.
+     */
+    @Override
+    protected Settings restClientSettings() {
+        if (!SECURITY_ENABLED) {
+            return super.restClientSettings();
+        }
+        String user = System.getProperty("user", "admin");
+        String password = System.getProperty("password", "admin");
+        String token =
+                Base64.getEncoder()
+                        .encodeToString((user + ":" + password).getBytes(StandardCharsets.UTF_8));
+        return Settings.builder()
+                .put(super.restClientSettings())
+                .put(ThreadContext.PREFIX + ".Authorization", "Basic " + token)
+                .build();
+    }
+
+    /**
+     * Trusts the demo certificates used by the integTest cluster's TLS setup. No-op when security is
+     * disabled.
+     */
+    @Override
+    protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
+        if (!SECURITY_ENABLED) {
+            return super.buildClient(settings, hosts);
+        }
+        RestClientBuilder builder = RestClient.builder(hosts);
+        OpenSearchRestTestCase.configureClient(builder, settings);
+        try {
+            PoolingAsyncClientConnectionManager connectionManager =
+                    PoolingAsyncClientConnectionManagerBuilder.create()
+                            .setTlsStrategy(
+                                    ClientTlsStrategyBuilder.create()
+                                            .setSslContext(
+                                                    SSLContextBuilder.create()
+                                                            .loadTrustMaterial(null, (chain, authType) -> true)
+                                                            .build())
+                                            .setHostnameVerifier((hostname, session) -> true)
+                                            .build())
+                            .build();
+            builder.setHttpClientConfigCallback(
+                    httpClientBuilder -> httpClientBuilder.setConnectionManager(connectionManager));
+        } catch (GeneralSecurityException e) {
+            throw new IOException("Failed to configure trust-all SSL context for tests", e);
+        }
+        return builder.build();
     }
 
     // ========================
@@ -111,6 +188,8 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                                         "properties": {
                                             "title":    {"type": "keyword"},
                                             "author":   {"type": "keyword"},
+                                            "date":     {"type": "date"},
+                                            "modified": {"type": "date"},
                                             "description": {"type": "text"},
                                             "references":  {"type": "keyword"},
                                             "documentation": {"type": "keyword"}
