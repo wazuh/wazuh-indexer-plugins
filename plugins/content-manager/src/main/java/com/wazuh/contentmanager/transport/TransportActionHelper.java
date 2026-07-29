@@ -28,8 +28,11 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.util.Objects;
+import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -80,6 +83,55 @@ public final class TransportActionHelper {
                                                 RestStatus.BAD_REQUEST.getStatus()));
                             }
                         }));
+    }
+
+    /**
+     * Reloads the standard space into the Engine when a mutation changed that space's hash.
+     *
+     * <p>The Engine holds its own copy of the standard policy and resolves asset selection from it,
+     * for both the production router and the log test endpoint. Content mutations only write to the
+     * OpenSearch indices, so without this reload the Engine keeps serving the snapshot it received at
+     * the last full load and changes such as toggling an integration's {@code enabled} flag never
+     * reach log test.
+     *
+     * <p>Fire-and-forget: the reload runs asynchronously and failures are only logged. The mutation
+     * that triggered it has already been persisted, so it must not be reported as failed.
+     *
+     * @param engine the Engine service; a {@code null} value is logged and skipped.
+     * @param spaceService used to build the Engine payload for the standard space.
+     * @param changedSpaces the spaces whose hash changed, as reported by {@link
+     *     SpaceService#calculateAndUpdate}. The reload is skipped unless it contains the standard
+     *     space.
+     */
+    public static void reloadStandardSpaceIntoEngine(
+            EngineService engine, SpaceService spaceService, Set<String> changedSpaces) {
+        if (changedSpaces == null || !changedSpaces.contains(Space.STANDARD.toString())) {
+            return;
+        }
+        if (engine == null) {
+            log.warn(Constants.E_LOG_ENGINE_IS_NULL);
+            return;
+        }
+
+        spaceService.buildEnginePayload(
+                Space.STANDARD.toString(),
+                ActionListener.wrap(
+                        payload -> {
+                            try {
+                                RestResponse response = engine.promote(payload);
+                                if (response.getStatus() == RestStatus.OK.getStatus()) {
+                                    log.info(Constants.I_LOG_ENGINE_STANDARD_LOADED);
+                                } else {
+                                    log.warn(
+                                            Constants.W_LOG_ENGINE_STANDARD_LOAD_STATUS,
+                                            response.getStatus(),
+                                            response.getMessage());
+                                }
+                            } catch (Exception e) {
+                                log.error(Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage());
+                            }
+                        },
+                        e -> log.error(Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage())));
     }
 
     /** Walks the exception cause chain looking for an OpenSearchSecurityException. */
