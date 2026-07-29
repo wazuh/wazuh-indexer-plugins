@@ -367,8 +367,9 @@ When a `standard` integration's effective `enabled` changes, its related Securit
 ### Integration `enabled` resolution
 
 Every integration document carries three boolean fields, each with a single writer. All three
-are present the same way in every space (`standard`, `draft`, `test`, `custom`), exactly like
-`mode`:
+are present on the document in every space (`standard`, `draft`, `test`, `custom`), exactly like
+`mode` — which is a property of the stored document, not of what a client may send. See
+[Where the client can write](#where-the-client-can-write) below for that distinction:
 
 | Field | Written by | Meaning |
 | --- | --- | --- |
@@ -386,21 +387,29 @@ Until CTI publishes `cti_enabled`, it still writes `document.enabled` directly; 
 resolution leaves `enabled` as received, so the user's override still takes precedence and
 current behaviour is otherwise unchanged.
 
-The client always sends `user_enabled`, uniformly across spaces, so the request shape is
-identical regardless of where an integration lives. The parallel with `mode` is that the field
-is present in every space even where its value is predictable — but unlike `mode`, which is
-server-set and never accepted from a request, `user_enabled` is the one field the client does
-send:
+#### Where the client can write
 
-- On create, `user_enabled` is optional and defaults to `true` when absent or `null`, the same
-  way `enabled` used to be defaulted.
-- On a `draft`-space update, `user_enabled` is required, alongside `category` and the metadata
-  fields.
-- On a `standard`-space update, `user_enabled` is the only field read; every other field the
-  client sends is ignored and the stored document is preserved untouched.
+The API exposes integration writes in two spaces only, so those are the only places a client
+ever sends `user_enabled`:
 
-`enabled` and `cti_enabled` are server-managed in every space: both are stripped from request
-bodies and cannot be set by a client, exactly like `mode`.
+| Operation | Spaces accepted | `user_enabled` |
+| --- | --- | --- |
+| `POST /integrations` | `draft` | Optional; defaults to `true` when absent or `null`, the same way `enabled` used to be defaulted. |
+| `PUT /integrations/{id}` | `draft`, `standard` | Required. |
+
+- On a `draft`-space update it is required alongside `category` and the metadata fields.
+- On a `standard`-space update it is the only field read; every other field the client sends is
+  ignored and the stored document is preserved untouched.
+
+`test` and `custom` have no write endpoint for integrations — `PUT` rejects them with
+`400 RESOURCE_SPACE_MISMATCH` (`TransportUpdateIntegrationAction.validSpaces`). Documents reach
+those spaces only through promotion (`draft → test → custom`), which copies `user_enabled` and
+`enabled` along with the rest of the document. Changing the enabled state of an integration that
+already lives in `custom` therefore means editing its `draft` copy and promoting the change
+through the chain, not calling `PUT` on the `custom` document.
+
+Wherever a client can write, `enabled` and `cti_enabled` are stripped from the request body and
+cannot be set, exactly like `mode`.
 
 "Absent `user_enabled` means the user never decided" still holds, but since create always
 defaults the field and update always requires it, the absent case now only arises for a

@@ -60,8 +60,13 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
  *   <li><b>protected</b> integrations (Wazuh core content) cannot be modified in any space.
  *   <li><b>user-managed</b> integrations in the {@code draft} space are fully editable.
  *   <li><b>user-managed</b> integrations in the {@code standard} space only allow toggling {@code
- *       enabled}; every other field is preserved from the stored document.
+ *       user_enabled}; every other field is preserved from the stored document.
  * </ul>
+ *
+ * <p>{@code user_enabled} carries the user's explicit choice and is required in both spaces. The
+ * effective {@code enabled} is derived from it by {@link
+ * com.wazuh.contentmanager.cti.catalog.index.IntegrationEnabledResolver} and is never accepted from
+ * a request body, and neither is {@code cti_enabled}.
  */
 public class TransportUpdateIntegrationAction extends AbstractTransportUpdateActionSpaces {
 
