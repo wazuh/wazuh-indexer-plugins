@@ -36,6 +36,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.index.Index;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.index.engine.VersionConflictEngineException;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -214,7 +215,10 @@ public class StreamIndex extends WazuhIndex {
             // Skip if already registered
             GetResponse existing =
                     this.client
-                            .get(new GetRequest(IndexStateManagement.ISM_INDEX_NAME).id(indexUuid))
+                            .get(
+                                    new GetRequest(IndexStateManagement.ISM_INDEX_NAME)
+                                            .id(indexUuid)
+                                            .fetchSourceContext(FetchSourceContext.DO_NOT_FETCH_SOURCE))
                             .actionGet(timeout);
             if (existing.isExists()) {
                 log.debug("Backing index [{}] is already registered with ISM. Skipping.", backingIndex);

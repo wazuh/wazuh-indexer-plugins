@@ -22,12 +22,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -38,6 +38,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Transport action for creating Filter resources (Spaces variant). */
@@ -106,6 +107,21 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
         return null;
     }
 
+    @Override
+    protected int getMaxAllowed() {
+        return PluginSettings.getInstance().getMaxFilters();
+    }
+
+    @Override
+    protected String getTooManyResourcesMessageFormat() {
+        return Constants.E_400_TOO_MANY_FILTERS;
+    }
+
+    @Override
+    protected String getMaxReachedLogFormat() {
+        return Constants.I_LOG_MAX_FILTERS_REACHED;
+    }
+
     private boolean isValidSpace(String spaceValue) {
         if (spaceValue == null) return false;
         try {
@@ -116,48 +132,63 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
     }
 
     @Override
-    protected RestResponse syncExternalServices(String id, JsonNode resource) {
+    protected void syncExternalServices(
+            String id, JsonNode resource, ActionListener<RestResponse> listener) {
         RestResponse engineValidation = this.engine.validateResource(Constants.KEY_FILTER, resource);
         if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(
-                    Constants.E_400_ENGINE_VALIDATION_FAILED + engineValidation.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
+            listener.onResponse(
+                    new RestResponse(
+                            Constants.E_400_ENGINE_VALIDATION_FAILED + engineValidation.getMessage(),
+                            RestStatus.BAD_REQUEST.getStatus()));
+            return;
         }
-        return null;
+        listener.onResponse(null);
     }
 
     @Override
-    protected void linkToParent(Client client, String id, JsonNode root) throws IOException {
+    protected void linkToParent(
+            Client client, String id, JsonNode root, ActionListener<Void> listener) {
         ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
         TermQueryBuilder queryBuilder =
                 new TermQueryBuilder(Constants.Q_SPACE_NAME, this.getSpaceName());
-        ObjectNode searchResult = policiesIndex.searchByQuery(queryBuilder);
 
-        if (searchResult == null
-                || !searchResult.has(Constants.Q_HITS)
-                || searchResult.get(Constants.Q_HITS).isEmpty()) {
-            throw new IllegalStateException(
-                    String.format(Locale.ROOT, "%s policy not found", this.getSpaceName()));
-        }
+        policiesIndex.searchByQuery(
+                queryBuilder,
+                ActionListener.wrap(
+                        searchResult -> {
+                            if (searchResult == null
+                                    || !searchResult.has(Constants.Q_HITS)
+                                    || searchResult.get(Constants.Q_HITS).isEmpty()) {
+                                listener.onFailure(
+                                        new IllegalStateException(
+                                                String.format(Locale.ROOT, "%s policy not found", this.getSpaceName())));
+                                return;
+                            }
 
-        ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
-        JsonNode policyHit = hitsArray.get(0);
-        String policyId = policyHit.get(Constants.KEY_ID).asText();
-        JsonNode document = policyHit.get(Constants.KEY_DOCUMENT);
+                            ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
+                            JsonNode policyHit = hitsArray.get(0);
+                            String policyId = policyHit.get(Constants.KEY_ID).asText();
+                            JsonNode document = policyHit.get(Constants.KEY_DOCUMENT);
 
-        ArrayNode filters;
-        if (document.has(Constants.KEY_FILTERS)) {
-            filters = (ArrayNode) document.get(Constants.KEY_FILTERS);
-        } else {
-            filters = MAPPER.createArrayNode();
-            ((ObjectNode) document).set(Constants.KEY_FILTERS, filters);
-        }
+                            ArrayNode filters;
+                            if (document.has(Constants.KEY_FILTERS)) {
+                                filters = (ArrayNode) document.get(Constants.KEY_FILTERS);
+                            } else {
+                                filters = MAPPER.createArrayNode();
+                                ((ObjectNode) document).set(Constants.KEY_FILTERS, filters);
+                            }
 
-        filters.add(id);
+                            filters.add(id);
 
-        String hash = Resource.computeSha256(document.toString());
-        ((ObjectNode) policyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
+                            String hash = Resource.computeSha256(document.toString());
+                            ((ObjectNode) policyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
 
-        policiesIndex.create(policyId, policyHit);
+                            policiesIndex.create(
+                                    policyId,
+                                    policyHit,
+                                    ActionListener.wrap(
+                                            indexResponse -> listener.onResponse(null), listener::onFailure));
+                        },
+                        listener::onFailure));
     }
 }

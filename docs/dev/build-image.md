@@ -13,14 +13,14 @@ Windows is currently not supported.
 
 Before you get started, make sure to clean your environment by running `./gradlew clean` on the **root level** of the `wazuh-indexer` repository.
 
-## Pre-requisites
+## Prerequisites
 
 The process to build packages requires Docker and Docker Compose.
 
 - [Install Docker](https://docs.docker.com/engine/install/)
 - [Install Docker Compose](https://docs.docker.com/compose/install/linux/)
 
-Your workstation must meet the minimum hardware requirements (the more resources the better ☺):
+Your workstation must meet the minimum hardware requirements (the more resources the better):
 
    - 8 GB of RAM (minimum)
    - 4 cores

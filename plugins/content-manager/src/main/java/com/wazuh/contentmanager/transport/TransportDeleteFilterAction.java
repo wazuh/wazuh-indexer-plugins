@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
@@ -67,45 +68,62 @@ public class TransportDeleteFilterAction extends AbstractTransportDeleteActionSp
     }
 
     @Override
-    protected void deleteExternalServices(String id) {
+    protected void deleteExternalServices(String id, ActionListener<Void> listener) {
         // Not applicable for this implementation.
+        listener.onResponse(null);
     }
 
     @Override
-    protected void unlinkFromParent(Client client, String id, String spaceName) throws Exception {
+    protected void unlinkFromParent(
+            Client client, String id, String spaceName, ActionListener<Void> listener) {
         ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
         TermQueryBuilder queryBuilder = new TermQueryBuilder(Constants.Q_SPACE_NAME, spaceName);
-        ObjectNode searchResult = policiesIndex.searchByQuery(queryBuilder);
 
-        if (searchResult == null
-                || !searchResult.has(Constants.Q_HITS)
-                || searchResult.get(Constants.Q_HITS).isEmpty()) {
-            throw new IllegalStateException("Policy not found");
-        }
+        policiesIndex.searchByQuery(
+                queryBuilder,
+                ActionListener.wrap(
+                        searchResult -> {
+                            if (searchResult == null
+                                    || !searchResult.has(Constants.Q_HITS)
+                                    || searchResult.get(Constants.Q_HITS).isEmpty()) {
+                                listener.onFailure(new IllegalStateException("Policy not found"));
+                                return;
+                            }
 
-        ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
-        JsonNode draftPolicyHit = hitsArray.get(0);
-        String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
-        JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
+                            ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
+                            JsonNode draftPolicyHit = hitsArray.get(0);
+                            String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
+                            JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
 
-        ArrayNode filters = (ArrayNode) document.get(Constants.KEY_FILTERS);
-        if (filters == null) return;
+                            ArrayNode filters = (ArrayNode) document.get(Constants.KEY_FILTERS);
+                            if (filters == null) {
+                                listener.onResponse(null);
+                                return;
+                            }
 
-        ArrayNode updatedFilters = MAPPER.createArrayNode();
-        boolean removed = false;
-        for (JsonNode filterId : filters) {
-            if (!filterId.asText().equals(id)) {
-                updatedFilters.add(filterId);
-            } else {
-                removed = true;
-            }
-        }
+                            ArrayNode updatedFilters = MAPPER.createArrayNode();
+                            boolean removed = false;
+                            for (JsonNode filterId : filters) {
+                                if (!filterId.asText().equals(id)) {
+                                    updatedFilters.add(filterId);
+                                } else {
+                                    removed = true;
+                                }
+                            }
 
-        if (removed) {
-            ((ObjectNode) document).set(Constants.KEY_FILTERS, updatedFilters);
-            String hash = Resource.computeSha256(document.toString());
-            ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
-            policiesIndex.create(draftPolicyId, draftPolicyHit);
-        }
+                            if (removed) {
+                                ((ObjectNode) document).set(Constants.KEY_FILTERS, updatedFilters);
+                                String hash = Resource.computeSha256(document.toString());
+                                ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
+                                policiesIndex.create(
+                                        draftPolicyId,
+                                        draftPolicyHit,
+                                        ActionListener.wrap(
+                                                indexResponse -> listener.onResponse(null), listener::onFailure));
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        listener::onFailure));
     }
 }

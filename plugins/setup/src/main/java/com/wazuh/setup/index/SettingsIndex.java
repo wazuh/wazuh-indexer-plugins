@@ -77,7 +77,8 @@ public class SettingsIndex extends WazuhIndex {
      */
     public void indexDefaultValues() {
         try {
-            GetResponse response = this.client.prepareGet(INDEX_NAME, SETTINGS_ID).get();
+            GetResponse response =
+                    this.client.prepareGet(INDEX_NAME, SETTINGS_ID).setFetchSource(false).get();
             if (response.isExists()) {
                 log.debug("Wazuh settings already initialized.");
                 return;

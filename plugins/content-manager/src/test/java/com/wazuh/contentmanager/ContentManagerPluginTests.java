@@ -16,18 +16,32 @@
  */
 package com.wazuh.contentmanager;
 
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.LocalNodeClusterManagerListener;
+import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.node.DiscoveryNodes;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Before;
 
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -35,6 +49,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -44,6 +59,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -54,11 +70,15 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     private AutoCloseable closeable;
 
     @Mock private Client client;
+    @Mock private ClusterService clusterService;
     @Mock private ThreadPool threadPool;
     @Mock private DiscoveryNode discoveryNode;
     @Mock private CatalogSyncJob catalogSyncJob;
     @Mock private TelemetryPingJob telemetryPingJob;
     @Mock private ConsumersIndex consumersIndex;
+    @Mock private ClusterState clusterState;
+    @Mock private DiscoveryNodes discoveryNodes;
+    @Mock private Metadata metadata;
 
     /** Sets up the test environment before each test method. */
     @Before
@@ -78,7 +98,14 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                 .execute(any(Runnable.class));
         when(this.threadPool.generic()).thenReturn(mockExecutor);
 
+        when(this.clusterService.state()).thenReturn(this.clusterState);
+        when(this.clusterState.nodes()).thenReturn(this.discoveryNodes);
+        when(this.clusterState.metadata()).thenReturn(this.metadata);
+        when(this.metadata.clusterUUID()).thenReturn("test-cluster-uuid");
+        when(this.discoveryNodes.isLocalNodeElectedClusterManager()).thenReturn(false);
+
         this.injectField(this.plugin, "client", this.client);
+        this.injectField(this.plugin, "clusterService", this.clusterService);
         this.injectField(this.plugin, "threadPool", this.threadPool);
         this.injectField(this.plugin, "catalogSyncJob", this.catalogSyncJob);
         this.injectField(this.plugin, "telemetryPingJob", this.telemetryPingJob);
@@ -100,23 +127,18 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
 
     /** Tests that catalogSyncJob.trigger() is called when update_on_start is true (default). */
     public void testOnNodeStartedTriggerEnabled() {
-        // Initialize settings with update_on_start = true
         Settings settings =
                 Settings.builder().put("plugins.content_manager.catalog.update_on_start", true).build();
         PluginSettings.getInstance(settings);
 
-        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
-
-        // Act
         this.plugin.onNodeStarted(this.discoveryNode);
+        this.simulateClusterManagerElection();
 
-        // Assert
         verify(this.catalogSyncJob).trigger();
     }
 
     /** Tests that catalogSyncJob.trigger() is NOT called when update_on_start is false. */
     public void testOnNodeStartedTriggerDisabled() {
-        // Initialize settings with update_on_start = false
         Settings settings =
                 Settings.builder()
                         .put("plugins.content_manager.catalog.update_on_start", false)
@@ -124,12 +146,9 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                         .build();
         PluginSettings.getInstance(settings);
 
-        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
-
-        // Act
         this.plugin.onNodeStarted(this.discoveryNode);
+        this.simulateClusterManagerElection();
 
-        // Assert
         verify(this.catalogSyncJob, never()).trigger();
     }
 
@@ -145,9 +164,8 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                         .build();
         PluginSettings.getInstance(settings);
 
-        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
-
         this.plugin.onNodeStarted(this.discoveryNode);
+        this.simulateClusterManagerElection();
 
         verify(this.telemetryPingJob, never()).trigger();
     }
@@ -165,9 +183,8 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                         .build();
         PluginSettings.getInstance(settings);
 
-        when(this.discoveryNode.isClusterManagerNode()).thenReturn(true);
-
         this.plugin.onNodeStarted(this.discoveryNode);
+        this.simulateClusterManagerElection();
 
         verify(this.telemetryPingJob, never()).trigger();
     }
@@ -225,19 +242,79 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                         eq(ThreadPool.Names.GENERIC));
     }
 
-    /** Tests that catalogSyncJob.trigger() is NOT called on a non-cluster-manager node. */
+    /** Tests that catalogSyncJob.trigger() is NOT called when the node is not elected leader. */
     public void testOnNodeStartedNonClusterManager() {
         Settings settings =
                 Settings.builder().put("plugins.content_manager.catalog.update_on_start", true).build();
         PluginSettings.getInstance(settings);
 
-        when(this.discoveryNode.isClusterManagerNode()).thenReturn(false);
-
-        // Act
         this.plugin.onNodeStarted(this.discoveryNode);
 
-        // Assert
         verify(this.catalogSyncJob, never()).trigger();
+    }
+
+    /**
+     * Regression test for issue #1362: {@code ensureResourceIndicesExist} must scan every space-aware
+     * ruleset resource index, so they are bootstrapped at startup even when catalog synchronization
+     * is disabled. Here every index reports as already existing, so the method should only probe for
+     * existence (one async {@code exists} per index) and create nothing.
+     */
+    public void testEnsureResourceIndicesChecksAllResourceIndices() throws Exception {
+        PluginSettings.getInstance(Settings.EMPTY);
+
+        AdminClient adminClient = mock(AdminClient.class);
+        IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
+        IndicesExistsResponse existsResponse = mock(IndicesExistsResponse.class);
+        when(existsResponse.isExists()).thenReturn(true);
+
+        when(this.client.admin()).thenReturn(adminClient);
+        when(adminClient.indices()).thenReturn(indicesAdminClient);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndicesExistsResponse> l = invocation.getArgument(1);
+                            l.onResponse(existsResponse);
+                            return null;
+                        })
+                .when(indicesAdminClient)
+                .exists(any(IndicesExistsRequest.class), any(ActionListener.class));
+
+        this.invokePrivateMethod("ensureResourceIndicesExist");
+
+        // Every resource index is probed exactly once via the async exists() API; nothing is created
+        // because all of them report as already existing.
+        ArgumentCaptor<IndicesExistsRequest> requestCaptor =
+                ArgumentCaptor.forClass(IndicesExistsRequest.class);
+        verify(indicesAdminClient, times(Constants.RESOURCE_INDEX_MAPPINGS.size()))
+                .exists(requestCaptor.capture(), any(ActionListener.class));
+
+        Set<String> probedIndices = new HashSet<>();
+        for (IndicesExistsRequest request : requestCaptor.getAllValues()) {
+            probedIndices.addAll(Arrays.asList(request.indices()));
+        }
+        assertEquals(Constants.RESOURCE_INDEX_MAPPINGS.keySet(), probedIndices);
+        verify(indicesAdminClient, never()).create(any());
+    }
+
+    /**
+     * Guards against a broken {@link Constants#RESOURCE_INDEX_MAPPINGS} entry: every mapped index
+     * must point at a mapping file that actually exists on the classpath, otherwise startup creation
+     * would silently fail with "no mappings".
+     */
+    public void testResourceIndexMappingsResolveToClasspathResources() throws Exception {
+        assertFalse(Constants.RESOURCE_INDEX_MAPPINGS.isEmpty());
+        for (String mappingPath : Constants.RESOURCE_INDEX_MAPPINGS.values()) {
+            try (InputStream is = ContentManagerPlugin.class.getResourceAsStream(mappingPath)) {
+                assertNotNull("Missing mapping resource on classpath: " + mappingPath, is);
+            }
+        }
+    }
+
+    /** Captures the registered {@link LocalNodeClusterManagerListener} and fires onClusterManager. */
+    private void simulateClusterManagerElection() {
+        ArgumentCaptor<LocalNodeClusterManagerListener> captor =
+                ArgumentCaptor.forClass(LocalNodeClusterManagerListener.class);
+        verify(this.clusterService).addLocalNodeClusterManagerListener(captor.capture());
+        captor.getValue().onClusterManager();
     }
 
     /** Helper to inject private fields via reflection. */
@@ -246,6 +323,14 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(target, value);
+    }
+
+    /** Helper to invoke a private no-arg {@code void method()} on the plugin via reflection. */
+    @SuppressForbidden(reason = "Unit test reflection")
+    private void invokePrivateMethod(String methodName) throws Exception {
+        Method method = ContentManagerPlugin.class.getDeclaredMethod(methodName);
+        method.setAccessible(true);
+        method.invoke(this.plugin);
     }
 
     /** Helper to invoke a private {@code void method(int)} on the plugin via reflection. */

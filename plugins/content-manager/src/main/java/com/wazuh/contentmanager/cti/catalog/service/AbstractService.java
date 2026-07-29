@@ -39,6 +39,16 @@ public abstract class AbstractService {
     }
 
     /**
+     * Constructor that accepts a pre-built API client, avoiding the creation of a default client.
+     *
+     * @param client The API client to use.
+     */
+    protected AbstractService(ApiClient client) {
+        this.client = client;
+        this.mapper = new ObjectMapper();
+    }
+
+    /**
      * Sets the API client. Use for testing only to inject mocked clients.
      *
      * @param c The mocked API client.

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.core.action.ActionListener;
 
 import java.io.IOException;
 import java.util.List;
@@ -128,6 +129,107 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
             return getMyPlan(new Token(accessToken, "Bearer"));
         }
         return getPublicPlan();
+    }
+
+    @Override
+    public void getMyPlan(Token token, ActionListener<Plan> listener) {
+        if (token == null) {
+            log.warn("Cannot fetch environment plan: Token is null. Instance might not be registered.");
+            listener.onResponse(null);
+            return;
+        }
+
+        this.client.getEnvironmentMe(
+                token,
+                ActionListener.wrap(
+                        response -> {
+                            if (response.getCode() == 401) {
+                                log.warn("Authentication failed: The environment token is invalid or missing.");
+                                listener.onResponse(null);
+                            } else if (response.getCode() == 200) {
+                                try {
+                                    JsonNode root = this.mapper.readTree(response.getBodyText()).get("plans");
+                                    List<Plan> plans =
+                                            this.mapper.readerFor(new TypeReference<List<Plan>>() {}).readValue(root);
+                                    if (plans != null && !plans.isEmpty()) {
+                                        log.info(
+                                                "Active plan for registered environment retrieved"
+                                                        + " successfully from CTI Console. Active"
+                                                        + " plan is: {}.",
+                                                plans.get(0).getName());
+                                        listener.onResponse(plans.get(0));
+                                    } else {
+                                        listener.onResponse(null);
+                                    }
+                                } catch (IOException e) {
+                                    log.error("Failed to parse environment plan: {}", e.getMessage());
+                                    listener.onResponse(null);
+                                }
+                            } else {
+                                log.warn(
+                                        "Operation to fetch environment plan failed: {"
+                                                + " \"status_code\": {}, \"message\": {}",
+                                        response.getCode(),
+                                        response.getBodyText());
+                                listener.onResponse(null);
+                            }
+                        },
+                        e -> {
+                            log.error("Couldn't obtain environment plan from CTI: {}", e.getMessage());
+                            listener.onResponse(null);
+                        }));
+    }
+
+    @Override
+    public void getPlan(ActionListener<Plan> listener) {
+        String accessToken = PluginSettings.getInstance().getAccessToken();
+        if (accessToken != null) {
+            getMyPlan(new Token(accessToken, "Bearer"), listener);
+        } else {
+            getPublicPlan(listener);
+        }
+    }
+
+    private void getPublicPlan(ActionListener<Plan> listener) {
+        this.client.getCatalogPlans(
+                ActionListener.wrap(
+                        response -> {
+                            if (response.getCode() == 200) {
+                                try {
+                                    CatalogPlansResponse parsedResponse =
+                                            this.mapper.readValue(response.getBodyText(), CatalogPlansResponse.class);
+                                    if (parsedResponse.getPlans() != null) {
+                                        Plan publicPlan =
+                                                parsedResponse.getPlans().stream()
+                                                        .filter(Plan::isPublic)
+                                                        .findFirst()
+                                                        .orElse(null);
+                                        if (publicPlan != null) {
+                                            log.info(
+                                                    "Public plan retrieved successfully from CTI"
+                                                            + " Console. Active plan is: {}.",
+                                                    publicPlan.getName());
+                                        }
+                                        listener.onResponse(publicPlan);
+                                    } else {
+                                        listener.onResponse(null);
+                                    }
+                                } catch (IOException e) {
+                                    log.error("Failed to parse catalog plans response: {}", e.getMessage());
+                                    listener.onResponse(null);
+                                }
+                            } else {
+                                log.warn(
+                                        "Failed to fetch catalog plans: status={}, body={}",
+                                        response.getCode(),
+                                        response.getBodyText());
+                                listener.onResponse(null);
+                            }
+                        },
+                        e -> {
+                            log.error("Couldn't obtain catalog plans from CTI: {}", e.getMessage());
+                            listener.onResponse(null);
+                        }));
     }
 
     private Plan getPublicPlan() {

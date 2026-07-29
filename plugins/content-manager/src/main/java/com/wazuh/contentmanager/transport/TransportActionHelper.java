@@ -18,9 +18,10 @@ package com.wazuh.contentmanager.transport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -42,32 +43,43 @@ public final class TransportActionHelper {
     /**
      * Checks if the draft policy exists.
      *
-     * @return RestResponse with error if missing, null if ok
+     * @param client the OpenSearch client
+     * @param listener receives null if the draft policy exists, or a RestResponse with the error
      */
-    public static RestResponse validateDraftPolicyExists(Client client) {
-        try {
-            SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-            SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-            sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
-            sourceBuilder.size(0);
-            searchRequest.source(sourceBuilder);
+    public static void validateDraftPolicyExists(
+            Client client, ActionListener<RestResponse> listener) {
+        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.DRAFT.toString()));
+        sourceBuilder.size(0);
+        searchRequest.source(sourceBuilder);
 
-            SearchResponse response = client.search(searchRequest).actionGet();
-
-            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
-                log.error(Constants.E_500_MISSING_DRAFT_POLICY);
-                return new RestResponse(
-                        Constants.E_500_MISSING_DRAFT_POLICY, RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            }
-        } catch (Exception ex) {
-            OpenSearchSecurityException secEx = extractSecurityException(ex);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            return new RestResponse(
-                    "Draft policy check failed: " + ex.getMessage(), RestStatus.BAD_REQUEST.getStatus());
-        }
-        return null;
+        client.search(
+                searchRequest,
+                ActionListener.wrap(
+                        response -> {
+                            if (Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0) {
+                                log.error(Constants.E_500_MISSING_DRAFT_POLICY);
+                                listener.onResponse(
+                                        new RestResponse(
+                                                Constants.E_500_MISSING_DRAFT_POLICY,
+                                                RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        ex -> {
+                            OpenSearchSecurityException secEx = extractSecurityException(ex);
+                            if (secEx != null) {
+                                listener.onResponse(
+                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
+                            } else {
+                                listener.onResponse(
+                                        new RestResponse(
+                                                "Draft policy check failed: " + ex.getMessage(),
+                                                RestStatus.BAD_REQUEST.getStatus()));
+                            }
+                        }));
     }
 
     /** Walks the exception cause chain looking for an OpenSearchSecurityException. */
@@ -76,6 +88,24 @@ public final class TransportActionHelper {
         while (cause != null) {
             if (cause instanceof OpenSearchSecurityException) {
                 return (OpenSearchSecurityException) cause;
+            }
+            cause = cause.getCause();
+        }
+        return null;
+    }
+
+    /**
+     * Walks the exception cause chain looking for an OpenSearchException, e.g. a {@code
+     * MapperParsingException} raised when a caller-supplied value (such as a malformed date) fails
+     * index mapping validation. OpenSearchException subclasses carry their own correct {@link
+     * org.opensearch.core.rest.RestStatus} (400 for mapping/parsing failures), so callers should
+     * prefer it over a hardcoded Internal Server Error.
+     */
+    public static OpenSearchException extractOpenSearchException(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            if (cause instanceof OpenSearchException) {
+                return (OpenSearchException) cause;
             }
             cause = cause.getCause();
         }

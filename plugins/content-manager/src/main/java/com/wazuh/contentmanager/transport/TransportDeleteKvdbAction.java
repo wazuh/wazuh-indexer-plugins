@@ -18,10 +18,9 @@ package com.wazuh.contentmanager.transport;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
-
-import java.io.IOException;
 
 import com.wazuh.contentmanager.action.DeleteKvdbAction;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
@@ -53,13 +52,22 @@ public class TransportDeleteKvdbAction extends AbstractTransportDeleteAction {
 
     @Override
     protected void deleteExternalServices(
-            String id, SecurityAnalyticsService securityAnalyticsService) {
+            String id, SecurityAnalyticsService securityAnalyticsService, ActionListener<Void> listener) {
         // No explicit KVDB delete in external services
+        listener.onResponse(null);
     }
 
     @Override
-    protected void unlinkFromParent(Client client, String id, IntegrationService integrationService)
-            throws IOException {
-        integrationService.unlinkResourceFromIntegrations(id, Constants.KEY_KVDBS);
+    protected void unlinkFromParent(
+            Client client,
+            String id,
+            IntegrationService integrationService,
+            ActionListener<Void> listener) {
+        try {
+            integrationService.unlinkResourceFromIntegrations(id, Constants.KEY_KVDBS);
+            listener.onResponse(null);
+        } catch (Exception e) {
+            listener.onFailure(e);
+        }
     }
 }

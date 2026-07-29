@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.cluster.LocalNodeClusterManagerListener;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -44,6 +45,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.wazuh.setup.action.PutSettingsAction;
@@ -75,13 +77,13 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private SetupStatusIndex setupStatusIndex;
     // spotless:off
     private final String[] categories = {
-        "access-management", // No integration in this category yet
+        "access-management",
         "applications",
         "cloud-services",
         "network-activity",
         "security",
         "system-activity",
-        "other", // No integration in this category yet
+        "other",
         "unclassified"
     };
     // spotless:on
@@ -120,11 +122,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
             this.indices.add(new StreamIndex(
                 "wazuh-events-v5-" + category
             ));
-
-            if(category.equals("unclassified")) {
-                // Unclassified events data stream (stores uncategorized events for investigation)
-                this.indices.add(new StreamIndex("wazuh-events-v5-unclassified", "templates/streams/unclassified"));
-            }
         }
         // Findings data streams (stores detection findings per category)
         for (String category : this.categories) {
@@ -185,46 +182,73 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        // Initialize the indices only if this node is the cluster manager node.
-        if (localNode.isClusterManagerNode()) {
-            this.threadPool
-                    .generic()
-                    .execute(
-                            () -> {
-                                // Apply cluster.default_number_of_replicas from opensearch.yml settings if present
-                                try {
-                                    String defaultNumberOfReplicas =
-                                            this.clusterService.getSettings().get(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS);
-                                    if (defaultNumberOfReplicas != null) {
-                                        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
-                                        request.persistentSettings(
-                                                Settings.builder()
-                                                        .put(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS, defaultNumberOfReplicas)
-                                                        .build());
-                                        this.client
-                                                .admin()
-                                                .cluster()
-                                                .updateSettings(request)
-                                                .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
-                                        log.info(
-                                                "Successfully updated cluster.default_number_of_replicas to {}",
-                                                defaultNumberOfReplicas);
-                                    }
-                                } catch (Exception e) {
-                                    log.error("Failed to update cluster.default_number_of_replicas", e);
-                                }
+        AtomicBoolean started = new AtomicBoolean(false);
+        LocalNodeClusterManagerListener listener =
+                new LocalNodeClusterManagerListener() {
+                    @Override
+                    public void onClusterManager() {
+                        if (!started.compareAndSet(false, true)) {
+                            return;
+                        }
+                        SetupPlugin.this
+                                .threadPool
+                                .generic()
+                                .execute(
+                                        () -> {
+                                            // Apply cluster.default_number_of_replicas from
+                                            // opensearch.yml settings if present
+                                            try {
+                                                String defaultNumberOfReplicas =
+                                                        SetupPlugin.this
+                                                                .clusterService
+                                                                .getSettings()
+                                                                .get(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS);
+                                                if (defaultNumberOfReplicas != null) {
+                                                    ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+                                                    request.persistentSettings(
+                                                            Settings.builder()
+                                                                    .put(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS, defaultNumberOfReplicas)
+                                                                    .build());
+                                                    SetupPlugin.this
+                                                            .client
+                                                            .admin()
+                                                            .cluster()
+                                                            .updateSettings(request)
+                                                            .actionGet(
+                                                                    PluginSettings.getTimeout(
+                                                                            SetupPlugin.this.clusterService.getSettings()));
+                                                    log.info(
+                                                            "Successfully updated cluster.default_number_of_replicas to {}",
+                                                            defaultNumberOfReplicas);
+                                                }
+                                            } catch (Exception e) {
+                                                log.error("Failed to update cluster.default_number_of_replicas", e);
+                                            }
 
-                                try {
-                                    this.indices.forEach(Index::initialize);
-                                } catch (Exception e) {
-                                    log.error("Setup initialization failed: {}", e.getMessage(), e);
-                                    this.setupStatusIndex.markFailed();
-                                }
+                                            try {
+                                                SetupPlugin.this.indices.forEach(Index::initialize);
+                                            } catch (Exception e) {
+                                                log.error("Setup initialization failed: {}", e.getMessage(), e);
+                                                SetupPlugin.this.setupStatusIndex.markFailed();
+                                            }
 
-                                // Signal that all indices are ready. Consumers of this marker may now start working
-                                // with them.
-                                this.setupStatusIndex.markReady();
-                            });
+                                            // Signal that all indices are ready. Consumers of this
+                                            // marker may now start working with them.
+                                            SetupPlugin.this.setupStatusIndex.markReady();
+                                        });
+                    }
+
+                    @Override
+                    public void offClusterManager() {}
+                };
+
+        this.clusterService.addLocalNodeClusterManagerListener(listener);
+
+        // The listener only fires on transitions. If the node is already the
+        // elected cluster manager (the election happened before this method
+        // runs), trigger the callback explicitly.
+        if (this.clusterService.state().nodes().isLocalNodeElectedClusterManager()) {
+            listener.onClusterManager();
         }
     }
 

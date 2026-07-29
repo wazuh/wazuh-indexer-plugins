@@ -77,9 +77,44 @@ paths:
         "201":
           $ref: "#/components/responses/SubscriptionCreated"
         "400":
-          $ref: "#/components/responses/BadRequest"
+          description: |
+            Bad Request - `access_token` is missing from the request body. Unlike every
+            other 400 response in this API, this specific validation runs before the
+            plugin's own request handling, so the body is OpenSearch's generic
+            action-request-validation envelope, not the plugin's `{message, status}` shape.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      root_cause:
+                        type: array
+                        items:
+                          type: object
+                      type:
+                        type: string
+                      reason:
+                        type: string
+                  status:
+                    type: integer
+              examples:
+                missing_access_token:
+                  summary: access_token missing from request body
+                  value:
+                    error:
+                      root_cause:
+                        - type: "action_request_validation_exception"
+                          reason: "Validation Failed: 1: Missing [access_token] field.;"
+                      type: "action_request_validation_exception"
+                      reason: "Validation Failed: 1: Missing [access_token] field.;"
+                    status: 400
         "412":
           $ref: "#/components/responses/PreconditionFailed"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -95,6 +130,8 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/SubscriptionStatus"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -110,6 +147,8 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/CredentialsRemoved"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -129,8 +168,8 @@ paths:
       responses:
         "202":
           $ref: "#/components/responses/UpdateAccepted"
-        "404":
-          $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "409":
           $ref: "#/components/responses/Conflict"
         "500":
@@ -151,6 +190,8 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/VersionCheckSuccess"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
         "502":
@@ -183,9 +224,9 @@ paths:
                       title: "azure-functions"
                       author: "Wazuh Inc."
                       description: "This integration supports Azure Functions app logs."
-                    documentation: "test1234"
-                    references:
-                      - "https://wazuh.com"
+                      documentation: "test1234"
+                      references:
+                        - "https://wazuh.com"
                     enabled: true
                     content:
                       key1: "value1"
@@ -199,7 +240,6 @@ paths:
                 value: |
                   integration: 9e301671-382d-4c1a-9abf-3d9d9544789c
                   resource:
-                    name: kvdb/azure-functions/0
                     enabled: true
                     metadata:
                       title: azure-functions
@@ -213,6 +253,8 @@ paths:
           $ref: "#/components/responses/ResourceCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -237,13 +279,14 @@ paths:
                 summary: Example KVDB update (JSON)
                 value:
                   resource:
-                    title: "azure-functions (Updated)"
-                    author: "Wazuh Inc."
-                    description: "Updated description for Azure Functions KVDB."
-                    documentation: "updated documentation"
-                    references:
-                      - "https://wazuh.com"
-                      - "https://azure.microsoft.com"
+                    metadata:
+                      title: "azure-functions-updated"
+                      author: "Wazuh Inc."
+                      description: "Updated description for Azure Functions KVDB."
+                      documentation: "updated documentation"
+                      references:
+                        - "https://wazuh.com"
+                        - "https://azure.microsoft.com"
                     enabled: false
                     content:
                       key1: "new_value1"
@@ -256,10 +299,9 @@ paths:
                 summary: Example KVDB update (YAML)
                 value: |
                   resource:
-                    name: kvdb/azure-functions/0
                     enabled: false
                     metadata:
-                      title: azure-functions (Updated)
+                      title: azure-functions-updated
                       author: Wazuh Inc.
                       description: Updated description for Azure Functions KVDB.
                     content:
@@ -271,6 +313,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -285,6 +329,8 @@ paths:
           $ref: "#/components/responses/ResourceDeleted"
         "404":
           $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -328,8 +374,10 @@ paths:
                     enabled: true
                     name: "decoder/netflow-default/0"
                     parse|event.original:
-                      - "<source.ip> - - [<event.start>]"
-                    normalize: []
+                      - "<source.ip> - - <user.name>"
+                    normalize:
+                      - map:
+                          - event.kind: "event"
                     metadata:
                       title: "NetFlow decoder"
                       description: "Decoder for NetFlow logs."
@@ -366,12 +414,18 @@ paths:
                       description: Decoder for NetFlow logs.
                       module: netflow
                       author: Wazuh, Inc.
-                    normalize: []
+                    parse|event.original:
+                    - "<source.ip> - - <user.name>"
+                    normalize:
+                    - map:
+                      - event.kind: event
       responses:
         "201":
           $ref: "#/components/responses/ResourceCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -408,8 +462,10 @@ paths:
                     enabled: true
                     name: "decoder/netflow-default/0"
                     parse|event.original:
-                      - "<source.ip> - - [<event.start>]"
-                    normalize: []
+                      - "<source.ip> - - <user.name>"
+                    normalize:
+                      - map:
+                          - event.kind: "event"
                     metadata:
                       title: "NetFlow decoder (Updated)"
                       description: "Updated decoder description."
@@ -441,7 +497,11 @@ paths:
                       description: Updated decoder description.
                       module: netflow
                       author: Wazuh, Inc.
-                    normalize: []
+                    parse|event.original:
+                    - "<source.ip> - - <user.name>"
+                    normalize:
+                    - map:
+                      - event.kind: event
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
@@ -449,6 +509,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -468,6 +530,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -547,6 +611,8 @@ paths:
           $ref: "#/components/responses/ResourceCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -627,6 +693,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -643,6 +711,8 @@ paths:
           $ref: "#/components/responses/ResourceDeleted"
         "404":
           $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -716,6 +786,8 @@ paths:
           $ref: "#/components/responses/ResourceCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -773,6 +845,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -789,6 +863,8 @@ paths:
           $ref: "#/components/responses/ResourceDeleted"
         "404":
           $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -812,6 +888,9 @@ paths:
         - `title` - Integration title
 
         **Note:** The `id` field must NOT be included in the request body; it is auto-generated by the indexer.
+
+        **Note:** Integrations created through this endpoint are always stored with `mode: user-managed`.
+        The `mode` field is set server-side and must NOT be included in the request body.
       operationId: createIntegration
       requestBody:
         required: true
@@ -830,19 +909,22 @@ paths:
                 summary: Example integration creation
                 value:
                   resource:
-                    title: "azure-functions"
-                    author: "Wazuh Inc."
+                    metadata:
+                      title: "azure-functions"
+                      author: "Wazuh Inc."
+                      description: "This integration supports Azure Functions app logs."
+                      documentation: "test1234"
+                      references:
+                        - "https://wazuh.com"
                     category: "cloud-services"
-                    description: "This integration supports Azure Functions app logs."
-                    documentation: "test1234"
                     enabled: true
-                    references:
-                      - "https://wazuh.com"
       responses:
         "201":
           $ref: "#/components/responses/ResourceCreated"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -851,8 +933,15 @@ paths:
       tags: [Integrations]
       summary: Update Integration
       description: |
-        Updates an existing integration in the draft space. The integration is validated against the Wazuh engine before being stored.
-        Only integrations in the 'draft' space can be updated.
+        Updates an existing integration. The target space is resolved from the stored document, so
+        no `space` field is required in the request body.
+
+        Behaviour depends on the integration's `mode` and the space it lives in:
+        - `mode: protected` (Wazuh core content) — cannot be modified in any space; returns `400 Bad Request`.
+        - `mode: user-managed` in the `draft` space — fully editable; validated against the Wazuh engine before being stored.
+        - `mode: user-managed` in the `standard` space — only the `enabled` field can change; every other field is preserved from the stored document.
+
+        The `mode` field is server-managed: it must NOT be included in the request body and is preserved from the stored document.
 
         **Required fields in resource:**
         - `author` - Integration author name
@@ -884,15 +973,16 @@ paths:
                 summary: Example integration update
                 value:
                   resource:
-                    title: "azure-functions (Updated)"
-                    author: "Wazuh Inc."
+                    metadata:
+                      title: "azure-functions-updated"
+                      author: "Wazuh Inc."
+                      description: "Updated description for Azure Functions integration."
+                      documentation: "updated documentation"
+                      references:
+                        - "https://wazuh.com"
+                        - "https://azure.microsoft.com"
                     category: "cloud-services"
-                    description: "Updated description for Azure Functions integration."
-                    documentation: "updated documentation"
                     enabled: true
-                    references:
-                      - "https://wazuh.com"
-                      - "https://azure.microsoft.com"
                     rules: []
                     decoders: []
                     kvdbs: []
@@ -903,6 +993,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -912,6 +1004,9 @@ paths:
       description: |
         Deletes an existing integration from the draft space.
         Only integrations in the 'draft' space can be deleted.
+
+        Integrations with `mode: protected` are managed by Wazuh and cannot be deleted;
+        attempting to delete one returns `400 Bad Request`.
 
         This operation will:
         - Remove the integration from the Security Analytics Plugin
@@ -928,6 +1023,8 @@ paths:
           $ref: "#/components/responses/IntegrationHasDependencies"
         "404":
           $ref: "#/components/responses/NotFound"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -976,6 +1073,8 @@ paths:
           $ref: "#/components/responses/LogtestResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1012,6 +1111,8 @@ paths:
           $ref: "#/components/responses/LogtestNormalizationResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1064,6 +1165,8 @@ paths:
           $ref: "#/components/responses/LogtestDetectionResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1088,6 +1191,8 @@ paths:
           $ref: "#/components/responses/PromotionPreviewResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1096,7 +1201,12 @@ paths:
       summary: Execute promotion
       description: |
         Executes the promotion of content from the source space to the target space based on the
-        provided changes. Engine validation is only performed when promoting to `test`.
+        provided changes. The only valid promotion paths are `draft` → `test` and `test` →
+        `custom`; Engine validation is performed for both target spaces, not just `test`.
+
+        For the `policy` resource type specifically, only the `update` operation is accepted in
+        `changes.policy` — `add`/`remove` are rejected with `400 Bad Request`, unlike other
+        resource types where all three operations are valid.
 
         In addition to copying documents across CTI indices, this endpoint synchronizes
         promoted **integrations** and **rules** with the Security Analytics Plugin (SAP).
@@ -1139,6 +1249,8 @@ paths:
           $ref: "#/components/responses/OkResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1181,6 +1293,8 @@ paths:
           $ref: "#/components/responses/OkResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1210,6 +1324,8 @@ paths:
           $ref: "#/components/responses/OkResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1327,12 +1443,19 @@ components:
     # Request body for logtest execution
     LogtestRequest:
       type: object
-      additionalProperties: false
+      description: |
+        Only `space` is validated by the Content Manager plugin itself; `queue`,
+        `location`, `event`, and `trace_level` are forwarded as-is to the Wazuh Engine,
+        which rejects missing/invalid values (e.g. an empty `trace_level`) with its own
+        `400 Bad Request` message format, not the plugin's standard `"Missing [x] field."`
+        format. Fields not listed below are also forwarded to the Engine rather than
+        rejected by the plugin.
       required:
         - space
         - queue
         - location
         - event
+        - trace_level
       properties:
         integration:
           type: string
@@ -1385,10 +1508,18 @@ components:
     # Request body for normalization-only logtest
     LogtestNormalizationRequest:
       type: object
-      additionalProperties: false
+      description: |
+        Only `space` is validated by the Content Manager plugin itself; `queue`,
+        `location`, `event`, and `trace_level` are forwarded as-is to the Wazuh Engine,
+        which rejects missing/invalid values (e.g. an empty `trace_level`) with its own
+        `400 Bad Request` message format, not the plugin's standard `"Missing [x] field."`
+        format. Fields not listed below are also forwarded to the Engine rather than
+        rejected by the plugin.
       required:
         - space
+        - queue
         - event
+        - trace_level
       properties:
         space:
           type: string
@@ -1396,7 +1527,7 @@ components:
             - test
             - standard
             - custom
-          description: Space context for the normalization. Must be `"test"`, `"standard"` or `"custom"`.
+          description: Space context for the normalization.
           example: "test"
 
         queue:
@@ -1433,7 +1564,6 @@ components:
     # Request body for detection-only logtest
     LogtestDetectionRequest:
       type: object
-      additionalProperties: false
       required:
         - space
         - integration
@@ -1445,7 +1575,7 @@ components:
             - test
             - standard
             - custom
-          description: Space where the integration exists. Must be `"test"`, `"standard"` or `"custom"`.
+          description: Space where the integration exists.
           example: "test"
 
         integration:
@@ -1541,11 +1671,21 @@ components:
         date:
           type: string
           format: date-time
-          description: Creation timestamp (ISO-8601)
+          description: |
+            Creation timestamp (ISO-8601). Optional on create/update requests: if omitted,
+            the server generates it. If provided, the value is stored as-is and is not
+            validated or reformatted by the plugin — it must match the underlying index
+            field's `date` mapping format (`strict_date_optional_time||epoch_millis`), or
+            the request fails with `400 Bad Request`.
         modified:
           type: string
           format: date-time
-          description: Last modification timestamp (ISO-8601)
+          description: |
+            Last modification timestamp (ISO-8601). Optional on create/update requests: if
+            omitted, the server generates it. If provided, the value is stored as-is and is
+            not validated or reformatted by the plugin — it must match the underlying index
+            field's `date` mapping format (`strict_date_optional_time||epoch_millis`), or
+            the request fails with `400 Bad Request`.
         description:
           type: string
           description: Brief description
@@ -1577,11 +1717,19 @@ components:
         date:
           type: string
           format: date-time
-          description: Creation timestamp (ISO-8601)
+          description: |
+            Creation timestamp (ISO-8601). Read-only in practice: on update, any
+            caller-supplied value is ignored and the existing policy's original creation
+            date is preserved.
         modified:
           type: string
           format: date-time
-          description: Last modification timestamp (ISO-8601)
+          description: |
+            Last modification timestamp (ISO-8601). Optional on update requests: if
+            omitted, the server generates it. If provided, the value is stored as-is and is
+            not validated or reformatted by the plugin — it must match the underlying index
+            field's `date` mapping format (`strict_date_optional_time||epoch_millis`), or
+            the request fails with `400 Bad Request`.
         description:
           type: string
           description: Brief description
@@ -1613,6 +1761,10 @@ components:
             - required:
                 - title
                 - author
+          description: |
+            `metadata.title` is passed to the Wazuh Engine as this integration's resource
+            name and must not contain spaces or special characters (e.g. `azure-functions`,
+            not `Azure Functions (test)`) — otherwise the request fails with `400 Bad Request`.
 
         category:
           type: string
@@ -1640,6 +1792,10 @@ components:
             - required:
                 - title
                 - author
+          description: |
+            `metadata.title` is passed to the Wazuh Engine as this integration's resource
+            name and must not contain spaces or special characters (e.g. `azure-functions`,
+            not `Azure Functions (test)`) — otherwise the request fails with `400 Bad Request`.
 
         category:
           type: string
@@ -1696,7 +1852,9 @@ components:
           items:
             type: object
             additionalProperties: true
-          description: Normalization rules
+          description: |
+            Normalization rules. Must contain at least one block — the Wazuh Engine
+            rejects an empty array with `400 Bad Request`.
 
         metadata:
           type: object
@@ -1761,7 +1919,9 @@ components:
           items:
             type: object
             additionalProperties: true
-          description: Normalization rules
+          description: |
+            Normalization rules. Must contain at least one block — the Wazuh Engine
+            rejects an empty array with `400 Bad Request`.
 
         metadata:
           type: object
@@ -1803,6 +1963,8 @@ components:
     FilterResourceCreate:
       type: object
       additionalProperties: false
+      required:
+        - name
       properties:
         name:
           type: string
@@ -1825,6 +1987,7 @@ components:
           additionalProperties: false
           required:
             - title
+            - author
           properties:
             title:
               type: string
@@ -1842,6 +2005,9 @@ components:
     FilterResource:
       type: object
       additionalProperties: false
+      required:
+        - name
+        - enabled
       properties:
         name:
           type: string
@@ -1864,6 +2030,7 @@ components:
           additionalProperties: false
           required:
             - title
+            - author
           properties:
             title:
               type: string
@@ -1903,6 +2070,10 @@ components:
                 - required:
                     - title
                     - author
+              description: |
+                `metadata.title` is passed to the Wazuh Engine as this KVDB's resource name
+                and must not contain spaces or special characters (e.g. `azure-functions`,
+                not `Azure Functions (test)`) — otherwise the request fails with `400 Bad Request`.
 
             enabled:
               type: boolean
@@ -1910,7 +2081,6 @@ components:
             content:
               type: object
               additionalProperties: true
-              minProperties: 1
               description: KVDB key-value content (engine-managed)
 
     KvdbResourceUpdate:
@@ -1932,9 +2102,10 @@ components:
                 - required:
                     - title
                     - author
-                    - description
-                    - documentation
-                    - references
+              description: |
+                `metadata.title` is passed to the Wazuh Engine as this KVDB's resource name
+                and must not contain spaces or special characters (e.g. `azure-functions`,
+                not `Azure Functions (test)`) — otherwise the request fails with `400 Bad Request`.
 
             enabled:
               type: boolean
@@ -1942,7 +2113,6 @@ components:
             content:
               type: object
               additionalProperties: true
-              minProperties: 1
               description: KVDB key-value content (engine-managed)
 
     # Rule document schema (Sigma-like, with Wazuh extensions for MITRE and compliance)
@@ -2011,12 +2181,14 @@ components:
         - metadata
         - detection
         - logsource
+        - enabled
       properties:
         metadata:
           allOf:
             - $ref: "#/components/schemas/ResourceMetadata"
             - required:
                 - title
+                - author
 
         sigma_id:
           type: string
@@ -2201,11 +2373,12 @@ components:
           type: array
           items:
             type: string
-            enum: [connection, hash_md5, hash_sha1, hash_sha256, url-domain, url-full]
+            enum: [connection, geo, hash_md5, hash_sha1, hash_sha256, url_domain, url_full]
           description: >
-            Enrichment types to apply. Known values: connection, hash_md5, hash_sha1, hash_sha256, url-domain, url-full.
-            No duplicates allowed. May vary based on engine capabilities.
-          example: ["connection", "hash_md5", "url-full"]
+            Enrichment types to apply. Known values: connection, geo, hash_md5, hash_sha1,
+            hash_sha256, url_domain, url_full. No duplicates allowed. May vary based on
+            engine capabilities.
+          example: ["connection", "geo", "hash_md5", "url_full"]
 
         enabled:
           type: boolean
@@ -2247,7 +2420,7 @@ components:
             success:
               summary: Credentials stored
               value:
-                message: "Credentials received"
+                message: "Access token received successfully."
                 status: 201
 
     SubscriptionStatus:
@@ -2358,6 +2531,7 @@ components:
         - Resource not in draft space (only draft resources can be modified)
         - Resource has dependent resources that must be deleted first
         - Cannot remove decoder as it is set as root decoder
+        - Resource creation limit reached (configurable via `plugins.content_manager.max_<type>` settings; default 100 per type)
       content:
         application/json:
           schema:
@@ -2373,21 +2547,75 @@ components:
               value:
                 message: "Invalid request body"
                 status: 400
-            invalid_uuid:
-              summary: Invalid UUID format
+            invalid_id_format:
+              summary: Invalid id path parameter format
               value:
-                message: "'invalid-id' is not a valid UUID"
+                message: "Invalid 'id' format."
                 status: 400
             not_in_draft:
               summary: Resource not in draft space
               value:
-                message: "Integration [9e301671-382d-4c1a-9abf-3d9d9544789c] is not in draft space"
+                message: "Integration with ID '9e301671-382d-4c1a-9abf-3d9d9544789c' is not in draft space."
                 status: 400
             root_decoder:
               summary: Decoder is set as root
               value:
                 message: "Cannot remove decoder [82e215c4-988a-4f64-8d15-b98b2fc03a4f] as it is set as root decoder."
                 status: 400
+
+    Forbidden:
+      description: |
+        Forbidden - The request was understood but the caller is not allowed to perform it.
+
+        Common causes:
+        - The authenticated user's role lacks the permission required for this action
+          (e.g. `cluster:admin/content_manager/integration/create`). Rejected by OpenSearch
+          Security before the request reaches the plugin.
+        - The feature is disabled on this deployment via a plugin setting (only applies to
+          `POST /update` and `PUT /policy/{space}`, which are unconditionally rejected for
+          every caller, regardless of role, when the corresponding setting is disabled).
+
+        Both causes surface as OpenSearch's generic exception envelope, not the plugin's own
+        `{message, status}` shape.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                properties:
+                  root_cause:
+                    type: array
+                    items:
+                      type: object
+                  type:
+                    type: string
+                  reason:
+                    type: string
+              status:
+                type: integer
+          examples:
+            insufficient_permissions:
+              summary: Caller lacks required permission
+              value:
+                error:
+                  root_cause:
+                    - type: "security_exception"
+                      reason: "no permissions for [cluster:admin/content_manager/integration/create] and User [name=wazuh-readonly, backend_roles=[], requestedTenant=null]"
+                  type: "security_exception"
+                  reason: "no permissions for [cluster:admin/content_manager/integration/create] and User [name=wazuh-readonly, backend_roles=[], requestedTenant=null]"
+                status: 403
+            feature_disabled:
+              summary: Feature disabled via plugin setting
+              value:
+                error:
+                  root_cause:
+                    - type: "status_exception"
+                      reason: "Policy updates are disabled on this deployment."
+                  type: "status_exception"
+                  reason: "Policy updates are disabled on this deployment."
+                status: 403
 
     ResourceDeleted:
       description: OK - Resource deleted successfully.
@@ -2403,7 +2631,7 @@ components:
                 status: 200
 
     IntegrationHasDependencies:
-      description: OK - Integration has dependent resources.
+      description: Bad Request - Integration has dependent resources that must be deleted first.
       content:
         application/json:
           schema:
@@ -2479,7 +2707,7 @@ components:
             internal_error:
               summary: Internal server error
               value:
-                message: "Internal Server Error"
+                message: "Internal Server Error. <additional exception details may be appended>"
                 status: 500
 
     VersionCheckSuccess:
@@ -2546,8 +2774,7 @@ components:
                 status: 200
 
     BadGateway:
-      description: |
-        Bad Gateway - The CTI API returned an error while checking for updates.
+      description: Bad Gateway - The CTI API returned an error while checking for updates.
       content:
         application/json:
           schema:
@@ -2727,7 +2954,11 @@ components:
                 properties:
                   normalization:
                     type: object
-                    description: Engine output containing the normalized event and asset traces.
+                    description: >
+                      Engine output containing the normalized event and asset traces on success.
+                      If the Engine call itself fails (exception or HTTP >= 400 from the Engine),
+                      this object instead contains `status` ("error") and `error.message`/
+                      `error.code` — `output`/`asset_traces`/`validation` are absent in that case.
                     properties:
                       output:
                         type: object
@@ -2864,15 +3095,18 @@ components:
                     reason: "No integration provided"
             with_errors:
               summary: Response with engine processing failure
+              description: >
+                When the Engine call itself fails (exception or HTTP >= 400), `normalization`
+                does NOT contain `output`/`asset_traces`/`validation` — it instead contains a
+                `status`/`error` object, as shown below.
               value:
                 status: 200
                 message:
                   normalization:
-                    output: {}
-                    asset_traces: []
-                    validation:
-                      valid: false
-                      errors: []
+                    status: "error"
+                    error:
+                      message: "<engine error details>"
+                      code: "ENGINE_ERROR"
                   detection:
                     status: "skipped"
                     reason: "Engine processing failed"

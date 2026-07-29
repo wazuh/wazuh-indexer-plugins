@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -63,12 +65,51 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final Environment environment;
     private final PluginSettings pluginSettings;
     private final ObjectMapper mapper;
+    private final Path stablePath;
+
+    private static final int FLUSH_EVERY_N_BULKS = 10;
 
     /** The maximum offset encountered while processing snapshot files. */
     private long maxOffsetSeen;
 
     /**
      * Constructs a new SnapshotServiceImpl.
+     *
+     * @param consumerType The consumer type identifier used as local document id.
+     * @param indicesMap A map of content types to their corresponding ContentIndex.
+     * @param consumersIndex The consumers index to update consumer state.
+     * @param environment The OpenSearch environment.
+     * @param urlResolver The resolver used to transform resource URLs before making HTTP requests.
+     * @param snapshotsDir The plugin's local snapshots directory, or {@code null} when stable
+     *     snapshot retention is not needed (e.g. shadow swap, tests).
+     * @param snapshotFilename The consumer's snapshot filename (e.g. "ruleset.zip"), or {@code null}.
+     */
+    public SnapshotServiceImpl(
+            String consumerType,
+            Map<String, ContentIndex> indicesMap,
+            ConsumersIndex consumersIndex,
+            Environment environment,
+            ResourceUrlResolver urlResolver,
+            Path snapshotsDir,
+            String snapshotFilename) {
+        this.consumerType = consumerType;
+        this.indicesMap = indicesMap;
+        this.consumersIndex = consumersIndex;
+        this.environment = environment;
+        this.pluginSettings = PluginSettings.getInstance();
+        this.mapper = new ObjectMapper();
+        this.snapshotClient = new SnapshotClient(this.environment, urlResolver);
+
+        if (snapshotsDir != null && snapshotFilename != null) {
+            String stableFilename = snapshotFilename.replace(".zip", Constants.STABLE_SNAPSHOT_SUFFIX);
+            this.stablePath = snapshotsDir.resolve(stableFilename);
+        } else {
+            this.stablePath = null;
+        }
+    }
+
+    /**
+     * Constructs a new SnapshotServiceImpl without stable snapshot retention.
      *
      * @param consumerType The consumer type identifier used as local document id.
      * @param indicesMap A map of content types to their corresponding ContentIndex.
@@ -82,18 +123,12 @@ public class SnapshotServiceImpl implements SnapshotService {
             ConsumersIndex consumersIndex,
             Environment environment,
             ResourceUrlResolver urlResolver) {
-        this.consumerType = consumerType;
-        this.indicesMap = indicesMap;
-        this.consumersIndex = consumersIndex;
-        this.environment = environment;
-        this.pluginSettings = PluginSettings.getInstance();
-        this.mapper = new ObjectMapper();
-
-        this.snapshotClient = new SnapshotClient(this.environment, urlResolver);
+        this(consumerType, indicesMap, consumersIndex, environment, urlResolver, null, null);
     }
 
     /**
-     * Constructs a new SnapshotServiceImpl with an regular URL resolver.
+     * Constructs a new SnapshotServiceImpl with a regular URL resolver and no stable snapshot
+     * retention.
      *
      * @param consumerType The consumer type identifier used as local document id.
      * @param indicesMap A map of content types to their corresponding ContentIndex.
@@ -137,6 +172,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         log.debug(Constants.D_LOG_SNAPSHOT_INIT_START, this.consumerType);
         Path snapshotZip = null;
         long startMs = 0;
+        boolean success = false;
 
         try {
             // 1. Download Snapshot
@@ -156,24 +192,38 @@ public class SnapshotServiceImpl implements SnapshotService {
                 this.indicesMap.values().iterator().next().waitForPendingUpdates();
             }
 
+            success = true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, e.getMessage());
         } catch (Exception e) {
             log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, e.getMessage());
-            return false;
-        } finally {
-            // Cleanup downloaded ZIP
-            this.cleanup(snapshotZip);
+        }
+
+        if (success) {
             if (startMs != 0) {
                 log.debug(
                         Constants.D_LOG_SNAPSHOT_ELAPSED,
-                        snapshotZip != null ? snapshotZip.getFileName() : "unknown",
+                        snapshotZip.getFileName(),
                         System.currentTimeMillis() - startMs);
             }
+            // Promote to stable or clean up temp
+            if (this.stablePath != null) {
+                if (!promoteToStable(snapshotZip, this.stablePath)) {
+                    this.cleanup(snapshotZip);
+                }
+            } else {
+                this.cleanup(snapshotZip);
+            }
+            // 3. Partial update of consumer state: bump local_offset to the snapshot offset and
+            // keep the remote_offset (set at t0 from RemoteConsumer.last_offset) so the
+            // incremental update path can close the gap. Identity fields and status are preserved
+            // from the t0 write.
+            return this.updateLocalOffset(consumer.getSnapshotOffset());
+        } else {
+            this.cleanup(snapshotZip);
+            return false;
         }
-
-        // 3. Partial update of consumer state: bump local_offset to the snapshot offset and keep
-        // the remote_offset (set at t0 from RemoteConsumer.last_offset) so the incremental update
-        // path can close the gap. Identity fields and status are preserved from the t0 write.
-        return this.updateLocalOffset(consumer.getSnapshotOffset());
     }
 
     /**
@@ -207,6 +257,7 @@ public class SnapshotServiceImpl implements SnapshotService {
     private void processZipEntry(Path entryPath) throws IOException {
         String line;
         int docCount = 0;
+        int bulkCount = 0;
         int missingPayload = 0;
         int unknownType = 0;
         int unmappedType = 0;
@@ -223,30 +274,20 @@ public class SnapshotServiceImpl implements SnapshotService {
         try (BufferedReader reader = Files.newBufferedReader(entryPath, StandardCharsets.UTF_8)) {
             while ((line = reader.readLine()) != null) {
                 try {
-                    JsonNode rootJson = this.mapper.readTree(line);
+                    LazyEnvelope envelope = this.parseLazyEnvelope(line);
 
-                    // 1. Validate and Extract Payload
-                    if (!rootJson.has(Constants.KEY_PAYLOAD)) {
+                    if (!envelope.hasPayload || envelope.resourceName == null) {
                         missingPayload++;
                         continue;
                     }
-                    JsonNode payload = rootJson.get(Constants.KEY_PAYLOAD);
 
-                    // 2. Determine Index.
-                    String resourceName =
-                            rootJson.has(Constants.KEY_RESOURCE)
-                                    ? rootJson.get(Constants.KEY_RESOURCE).asText()
-                                    : (rootJson.has(Constants.KEY_NAME)
-                                            ? rootJson.get(Constants.KEY_NAME).asText()
-                                            : null);
-                    String cveType = Cve.deriveType(resourceName);
+                    String cveType = Cve.deriveType(envelope.resourceName);
 
                     String type = null;
                     if (cveType != null) {
-                        // CVE feed entities are identified by the resource name pattern.
                         type = Constants.KEY_CVES;
-                    } else if (payload.has(Constants.KEY_TYPE)) {
-                        type = payload.get(Constants.KEY_TYPE).asText();
+                    } else if (envelope.type != null) {
+                        type = envelope.type;
                         if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
                             type = Constants.KEY_IOCS;
                         }
@@ -257,7 +298,6 @@ public class SnapshotServiceImpl implements SnapshotService {
                         continue;
                     }
 
-                    // 3. Select correct index based on type
                     ContentIndex indexHandler = this.indicesMap.get(type);
                     if (indexHandler == null) {
                         log.debug(Constants.D_LOG_SNAPSHOT_NO_INDEX_FOR_TYPE, type);
@@ -265,47 +305,46 @@ public class SnapshotServiceImpl implements SnapshotService {
                         continue;
                     }
 
-                    // Inject the CTI offset value into the payload so it is persisted
-                    if (rootJson.has(Constants.KEY_OFFSET) && payload.isObject()) {
-                        long offset = rootJson.get(Constants.KEY_OFFSET).asLong();
-                        ((ObjectNode) payload).put(Constants.KEY_OFFSET, offset);
-                        this.maxOffsetSeen = Math.max(this.maxOffsetSeen, offset);
+                    if (envelope.hasOffset) {
+                        this.maxOffsetSeen = Math.max(this.maxOffsetSeen, envelope.offset);
                     }
 
-                    if (Constants.KEY_CVES.equals(type) && payload.isObject() && cveType != null) {
-                        ((ObjectNode) payload).put(Constants.KEY_TYPE, cveType);
-                    }
-
-                    ObjectNode processedPayload = indexHandler.processPayload(payload);
-                    String writeIndex = indexHandler.getWriteIndex();
-
-                    // Create Index Request
-                    IndexRequest indexRequest =
-                            new IndexRequest(writeIndex).source(processedPayload.toString(), XContentType.JSON);
-
-                    // Determine ID from resource/name key.
-                    if (resourceName != null) {
-                        indexRequest.id(resourceName);
+                    String sourceJson;
+                    if (Constants.KEY_CVES.equals(type) && cveType != null && envelope.documentRaw != null) {
+                        sourceJson = envelope.toCveStoredDocument(cveType);
                     } else {
-                        throw new IOException(
-                                "Missing 'resource'/'name' key in CTI resource. {offset}:"
-                                        + rootJson.get("offset").asInt());
+                        ObjectNode syntheticPayload = envelope.toPayloadNode(this.mapper);
+                        if (Constants.KEY_CVES.equals(type) && cveType != null) {
+                            syntheticPayload.put(Constants.KEY_TYPE, cveType);
+                        }
+                        sourceJson = indexHandler.processPayloadToString(syntheticPayload);
                     }
+
+                    IndexRequest indexRequest =
+                            new IndexRequest(indexHandler.getWriteIndex())
+                                    .source(sourceJson, XContentType.JSON)
+                                    .id(envelope.resourceName);
 
                     bulkRequest.add(indexRequest);
+                    envelope = null;
                     docCount++;
 
-                    // Flush when EITHER the document count OR the estimated byte size cap is reached.
-                    // estimatedSizeInBytes() is maintained incrementally by BulkRequest.add(...), so
-                    // this adds no per-doc work. The byte trigger bounds per-request heap regardless
-                    // of individual document size (e.g. large CVE documents); the count trigger still
-                    // governs small docs. Worst-case in-flight heap = MAX_CONCURRENT_BULKS *
-                    // MAX_BULK_BYTES.
                     if (docCount >= this.pluginSettings.getMaxItemsPerBulk()
                             || bulkRequest.estimatedSizeInBytes() >= this.pluginSettings.getMaxBulkBytes()) {
                         executorIndex.executeBulk(bulkRequest);
                         bulkRequest = new BulkRequest();
                         docCount = 0;
+                        bulkCount++;
+
+                        if (bulkCount % FLUSH_EVERY_N_BULKS == 0) {
+                            try {
+                                executorIndex.waitForPendingUpdates();
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                throw new IOException("Interrupted while waiting for pending bulks", e);
+                            }
+                            executorIndex.flush();
+                        }
                     }
 
                 } catch (IOException e) {
@@ -380,13 +419,22 @@ public class SnapshotServiceImpl implements SnapshotService {
                 this.indicesMap.values().iterator().next().waitForPendingUpdates();
             }
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, e.getMessage());
+            return false;
         } catch (Exception e) {
             log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, e.getMessage());
             return false;
         }
 
-        // 3. Delete source zip file
-        SnapshotServiceImpl.deleteSnapshot(localZip);
+        // 3. Promote to stable, delete source, or leave in place (rollback re-index)
+        if (this.stablePath != null && !localZip.equals(this.stablePath)) {
+            promoteToStable(localZip, this.stablePath);
+        } else if (this.stablePath == null) {
+            SnapshotServiceImpl.deleteSnapshot(localZip);
+        }
+
         log.debug(
                 Constants.D_LOG_SNAPSHOT_LOCAL_ELAPSED,
                 localZip.getFileName(),
@@ -435,6 +483,46 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
+     * Moves the candidate snapshot to the stable path, replacing any existing stable file. Uses
+     * atomic move when possible, falling back to copy-then-delete for cross-filesystem scenarios.
+     *
+     * @param candidate the path of the successfully-indexed snapshot.
+     * @param stablePath the target stable path.
+     * @return {@code true} if the promotion succeeded, {@code false} on any I/O error.
+     */
+    public static boolean promoteToStable(Path candidate, Path stablePath) {
+        try {
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        try {
+                            Files.move(
+                                    candidate,
+                                    stablePath,
+                                    StandardCopyOption.REPLACE_EXISTING,
+                                    StandardCopyOption.ATOMIC_MOVE);
+                        } catch (AtomicMoveNotSupportedException e) {
+                            Files.copy(candidate, stablePath, StandardCopyOption.REPLACE_EXISTING);
+                            Files.deleteIfExists(candidate);
+                        }
+                        return null;
+                    });
+            log.debug(Constants.D_LOG_SNAPSHOT_PROMOTED_TO_STABLE, stablePath);
+            return true;
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_SNAPSHOT_PROMOTE_FAILED, stablePath, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Returns the path to the stable snapshot, or {@code null} if stable snapshot retention is not
+     * configured for this instance.
+     */
+    public Path getStablePath() {
+        return this.stablePath;
+    }
+
+    /**
      * Deletes a local snapshot zip file. Logs success at info level and failures at warn level. Safe
      * to call when the file does not exist. Only files under the plugin's local snapshots directory
      * should be passed in — remote snapshots are managed by the CTI service.
@@ -469,7 +557,10 @@ public class SnapshotServiceImpl implements SnapshotService {
                         }
                         try (DirectoryStream<Path> stream = Files.newDirectoryStream(snapshotsDir, "*.zip")) {
                             for (Path snapshot : stream) {
-                                deleteSnapshot(snapshot);
+                                String name = snapshot.getFileName().toString();
+                                if (!name.endsWith(Constants.STABLE_SNAPSHOT_SUFFIX)) {
+                                    deleteSnapshot(snapshot);
+                                }
                             }
                         }
                         return null;
@@ -488,5 +579,229 @@ public class SnapshotServiceImpl implements SnapshotService {
         } catch (IOException e) {
             log.warn(Constants.W_LOG_SNAPSHOT_CLEANUP_FAILED, e.getMessage());
         }
+    }
+
+    /**
+     * Result of a lazy/partial NDJSON envelope parse. Holds routing-level fields as primitives and
+     * the deep payload document content as a raw JSON string. The full Jackson tree is only
+     * materialized on demand via {@link #getDocumentNode}.
+     */
+    static final class LazyEnvelope {
+        String resourceName;
+        long offset;
+        boolean hasOffset;
+        boolean hasPayload;
+
+        String type;
+        String spaceName;
+        String documentRaw;
+        boolean documentIsPayload;
+
+        private ObjectNode documentNode;
+
+        /**
+         * Returns the document as an ObjectNode, lazily parsing {@link #documentRaw} on first call. The
+         * result is cached and returned on subsequent calls, so callers must not mutate it if they
+         * intend to call this method again.
+         */
+        ObjectNode getDocumentNode(ObjectMapper mapper) throws IOException {
+            if (this.documentNode == null && this.documentRaw != null) {
+                JsonNode parsed = mapper.readTree(this.documentRaw);
+                if (parsed.isObject()) {
+                    this.documentNode = (ObjectNode) parsed;
+                }
+            }
+            return this.documentNode;
+        }
+
+        /**
+         * Constructs the synthetic payload ObjectNode that {@link ContentIndex#processPayload} expects,
+         * using the streamed primitives and the lazily parsed document node. Only the document portion
+         * is parsed from raw JSON; the routing fields are set directly.
+         */
+        ObjectNode toPayloadNode(ObjectMapper mapper) throws IOException {
+            ObjectNode payload = mapper.createObjectNode();
+            if (this.hasOffset) {
+                payload.put(Constants.KEY_OFFSET, this.offset);
+            }
+            if (this.type != null) {
+                payload.put(Constants.KEY_TYPE, this.type);
+            }
+            ObjectNode docNode = this.getDocumentNode(mapper);
+            if (docNode != null) {
+                payload.set(Constants.KEY_DOCUMENT, docNode);
+            }
+            if (this.spaceName != null) {
+                ObjectNode space = mapper.createObjectNode();
+                space.put(Constants.KEY_NAME, this.spaceName);
+                payload.set(Constants.KEY_SPACE, space);
+            }
+            return payload;
+        }
+
+        /**
+         * Builds the stored document JSON for CVE fast-path types via StringBuilder, matching the shape
+         * produced by the full-tree CVE pipeline without materializing a tree.
+         */
+        String toCveStoredDocument(String cveType) {
+            StringBuilder sb =
+                    new StringBuilder((this.documentRaw != null ? this.documentRaw.length() : 0) + 64);
+            sb.append("{\"").append(Constants.KEY_DOCUMENT).append("\":");
+            sb.append(this.documentRaw);
+            if (this.hasOffset) {
+                sb.append(",\"").append(Constants.KEY_OFFSET).append("\":").append(this.offset);
+            }
+            sb.append(",\"").append(Constants.KEY_TYPE).append("\":\"").append(cveType).append("\"}");
+            return sb.toString();
+        }
+    }
+
+    /**
+     * Lazy/partial parse of a single NDJSON envelope line.
+     *
+     * <p>Walks the token stream once, extracting envelope-level fields ({@code resource}, {@code
+     * name}, {@code offset}) as primitives, then descends into the {@code payload} object to stream
+     * routing fields ({@code type}, {@code space.name}) and capture the {@code document} value as a
+     * raw JSON string. No full Jackson tree is built for the line or the payload wrapper.
+     *
+     * @param line The raw NDJSON line.
+     * @return The extracted {@link LazyEnvelope}. {@code hasPayload} is {@code false} when the line
+     *     is not a JSON object or carries no {@code payload} field.
+     * @throws IOException If the line is not well-formed JSON.
+     */
+    LazyEnvelope parseLazyEnvelope(String line) throws IOException {
+        LazyEnvelope env = new LazyEnvelope();
+        String resource = null;
+        String name = null;
+
+        try (JsonParser parser = this.mapper.getFactory().createParser(line)) {
+            if (parser.nextToken() != JsonToken.START_OBJECT) {
+                return env;
+            }
+            while (parser.nextToken() != JsonToken.END_OBJECT) {
+                String field = parser.currentName();
+                JsonToken value = parser.nextToken();
+                if (field == null) {
+                    return env;
+                }
+                switch (field) {
+                    case Constants.KEY_RESOURCE:
+                        resource = parser.getValueAsString();
+                        break;
+                    case Constants.KEY_NAME:
+                        name = parser.getValueAsString();
+                        break;
+                    case Constants.KEY_OFFSET:
+                        if (value != null && value.isNumeric()) {
+                            env.offset = parser.getLongValue();
+                            env.hasOffset = true;
+                        }
+                        break;
+                    case Constants.KEY_PAYLOAD:
+                        if (value == JsonToken.START_OBJECT) {
+                            env.hasPayload = true;
+                            this.parsePayloadFields(parser, line, env);
+                        } else {
+                            parser.skipChildren();
+                        }
+                        break;
+                    default:
+                        parser.skipChildren();
+                        break;
+                }
+            }
+        }
+
+        env.resourceName = resource != null ? resource : name;
+        return env;
+    }
+
+    /**
+     * Descends into the {@code payload} object and streams its top-level routing fields, capturing
+     * the {@code document} value as raw JSON text via character-offset slicing.
+     */
+    private void parsePayloadFields(JsonParser parser, String line, LazyEnvelope env)
+            throws IOException {
+        long payloadStart = parser.currentTokenLocation().getCharOffset();
+        boolean hasDocumentKey = false;
+        boolean hasNonDocumentStructural = false;
+        String legacyRaw = null;
+
+        while (parser.nextToken() != JsonToken.END_OBJECT) {
+            String field = parser.currentName();
+            JsonToken value = parser.nextToken();
+
+            if (field == null) {
+                break;
+            }
+
+            switch (field) {
+                case Constants.KEY_TYPE:
+                    env.type = parser.getValueAsString();
+                    hasNonDocumentStructural = true;
+                    break;
+                case Constants.KEY_DOCUMENT:
+                    if (value == JsonToken.START_OBJECT || value == JsonToken.START_ARRAY) {
+                        env.documentRaw = this.sliceCurrentValue(parser, line);
+                        hasDocumentKey = true;
+                    } else {
+                        parser.skipChildren();
+                    }
+                    break;
+                case Constants.KEY_PAYLOAD:
+                    if (value == JsonToken.START_OBJECT || value == JsonToken.START_ARRAY) {
+                        legacyRaw = this.sliceCurrentValue(parser, line);
+                    } else {
+                        parser.skipChildren();
+                    }
+                    break;
+                case Constants.KEY_SPACE:
+                    if (value == JsonToken.START_OBJECT) {
+                        while (parser.nextToken() != JsonToken.END_OBJECT) {
+                            String spaceField = parser.currentName();
+                            parser.nextToken();
+                            if (Constants.KEY_NAME.equals(spaceField)) {
+                                env.spaceName = parser.getValueAsString();
+                            } else {
+                                parser.skipChildren();
+                            }
+                        }
+                    } else {
+                        parser.skipChildren();
+                    }
+                    break;
+                case Constants.KEY_OFFSET:
+                    hasNonDocumentStructural = true;
+                    parser.skipChildren();
+                    break;
+                default:
+                    parser.skipChildren();
+                    break;
+            }
+        }
+
+        if (!hasDocumentKey && legacyRaw != null) {
+            env.documentRaw = legacyRaw;
+        } else if (!hasDocumentKey && !hasNonDocumentStructural) {
+            long payloadEnd = parser.currentLocation().getCharOffset();
+            if (payloadStart >= 0 && payloadEnd > payloadStart && payloadEnd <= line.length()) {
+                env.documentRaw = line.substring((int) payloadStart, (int) payloadEnd);
+                env.documentIsPayload = true;
+            }
+        }
+    }
+
+    /**
+     * Slices the raw JSON text of the value the parser is currently positioned on, consuming the
+     * whole subtree with. Returns {@code null} if the computed offsets are not usable.
+     */
+    private String sliceCurrentValue(JsonParser parser, String line) throws IOException {
+        long start = parser.currentTokenLocation().getCharOffset();
+        parser.skipChildren();
+        long end = parser.currentLocation().getCharOffset();
+        if (start < 0 || end < start || end > line.length()) {
+            return null;
+        }
+        return line.substring((int) start, (int) end);
     }
 }

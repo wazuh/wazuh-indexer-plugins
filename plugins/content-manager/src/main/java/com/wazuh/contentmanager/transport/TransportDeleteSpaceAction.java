@@ -84,36 +84,64 @@ public class TransportDeleteSpaceAction
             return;
         }
 
-        try {
-            log.info("Starting reset operation for space [{}]", space);
+        log.info("Starting reset operation for space [{}]", space);
 
-            // 1. Remove resources belonging to the space in Security Analytics.
-            this.securityAnalyticsService.deleteSpaceResources(space);
-            // 2. Remove resources belonging to space in the wazuh-threatintel-* indices.
-            this.spaceService.deleteSpaceResources(space);
+        // 1. Remove resources belonging to the space in Security Analytics.
+        this.securityAnalyticsService.deleteSpaceResources(
+                space,
+                ActionListener.wrap(
+                        sapResponse -> {
+                            // 2. Remove resources belonging to space in the wazuh-threatintel-*
+                            // indices.
+                            this.spaceService.deleteSpaceResources(
+                                    space,
+                                    ActionListener.wrap(
+                                            v -> {
+                                                // 3. Re-generate the default policy for the space
+                                                String sharedDocumentId =
+                                                        UUID.nameUUIDFromBytes(
+                                                                        "wazuh-default-policy".getBytes(StandardCharsets.UTF_8))
+                                                                .toString();
+                                                this.spaceService.initializeSpace(
+                                                        space.toString(),
+                                                        sharedDocumentId,
+                                                        ActionListener.wrap(
+                                                                v2 -> {
+                                                                    String message =
+                                                                            String.format(
+                                                                                    Locale.ROOT, "Successfully reset space [%s].", space);
+                                                                    log.info(message);
+                                                                    listener.onResponse(
+                                                                            new MessageStatusResponse(message, RestStatus.OK));
+                                                                },
+                                                                e -> respondWithError(listener, space, e)));
+                                            },
+                                            e -> respondWithError(listener, space, e)));
+                        },
+                        e -> respondWithError(listener, space, e)));
+    }
 
-            // Re-generate the default policy for the space
-            String sharedDocumentId =
-                    UUID.nameUUIDFromBytes("wazuh-default-policy".getBytes(StandardCharsets.UTF_8))
-                            .toString();
-            this.spaceService.initializeSpace(space.toString(), sharedDocumentId);
-
-            String message = String.format(Locale.ROOT, "Successfully reset space [%s].", space);
-            log.info(message);
-            listener.onResponse(new MessageStatusResponse(message, RestStatus.OK));
-        } catch (Exception e) {
-            Throwable cause = e;
-            while (cause != null) {
-                if (cause instanceof OpenSearchSecurityException secEx) {
-                    listener.onResponse(new MessageStatusResponse(secEx.getMessage(), secEx.status()));
-                    return;
-                }
-                cause = cause.getCause();
-            }
-            log.error("Failed to reset space [{}]: {}", space, e.getMessage());
-            listener.onResponse(
-                    new MessageStatusResponse(
-                            "Internal Server Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
+    private void respondWithError(
+            ActionListener<MessageStatusResponse> listener, Space space, Exception e) {
+        OpenSearchSecurityException secEx = extractSecurityException(e);
+        if (secEx != null) {
+            listener.onResponse(new MessageStatusResponse(secEx.getMessage(), secEx.status()));
+            return;
         }
+        log.error("Failed to reset space [{}]: {}", space, e.getMessage());
+        listener.onResponse(
+                new MessageStatusResponse(
+                        "Internal Server Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
+    }
+
+    private static OpenSearchSecurityException extractSecurityException(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            if (cause instanceof OpenSearchSecurityException) {
+                return (OpenSearchSecurityException) cause;
+            }
+            cause = cause.getCause();
+        }
+        return null;
     }
 }
