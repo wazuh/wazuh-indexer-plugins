@@ -24,9 +24,11 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.cluster.LocalNodeClusterManagerListener;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -37,6 +39,7 @@ import org.opensearch.common.inject.Module;
 import org.opensearch.common.settings.*;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -69,11 +72,19 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
@@ -103,6 +114,7 @@ import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 public class ContentManagerPlugin extends Plugin
         implements ActionPlugin, ClusterPlugin, JobSchedulerExtension, SystemIndexPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String CONTENT_MANAGER_JOBS_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String CATALOG_SYNC_JOB_ID = "wazuh-catalog-sync-job";
     private static final String TELEMETRY_JOB_ID = "wazuh-telemetry-ping-job";
@@ -220,11 +232,36 @@ public class ContentManagerPlugin extends Plugin
         this.logtestService =
                 new LogtestService(this.engine, this.securityAnalyticsService, this.client);
 
-        // Register hot-reload settings consumer
+        // Register hot-reload settings consumers
         clusterService
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
                         PluginSettings.TELEMETRY_ENABLED, this::onTelemetrySettingChanged);
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.MAX_INTEGRATIONS,
+                        v -> PluginSettings.getInstance().setMaxIntegrations(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.MAX_DECODERS, v -> PluginSettings.getInstance().setMaxDecoders(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.MAX_RULES, v -> PluginSettings.getInstance().setMaxRules(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.MAX_KVDBS, v -> PluginSettings.getInstance().setMaxKvdbs(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.MAX_FILTERS, v -> PluginSettings.getInstance().setMaxFilters(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.WAZUH_UID, v -> PluginSettings.getInstance().setWazuhUid(v));
 
         return List.of(
                 this.subscriptionService,
@@ -236,54 +273,82 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Triggers the internal {@link #start(Runnable)} method if the current node is a Cluster Manager
-     * to initialize indices. It also ensures the periodic catalog sync job is scheduled.
+     * Registers a {@link LocalNodeClusterManagerListener} so that cluster-manager-specific
+     * initialization (index creation, catalog sync, job scheduling) runs only on the single elected
+     * leader — not on every node that carries the {@code cluster_manager} role.
      *
-     * <p>The startup sync trigger is restricted to the cluster manager node to prevent every node in
-     * the cluster from running a concurrent synchronization on startup.
+     * <p>Credentials are loaded on every node unconditionally because all nodes may need the CTI
+     * access token to service requests.
      *
      * @param localNode The local node discovery information.
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        if (localNode.isClusterManagerNode()) {
-            this.start(
-                    () -> {
-                        if (PluginSettings.getInstance().isUpdateOnStart()) {
+        if (PluginSettings.getInstance().getWazuhUid() == null) {
+            PluginSettings.getInstance()
+                    .setWazuhUid(this.clusterService.state().metadata().clusterUUID());
+        }
+        this.threadPool.generic().execute(this::tryLoadAccessToken);
 
-                            // Pre-deployment
-                            // -------------
-                            // 1. Register key from environment variable
-                            String accessToken = ContentManagerPlugin.preDeploymentKey();
-                            if (!accessToken.isBlank()) {
-                                try {
-                                    log.info("Pre-registered environment detected.");
-                                    this.subscriptionService.register(accessToken);
-                                } catch (Exception e) {
-                                    log.error("Unexpected error pre-registering environment: {}", e.getMessage());
-                                }
-
-                                // 2. Delete local snapshots (only for pre-registered environments).
-                                Path pluginsDir = this.environment.pluginsDir();
-                                if (pluginsDir != null) {
-                                    SnapshotServiceImpl.deleteSnapshots(
-                                            pluginsDir
-                                                    .resolve(Constants.PLUGIN_DIR_NAME)
-                                                    .resolve(Constants.CTI_SNAPSHOTS_DIR));
-                                }
-                            }
-
-                            // 3. Initialize
-                            this.catalogSyncJob.trigger();
-                        } else {
-                            log.debug(Constants.D_LOG_SKIP_CATALOG_SYNC_TRIGGER);
+        AtomicBoolean started = new AtomicBoolean(false);
+        LocalNodeClusterManagerListener listener =
+                new LocalNodeClusterManagerListener() {
+                    @Override
+                    public void onClusterManager() {
+                        if (!started.compareAndSet(false, true)) {
+                            return;
                         }
-                        this.scheduleCatalogSyncJob();
-                        this.scheduleTelemetryPingJob();
-                    });
-        } else {
-            // Non-CM nodes load credentials asynchronously on startup.
-            this.threadPool.generic().execute(this::tryLoadAccessToken);
+                        ContentManagerPlugin.this.start(
+                                () -> {
+                                    if (PluginSettings.getInstance().isUpdateOnStart()) {
+
+                                        // Pre-deployment
+                                        // -------------
+                                        // 1. Register key from environment variable
+                                        String accessToken = ContentManagerPlugin.preDeploymentKey();
+                                        if (!accessToken.isBlank()) {
+                                            log.info("Pre-registered environment detected.");
+                                            ContentManagerPlugin.this.subscriptionService.register(
+                                                    accessToken,
+                                                    ActionListener.wrap(
+                                                            v -> {},
+                                                            e ->
+                                                                    log.error(
+                                                                            "Unexpected error pre-registering environment: {}",
+                                                                            e.getMessage())));
+
+                                            // 2. Delete local snapshots (only for pre-registered
+                                            // environments).
+                                            Path pluginsDir = ContentManagerPlugin.this.environment.pluginsDir();
+                                            if (pluginsDir != null) {
+                                                SnapshotServiceImpl.deleteSnapshots(
+                                                        pluginsDir
+                                                                .resolve(Constants.PLUGIN_DIR_NAME)
+                                                                .resolve(Constants.CTI_SNAPSHOTS_DIR));
+                                            }
+                                        }
+
+                                        // 3. Initialize
+                                        ContentManagerPlugin.this.catalogSyncJob.trigger();
+                                    } else {
+                                        log.debug(Constants.D_LOG_SKIP_CATALOG_SYNC_TRIGGER);
+                                    }
+                                    ContentManagerPlugin.this.scheduleCatalogSyncJob();
+                                    ContentManagerPlugin.this.scheduleTelemetryPingJob();
+                                });
+                    }
+
+                    @Override
+                    public void offClusterManager() {}
+                };
+
+        this.clusterService.addLocalNodeClusterManagerListener(listener);
+
+        // The listener only fires on transitions. If the node is already the
+        // elected cluster manager (the election happened before this method
+        // runs), trigger the callback explicitly.
+        if (this.clusterService.state().nodes().isLocalNodeElectedClusterManager()) {
+            listener.onClusterManager();
         }
     }
 
@@ -397,6 +462,19 @@ public class ContentManagerPlugin extends Plugin
                                                 e);
                                     }
 
+                                    // Create the threat-intel ruleset resource indices up front so
+                                    // custom-ruleset REST endpoints work even when catalog
+                                    // synchronization is disabled. When sync is enabled it will
+                                    // find these already present and skip re-creating them.
+                                    this.ensureResourceIndicesExist();
+
+                                    // Seed the default space policies (draft, test, custom) so
+                                    // custom-ruleset operations that require a draft policy work even
+                                    // when catalog synchronization is disabled. Must run after the
+                                    // indices exist. Idempotent (opType=CREATE), so a later sync or
+                                    // another node finds them already present.
+                                    this.ensureDefaultSpacesExist();
+
                                     this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();
@@ -421,15 +499,15 @@ public class ContentManagerPlugin extends Plugin
             if (!this.isCredentialsIndexProtected) {
                 // Credentials index is not a system index — wipe any stored token to prevent
                 // unprotected access and ensure the environment falls back to unregistered mode.
-                if (this.credentialsIndex.exists()) {
-                    this.credentialsIndex.deleteDocument();
+                if (this.awaitResult(this.credentialsIndex::exists)) {
+                    this.<DeleteResponse>awaitResult(this.credentialsIndex::deleteDocument);
                     log.warn(Constants.W_LOG_ACCESS_TOKEN_DELETED_UNPROTECTED);
                 }
                 PluginSettings.getInstance().setAccessToken(null);
                 return;
             }
-            if (this.credentialsIndex.exists()) {
-                String token = this.credentialsIndex.getAccessToken();
+            if (this.awaitResult(this.credentialsIndex::exists)) {
+                String token = this.awaitResult(this.credentialsIndex::getAccessToken);
                 if (token != null) {
                     PluginSettings.getInstance().setAccessToken(token);
                     log.info(Constants.I_LOG_CTI_TOKEN_LOADED);
@@ -441,6 +519,74 @@ public class ContentManagerPlugin extends Plugin
             }
         } catch (Exception e) {
             log.warn(Constants.W_LOG_CTI_TOKEN_LOAD_FAILED, e.getMessage());
+        }
+    }
+
+    /**
+     * Creates the space-aware threat-intel ruleset resource indices (policies, integrations, rules,
+     * kvdbs, decoders, filters) if they do not already exist.
+     *
+     * <p>These indices are otherwise created lazily during catalog synchronization. When both {@code
+     * plugins.content_manager.catalog.update_on_start} and {@code
+     * plugins.content_manager.catalog.update_on_schedule} are disabled no synchronization runs, so
+     * without this step the indices never get created and the custom-ruleset REST endpoints fail with
+     * "no such index". Each missing index is created with its configured mappings and public alias,
+     * matching what a normal first sync would produce.
+     */
+    private void ensureResourceIndicesExist() {
+        for (Map.Entry<String, String> entry : Constants.RESOURCE_INDEX_MAPPINGS.entrySet()) {
+            String indexName = entry.getKey();
+            try {
+                boolean exists =
+                        this.awaitResult(listener -> ClusterInfo.indexExists(this.client, indexName, listener));
+                if (!exists) {
+                    // ContentIndex.createIndex() creates the physical index and its alias, and logs
+                    // the creation itself.
+                    new ContentIndex(this.client, indexName, entry.getValue()).createIndex();
+                }
+            } catch (Exception e) {
+                log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Seeds the default space policy documents (draft, test, custom) if they do not already exist.
+     *
+     * <p>These are otherwise created only during catalog synchronization (in {@code
+     * ConsumerRulesetService}). When synchronization is disabled the draft policy never exists, so
+     * custom-ruleset operations that first check for it (e.g. creating an integration) fail with
+     * "Draft policy not found" even though the resource indices are present. This seeds them at
+     * startup via the same idempotent {@code opType=CREATE} logic, so a later sync or another node
+     * finds them already present. Must run after {@link #ensureResourceIndicesExist()}.
+     */
+    private void ensureDefaultSpacesExist() {
+        try {
+            this.<Void>awaitResult(listener -> this.spaceService.initializeDefaultSpaces(listener));
+        } catch (Exception e) {
+            log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, "spaces", e.getMessage());
+        }
+    }
+
+    /**
+     * Bridges an asynchronous {@link ActionListener}-based operation into a blocking call. Used only
+     * on the generic/startup thread, where blocking is permitted.
+     *
+     * @param <T> the result type
+     * @param op consumer that starts the async operation with the supplied listener
+     * @return the operation result
+     * @throws Exception if the operation fails or times out
+     */
+    private <T> T awaitResult(Consumer<ActionListener<T>> op) throws Exception {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        op.accept(ActionListener.wrap(future::complete, future::completeExceptionally));
+        try {
+            return future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            throw (cause instanceof Exception ex) ? ex : e;
+        } catch (TimeoutException e) {
+            throw new Exception(e);
         }
     }
 
@@ -510,6 +656,7 @@ public class ContentManagerPlugin extends Plugin
                                 boolean jobExists =
                                         this.client
                                                 .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, CATALOG_SYNC_JOB_ID)
+                                                .setFetchSource(false)
                                                 .get()
                                                 .isExists();
 
@@ -610,6 +757,7 @@ public class ContentManagerPlugin extends Plugin
                                 boolean jobExists =
                                         this.client
                                                 .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                .setFetchSource(false)
                                                 .get()
                                                 .isExists();
 
@@ -677,6 +825,7 @@ public class ContentManagerPlugin extends Plugin
                                     boolean jobExists =
                                             this.client
                                                     .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, TELEMETRY_JOB_ID)
+                                                    .setFetchSource(false)
                                                     .get()
                                                     .isExists();
                                     if (jobExists) {
@@ -718,7 +867,13 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.ENGINE_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS,
                 PluginSettings.UPDATE_ON_DEMAND,
-                PluginSettings.POLICY_UPDATE_ENABLED);
+                PluginSettings.POLICY_UPDATE_ENABLED,
+                PluginSettings.MAX_INTEGRATIONS,
+                PluginSettings.MAX_DECODERS,
+                PluginSettings.MAX_RULES,
+                PluginSettings.MAX_KVDBS,
+                PluginSettings.MAX_FILTERS,
+                PluginSettings.WAZUH_UID);
     }
 
     @Override
@@ -741,6 +896,7 @@ public class ContentManagerPlugin extends Plugin
                 new ActionHandler<>(
                         IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
                 new ActionHandler<>(TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class),
+                new ActionHandler<>(PromoteSnapshotAction.INSTANCE, TransportPromoteSnapshotAction.class),
                 // Group 2: Subscription GET/DELETE + Space DELETE
                 new ActionHandler<>(GetSubscriptionAction.INSTANCE, TransportGetSubscriptionAction.class),
                 new ActionHandler<>(
@@ -857,7 +1013,7 @@ public class ContentManagerPlugin extends Plugin
                     AccessController.doPrivilegedChecked(
                             () -> {
                                 String content = Files.readString(versionFilePath, StandardCharsets.UTF_8);
-                                JsonNode json = new ObjectMapper().readTree(content);
+                                JsonNode json = MAPPER.readTree(content);
                                 JsonNode versionNode = json.get("version");
                                 if (versionNode == null || versionNode.asText().isBlank()) {
                                     return null;

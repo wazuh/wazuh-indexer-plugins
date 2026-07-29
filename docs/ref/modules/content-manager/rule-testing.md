@@ -1,4 +1,4 @@
-# Rule Testing Workflow
+# Rule testing workflow
 
 This guide explains how to create, test, and promote custom detection rules using the Content Manager's logtest feature. The logtest endpoint lets you validate that your rules and decoders correctly detect events before deploying them to production.
 
@@ -14,13 +14,13 @@ Draft → Test → Custom
 2. **Test**: Promote to the test space and validate with logtest.
 3. **Custom**: Once validated, promote to custom for production use.
 
-Logtest sends a raw log event through the full detection pipeline — the Wazuh Engine normalizes the event, and the Security Analytics Plugin (SAP) evaluates your Sigma rules against the normalized output. The combined result shows exactly what was decoded and which rules matched.
+Logtest sends a raw log event through the full detection pipeline — the Wazuh Engine normalizes the event, and the Security Analytics plugin evaluates your Sigma rules against the normalized output. The combined result shows exactly what was decoded and which rules matched.
 
 Logtest supports the `test`, `standard`, and `custom` spaces. Use `test` for validating draft content, `standard` for testing against production rules, and `custom` for validating content promoted to production
 
 ---
 
-## Step 1: Create an Integration
+## Step 1: create an integration
 
 An integration groups related decoders, rules, and KVDBs together. Start by creating one:
 
@@ -53,7 +53,7 @@ The response returns the integration ID:
 
 Save this ID — you'll need it for creating rules and running logtest.
 
-## Step 2: Create a Decoder
+## Step 2: create a decoder
 
 Decoders tell the Engine how to parse and normalize raw log events. Link a decoder to your integration:
 
@@ -75,7 +75,7 @@ curl -sk -u admin:admin -X POST \
       },
       "name": "decoder/sshd-auth/0",
       "check": [
-        {"tmp_json.event.original": "regex_match(sshd\\\\[)"}
+        {"_tmp_json.event.original": "regex_match(sshd\\\\[)"}
       ],
       "normalize": [
         {
@@ -90,7 +90,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-## Step 3: Create a Rule
+## Step 3: create a rule
 
 Rules use the [Sigma format](../security-analytics/rules.md) to define detection logic. Link a rule to the same integration:
 
@@ -131,7 +131,7 @@ curl -sk -u admin:admin -X POST \
     }
   }'
 ```
-## Step 4: Promote to Test Space
+## Step 4: promote to test space
 
 Before running logtest, your content must be in the **test** space. 
 
@@ -150,7 +150,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-## Step 5: Run Logtest
+## Step 5: run logtest
 
 Send a sample event to validate your detection pipeline:
 
@@ -168,7 +168,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-### Understanding the Response
+### Understanding the response
 
 The response has two sections:
 
@@ -219,17 +219,15 @@ The response has two sections:
 }
 ```
 
-### Trace Levels
+### Trace levels
 
 The `trace_level` field controls how much detail the Engine returns:
 
-| Level        | Description                                                  |
-| ------------ | ------------------------------------------------------------ |
-| `NONE`       | Only the final normalized output. Use for quick checks.      |
-| `ASSET_ONLY` | Output plus the list of decoders that matched (asset traces).|
-| `ALL`        | Full trace including every decoder attempted. Use for debugging decoder issues. |
+- **`NONE`** — only the final normalized output. Use for quick checks.
+- **`ASSET_ONLY`** — output plus the list of decoders that matched (asset traces).
+- **`ALL`** — full trace including every decoder attempted. Use for debugging decoder issues.
 
-## Step 6: Iterate
+## Step 6: iterate
 
 If the results aren't what you expect:
 
@@ -242,7 +240,7 @@ After making changes:
 - Re-promote draft → test.
 - Run logtest again.
 
-## Step 7: Promote to Custom
+## Step 7: promote to custom
 
 Once your rules are validated, promote from test to custom for production use:
 
@@ -265,23 +263,23 @@ Content in the custom space is picked up by the Wazuh Engine and actively used f
 
 ---
 
-## Best Practices
+## Best practices
 
-### Rule Design
+### Rule design
 
 - **Start specific, broaden later.** Begin with tight detection conditions and loosen them as you understand the log patterns. Overly broad rules generate noise.
 - **Use meaningful field names.** Align your decoder's `normalize` output with the Wazuh Common Schema (WCS) — e.g., `event.category`, `source.ip`, `user.name`.
 - **Set appropriate severity levels.** Use `informational` for visibility rules, `low`/`medium` for suspicious activity, and `high`/`critical` only for confirmed threats or high-confidence detections.
 - **Add context to rules.** Include `description`, `references`, `falsepositives`, and MITRE mappings. This helps analysts triage alerts and understand why a rule exists.
 
-### Testing Strategy
+### Testing strategy
 
 - **Test with real log samples.** Use actual log events from your environment, not fabricated examples. Real logs expose edge cases (encoding, missing fields, unexpected formats).
 - **Test positive AND negative cases.** Verify that your rule matches what it should, and verify it does NOT match what it shouldn't. Send benign events that look similar to confirm no false positives.
 - **Use `trace_level: ALL` when debugging.** The full trace shows every decoder attempt, making it easy to spot why a particular decoder was or wasn't selected.
 - **Test one change at a time.** When iterating on rules or decoders, change one thing per cycle. This makes it clear what fixed (or broke) the detection.
 
-### Promotion Workflow
+### Promotion workflow
 
 - **Always preview before promoting.** The promote preview shows exactly what will change. Review it to avoid promoting unintended modifications.
 - **Keep draft as your working space.** Make all edits in draft. Never try to modify content directly in test or custom.
@@ -290,7 +288,7 @@ Content in the custom space is picked up by the Wazuh Engine and actively used f
 
 ---
 
-## Split Endpoints: Normalization and Detection
+## Split endpoints: normalization and detection
 
 In addition to the combined logtest endpoint, you can run normalization and detection as separate steps. This is useful for:
 
@@ -298,7 +296,7 @@ In addition to the combined logtest endpoint, you can run normalization and dete
 - **Testing multiple integrations** against the same normalized event without re-running the Engine each time.
 - **Iterating on rules** without waiting for normalization on each call.
 
-### Normalization Only
+### Normalization only
 
 ```bash
 curl -sk -u admin:admin -X POST \
@@ -334,7 +332,7 @@ The response contains only the Engine's normalized output (no detection section)
 }
 ```
 
-### Detection Only
+### Detection only
 
 Take the normalized event (the `output` object from normalization) and pass it as `input` along with the integration ID:
 
@@ -386,7 +384,7 @@ The response contains only the detection result:
 
 ---
 
-## Quick Reference
+## Quick reference
 
 | Action | Endpoint | Method |
 | --- | --- | --- |

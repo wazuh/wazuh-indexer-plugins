@@ -264,7 +264,9 @@ public class PolicyTests extends OpenSearchTestCase {
         Map<String, Object> map = minimalPolicy.toMap();
 
         // Assert
-        Assert.assertFalse(map.containsKey("root_decoder"));
+        Assert.assertTrue(
+                "root_decoder must always be present, even when null", map.containsKey("root_decoder"));
+        Assert.assertNull(map.get("root_decoder"));
         Assert.assertTrue(map.containsKey("integrations")); // Empty list are included
         Assert.assertTrue(map.containsKey("metadata")); // Metadata is always present
     }
@@ -492,5 +494,21 @@ public class PolicyTests extends OpenSearchTestCase {
         Assert.assertFalse(json.has("enabled"));
         Assert.assertFalse(json.has("index_unclassified_events"));
         Assert.assertFalse(json.has("index_discarded_events"));
+    }
+
+    /**
+     * Test that a null root_decoder is still serialized as an explicit JSON null (verified by
+     * {@code @JsonInclude(ALWAYS)} on the field, overriding the class-level {@code NON_NULL}), so
+     * clearing the field is distinguishable from never having set it.
+     */
+    public void testToJson_RootDecoderNull_StillSerialized() {
+        // Arrange — rootDecoder is null by default
+
+        // Act
+        ObjectNode json = this.policy.toJson();
+
+        // Assert
+        Assert.assertTrue(json.has("root_decoder"));
+        Assert.assertTrue(json.get("root_decoder").isNull());
     }
 }

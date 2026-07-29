@@ -23,12 +23,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
-import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.contentmanager.action.CreateIntegrationAction;
@@ -39,6 +39,7 @@ import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -71,100 +72,159 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
     }
 
     @Override
-    protected RestResponse validatePayload(
-            Client client, JsonNode root, JsonNode resource, IntegrationService integrationService) {
+    protected void validatePayload(
+            Client client,
+            JsonNode root,
+            JsonNode resource,
+            IntegrationService integrationService,
+            ActionListener<RestResponse> listener) {
         RestResponse fieldValidation =
                 this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_CATEGORY));
-        if (fieldValidation != null) return fieldValidation;
+        if (fieldValidation != null) {
+            listener.onResponse(fieldValidation);
+            return;
+        }
 
         RestResponse metadataValidation =
                 this.documentValidations.validateMetadataFields(
                         resource, List.of(Constants.KEY_TITLE, Constants.KEY_AUTHOR));
-        if (metadataValidation != null) return metadataValidation;
+        if (metadataValidation != null) {
+            listener.onResponse(metadataValidation);
+            return;
+        }
 
         String title = resource.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText();
 
-        RestResponse duplicateValidation =
-                this.documentValidations.validateDuplicateTitle(
-                        client,
-                        Constants.INDEX_INTEGRATIONS,
-                        Space.DRAFT.toString(),
-                        title,
-                        null,
-                        Constants.KEY_INTEGRATION);
-        if (duplicateValidation != null) return duplicateValidation;
+        this.documentValidations.validateDuplicateTitleAsync(
+                client,
+                Constants.INDEX_INTEGRATIONS,
+                Space.DRAFT.toString(),
+                title,
+                null,
+                Constants.KEY_INTEGRATION,
+                ActionListener.wrap(
+                        duplicateError -> {
+                            if (duplicateError != null) {
+                                listener.onResponse(duplicateError);
+                                return;
+                            }
 
-        ((ObjectNode) resource).set(Constants.KEY_RULES, MAPPER.createArrayNode());
-        ((ObjectNode) resource).set(Constants.KEY_DECODERS, MAPPER.createArrayNode());
-        ((ObjectNode) resource).set(Constants.KEY_KVDBS, MAPPER.createArrayNode());
+                            ((ObjectNode) resource).set(Constants.KEY_RULES, MAPPER.createArrayNode());
+                            ((ObjectNode) resource).set(Constants.KEY_DECODERS, MAPPER.createArrayNode());
+                            ((ObjectNode) resource).set(Constants.KEY_KVDBS, MAPPER.createArrayNode());
 
-        return null;
+                            // Integrations created through the API are always user-managed.
+                            ((ObjectNode) resource).put(Constants.KEY_MODE, Constants.MODE_USER_MANAGED);
+
+                            listener.onResponse(null);
+                        },
+                        listener::onFailure));
     }
 
     @Override
-    protected RestResponse syncExternalServices(
-            String id, JsonNode resource, SecurityAnalyticsService securityAnalyticsService) {
-        // 1. Validate using the Engine.
+    protected int getMaxAllowed() {
+        return PluginSettings.getInstance().getMaxIntegrations();
+    }
+
+    @Override
+    protected String getTooManyResourcesMessageFormat() {
+        return Constants.E_400_TOO_MANY_INTEGRATIONS;
+    }
+
+    @Override
+    protected String getMaxReachedLogFormat() {
+        return Constants.I_LOG_MAX_INTEGRATIONS_REACHED;
+    }
+
+    @Override
+    protected void syncExternalServices(
+            String id,
+            JsonNode resource,
+            SecurityAnalyticsService securityAnalyticsService,
+            ActionListener<RestResponse> listener) {
+        // 1. Validate using the Engine (synchronous, not a Client call).
         ObjectNode enginePayload = MAPPER.createObjectNode();
         enginePayload.set(Constants.KEY_RESOURCE, resource);
         enginePayload.put(Constants.KEY_TYPE, Constants.KEY_INTEGRATION);
 
         RestResponse engineResponse = this.engine.validate(enginePayload);
         if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
-            return new RestResponse(
-                    Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus());
+            listener.onResponse(
+                    new RestResponse(
+                            Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
+                            RestStatus.BAD_REQUEST.getStatus()));
+            return;
         }
 
-        // 2. Send to Security Analytics.
-        try {
-            securityAnalyticsService.upsertIntegration(resource, Space.DRAFT, POST);
-        } catch (Exception e) {
-            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-            if (secEx != null) {
-                return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
-            }
-            return new RestResponse(
-                    Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-        }
-        return null;
+        // 2. Send to Security Analytics (async).
+        securityAnalyticsService.upsertIntegration(
+                resource,
+                Space.DRAFT,
+                POST,
+                ActionListener.wrap(
+                        response -> listener.onResponse(null),
+                        e -> {
+                            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
+                            if (secEx != null) {
+                                listener.onResponse(
+                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
+                                return;
+                            }
+                            listener.onResponse(
+                                    new RestResponse(
+                                            Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                        }));
     }
 
     @Override
     protected void rollbackExternalServices(
             String id, SecurityAnalyticsService securityAnalyticsService) {
-        securityAnalyticsService.deleteIntegration(id, Space.DRAFT);
+        securityAnalyticsService.deleteIntegration(
+                id, Space.DRAFT, ActionListener.wrap(response -> {}, e -> {}));
     }
 
     @Override
     protected void linkToParent(
-            Client client, String id, JsonNode root, IntegrationService integrationService)
-            throws IOException {
+            Client client,
+            String id,
+            JsonNode root,
+            IntegrationService integrationService,
+            ActionListener<Void> listener) {
         ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
         TermQueryBuilder queryBuilder =
                 new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
-        ObjectNode searchResult = policiesIndex.searchByQuery(queryBuilder);
 
-        if (searchResult == null
-                || !searchResult.has(Constants.Q_HITS)
-                || searchResult.get(Constants.Q_HITS).isEmpty()) {
-            throw new IllegalStateException(Constants.E_500_MISSING_DRAFT_POLICY);
-        }
+        policiesIndex.searchByQuery(
+                queryBuilder,
+                ActionListener.wrap(
+                        searchResult -> {
+                            if (searchResult == null
+                                    || !searchResult.has(Constants.Q_HITS)
+                                    || searchResult.get(Constants.Q_HITS).isEmpty()) {
+                                listener.onFailure(new IllegalStateException(Constants.E_500_MISSING_DRAFT_POLICY));
+                                return;
+                            }
 
-        ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
-        JsonNode draftPolicyHit = hitsArray.get(0);
-        String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
-        JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
+                            ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
+                            JsonNode draftPolicyHit = hitsArray.get(0);
+                            String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
+                            JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
 
-        ArrayNode integrations = (ArrayNode) document.get(Constants.KEY_INTEGRATIONS);
-        if (integrations == null) integrations = MAPPER.createArrayNode();
+                            ArrayNode integrations = (ArrayNode) document.get(Constants.KEY_INTEGRATIONS);
+                            if (integrations == null) integrations = MAPPER.createArrayNode();
 
-        integrations.add(id);
+                            integrations.add(id);
 
-        String hash = Resource.computeSha256(document.toString());
-        ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
+                            String hash = Resource.computeSha256(document.toString());
+                            ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
 
-        policiesIndex.create(draftPolicyId, draftPolicyHit);
+                            policiesIndex.create(
+                                    draftPolicyId,
+                                    draftPolicyHit,
+                                    ActionListener.wrap(
+                                            indexResponse -> listener.onResponse(null), listener::onFailure));
+                        },
+                        listener::onFailure));
     }
 }

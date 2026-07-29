@@ -28,7 +28,7 @@ OpenSearch's reference:
 ## 2. Adding a new role
 Add the new role to the `roles.wazuh.yml` file located at: `wazuh-indexer/distribution/src/config/security/`.
 - Under `index_permissions.index_patterns`, list the index patterns the role will have effect on.
-- Under `index_permissions.allowed_actions`, list the allowed action groups or indiviual permissions granted to this role.
+- Under `index_permissions.allowed_actions`, list the allowed action groups or individual permissions granted to this role.
 
 _The default action groups for `cluster_permissions` and `index_permissions` are listed in the [Default action groups documentation](https://docs.opensearch.org/3.6/security/access-control/default-action-groups/)_
 
@@ -68,7 +68,7 @@ OpenSearch's reference:
 - [action_groups.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#action_groupsyml)
 - [Default action groups](https://docs.opensearch.org/3.6/security/access-control/default-action-groups/)
 
-## 3. Adding a new role mapping 
+## 3. Adding a new role mapping
 
 Add the new role mapping to `roles_mapping.wazuh.yml` file located at: `wazuh-indexer/distribution/src/config/security/`. Note that **the mapping name must match the role name**.
 - Under `users`, list the users the role will be mapped to.

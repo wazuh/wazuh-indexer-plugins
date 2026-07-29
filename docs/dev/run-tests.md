@@ -1,8 +1,8 @@
-# How to Run the Tests
+# How to run the tests
 
 This section explains how to run the Wazuh Indexer Plugins tests at various levels.
 
-## Full Suite
+## Full suite
 
 To execute all tests and code quality checks (linting, documentation, formatting):
 
@@ -12,7 +12,7 @@ To execute all tests and code quality checks (linting, documentation, formatting
 
 This runs unit tests, integration tests, and static analysis tasks.
 
-## Unit Tests
+## Unit tests
 
 Run all unit tests across the entire project:
 
@@ -26,7 +26,7 @@ Run unit tests for a specific plugin:
 ./gradlew :wazuh-indexer-content-manager:test
 ```
 
-## Integration Tests
+## Integration tests
 
 Run integration tests for a specific plugin:
 
@@ -34,7 +34,7 @@ Run integration tests for a specific plugin:
 ./gradlew :wazuh-indexer-content-manager:integTest
 ```
 
-## YAML REST Tests
+## YAML REST tests
 
 Plugins can define REST API tests using YAML test specs. To run them:
 
@@ -42,7 +42,7 @@ Plugins can define REST API tests using YAML test specs. To run them:
 ./gradlew :wazuh-indexer-content-manager:yamlRestTest
 ```
 
-## Reproducible Test Runs
+## Reproducible test runs
 
 Tests use randomized seeds. When a test fails, the output includes the seed that was used. To reproduce the exact same run:
 
@@ -52,7 +52,7 @@ Tests use randomized seeds. When a test fails, the output includes the seed that
 
 Replace `DEADBEEF` with the actual seed from the failure output.
 
-## Viewing Test Reports
+## Viewing test reports
 
 After running tests, HTML reports are generated at:
 
@@ -68,7 +68,7 @@ For integration tests:
 plugins/<plugin-name>/build/reports/tests/integTest/index.html
 ```
 
-## Running a Single Test Class
+## Running a single test class
 
 To run a specific test class:
 
@@ -76,25 +76,23 @@ To run a specific test class:
 ./gradlew :wazuh-indexer-content-manager:test --tests "com.wazuh.contentmanager.rest.service.RestPostRuleActionTests"
 ```
 
-## Test Cluster (Vagrant)
+## Test cluster (Vagrant)
 
 For end-to-end testing on a real Wazuh Indexer service, the repository includes a Vagrant-based test cluster at [`tools/test-cluster/`](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/tools/test-cluster). This provisions a virtual machine with Wazuh Indexer installed and configured.
 
 Refer to its `README.md` for setup and usage instructions.
 
-## Package Testing
+## Package testing
 
 Smoke tests on built packages are run via [GitHub Actions Workflows](https://github.com/wazuh/wazuh-indexer/blob/main/.github/workflows/5_builderpackage_indexer.yml). These install packages on supported operating systems:
 
 - **DEB packages** — installed on the Ubuntu 24.04 GitHub Actions runner.
 - **RPM packages** — installed in a Red Hat 9 Docker container.
 
-## Useful Test Flags
+## Useful test flags
 
-| Flag | Description |
-|---|---|
-| `-Dtests.seed=<seed>` | Reproduce a specific randomized test run |
-| `-Dtests.verbose=true` | Print test output to stdout |
-| `--tests "ClassName"` | Run a single test class |
-| `--tests "ClassName.methodName"` | Run a single test method |
-| `-x test` | Skip unit tests in a build |
+- **`-Dtests.seed=<seed>`** — reproduce a specific randomized test run.
+- **`-Dtests.verbose=true`** — print test output to stdout.
+- **`--tests "ClassName"`** — run a single test class.
+- **`--tests "ClassName.methodName"`** — run a single test method.
+- **`-x test`** — skip unit tests in a build.

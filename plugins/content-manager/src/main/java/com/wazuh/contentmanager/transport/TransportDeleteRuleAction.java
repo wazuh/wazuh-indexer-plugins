@@ -18,10 +18,9 @@ package com.wazuh.contentmanager.transport;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
-
-import java.io.IOException;
 
 import com.wazuh.contentmanager.action.DeleteRuleAction;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -54,13 +53,24 @@ public class TransportDeleteRuleAction extends AbstractTransportDeleteAction {
 
     @Override
     protected void deleteExternalServices(
-            String id, SecurityAnalyticsService securityAnalyticsService) {
-        securityAnalyticsService.deleteRule(id, Space.DRAFT);
+            String id, SecurityAnalyticsService securityAnalyticsService, ActionListener<Void> listener) {
+        securityAnalyticsService.deleteRule(
+                id,
+                Space.DRAFT,
+                ActionListener.wrap(response -> listener.onResponse(null), listener::onFailure));
     }
 
     @Override
-    protected void unlinkFromParent(Client client, String id, IntegrationService integrationService)
-            throws IOException {
-        integrationService.unlinkResourceFromIntegrations(id, Constants.KEY_RULES);
+    protected void unlinkFromParent(
+            Client client,
+            String id,
+            IntegrationService integrationService,
+            ActionListener<Void> listener) {
+        try {
+            integrationService.unlinkResourceFromIntegrations(id, Constants.KEY_RULES);
+            listener.onResponse(null);
+        } catch (Exception e) {
+            listener.onFailure(e);
+        }
     }
 }

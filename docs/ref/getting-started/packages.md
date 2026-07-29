@@ -9,7 +9,7 @@ wazuh_indexer_arm64_deb: "https://packages-staging.xdrsiem.wazuh.info/pre-releas
 wazuh_indexer_x86_64_rpm: "https://packages-staging.xdrsiem.wazuh.info/pre-release/<RELEASE_SERIES>/yum/wazuh-indexer-<VERSION>-<REVISION>.x86_64.rpm"
 ```
 
-**Examples**
+### Examples
 ```
 wazuh_indexer_aarch64_rpm: "https://packages-staging.xdrsiem.wazuh.info/pre-release/5.x/yum/wazuh-indexer-5.0.0-alpha99.aarch64.rpm"
 wazuh_indexer_amd64_deb: "https://packages-staging.xdrsiem.wazuh.info/pre-release/5.x/apt/pool/main/w/wazuh-indexer/wazuh-indexer_5.0.0-alpha99_amd64.deb"

@@ -44,7 +44,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  *
  * <p>Parses the {@code access_token} field from the JSON body and delegates to the transport
  * action, which calls {@link
- * com.wazuh.contentmanager.cti.catalog.service.SubscriptionService#register(String)}.
+ * com.wazuh.contentmanager.cti.catalog.service.SubscriptionService#register}.
  *
  * <p>Possible HTTP responses:
  *

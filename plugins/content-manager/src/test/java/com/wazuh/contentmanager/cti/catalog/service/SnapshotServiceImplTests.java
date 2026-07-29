@@ -16,7 +16,10 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
@@ -33,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -43,9 +47,11 @@ import java.util.zip.ZipOutputStream;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -69,6 +75,13 @@ import static org.mockito.Mockito.when;
  * access or a running cluster.
  */
 public class SnapshotServiceImplTests extends OpenSearchTestCase {
+
+    /** Mirrors {@code SnapshotServiceImpl.mapper} (plain, no BigDecimal). */
+    private final ObjectMapper plain = new ObjectMapper();
+
+    /** Mirrors {@code ContentIndex.mapper} (BigDecimal for floats). */
+    private final ObjectMapper cti =
+            new ObjectMapper().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
 
     private SnapshotServiceImpl snapshotService;
     private Path tempDir;
@@ -107,9 +120,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
-        // Updated matchers to use JsonNode instead of JsonObject
-        when(this.contentIndexMock.processPayload(any(JsonNode.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(this.contentIndexMock.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0, JsonNode.class).toString());
         when(this.contentIndexMock.getWriteIndex()).thenReturn(".test-context-test-consumer-kvdb");
     }
 
@@ -202,7 +214,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         verify(this.contentIndexMock, never()).clear();
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -252,7 +264,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
 
@@ -282,8 +294,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        // Verify delegation to ContentIndex.processPayload
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        // Verify delegation to ContentIndex.processPayloadToString
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -307,7 +319,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -354,7 +366,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -384,7 +396,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock, atLeastOnce()).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock, atLeastOnce()).processPayloadToString(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -418,7 +430,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -432,7 +444,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         SnapshotServiceImpl cveSnapshotService =
                 new SnapshotServiceImpl(
-                        "cti:catalog:consumer:vulnerabilities",
+                        Constants.CONSUMER_TYPE_VULNERABILITIES,
                         cveOnlyMap,
                         this.consumersIndex,
                         this.environment);
@@ -607,6 +619,261 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         }
     }
 
+    public void testLazyEnvelope_DocumentWrapperWithOffset() throws Exception {
+        String line =
+                "{\"resource\": \"CVE-2026-0001\", \"offset\": 5, \"payload\": {\"document\": "
+                        + "{\"foo\": \"bar\", \"n\": 42, \"nested\": {\"a\": [1, 2, 3]}}}}";
+        assertLazyMatchesBaseline(line);
+
+        SnapshotServiceImpl.LazyEnvelope result = this.snapshotService.parseLazyEnvelope(line);
+        assertTrue(result.hasPayload);
+        assertEquals("CVE-2026-0001", result.resourceName);
+        assertTrue(result.hasOffset);
+        assertEquals(5L, result.offset);
+    }
+
+    public void testLazyEnvelope_ResourceFromNameField() throws Exception {
+        String line =
+                "{\"name\": \"TID-123\", \"offset\": 1, \"payload\": {\"document\": {\"foo\": \"bar\"}}}";
+        assertLazyMatchesBaseline(line);
+        assertEquals("TID-123", this.snapshotService.parseLazyEnvelope(line).resourceName);
+    }
+
+    public void testLazyEnvelope_NoOffsetPresent() throws Exception {
+        String line =
+                "{\"resource\": \"CVE-2026-0002\", \"payload\": {\"document\": {\"foo\": \"bar\"}}}";
+        assertLazyMatchesBaseline(line);
+        assertFalse(
+                "no offset field should not be persisted",
+                this.snapshotService.parseLazyEnvelope(line).hasOffset);
+    }
+
+    public void testLazyEnvelope_DocumentContainingBracesAndQuotes() throws Exception {
+        String line =
+                "{\"resource\": \"CVE-2026-0003\", \"offset\": 9, \"payload\": {\"document\": "
+                        + "{\"desc\": \"a } b { \\\"c\\\" }\", \"x\": 1}}}";
+        assertLazyMatchesBaseline(line);
+    }
+
+    public void testLazyEnvelope_PrettyPrintedLine() throws Exception {
+        String line =
+                "{\n  \"resource\": \"CVE-2026-0004\",\n  \"offset\": 7,\n  \"payload\": {\n"
+                        + "    \"document\": {\n      \"foo\": \"bar\",\n      \"list\": [ 1, 2 ]\n    }\n  }\n}";
+        assertLazyMatchesBaseline(line);
+    }
+
+    public void testLazyEnvelope_ExtraEnvelopeFieldsIgnored() throws Exception {
+        String line =
+                "{\"resource\": \"CVE-2026-0005\", \"version\": 3, \"context\": \"vd\", \"offset\": 2, "
+                        + "\"payload\": {\"document\": {\"foo\": \"bar\"}}}";
+        assertLazyMatchesBaseline(line);
+    }
+
+    public void testLazyEnvelope_FloatFidelityIsValueEqual() throws Exception {
+        String line =
+                "{\"resource\": \"CVE-2026-0006\", \"offset\": 4, \"payload\": {\"document\": "
+                        + "{\"score\": 1.50}}}";
+        assertLazyMatchesBaseline(line);
+    }
+
+    public void testLazyEnvelope_PayloadIsDocumentNoWrapper() throws Exception {
+        String line =
+                "{\"name\": \"CVE-1999-0001\", \"offset\": 1, \"payload\": {\"containers\": {\"cna\":"
+                        + " {\"title\": \"t\"}}, \"cveMetadata\": {\"cveId\": \"CVE-1999-0001\"},"
+                        + " \"dataType\": \"CVE_RECORD\", \"dataVersion\": \"5.1\"}}";
+        assertLazyMatchesBaseline(line);
+        SnapshotServiceImpl.LazyEnvelope result = this.snapshotService.parseLazyEnvelope(line);
+        assertEquals("CVE-1999-0001", result.resourceName);
+        assertEquals(1L, result.offset);
+    }
+
+    public void testLazyEnvelope_GlobalResourceNoWrapper() throws Exception {
+        String line =
+                "{\"name\": \"FEED-GLOBAL\", \"offset\": 12, \"payload\": {\"vendors\": [\"a\", \"b\"]}}";
+        assertLazyMatchesBaseline(line);
+    }
+
+    public void testLazyEnvelope_NonCveResourceParsesFields() throws Exception {
+        String line =
+                "{\"resource\": \"NOT-A-CVE\", \"offset\": 1, \"payload\": {\"type\": \"rule\","
+                        + " \"document\": {\"foo\": \"bar\"}}}";
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        assertTrue(env.hasPayload);
+        assertEquals("NOT-A-CVE", env.resourceName);
+        assertEquals("rule", env.type);
+        assertNotNull("document must be captured as raw string", env.documentRaw);
+        assertNull("non-CVE resource should not use CVE fast path", Cve.deriveType(env.resourceName));
+    }
+
+    public void testLazyEnvelope_NoWrapperWithTypeKey() throws Exception {
+        String line =
+                "{\"resource\": \"CVE-2026-0007\", \"offset\": 1, \"payload\": {\"type\": \"x\","
+                        + " \"foo\": \"bar\"}}";
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        assertTrue(env.hasPayload);
+        assertEquals("x", env.type);
+        assertNull("no document key and structural type present -> documentRaw null", env.documentRaw);
+    }
+
+    public void testLazyEnvelope_NoPayload() throws Exception {
+        String line = "{\"resource\": \"CVE-2026-0008\", \"offset\": 1}";
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        assertFalse("missing payload must set hasPayload false", env.hasPayload);
+    }
+
+    public void testLazyEnvelope_NonObjectLineHasNoPayload() throws Exception {
+        assertFalse(this.snapshotService.parseLazyEnvelope("[1, 2, 3]").hasPayload);
+    }
+
+    /**
+     * End-to-end: a CVE-pattern resource must be ingested through the lazy fast path — bypassing
+     * {@code processPayload} entirely — and index a correctly-shaped document.
+     */
+    public void testLazyEnvelope_EndToEndBypassesProcessPayload() throws Exception {
+        Map<String, ContentIndex> cveMap = new HashMap<>();
+        cveMap.put("cves", this.contentIndexMock);
+        SnapshotServiceImpl svc =
+                new SnapshotServiceImpl(
+                        Constants.CONSUMER_TYPE_VULNERABILITIES, cveMap, this.consumersIndex, this.environment);
+        svc.setSnapshotClient(this.snapshotClient);
+        when(this.contentIndexMock.getWriteIndex()).thenReturn(".wazuh-threatintel-vulnerabilities");
+
+        String line =
+                "{\"name\": \"CVE-2026-1234\", \"offset\": 7, \"payload\": {\"containers\": {\"cna\":"
+                        + " {\"title\": \"t\"}}, \"dataType\": \"CVE_RECORD\"}}";
+        Path zip = this.createZipFileWithContent("cve.json", line);
+
+        svc.initialize(zip, null);
+
+        verify(this.contentIndexMock, never()).processPayloadToString(any(JsonNode.class));
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
+
+        IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
+        assertEquals("CVE-2026-1234", request.id());
+        JsonNode stored = this.cti.readTree(request.source().utf8ToString());
+        assertEquals("CVE", stored.get(Constants.KEY_TYPE).asText());
+        assertEquals(7L, stored.get(Constants.KEY_OFFSET).asLong());
+        assertTrue(
+                "document must carry the raw CVE body",
+                stored.get(Constants.KEY_DOCUMENT).has("containers"));
+    }
+
+    /**
+     * The lazy envelope parse must produce a synthetic payload equivalent to the previous full-tree
+     * {@code readValueAsTree} approach for non-CVE document types.
+     */
+    public void testLazyEnvelope_ToPayloadNodeMatchesReadTree() throws Exception {
+        String line =
+                "{\"name\": \"rule-1\", \"version\": 4, \"offset\": 42, \"payload\": {\"type\": \"rule\","
+                        + " \"document\": {\"id\": \"R1\", \"related\": {\"sigma_id\": \"S-1\"}}}}";
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        assertEquals("rule-1", env.resourceName);
+        assertTrue(env.hasOffset);
+        assertEquals(42L, env.offset);
+        assertTrue(env.hasPayload);
+        assertEquals("rule", env.type);
+
+        ObjectNode syntheticPayload = env.toPayloadNode(this.plain);
+
+        JsonNode expectedPayload = this.plain.readTree(line).get(Constants.KEY_PAYLOAD);
+        if (env.hasOffset) {
+            ((ObjectNode) expectedPayload).put(Constants.KEY_OFFSET, env.offset);
+        }
+        assertTrue(
+                "synthetic payload must match full-tree payload",
+                semanticallyEqual(expectedPayload, syntheticPayload));
+    }
+
+    public void testLazyEnvelope_ResourceTakesPrecedenceOverName() throws Exception {
+        String line =
+                "{\"resource\": \"res-1\", \"name\": \"name-1\", \"payload\": {\"type\": \"kvdb\"}}";
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        assertEquals("res-1", env.resourceName);
+        assertFalse(env.hasOffset);
+        assertTrue(env.hasPayload);
+        assertEquals("kvdb", env.type);
+    }
+
+    public void testLazyEnvelope_StreamsSpaceField() throws Exception {
+        String line =
+                "{\"resource\": \"r-1\", \"payload\": {\"type\": \"rule\","
+                        + " \"document\": {\"id\": \"R1\"},"
+                        + " \"space\": {\"name\": \"custom\"}}}";
+        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        assertEquals("custom", env.spaceName);
+        ObjectNode payload = env.toPayloadNode(this.plain);
+        assertEquals("custom", payload.get(Constants.KEY_SPACE).get(Constants.KEY_NAME).asText());
+    }
+
+    /**
+     * Reproduces the exact stored document the current pipeline would index for a CVE line: envelope
+     * offset + type injection (as {@code processZipEntry} does), then {@link Cve#fromPayload}
+     * serialized via the BigDecimal-enabled mapper (as {@code processPayload} does).
+     */
+    private String baselineStoredDocument(String line) throws Exception {
+        JsonNode root = this.plain.readTree(line);
+        JsonNode payload = root.get(Constants.KEY_PAYLOAD);
+        String resourceName =
+                root.has(Constants.KEY_RESOURCE)
+                        ? root.get(Constants.KEY_RESOURCE).asText()
+                        : (root.has(Constants.KEY_NAME) ? root.get(Constants.KEY_NAME).asText() : null);
+        String cveType = Cve.deriveType(resourceName);
+        if (root.has(Constants.KEY_OFFSET) && payload.isObject()) {
+            ((ObjectNode) payload).put(Constants.KEY_OFFSET, root.get(Constants.KEY_OFFSET).asLong());
+        }
+        if (cveType != null && payload.isObject()) {
+            ((ObjectNode) payload).put(Constants.KEY_TYPE, cveType);
+        }
+        Cve cve = Cve.fromPayload(payload);
+        return this.cti.valueToTree(cve).toString();
+    }
+
+    private void assertLazyMatchesBaseline(String line) throws Exception {
+        SnapshotServiceImpl.LazyEnvelope result = this.snapshotService.parseLazyEnvelope(line);
+        assertTrue("expected lazy envelope to have payload: " + line, result.hasPayload);
+        assertNotNull("expected documentRaw to be captured: " + line, result.documentRaw);
+        String cveType = Cve.deriveType(result.resourceName);
+        assertNotNull("expected CVE-pattern resource: " + result.resourceName, cveType);
+        JsonNode expected = this.cti.readTree(baselineStoredDocument(line));
+        JsonNode actual = this.cti.readTree(result.toCveStoredDocument(cveType));
+        assertTrue(
+                "lazy output differs from baseline.\n  baseline=" + expected + "\n  lazy    =" + actual,
+                semanticallyEqual(expected, actual));
+    }
+
+    /** Numeric-aware deep equality: numbers compare by value, everything else structurally. */
+    private static boolean semanticallyEqual(JsonNode a, JsonNode b) {
+        if (a.isNumber() && b.isNumber()) {
+            return a.decimalValue().compareTo(b.decimalValue()) == 0;
+        }
+        if (a.isObject() && b.isObject()) {
+            if (a.size() != b.size()) {
+                return false;
+            }
+            Iterator<String> names = a.fieldNames();
+            while (names.hasNext()) {
+                String name = names.next();
+                if (!b.has(name) || !semanticallyEqual(a.get(name), b.get(name))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (a.isArray() && b.isArray()) {
+            if (a.size() != b.size()) {
+                return false;
+            }
+            for (int i = 0; i < a.size(); i++) {
+                if (!semanticallyEqual(a.get(i), b.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return a.equals(b);
+    }
+
     /** Helper to create a temporary ZIP file containing a single file with specific content. */
     private Path createZipFileWithContent(String fileName, String content) throws IOException {
         Path zipPath = this.tempDir.resolve("test_" + System.nanoTime() + ".zip");
@@ -677,7 +944,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock, atLeastOnce()).clear();
 
         // Documents should be processed and indexed
-        verify(this.contentIndexMock, atLeastOnce()).processPayload(any(JsonNode.class));
+        verify(this.contentIndexMock, atLeastOnce()).processPayloadToString(any(JsonNode.class));
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(any(BulkRequest.class));
         verify(this.contentIndexMock).waitForPendingUpdates();
 
@@ -797,5 +1064,214 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         Assert.assertFalse("initialize should return false for missing file", result);
         verify(this.snapshotClient, never()).downloadFile(anyString());
+    }
+
+    // ---- Stable snapshot tests ----
+
+    private SnapshotServiceImpl createServiceWithStablePath(Path snapshotsDir, String filename) {
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put("kvdb", this.contentIndexMock);
+        indicesMap.put("policy", this.contentIndexMock);
+        indicesMap.put("decoder", this.contentIndexMock);
+        indicesMap.put("rule", this.contentIndexMock);
+        indicesMap.put("reputation", this.contentIndexMock);
+
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset",
+                        indicesMap,
+                        this.consumersIndex,
+                        this.environment,
+                        new com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver(),
+                        snapshotsDir,
+                        filename);
+        service.setSnapshotClient(this.snapshotClient);
+        return service;
+    }
+
+    private void mockT0ConsumerDoc() throws Exception {
+        String existingConsumerJson =
+                "{\"name\":\"test-consumer\",\"context\":\"test-context\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\","
+                        + "\"resource\":\"https://cti.example/catalog/contexts/test-context/consumers/test-consumer\","
+                        + "\"is_public\":true,\"status\":\"running\",\"local_offset\":0,\"remote_offset\":100}";
+        org.opensearch.action.get.GetResponse t0Response =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(t0Response.isExists()).thenReturn(true);
+        when(t0Response.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset")).thenReturn(t0Response);
+    }
+
+    public void testRemoteInit_Success_PromotesToStable() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(100L);
+        mockT0ConsumerDoc();
+
+        Path zipPath =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"1\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"1\"}}}");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        boolean result = service.initialize(this.remoteConsumer);
+
+        Assert.assertTrue("Remote init should succeed", result);
+        Assert.assertFalse("Temp file should be gone", Files.exists(zipPath));
+
+        Path stableFile = snapshotsDir.resolve("ruleset.stable.zip");
+        Assert.assertTrue("Stable snapshot should exist", Files.exists(stableFile));
+    }
+
+    public void testRemoteInit_Failure_CleansUpTemp_StableUntouched() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+
+        Path existingStable = snapshotsDir.resolve("ruleset.stable.zip");
+        Path existingStableSrc =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"old\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"old\"}}}");
+        Files.copy(existingStableSrc, existingStable);
+        long stableSize = Files.size(existingStable);
+
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+
+        // Download returns a valid path but processZip will fail (corrupt content)
+        Path brokenZip = this.tempDir.resolve("broken.zip");
+        Files.write(brokenZip, "not a zip".getBytes(StandardCharsets.UTF_8));
+        when(this.snapshotClient.downloadFile(url)).thenReturn(brokenZip);
+
+        boolean result = service.initialize(this.remoteConsumer);
+
+        Assert.assertFalse("Remote init should fail", result);
+        Assert.assertFalse("Broken temp file should be cleaned up", Files.exists(brokenZip));
+        Assert.assertTrue("Stable snapshot should be untouched", Files.exists(existingStable));
+        Assert.assertEquals(
+                "Stable snapshot size should not change", stableSize, Files.size(existingStable));
+    }
+
+    public void testRemoteInit_Failure_NoStable() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(null);
+
+        boolean result = service.initialize(this.remoteConsumer);
+
+        Assert.assertFalse("Remote init should fail", result);
+        Path stableFile = snapshotsDir.resolve("ruleset.stable.zip");
+        Assert.assertFalse("No stable file should exist", Files.exists(stableFile));
+    }
+
+    public void testLocalInit_Success_PromotesToStable() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+        mockT0ConsumerDoc();
+
+        Path localZip = snapshotsDir.resolve("ruleset.zip");
+        try (java.util.zip.ZipOutputStream zos =
+                new java.util.zip.ZipOutputStream(Files.newOutputStream(localZip))) {
+            java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry("data.json");
+            zos.putNextEntry(entry);
+            zos.write(
+                    "{\"name\": \"1\", \"offset\": 50, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"1\"}}}"
+                            .getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+
+        boolean result = service.initialize(localZip, null);
+
+        Assert.assertTrue("Local init should succeed", result);
+        Assert.assertFalse("Packaged file should be gone", Files.exists(localZip));
+
+        Path stableFile = snapshotsDir.resolve("ruleset.stable.zip");
+        Assert.assertTrue("Stable snapshot should exist", Files.exists(stableFile));
+    }
+
+    public void testLocalInit_Success_StableIsSource_NoMove() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+        mockT0ConsumerDoc();
+
+        Path stableFile = snapshotsDir.resolve("ruleset.stable.zip");
+        try (java.util.zip.ZipOutputStream zos =
+                new java.util.zip.ZipOutputStream(Files.newOutputStream(stableFile))) {
+            java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry("data.json");
+            zos.putNextEntry(entry);
+            zos.write(
+                    "{\"name\": \"1\", \"offset\": 50, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"1\"}}}"
+                            .getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+
+        boolean result = service.initialize(stableFile, null);
+
+        Assert.assertTrue("Re-index from stable should succeed", result);
+        Assert.assertTrue("Stable file should remain in place", Files.exists(stableFile));
+    }
+
+    public void testLocalInit_Failure_SourcePreserved() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+
+        Path localZip = snapshotsDir.resolve("ruleset.zip");
+        Files.write(localZip, "not a zip".getBytes(StandardCharsets.UTF_8));
+
+        boolean result = service.initialize(localZip, null);
+
+        Assert.assertFalse("Local init should fail on corrupt zip", result);
+        Assert.assertTrue("Source file should be preserved for retry", Files.exists(localZip));
+    }
+
+    public void testDeleteSnapshots_PreservesStableFiles() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+
+        Path packaged = snapshotsDir.resolve("ruleset.zip");
+        Path stable = snapshotsDir.resolve("ruleset.stable.zip");
+        Path iocs = snapshotsDir.resolve("iocs.zip");
+        Files.write(packaged, "data".getBytes(StandardCharsets.UTF_8));
+        Files.write(stable, "data".getBytes(StandardCharsets.UTF_8));
+        Files.write(iocs, "data".getBytes(StandardCharsets.UTF_8));
+
+        SnapshotServiceImpl.deleteSnapshots(snapshotsDir);
+
+        Assert.assertFalse("Packaged ruleset.zip should be deleted", Files.exists(packaged));
+        Assert.assertFalse("Packaged iocs.zip should be deleted", Files.exists(iocs));
+        Assert.assertTrue("Stable snapshot should be preserved", Files.exists(stable));
+    }
+
+    public void testShadowSwap_NullStablePath_CleansUpTemp() throws Exception {
+        // Use default 4-arg constructor (no snapshotsDir) to mimic shadow swap path
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(100L);
+        mockT0ConsumerDoc();
+
+        Path zipPath =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"1\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"1\"}}}");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        boolean result = this.snapshotService.initialize(this.remoteConsumer);
+
+        Assert.assertTrue("Shadow-swap-like init should succeed", result);
+        Assert.assertFalse("Temp file should be cleaned up", Files.exists(zipPath));
+        Assert.assertNull(
+                "stablePath should be null for default constructor", this.snapshotService.getStablePath());
     }
 }

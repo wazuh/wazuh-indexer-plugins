@@ -19,13 +19,21 @@ package com.wazuh.contentmanager.cti.catalog.index;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.get.MultiGetItemResponse;
+import org.opensearch.action.get.MultiGetRequest;
+import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.breaker.CircuitBreaker;
+import org.opensearch.core.common.breaker.CircuitBreakingException;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -46,6 +54,7 @@ import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -117,11 +126,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "f0c91fac-d749-4ef0-bdfa-0b3632adf32d";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, ActionListener.wrap(r -> {}, e -> {}));
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         IndexRequest request = captor.getValue();
         Assert.assertEquals(INDEX_NAME, request.index());
@@ -158,11 +167,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
         // Act
         ContentIndex contentIndex1 =
                 new ContentIndex(this.client, Constants.INDEX_DECODERS, MAPPINGS_PATH);
-        contentIndex1.create(id, payload);
+        contentIndex1.create(id, payload, ActionListener.wrap(r -> {}, e -> {}));
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
 
@@ -197,11 +206,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "R1";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, ActionListener.wrap(r -> {}, e -> {}));
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
         JsonNode related = source.get("document").get("related");
@@ -235,11 +244,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "R2";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, ActionListener.wrap(r -> {}, e -> {}));
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         JsonNode source = this.mapper.readTree(captor.getValue().source().utf8ToString());
         JsonNode relatedItem = source.get("document").get("related").get(0);
@@ -416,11 +425,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
         String id = "test-resource-id";
 
         // Act
-        this.contentIndex.create(id, payload);
+        this.contentIndex.create(id, payload, ActionListener.wrap(r -> {}, e -> {}));
 
         // Assert
         ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(this.client).index(captor.capture());
+        verify(this.client).index(captor.capture(), any());
 
         IndexRequest request = captor.getValue();
         Assert.assertEquals(INDEX_NAME, request.index());
@@ -506,5 +515,129 @@ public class ContentIndexTests extends OpenSearchTestCase {
         JsonNode updatedDoc = this.mapper.readTree(captor.getValue().source().utf8ToString());
         Assert.assertTrue("Should contain 'offset'", updatedDoc.has("offset"));
         Assert.assertEquals(expectedOffset, updatedDoc.get("offset").asLong());
+    }
+
+    /** Test that batchUpdate uses a single MultiGet + BulkRequest for multiple documents. */
+    public void testBatchUpdate_MultiGetAndBulk() throws Exception {
+        String doc1Json = "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"}}";
+        String doc2Json = "{\"type\":\"rule\",\"document\":{\"id\":\"R2\",\"title\":\"Rule 2\"}}";
+
+        GetResponse getResp1 = mock(GetResponse.class);
+        when(getResp1.isExists()).thenReturn(true);
+        when(getResp1.getSourceAsString()).thenReturn(doc1Json);
+
+        GetResponse getResp2 = mock(GetResponse.class);
+        when(getResp2.isExists()).thenReturn(true);
+        when(getResp2.getSourceAsString()).thenReturn(doc2Json);
+
+        MultiGetItemResponse item1 = mock(MultiGetItemResponse.class);
+        when(item1.isFailed()).thenReturn(false);
+        when(item1.getResponse()).thenReturn(getResp1);
+
+        MultiGetItemResponse item2 = mock(MultiGetItemResponse.class);
+        when(item2.isFailed()).thenReturn(false);
+        when(item2.getResponse()).thenReturn(getResp2);
+
+        MultiGetResponse mgetResponse = mock(MultiGetResponse.class);
+        when(mgetResponse.getResponses()).thenReturn(new MultiGetItemResponse[] {item1, item2});
+
+        PlainActionFuture<MultiGetResponse> mgetFuture = PlainActionFuture.newFuture();
+        mgetFuture.onResponse(mgetResponse);
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(mgetFuture);
+
+        BulkResponse bulkResponse = mock(BulkResponse.class);
+        when(bulkResponse.hasFailures()).thenReturn(false);
+
+        PlainActionFuture<BulkResponse> bulkFuture = PlainActionFuture.newFuture();
+        bulkFuture.onResponse(bulkResponse);
+        when(this.client.bulk(any(BulkRequest.class))).thenReturn(bulkFuture);
+
+        List<ContentIndex.UpdateTask> tasks =
+                List.of(
+                        new ContentIndex.UpdateTask(
+                                "R1",
+                                List.of(new Operation("replace", "/document/title", null, "Updated 1")),
+                                101L),
+                        new ContentIndex.UpdateTask(
+                                "R2",
+                                List.of(new Operation("replace", "/document/title", null, "Updated 2")),
+                                102L));
+
+        long result = this.contentIndex.batchUpdate(tasks);
+
+        Assert.assertEquals(102L, result);
+        verify(this.client).multiGet(any(MultiGetRequest.class));
+        verify(this.client).bulk(any(BulkRequest.class));
+    }
+
+    /** Test that batchUpdate skips documents whose stored offset already matches the target. */
+    public void testBatchUpdate_SkipsAlreadyAppliedOffset() throws Exception {
+        String docJson =
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"},\"offset\":101}";
+
+        GetResponse getResp = mock(GetResponse.class);
+        when(getResp.isExists()).thenReturn(true);
+        when(getResp.getSourceAsString()).thenReturn(docJson);
+
+        MultiGetItemResponse item = mock(MultiGetItemResponse.class);
+        when(item.isFailed()).thenReturn(false);
+        when(item.getResponse()).thenReturn(getResp);
+
+        MultiGetResponse mgetResponse = mock(MultiGetResponse.class);
+        when(mgetResponse.getResponses()).thenReturn(new MultiGetItemResponse[] {item});
+
+        PlainActionFuture<MultiGetResponse> mgetFuture = PlainActionFuture.newFuture();
+        mgetFuture.onResponse(mgetResponse);
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(mgetFuture);
+
+        List<ContentIndex.UpdateTask> tasks =
+                List.of(
+                        new ContentIndex.UpdateTask(
+                                "R1", List.of(new Operation("replace", "/document/title", null, "Updated")), 101L));
+
+        long result = this.contentIndex.batchUpdate(tasks);
+
+        Assert.assertEquals(101L, result);
+        verify(this.client).multiGet(any(MultiGetRequest.class));
+        verify(this.client, times(0)).bulk(any(BulkRequest.class));
+    }
+
+    /** Test that update retries on CircuitBreakingException from GET and succeeds. */
+    public void testUpdate_RetriesOnCircuitBreakerException() throws Exception {
+        String id = "retry-test-id";
+
+        String originalDocJson =
+                "{"
+                        + "\"type\": \"rule\","
+                        + "\"document\": {"
+                        + "  \"id\": \"R1\","
+                        + "  \"title\": \"Test Rule\""
+                        + "}"
+                        + "}";
+
+        // First GET fails with CircuitBreakingException, second succeeds
+        PlainActionFuture<GetResponse> failFuture = PlainActionFuture.newFuture();
+        failFuture.onFailure(
+                new CircuitBreakingException(
+                        "Data too large", 100, 50, CircuitBreaker.Durability.TRANSIENT));
+
+        PlainActionFuture<GetResponse> successFuture = PlainActionFuture.newFuture();
+        successFuture.onResponse(this.getResponse);
+
+        when(this.client.get(any(GetRequest.class))).thenReturn(failFuture).thenReturn(successFuture);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString()).thenReturn(originalDocJson);
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        List<Operation> operations = new ArrayList<>();
+        operations.add(new Operation("replace", "/document/title", null, "Updated"));
+
+        this.contentIndex.update(id, operations, 10L);
+
+        verify(this.client, times(2)).get(any(GetRequest.class));
+        verify(this.client).index(any(IndexRequest.class));
     }
 }

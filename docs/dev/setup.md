@@ -1,4 +1,4 @@
-# Set up the Development Environment
+# Set up the development environment
 
 ## 1. Git
 
@@ -111,7 +111,7 @@ After that, restart your shell or run `source ~/.zshrc` (or similar) to apply th
 > sdk use java 24-tem
 > ```
 
-## 6. Docker (Optional)
+## 6. Docker (optional)
 
 Docker is useful for running integration tests and local test environments. Install Docker Engine following the [official instructions](https://docs.docker.com/engine/install/).
 
@@ -122,7 +122,7 @@ docker --version
 docker run hello-world
 ```
 
-## 7. Test Cluster (Optional)
+## 7. Test cluster (optional)
 
 The repository includes a Vagrant-based test cluster at [`tools/test-cluster/`](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/tools/test-cluster) for end-to-end testing against a real Wazuh Indexer instance.
 
@@ -132,7 +132,7 @@ Prerequisites:
 
 Refer to the `tools/test-cluster/README.md` for provisioning and usage instructions.
 
-## 8. Verify the Setup
+## 8. Verify the setup
 
 After completing the setup, verify everything works:
 

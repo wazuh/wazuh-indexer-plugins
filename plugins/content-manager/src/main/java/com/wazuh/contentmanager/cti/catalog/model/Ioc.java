@@ -56,8 +56,8 @@ public class Ioc {
      * @param payload The raw JSON object containing the IoC data.
      * @return A fully populated Ioc instance.
      */
-    public static Ioc fromPayload(JsonNode payload) {
-        // Extract offset before conversion so it stays at root level
+    public static Ioc fromPayload(JsonNode payload)
+            throws com.fasterxml.jackson.core.JsonProcessingException {
         Long offsetValue = null;
         if (payload.has(Constants.KEY_OFFSET)) {
             offsetValue = payload.get(Constants.KEY_OFFSET).asLong();
@@ -66,15 +66,14 @@ public class Ioc {
             }
         }
 
-        // Strip the routing 'type' field before deserialization
-        ObjectNode sanitizedPayload = payload.deepCopy();
-        sanitizedPayload.remove(Constants.KEY_TYPE);
+        if (payload.isObject()) {
+            ((ObjectNode) payload).remove(Constants.KEY_TYPE);
+        }
 
-        Ioc ioc = Ioc.MAPPER.convertValue(sanitizedPayload, Ioc.class);
+        Ioc ioc = Ioc.MAPPER.treeToValue(payload, Ioc.class);
         ioc.setOffset(offsetValue);
-        if (sanitizedPayload.has(Constants.KEY_DOCUMENT)) {
-            String sha256 =
-                    Resource.computeSha256(sanitizedPayload.get(Constants.KEY_DOCUMENT).toString());
+        if (payload.has(Constants.KEY_DOCUMENT)) {
+            String sha256 = Resource.computeSha256(payload.get(Constants.KEY_DOCUMENT).toString());
             ioc.setHash(new IocHash(sha256));
         }
 
