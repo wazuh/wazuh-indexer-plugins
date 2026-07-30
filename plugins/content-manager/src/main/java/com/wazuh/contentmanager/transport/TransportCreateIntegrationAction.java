@@ -33,6 +33,7 @@ import java.util.List;
 
 import com.wazuh.contentmanager.action.CreateIntegrationAction;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.IntegrationEnabledResolver;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
@@ -115,6 +116,16 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
 
                             // Integrations created through the API are always user-managed.
                             ((ObjectNode) resource).put(Constants.KEY_MODE, Constants.MODE_USER_MANAGED);
+
+                            // 'cti_enabled' is server-managed; 'user_enabled' defaults to true, as
+                            // 'enabled' used to, and 'enabled' is derived from it via the resolver.
+                            ObjectNode resourceNode = (ObjectNode) resource;
+                            resourceNode.remove(Constants.KEY_CTI_ENABLED);
+                            if (!resourceNode.has(Constants.KEY_USER_ENABLED)
+                                    || resourceNode.get(Constants.KEY_USER_ENABLED).isNull()) {
+                                resourceNode.put(Constants.KEY_USER_ENABLED, true);
+                            }
+                            IntegrationEnabledResolver.resolve(resourceNode);
 
                             listener.onResponse(null);
                         },

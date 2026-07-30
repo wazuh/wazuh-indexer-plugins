@@ -286,6 +286,9 @@ public class Constants {
     public static final String D_LOG_SNAPSHOT_WAIT_PENDING_BULK =
             "Waiting for pending bulk updates to finish...";
     public static final String E_LOG_SNAPSHOT_PROCESS_FAILED = "Error processing snapshot: {}";
+    public static final String E_LOG_USER_OVERRIDES_READ_FAILED =
+            "Failed to read stored integration enabled overrides for consumer [{}]; aborting snapshot"
+                    + " so user decisions are not lost: {}";
     public static final String D_LOG_SNAPSHOT_NO_INDEX_FOR_TYPE =
             "No ContentIndex found for type [{}]. Skipping.";
     public static final String D_LOG_SNAPSHOT_PARSE_LINE_FAILED =
@@ -604,6 +607,8 @@ public class Constants {
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_OFFSET = "offset";
     public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_USER_ENABLED = "user_enabled";
+    public static final String KEY_CTI_ENABLED = "cti_enabled";
     public static final String KEY_MODE = "mode";
     public static final String KEY_DETECTOR = "detector";
     public static final String KEY_SOURCE = "source";

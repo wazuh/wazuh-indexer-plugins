@@ -35,6 +35,7 @@ import java.util.Set;
 
 import com.wazuh.contentmanager.action.UpdateIntegrationAction;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.IntegrationEnabledResolver;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
@@ -59,8 +60,12 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
  *   <li><b>protected</b> integrations (Wazuh core content) cannot be modified in any space.
  *   <li><b>user-managed</b> integrations in the {@code draft} space are fully editable.
  *   <li><b>user-managed</b> integrations in the {@code standard} space only allow toggling {@code
- *       enabled}; every other field is preserved from the stored document.
+ *       user_enabled}; every other field is preserved from the stored document.
  * </ul>
+ *
+ * <p>{@code user_enabled} carries the user's explicit choice and is required in both spaces. The
+ * effective {@code enabled} is derived from it by {@link IntegrationEnabledResolver} and is never
+ * accepted from a request body, and neither is {@code cti_enabled}.
  */
 public class TransportUpdateIntegrationAction extends AbstractTransportUpdateActionSpaces {
 
@@ -119,21 +124,22 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
                     Constants.E_400_RESOURCE_SPACE_INVALID, RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // 'enabled' is the only field that can be changed for standard integrations
+        // 'user_enabled' carries the user's decision in every space; 'enabled' is derived.
         RestResponse fieldValidation =
-                this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_ENABLED));
+                this.documentValidations.validateRequiredFields(
+                        resource, List.of(Constants.KEY_USER_ENABLED));
         if (fieldValidation != null) {
             return fieldValidation;
         }
 
+        // Only 'user_enabled' is mutable for standard integrations
         if (Space.STANDARD.equals(resolvedSpace)) {
             return null;
         }
 
         // Draft integrations are fully editable
         fieldValidation =
-                this.documentValidations.validateRequiredFields(
-                        resource, List.of(Constants.KEY_CATEGORY, Constants.KEY_ENABLED));
+                this.documentValidations.validateRequiredFields(resource, List.of(Constants.KEY_CATEGORY));
         if (fieldValidation != null) {
             return fieldValidation;
         }
@@ -164,15 +170,16 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
         }
         JsonNode existingDocument = existingDoc.get(Constants.KEY_DOCUMENT);
 
-        // The mode is server-managed and cannot be changed through the API
+        // Server-managed fields: never accepted from the request.
         resourceNode.remove(Constants.KEY_MODE);
+        resourceNode.remove(Constants.KEY_CTI_ENABLED);
         if (existingDocument.has(Constants.KEY_MODE)) {
             resourceNode.set(Constants.KEY_MODE, existingDocument.get(Constants.KEY_MODE));
         }
 
         if (Space.STANDARD.equals(space)) {
-            // Only 'enabled' is mutable in the standard space
-            boolean enabled = resourceNode.path(Constants.KEY_ENABLED).asBoolean(true);
+            // Only 'user_enabled' is mutable in the standard space
+            boolean userEnabled = resourceNode.path(Constants.KEY_USER_ENABLED).asBoolean(true);
             String modified =
                     resourceNode.path(Constants.KEY_METADATA).path(Constants.KEY_MODIFIED).asText(null);
 
@@ -180,12 +187,16 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
             resourceNode.removeAll();
             resourceNode.setAll(restored);
             resourceNode.put(Constants.KEY_ID, id);
-            resourceNode.put(Constants.KEY_ENABLED, enabled);
+            resourceNode.put(Constants.KEY_USER_ENABLED, userEnabled);
+            IntegrationEnabledResolver.resolve(resourceNode);
             if (modified != null) {
                 Resource.getOrCreateMetadataNode(resourceNode).put(Constants.KEY_MODIFIED, modified);
             }
             return null;
         }
+
+        // No CTI value outside the standard space, so 'enabled' is always the user's choice
+        IntegrationEnabledResolver.resolve(resourceNode);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> existing = MAPPER.convertValue(existingDocument, Map.class);

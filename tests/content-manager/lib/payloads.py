@@ -37,7 +37,7 @@ def make_integration(
                 "documentation": documentation,
             },
             "category": category,
-            "enabled": enabled,
+            "user_enabled": enabled,
         }
     }
 
@@ -58,7 +58,7 @@ def integration_update(stored_document, **overrides):
             "documentation": meta.get("documentation", ""),
         },
         "category": stored_document.get("category", "other"),
-        "enabled": stored_document.get("enabled", True),
+        "user_enabled": stored_document.get("user_enabled", True),
         "rules": stored_document.get("rules", []),
         "decoders": stored_document.get("decoders", []),
         "kvdbs": stored_document.get("kvdbs", []),

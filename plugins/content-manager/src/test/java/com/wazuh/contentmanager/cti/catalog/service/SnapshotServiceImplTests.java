@@ -53,14 +53,17 @@ import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -1273,5 +1276,315 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Assert.assertFalse("Temp file should be cleaned up", Files.exists(zipPath));
         Assert.assertNull(
                 "stablePath should be null for default constructor", this.snapshotService.getStablePath());
+    }
+
+    /**
+     * Builds a fresh {@link SnapshotServiceImpl} wired to a single mock "integration" {@link
+     * ContentIndex}, feeds one NDJSON integration line through the snapshot path, and returns the
+     * captured indexed source. Kept isolated from the shared {@link #snapshotService}/{@link
+     * #contentIndexMock} so stubbing {@code fetchBooleanFieldByTitle} here cannot leak into other
+     * tests, which never register an "integration" entry in their {@code indicesMap}.
+     *
+     * @param title the integration's {@code document.metadata.title}.
+     * @param ctiEnabled the {@code document.cti_enabled} value CTI publishes in this snapshot line.
+     * @param overrides the title-to-user_enabled map {@code fetchBooleanFieldByTitle} should return,
+     *     simulating the live pre-swap state read through the alias.
+     * @return the processed {@code document} wrapper that was indexed.
+     */
+    private ObjectNode runSnapshotForSingleIntegration(
+            String title, boolean ctiEnabled, Map<String, Boolean> overrides) throws Exception {
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0).toString());
+        when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
+        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
+                .thenReturn(overrides);
+
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
+
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
+        service.setSnapshotClient(this.snapshotClient);
+        this.mockT0ConsumerDoc();
+
+        String url = "http://example.com/integration-" + title + ".zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(1L);
+
+        // spotless:off
+        String jsonContent =
+                "{\"name\": \"" + title + "-id\", \"offset\": 1, \"payload\": {\"type\": \"integration\", "
+                        + "\"document\": {\"id\": \"" + title + "-id\", "
+                        + "\"metadata\": {\"title\": \"" + title + "\"}, "
+                        + "\"cti_enabled\": " + ctiEnabled + "}}}";
+        // spotless:on
+        Path zipPath = this.createZipFileWithContent("integration-" + title + ".json", jsonContent);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        boolean success = service.initialize(this.remoteConsumer);
+        Assert.assertTrue("Snapshot init should succeed for [" + title + "]", success);
+
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        verify(integrationsIndex, atLeastOnce()).executeBulk(bulkCaptor.capture());
+        BulkRequest bulkRequest = bulkCaptor.getValue();
+        IndexRequest indexRequest = (IndexRequest) bulkRequest.requests().get(0);
+        return (ObjectNode) this.plain.readTree(indexRequest.source().utf8ToString());
+    }
+
+    /**
+     * Regression test for the reinitialisation path.
+     *
+     * <p>{@code AbstractConsumerService} deletes every standard-space document <b>before</b> calling
+     * {@code initialize}, so by the time {@code initialize} runs the overrides are already gone from
+     * the index. The fix is for that caller to invoke {@link
+     * SnapshotServiceImpl#captureUserOverrides()} while the documents still exist, and for {@code
+     * initialize} not to re-read afterwards.
+     *
+     * <p>This reproduces exactly that sequence: the first read (the caller's explicit capture) sees
+     * the override, every later read sees an emptied index. Before the fix, {@code initialize}
+     * re-read unconditionally, replaced the captured map with the empty one, and the user's choice
+     * was silently overwritten with CTI's value — the original bug, verified live on a real cluster.
+     */
+    public void testInitializeKeepsOverridesCapturedBeforeTheIndicesWereWiped() throws Exception {
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0).toString());
+        when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
+        // First read: the live index, still holding the user's choice. Every read after that: the
+        // index as the caller left it once it deleted the standard-space documents.
+        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
+                .thenReturn(Map.of("suricata", true))
+                .thenReturn(Map.of());
+
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
+
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
+        service.setSnapshotClient(this.snapshotClient);
+        this.mockT0ConsumerDoc();
+
+        String url = "http://example.com/integration-suricata.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(1L);
+
+        // spotless:off
+        String jsonContent =
+                "{\"name\": \"suricata-id\", \"offset\": 1, \"payload\": {\"type\": \"integration\", "
+                        + "\"document\": {\"id\": \"suricata-id\", "
+                        + "\"metadata\": {\"title\": \"suricata\"}, "
+                        + "\"cti_enabled\": false}}}";
+        // spotless:on
+        Path zipPath = this.createZipFileWithContent("integration-suricata.json", jsonContent);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        // The caller captures while the documents still exist, then wipes, then initialises.
+        service.captureUserOverrides();
+        Assert.assertTrue(service.initialize(this.remoteConsumer));
+
+        // Exactly one read: initialize must not go back to an index the caller already emptied.
+        verify(integrationsIndex, times(1))
+                .fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED);
+
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        verify(integrationsIndex, atLeastOnce()).executeBulk(bulkCaptor.capture());
+        IndexRequest indexRequest = (IndexRequest) bulkCaptor.getValue().requests().get(0);
+        JsonNode document =
+                this.plain.readTree(indexRequest.source().utf8ToString()).get(Constants.KEY_DOCUMENT);
+
+        assertTrue(
+                "the captured override must survive the wipe",
+                document.get(Constants.KEY_USER_ENABLED).asBoolean());
+        assertTrue(
+                "enabled must be derived from the override, not from CTI",
+                document.get(Constants.KEY_ENABLED).asBoolean());
+    }
+
+    /** A CTI resync/plan-change must not clobber a live user override matched by title. */
+    public void testSnapshotReappliesUserOverrideByTitle() throws Exception {
+        ObjectNode indexed =
+                runSnapshotForSingleIntegration("suricata", false, Map.of("suricata", true));
+
+        JsonNode document = indexed.get(Constants.KEY_DOCUMENT);
+        assertTrue(document.get(Constants.KEY_ENABLED).asBoolean());
+        assertTrue(document.get(Constants.KEY_USER_ENABLED).asBoolean());
+        assertFalse(document.get(Constants.KEY_CTI_ENABLED).asBoolean());
+    }
+
+    /** With no stored override for the title, the rebuilt document just follows CTI. */
+    public void testSnapshotFollowsCtiWhenNoOverrideExists() throws Exception {
+        ObjectNode indexed = runSnapshotForSingleIntegration("docker", false, Map.of());
+
+        JsonNode document = indexed.get(Constants.KEY_DOCUMENT);
+        assertFalse(document.get(Constants.KEY_ENABLED).asBoolean());
+        assertFalse(document.has(Constants.KEY_USER_ENABLED));
+    }
+
+    /**
+     * Builds a fresh {@link SnapshotServiceImpl} wired to a single mock "integration" {@link
+     * ContentIndex} and drives it through {@code initialize(Path, JsonNode)} — the local/stable
+     * snapshot rollback path used by {@code AbstractConsumerService} when the remote feed is
+     * unreachable (lines 708 and 774). That path clears the live indices before repopulating them
+     * from the local zip, so the override must be captured before {@code clear()} runs. Mirrors
+     * {@link #runSnapshotForSingleIntegration} but for the local-zip entry point.
+     *
+     * @param title the integration's {@code document.metadata.title}.
+     * @param ctiEnabled the {@code document.cti_enabled} value CTI publishes in this snapshot line.
+     * @param overrides the title-to-user_enabled map {@code fetchBooleanFieldByTitle} should return,
+     *     simulating the live pre-clear state read through the alias.
+     * @return the processed {@code document} wrapper that was indexed.
+     */
+    private ObjectNode runLocalSnapshotForSingleIntegration(
+            String title, boolean ctiEnabled, Map<String, Boolean> overrides) throws Exception {
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0).toString());
+        when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
+        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
+                .thenReturn(overrides);
+
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
+
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
+        this.mockT0ConsumerDoc();
+
+        // spotless:off
+        String jsonContent =
+                "{\"name\": \"" + title + "-id\", \"offset\": 1, \"payload\": {\"type\": \"integration\", "
+                        + "\"document\": {\"id\": \"" + title + "-id\", "
+                        + "\"metadata\": {\"title\": \"" + title + "\"}, "
+                        + "\"cti_enabled\": " + ctiEnabled + "}}}";
+        // spotless:on
+        Path localZip =
+                this.createZipFileWithContent("local-integration-" + title + ".json", jsonContent);
+
+        boolean success = service.initialize(localZip, null);
+        Assert.assertTrue("Local snapshot init should succeed for [" + title + "]", success);
+
+        // The override must have been read BEFORE clear() wiped the live index.
+        InOrder order = inOrder(integrationsIndex);
+        order
+                .verify(integrationsIndex)
+                .fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED);
+        order.verify(integrationsIndex).clear();
+
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        verify(integrationsIndex, atLeastOnce()).executeBulk(bulkCaptor.capture());
+        BulkRequest bulkRequest = bulkCaptor.getValue();
+        IndexRequest indexRequest = (IndexRequest) bulkRequest.requests().get(0);
+        return (ObjectNode) this.plain.readTree(indexRequest.source().utf8ToString());
+    }
+
+    /**
+     * The local/stable snapshot rollback path (remote feed unreachable, falling back to the last good
+     * local zip) must also re-apply a live user override matched by title — it clears and repopulates
+     * the same integrations index as a full resync, so it is the same bug on a fourth path if the
+     * override isn't captured first.
+     */
+    public void testLocalSnapshotRollbackReappliesUserOverrideByTitle() throws Exception {
+        ObjectNode indexed =
+                runLocalSnapshotForSingleIntegration("suricata", false, Map.of("suricata", true));
+
+        JsonNode document = indexed.get(Constants.KEY_DOCUMENT);
+        assertTrue(document.get(Constants.KEY_ENABLED).asBoolean());
+        assertTrue(document.get(Constants.KEY_USER_ENABLED).asBoolean());
+        assertFalse(document.get(Constants.KEY_CTI_ENABLED).asBoolean());
+    }
+
+    /**
+     * If reading the stored user overrides fails (e.g. a search timeout, or a cluster-level search
+     * failure such as "Failed to execute phase [query], all shards failed"), the remote snapshot must
+     * ABORT rather than proceed with an empty override map. An empty map is indistinguishable from
+     * "the user never set any override", so proceeding would silently rebuild every integration with
+     * CTI's values and permanently lose every user override — exactly the data loss this feature
+     * exists to prevent.
+     */
+    public void testInitialize_AbortsWhenUserOverrideReadFails() throws Exception {
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        // Stubbed exactly like the passing-path tests (e.g. runSnapshotForSingleIntegration) so that,
+        // if the abort did NOT happen, the snapshot would run to completion and this test would fail
+        // for the right reason instead of being masked by an unrelated NPE from an unstubbed mock.
+        when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0).toString());
+        when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
+        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
+                .thenThrow(new IOException("search timeout"));
+
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
+
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
+        service.setSnapshotClient(this.snapshotClient);
+        this.mockT0ConsumerDoc();
+
+        String url = "http://example.com/integration-abort.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(1L);
+
+        Path zipPath =
+                this.createZipFileWithContent(
+                        "integration-abort.json",
+                        "{\"name\": \"abort-id\", \"offset\": 1, \"payload\": {\"type\": \"integration\", "
+                                + "\"document\": {\"id\": \"abort-id\", \"metadata\": {\"title\": \"abort\"}, "
+                                + "\"cti_enabled\": true}}}");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        boolean success = service.initialize(this.remoteConsumer);
+
+        Assert.assertFalse(
+                "Snapshot must abort when the user-override read fails, not proceed as if there were no"
+                        + " overrides",
+                success);
+        verify(integrationsIndex, never()).executeBulk(any(BulkRequest.class));
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
+    }
+
+    /**
+     * Same failure, but through the local/stable snapshot path used on plan changes and rollbacks
+     * (remote feed unreachable). The read happens before {@code ContentIndex#clear}, so aborting here
+     * must leave the live integrations index untouched — verified by asserting {@code clear()} is
+     * never invoked.
+     */
+    public void testInitializeFromPath_AbortsWhenUserOverrideReadFails() throws Exception {
+        ContentIndex integrationsIndex = mock(ContentIndex.class);
+        // Stubbed exactly like the passing-path tests so that, if the abort did NOT happen, the
+        // snapshot would run to completion (and the assertFalse below would fail for the right
+        // reason instead of being masked by an unrelated NPE from an unstubbed mock).
+        when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0).toString());
+        when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
+        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
+                .thenThrow(new IOException("Failed to execute phase [query], all shards failed"));
+
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
+
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
+        this.mockT0ConsumerDoc();
+
+        String jsonContent =
+                "{\"name\": \"abort-id\", \"offset\": 1, \"payload\": {\"type\": \"integration\", "
+                        + "\"document\": {\"id\": \"abort-id\", \"metadata\": {\"title\": \"abort\"}, "
+                        + "\"cti_enabled\": true}}}";
+        Path localZip = this.createZipFileWithContent("local-integration-abort.json", jsonContent);
+
+        boolean success = service.initialize(localZip, null);
+
+        Assert.assertFalse(
+                "Local snapshot must abort when the user-override read fails, not proceed as if there"
+                        + " were no overrides",
+                success);
+        verify(integrationsIndex, never()).clear();
+        verify(integrationsIndex, never()).executeBulk(any(BulkRequest.class));
     }
 }

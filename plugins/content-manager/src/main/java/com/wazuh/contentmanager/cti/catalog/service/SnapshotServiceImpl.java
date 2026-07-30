@@ -45,9 +45,11 @@ import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.IntegrationEnabledResolver;
 import com.wazuh.contentmanager.cti.catalog.model.Cve;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -71,6 +73,19 @@ public class SnapshotServiceImpl implements SnapshotService {
 
     /** The maximum offset encountered while processing snapshot files. */
     private long maxOffsetSeen;
+
+    /** Title to user override, loaded once per snapshot run before any document is written. */
+    private Map<String, Boolean> userEnabledByTitle = Collections.emptyMap();
+
+    /**
+     * Whether {@link #captureUserOverrides()} already ran for this snapshot service.
+     *
+     * <p>The overrides must be read while the documents that carry them still exist. Some callers
+     * wipe the live indices <b>before</b> invoking {@code initialize}, so they capture explicitly
+     * beforehand and this flag stops {@code initialize} from re-reading an already-emptied index and
+     * discarding what was captured.
+     */
+    private boolean overridesCaptured;
 
     /**
      * Constructs a new SnapshotServiceImpl.
@@ -182,7 +197,10 @@ public class SnapshotServiceImpl implements SnapshotService {
                 return false;
             }
 
-            // 2. Stream and index JSON entries directly from the ZIP
+            // 2. Load user overrides
+            this.captureUserOverridesIfNeeded();
+
+            // 3. Stream and index JSON entries directly from the ZIP
             startMs = System.currentTimeMillis();
             this.processZip(snapshotZip);
 
@@ -224,6 +242,83 @@ public class SnapshotServiceImpl implements SnapshotService {
             this.cleanup(snapshotZip);
             return false;
         }
+    }
+
+    /**
+     * Loads the current user overrides for standard integrations. Reads through the alias, so during
+     * a plan-change swap this captures the live pre-swap state while the shadow index is being
+     * populated.
+     *
+     * <p><b>Must be called while the documents carrying the overrides still exist.</b> The
+     * reinitialisation path in {@code AbstractConsumerService} deletes every standard-space document
+     * before calling {@code initialize}, so it calls this method itself beforehand; the {@link
+     * #overridesCaptured} flag then stops {@code initialize} from reading the now-emptied index and
+     * discarding that capture.
+     *
+     * <p>A read failure is rethrown rather than treated as "no overrides", since the two are
+     * indistinguishable otherwise and swallowing it would silently rebuild every integration with
+     * CTI's values. Callers must abort before their own destructive step for that to matter.
+     *
+     * @throws IOException if a stored override document cannot be parsed as JSON.
+     * @throws InterruptedException if the thread is interrupted while waiting for the read.
+     * @throws ExecutionException if the underlying search request fails.
+     * @throws TimeoutException if the read exceeds the client timeout setting.
+     */
+    public void captureUserOverrides()
+            throws IOException, InterruptedException, ExecutionException, TimeoutException {
+        ContentIndex integrations = this.indicesMap.get(Constants.KEY_INTEGRATION);
+        if (integrations == null) {
+            this.userEnabledByTitle = Collections.emptyMap();
+            this.overridesCaptured = true;
+            return;
+        }
+        try {
+            this.userEnabledByTitle =
+                    integrations.fetchBooleanFieldByTitle(
+                            Space.STANDARD.toString(), Constants.KEY_USER_ENABLED);
+        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
+            log.error(Constants.E_LOG_USER_OVERRIDES_READ_FAILED, this.consumerType, e.getMessage());
+            throw e;
+        }
+        this.overridesCaptured = true;
+        log.info(
+                "Captured {} integration enabled override(s) to carry across the snapshot",
+                this.userEnabledByTitle.size());
+    }
+
+    /**
+     * Captures the overrides unless a caller already did it before wiping the indices.
+     *
+     * @throws IOException if the read fails.
+     * @throws InterruptedException if the thread is interrupted while reading.
+     * @throws ExecutionException if the read fails asynchronously.
+     * @throws TimeoutException if the read exceeds the client timeout setting.
+     */
+    private void captureUserOverridesIfNeeded()
+            throws IOException, InterruptedException, ExecutionException, TimeoutException {
+        if (this.overridesCaptured) {
+            return;
+        }
+        this.captureUserOverrides();
+    }
+
+    /**
+     * Re-applies the user's override, if any, to an integration document rebuilt from the snapshot,
+     * then resolves the effective state.
+     *
+     * @param processedPayload the processed document wrapper about to be indexed.
+     */
+    private void mergeIntegrationEnabled(ObjectNode processedPayload) {
+        JsonNode document = processedPayload.get(Constants.KEY_DOCUMENT);
+        if (!(document instanceof ObjectNode documentNode)) {
+            return;
+        }
+        String title = documentNode.path(Constants.KEY_METADATA).path(Constants.KEY_TITLE).asText(null);
+        if (title != null) {
+            IntegrationEnabledResolver.carryOverUserOverride(
+                    documentNode, this.userEnabledByTitle.get(title));
+        }
+        IntegrationEnabledResolver.resolve(documentNode);
     }
 
     /**
@@ -317,6 +412,10 @@ public class SnapshotServiceImpl implements SnapshotService {
                         if (Constants.KEY_CVES.equals(type) && cveType != null) {
                             syntheticPayload.put(Constants.KEY_TYPE, cveType);
                         }
+                        // Merge before processing, so the stored hash covers the merged content.
+                        if (Constants.KEY_INTEGRATION.equals(type)) {
+                            this.mergeIntegrationEnabled(syntheticPayload);
+                        }
                         sourceJson = indexHandler.processPayloadToString(syntheticPayload);
                     }
 
@@ -403,10 +502,13 @@ public class SnapshotServiceImpl implements SnapshotService {
         long startMs = System.currentTimeMillis();
 
         try {
-            // 1. Clear indices
+            // 1. Load user overrides
+            this.captureUserOverridesIfNeeded();
+
+            // 2. Clear indices
             this.indicesMap.values().forEach(ContentIndex::clear);
 
-            // 2. Stream and index JSON entries directly from the ZIP
+            // 3. Stream and index JSON entries directly from the ZIP
             AccessController.doPrivilegedChecked(
                     () -> {
                         this.processZip(localZip);

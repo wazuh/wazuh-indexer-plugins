@@ -41,12 +41,15 @@ import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.breaker.CircuitBreakingException;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
@@ -55,7 +58,9 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -362,6 +367,60 @@ public class ContentIndex {
     }
 
     /**
+     * Reads a boolean {@code document} field for every document in the given space, keyed by {@code
+     * document.metadata.title}. Documents without the field are omitted, so the caller can tell
+     * "absent" from "false".
+     *
+     * <p>Reads resolve through the alias, so during a shadow swap this returns the <b>live</b>
+     * content while the shadow index is still being populated.
+     *
+     * <p>This is a low-level read helper: it does not decide whether a caller may tolerate a failed
+     * read, so it does not swallow exceptions. A missing or closed index is the one failure mode
+     * tolerated here (see {@link IndicesOptions#lenientExpandOpen()} below) because a fresh
+     * installation has no integrations index yet; every other failure (e.g. a search timeout or a
+     * cluster-level search failure) is propagated so the caller — which knows whether an empty result
+     * is safe to act on — can decide whether to proceed or abort.
+     *
+     * @param spaceName the space to read, e.g. {@code "standard"}.
+     * @param fieldName the boolean field under {@code document} to collect.
+     * @return title to value; empty when nothing matches, including when the index does not exist
+     *     yet.
+     * @throws IOException if a hit's source cannot be parsed as JSON.
+     * @throws InterruptedException if the thread is interrupted while waiting for the search.
+     * @throws ExecutionException if the search request fails.
+     * @throws TimeoutException if the search exceeds the client timeout setting.
+     */
+    public Map<String, Boolean> fetchBooleanFieldByTitle(String spaceName, String fieldName)
+            throws IOException, InterruptedException, ExecutionException, TimeoutException {
+        Map<String, Boolean> values = new HashMap<>();
+        String titlePath =
+                Constants.KEY_DOCUMENT + "." + Constants.KEY_METADATA + "." + Constants.KEY_TITLE;
+        String fieldPath = Constants.KEY_DOCUMENT + "." + fieldName;
+        SearchSourceBuilder source =
+                new SearchSourceBuilder()
+                        .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName))
+                        .fetchSource(new String[] {titlePath, fieldPath}, new String[0])
+                        .size(10000);
+        SearchRequest request =
+                new SearchRequest(this.indexName)
+                        .indicesOptions(IndicesOptions.lenientExpandOpen())
+                        .source(source);
+        SearchResponse response =
+                this.client.search(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+
+        for (SearchHit hit : response.getHits().getHits()) {
+            JsonNode root = MAPPER.readTree(hit.getSourceAsString());
+            JsonNode document = root.path(Constants.KEY_DOCUMENT);
+            JsonNode value = document.path(fieldName);
+            JsonNode title = document.path(Constants.KEY_METADATA).path(Constants.KEY_TITLE);
+            if (value.isBoolean() && title.isTextual()) {
+                values.put(title.asText(), value.asBoolean());
+            }
+        }
+        return values;
+    }
+
+    /**
      * Indexes a new document or overwrites an existing one with {@link
      * WriteRequest.RefreshPolicy#IMMEDIATE}.
      *
@@ -487,6 +546,8 @@ public class ContentIndex {
             currentDoc.put(Constants.KEY_OFFSET, offset);
         }
 
+        this.resolveIntegrationEnabled(currentDoc);
+
         // 3. Process
         String processedJson = this.processPayloadToString(currentDoc);
 
@@ -559,6 +620,8 @@ public class ContentIndex {
             }
             patchTarget.put(Constants.KEY_OFFSET, task.offset());
 
+            this.resolveIntegrationEnabled(patchTarget);
+
             String processedJson = this.processPayloadToString(patchTarget);
             bulkRequest.add(
                     new IndexRequest(this.getWriteIndex())
@@ -576,6 +639,22 @@ public class ContentIndex {
         }
 
         return tasks.get(tasks.size() - 1).offset();
+    }
+
+    /**
+     * Re-resolves an integration's effective enabled state after a patch has been applied. No-op for
+     * every other index, so the shared update paths stay untouched for rules, decoders and kvdbs.
+     *
+     * @param patchTarget the patched root node.
+     */
+    private void resolveIntegrationEnabled(ObjectNode patchTarget) {
+        if (!Constants.INDEX_INTEGRATIONS.equals(this.indexName)) {
+            return;
+        }
+        JsonNode document = patchTarget.get(Constants.KEY_DOCUMENT);
+        if (document instanceof ObjectNode documentNode) {
+            IntegrationEnabledResolver.resolve(documentNode);
+        }
     }
 
     private void executeBulkUpdate(BulkRequest bulkRequest, long timeout) throws Exception {
