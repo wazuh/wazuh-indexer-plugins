@@ -117,9 +117,8 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
                             // Integrations created through the API are always user-managed.
                             ((ObjectNode) resource).put(Constants.KEY_MODE, Constants.MODE_USER_MANAGED);
 
-                            // 'user_enabled' carries the user's choice in every space. Default it
-                            // the way 'enabled' used to be defaulted, then derive 'enabled' from it
-                            // so the resolution rule lives in exactly one place.
+                            // 'cti_enabled' is server-managed; 'user_enabled' defaults to true, as
+                            // 'enabled' used to, and 'enabled' is derived from it via the resolver.
                             ObjectNode resourceNode = (ObjectNode) resource;
                             resourceNode.remove(Constants.KEY_CTI_ENABLED);
                             if (!resourceNode.has(Constants.KEY_USER_ENABLED)

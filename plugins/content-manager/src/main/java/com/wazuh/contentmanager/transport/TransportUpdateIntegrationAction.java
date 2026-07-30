@@ -64,9 +64,8 @@ import static org.opensearch.rest.RestRequest.Method.PUT;
  * </ul>
  *
  * <p>{@code user_enabled} carries the user's explicit choice and is required in both spaces. The
- * effective {@code enabled} is derived from it by {@link
- * com.wazuh.contentmanager.cti.catalog.index.IntegrationEnabledResolver} and is never accepted from
- * a request body, and neither is {@code cti_enabled}.
+ * effective {@code enabled} is derived from it by {@link IntegrationEnabledResolver} and is never
+ * accepted from a request body, and neither is {@code cti_enabled}.
  */
 public class TransportUpdateIntegrationAction extends AbstractTransportUpdateActionSpaces {
 
@@ -179,8 +178,7 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
         }
 
         if (Space.STANDARD.equals(space)) {
-            // Only 'user_enabled' is mutable in the standard space: it carries the user's
-            // decision, and the effective 'enabled' is derived from it.
+            // Only 'user_enabled' is mutable in the standard space
             boolean userEnabled = resourceNode.path(Constants.KEY_USER_ENABLED).asBoolean(true);
             String modified =
                     resourceNode.path(Constants.KEY_METADATA).path(Constants.KEY_MODIFIED).asText(null);
@@ -197,8 +195,7 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
             return null;
         }
 
-        // Outside the standard space there is no CTI value, so the effective 'enabled' is the
-        // user's choice. Deriving it through the resolver keeps the rule in one place.
+        // No CTI value outside the standard space, so 'enabled' is always the user's choice
         IntegrationEnabledResolver.resolve(resourceNode);
 
         @SuppressWarnings("unchecked")

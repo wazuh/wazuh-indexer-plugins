@@ -38,9 +38,7 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 public final class IntegrationEnabledResolver {
 
-    private IntegrationEnabledResolver() {
-        // utility class
-    }
+    private IntegrationEnabledResolver() {}
 
     /**
      * @param document the {@code document} node of an integration, may be {@code null}.

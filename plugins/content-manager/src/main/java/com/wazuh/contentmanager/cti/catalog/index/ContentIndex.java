@@ -403,9 +403,6 @@ public class ContentIndex {
                         .size(10000);
         SearchRequest request =
                 new SearchRequest(this.indexName)
-                        // Tolerate a missing or closed integrations index (e.g. a fresh installation that
-                        // has not run its first snapshot yet): treat it as an empty result instead of
-                        // failing, so the very first snapshot is not aborted for lack of an index to read.
                         .indicesOptions(IndicesOptions.lenientExpandOpen())
                         .source(source);
         SearchResponse response =

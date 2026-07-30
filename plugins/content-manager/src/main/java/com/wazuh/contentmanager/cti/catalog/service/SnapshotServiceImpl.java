@@ -197,10 +197,10 @@ public class SnapshotServiceImpl implements SnapshotService {
                 return false;
             }
 
-            // 2. Load user overrides (through the alias, so this sees live pre-swap state), then
-            // stream and index JSON entries directly from the ZIP. Skipped when the caller already
-            // captured them before wiping the live indices.
+            // 2. Load user overrides
             this.captureUserOverridesIfNeeded();
+
+            // 3. Stream and index JSON entries directly from the ZIP
             startMs = System.currentTimeMillis();
             this.processZip(snapshotZip);
 
@@ -249,19 +249,15 @@ public class SnapshotServiceImpl implements SnapshotService {
      * a plan-change swap this captures the live pre-swap state while the shadow index is being
      * populated.
      *
-     * <p><b>Must be called while the documents carrying the overrides still exist.</b> Not every
-     * caller wipes the indices inside {@code initialize}: the reinitialisation path in {@code
-     * AbstractConsumerService} deletes every standard-space document <i>before</i> calling {@code
-     * initialize}, so it must invoke this method itself beforehand. Reading afterwards would search
-     * an already-emptied index, silently yield an empty map and drop every override. The {@link
-     * #overridesCaptured} flag then stops {@code initialize} from re-reading and undoing that
-     * capture.
+     * <p><b>Must be called while the documents carrying the overrides still exist.</b> The
+     * reinitialisation path in {@code AbstractConsumerService} deletes every standard-space document
+     * before calling {@code initialize}, so it calls this method itself beforehand; the {@link
+     * #overridesCaptured} flag then stops {@code initialize} from reading the now-emptied index and
+     * discarding that capture.
      *
-     * <p>If the read fails, the failure is logged at ERROR and rethrown so the caller aborts the
-     * snapshot instead of proceeding with an empty override map — an empty map is indistinguishable
-     * from "the user never set any override", so treating a failed read as "no overrides" would
-     * silently rebuild every integration with CTI's values and permanently lose every user override.
-     * Callers must abort <i>before</i> their own destructive step for that to be worth anything.
+     * <p>A read failure is rethrown rather than treated as "no overrides", since the two are
+     * indistinguishable otherwise and swallowing it would silently rebuild every integration with
+     * CTI's values. Callers must abort before their own destructive step for that to matter.
      *
      * @throws IOException if a stored override document cannot be parsed as JSON.
      * @throws InterruptedException if the thread is interrupted while waiting for the read.
@@ -416,9 +412,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                         if (Constants.KEY_CVES.equals(type) && cveType != null) {
                             syntheticPayload.put(Constants.KEY_TYPE, cveType);
                         }
-                        // Re-apply the user's override before the payload is processed, so the
-                        // stored document hash is computed over the content that is actually
-                        // indexed, and so the string-only processing path is preserved.
+                        // Merge before processing, so the stored hash covers the merged content.
                         if (Constants.KEY_INTEGRATION.equals(type)) {
                             this.mergeIntegrationEnabled(syntheticPayload);
                         }
@@ -508,15 +502,13 @@ public class SnapshotServiceImpl implements SnapshotService {
         long startMs = System.currentTimeMillis();
 
         try {
-            // Capture user overrides before the indices are cleared, so they can be
-            // re-applied as the snapshot repopulates them. Skipped when the caller already
-            // captured them before wiping the live indices.
+            // 1. Load user overrides
             this.captureUserOverridesIfNeeded();
 
-            // 1. Clear indices
+            // 2. Clear indices
             this.indicesMap.values().forEach(ContentIndex::clear);
 
-            // 2. Stream and index JSON entries directly from the ZIP
+            // 3. Stream and index JSON entries directly from the ZIP
             AccessController.doPrivilegedChecked(
                     () -> {
                         this.processZip(localZip);

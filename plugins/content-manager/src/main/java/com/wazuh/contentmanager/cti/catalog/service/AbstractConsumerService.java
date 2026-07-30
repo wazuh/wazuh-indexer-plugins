@@ -387,24 +387,13 @@ public abstract class AbstractConsumerService {
     }
 
     /**
-     * Performs the core synchronization logic for consumer services. Retrieves local and remote
-     * consumer state, creates any missing indices with their mappings and aliases, initializes from
-     * snapshot if this is a first-time sync (offset = 0), and applies incremental updates if the
-     * remote offset is ahead.
-     *
-     * @return a {@link SyncResult} carrying whether content was updated and whether a configured feed
-     *     could not be reached.
-     */
-    /**
      * Captures the user's integration enabled overrides and only then wipes the standard space, in
      * that order.
      *
      * <p>The two steps live in one method because their order is a correctness requirement, not a
      * preference: the overrides are stored in the very documents the wipe deletes. Reading them
-     * afterwards — which is what {@code initialize} does on its own — searches an emptied index,
-     * yields an empty map indistinguishable from "the user never chose anything", and silently
-     * rebuilds every integration with CTI's values. That was the original bug, reproduced on a live
-     * cluster.
+     * afterwards would search an emptied index, yield an empty map indistinguishable from "the user
+     * never chose anything", and silently rebuild every integration with CTI's values.
      *
      * <p>A failed capture aborts before anything is deleted, so the next sync cycle retries from an
      * intact index. A failed wipe is logged and tolerated, matching the previous behaviour.
@@ -454,6 +443,15 @@ public abstract class AbstractConsumerService {
         return true;
     }
 
+    /**
+     * Performs the core synchronization logic for consumer services. Retrieves local and remote
+     * consumer state, creates any missing indices with their mappings and aliases, initializes from
+     * snapshot if this is a first-time sync (offset = 0), and applies incremental updates if the
+     * remote offset is ahead.
+     *
+     * @return a {@link SyncResult} carrying whether content was updated and whether a configured feed
+     *     could not be reached.
+     */
     private SyncResult syncConsumerServices() {
         String consumerType = this.getConsumerType();
 
