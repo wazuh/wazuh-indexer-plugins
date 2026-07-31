@@ -129,8 +129,16 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
                 .getPolicy(eq(spaceName), any());
     }
 
+    @SuppressWarnings("unchecked")
     private void okPromote() {
-        when(this.engine.promote(any())).thenReturn(new RestResponse("ok", RestStatus.OK.getStatus()));
+        doAnswer(
+                        inv -> {
+                            ActionListener<RestResponse> l = inv.getArgument(1);
+                            l.onResponse(new RestResponse("ok", RestStatus.OK.getStatus()));
+                            return null;
+                        })
+                .when(this.engine)
+                .promoteAsync(any(), any());
     }
 
     /** A changed (first-seen) hash triggers a promote and the hash is recorded. */
@@ -140,7 +148,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
 
         this.loader.reloadIfChanged();
 
-        verify(this.engine, times(1)).promote(any());
+        verify(this.engine, times(1)).promoteAsync(any(), any());
     }
 
     /** A second reload with the same hash after a successful load is a no-op. */
@@ -151,7 +159,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
         this.loader.reloadIfChanged();
         this.loader.reloadIfChanged();
 
-        verify(this.engine, times(1)).promote(any());
+        verify(this.engine, times(1)).promoteAsync(any(), any());
     }
 
     /** A different hash after a successful load triggers another promote. */
@@ -164,19 +172,26 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
         this.stubPolicy(STANDARD, policyWithHash(STANDARD, "hash-2"));
         this.loader.reloadIfChanged();
 
-        verify(this.engine, times(2)).promote(any());
+        verify(this.engine, times(2)).promoteAsync(any(), any());
     }
 
     /** A non-OK Engine response does not record the hash, so the next reload retries. */
+    @SuppressWarnings("unchecked")
     public void testNonOkResponseIsRetried() {
         this.stubPolicy(STANDARD, policyWithHash(STANDARD, "hash-1"));
-        when(this.engine.promote(any()))
-                .thenReturn(new RestResponse("busy", RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+        doAnswer(
+                        inv -> {
+                            ActionListener<RestResponse> l = inv.getArgument(1);
+                            l.onResponse(new RestResponse("busy", RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                            return null;
+                        })
+                .when(this.engine)
+                .promoteAsync(any(), any());
 
         this.loader.reloadIfChanged();
         this.loader.reloadIfChanged();
 
-        verify(this.engine, times(2)).promote(any());
+        verify(this.engine, times(2)).promoteAsync(any(), any());
     }
 
     /** No policy yet: nothing is loaded. */
@@ -185,7 +200,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
 
         this.loader.reloadIfChanged();
 
-        verify(this.engine, never()).promote(any());
+        verify(this.engine, never()).promoteAsync(any(), any());
     }
 
     /** A policy without an aggregate hash is skipped. */
@@ -196,7 +211,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
 
         this.loader.reloadIfChanged();
 
-        verify(this.engine, never()).promote(any());
+        verify(this.engine, never()).promoteAsync(any(), any());
     }
 
     /** All three tracked spaces (standard, test, custom) with changed hashes each load once. */
@@ -208,7 +223,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
 
         this.loader.reloadIfChanged();
 
-        verify(this.engine, times(3)).promote(any());
+        verify(this.engine, times(3)).promoteAsync(any(), any());
     }
 
     /** Only the space whose hash changed reloads; the unchanged ones are skipped. */
@@ -223,7 +238,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
         this.stubPolicy(TEST, policyWithHash(TEST, "test-2")); // only TEST changes
         this.loader.reloadIfChanged(); // one more promote (TEST)
 
-        verify(this.engine, times(4)).promote(any());
+        verify(this.engine, times(4)).promoteAsync(any(), any());
     }
 
     /** A promoted TEST space alone loads even when standard/custom are unchanged/absent. */
@@ -233,22 +248,22 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
 
         this.loader.reloadIfChanged();
 
-        verify(this.engine, times(1)).promote(any());
+        verify(this.engine, times(1)).promoteAsync(any(), any());
     }
 
     /**
      * Nothing to load means no pool thread is borrowed at all: the hash reads run on the caller's
-     * callbacks and the generic pool is only reached for an actual Engine call.
+     * callbacks and the engine call is delegated to {@code promoteAsync}.
      */
     public void testNoThreadIsBorrowedWhenNothingChanged() {
         this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
         this.okPromote();
 
-        this.loader.reloadIfChanged(); // loads STANDARD (one generic dispatch)
-        verify(this.threadPool, times(1)).generic();
+        this.loader.reloadIfChanged(); // loads STANDARD via promoteAsync (no generic dispatch)
+        verify(this.threadPool, never()).generic();
 
         this.loader.reloadIfChanged(); // everything up to date now
-        verify(this.threadPool, times(1)).generic();
+        verify(this.threadPool, never()).generic();
     }
 
     /** A read failure is logged per space and still lets the remaining spaces load. */
@@ -267,7 +282,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
 
         this.loader.reloadIfChanged();
 
-        verify(this.engine, times(2)).promote(any());
+        verify(this.engine, times(2)).promoteAsync(any(), any());
     }
 
     /** The single-flight guard is released once the async chain finishes, so later triggers run. */
@@ -284,7 +299,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
         this.okPromote();
 
         this.loader.reloadIfChanged(); // fails before promoting
-        verify(this.engine, never()).promote(any());
+        verify(this.engine, never()).promoteAsync(any(), any());
 
         // Guard released: a later trigger retries and this time the payload builds.
         doAnswer(
@@ -298,7 +313,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
 
         this.loader.reloadIfChanged();
 
-        verify(this.engine, times(1)).promote(any());
+        verify(this.engine, times(1)).promoteAsync(any(), any());
     }
 
     /** The listener overload is notified when the run finishes, after the spaces were loaded. */
@@ -311,7 +326,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
                 ActionListener.wrap(v -> completed.set(true), e -> completed.set(false)));
 
         assertEquals(Boolean.TRUE, completed.get());
-        verify(this.engine, times(1)).promote(any());
+        verify(this.engine, times(1)).promoteAsync(any(), any());
     }
 
     /**
@@ -344,7 +359,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
 
         assertEquals(Boolean.TRUE, first.get());
         assertEquals(Boolean.TRUE, second.get());
-        verify(this.engine, times(1)).promote(any());
+        verify(this.engine, times(1)).promoteAsync(any(), any());
     }
 
     /**
@@ -392,7 +407,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
 
         assertEquals(Boolean.TRUE, completed.get());
         verify(this.spaceService, times(1)).getPolicy(anyString(), any());
-        verify(this.engine, never()).promote(any());
+        verify(this.engine, never()).promoteAsync(any(), any());
 
         // Once the reads succeed the next trigger loads normally.
         this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
@@ -402,7 +417,7 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
 
         this.loader.reloadIfChanged();
 
-        verify(this.engine, times(1)).promote(any());
+        verify(this.engine, times(1)).promoteAsync(any(), any());
     }
 
     /** An unavailable Engine is reported to the listener and does not wedge the guard. */

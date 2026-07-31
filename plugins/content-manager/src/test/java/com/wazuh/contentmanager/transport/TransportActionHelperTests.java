@@ -28,6 +28,7 @@ import org.junit.Before;
 import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -52,6 +53,7 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
 
     private SpaceService spaceService;
     private EngineService engine;
+    private EngineContentLoader engineContentLoader;
     private ObjectNode payload;
 
     @Before
@@ -60,6 +62,7 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
         super.setUp();
         this.spaceService = mock(SpaceService.class);
         this.engine = mock(EngineService.class);
+        this.engineContentLoader = mock(EngineContentLoader.class);
         this.payload = MAPPER.createObjectNode();
         this.payload.put("space", Space.STANDARD.toString());
     }
@@ -111,28 +114,33 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
         stubPromoteAsync(new RestResponse("OK", RestStatus.OK.getStatus()));
 
         TransportActionHelper.reloadStandardSpaceIntoEngine(
-                this.engine, this.spaceService, Set.of(Space.STANDARD.toString()));
+                this.engine,
+                this.spaceService,
+                Set.of(Space.STANDARD.toString()),
+                this.engineContentLoader);
 
         verify(this.engine).promoteAsync(eq(this.payload), any(ActionListener.class));
     }
 
     public void testSkipsReloadWhenStandardSpaceUnchanged() {
         TransportActionHelper.reloadStandardSpaceIntoEngine(
-                this.engine, this.spaceService, Set.of(Space.DRAFT.toString()));
+                this.engine, this.spaceService, Set.of(Space.DRAFT.toString()), this.engineContentLoader);
 
         verifyNoInteractions(this.spaceService);
         verifyNoInteractions(this.engine);
     }
 
     public void testSkipsReloadWhenNoSpaceChanged() {
-        TransportActionHelper.reloadStandardSpaceIntoEngine(this.engine, this.spaceService, Set.of());
+        TransportActionHelper.reloadStandardSpaceIntoEngine(
+                this.engine, this.spaceService, Set.of(), this.engineContentLoader);
 
         verifyNoInteractions(this.spaceService);
         verifyNoInteractions(this.engine);
     }
 
     public void testSkipsReloadWhenChangedSpacesIsNull() {
-        TransportActionHelper.reloadStandardSpaceIntoEngine(this.engine, this.spaceService, null);
+        TransportActionHelper.reloadStandardSpaceIntoEngine(
+                this.engine, this.spaceService, null, this.engineContentLoader);
 
         verifyNoInteractions(this.spaceService);
         verifyNoInteractions(this.engine);
@@ -141,7 +149,7 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
     /** A missing Engine must not build a payload, and must not fail the completed mutation. */
     public void testToleratesMissingEngine() {
         TransportActionHelper.reloadStandardSpaceIntoEngine(
-                null, this.spaceService, Set.of(Space.STANDARD.toString()));
+                null, this.spaceService, Set.of(Space.STANDARD.toString()), this.engineContentLoader);
 
         verifyNoInteractions(this.spaceService);
     }
@@ -155,7 +163,10 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
         stubPromoteAsync(new RestResponse("rejected", RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
 
         TransportActionHelper.reloadStandardSpaceIntoEngine(
-                this.engine, this.spaceService, Set.of(Space.STANDARD.toString()));
+                this.engine,
+                this.spaceService,
+                Set.of(Space.STANDARD.toString()),
+                this.engineContentLoader);
 
         verify(this.engine).promoteAsync(eq(this.payload), any(ActionListener.class));
     }
@@ -165,7 +176,10 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
         stubPromoteAsyncFailure(new RuntimeException("socket unavailable"));
 
         TransportActionHelper.reloadStandardSpaceIntoEngine(
-                this.engine, this.spaceService, Set.of(Space.STANDARD.toString()));
+                this.engine,
+                this.spaceService,
+                Set.of(Space.STANDARD.toString()),
+                this.engineContentLoader);
 
         verify(this.engine).promoteAsync(eq(this.payload), any(ActionListener.class));
     }
@@ -184,7 +198,10 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
                 .buildEnginePayload(eq(Space.STANDARD.toString()), any(ActionListener.class));
 
         TransportActionHelper.reloadStandardSpaceIntoEngine(
-                this.engine, this.spaceService, Set.of(Space.STANDARD.toString()));
+                this.engine,
+                this.spaceService,
+                Set.of(Space.STANDARD.toString()),
+                this.engineContentLoader);
 
         verify(this.engine, never()).promoteAsync(any(JsonNode.class), any(ActionListener.class));
     }

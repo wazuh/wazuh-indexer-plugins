@@ -274,6 +274,12 @@ public class Constants {
             "No aggregate hash for {} space yet; skipping Engine load.";
     public static final String D_LOG_ENGINE_SPACE_UNCHANGED =
             "Content hash unchanged for {} space; Engine already up to date.";
+    public static final String I_LOG_ENGINE_STANDARD_LOADED =
+            "Standard space reloaded into Engine after content mutation.";
+    public static final String W_LOG_ENGINE_STANDARD_LOAD_STATUS =
+            "Engine returned status [{}] when reloading standard space: {}";
+    public static final String E_LOG_ENGINE_STANDARD_LOAD_FAILED =
+            "Failed to reload standard space into Engine: {}";
     public static final String D_LOG_ENGINE_RELOAD_BROADCAST_SENT =
             "Broadcast engine content reload to all nodes after content update.";
     public static final String W_LOG_ENGINE_RELOAD_BROADCAST_FAILED =

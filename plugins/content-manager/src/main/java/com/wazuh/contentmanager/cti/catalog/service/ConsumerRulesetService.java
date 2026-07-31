@@ -57,7 +57,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private static final String[] DOCUMENT_ONLY_SOURCE = new String[] {Constants.KEY_DOCUMENT};
     private final ObjectMapper mapper;
 
-    private final SecurityAnalyticsServiceImpl securityAnalyticsService;
+    private final SecurityAnalyticsService securityAnalyticsService;
     private final SpaceService spaceService;
 
     private Set<String> preSwapIntegrationIds = Collections.emptySet();
@@ -69,12 +69,18 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * @param client The OpenSearch client.
      * @param consumersIndex The consumers index wrapper.
      * @param environment The OpenSearch environment settings.
+     * @param spaceService The shared space service.
+     * @param securityAnalyticsService The shared SAP service.
      */
     public ConsumerRulesetService(
-            Client client, ConsumersIndex consumersIndex, Environment environment) {
+            Client client,
+            ConsumersIndex consumersIndex,
+            Environment environment,
+            SpaceService spaceService,
+            SecurityAnalyticsService securityAnalyticsService) {
         super(client, consumersIndex, environment);
-        this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
-        this.spaceService = new SpaceService(client);
+        this.securityAnalyticsService = securityAnalyticsService;
+        this.spaceService = spaceService;
 
         this.mapper = new ObjectMapper();
         this.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
@@ -407,10 +413,13 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      *     #syncIntegrations()}, keyed by document ID.
      */
     private void syncDetectors(Map<String, JsonNode> integrationDocs) throws IOException {
+        if (!(this.securityAnalyticsService instanceof SecurityAnalyticsServiceImpl sapService)) {
+            return;
+        }
         List<JsonNode> docs = new ArrayList<>();
         integrationDocs.forEach(
                 (id, doc) -> {
-                    if (this.securityAnalyticsService.buildDetectorRequest(doc, true) != null) {
+                    if (sapService.buildDetectorRequest(doc, true) != null) {
                         docs.add(doc);
                     }
                 });
@@ -526,17 +535,20 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             Set<String> staleIntegrationIds = new HashSet<>(this.preSwapIntegrationIds);
             staleIntegrationIds.removeAll(currentIntegrationIds);
 
-            for (String id : staleIntegrationIds) {
-                try {
-                    CompletableFuture<Void> future = new CompletableFuture<>();
+            if (!staleIntegrationIds.isEmpty()) {
+                CountDownLatch integrationLatch = new CountDownLatch(staleIntegrationIds.size());
+                for (String id : staleIntegrationIds) {
                     this.securityAnalyticsService.deleteIntegration(
                             id,
                             Space.STANDARD,
-                            ActionListener.wrap(r -> future.complete(null), future::completeExceptionally));
-                    future.get(60, TimeUnit.SECONDS);
-                } catch (Exception e) {
-                    log.warn("Failed to delete stale integration [{}]: {}", id, e.getMessage());
+                            ActionListener.wrap(
+                                    r -> integrationLatch.countDown(),
+                                    e -> {
+                                        log.warn("Failed to delete stale integration [{}]: {}", id, e.getMessage());
+                                        integrationLatch.countDown();
+                                    }));
                 }
+                integrationLatch.await(120, TimeUnit.SECONDS);
             }
 
             Set<String> currentRuleIds =
@@ -544,17 +556,20 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             Set<String> staleRuleIds = new HashSet<>(this.preSwapRuleIds);
             staleRuleIds.removeAll(currentRuleIds);
 
-            for (String id : staleRuleIds) {
-                try {
-                    CompletableFuture<Void> future = new CompletableFuture<>();
+            if (!staleRuleIds.isEmpty()) {
+                CountDownLatch ruleLatch = new CountDownLatch(staleRuleIds.size());
+                for (String id : staleRuleIds) {
                     this.securityAnalyticsService.deleteRule(
                             id,
                             Space.STANDARD,
-                            ActionListener.wrap(r -> future.complete(null), future::completeExceptionally));
-                    future.get(60, TimeUnit.SECONDS);
-                } catch (Exception e) {
-                    log.warn("Failed to delete stale rule [{}]: {}", id, e.getMessage());
+                            ActionListener.wrap(
+                                    r -> ruleLatch.countDown(),
+                                    e -> {
+                                        log.warn("Failed to delete stale rule [{}]: {}", id, e.getMessage());
+                                        ruleLatch.countDown();
+                                    }));
                 }
+                ruleLatch.await(120, TimeUnit.SECONDS);
             }
 
             if (!staleIntegrationIds.isEmpty() || !staleRuleIds.isEmpty()) {

@@ -36,6 +36,8 @@ import com.wazuh.contentmanager.cti.catalog.service.AbstractConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerCveService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerIocService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 import com.wazuh.contentmanager.utils.Constants;
@@ -81,12 +83,15 @@ public class CatalogSyncJob implements JobExecutor {
             ConsumersIndex consumersIndex,
             Environment environment,
             ThreadPool threadPool,
-            EngineService engineService) {
+            EngineService engineService,
+            SpaceService spaceService,
+            SecurityAnalyticsService securityAnalyticsService) {
         this.client = client;
         this.threadPool = threadPool;
         this.synchronizers =
                 List.of(
-                        new ConsumerRulesetService(client, consumersIndex, environment),
+                        new ConsumerRulesetService(
+                                client, consumersIndex, environment, spaceService, securityAnalyticsService),
                         new ConsumerIocService(client, consumersIndex, environment, engineService),
                         new ConsumerCveService(client, consumersIndex, environment));
     }

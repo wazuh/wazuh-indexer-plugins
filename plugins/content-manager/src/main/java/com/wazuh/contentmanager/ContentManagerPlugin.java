@@ -217,10 +217,22 @@ public class ContentManagerPlugin extends Plugin
         this.engineContentLoader =
                 new EngineContentLoader(this.engine, this.spaceService, this.threadPool);
 
+        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+            this.securityAnalyticsService = new MockSecurityAnalyticsService();
+        } else {
+            this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
+        }
+
         // Initialize CatalogSyncJob
         this.catalogSyncJob =
                 new CatalogSyncJob(
-                        this.client, this.consumersIndex, environment, this.threadPool, this.engine);
+                        this.client,
+                        this.consumersIndex,
+                        environment,
+                        this.threadPool,
+                        this.engine,
+                        this.spaceService,
+                        this.securityAnalyticsService);
 
         // Initialize TelemetryPingJob
         this.telemetryPingJob =
@@ -229,13 +241,6 @@ public class ContentManagerPlugin extends Plugin
         // Register Executors
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
         runner.registerExecutor(TelemetryPingJob.JOB_TYPE, this.telemetryPingJob);
-
-        // Initialize services
-        if (PluginSettings.getInstance().isEngineMockEnabled()) {
-            this.securityAnalyticsService = new MockSecurityAnalyticsService();
-        } else {
-            this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
-        }
 
         this.logtestService =
                 new LogtestService(this.engine, this.securityAnalyticsService, this.client);

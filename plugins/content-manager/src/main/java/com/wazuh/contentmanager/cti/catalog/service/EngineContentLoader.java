@@ -38,7 +38,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -131,6 +130,19 @@ public class EngineContentLoader {
         this.engine = engine;
         this.spaceService = spaceService;
         this.threadPool = threadPool;
+    }
+
+    /**
+     * Records a hash as already loaded for the given space, so that a subsequent {@link
+     * #reloadIfChanged} skips it when the index hash matches. Use this when an external path (e.g.
+     * {@link com.wazuh.contentmanager.transport.TransportActionHelper#reloadStandardSpaceIntoEngine})
+     * has already promoted the space's content into the Engine.
+     *
+     * @param space the space name (e.g. {@code standard}).
+     * @param hash the hash that was successfully loaded.
+     */
+    public void updateLoadedHash(String space, String hash) {
+        this.loadedHashes.put(space, hash);
     }
 
     /**
@@ -331,27 +343,23 @@ public class EngineContentLoader {
      */
     private void promote(
             String space, String desiredHash, JsonNode payload, ActionListener<Void> listener) {
-        this.threadPool
-                .generic()
-                .execute(
-                        () -> {
-                            try {
-                                RestResponse response = this.engine.promote(payload);
-                                if (response.getStatus() == RestStatus.OK.getStatus()) {
-                                    this.loadedHashes.put(space, desiredHash);
-                                    log.info(Constants.I_LOG_ENGINE_SPACE_LOADED, space);
-                                } else {
-                                    log.warn(
-                                            Constants.W_LOG_ENGINE_SPACE_LOAD_STATUS,
-                                            space,
-                                            response.getStatus(),
-                                            response.getMessage());
-                                }
-                                listener.onResponse(null);
-                            } catch (Exception e) {
-                                listener.onFailure(e);
+        this.engine.promoteAsync(
+                payload,
+                ActionListener.wrap(
+                        response -> {
+                            if (response.getStatus() == RestStatus.OK.getStatus()) {
+                                this.loadedHashes.put(space, desiredHash);
+                                log.info(Constants.I_LOG_ENGINE_SPACE_LOADED, space);
+                            } else {
+                                log.warn(
+                                        Constants.W_LOG_ENGINE_SPACE_LOAD_STATUS,
+                                        space,
+                                        response.getStatus(),
+                                        response.getMessage());
                             }
-                        });
+                            listener.onResponse(null);
+                        },
+                        listener::onFailure));
     }
 
     /**

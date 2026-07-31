@@ -60,6 +60,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     @Mock private Client client;
     @Mock private ConsumersIndex consumersIndex;
     @Mock private Environment environment;
+    @Mock private SpaceService spaceService;
+    @Mock private SecurityAnalyticsService securityAnalyticsService;
 
     @Before
     @Override
@@ -68,7 +70,12 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
         this.synchronizer =
-                new ConsumerRulesetService(this.client, this.consumersIndex, this.environment);
+                new ConsumerRulesetService(
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.spaceService,
+                        this.securityAnalyticsService);
     }
 
     @After

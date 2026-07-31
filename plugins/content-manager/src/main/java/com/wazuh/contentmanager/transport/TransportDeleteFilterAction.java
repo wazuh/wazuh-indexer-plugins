@@ -34,6 +34,7 @@ import com.wazuh.contentmanager.action.DeleteFilterAction;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -48,8 +49,15 @@ public class TransportDeleteFilterAction extends AbstractTransportDeleteActionSp
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
-            EngineService engine) {
-        super(DeleteFilterAction.NAME, transportService, actionFilters, client, engine);
+            EngineService engine,
+            EngineContentLoader engineContentLoader) {
+        super(
+                DeleteFilterAction.NAME,
+                transportService,
+                actionFilters,
+                client,
+                engine,
+                engineContentLoader);
     }
 
     @Override

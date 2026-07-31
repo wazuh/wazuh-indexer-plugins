@@ -253,20 +253,19 @@ public class SpaceService {
 
             ObjectNode docNode = this.objectMapper.valueToTree(policy);
             Resource.nestMetadataFields(docNode);
-            @SuppressWarnings("unchecked")
-            Map<String, Object> docMap = this.objectMapper.convertValue(docNode, Map.class);
 
-            String docJson = this.objectMapper.writeValueAsString(docMap);
+            String docJson = this.objectMapper.writeValueAsString(docNode);
             String docHash = Resource.computeSha256(docJson);
 
-            Map<String, Object> space = new HashMap<>();
-            space.put(Constants.KEY_NAME, spaceName);
-            space.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
+            ObjectNode hashNode = this.objectMapper.createObjectNode().put(Constants.KEY_SHA256, docHash);
+            ObjectNode spaceNode = this.objectMapper.createObjectNode();
+            spaceNode.put(Constants.KEY_NAME, spaceName);
+            spaceNode.set(Constants.KEY_HASH, hashNode.deepCopy());
 
-            Map<String, Object> source = new HashMap<>();
-            source.put(Constants.KEY_DOCUMENT, docMap);
-            source.put(Constants.KEY_SPACE, space);
-            source.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
+            ObjectNode source = this.objectMapper.createObjectNode();
+            source.set(Constants.KEY_DOCUMENT, docNode);
+            source.set(Constants.KEY_SPACE, spaceNode);
+            source.set(Constants.KEY_HASH, hashNode);
 
             IndexRequest request =
                     new IndexRequest(Constants.INDEX_POLICIES)

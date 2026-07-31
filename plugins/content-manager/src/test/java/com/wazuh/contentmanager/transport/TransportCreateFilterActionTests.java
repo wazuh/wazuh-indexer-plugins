@@ -50,6 +50,7 @@ import java.nio.charset.StandardCharsets;
 
 import com.wazuh.contentmanager.action.ContentCreateRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
+import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -91,7 +92,11 @@ public class TransportCreateFilterActionTests extends OpenSearchTestCase {
         when(transportService.getThreadPool()).thenReturn(threadPool);
         this.action =
                 new TransportCreateFilterAction(
-                        transportService, mock(ActionFilters.class), this.client, mock(EngineService.class));
+                        transportService,
+                        mock(ActionFilters.class),
+                        this.client,
+                        mock(EngineService.class),
+                        mock(EngineContentLoader.class));
     }
 
     @After
