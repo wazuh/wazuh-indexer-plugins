@@ -41,6 +41,7 @@ import com.wazuh.contentmanager.action.ContentDeleteRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -63,16 +64,19 @@ public abstract class AbstractTransportDeleteActionSpaces
     protected final PayloadValidations documentValidations = new PayloadValidations();
     protected final Client client;
     protected final EngineService engine;
+    protected final EngineContentLoader engineContentLoader;
 
     protected AbstractTransportDeleteActionSpaces(
             String actionName,
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
-            EngineService engine) {
+            EngineService engine,
+            EngineContentLoader engineContentLoader) {
         super(actionName, transportService, actionFilters, ContentDeleteRequest::new);
         this.client = client;
         this.engine = engine;
+        this.engineContentLoader = engineContentLoader;
     }
 
     @Override
@@ -242,7 +246,11 @@ public abstract class AbstractTransportDeleteActionSpaces
                                     ActionListener.wrap(
                                             changed -> {
                                                 TransportActionHelper.reloadStandardSpaceIntoEngine(
-                                                        this.engine, spaceService, changed);
+                                                        this.engine,
+                                                        spaceService,
+                                                        changed,
+                                                        this.engineContentLoader,
+                                                        this.client);
                                                 log.info(Constants.I_LOG_SUCCESS, "Deleted", this.getResourceType(), id);
                                                 respond(listener, new RestResponse(id, RestStatus.OK.getStatus()));
                                             },

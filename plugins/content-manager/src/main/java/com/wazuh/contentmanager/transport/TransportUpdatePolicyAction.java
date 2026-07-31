@@ -48,6 +48,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -66,6 +67,7 @@ public class TransportUpdatePolicyAction
 
     private final SpaceService spaceService;
     private final EngineService engineService;
+    private final EngineContentLoader engineContentLoader;
     private final Client client;
     private final PayloadValidations payloadValidations;
 
@@ -75,10 +77,12 @@ public class TransportUpdatePolicyAction
             ActionFilters actionFilters,
             SpaceService spaceService,
             EngineService engineService,
+            EngineContentLoader engineContentLoader,
             Client client) {
         super(UpdatePolicyAction.NAME, transportService, actionFilters, UpdatePolicyRequest::new);
         this.spaceService = spaceService;
         this.engineService = engineService;
+        this.engineContentLoader = engineContentLoader;
         this.client = client;
         this.payloadValidations = new PayloadValidations();
     }
@@ -350,7 +354,11 @@ public class TransportUpdatePolicyAction
                 ActionListener.wrap(
                         changedSpaces -> {
                             TransportActionHelper.reloadStandardSpaceIntoEngine(
-                                    this.engineService, this.spaceService, changedSpaces);
+                                    this.engineService,
+                                    this.spaceService,
+                                    changedSpaces,
+                                    this.engineContentLoader,
+                                    this.client);
                             listener.onResponse(new MessageStatusResponse(policyId, RestStatus.OK));
                         },
                         e -> respondWithError(listener, e)));

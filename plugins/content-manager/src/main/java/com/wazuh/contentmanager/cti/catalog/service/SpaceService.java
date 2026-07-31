@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.bulk.BulkRequest;
@@ -35,8 +36,10 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.GroupedActionListener;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
@@ -250,20 +253,19 @@ public class SpaceService {
 
             ObjectNode docNode = this.objectMapper.valueToTree(policy);
             Resource.nestMetadataFields(docNode);
-            @SuppressWarnings("unchecked")
-            Map<String, Object> docMap = this.objectMapper.convertValue(docNode, Map.class);
 
-            String docJson = this.objectMapper.writeValueAsString(docMap);
+            String docJson = this.objectMapper.writeValueAsString(docNode);
             String docHash = Resource.computeSha256(docJson);
 
-            Map<String, Object> space = new HashMap<>();
-            space.put(Constants.KEY_NAME, spaceName);
-            space.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
+            ObjectNode hashNode = this.objectMapper.createObjectNode().put(Constants.KEY_SHA256, docHash);
+            ObjectNode spaceNode = this.objectMapper.createObjectNode();
+            spaceNode.put(Constants.KEY_NAME, spaceName);
+            spaceNode.set(Constants.KEY_HASH, hashNode.deepCopy());
 
-            Map<String, Object> source = new HashMap<>();
-            source.put(Constants.KEY_DOCUMENT, docMap);
-            source.put(Constants.KEY_SPACE, space);
-            source.put(Constants.KEY_HASH, Map.of(Constants.KEY_SHA256, docHash));
+            ObjectNode source = this.objectMapper.createObjectNode();
+            source.set(Constants.KEY_DOCUMENT, docNode);
+            source.set(Constants.KEY_SPACE, spaceNode);
+            source.set(Constants.KEY_HASH, hashNode);
 
             IndexRequest request =
                     new IndexRequest(Constants.INDEX_POLICIES)
@@ -967,7 +969,16 @@ public class SpaceService {
                             }
                         },
                         e -> {
-                            log.error(Constants.E_LOG_GET_POLICY_FAILED, space, e.getMessage());
+                            // A missing policies index or a cluster block (typically "state not
+                            // recovered / initialized") is an expected pre-initialization state, not an
+                            // operational error: every node reads policies from startup onwards.
+                            // Callers still get the failure and decide.
+                            if (ExceptionsHelper.unwrap(e, IndexNotFoundException.class) != null
+                                    || ExceptionsHelper.unwrap(e, ClusterBlockException.class) != null) {
+                                log.debug(Constants.D_LOG_POLICY_INDEX_NOT_READY, space, e.getMessage());
+                            } else {
+                                log.error(Constants.E_LOG_GET_POLICY_FAILED, space, e.getMessage());
+                            }
                             listener.onFailure(
                                     new IOException("Failed to retrieve policy: " + e.getMessage(), e));
                         }));
