@@ -338,7 +338,11 @@ public abstract class AbstractTransportUpdateActionSpaces
                                         ActionListener.wrap(
                                                 changed -> {
                                                     TransportActionHelper.reloadStandardSpaceIntoEngine(
-                                                            this.engine, spaceService, changed, this.engineContentLoader);
+                                                            this.engine,
+                                                            spaceService,
+                                                            changed,
+                                                            this.engineContentLoader,
+                                                            this.client);
                                                     log.info(Constants.I_LOG_SUCCESS, "Updated", this.getResourceType(), id);
                                                     respond(listener, new RestResponse(id, RestStatus.OK.getStatus()));
                                                 },

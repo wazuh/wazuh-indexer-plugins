@@ -31,6 +31,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import com.wazuh.contentmanager.action.ReloadEngineContentAction;
+import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
@@ -110,7 +112,8 @@ public final class TransportActionHelper {
             EngineService engine,
             SpaceService spaceService,
             Set<String> changedSpaces,
-            EngineContentLoader engineContentLoader) {
+            EngineContentLoader engineContentLoader,
+            Client client) {
         if (changedSpaces == null || !changedSpaces.contains(Space.STANDARD.toString())) {
             return;
         }
@@ -118,6 +121,13 @@ public final class TransportActionHelper {
             log.warn(Constants.E_LOG_ENGINE_IS_NULL);
             return;
         }
+
+        client.execute(
+                ReloadEngineContentAction.INSTANCE,
+                new ReloadEngineContentRequest(),
+                ActionListener.wrap(
+                        r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
+                        e -> log.warn(Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
 
         spaceService.buildEnginePayload(
                 Space.STANDARD.toString(),

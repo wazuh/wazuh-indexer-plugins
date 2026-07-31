@@ -354,7 +354,11 @@ public class TransportUpdatePolicyAction
                 ActionListener.wrap(
                         changedSpaces -> {
                             TransportActionHelper.reloadStandardSpaceIntoEngine(
-                                    this.engineService, this.spaceService, changedSpaces, this.engineContentLoader);
+                                    this.engineService,
+                                    this.spaceService,
+                                    changedSpaces,
+                                    this.engineContentLoader,
+                                    this.client);
                             listener.onResponse(new MessageStatusResponse(policyId, RestStatus.OK));
                         },
                         e -> respondWithError(listener, e)));

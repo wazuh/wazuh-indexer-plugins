@@ -411,7 +411,8 @@ public abstract class AbstractTransportCreateActionSpaces
                                                                                     this.engine,
                                                                                     spaceService,
                                                                                     changed,
-                                                                                    this.engineContentLoader);
+                                                                                    this.engineContentLoader,
+                                                                                    this.client);
                                                                             log.info(
                                                                                     Constants.I_LOG_SUCCESS,
                                                                                     "Created",
