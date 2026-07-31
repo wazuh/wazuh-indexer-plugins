@@ -171,6 +171,7 @@
 - [BUG] Missing threat-intel indices [(#1362)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1362)
 - Update the Content Manager OpenAPI (`openapi.yml`) to match the current API [(#1353)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1353)
 - [BUG] Vulnerability Detection empty for all agents after a transient snapshot bootstrap failure [(#1383)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1383)
+- [BUG] Log test does not use manually enabled integrations [(#1410)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1410)
 
 ## Prior versions
 - []()

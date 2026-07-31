@@ -403,6 +403,8 @@ public abstract class AbstractTransportCreateActionSpaces
                                                                 List.of(spaceName),
                                                                 ActionListener.wrap(
                                                                         changed -> {
+                                                                            TransportActionHelper.reloadStandardSpaceIntoEngine(
+                                                                                    this.engine, spaceService, changed);
                                                                             log.info(
                                                                                     Constants.I_LOG_SUCCESS,
                                                                                     "Created",

@@ -61,4 +61,13 @@ public class SignedUrlResolver implements ResourceUrlResolver {
         PluginSettings.getInstance().setAccessToken(null);
         return originalUrl;
     }
+
+    /**
+     * Closes the underlying token-exchange service, releasing its HTTP client. Without this, the
+     * client's I/O reactor selectors leak file descriptors on every catalog sync (issue #1763).
+     */
+    @Override
+    public void close() {
+        this.tokenExchangeService.close();
+    }
 }
