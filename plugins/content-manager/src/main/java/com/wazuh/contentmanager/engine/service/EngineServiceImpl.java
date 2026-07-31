@@ -20,6 +20,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.threadpool.ThreadPool;
+
 import com.wazuh.contentmanager.engine.client.EngineSocketClient;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
@@ -36,21 +39,27 @@ public class EngineServiceImpl implements EngineService {
 
     private final EngineSocketClient socket;
     private final ObjectMapper mapper;
+    private final ThreadPool threadPool;
 
-    /** Default constructor. */
-    public EngineServiceImpl() {
-        this.socket = new EngineSocketClient();
-        this.mapper = new ObjectMapper();
+    /**
+     * Production constructor.
+     *
+     * @param threadPool used by {@link #promoteAsync} to offload blocking socket I/O.
+     */
+    public EngineServiceImpl(ThreadPool threadPool) {
+        this(new EngineSocketClient(), threadPool);
     }
 
     /**
-     * Parametrized constructor
+     * Test constructor.
      *
      * @param socket instance of {@link EngineSocketClient}
+     * @param threadPool used by {@link #promoteAsync} to offload blocking socket I/O.
      */
-    public EngineServiceImpl(EngineSocketClient socket) {
+    public EngineServiceImpl(EngineSocketClient socket, ThreadPool threadPool) {
         this.socket = socket;
         this.mapper = new ObjectMapper();
+        this.threadPool = threadPool;
     }
 
     @Override
@@ -66,6 +75,20 @@ public class EngineServiceImpl implements EngineService {
     @Override
     public RestResponse promote(JsonNode policy) {
         return this.socket.sendRequest(PROMOTE, POST.name(), policy);
+    }
+
+    @Override
+    public void promoteAsync(JsonNode policy, ActionListener<RestResponse> listener) {
+        this.threadPool
+                .generic()
+                .execute(
+                        () -> {
+                            try {
+                                listener.onResponse(promote(policy));
+                            } catch (Exception e) {
+                                listener.onFailure(e);
+                            }
+                        });
     }
 
     @Override

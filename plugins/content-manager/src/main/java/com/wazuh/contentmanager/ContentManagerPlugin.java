@@ -205,7 +205,7 @@ public class ContentManagerPlugin extends Plugin
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             this.engine = new MockEngineService();
         } else {
-            this.engine = new EngineServiceImpl();
+            this.engine = new EngineServiceImpl(this.threadPool);
         }
 
         // Initialize CatalogSyncJob

@@ -241,6 +241,8 @@ public abstract class AbstractTransportDeleteActionSpaces
                                     List.of(spaceName),
                                     ActionListener.wrap(
                                             changed -> {
+                                                TransportActionHelper.reloadStandardSpaceIntoEngine(
+                                                        this.engine, spaceService, changed);
                                                 log.info(Constants.I_LOG_SUCCESS, "Deleted", this.getResourceType(), id);
                                                 respond(listener, new RestResponse(id, RestStatus.OK.getStatus()));
                                             },
