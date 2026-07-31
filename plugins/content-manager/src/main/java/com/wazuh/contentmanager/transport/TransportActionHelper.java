@@ -122,23 +122,18 @@ public final class TransportActionHelper {
                                         ActionListener.wrap(
                                                 response -> {
                                                     if (response.getStatus() == RestStatus.OK.getStatus()) {
-                                                        log.info(Constants.I_LOG_ENGINE_SPACE_LOADED, Space.STANDARD);
+                                                        log.info(Constants.I_LOG_ENGINE_STANDARD_LOADED);
                                                     } else {
                                                         log.warn(
-                                                                Constants.W_LOG_ENGINE_SPACE_LOAD_STATUS,
-                                                                Space.STANDARD,
+                                                                Constants.W_LOG_ENGINE_STANDARD_LOAD_STATUS,
                                                                 response.getStatus(),
                                                                 response.getMessage());
                                                     }
                                                 },
                                                 e ->
                                                         log.error(
-                                                                Constants.E_LOG_ENGINE_SPACE_LOAD_FAILED,
-                                                                Space.STANDARD,
-                                                                e.getMessage()))),
-                        e ->
-                                log.error(
-                                        Constants.E_LOG_ENGINE_SPACE_LOAD_FAILED, Space.STANDARD, e.getMessage())));
+                                                                Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage()))),
+                        e -> log.error(Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage())));
     }
 
     /** Walks the exception cause chain looking for an OpenSearchSecurityException. */
