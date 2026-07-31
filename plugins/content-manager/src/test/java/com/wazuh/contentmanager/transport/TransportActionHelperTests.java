@@ -39,7 +39,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link TransportActionHelper#reloadStandardSpaceIntoEngine}, the hook that keeps
@@ -79,15 +78,42 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
                 .buildEnginePayload(eq(Space.STANDARD.toString()), any(ActionListener.class));
     }
 
+    /** Stubs {@link EngineService#promoteAsync} to invoke its listener with the given response. */
+    @SuppressWarnings("unchecked")
+    private void stubPromoteAsync(RestResponse response) {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<RestResponse> listener =
+                                    (ActionListener<RestResponse>) invocation.getArguments()[1];
+                            listener.onResponse(response);
+                            return null;
+                        })
+                .when(this.engine)
+                .promoteAsync(any(JsonNode.class), any(ActionListener.class));
+    }
+
+    /** Stubs {@link EngineService#promoteAsync} to invoke its listener with a failure. */
+    @SuppressWarnings("unchecked")
+    private void stubPromoteAsyncFailure(Exception exception) {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<RestResponse> listener =
+                                    (ActionListener<RestResponse>) invocation.getArguments()[1];
+                            listener.onFailure(exception);
+                            return null;
+                        })
+                .when(this.engine)
+                .promoteAsync(any(JsonNode.class), any(ActionListener.class));
+    }
+
     public void testPromotesStandardSpaceWhenItsHashChanged() {
         stubPayloadBuild();
-        when(this.engine.promote(any(JsonNode.class)))
-                .thenReturn(new RestResponse("OK", RestStatus.OK.getStatus()));
+        stubPromoteAsync(new RestResponse("OK", RestStatus.OK.getStatus()));
 
         TransportActionHelper.reloadStandardSpaceIntoEngine(
                 this.engine, this.spaceService, Set.of(Space.STANDARD.toString()));
 
-        verify(this.engine).promote(this.payload);
+        verify(this.engine).promoteAsync(eq(this.payload), any(ActionListener.class));
     }
 
     public void testSkipsReloadWhenStandardSpaceUnchanged() {
@@ -126,24 +152,22 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
      */
     public void testTolerantOfEngineRejection() {
         stubPayloadBuild();
-        when(this.engine.promote(any(JsonNode.class)))
-                .thenReturn(new RestResponse("rejected", RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+        stubPromoteAsync(new RestResponse("rejected", RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
 
         TransportActionHelper.reloadStandardSpaceIntoEngine(
                 this.engine, this.spaceService, Set.of(Space.STANDARD.toString()));
 
-        verify(this.engine).promote(this.payload);
+        verify(this.engine).promoteAsync(eq(this.payload), any(ActionListener.class));
     }
 
     public void testTolerantOfEngineFailure() {
         stubPayloadBuild();
-        when(this.engine.promote(any(JsonNode.class)))
-                .thenThrow(new RuntimeException("socket unavailable"));
+        stubPromoteAsyncFailure(new RuntimeException("socket unavailable"));
 
         TransportActionHelper.reloadStandardSpaceIntoEngine(
                 this.engine, this.spaceService, Set.of(Space.STANDARD.toString()));
 
-        verify(this.engine).promote(this.payload);
+        verify(this.engine).promoteAsync(eq(this.payload), any(ActionListener.class));
     }
 
     /** A payload build failure is logged, and never reaches the Engine. */
@@ -162,6 +186,6 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
         TransportActionHelper.reloadStandardSpaceIntoEngine(
                 this.engine, this.spaceService, Set.of(Space.STANDARD.toString()));
 
-        verify(this.engine, never()).promote(any(JsonNode.class));
+        verify(this.engine, never()).promoteAsync(any(JsonNode.class), any(ActionListener.class));
     }
 }

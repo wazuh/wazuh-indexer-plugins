@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.ThreadPool;
 import org.junit.Before;
 
 import com.wazuh.contentmanager.engine.client.EngineSocketClient;
@@ -49,7 +50,8 @@ public class EngineServiceImplTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.socket = mock(EngineSocketClient.class);
-        this.engine = new EngineServiceImpl(this.socket);
+        ThreadPool threadPool = mock(ThreadPool.class);
+        this.engine = new EngineServiceImpl(this.socket, threadPool);
     }
 
     /** Tests the logtest operation for a successful (200) response. */

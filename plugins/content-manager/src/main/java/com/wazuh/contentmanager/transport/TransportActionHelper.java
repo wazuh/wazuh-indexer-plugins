@@ -116,21 +116,23 @@ public final class TransportActionHelper {
         spaceService.buildEnginePayload(
                 Space.STANDARD.toString(),
                 ActionListener.wrap(
-                        payload -> {
-                            try {
-                                RestResponse response = engine.promote(payload);
-                                if (response.getStatus() == RestStatus.OK.getStatus()) {
-                                    log.info(Constants.I_LOG_ENGINE_STANDARD_LOADED);
-                                } else {
-                                    log.warn(
-                                            Constants.W_LOG_ENGINE_STANDARD_LOAD_STATUS,
-                                            response.getStatus(),
-                                            response.getMessage());
-                                }
-                            } catch (Exception e) {
-                                log.error(Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage());
-                            }
-                        },
+                        payload ->
+                                engine.promoteAsync(
+                                        payload,
+                                        ActionListener.wrap(
+                                                response -> {
+                                                    if (response.getStatus() == RestStatus.OK.getStatus()) {
+                                                        log.info(Constants.I_LOG_ENGINE_STANDARD_LOADED);
+                                                    } else {
+                                                        log.warn(
+                                                                Constants.W_LOG_ENGINE_STANDARD_LOAD_STATUS,
+                                                                response.getStatus(),
+                                                                response.getMessage());
+                                                    }
+                                                },
+                                                e ->
+                                                        log.error(
+                                                                Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage()))),
                         e -> log.error(Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage())));
     }
 
