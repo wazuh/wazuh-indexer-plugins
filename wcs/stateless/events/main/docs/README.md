@@ -46,6 +46,10 @@ Extends observer ingress/egress interface fields with MTU, state, and type infor
 
 Two additional event fields: `event.changed_fields` (fields updated since the last scan) and `event.collector` (collector used to retrieve the event).
 
+#### `file.diff`
+
+Extends the ECS `file` field set with the unified diff of a file's content changes, as reported by FIM when `report_changes` is enabled.
+
 #### `agent.groups`
 
 Adds a `groups` field to the ECS `agent` field set, representing the list of groups the agent belongs to.

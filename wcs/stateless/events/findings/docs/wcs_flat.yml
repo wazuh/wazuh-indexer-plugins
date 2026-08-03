@@ -4710,6 +4710,19 @@ file.device:
   normalize: []
   short: Device that is the source of the file.
   type: keyword
+file.diff:
+  dashed_name: file-diff
+  description: Unified diff of file content changes reported by FIM when `report_changes`
+    is enabled. Shows added and removed lines in standard diff format.
+  example: '10a11
+
+    > 192.168.32.5'
+  flat_name: file.diff
+  level: custom
+  name: diff
+  normalize: []
+  short: Unified diff of the file's content changes.
+  type: match_only_text
 file.directory:
   dashed_name: file-directory
   description: Directory where the file is located. It should include the drive letter,
@@ -16894,6 +16907,20 @@ threat.enrichments.indicator.file.device:
   original_fieldset: file
   short: Device that is the source of the file.
   type: keyword
+threat.enrichments.indicator.file.diff:
+  dashed_name: threat-enrichments-indicator-file-diff
+  description: Unified diff of file content changes reported by FIM when `report_changes`
+    is enabled. Shows added and removed lines in standard diff format.
+  example: '10a11
+
+    > 192.168.32.5'
+  flat_name: threat.enrichments.indicator.file.diff
+  level: custom
+  name: diff
+  normalize: []
+  original_fieldset: file
+  short: Unified diff of the file's content changes.
+  type: match_only_text
 threat.enrichments.indicator.file.directory:
   dashed_name: threat-enrichments-indicator-file-directory
   description: Directory where the file is located. It should include the drive letter,
@@ -19721,6 +19748,20 @@ threat.indicator.file.device:
   original_fieldset: file
   short: Device that is the source of the file.
   type: keyword
+threat.indicator.file.diff:
+  dashed_name: threat-indicator-file-diff
+  description: Unified diff of file content changes reported by FIM when `report_changes`
+    is enabled. Shows added and removed lines in standard diff format.
+  example: '10a11
+
+    > 192.168.32.5'
+  flat_name: threat.indicator.file.diff
+  level: custom
+  name: diff
+  normalize: []
+  original_fieldset: file
+  short: Unified diff of the file's content changes.
+  type: match_only_text
 threat.indicator.file.directory:
   dashed_name: threat-indicator-file-directory
   description: Directory where the file is located. It should include the drive letter,
@@ -26571,6 +26612,20 @@ wazuh.threat.enrichments.indicator.file.device:
   original_fieldset: file
   short: Device that is the source of the file.
   type: keyword
+wazuh.threat.enrichments.indicator.file.diff:
+  dashed_name: wazuh-threat-enrichments-indicator-file-diff
+  description: Unified diff of file content changes reported by FIM when `report_changes`
+    is enabled. Shows added and removed lines in standard diff format.
+  example: '10a11
+
+    > 192.168.32.5'
+  flat_name: wazuh.threat.enrichments.indicator.file.diff
+  level: custom
+  name: diff
+  normalize: []
+  original_fieldset: file
+  short: Unified diff of the file's content changes.
+  type: match_only_text
 wazuh.threat.enrichments.indicator.file.directory:
   dashed_name: wazuh-threat-enrichments-indicator-file-directory
   description: Directory where the file is located. It should include the drive letter,
@@ -29222,6 +29277,20 @@ wazuh.threat.indicator.file.device:
   original_fieldset: file
   short: Device that is the source of the file.
   type: keyword
+wazuh.threat.indicator.file.diff:
+  dashed_name: wazuh-threat-indicator-file-diff
+  description: Unified diff of file content changes reported by FIM when `report_changes`
+    is enabled. Shows added and removed lines in standard diff format.
+  example: '10a11
+
+    > 192.168.32.5'
+  flat_name: wazuh.threat.indicator.file.diff
+  level: custom
+  name: diff
+  normalize: []
+  original_fieldset: file
+  short: Unified diff of the file's content changes.
+  type: match_only_text
 wazuh.threat.indicator.file.directory:
   dashed_name: wazuh-threat-indicator-file-directory
   description: Directory where the file is located. It should include the drive letter,

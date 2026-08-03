@@ -1553,6 +1553,9 @@
               "ignore_above": 1024,
               "type": "keyword"
             },
+            "diff": {
+              "type": "match_only_text"
+            },
             "directory": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -5718,6 +5721,9 @@
                           "ignore_above": 1024,
                           "type": "keyword"
                         },
+                        "diff": {
+                          "type": "match_only_text"
+                        },
                         "directory": {
                           "ignore_above": 1024,
                           "type": "keyword"
@@ -6661,6 +6667,9 @@
                     "device": {
                       "ignore_above": 1024,
                       "type": "keyword"
+                    },
+                    "diff": {
+                      "type": "match_only_text"
                     },
                     "directory": {
                       "ignore_above": 1024,
@@ -9005,6 +9014,9 @@
                               "ignore_above": 1024,
                               "type": "keyword"
                             },
+                            "diff": {
+                              "type": "match_only_text"
+                            },
                             "directory": {
                               "ignore_above": 1024,
                               "type": "keyword"
@@ -9889,6 +9901,9 @@
                         "device": {
                           "ignore_above": 1024,
                           "type": "keyword"
+                        },
+                        "diff": {
+                          "type": "match_only_text"
                         },
                         "directory": {
                           "ignore_above": 1024,

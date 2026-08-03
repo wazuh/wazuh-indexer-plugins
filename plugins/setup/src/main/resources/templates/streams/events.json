@@ -2782,6 +2782,14 @@
           }
         },
         {
+          "wcs_file_diff": {
+            "path_match": "file.diff",
+            "mapping": {
+              "type": "match_only_text"
+            }
+          }
+        },
+        {
           "wcs_file_directory": {
             "path_match": "file.directory",
             "mapping": {
@@ -10593,6 +10601,14 @@
           }
         },
         {
+          "wcs_threat_enrichments_indicator_file_diff": {
+            "path_match": "threat.enrichments.indicator.file.diff",
+            "mapping": {
+              "type": "match_only_text"
+            }
+          }
+        },
+        {
           "wcs_threat_enrichments_indicator_file_directory": {
             "path_match": "threat.enrichments.indicator.file.directory",
             "mapping": {
@@ -12508,6 +12524,14 @@
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_threat_indicator_file_diff": {
+            "path_match": "threat.indicator.file.diff",
+            "mapping": {
+              "type": "match_only_text"
             }
           }
         },
@@ -16669,6 +16693,14 @@
           }
         },
         {
+          "wcs_wazuh_threat_enrichments_indicator_file_diff": {
+            "path_match": "wazuh.threat.enrichments.indicator.file.diff",
+            "mapping": {
+              "type": "match_only_text"
+            }
+          }
+        },
+        {
           "wcs_wazuh_threat_enrichments_indicator_file_directory": {
             "path_match": "wazuh.threat.enrichments.indicator.file.directory",
             "mapping": {
@@ -18459,6 +18491,14 @@
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_wazuh_threat_indicator_file_diff": {
+            "path_match": "wazuh.threat.indicator.file.diff",
+            "mapping": {
+              "type": "match_only_text"
             }
           }
         },
