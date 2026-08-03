@@ -45,6 +45,13 @@
             }
           }
         },
+        "file": {
+          "properties": {
+            "diff": {
+              "type": "match_only_text"
+            }
+          }
+        },
         "wazuh": {
           "properties": {
             "active_response": {
@@ -693,6 +700,9 @@
                             "device": {
                               "ignore_above": 1024,
                               "type": "keyword"
+                            },
+                            "diff": {
+                              "type": "match_only_text"
                             },
                             "directory": {
                               "ignore_above": 1024,
@@ -1578,6 +1588,9 @@
                         "device": {
                           "ignore_above": 1024,
                           "type": "keyword"
+                        },
+                        "diff": {
+                          "type": "match_only_text"
                         },
                         "directory": {
                           "ignore_above": 1024,
