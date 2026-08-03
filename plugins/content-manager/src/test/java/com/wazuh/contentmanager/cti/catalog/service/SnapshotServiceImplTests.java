@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
@@ -41,6 +42,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -59,7 +61,9 @@ import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -1279,16 +1283,49 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
+     * Stubs the asynchronous override read on a mock integrations index to answer with the given map.
+     *
+     * @param integrationsIndex the mock to stub.
+     * @param overrides the document-id-to-user_enabled map the read should return.
+     */
+    private void stubOverrideRead(ContentIndex integrationsIndex, Map<String, Boolean> overrides) {
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Map<String, Boolean>>>getArgument(2).onResponse(overrides);
+                            return null;
+                        })
+                .when(integrationsIndex)
+                .fetchBooleanFieldById(eq("standard"), eq(Constants.KEY_USER_ENABLED), any());
+    }
+
+    /**
+     * Stubs the asynchronous override read to fail, so the caller sees the failure through {@link
+     * ActionListener#onFailure} rather than as a thrown exception.
+     *
+     * @param integrationsIndex the mock to stub.
+     * @param failure the exception the read should report.
+     */
+    private void stubOverrideReadFailure(ContentIndex integrationsIndex, Exception failure) {
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Map<String, Boolean>>>getArgument(2).onFailure(failure);
+                            return null;
+                        })
+                .when(integrationsIndex)
+                .fetchBooleanFieldById(eq("standard"), eq(Constants.KEY_USER_ENABLED), any());
+    }
+
+    /**
      * Builds a fresh {@link SnapshotServiceImpl} wired to a single mock "integration" {@link
      * ContentIndex}, feeds one NDJSON integration line through the snapshot path, and returns the
      * captured indexed source. Kept isolated from the shared {@link #snapshotService}/{@link
-     * #contentIndexMock} so stubbing {@code fetchBooleanFieldByTitle} here cannot leak into other
-     * tests, which never register an "integration" entry in their {@code indicesMap}.
+     * #contentIndexMock} so stubbing {@code fetchBooleanFieldById} here cannot leak into other tests,
+     * which never register an "integration" entry in their {@code indicesMap}.
      *
      * @param title the integration's {@code document.metadata.title}.
      * @param ctiEnabled the {@code document.cti_enabled} value CTI publishes in this snapshot line.
-     * @param overrides the title-to-user_enabled map {@code fetchBooleanFieldByTitle} should return,
-     *     simulating the live pre-swap state read through the alias.
+     * @param overrides the document-id-to-user_enabled map {@code fetchBooleanFieldById} should
+     *     return, simulating the state stored before the indices were rebuilt.
      * @return the processed {@code document} wrapper that was indexed.
      */
     private ObjectNode runSnapshotForSingleIntegration(
@@ -1297,8 +1334,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0).toString());
         when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
-        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
-                .thenReturn(overrides);
+        this.stubOverrideRead(integrationsIndex, overrides);
 
         Map<String, ContentIndex> indicesMap = new HashMap<>();
         indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
@@ -1354,9 +1390,16 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
         // First read: the live index, still holding the user's choice. Every read after that: the
         // index as the caller left it once it deleted the standard-space documents.
-        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
-                .thenReturn(Map.of("suricata", true))
-                .thenReturn(Map.of());
+        AtomicBoolean firstRead = new AtomicBoolean(true);
+        doAnswer(
+                        invocation -> {
+                            Map<String, Boolean> answer =
+                                    firstRead.getAndSet(false) ? Map.of("suricata-id", true) : Map.of();
+                            invocation.<ActionListener<Map<String, Boolean>>>getArgument(2).onResponse(answer);
+                            return null;
+                        })
+                .when(integrationsIndex)
+                .fetchBooleanFieldById(eq("standard"), eq(Constants.KEY_USER_ENABLED), any());
 
         Map<String, ContentIndex> indicesMap = new HashMap<>();
         indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
@@ -1387,7 +1430,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         // Exactly one read: initialize must not go back to an index the caller already emptied.
         verify(integrationsIndex, times(1))
-                .fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED);
+                .fetchBooleanFieldById(eq("standard"), eq(Constants.KEY_USER_ENABLED), any());
 
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(integrationsIndex, atLeastOnce()).executeBulk(bulkCaptor.capture());
@@ -1403,10 +1446,10 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 document.get(Constants.KEY_ENABLED).asBoolean());
     }
 
-    /** A CTI resync/plan-change must not clobber a live user override matched by title. */
-    public void testSnapshotReappliesUserOverrideByTitle() throws Exception {
+    /** A CTI resync must not clobber a stored user override matched by document id. */
+    public void testSnapshotReappliesUserOverrideById() throws Exception {
         ObjectNode indexed =
-                runSnapshotForSingleIntegration("suricata", false, Map.of("suricata", true));
+                runSnapshotForSingleIntegration("suricata", false, Map.of("suricata-id", true));
 
         JsonNode document = indexed.get(Constants.KEY_DOCUMENT);
         assertTrue(document.get(Constants.KEY_ENABLED).asBoolean());
@@ -1433,8 +1476,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
      *
      * @param title the integration's {@code document.metadata.title}.
      * @param ctiEnabled the {@code document.cti_enabled} value CTI publishes in this snapshot line.
-     * @param overrides the title-to-user_enabled map {@code fetchBooleanFieldByTitle} should return,
-     *     simulating the live pre-clear state read through the alias.
+     * @param overrides the document-id-to-user_enabled map {@code fetchBooleanFieldById} should
+     *     return, simulating the state stored before {@code clear()} ran.
      * @return the processed {@code document} wrapper that was indexed.
      */
     private ObjectNode runLocalSnapshotForSingleIntegration(
@@ -1443,8 +1486,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0).toString());
         when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
-        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
-                .thenReturn(overrides);
+        this.stubOverrideRead(integrationsIndex, overrides);
 
         Map<String, ContentIndex> indicesMap = new HashMap<>();
         indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
@@ -1471,7 +1513,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         InOrder order = inOrder(integrationsIndex);
         order
                 .verify(integrationsIndex)
-                .fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED);
+                .fetchBooleanFieldById(eq("standard"), eq(Constants.KEY_USER_ENABLED), any());
         order.verify(integrationsIndex).clear();
 
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
@@ -1483,13 +1525,13 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
     /**
      * The local/stable snapshot rollback path (remote feed unreachable, falling back to the last good
-     * local zip) must also re-apply a live user override matched by title — it clears and repopulates
-     * the same integrations index as a full resync, so it is the same bug on a fourth path if the
-     * override isn't captured first.
+     * local zip) must also re-apply a stored user override matched by document id — it clears and
+     * repopulates the same integrations index as a full resync, so it is the same bug on another path
+     * if the override isn't captured first.
      */
-    public void testLocalSnapshotRollbackReappliesUserOverrideByTitle() throws Exception {
+    public void testLocalSnapshotRollbackReappliesUserOverrideById() throws Exception {
         ObjectNode indexed =
-                runLocalSnapshotForSingleIntegration("suricata", false, Map.of("suricata", true));
+                runLocalSnapshotForSingleIntegration("suricata", false, Map.of("suricata-id", true));
 
         JsonNode document = indexed.get(Constants.KEY_DOCUMENT);
         assertTrue(document.get(Constants.KEY_ENABLED).asBoolean());
@@ -1513,8 +1555,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0).toString());
         when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
-        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
-                .thenThrow(new IOException("search timeout"));
+        this.stubOverrideReadFailure(integrationsIndex, new IOException("search timeout"));
 
         Map<String, ContentIndex> indicesMap = new HashMap<>();
         indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);
@@ -1561,8 +1602,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(integrationsIndex.processPayloadToString(any(JsonNode.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0).toString());
         when(integrationsIndex.getWriteIndex()).thenReturn(Constants.INDEX_INTEGRATIONS);
-        when(integrationsIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED))
-                .thenThrow(new IOException("Failed to execute phase [query], all shards failed"));
+        this.stubOverrideReadFailure(
+                integrationsIndex, new IOException("Failed to execute phase [query], all shards failed"));
 
         Map<String, ContentIndex> indicesMap = new HashMap<>();
         indicesMap.put(Constants.KEY_INTEGRATION, integrationsIndex);

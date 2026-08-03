@@ -62,6 +62,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -748,25 +749,24 @@ public class ContentIndexTests extends OpenSearchTestCase {
     }
 
     /**
-     * Stubs {@code client.search} to return three hits: {@code suricata} with {@code
-     * user_enabled=true}, {@code docker} with {@code user_enabled=false}, and {@code o365} with no
-     * {@code user_enabled} field at all (proving absent fields are skipped, not defaulted).
+     * Stubs the asynchronous {@code client.search} to return three hits: {@code suricata-id} with
+     * {@code user_enabled=true}, {@code docker-id} with {@code user_enabled=false}, and {@code
+     * o365-id} with no {@code user_enabled} field at all (proving absent fields are skipped, not
+     * defaulted).
      */
     private void stubIntegrationOverrideSearch() {
         SearchHit suricataHit =
                 new SearchHit(1, "suricata-id", Collections.emptyMap(), Collections.emptyMap());
         suricataHit.sourceRef(
-                new BytesArray(
-                        "{\"document\":{\"metadata\":{\"title\":\"suricata\"},\"user_enabled\":true}}"));
+                new BytesArray("{\"document\":{\"id\":\"suricata-id\",\"user_enabled\":true}}"));
 
         SearchHit dockerHit =
                 new SearchHit(2, "docker-id", Collections.emptyMap(), Collections.emptyMap());
         dockerHit.sourceRef(
-                new BytesArray(
-                        "{\"document\":{\"metadata\":{\"title\":\"docker\"},\"user_enabled\":false}}"));
+                new BytesArray("{\"document\":{\"id\":\"docker-id\",\"user_enabled\":false}}"));
 
         SearchHit o365Hit = new SearchHit(3, "o365-id", Collections.emptyMap(), Collections.emptyMap());
-        o365Hit.sourceRef(new BytesArray("{\"document\":{\"metadata\":{\"title\":\"o365\"}}}"));
+        o365Hit.sourceRef(new BytesArray("{\"document\":{\"id\":\"o365-id\"}}"));
 
         SearchHit[] hits = new SearchHit[] {suricataHit, dockerHit, o365Hit};
         SearchResponse response = mock(SearchResponse.class);
@@ -774,29 +774,35 @@ public class ContentIndexTests extends OpenSearchTestCase {
                 .thenReturn(
                         new SearchHits(hits, new TotalHits(hits.length, TotalHits.Relation.EQUAL_TO), 1.0f));
 
-        PlainActionFuture<SearchResponse> searchFuture = PlainActionFuture.newFuture();
-        searchFuture.onResponse(response);
-        when(this.client.search(any(SearchRequest.class))).thenReturn(searchFuture);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<SearchResponse>>getArgument(1).onResponse(response);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
     }
 
-    /** {@code fetchBooleanFieldByTitle} maps each hit's title to its boolean field value. */
-    public void testFetchBooleanFieldByTitleMapsTitlesToValues() throws Exception {
+    /** {@code fetchBooleanFieldById} maps each hit's document id to its boolean field value. */
+    public void testFetchBooleanFieldByIdMapsIdsToValues() throws Exception {
         this.stubIntegrationOverrideSearch();
 
-        Map<String, Boolean> overrides =
-                this.contentIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED);
+        PlainActionFuture<Map<String, Boolean>> future = PlainActionFuture.newFuture();
+        this.contentIndex.fetchBooleanFieldById("standard", Constants.KEY_USER_ENABLED, future);
+        Map<String, Boolean> overrides = future.actionGet();
 
         assertEquals(2, overrides.size());
-        assertTrue(overrides.get("suricata"));
-        assertFalse(overrides.get("docker"));
+        assertTrue(overrides.get("suricata-id"));
+        assertFalse(overrides.get("docker-id"));
     }
 
     /** Documents without the requested field must be omitted, not defaulted to false. */
-    public void testFetchBooleanFieldByTitleSkipsDocumentsWithoutTheField() throws Exception {
+    public void testFetchBooleanFieldByIdSkipsDocumentsWithoutTheField() throws Exception {
         this.stubIntegrationOverrideSearch();
 
-        Map<String, Boolean> overrides =
-                this.contentIndex.fetchBooleanFieldByTitle("standard", Constants.KEY_USER_ENABLED);
-        assertFalse(overrides.containsKey("o365"));
+        PlainActionFuture<Map<String, Boolean>> future = PlainActionFuture.newFuture();
+        this.contentIndex.fetchBooleanFieldById("standard", Constants.KEY_USER_ENABLED, future);
+
+        assertFalse(future.actionGet().containsKey("o365-id"));
     }
 }

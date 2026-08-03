@@ -387,63 +387,6 @@ public abstract class AbstractConsumerService {
     }
 
     /**
-     * Captures the user's integration enabled overrides and only then wipes the standard space, in
-     * that order.
-     *
-     * <p>The two steps live in one method because their order is a correctness requirement, not a
-     * preference: the overrides are stored in the very documents the wipe deletes. Reading them
-     * afterwards would search an emptied index, yield an empty map indistinguishable from "the user
-     * never chose anything", and silently rebuild every integration with CTI's values.
-     *
-     * <p>A failed capture aborts before anything is deleted, so the next sync cycle retries from an
-     * intact index. A failed wipe is logged and tolerated, matching the previous behaviour.
-     *
-     * @param snapshotService the snapshot service that will repopulate the indices.
-     * @param indicesMap the content indices keyed by type.
-     * @param consumerType the consumer type, for logging.
-     * @return {@code true} when the capture succeeded and the wipe was attempted; {@code false} when
-     *     the overrides could not be read and the caller must abort without destroying anything.
-     */
-    protected boolean captureOverridesThenWipe(
-            SnapshotServiceImpl snapshotService,
-            Map<String, ContentIndex> indicesMap,
-            String consumerType) {
-        try {
-            snapshotService.captureUserOverrides();
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_USER_OVERRIDES_READ_FAILED, consumerType, e.getMessage());
-            return false;
-        }
-
-        // Ruleset snapshots also affect Security Analytics/Space resources; other catalogs only
-        // clear indices.
-        if (this.isRulesetConsumer()) {
-            try {
-                SecurityAnalyticsService securityAnalyticsService =
-                        new SecurityAnalyticsServiceImpl(this.client);
-                CompletableFuture<Void> sapFuture = new CompletableFuture<>();
-                securityAnalyticsService.deleteSpaceResources(
-                        Space.STANDARD,
-                        ActionListener.wrap(r -> sapFuture.complete(null), sapFuture::completeExceptionally));
-                sapFuture.get(60, TimeUnit.SECONDS);
-
-                SpaceService spaceService = new SpaceService(this.client);
-                CompletableFuture<Void> spaceFuture = new CompletableFuture<>();
-                spaceService.deleteSpaceResources(
-                        Space.STANDARD,
-                        ActionListener.wrap(
-                                r -> spaceFuture.complete(null), spaceFuture::completeExceptionally));
-                spaceFuture.get(60, TimeUnit.SECONDS);
-            } catch (Exception e) {
-                log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
-            }
-        } else {
-            indicesMap.values().forEach(ContentIndex::clear);
-        }
-        return true;
-    }
-
-    /**
      * Performs the core synchronization logic for consumer services. Retrieves local and remote
      * consumer state, creates any missing indices with their mappings and aliases, initializes from
      * snapshot if this is a first-time sync (offset = 0), and applies incremental updates if the
@@ -710,8 +653,42 @@ public abstract class AbstractConsumerService {
                 if (hasEffectiveCatalog
                         && remoteConsumer != null
                         && remoteConsumer.getSnapshotLink() != null) {
-                    if (!this.captureOverridesThenWipe(snapshotService, indicesMap, consumerType)) {
+                    // The user's integration enabled overrides live in the documents the next block
+                    // deletes, so they must be read first. Aborting here leaves the indices intact
+                    // for the next sync cycle; proceeding with an unreadable override map would
+                    // rebuild every integration with CTI's values and lose the user's decisions.
+                    try {
+                        snapshotService.captureUserOverrides();
+                    } catch (Exception e) {
+                        log.error(Constants.E_LOG_USER_OVERRIDES_READ_FAILED, consumerType, e.getMessage());
                         return new SyncResult(false, feedUnreachable);
+                    }
+
+                    // Ruleset snapshots also affect Security Analytics/Space resources; other catalogs only
+                    // clear indices.
+                    if (this.isRulesetConsumer()) {
+                        try {
+                            SecurityAnalyticsService securityAnalyticsService =
+                                    new SecurityAnalyticsServiceImpl(this.client);
+                            CompletableFuture<Void> sapFuture = new CompletableFuture<>();
+                            securityAnalyticsService.deleteSpaceResources(
+                                    Space.STANDARD,
+                                    ActionListener.wrap(
+                                            r -> sapFuture.complete(null), sapFuture::completeExceptionally));
+                            sapFuture.get(60, TimeUnit.SECONDS);
+
+                            SpaceService spaceService = new SpaceService(this.client);
+                            CompletableFuture<Void> spaceFuture = new CompletableFuture<>();
+                            spaceService.deleteSpaceResources(
+                                    Space.STANDARD,
+                                    ActionListener.wrap(
+                                            r -> spaceFuture.complete(null), spaceFuture::completeExceptionally));
+                            spaceFuture.get(60, TimeUnit.SECONDS);
+                        } catch (Exception e) {
+                            log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
+                        }
+                    } else {
+                        indicesMap.values().forEach(ContentIndex::clear);
                     }
 
                     log.debug(Constants.D_LOG_SNAPSHOT_INIT_CUSTOM_URL, catalogUri);

@@ -41,7 +41,6 @@ import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
@@ -368,56 +367,54 @@ public class ContentIndex {
 
     /**
      * Reads a boolean {@code document} field for every document in the given space, keyed by {@code
-     * document.metadata.title}. Documents without the field are omitted, so the caller can tell
-     * "absent" from "false".
+     * document.id}. Documents without the field are omitted, so the caller can tell "absent" from
+     * "false".
      *
-     * <p>Reads resolve through the alias, so during a shadow swap this returns the <b>live</b>
-     * content while the shadow index is still being populated.
+     * <p>Reads resolve through the alias, so during a shadow swap this sees the <b>live</b> content
+     * while the shadow index is still being populated.
      *
-     * <p>This is a low-level read helper: it does not decide whether a caller may tolerate a failed
-     * read, so it does not swallow exceptions. A missing or closed index is the one failure mode
-     * tolerated here (see {@link IndicesOptions#lenientExpandOpen()} below) because a fresh
-     * installation has no integrations index yet; every other failure (e.g. a search timeout or a
-     * cluster-level search failure) is propagated so the caller — which knows whether an empty result
-     * is safe to act on — can decide whether to proceed or abort.
+     * <p>A missing or closed index is the one failure mode tolerated here (see {@link
+     * IndicesOptions#lenientExpandOpen()}) because a fresh installation has no integrations index
+     * yet, and it yields an empty map. Every other failure reaches {@link ActionListener#onFailure},
+     * so the caller — which knows whether an empty result is safe to act on — decides whether to
+     * proceed or abort.
      *
      * @param spaceName the space to read, e.g. {@code "standard"}.
      * @param fieldName the boolean field under {@code document} to collect.
-     * @return title to value; empty when nothing matches, including when the index does not exist
-     *     yet.
-     * @throws IOException if a hit's source cannot be parsed as JSON.
-     * @throws InterruptedException if the thread is interrupted while waiting for the search.
-     * @throws ExecutionException if the search request fails.
-     * @throws TimeoutException if the search exceeds the client timeout setting.
+     * @param listener receives document id to value; empty when nothing matches, including when the
+     *     index does not exist yet.
      */
-    public Map<String, Boolean> fetchBooleanFieldByTitle(String spaceName, String fieldName)
-            throws IOException, InterruptedException, ExecutionException, TimeoutException {
-        Map<String, Boolean> values = new HashMap<>();
-        String titlePath =
-                Constants.KEY_DOCUMENT + "." + Constants.KEY_METADATA + "." + Constants.KEY_TITLE;
+    public void fetchBooleanFieldById(
+            String spaceName, String fieldName, ActionListener<Map<String, Boolean>> listener) {
+        String idPath = Constants.KEY_DOCUMENT + "." + Constants.KEY_ID;
         String fieldPath = Constants.KEY_DOCUMENT + "." + fieldName;
         SearchSourceBuilder source =
                 new SearchSourceBuilder()
                         .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName))
-                        .fetchSource(new String[] {titlePath, fieldPath}, new String[0])
+                        .fetchSource(new String[] {idPath, fieldPath}, new String[0])
                         .size(10000);
         SearchRequest request =
                 new SearchRequest(this.indexName)
                         .indicesOptions(IndicesOptions.lenientExpandOpen())
                         .source(source);
-        SearchResponse response =
-                this.client.search(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
-        for (SearchHit hit : response.getHits().getHits()) {
-            JsonNode root = MAPPER.readTree(hit.getSourceAsString());
-            JsonNode document = root.path(Constants.KEY_DOCUMENT);
-            JsonNode value = document.path(fieldName);
-            JsonNode title = document.path(Constants.KEY_METADATA).path(Constants.KEY_TITLE);
-            if (value.isBoolean() && title.isTextual()) {
-                values.put(title.asText(), value.asBoolean());
-            }
-        }
-        return values;
+        this.client.search(
+                request,
+                ActionListener.wrap(
+                        response -> {
+                            Map<String, Boolean> values = new HashMap<>();
+                            for (SearchHit hit : response.getHits().getHits()) {
+                                JsonNode document =
+                                        MAPPER.readTree(hit.getSourceAsString()).path(Constants.KEY_DOCUMENT);
+                                JsonNode value = document.path(fieldName);
+                                JsonNode id = document.path(Constants.KEY_ID);
+                                if (value.isBoolean() && id.isTextual()) {
+                                    values.put(id.asText(), value.asBoolean());
+                                }
+                            }
+                            listener.onResponse(values);
+                        },
+                        listener::onFailure));
     }
 
     /**

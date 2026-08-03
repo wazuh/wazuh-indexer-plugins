@@ -379,9 +379,13 @@ are present on the document in every space (`standard`, `draft`, `test`, `custom
 
 The resolution rule is `enabled = user_enabled ?? cti_enabled`, evaluated when content is
 ingested from CTI and whenever the client creates or updates an integration — never on read.
-Once a user has set a value it wins over every subsequent CTI update, including full
-resynchronisations and subscription plan changes. In a plan change CTI reassigns `document.id`,
-so overrides are carried across by `document.metadata.title`.
+Once a user has set a value it wins over every subsequent CTI update, including incremental
+patches and full resynchronisations.
+
+Overrides are matched by `document.id`. A full resynchronisation deletes the standard-space
+documents before repopulating them, so they are read and held in memory beforehand and re-applied
+as each document is rebuilt. **Known limitation:** a subscription plan change may republish an
+integration under a different `document.id`, and the override is not carried across in that case.
 
 Until CTI publishes `cti_enabled`, it still writes `document.enabled` directly; in that case the
 resolution leaves `enabled` as received, so the user's override still takes precedence and
@@ -978,7 +982,7 @@ The plugin includes integration tests defined in the `tests/content-manager` dir
 | Resource / operation   | Scenario count | Covers                                                                                                                                                                                                                                                                                                                              |
 | ---------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Integrations: create   | 9              | Success; duplicate title; missing title/author/category; explicit `id` in resource; missing resource object; empty body; no authentication                                                                                                                                                                                          |
-| Integrations: update   | 13             | Success; title collision with an existing draft integration; missing required fields; not found; invalid UUID; `id` in request body; attempting to add/remove dependency lists; no authentication; protected integration rejected; toggling `user_enabled` on a user-managed integration in the standard space derives `enabled`; user-managed standard update changes only `user_enabled` (other fields preserved); protected standard integration rejected; toggling `user_enabled` leaves the CTI-owned `detector` block immutable; a user's `enabled` override survives a document republished under a new `document.id` with the same title (resync / plan change) |
+| Integrations: update   | 12             | Success; title collision with an existing draft integration; missing required fields; not found; invalid UUID; `id` in request body; attempting to add/remove dependency lists; no authentication; protected integration rejected; toggling `user_enabled` on a user-managed integration in the standard space derives `enabled`; user-managed standard update changes only `user_enabled` (other fields preserved); protected standard integration rejected; toggling `user_enabled` leaves the CTI-owned `detector` block immutable |
 | Integrations: delete   | 7              | Success (no attached resources); has attached resources; not found; invalid UUID; missing ID; not in draft space; no authentication                                                                                                                                                                                                 |
 | Decoders: create       | 7              | Success; missing integration reference; explicit `id` in resource; integration not in draft space; missing resource object; empty body; no authentication                                                                                                                                                                           |
 | Decoders: update       | 7              | Success; not found; invalid UUID; not in draft space; missing resource object; empty body; no authentication                                                                                                                                                                                                                        |

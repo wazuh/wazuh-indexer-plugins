@@ -28,6 +28,7 @@ import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
 
@@ -37,7 +38,9 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver;
@@ -74,8 +77,8 @@ public class SnapshotServiceImpl implements SnapshotService {
     /** The maximum offset encountered while processing snapshot files. */
     private long maxOffsetSeen;
 
-    /** Title to user override, loaded once per snapshot run before any document is written. */
-    private Map<String, Boolean> userEnabledByTitle = Collections.emptyMap();
+    /** Document id to user override, loaded once per snapshot run before any document is written. */
+    private Map<String, Boolean> userEnabledById = Collections.emptyMap();
 
     /**
      * Whether {@link #captureUserOverrides()} already ran for this snapshot service.
@@ -245,9 +248,7 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
-     * Loads the current user overrides for standard integrations. Reads through the alias, so during
-     * a plan-change swap this captures the live pre-swap state while the shadow index is being
-     * populated.
+     * Loads the current user overrides for standard integrations, keyed by {@code document.id}.
      *
      * <p><b>Must be called while the documents carrying the overrides still exist.</b> The
      * reinitialisation path in {@code AbstractConsumerService} deletes every standard-space document
@@ -259,6 +260,10 @@ public class SnapshotServiceImpl implements SnapshotService {
      * indistinguishable otherwise and swallowing it would silently rebuild every integration with
      * CTI's values. Callers must abort before their own destructive step for that to matter.
      *
+     * <p>The read itself is asynchronous; the wait lives here because the callers up to {@code
+     * syncConsumerServices} are sequential and need the map before they may continue. The cause is
+     * unwrapped from its {@link ExecutionException} so callers and logs see the original failure.
+     *
      * @throws IOException if a stored override document cannot be parsed as JSON.
      * @throws InterruptedException if the thread is interrupted while waiting for the read.
      * @throws ExecutionException if the underlying search request fails.
@@ -268,22 +273,33 @@ public class SnapshotServiceImpl implements SnapshotService {
             throws IOException, InterruptedException, ExecutionException, TimeoutException {
         ContentIndex integrations = this.indicesMap.get(Constants.KEY_INTEGRATION);
         if (integrations == null) {
-            this.userEnabledByTitle = Collections.emptyMap();
+            this.userEnabledById = Collections.emptyMap();
             this.overridesCaptured = true;
             return;
         }
+
+        CompletableFuture<Map<String, Boolean>> future = new CompletableFuture<>();
+        integrations.fetchBooleanFieldById(
+                Space.STANDARD.toString(),
+                Constants.KEY_USER_ENABLED,
+                ActionListener.wrap(future::complete, future::completeExceptionally));
         try {
-            this.userEnabledByTitle =
-                    integrations.fetchBooleanFieldByTitle(
-                            Space.STANDARD.toString(), Constants.KEY_USER_ENABLED);
-        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
+            this.userEnabledById = future.get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            log.error(Constants.E_LOG_USER_OVERRIDES_READ_FAILED, this.consumerType, e.getMessage());
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException io) {
+                throw io;
+            }
+            throw e;
+        } catch (InterruptedException | TimeoutException e) {
             log.error(Constants.E_LOG_USER_OVERRIDES_READ_FAILED, this.consumerType, e.getMessage());
             throw e;
         }
         this.overridesCaptured = true;
         log.info(
                 "Captured {} integration enabled override(s) to carry across the snapshot",
-                this.userEnabledByTitle.size());
+                this.userEnabledById.size());
     }
 
     /**
@@ -313,10 +329,9 @@ public class SnapshotServiceImpl implements SnapshotService {
         if (!(document instanceof ObjectNode documentNode)) {
             return;
         }
-        String title = documentNode.path(Constants.KEY_METADATA).path(Constants.KEY_TITLE).asText(null);
-        if (title != null) {
-            IntegrationEnabledResolver.carryOverUserOverride(
-                    documentNode, this.userEnabledByTitle.get(title));
+        String id = documentNode.path(Constants.KEY_ID).asText(null);
+        if (id != null) {
+            IntegrationEnabledResolver.carryOverUserOverride(documentNode, this.userEnabledById.get(id));
         }
         IntegrationEnabledResolver.resolve(documentNode);
     }
