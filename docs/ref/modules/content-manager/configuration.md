@@ -20,11 +20,11 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.telemetry.enabled`** (Boolean, default `true`, dynamic) — enable or disable the daily Update check service ping.
 - **`plugins.content_manager.catalog.update_on_demand`** (Boolean, default `true`) — when `false`, on-demand content updates (`POST /update`) return `403 Forbidden` for every caller, regardless of role.
 - **`plugins.content_manager.catalog.policy_update.enabled`** (Boolean, default `true`) — when `false`, policy updates (`PUT /policy/{space}`) return `403 Forbidden` for every caller, regardless of role.
-- **`plugins.content_manager.max_integrations`** (Integer, default `100`, range 0–100, dynamic) — maximum number of integrations that can be created. Requests that would exceed this limit are rejected with HTTP 400.
-- **`plugins.content_manager.max_decoders`** (Integer, default `200`, range 0–200, dynamic) — maximum number of decoders that can be created. Requests that would exceed this limit are rejected with HTTP 400.
-- **`plugins.content_manager.max_rules`** (Integer, default `200`, range 0–200, dynamic) — maximum number of rules that can be created. Requests that would exceed this limit are rejected with HTTP 400.
-- **`plugins.content_manager.max_kvdbs`** (Integer, default `100`, range 0–100, dynamic) — maximum number of KVDBs that can be created. Requests that would exceed this limit are rejected with HTTP 400.
-- **`plugins.content_manager.max_filters`** (Integer, default `100`, range 0–100, dynamic) — maximum number of filters that can be created per space. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_integrations`** (Integer, default `100`, minimum `0`, no upper bound, dynamic) — maximum number of integrations that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_decoders`** (Integer, default `200`, minimum `0`, no upper bound, dynamic) — maximum number of decoders that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_rules`** (Integer, default `200`, minimum `0`, no upper bound, dynamic) — maximum number of rules that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_kvdbs`** (Integer, default `100`, minimum `0`, no upper bound, dynamic) — maximum number of KVDBs that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_filters`** (Integer, default `100`, minimum `0`, no upper bound, dynamic) — maximum number of filters that can be created per space. Requests that would exceed this limit are rejected with HTTP 400.
 
 <!-- // ANCHOR_END: settings-table -->
 
