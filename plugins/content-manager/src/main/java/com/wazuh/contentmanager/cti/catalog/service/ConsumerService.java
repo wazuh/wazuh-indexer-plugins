@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -35,4 +35,10 @@ public interface ConsumerService {
      * @return The {@link RemoteConsumer} object representing the remote state.
      */
     RemoteConsumer getRemoteConsumer();
+
+    /**
+     * Releases resources held by this service, in particular the underlying HTTP client whose I/O
+     * reactor otherwise leaks file descriptors. Must be called once the service is no longer needed.
+     */
+    void close();
 }

@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -487,13 +488,11 @@ public class ContentIndex {
         }
 
         // 3. Process
-        ObjectNode processedDoc = this.processPayload(currentDoc);
+        String processedJson = this.processPayloadToString(currentDoc);
 
         // 4. Index
         IndexRequest request =
-                new IndexRequest(this.getWriteIndex())
-                        .id(id)
-                        .source(processedDoc.toString(), XContentType.JSON);
+                new IndexRequest(this.getWriteIndex()).id(id).source(processedJson, XContentType.JSON);
         this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
@@ -560,11 +559,11 @@ public class ContentIndex {
             }
             patchTarget.put(Constants.KEY_OFFSET, task.offset());
 
-            ObjectNode processedDoc = this.processPayload(patchTarget);
+            String processedJson = this.processPayloadToString(patchTarget);
             bulkRequest.add(
                     new IndexRequest(this.getWriteIndex())
                             .id(task.id())
-                            .source(processedDoc.toString(), XContentType.JSON));
+                            .source(processedJson, XContentType.JSON));
 
             if (bulkRequest.estimatedSizeInBytes() >= maxBytes) {
                 this.executeBulkUpdate(bulkRequest, timeout);
@@ -850,6 +849,59 @@ public class ContentIndex {
         } catch (Exception e) {
             log.error(Constants.E_LOG_PROCESS_PAYLOAD_FAILED, e.getMessage(), e);
             return MAPPER.createObjectNode();
+        }
+    }
+
+    /**
+     * Same transformation as {@link #processPayload} but serializes directly to a JSON string,
+     * avoiding the intermediate {@link ObjectNode} tree allocation.
+     *
+     * @param payload The JSON payload to process.
+     * @return The processed payload as a JSON string, or an empty JSON object on failure.
+     */
+    public String processPayloadToString(JsonNode payload) {
+        try {
+            Resource resource;
+            switch (this.indexName) {
+                case Constants.INDEX_IOCS:
+                    Ioc ioc = Ioc.fromPayload(payload);
+                    return MAPPER.writeValueAsString(ioc);
+                case Constants.INDEX_DECODERS:
+                    resource = Decoder.fromPayload(payload);
+                    break;
+                case Constants.INDEX_KVDBS:
+                    resource = Kvdb.fromPayload(payload);
+                    break;
+                case Constants.INDEX_FILTERS:
+                    resource = Filter.fromPayload(payload);
+                    break;
+                case Constants.INDEX_POLICIES:
+                    resource = Resource.fromPayload(payload);
+                    if (payload.has(Constants.KEY_DOCUMENT)) {
+                        Policy policy = Policy.fromPayload(payload.get(Constants.KEY_DOCUMENT));
+                        ObjectNode policyNode = MAPPER.valueToTree(policy);
+                        Resource.nestMetadataFields(policyNode);
+                        resource.setDocument(policyNode);
+                        java.util.Map<String, String> hashMap = new java.util.HashMap<>();
+                        hashMap.put(Constants.KEY_SHA256, Resource.computeSha256(policyNode.toString()));
+                        resource.setHash(hashMap);
+                    }
+                    break;
+                case Constants.INDEX_CVES:
+                    Cve cve = Cve.fromPayload(payload);
+                    return MAPPER.writeValueAsString(cve);
+                default:
+                    resource = Resource.fromPayload(payload);
+                    break;
+            }
+
+            return MAPPER.writeValueAsString(resource);
+        } catch (JsonProcessingException e) {
+            log.error(Constants.E_LOG_PROCESS_PAYLOAD_FAILED, e.getMessage(), e);
+            return "{}";
+        } catch (Exception e) {
+            log.error(Constants.E_LOG_PROCESS_PAYLOAD_FAILED, e.getMessage(), e);
+            return "{}";
         }
     }
 }

@@ -36,6 +36,7 @@ import com.wazuh.contentmanager.action.CreateFilterAction;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -52,8 +53,15 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
-            EngineService engine) {
-        super(CreateFilterAction.NAME, transportService, actionFilters, client, engine);
+            EngineService engine,
+            EngineContentLoader engineContentLoader) {
+        super(
+                CreateFilterAction.NAME,
+                transportService,
+                actionFilters,
+                client,
+                engine,
+                engineContentLoader);
     }
 
     @Override

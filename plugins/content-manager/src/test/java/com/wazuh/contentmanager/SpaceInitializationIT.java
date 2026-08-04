@@ -37,6 +37,7 @@ import java.util.Objects;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
@@ -100,6 +101,7 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
                         OpenSearchIntegTestCase.client(),
                         new ConsumersIndex(OpenSearchIntegTestCase.client()),
                         null,
+                        new SpaceService(OpenSearchIntegTestCase.client()),
                         null);
 
         // First call — simulates the cluster manager node completing a sync

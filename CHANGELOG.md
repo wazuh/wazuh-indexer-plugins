@@ -64,6 +64,7 @@
 - Safeguard sensitive configurations [(#1277)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1277)
 - Reduce TTL for historical information about deletes in-memory [(#1328)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1328)
 - Integration's mode [(#1356)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1356)
+- Load standard space into all cluster nodes [(#1376)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1376)
 
 ### Changed
 - Add dependabot scan to the content-manager plugin [(#442)](https://github.com/wazuh/wazuh-indexer-plugins/issues/442)
@@ -171,6 +172,7 @@
 - Update the Content Manager OpenAPI (`openapi.yml`) to match the current API [(#1353)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1353)
 - [BUG] Vulnerability Detection empty for all agents after a transient snapshot bootstrap failure [(#1383)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1383)
 - [BUG] `enabled` flag not evaluated on various resource-related operations [(#1394)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1394)
+- [BUG] Log test does not use manually enabled integrations [(#1410)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1410)
 
 ## Prior versions
 - []()

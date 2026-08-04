@@ -86,8 +86,9 @@ public class TransportVersionCheckAction
             }
 
             String tag = "v" + version;
-            ApiClient apiClient = new ApiClient();
-            try {
+            // The ApiClient starts an I/O reactor (selector threads holding epoll/eventfd FDs);
+            // close it on every path to avoid leaking descriptors per request (issue #1763).
+            try (ApiClient apiClient = new ApiClient()) {
                 SimpleHttpResponse ctiResponse = apiClient.getReleaseUpdates(tag);
 
                 int ctiStatusCode = ctiResponse.getCode();
@@ -128,8 +129,6 @@ public class TransportVersionCheckAction
                 // Serialize message as JSON string but pass parsed object for structured output
                 String messageJson = this.mapper.writeValueAsString(messageMap);
                 listener.onResponse(new VersionCheckResponse(messageJson, RestStatus.OK, messageMap));
-            } finally {
-                apiClient.close();
             }
 
         } catch (Exception e) {

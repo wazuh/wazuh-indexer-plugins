@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -67,6 +69,8 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
     @Mock private Environment environment;
     @Mock private ThreadPool threadPool;
     @Mock private EngineService engineService;
+    @Mock private SpaceService spaceService;
+    @Mock private SecurityAnalyticsService securityAnalyticsService;
     @Mock private GetRequestBuilder getRequestBuilder;
     @Mock private GetResponse getResponse;
 
@@ -86,7 +90,9 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
                         this.consumersIndex,
                         this.environment,
                         this.threadPool,
-                        this.engineService);
+                        this.engineService,
+                        this.spaceService,
+                        this.securityAnalyticsService);
 
         when(this.client.prepareGet(Constants.INDEX_SETUP_STATUS, Constants.SETUP_STATUS_DOC_ID))
                 .thenReturn(this.getRequestBuilder);
