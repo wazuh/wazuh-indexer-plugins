@@ -4714,9 +4714,7 @@ file.diff:
   dashed_name: file-diff
   description: Unified diff of file content changes reported by FIM when `report_changes`
     is enabled. Shows added and removed lines in standard diff format.
-  example: '10a11
-
-    > 192.168.32.5'
+  example: 10a11 > 192.168.32.5
   flat_name: file.diff
   level: custom
   name: diff
@@ -16911,9 +16909,7 @@ threat.enrichments.indicator.file.diff:
   dashed_name: threat-enrichments-indicator-file-diff
   description: Unified diff of file content changes reported by FIM when `report_changes`
     is enabled. Shows added and removed lines in standard diff format.
-  example: '10a11
-
-    > 192.168.32.5'
+  example: 10a11 > 192.168.32.5
   flat_name: threat.enrichments.indicator.file.diff
   level: custom
   name: diff
@@ -19752,9 +19748,7 @@ threat.indicator.file.diff:
   dashed_name: threat-indicator-file-diff
   description: Unified diff of file content changes reported by FIM when `report_changes`
     is enabled. Shows added and removed lines in standard diff format.
-  example: '10a11
-
-    > 192.168.32.5'
+  example: 10a11 > 192.168.32.5
   flat_name: threat.indicator.file.diff
   level: custom
   name: diff
@@ -26616,9 +26610,7 @@ wazuh.threat.enrichments.indicator.file.diff:
   dashed_name: wazuh-threat-enrichments-indicator-file-diff
   description: Unified diff of file content changes reported by FIM when `report_changes`
     is enabled. Shows added and removed lines in standard diff format.
-  example: '10a11
-
-    > 192.168.32.5'
+  example: 10a11 > 192.168.32.5
   flat_name: wazuh.threat.enrichments.indicator.file.diff
   level: custom
   name: diff
@@ -29281,9 +29273,7 @@ wazuh.threat.indicator.file.diff:
   dashed_name: wazuh-threat-indicator-file-diff
   description: Unified diff of file content changes reported by FIM when `report_changes`
     is enabled. Shows added and removed lines in standard diff format.
-  example: '10a11
-
-    > 192.168.32.5'
+  example: 10a11 > 192.168.32.5
   flat_name: wazuh.threat.indicator.file.diff
   level: custom
   name: diff
