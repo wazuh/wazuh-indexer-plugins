@@ -141,6 +141,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StreamIndex("wazuh-metrics-comms", "templates/streams/metrics-comms"));
         this.indices.add(new StreamIndex("wazuh-metrics-normalization", "templates/streams/metrics-normalization"));
 
+        // AI assistant sessions data stream (stores the users' conversations with the AI assistant)
+        this.indices.add(new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-sessions"));
+
         // State indices
         this.indices.add(new StateIndex("wazuh-states-sca", "templates/states/sca"));
         this.indices.add(new StateIndex("wazuh-states-fim-files", "templates/states/fim-files"));
@@ -160,6 +163,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StateIndex("wazuh-states-inventory-system", "templates/states/inventory-system"));
         this.indices.add(new StateIndex("wazuh-states-inventory-users", "templates/states/inventory-users"));
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "templates/states/vulnerabilities"));
+
+        // AI assistant providers and settings
+        this.indices.add(new StateIndex(".wazuh-ai-assistant-settings", "templates/ai-assistant-settings"));
 
         // Wazuh settings index - Instantiated as it is required by the RestPutSettingsAction.
         this.settingsIndex = new SettingsIndex(".wazuh-settings", "templates/settings");
