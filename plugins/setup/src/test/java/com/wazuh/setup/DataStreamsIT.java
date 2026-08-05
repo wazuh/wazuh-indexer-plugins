@@ -214,6 +214,159 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
     }
 
     /**
+     * Verifies that the process/service/package "previous" fields (added so that IT Hygiene
+     * "modified" events can express what a field changed from, not just that it changed) are
+     * mapped with the correct types and are actually aggregatable, not merely accepted as text.
+     *
+     * <p>This is a regression guard for {@code process.previous.parent.pid} in particular: it
+     * depends on a fragile ECS self-reuse snapshot-timing workaround (see the comment in {@code
+     * wcs/stateless/events/main/fields/custom/process.yml}) that a future WCS generator or
+     * vendored ECS schema bump could silently break without any other test noticing.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testEventsPreviousFieldsAreMappedAndAggregatable() throws IOException, ParseException {
+        Request index = new Request("POST", "/" + EVENTS_PREFIX + "security/_doc");
+        index.addParameter("refresh", "true");
+        index.setJsonEntity(
+                """
+                {
+                  "@timestamp": "2026-07-30T19:27:34.682Z",
+                  "event": {"type": "modified", "collector": "dbsync_processes", "module": "inventory"},
+                  "process": {
+                    "pid": 4184885,
+                    "state": "S",
+                    "previous": {
+                      "pid": 999000123,
+                      "state": "R",
+                      "parent": {"pid": 999000111}
+                    }
+                  },
+                  "service": {"name": "wazuh-indexer", "state": "active", "previous": {"state": "activating"}},
+                  "package": {"name": "wcs-test-previous-fields", "previous": {"installed": "2026-07-01T10:00:00.000Z"}}
+                }
+                """);
+        client().performRequest(index);
+
+        Request search = new Request("GET", "/" + EVENTS_PREFIX + "security/_search");
+        search.setJsonEntity(
+                """
+                {
+                  "size": 0,
+                  "query": {"term": {"process.previous.pid": 999000123}},
+                  "aggs": {
+                    "process_previous_state": {"terms": {"field": "process.previous.state"}},
+                    "process_previous_parent_pid": {"terms": {"field": "process.previous.parent.pid"}},
+                    "process_state": {"terms": {"field": "process.state"}},
+                    "service_previous_state": {"terms": {"field": "service.previous.state"}},
+                    "package_previous_installed": {"terms": {"field": "package.previous.installed"}}
+                  }
+                }
+                """);
+        Response response = client().performRequest(search);
+        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+        logger.info("Previous-fields aggregation response: {}", body);
+
+        assertThat("process.previous.state should aggregate as keyword", body, containsString("\"key\":\"R\""));
+        assertThat(
+                "process.previous.parent.pid should aggregate as long",
+                body,
+                containsString("\"key\":999000111"));
+        assertThat("process.state should aggregate as keyword", body, containsString("\"key\":\"S\""));
+        assertThat(
+                "service.previous.state should aggregate as keyword",
+                body,
+                containsString("\"key\":\"activating\""));
+        assertThat(
+                "package.previous.installed should aggregate as date",
+                body,
+                containsString("2026-07-01T10:00:00.000Z"));
+    }
+
+    /**
+     * Verifies that the events template still rejects fields outside the WCS schema, i.e. that
+     * {@code dynamic: strict_allow_templates} is doing its job and the assertions above are proof
+     * of real field mappings, not permissive dynamic mapping.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     */
+    public void testEventsRejectUnmappedField() throws IOException {
+        Request index = new Request("POST", "/" + EVENTS_PREFIX + "security/_doc");
+        index.setJsonEntity(
+                """
+                {"@timestamp": "2026-08-05T00:00:00.000Z", "process": {"totally_bogus_unmapped_field": "x"}}
+                """);
+
+        ResponseException exception =
+                expectThrows(ResponseException.class, () -> client().performRequest(index));
+        assertEquals(400, exception.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
+     * Verifies that {@code service.previous.state} and {@code package.previous.installed} reach
+     * the findings stream too. This is expected: {@code service}/{@code package} use {@code
+     * fields: "*"} in every stateless events module's subset, and the WCS generator always folds
+     * {@code stateless/events/main}'s custom fields into every other {@code stateless/events/*}
+     * module, so these two fields are inherited automatically rather than by a per-module choice.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testFindingsInheritsServiceAndPackagePreviousFields() throws IOException, ParseException {
+        Request index = new Request("POST", "/" + FINDINGS_PREFIX + "security/_doc");
+        index.addParameter("refresh", "true");
+        index.setJsonEntity(
+                """
+                {
+                  "@timestamp": "2026-07-30T19:27:34.682Z",
+                  "service": {"name": "wazuh-indexer", "state": "active", "previous": {"state": "activating"}},
+                  "package": {"name": "wcs-test-findings-previous-fields", "previous": {"installed": "2026-07-01T10:00:00.000Z"}}
+                }
+                """);
+        client().performRequest(index);
+
+        Request search = new Request("GET", "/" + FINDINGS_PREFIX + "security/_search");
+        search.setJsonEntity(
+                """
+                {
+                  "size": 0,
+                  "query": {"term": {"package.name": "wcs-test-findings-previous-fields"}},
+                  "aggs": {
+                    "service_previous_state": {"terms": {"field": "service.previous.state"}},
+                    "package_previous_installed": {"terms": {"field": "package.previous.installed"}}
+                  }
+                }
+                """);
+        Response response = client().performRequest(search);
+        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+        logger.info("Findings inherited previous-fields aggregation response: {}", body);
+
+        assertThat(body, containsString("\"key\":\"activating\""));
+        assertThat(body, containsString("2026-07-01T10:00:00.000Z"));
+    }
+
+    /**
+     * Verifies that the {@code process.previous.*} additions were NOT carried over to the findings
+     * stream. Findings stores detection results, not raw dbsync change events, so it was
+     * deliberately left out of scope; this locks that decision in so it isn't silently reversed by
+     * a future edit that "helpfully" re-syncs findings' {@code process} subset with main's.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     */
+    public void testFindingsExcludesProcessPreviousFields() throws IOException {
+        Request index = new Request("POST", "/" + FINDINGS_PREFIX + "security/_doc");
+        index.setJsonEntity(
+                """
+                {"@timestamp": "2026-08-05T00:00:00.000Z", "process": {"previous": {"state": "R"}}}
+                """);
+
+        ResponseException exception =
+                expectThrows(ResponseException.class, () -> client().performRequest(index));
+        assertEquals(400, exception.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
      * Clears the fielddata cache after each test to prevent flaky failures from the test framework's
      * post-test assertions.
      *
