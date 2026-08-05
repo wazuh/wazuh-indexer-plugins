@@ -1,0 +1,19 @@
+---
+name: wazuh-ai-assistant-settings
+fields:
+  base:
+    fields:
+      settings:
+        fields:
+          conversationRetentionDays: {}
+          privacyDefaultOn: {}
+          privacyDefaultPerProvider: {}
+          userCanOverride: {}
+      providers:
+        fields:
+          name: {}
+          type: {}
+          base_url: {}
+          model: {}
+          api_key: {}
+          is_default: {}

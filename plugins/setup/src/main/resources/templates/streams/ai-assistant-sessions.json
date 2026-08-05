@@ -31,18 +31,8 @@
           "type": "date"
         },
         "messages": {
-          "properties": {
-            "content": {
-              "type": "match_only_text"
-            },
-            "created_at": {
-              "type": "date"
-            },
-            "role": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          }
+          "enabled": false,
+          "type": "object"
         },
         "title": {
           "ignore_above": 1024,

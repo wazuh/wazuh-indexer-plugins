@@ -30,21 +30,15 @@
       description: >
         Date and time when the conversation was last updated.
       example: "2026-08-03T12:43:46.475Z"
-    - name: messages.created_at
-      type: date
+    - name: messages
+      type: object
+      enabled: false
+      index: false
       level: custom
+      short: Conversation turns, stored verbatim to reconstruct the chat in the UI.
       description: >
-        Date and time when the message was created.
-      example: "2026-08-03T12:43:45.503Z"
-    - name: messages.role
-      type: keyword
-      level: custom
-      description: >
-        Author of the message. One of: user, assistant, system.
-      example: "user"
-    - name: messages.content
-      type: match_only_text
-      level: custom
-      description: >
-        Body of the message.
-      example: "how many agents are connected?"
+        Conversation turns (author and content, plus any other data returned by
+        the AI provider). Shape varies by provider, so the object is unmapped:
+        stored in _source and returned as-is, but neither indexed nor searchable.
+        Only used to reconstruct the conversation in the UI.
+      example: '[{"created_at": 1785761025503, "role": "user", "content": "how many agents are connected?"}]'

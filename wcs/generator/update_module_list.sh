@@ -110,8 +110,8 @@ function map_ai_assistant_modules() {
   if [[ -d "wcs/ai-assistant/sessions" ]]; then
     all_modules["ai-assistant/sessions"]="templates/streams/ai-assistant-sessions.json"
   fi
-  if [[ -d "wcs/ai-assistant/provider" ]]; then
-    all_modules["ai-assistant/provider"]="templates/ai-assistant-provider.json"
+  if [[ -d "wcs/ai-assistant/settings" ]]; then
+    all_modules["ai-assistant/settings"]="templates/ai-assistant-settings.json"
   fi
 }
 

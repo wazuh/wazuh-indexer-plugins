@@ -35,6 +35,6 @@ module_to_file=(
   # CVE module
   [cve]=templates/cve.json
   # AI assistant modules
-  [ai-assistant/provider]=templates/ai-assistant-provider.json
   [ai-assistant/sessions]=templates/streams/ai-assistant-sessions.json
+  [ai-assistant/settings]=templates/ai-assistant-settings.json
 )

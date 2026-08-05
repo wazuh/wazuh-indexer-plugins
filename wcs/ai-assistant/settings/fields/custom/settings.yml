@@ -1,0 +1,69 @@
+---
+- name: base
+  title: Wazuh AI Assistant Settings
+  description: >
+    Fields describing the AI providers and models, and the global settings, of the
+    Wazuh AI assistant.
+  type: group
+  group: 2
+  fields:
+    - name: providers.name
+      type: keyword
+      level: custom
+      description: >
+        Name given to the provider configuration.
+      example: "test-ai"
+    - name: providers.type
+      type: keyword
+      level: custom
+      description: >
+        Provider implementation to use.
+      example: "anthropic"
+    - name: providers.base_url
+      type: keyword
+      level: custom
+      description: >
+        Base URL of the provider's API.
+      example: "https://api.anthropic.com"
+    - name: providers.model
+      type: keyword
+      level: custom
+      description: >
+        Model to request from the provider.
+      example: "claude-opus-4-6"
+    - name: providers.api_key
+      type: keyword
+      level: custom
+      description: >
+        Encrypted API key used to authenticate against the provider.
+    - name: providers.is_default
+      type: boolean
+      level: custom
+      description: >
+        Whether this provider is the one used by default.
+      example: true
+    - name: settings.conversationRetentionDays
+      type: integer
+      level: custom
+      description: >
+        Number of days a conversation is kept before deletion.
+      example: 7
+    - name: settings.privacyDefaultOn
+      type: boolean
+      level: custom
+      description: >
+        Whether privacy mode is enabled by default for new conversations.
+      example: false
+    - name: settings.privacyDefaultPerProvider
+      type: object
+      level: custom
+      description: >
+        Per-provider override of the default privacy mode.
+      example: '{"test-ai": true}'
+    - name: settings.userCanOverride
+      type: boolean
+      level: custom
+      description: >
+        Whether users are allowed to override the default privacy setting for
+        their own conversations.
+      example: true

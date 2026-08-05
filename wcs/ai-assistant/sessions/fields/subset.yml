@@ -8,8 +8,4 @@ fields:
       title: {}
       created_at: {}
       updated_at: {}
-      messages:
-        fields:
-          created_at: {}
-          role: {}
-          content: {}
+      messages: {}

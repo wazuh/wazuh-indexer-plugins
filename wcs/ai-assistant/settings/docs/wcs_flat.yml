@@ -1,0 +1,106 @@
+providers.api_key:
+  dashed_name: providers-api-key
+  description: Encrypted API key used to authenticate against the provider.
+  flat_name: providers.api_key
+  ignore_above: 1024
+  level: custom
+  name: providers.api_key
+  normalize: []
+  short: Encrypted API key used to authenticate against the provider.
+  type: keyword
+providers.base_url:
+  dashed_name: providers-base-url
+  description: Base URL of the provider's API.
+  example: https://api.anthropic.com
+  flat_name: providers.base_url
+  ignore_above: 1024
+  level: custom
+  name: providers.base_url
+  normalize: []
+  short: Base URL of the provider's API.
+  type: keyword
+providers.is_default:
+  dashed_name: providers-is-default
+  description: Whether this provider is the one used by default.
+  example: true
+  flat_name: providers.is_default
+  level: custom
+  name: providers.is_default
+  normalize: []
+  short: Whether this provider is the one used by default.
+  type: boolean
+providers.model:
+  dashed_name: providers-model
+  description: Model to request from the provider.
+  example: claude-opus-4-6
+  flat_name: providers.model
+  ignore_above: 1024
+  level: custom
+  name: providers.model
+  normalize: []
+  short: Model to request from the provider.
+  type: keyword
+providers.name:
+  dashed_name: providers-name
+  description: Name given to the provider configuration.
+  example: test-ai
+  flat_name: providers.name
+  ignore_above: 1024
+  level: custom
+  name: providers.name
+  normalize: []
+  short: Name given to the provider configuration.
+  type: keyword
+providers.type:
+  dashed_name: providers-type
+  description: Provider implementation to use.
+  example: anthropic
+  flat_name: providers.type
+  ignore_above: 1024
+  level: custom
+  name: providers.type
+  normalize: []
+  short: Provider implementation to use.
+  type: keyword
+settings.conversationRetentionDays:
+  dashed_name: settings-conversationRetentionDays
+  description: Number of days a conversation is kept before deletion.
+  example: 7
+  flat_name: settings.conversationRetentionDays
+  level: custom
+  name: settings.conversationRetentionDays
+  normalize: []
+  short: Number of days a conversation is kept before deletion.
+  type: integer
+settings.privacyDefaultOn:
+  dashed_name: settings-privacyDefaultOn
+  description: Whether privacy mode is enabled by default for new conversations.
+  example: false
+  flat_name: settings.privacyDefaultOn
+  level: custom
+  name: settings.privacyDefaultOn
+  normalize: []
+  short: Whether privacy mode is enabled by default for new conversations.
+  type: boolean
+settings.privacyDefaultPerProvider:
+  dashed_name: settings-privacyDefaultPerProvider
+  description: Per-provider override of the default privacy mode.
+  example: '{"test-ai": true}'
+  flat_name: settings.privacyDefaultPerProvider
+  level: custom
+  name: settings.privacyDefaultPerProvider
+  normalize: []
+  short: Per-provider override of the default privacy mode.
+  type: object
+settings.userCanOverride:
+  dashed_name: settings-userCanOverride
+  description: Whether users are allowed to override the default privacy setting for
+    their own conversations.
+  example: true
+  flat_name: settings.userCanOverride
+  level: custom
+  name: settings.userCanOverride
+  normalize: []
+  short: Whether users are allowed to override the default privacy setting for their
+    own conversations.
+  type: boolean

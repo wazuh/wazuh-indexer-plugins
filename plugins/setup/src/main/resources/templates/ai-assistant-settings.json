@@ -1,0 +1,66 @@
+{
+  "index_patterns": [
+    ".wazuh-ai-assistant-settings*"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "codec": "zstd",
+        "hidden": true,
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "refresh_interval": "1s"
+      }
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict",
+      "properties": {
+        "providers": {
+          "properties": {
+            "api_key": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "base_url": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "is_default": {
+              "type": "boolean"
+            },
+            "model": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "name": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "type": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        "settings": {
+          "properties": {
+            "conversationRetentionDays": {
+              "type": "integer"
+            },
+            "privacyDefaultOn": {
+              "type": "boolean"
+            },
+            "privacyDefaultPerProvider": {
+              "type": "object"
+            },
+            "userCanOverride": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

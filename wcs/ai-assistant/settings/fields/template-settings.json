@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    ".wazuh-ai-assistant-provider*"
+    ".wazuh-ai-assistant-settings*"
   ],
   "priority": 1,
   "template": {

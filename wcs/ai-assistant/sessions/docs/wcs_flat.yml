@@ -43,37 +43,23 @@ created_at:
   normalize: []
   short: Date and time when the conversation was created.
   type: date
-messages.content:
-  dashed_name: messages-content
-  description: Body of the message.
-  example: how many agents are connected?
-  flat_name: messages.content
+messages:
+  dashed_name: messages
+  description: 'Conversation turns (author and content, plus any other data returned
+    by the AI provider). Shape varies by provider, so the object is unmapped: stored
+    in _source and returned as-is, but neither indexed nor searchable. Only used to
+    reconstruct the conversation in the UI.'
+  doc_values: false
+  enabled: false
+  example: '[{"created_at": 1785761025503, "role": "user", "content": "how many agents
+    are connected?"}]'
+  flat_name: messages
+  index: false
   level: custom
-  name: messages.content
+  name: messages
   normalize: []
-  short: Body of the message.
-  type: match_only_text
-messages.created_at:
-  dashed_name: messages-created-at
-  description: Date and time when the message was created.
-  example: '2026-08-03T12:43:45.503Z'
-  flat_name: messages.created_at
-  level: custom
-  name: messages.created_at
-  normalize: []
-  short: Date and time when the message was created.
-  type: date
-messages.role:
-  dashed_name: messages-role
-  description: 'Author of the message. One of: user, assistant, system.'
-  example: user
-  flat_name: messages.role
-  ignore_above: 1024
-  level: custom
-  name: messages.role
-  normalize: []
-  short: 'Author of the message. One of: user, assistant, system.'
-  type: keyword
+  short: Conversation turns, stored verbatim to reconstruct the chat in the UI.
+  type: object
 title:
   dashed_name: title
   description: Title of the conversation, usually derived from the first message sent

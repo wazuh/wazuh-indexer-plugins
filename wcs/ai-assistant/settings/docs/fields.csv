@@ -1,0 +1,11 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,providers,providers.api_key,keyword,custom,,,Encrypted API key used to authenticate against the provider.
+9.1.0,true,providers,providers.base_url,keyword,custom,,https://api.anthropic.com,Base URL of the provider's API.
+9.1.0,true,providers,providers.is_default,boolean,custom,,True,Whether this provider is the one used by default.
+9.1.0,true,providers,providers.model,keyword,custom,,claude-opus-4-6,Model to request from the provider.
+9.1.0,true,providers,providers.name,keyword,custom,,test-ai,Name given to the provider configuration.
+9.1.0,true,providers,providers.type,keyword,custom,,anthropic,Provider implementation to use.
+9.1.0,true,settings,settings.conversationRetentionDays,integer,custom,,7,Number of days a conversation is kept before deletion.
+9.1.0,true,settings,settings.privacyDefaultOn,boolean,custom,,False,Whether privacy mode is enabled by default for new conversations.
+9.1.0,true,settings,settings.privacyDefaultPerProvider,object,custom,,"{""test-ai"": true}",Per-provider override of the default privacy mode.
+9.1.0,true,settings,settings.userCanOverride,boolean,custom,,True,Whether users are allowed to override the default privacy setting for their own conversations.

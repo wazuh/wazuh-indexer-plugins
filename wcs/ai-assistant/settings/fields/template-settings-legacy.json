@@ -1,5 +1,5 @@
 {
-  "index_patterns": [".wazuh-ai-assistant-provider*"],
+  "index_patterns": [".wazuh-ai-assistant-settings*"],
   "order": 1,
   "settings": {
     "index": {
