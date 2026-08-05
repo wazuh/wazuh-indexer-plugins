@@ -682,6 +682,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,package,package.license,keyword,extended,,Apache License 2.0,Package license
 9.1.0,true,package,package.name,keyword,extended,,go,Package name
 9.1.0,true,package,package.path,keyword,extended,,/usr/local/Cellar/go/1.12.9/,Path where the package is installed.
+9.1.0,true,package,package.previous.installed,date,custom,,2026-07-01T10:00:00.000Z,Installation date before it changed.
 9.1.0,true,package,package.reference,keyword,extended,,https://golang.org,Package home page or reference URL
 9.1.0,true,package,package.size,long,extended,,62231,Package size in bytes.
 9.1.0,true,package,package.type,keyword,extended,,rpm,Package type
@@ -1178,9 +1179,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,service,service.origin.node.name,keyword,extended,,instance-0000000016,Name of the service node.
 9.1.0,true,service,service.origin.node.role,keyword,extended,,background_tasks,Deprecated role (singular) of the service node.
 9.1.0,true,service,service.origin.node.roles,keyword,extended,array,"[""ui"", ""background_tasks""]",Roles of the service node.
+9.1.0,true,service,service.origin.previous.state,keyword,custom,,activating,"Service state before it changed, e.g. `RUNNING` before a restart."
 9.1.0,true,service,service.origin.state,keyword,core,,,Current state of the service.
 9.1.0,true,service,service.origin.type,keyword,core,,elasticsearch,The type of the service.
 9.1.0,true,service,service.origin.version,keyword,core,,3.2.4,Version of the service.
+9.1.0,true,service,service.previous.state,keyword,custom,,activating,"Service state before it changed, e.g. `RUNNING` before a restart."
 9.1.0,true,service,service.state,keyword,core,,,Current state of the service.
 9.1.0,true,service,service.target.address,keyword,extended,,172.26.0.2:5432,Address of this service.
 9.1.0,true,service,service.target.environment,keyword,extended,,production,Environment of the service.
@@ -1190,6 +1193,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,service,service.target.node.name,keyword,extended,,instance-0000000016,Name of the service node.
 9.1.0,true,service,service.target.node.role,keyword,extended,,background_tasks,Deprecated role (singular) of the service node.
 9.1.0,true,service,service.target.node.roles,keyword,extended,array,"[""ui"", ""background_tasks""]",Roles of the service node.
+9.1.0,true,service,service.target.previous.state,keyword,custom,,activating,"Service state before it changed, e.g. `RUNNING` before a restart."
 9.1.0,true,service,service.target.state,keyword,core,,,Current state of the service.
 9.1.0,true,service,service.target.type,keyword,core,,elasticsearch,The type of the service.
 9.1.0,true,service,service.target.version,keyword,core,,3.2.4,Version of the service.
