@@ -104,6 +104,18 @@ function map_stateless_modules() {
 }
 
 # ====
+# Map AI assistant modules
+# ====
+function map_ai_assistant_modules() {
+  if [[ -d "wcs/ai-assistant/sessions" ]]; then
+    all_modules["ai-assistant/sessions"]="templates/streams/ai-assistant-sessions.json"
+  fi
+  if [[ -d "wcs/ai-assistant/provider" ]]; then
+    all_modules["ai-assistant/provider"]="templates/ai-assistant-provider.json"
+  fi
+}
+
+# ====
 # Map settings module
 # ====
 function map_settings_modules() {
@@ -181,6 +193,16 @@ function sort_and_output_modules() {
     echo "  [cve]=${all_modules[cve]}" >>"$output_file"
   fi
 
+  # AI assistant modules
+  local ai_assistant_keys
+  ai_assistant_keys=$(printf '%s\n' "${!all_modules[@]}" | grep "^ai-assistant/" | sort)
+  if [[ -n "$ai_assistant_keys" ]]; then
+    echo "  # AI assistant modules" >>"$output_file"
+    for key in $ai_assistant_keys; do
+      echo "  [$key]=${all_modules[$key]}" >>"$output_file"
+    done
+  fi
+
   echo ")" >>"$output_file"
 }
 
@@ -207,6 +229,8 @@ function main() {
   map_engine_filter_module
 
   map_cve_module
+
+  map_ai_assistant_modules
 
   # Sort and output
   sort_and_output_modules "$output_file"

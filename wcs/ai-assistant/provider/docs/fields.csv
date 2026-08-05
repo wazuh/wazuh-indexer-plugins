@@ -1,0 +1,7 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,api_key,keyword,custom,,,Encrypted API key used to authenticate against the provider.
+9.1.0,true,base,base_url,keyword,custom,,https://api.anthropic.com,Base URL of the provider's API.
+9.1.0,true,base,is_default,boolean,custom,,True,Whether this provider is the one used by default.
+9.1.0,true,base,model,keyword,custom,,claude-opus-4-6,Model to request from the provider.
+9.1.0,true,base,name,keyword,custom,,test-ai,Name given to the provider configuration.
+9.1.0,true,base,type,keyword,custom,,anthropic,Provider implementation to use.

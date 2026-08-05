@@ -1,0 +1,11 @@
+---
+name: wazuh-ai-assistant-provider
+fields:
+  base:
+    fields:
+      name: {}
+      type: {}
+      base_url: {}
+      model: {}
+      api_key: {}
+      is_default: {}

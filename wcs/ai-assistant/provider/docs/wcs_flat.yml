@@ -1,0 +1,64 @@
+api_key:
+  dashed_name: api-key
+  description: Encrypted API key used to authenticate against the provider.
+  flat_name: api_key
+  ignore_above: 1024
+  level: custom
+  name: api_key
+  normalize: []
+  short: Encrypted API key used to authenticate against the provider.
+  type: keyword
+base_url:
+  dashed_name: base-url
+  description: Base URL of the provider's API.
+  example: https://api.anthropic.com
+  flat_name: base_url
+  ignore_above: 1024
+  level: custom
+  name: base_url
+  normalize: []
+  short: Base URL of the provider's API.
+  type: keyword
+is_default:
+  dashed_name: is-default
+  description: Whether this provider is the one used by default.
+  example: true
+  flat_name: is_default
+  level: custom
+  name: is_default
+  normalize: []
+  short: Whether this provider is the one used by default.
+  type: boolean
+model:
+  dashed_name: model
+  description: Model to request from the provider.
+  example: claude-opus-4-6
+  flat_name: model
+  ignore_above: 1024
+  level: custom
+  name: model
+  normalize: []
+  short: Model to request from the provider.
+  type: keyword
+name:
+  dashed_name: name
+  description: Name given to the provider configuration.
+  example: test-ai
+  flat_name: name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  short: Name given to the provider configuration.
+  type: keyword
+type:
+  dashed_name: type
+  description: Provider implementation to use.
+  example: anthropic
+  flat_name: type
+  ignore_above: 1024
+  level: custom
+  name: type
+  normalize: []
+  short: Provider implementation to use.
+  type: keyword

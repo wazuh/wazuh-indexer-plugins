@@ -1,0 +1,9 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,created_at,date,custom,,2026-08-03T12:43:45.534Z,Date and time when the conversation was created.
+9.1.0,true,base,title,keyword,custom,,how many agents are connected?,"Title of the conversation, usually derived from the first message sent by the user."
+9.1.0,true,base,updated_at,date,custom,,2026-08-03T12:43:46.475Z,Date and time when the conversation was last updated.
+9.1.0,true,base,user,keyword,custom,,admin,Name of the user the conversation belongs to.
+9.1.0,true,messages,messages.content,match_only_text,custom,,how many agents are connected?,Body of the message.
+9.1.0,true,messages,messages.created_at,date,custom,,2026-08-03T12:43:45.503Z,Date and time when the message was created.
+9.1.0,true,messages,messages.role,keyword,custom,,user,"Author of the message. One of: user, assistant, system."

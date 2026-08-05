@@ -52,7 +52,7 @@ function detect_modified_modules() {
   local modified_modules=()
   modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
   for file in $modified_files; do
-    if [[ ($file == wcs/state* || $file == wcs/content* || $file == wcs/settings* || $file == wcs/cve*) && ($file == *.yml || $file == *.json) ]]; then
+    if [[ ($file == wcs/state* || $file == wcs/content* || $file == wcs/settings* || $file == wcs/cve* || $file == wcs/ai-assistant*) && ($file == *.yml || $file == *.json) ]]; then
       # Try to match the file to one of the known module keys for exact detection
       for key in "${!module_to_file[@]}"; do
         if [[ $file == wcs/$key/* || $file == wcs/$key ]]; then
@@ -191,8 +191,8 @@ function copy_files() {
   local docs_ecs_path
   local flat_ecs_path="mappings/${ECS_VERSION}/generated/ecs/ecs_flat.yml"
   for ecs_module in "${modules_to_update[@]}"; do
-    # Flat WCS is only required for the stateless modules
-    if [[ "$ecs_module" =~ stateless/* ]]; then
+    # Flat WCS is only required for the stateless and AI assistant modules
+    if [[ "$ecs_module" =~ stateless/* || "$ecs_module" =~ ai-assistant/* ]]; then
       # Copying flat WCS template to the wcs/<module>/docs/ folder
       docs_ecs_path="$repo_path/wcs/$ecs_module/docs"
       mkdir -p "$docs_ecs_path"
