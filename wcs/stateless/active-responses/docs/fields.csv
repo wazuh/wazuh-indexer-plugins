@@ -2,8 +2,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,When the document was inserted into the wazuh-active-responses index.
 9.1.0,true,event,event.doc_id,keyword,custom,,abc123,Document ID of the matched alert that triggered the active response.
 9.1.0,true,event,event.index,keyword,custom,,wazuh-events-v5-security,Source index of the matched alert that triggered the active response.
-9.1.0,true,file,file.diff,match_only_text,custom,,"10a11
-> 192.168.32.5",Unified diff of the file's content changes.
 9.1.0,true,wazuh,wazuh.active_response.agent_id,keyword,custom,,001,Agent configured in the active response channel.
 9.1.0,true,wazuh,wazuh.active_response.executable,keyword,custom,,firewall-drop,Executable configured in the active response channel.
 9.1.0,true,wazuh,wazuh.active_response.extra_arguments,keyword,custom,array,"[""192.168.1.100"", ""600""]",Arguments configured in the active response channel.
@@ -145,8 +143,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.file.created,date,extended,,,File creation time.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.file.ctime,date,extended,,,Last time the file attributes or metadata changed.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.file.device,keyword,extended,,sda,Device that is the source of the file.
-9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.file.diff,match_only_text,custom,,"10a11
-> 192.168.32.5",Unified diff of the file's content changes.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.file.directory,keyword,extended,,/home/alice,Directory where the file is located.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.file.drive_letter,keyword,extended,,C,Drive letter where the file is located.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.file.elf.architecture,keyword,extended,,x86-64,Machine architecture of the ELF file.
@@ -356,8 +352,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.threat.indicator.file.created,date,extended,,,File creation time.
 9.1.0,true,wazuh,wazuh.threat.indicator.file.ctime,date,extended,,,Last time the file attributes or metadata changed.
 9.1.0,true,wazuh,wazuh.threat.indicator.file.device,keyword,extended,,sda,Device that is the source of the file.
-9.1.0,true,wazuh,wazuh.threat.indicator.file.diff,match_only_text,custom,,"10a11
-> 192.168.32.5",Unified diff of the file's content changes.
 9.1.0,true,wazuh,wazuh.threat.indicator.file.directory,keyword,extended,,/home/alice,Directory where the file is located.
 9.1.0,true,wazuh,wazuh.threat.indicator.file.drive_letter,keyword,extended,,C,Drive letter where the file is located.
 9.1.0,true,wazuh,wazuh.threat.indicator.file.elf.architecture,keyword,extended,,x86-64,Machine architecture of the ELF file.

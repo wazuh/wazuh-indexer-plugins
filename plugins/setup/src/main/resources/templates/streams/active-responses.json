@@ -45,13 +45,6 @@
             }
           }
         },
-        "file": {
-          "properties": {
-            "diff": {
-              "type": "match_only_text"
-            }
-          }
-        },
         "wazuh": {
           "properties": {
             "active_response": {
