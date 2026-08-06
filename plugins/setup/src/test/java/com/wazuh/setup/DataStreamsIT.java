@@ -347,23 +347,58 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * Verifies that the {@code process.previous.*} additions were NOT carried over to the findings
-     * stream. Findings stores detection results, not raw dbsync change events, so it was
-     * deliberately left out of scope; this locks that decision in so it isn't silently reversed by
-     * a future edit that "helpfully" re-syncs findings' {@code process} subset with main's.
+     * Verifies that the {@code process.state}/{@code process.previous.*} fields are mapped and
+     * aggregatable in the findings stream too, keeping it at field parity with the events stream.
+     * Mirrors {@link #testEventsPreviousFieldsAreMappedAndAggregatable}, and doubles as the
+     * findings-side regression guard for the {@code process.previous.parent.pid} self-reuse
+     * snapshot workaround.
      *
      * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
      */
-    public void testFindingsExcludesProcessPreviousFields() throws IOException {
+    public void testFindingsMapsProcessPreviousFields() throws IOException, ParseException {
         Request index = new Request("POST", "/" + FINDINGS_PREFIX + "security/_doc");
+        index.addParameter("refresh", "true");
         index.setJsonEntity(
                 """
-                {"@timestamp": "2026-08-05T00:00:00.000Z", "process": {"previous": {"state": "R"}}}
+                {
+                  "@timestamp": "2026-07-30T19:27:34.682Z",
+                  "process": {
+                    "pid": 4184885,
+                    "state": "S",
+                    "previous": {
+                      "pid": 999000123,
+                      "state": "R",
+                      "parent": {"pid": 999000111}
+                    }
+                  }
+                }
                 """);
+        client().performRequest(index);
 
-        ResponseException exception =
-                expectThrows(ResponseException.class, () -> client().performRequest(index));
-        assertEquals(400, exception.getResponse().getStatusLine().getStatusCode());
+        Request search = new Request("GET", "/" + FINDINGS_PREFIX + "security/_search");
+        search.setJsonEntity(
+                """
+                {
+                  "size": 0,
+                  "query": {"term": {"process.previous.pid": 999000123}},
+                  "aggs": {
+                    "process_previous_state": {"terms": {"field": "process.previous.state"}},
+                    "process_previous_parent_pid": {"terms": {"field": "process.previous.parent.pid"}},
+                    "process_state": {"terms": {"field": "process.state"}}
+                  }
+                }
+                """);
+        Response response = client().performRequest(search);
+        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+        logger.info("Findings process previous-fields aggregation response: {}", body);
+
+        assertThat("process.previous.state should aggregate as keyword", body, containsString("\"key\":\"R\""));
+        assertThat(
+                "process.previous.parent.pid should aggregate as long",
+                body,
+                containsString("\"key\":999000111"));
+        assertThat("process.state should aggregate as keyword", body, containsString("\"key\":\"S\""));
     }
 
     /**

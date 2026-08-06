@@ -58,7 +58,7 @@ Extends the ECS `vulnerability` field set with a scanner reference URL pointing 
 
 Adds `process.state` to capture the current process state as reported by the collector. Extends the ECS `process.previous` reuse (previously limited to `args`, `args_count`, and `executable`) with `pid`, `name`, `state`, `command_line`, and `parent.pid`, so a `modified` process event can express what changed from, not just what changed to (e.g. a service's PID after it restarts).
 
-These `process.*` additions are scoped to this module only; `findings` (which stores detection results, not raw dbsync change events) does not carry them and its `subset.yml` for `process` was intentionally left untouched.
+These `process.*` additions are also applied to `findings`: its `subset.yml` for `process` lists the same `state` and `previous.*` fields, keeping both stateless events streams at field parity.
 
 `process.previous.args`, `.args_count`, and `.executable` are kept even though none of our collectors populate them today: they come for free as part of the same ECS `process.previous` reuse the fields above depend on, so dropping them would require patching the vendored ECS schema for no mapping-size benefit.
 

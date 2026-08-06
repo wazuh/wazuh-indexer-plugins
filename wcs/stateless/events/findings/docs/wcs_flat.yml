@@ -13625,6 +13625,21 @@ process.previous.args_count:
   original_fieldset: process
   short: Length of the process.args array.
   type: long
+process.previous.command_line:
+  dashed_name: process-previous-command-line
+  description: 'Full command line that started the process, including the absolute
+    path to the executable, and all arguments.
+
+    Some arguments may be filtered to protect sensitive information.'
+  example: /usr/bin/ssh -l user 10.0.0.16
+  flat_name: process.previous.command_line
+  ignore_above: 1024
+  level: extended
+  name: command_line
+  normalize: []
+  original_fieldset: process
+  short: Full command line that started the process.
+  type: keyword
 process.previous.executable:
   dashed_name: process-previous-executable
   description: Absolute path to the process executable.
@@ -13636,6 +13651,55 @@ process.previous.executable:
   normalize: []
   original_fieldset: process
   short: Absolute path to the process executable.
+  type: keyword
+process.previous.name:
+  dashed_name: process-previous-name
+  description: 'Process name.
+
+    Sometimes called program name or similar.'
+  example: ssh
+  flat_name: process.previous.name
+  ignore_above: 1024
+  level: extended
+  name: name
+  normalize: []
+  original_fieldset: process
+  short: Process name.
+  type: keyword
+process.previous.parent.pid:
+  dashed_name: process-previous-parent-pid
+  description: PID of the parent process.
+  example: 1
+  flat_name: process.previous.parent.pid
+  level: custom
+  name: parent.pid
+  normalize: []
+  original_fieldset: process
+  short: PID of the parent process.
+  type: long
+process.previous.pid:
+  dashed_name: process-previous-pid
+  description: Process id.
+  example: 4242
+  flat_name: process.previous.pid
+  format: string
+  level: core
+  name: pid
+  normalize: []
+  original_fieldset: process
+  short: Process id.
+  type: long
+process.previous.state:
+  dashed_name: process-previous-state
+  description: Current state of the process, as reported by the collector.
+  example: S
+  flat_name: process.previous.state
+  ignore_above: 1024
+  level: custom
+  name: state
+  normalize: []
+  original_fieldset: process
+  short: Current state of the process, as reported by the collector.
   type: keyword
 process.real_group.id:
   dashed_name: process-real-group-id
@@ -14265,6 +14329,17 @@ process.start:
   normalize: []
   short: The time the process started.
   type: date
+process.state:
+  dashed_name: process-state
+  description: Current state of the process, as reported by the collector.
+  example: S
+  flat_name: process.state
+  ignore_above: 1024
+  level: custom
+  name: state
+  normalize: []
+  short: Current state of the process, as reported by the collector.
+  type: keyword
 process.supplemental_groups.id:
   dashed_name: process-supplemental-groups-id
   description: Unique identifier for the group on the system/platform.

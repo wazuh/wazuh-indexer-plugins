@@ -4603,7 +4603,29 @@
                 "args_count": {
                   "type": "long"
                 },
+                "command_line": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
                 "executable": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "parent": {
+                  "properties": {
+                    "pid": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "pid": {
+                  "type": "long"
+                },
+                "state": {
                   "ignore_above": 1024,
                   "type": "keyword"
                 }
@@ -4838,6 +4860,10 @@
             },
             "start": {
               "type": "date"
+            },
+            "state": {
+              "ignore_above": 1024,
+              "type": "keyword"
             },
             "supplemental_groups": {
               "properties": {
