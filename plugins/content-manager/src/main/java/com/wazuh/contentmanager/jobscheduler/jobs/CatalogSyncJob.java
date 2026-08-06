@@ -40,6 +40,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -253,15 +254,17 @@ public class CatalogSyncJob implements JobExecutor {
      * Blocks until the Setup plugin reports its initialization as {@value
      * Constants#SETUP_STATUS_READY} via the {@value Constants#SETUP_STATUS_DOC_ID} marker document in
      * the {@value Constants#INDEX_SETUP_STATUS} index. Retries up to {@link
-     * Constants#MAX_SETUP_WAIT_RETRIES} times with exponential backoff (20s, 40s, 80s, 160s) before
-     * giving up. If the marker already reports {@value Constants#SETUP_STATUS_FAILED}, returns
-     * immediately without retrying — a failed Setup boot will not fix itself within the same boot.
-     * This method blocks the calling generic-pool thread for up to 300 seconds (5 min) in the worst
-     * case.
+     * PluginSettings#SETUP_WAIT_MAX_RETRIES} times with exponential backoff starting at {@link
+     * PluginSettings#SETUP_WAIT_BACKOFF_BASE_SECONDS} before giving up (defaults: 20s, 40s, 80s, 160s
+     * = 300s / 5 min worst case). If the marker already reports {@value
+     * Constants#SETUP_STATUS_FAILED}, returns immediately without retrying — a failed Setup boot will
+     * not fix itself within the same boot.
      *
      * @return true if the Setup plugin reported readiness, false otherwise.
      */
     boolean waitForSetup() {
+        int maxRetries = PluginSettings.getInstance().getSetupWaitMaxRetries();
+        int backoffBaseSeconds = PluginSettings.getInstance().getSetupWaitBackoffBaseSeconds();
         for (int attempt = 0; ; attempt++) {
             SetupStatus status = this.readSetupStatus();
             if (status == SetupStatus.READY) {
@@ -272,22 +275,33 @@ public class CatalogSyncJob implements JobExecutor {
                         "Setup plugin initialization failed. Skipping catalog synchronization until Setup succeeds (typically after a node restart.");
                 return false;
             }
-            if (attempt >= Constants.MAX_SETUP_WAIT_RETRIES) {
+            if (attempt >= maxRetries) {
                 return false;
             }
-            long delaySeconds = Constants.SETUP_WAIT_BACKOFF_BASE_SECONDS * (1L << attempt);
+            long delaySeconds = backoffBaseSeconds * (1L << attempt);
             log.info(
                     "Setup plugin initialization not complete yet. Retrying in {}s (attempt {}/{}).",
                     delaySeconds,
                     attempt + 1,
-                    Constants.MAX_SETUP_WAIT_RETRIES);
+                    maxRetries);
             try {
-                TimeUnit.SECONDS.sleep(delaySeconds);
+                this.sleepSeconds(delaySeconds);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return false;
             }
         }
+    }
+
+    /**
+     * Sleeps for the given number of seconds. Extracted from {@link #waitForSetup()} so tests can
+     * stub it out and exercise the full retry loop without actually blocking for its real duration.
+     *
+     * @param seconds The number of seconds to sleep.
+     * @throws InterruptedException if the thread is interrupted while sleeping.
+     */
+    void sleepSeconds(long seconds) throws InterruptedException {
+        TimeUnit.SECONDS.sleep(seconds);
     }
 
     /** The three states the Setup plugin's readiness marker can report. */

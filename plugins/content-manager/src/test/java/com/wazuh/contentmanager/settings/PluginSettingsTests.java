@@ -146,6 +146,57 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
     }
 
+    /** Tests that the Setup-wait backoff settings fall back to their documented defaults. */
+    public void testSetupWaitBackoffDefaults() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        Assert.assertEquals(4, pluginSettings.getSetupWaitMaxRetries());
+        Assert.assertEquals(20, pluginSettings.getSetupWaitBackoffBaseSeconds());
+    }
+
+    /** Tests that custom Setup-wait backoff values within bounds are honored. */
+    public void testSetupWaitBackoffCustom() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.setup_wait.max_retries", 6)
+                        .put("plugins.content_manager.setup_wait.backoff_base_seconds", 45)
+                        .build();
+        PluginSettings pluginSettings = PluginSettings.getInstance(settings);
+        Assert.assertEquals(6, pluginSettings.getSetupWaitMaxRetries());
+        Assert.assertEquals(45, pluginSettings.getSetupWaitBackoffBaseSeconds());
+    }
+
+    /** Tests that a negative setup_wait.max_retries is rejected. */
+    public void testSetupWaitMaxRetriesBelowMinThrows() {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.setup_wait.max_retries", -1).build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /** Tests that a setup_wait.max_retries above the documented ceiling is rejected. */
+    public void testSetupWaitMaxRetriesAboveMaxThrows() {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.setup_wait.max_retries", 11).build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /** Tests that a setup_wait.backoff_base_seconds below the 1s floor is rejected. */
+    public void testSetupWaitBackoffBaseSecondsBelowMinThrows() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.setup_wait.backoff_base_seconds", 0)
+                        .build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /** Tests that a setup_wait.backoff_base_seconds above the documented ceiling is rejected. */
+    public void testSetupWaitBackoffBaseSecondsAboveMaxThrows() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.setup_wait.backoff_base_seconds", 121)
+                        .build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
     /** Tests that the resource limit settings fall back to their documented defaults. */
     public void testResourceLimitDefaults() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);

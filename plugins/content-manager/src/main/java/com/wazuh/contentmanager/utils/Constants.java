@@ -782,11 +782,8 @@ public class Constants {
     public static final String SETUP_STATUS_DOC_ID = "setup-status";
     public static final String SETUP_STATUS_READY = "ready";
     public static final String SETUP_STATUS_FAILED = "failed";
-    // Total worst-case wait before giving up is BASE * (2^RETRIES - 1) seconds: 20s, 40s, 80s, 160s =
-    // 300s (5 min). Keep this comfortably above the slowest observed Setup boot time, since giving up
-    // means waiting for the next scheduled run (an hour, by default).
-    public static final int MAX_SETUP_WAIT_RETRIES = 4;
-    public static final int SETUP_WAIT_BACKOFF_BASE_SECONDS = 20;
+    // The retry count and backoff base for waitForSetup() are configurable settings; see
+    // PluginSettings#SETUP_WAIT_MAX_RETRIES and PluginSettings#SETUP_WAIT_BACKOFF_BASE_SECONDS.
 
     // Resource-creation limit locks: serialize the count-then-create sequence used to enforce
     // plugins.content_manager.max_{integrations,decoders,rules,kvdbs,filters}, keyed per

@@ -909,7 +909,9 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_RULES,
                 PluginSettings.MAX_KVDBS,
                 PluginSettings.MAX_FILTERS,
-                PluginSettings.WAZUH_UID);
+                PluginSettings.WAZUH_UID,
+                PluginSettings.SETUP_WAIT_MAX_RETRIES,
+                PluginSettings.SETUP_WAIT_BACKOFF_BASE_SECONDS);
     }
 
     @Override
