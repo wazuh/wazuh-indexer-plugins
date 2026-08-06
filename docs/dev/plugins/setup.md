@@ -21,6 +21,7 @@ classDiagram
     <<abstract>> WazuhIndex
     class StateIndex
     class StreamIndex
+    class AIAssistantSettingsIndex
 
     %% Relations
     IndexInitializer <|-- Index : implements
@@ -28,6 +29,7 @@ classDiagram
     Index <|-- WazuhIndex
     WazuhIndex <|-- StateIndex
     WazuhIndex <|-- StreamIndex
+    StateIndex <|-- AIAssistantSettingsIndex
 
     %% Schemas
     class IndexInitializer {
@@ -63,6 +65,11 @@ classDiagram
         +createIndex(String index)
     }
     class StateIndex {
+    }
+    class AIAssistantSettingsIndex {
+        +String INDEX_NAME
+        +String VISIBILITY_FIELD
+        +List~String~ VISIBLE_TO
     }
 ```
 
@@ -338,12 +345,14 @@ Some data streams use their own dedicated templates instead of the shared `event
 | ------------------------------ | ----------------------------------------- | --------------------------------------------- |
 | `wazuh-events-raw-v5`          | `templates/streams/raw.json`              | Stores original unprocessed events            |
 | `wazuh-active-responses`       | `templates/streams/active-responses.json` | Active Response execution requests            |
+| `wazuh-ai-assistant-sessions`  | `templates/streams/ai-assistant-sessions.json` | AI assistant conversation history        |
 
 These are registered with the two-arg constructor:
 
 ```java
 new StreamIndex("wazuh-events-raw-v5", "templates/streams/raw");
 new StreamIndex("wazuh-active-responses", "templates/streams/active-responses");
+new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-sessions");
 ```
 
 ---
@@ -509,3 +518,90 @@ The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh
 2. **Delete State**
    - Actions: Deletes the index
    - Retry Policy: 3 attempts with exponential backoff (1-minute initial delay)
+
+---
+
+## AI assistant indices
+
+### Overview
+
+The AI assistant stores its conversation history in the **`wazuh-ai-assistant-sessions`** data stream (a `StreamIndex`), and its providers configuration plus assistant-wide settings in the hidden **`.wazuh-ai-assistant-settings`** index (an `AIAssistantSettingsIndex`, a `StateIndex` that also holds the constants backing its access control). Both use strict mappings.
+
+### Sessions data stream (`wazuh-ai-assistant-sessions`)
+
+#### Index template
+- **Location**: `plugins/setup/src/main/resources/templates/streams/ai-assistant-sessions.json`
+- **Index Pattern**: `wazuh-ai-assistant-sessions*`
+- **Rollover Alias**: `wazuh-ai-assistant-sessions`
+- **Priority**: 1
+
+#### Fields
+
+- **@timestamp**: Indexing time of the document (data stream timestamp field, required)
+- **user**: Username the conversation belongs to. Used as the Document Level Security discriminator
+- **title**: Conversation title, usually the first user message
+- **created_at** / **updated_at**: Conversation creation and last update times
+- **messages**: The conversation turns (e.g. `created_at`, `role`, `content`, plus whatever else a given AI provider returns). Mapped as `{"type": "object", "enabled": false}`: stored in `_source` and returned as-is on `_search`/`_get`, but not parsed into the mapping at all — no sub-fields, no indexing, no strict-mapping enforcement inside it. This is deliberate: the shape of a message varies by provider, so there is no fixed schema to declare, and the assistant never queries into `messages` — it only reads whole documents back to reconstruct a conversation in the UI.
+
+#### Access control
+
+Access is granted by the `wazuh_ai_assistant` role, defined in the `wazuh-indexer` repository and mapped to every authenticated user. Reads are filtered with DLS parameter substitution (`{"term": {"user": "${user.name}"}}`), so a user only retrieves their own conversations; writes carry no DLS query. The restriction also applies to users holding a role that grants `read` on the `*` index pattern.
+
+### Settings index (`.wazuh-ai-assistant-settings`)
+
+#### Index template
+- **Location**: `plugins/setup/src/main/resources/templates/ai-assistant-settings.json`
+- **Index Pattern**: `.wazuh-ai-assistant-settings*`
+- **Priority**: 1
+- **Hidden**: yes. Not rolled over and not managed by ISM (registered as a plain `StateIndex`, like the stateful inventory indices — no timestamps, always represents the current configuration)
+
+The index holds two kinds of documents under one mapping, avoiding a second index for what would otherwise be a handful of settings fields. Each kind lives under its own top-level object, so the two never collide despite the strict mapping:
+
+- One document per configured AI provider, under **providers**: `providers.name`, `providers.type`, `providers.base_url`, `providers.model`, `providers.api_key`, `providers.is_default`. `providers.api_key`.
+- Assistant-wide settings, under **settings**: `settings.conversationRetentionDays`, `settings.privacyDefaultOn`, `settings.privacyDefaultPerProvider`, `settings.userCanOverride`.
+
+Both kinds also carry a top-level **visible_to** keyword listing the backend roles allowed to read the document. It is never written by clients — see *Access control* below.
+
+Example documents:
+
+```json
+// Provider document
+{ "providers": { "name": "test-ai", "type": "anthropic", "base_url": "https://api.anthropic.com", "model": "claude-opus-4-6", "api_key": "enc:v1:SC/RyOIBkdm+kGl", "is_default": true } }
+
+// Settings document
+{ "settings": { "conversationRetentionDays": 0, "privacyDefaultOn": false, "privacyDefaultPerProvider": {}, "userCanOverride": true } }
+```
+
+#### Access control
+
+The index holds the AI provider API keys, so it must stay unreadable for the roles granting `read` on `*`. OpenSearch Security has no deny rules, so the exclusion is expressed as a Document Level Security query instead, in two halves:
+
+- `AIAssistantSettingsVisibilityFilter`, an `ActionFilter` registered by `SetupPlugin.getActionFilters()`, intercepts every `IndexRequest`, `UpdateRequest` and `BulkRequest` item whose target index starts with `.wazuh-ai-assistant-settings` and overwrites `visible_to` with the `VISIBLE_TO` constant (`["admin", "wazuh-admin"]`), whatever the client sent. It runs at `Integer.MIN_VALUE` order, so no other filter observes the un-stamped document. Update requests get both their partial document and their upsert stamped: a partial update merges into a source that already holds the field, but an upsert creates a document from scratch.
+- The `wazuh_ai_assistant_settings` role, defined in the `wazuh-indexer` repository and mapped to every authenticated user, carries the DLS query `{"terms": {"visible_to": [${user.roles}]}}`. `${user.roles}` expands to the reader's **backend** roles, not to its mapped security roles: `admin` (behind `all_access` and `wazuh_admin`) and `wazuh-admin` (carried by the `wazuh-admin` internal user, which is mapped by username). A reader holding neither backend role matches no document, so `wazuh-manager`, `wazuh-demo`, `wazuh-readonly` and any custom role granting `read` on `*` get an empty result set.
+
+The index is deliberately **not** a security system index. Registering it there requires `plugins.security.system_indices.permission.enabled: true`, which additionally turns `.opendistro_security` into a super-admin-certificate-only index and makes OpenSearch Security reject every request whose resolved index set contains a protected system index. In that mode `GET _cat/indices/.*` returns a `403` for every user, `admin` included.
+
+### ISM policy (`ai-assistant-sessions-policy`)
+
+#### Policy details
+- **Policy Name**: `ai-assistant-sessions-policy`
+- **Location**: `plugins/setup/src/main/resources/policies/ai-assistant-sessions-policy.json`
+- **Index Patterns**: `.ds-wazuh-ai-assistant-sessions-*`, `wazuh-ai-assistant-sessions*`
+- **Retention Period**: 7 days
+- **Rollover Conditions**: index age of 1 day (daily rotation), or 20 GB primary shard size / 200,000,000 documents, whichever comes first
+- **ISM template priority**: 0
+
+#### Policy states
+
+1. **Hot State**
+   - Actions: Rollover when the index is 1 day old, or reaches 20 GB / 200M documents
+   - Transition Condition: Transitions to `delete` after 7 days
+
+2. **Delete State**
+   - Actions: Deletes the index
+   - Retry Policy: 3 attempts with exponential backoff (1-minute initial delay)
+
+### Testing
+
+Integration tests for the AI assistant indices are located at:
+`plugins/setup/src/test/java/com/wazuh/setup/AiAssistantIndicesIT.java`

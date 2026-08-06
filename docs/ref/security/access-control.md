@@ -24,9 +24,11 @@ Each default user is mapped 1:1 to the role of the matching name in `roles_mappi
 
 There is no dedicated internal user for the `dashboard_server` role below — it is mapped to the built-in OpenSearch `kibanaserver` user, which the Wazuh Dashboard authenticates as internally.
 
+Besides the 1:1 roles, `wazuh_ai_assistant` and `wazuh_ai_assistant_settings` are mapped to **every** authenticated user. They are the only roles not tied to a single user, and both exist to attach a Document Level Security query to an index.
+
 ### Roles
 
-Six default roles are defined in `roles.yml`. Each role is self-contained (it grants everything its user needs on its own) and is `reserved` - it cannot be edited in place. To customize, duplicate the role and edit the copy (see [Defining Users and Roles](./defining-users-and-roles.md)).
+Eight default roles are defined in `roles.yml`. Each role is self-contained (it grants everything its user needs on its own) and is `reserved` - it cannot be edited in place. To customize, duplicate the role and edit the copy (see [Defining Users and Roles](./defining-users-and-roles.md)).
 
 #### `dashboard_server`
 
@@ -67,6 +69,7 @@ Full access to all Wazuh features, excluding super-admin features such as the se
   - `index` on `wazuh-events-v5*`.
   - `read`, `index`, `delete` on `.wazuh-internal-state`.
   - `index`, `delete`, `indices:admin/exists`, `indices:admin/refresh` on `wazuh-threatintel-*`, `.opensearch-sap-*`.
+  - `read`, `index`, `delete` on `.wazuh-ai-assistant-settings`.
 
 #### `wazuh_demo`
 
@@ -95,6 +98,34 @@ Read-only access across the platform.
   - `get`, `read`, `indices:admin/aliases/get`, `indices:monitor/*` on `*`, `.kibana*`.
   - `read` on `.wazuh-settings`.
   - `read` on `.wazuh-internal-state`.
+
+#### `wazuh_ai_assistant`
+
+Grants every authenticated user access to their own AI assistant conversations, stored in the `wazuh-ai-assistant-sessions` data stream. Mapped to `*` (all users) in `roles_mapping.yml`.
+
+- **Cluster permissions:** none.
+- **Index permissions:**
+  - `read` on `wazuh-ai-assistant-sessions*`, `.ds-wazuh-ai-assistant-sessions-*`, restricted with the DLS query `{"term": {"user": "${user.name}"}}`.
+  - `write` on the same patterns, with no DLS query (DLS filters reads, not writes).
+
+`${user.name}` is substituted at query time with the name of the authenticated user, so each user retrieves only the conversations whose `user` field holds their own username.
+
+#### `wazuh_ai_assistant_settings`
+
+Hides the AI provider credentials and the assistant-wide settings from everyone but the administrators. Mapped to `*` (all users) in `roles_mapping.yml`.
+
+- **Cluster permissions:** none.
+- **Index permissions:**
+  - `read` on `.wazuh-ai-assistant-settings`, restricted with the DLS query `{"terms": {"visible_to": [${user.roles}]}}`.
+
+See [AI assistant settings index](#ai-assistant-settings-index) below for how the `visible_to` field is populated.
+
+## AI assistant settings index
+
+The AI assistant's providers configuration and its assistant-wide settings live together in the hidden `.wazuh-ai-assistant-settings` index. Because index permissions cannot express a deny rule, a role granting `read` on `*` would otherwise expose it. The exclusion is expressed as a Document Level Security query instead:
+
+- The setup plugin registers an action filter that intercepts every write to the index and overwrites `visible_to` with `["admin", "wazuh-admin"]`. Clients never set the field themselves, and a value they do send is discarded.
+- The `wazuh_ai_assistant_settings` role, mapped to every user, substitutes `${user.roles}` with the reader's own **backend** roles and returns only the documents listing one of them. `admin` is the backend role behind `all_access` and `wazuh_admin`; `wazuh-admin` is carried by the `wazuh-admin` internal user, which is mapped by username. Any additional administrator must hold one of those two backend roles to read the index. `wazuh-manager`, `wazuh-demo`, `wazuh-readonly` and any custom role granting `read` on `*` therefore get an empty result set rather than the sensitive information.
 
 ## Sensitive configuration endpoints
 
