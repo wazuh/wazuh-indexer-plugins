@@ -782,8 +782,8 @@ public class Constants {
     public static final String SETUP_STATUS_DOC_ID = "setup-status";
     public static final String SETUP_STATUS_READY = "ready";
     public static final String SETUP_STATUS_FAILED = "failed";
-    public static final int MAX_SETUP_WAIT_RETRIES = 3;
-    public static final int SETUP_WAIT_BACKOFF_BASE_SECONDS = 5;
+    // The retry count and backoff base for waitForSetup() are configurable settings; see
+    // PluginSettings#SETUP_WAIT_MAX_RETRIES and PluginSettings#SETUP_WAIT_BACKOFF_BASE_SECONDS.
 
     // Resource-creation limit locks: serialize the count-then-create sequence used to enforce
     // plugins.content_manager.max_{integrations,decoders,rules,kvdbs,filters}, keyed per
