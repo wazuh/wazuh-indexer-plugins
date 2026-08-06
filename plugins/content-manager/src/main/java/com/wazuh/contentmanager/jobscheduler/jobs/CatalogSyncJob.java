@@ -253,10 +253,11 @@ public class CatalogSyncJob implements JobExecutor {
      * Blocks until the Setup plugin reports its initialization as {@value
      * Constants#SETUP_STATUS_READY} via the {@value Constants#SETUP_STATUS_DOC_ID} marker document in
      * the {@value Constants#INDEX_SETUP_STATUS} index. Retries up to {@link
-     * Constants#MAX_SETUP_WAIT_RETRIES} times with exponential backoff (5s, 10s, 20s) before giving
-     * up. If the marker already reports {@value Constants#SETUP_STATUS_FAILED}, returns immediately
-     * without retrying — a failed Setup boot will not fix itself within the same boot. This method
-     * blocks the calling generic-pool thread for up to 35 seconds in the worst case.
+     * Constants#MAX_SETUP_WAIT_RETRIES} times with exponential backoff (20s, 40s, 80s, 160s) before
+     * giving up. If the marker already reports {@value Constants#SETUP_STATUS_FAILED}, returns
+     * immediately without retrying — a failed Setup boot will not fix itself within the same boot.
+     * This method blocks the calling generic-pool thread for up to 300 seconds (5 min) in the worst
+     * case.
      *
      * @return true if the Setup plugin reported readiness, false otherwise.
      */
