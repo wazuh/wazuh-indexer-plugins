@@ -72,6 +72,7 @@
       level: custom
       normalize:
         - array
+      short: List of backend roles allowed to read the document.
       description: >
         Backend roles allowed to read the document. Set on every document by
         the setup plugin's action filter, and matched against the reader's own

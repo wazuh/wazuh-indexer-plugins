@@ -104,3 +104,18 @@ settings.userCanOverride:
   short: Whether users are allowed to override the default privacy setting for their
     own conversations.
   type: boolean
+visible_to:
+  dashed_name: visible-to
+  description: Backend roles allowed to read the document. Set on every document by
+    the setup plugin's action filter, and matched against the reader's own backend
+    roles by the Document Level Security query of the 'wazuh_ai_assistant_settings'
+    role. Not written by clients.
+  example: '["admin", "wazuh-admin"]'
+  flat_name: visible_to
+  ignore_above: 1024
+  level: custom
+  name: visible_to
+  normalize:
+  - array
+  short: List of backend roles allowed to read the document.
+  type: keyword

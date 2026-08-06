@@ -1,4 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,visible_to,keyword,custom,array,"[""admin"", ""wazuh-admin""]",List of backend roles allowed to read the document.
 9.1.0,true,providers,providers.api_key,keyword,custom,,,Encrypted API key used to authenticate against the provider.
 9.1.0,true,providers,providers.base_url,keyword,custom,,https://api.anthropic.com,Base URL of the provider's API.
 9.1.0,true,providers,providers.is_default,boolean,custom,,True,Whether this provider is the one used by default.
