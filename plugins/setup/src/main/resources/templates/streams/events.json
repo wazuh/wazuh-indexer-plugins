@@ -2782,6 +2782,14 @@
           }
         },
         {
+          "wcs_file_diff": {
+            "path_match": "file.diff",
+            "mapping": {
+              "type": "match_only_text"
+            }
+          }
+        },
+        {
           "wcs_file_directory": {
             "path_match": "file.directory",
             "mapping": {

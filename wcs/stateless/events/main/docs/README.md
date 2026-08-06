@@ -46,6 +46,10 @@ Extends observer ingress/egress interface fields with MTU, state, and type infor
 
 Two additional event fields: `event.changed_fields` (fields updated since the last scan) and `event.collector` (collector used to retrieve the event).
 
+#### `file.diff`
+
+Extends the ECS `file` field set with the unified diff of a file's content changes, as reported by FIM when `report_changes` is enabled. It is only mapped on the root `file` object: the reuses of `file` under `threat.indicator`, `threat.enrichments.indicator` and their `wazuh.threat` counterparts are excluded by the generator (see `EXCLUDED_FIELDS` in `wcs/generator/images/generator.sh`).
+
 #### `agent.groups`
 
 Adds a `groups` field to the ECS `agent` field set, representing the list of groups the agent belongs to.
