@@ -238,6 +238,63 @@ public class AIAssistantIndicesIT extends OpenSearchRestTestCase {
     }
 
     /**
+     * Verifies that a document indexed without a {@code visible_to} field comes back with the backend
+     * roles allowed to read it, injected by the plugin's action filter. Clients never write the field
+     * themselves, and a value they do send is overwritten.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testSettingsDocumentsAreStampedWithVisibleTo() throws IOException, ParseException {
+        Request document = new Request("PUT", "/" + SETTINGS_INDEX + "/_doc/visibility-check");
+        document.addParameter("refresh", "true");
+        document.setJsonEntity(
+                "{\"providers\":{\"name\":\"visibility-check\"},\"visible_to\":[\"attacker\"]}");
+        assertEquals(201, client().performRequest(document).getStatusLine().getStatusCode());
+
+        Response response =
+                client().performRequest(new Request("GET", "/" + SETTINGS_INDEX + "/_doc/visibility-check"));
+        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+
+        logger.info("Document response for [{}]: {}", SETTINGS_INDEX, body);
+        assertThat(body, containsString("\"visible_to\":[\"admin\",\"wazuh-admin\"]"));
+    }
+
+    /**
+     * Verifies that the documents created through the write paths that do not go through a plain index
+     * request - bulk items and {@code doc_as_upsert} updates - are stamped as well, and that a value
+     * sent by the client is discarded.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testVisibleToIsStampedOnEveryWritePath() throws IOException, ParseException {
+        Request bulk = new Request("POST", "/_bulk");
+        bulk.addParameter("refresh", "true");
+        bulk.setJsonEntity(
+                "{\"index\":{\"_index\":\""
+                        + SETTINGS_INDEX
+                        + "\",\"_id\":\"bulk-check\"}}\n"
+                        + "{\"providers\":{\"name\":\"bulk-ai\"},\"visible_to\":[\"attacker\"]}\n");
+        client().performRequest(bulk);
+
+        Request upsert = new Request("POST", "/" + SETTINGS_INDEX + "/_update/upsert-check");
+        upsert.addParameter("refresh", "true");
+        upsert.setJsonEntity(
+                "{\"doc\":{\"providers\":{\"name\":\"upsert-ai\"}},\"doc_as_upsert\":true}");
+        client().performRequest(upsert);
+
+        for (String id : new String[] {"bulk-check", "upsert-check"}) {
+            Response response =
+                    client().performRequest(new Request("GET", "/" + SETTINGS_INDEX + "/_doc/" + id));
+            String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+
+            logger.info("Document [{}] of [{}]: {}", id, SETTINGS_INDEX, body);
+            assertThat(body, containsString("\"visible_to\":[\"admin\",\"wazuh-admin\"]"));
+        }
+    }
+
+    /**
      * Clears the fielddata cache after each test to prevent flaky failures from the test framework's
      * post-test assertions.
      *

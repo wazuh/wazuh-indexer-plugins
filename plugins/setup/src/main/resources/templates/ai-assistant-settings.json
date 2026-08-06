@@ -59,6 +59,10 @@
               "type": "boolean"
             }
           }
+        },
+        "visible_to": {
+          "ignore_above": 1024,
+          "type": "keyword"
         }
       }
     }

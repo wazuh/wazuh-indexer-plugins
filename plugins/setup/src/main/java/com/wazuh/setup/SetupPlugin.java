@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.action.support.ActionFilter;
 import org.opensearch.cluster.LocalNodeClusterManagerListener;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -49,6 +50,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.wazuh.setup.action.PutSettingsAction;
+import com.wazuh.setup.index.AIAssistantSettingsIndex;
+import com.wazuh.setup.index.AIAssistantSettingsVisibilityFilter;
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.SettingsIndex;
@@ -165,7 +168,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "templates/states/vulnerabilities"));
 
         // AI assistant providers and settings
-        this.indices.add(new StateIndex(".wazuh-ai-assistant-settings", "templates/ai-assistant-settings"));
+        this.indices.add(new AIAssistantSettingsIndex(AIAssistantSettingsIndex.INDEX_NAME, "templates/ai-assistant-settings"));
 
         // Wazuh settings index - Instantiated as it is required by the RestPutSettingsAction.
         this.settingsIndex = new SettingsIndex(".wazuh-settings", "templates/settings");
@@ -275,6 +278,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         return List.of(
                 new ActionPlugin.ActionHandler<>(
                         PutSettingsAction.INSTANCE, TransportPutSettingsAction.class));
+    }
+
+    @Override
+    public List<ActionFilter> getActionFilters() {
+        return List.of(new AIAssistantSettingsVisibilityFilter());
     }
 
     @Override
