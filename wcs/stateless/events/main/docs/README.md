@@ -57,3 +57,21 @@ Adds a `groups` field to the ECS `agent` field set, representing the list of gro
 #### `vulnerability.scanner.reference`
 
 Extends the ECS `vulnerability` field set with a scanner reference URL pointing to additional information and mitigations for the identified vulnerability.
+
+#### `process.state` and `process.previous.*` — Process state changes
+
+Adds `process.state` to capture the current process state as reported by the collector. Extends the ECS `process.previous` reuse (previously limited to `args`, `args_count`, and `executable`) with `pid`, `name`, `state`, `command_line`, and `parent.pid`, so a `modified` process event can express what changed from, not just what changed to (e.g. a service's PID after it restarts).
+
+These `process.*` additions are also applied to `findings`: its `subset.yml` for `process` lists the same `state` and `previous.*` fields, keeping both stateless events streams at field parity.
+
+`process.previous.args`, `.args_count`, and `.executable` are kept even though none of our collectors populate them today: they come for free as part of the same ECS `process.previous` reuse the fields above depend on, so dropping them would require patching the vendored ECS schema for no mapping-size benefit.
+
+#### `service.previous.state`
+
+Adds a `previous.state` field to the ECS `service` field set, capturing the service's state prior to a `modified` event (e.g. `RUNNING` before a restart).
+
+Unlike `process.*` above, this field is not module-scoped: since `service` uses `fields: "*"` in every stateless events module's `subset.yml`, and the generator always folds this module's `fields/custom` into every other `stateless/events/*` module, `service.previous.state` (and its `service.origin`/`service.target` self-nested copies) also reaches `findings` automatically. This is a pre-existing architectural side effect, not a per-module decision.
+
+#### `package.previous.installed`
+
+Adds a `previous.installed` field to the ECS `package` field set, capturing the package's installation date prior to a `modified` event. Reaches `findings` the same way `service.previous.state` does, for the same reason (`package` also uses `fields: "*"`).

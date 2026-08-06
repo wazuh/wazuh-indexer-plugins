@@ -682,6 +682,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,package,package.license,keyword,extended,,Apache License 2.0,Package license
 9.1.0,true,package,package.name,keyword,extended,,go,Package name
 9.1.0,true,package,package.path,keyword,extended,,/usr/local/Cellar/go/1.12.9/,Path where the package is installed.
+9.1.0,true,package,package.previous.installed,date,custom,,2026-07-01T10:00:00.000Z,Installation date before it changed.
 9.1.0,true,package,package.reference,keyword,extended,,https://golang.org,Package home page or reference URL
 9.1.0,true,package,package.size,long,extended,,62231,Package size in bytes.
 9.1.0,true,package,package.type,keyword,extended,,rpm,Package type
@@ -1018,7 +1019,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.pid,long,core,,4242,Process id.
 9.1.0,true,process,process.previous.args,keyword,extended,array,"[""/usr/bin/ssh"", ""-l"", ""user"", ""10.0.0.16""]",Array of process arguments.
 9.1.0,true,process,process.previous.args_count,long,extended,,4,Length of the process.args array.
+9.1.0,true,process,process.previous.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.previous.executable,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
+9.1.0,true,process,process.previous.name,keyword,extended,,ssh,Process name.
+9.1.0,true,process,process.previous.parent.pid,long,custom,,1,PID of the parent process.
+9.1.0,true,process,process.previous.pid,long,core,,4242,Process id.
+9.1.0,true,process,process.previous.state,keyword,custom,,S,"Current state of the process, as reported by the collector."
 9.1.0,true,process,process.real_group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.real_group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.real_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
@@ -1065,6 +1071,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.session_leader.vpid,long,core,,4242,Virtual process id.
 9.1.0,true,process,process.session_leader.working_directory,keyword,extended,,/home/alice,The working directory of the process.
 9.1.0,true,process,process.start,date,extended,,2016-05-23T08:05:34.853Z,The time the process started.
+9.1.0,true,process,process.state,keyword,custom,,S,"Current state of the process, as reported by the collector."
 9.1.0,true,process,process.supplemental_groups.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.supplemental_groups.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.thread.capabilities.effective,keyword,extended,array,"[""CAP_BPF"", ""CAP_SYS_ADMIN""]",Array of capabilities used for permission checks.
@@ -1178,9 +1185,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,service,service.origin.node.name,keyword,extended,,instance-0000000016,Name of the service node.
 9.1.0,true,service,service.origin.node.role,keyword,extended,,background_tasks,Deprecated role (singular) of the service node.
 9.1.0,true,service,service.origin.node.roles,keyword,extended,array,"[""ui"", ""background_tasks""]",Roles of the service node.
+9.1.0,true,service,service.origin.previous.state,keyword,custom,,activating,"Service state before it changed, e.g. `RUNNING` before a restart."
 9.1.0,true,service,service.origin.state,keyword,core,,,Current state of the service.
 9.1.0,true,service,service.origin.type,keyword,core,,elasticsearch,The type of the service.
 9.1.0,true,service,service.origin.version,keyword,core,,3.2.4,Version of the service.
+9.1.0,true,service,service.previous.state,keyword,custom,,activating,"Service state before it changed, e.g. `RUNNING` before a restart."
 9.1.0,true,service,service.state,keyword,core,,,Current state of the service.
 9.1.0,true,service,service.target.address,keyword,extended,,172.26.0.2:5432,Address of this service.
 9.1.0,true,service,service.target.environment,keyword,extended,,production,Environment of the service.
@@ -1190,6 +1199,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,service,service.target.node.name,keyword,extended,,instance-0000000016,Name of the service node.
 9.1.0,true,service,service.target.node.role,keyword,extended,,background_tasks,Deprecated role (singular) of the service node.
 9.1.0,true,service,service.target.node.roles,keyword,extended,array,"[""ui"", ""background_tasks""]",Roles of the service node.
+9.1.0,true,service,service.target.previous.state,keyword,custom,,activating,"Service state before it changed, e.g. `RUNNING` before a restart."
 9.1.0,true,service,service.target.state,keyword,core,,,Current state of the service.
 9.1.0,true,service,service.target.type,keyword,core,,elasticsearch,The type of the service.
 9.1.0,true,service,service.target.version,keyword,core,,3.2.4,Version of the service.
