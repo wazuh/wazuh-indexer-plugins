@@ -321,6 +321,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,file,file.created,date,extended,,,File creation time.
 9.1.0,true,file,file.ctime,date,extended,,,Last time the file attributes or metadata changed.
 9.1.0,true,file,file.device,keyword,extended,,sda,Device that is the source of the file.
+9.1.0,true,file,file.diff,match_only_text,custom,,10a11 > 192.168.32.5,Unified diff of the file's content changes.
 9.1.0,true,file,file.directory,keyword,extended,,/home/alice,Directory where the file is located.
 9.1.0,true,file,file.drive_letter,keyword,extended,,C,Drive letter where the file is located.
 9.1.0,true,file,file.elf.architecture,keyword,extended,,x86-64,Machine architecture of the ELF file.

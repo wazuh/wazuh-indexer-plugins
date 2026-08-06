@@ -1,0 +1,12 @@
+---
+- name: file
+  fields:
+    - name: diff
+      type: match_only_text
+      level: custom
+      short: Unified diff of the file's content changes.
+      description: >
+        Unified diff of file content changes reported by FIM when
+        `report_changes` is enabled. Shows added and removed lines in
+        standard diff format.
+      example: "10a11 > 192.168.32.5"
