@@ -1,5 +1,6 @@
 module_to_file=(
   # Wazuh modules
+  [stateful/agent-stats]=templates/states/agent-stats.json
   [stateful/fim/files]=templates/states/fim-files.json
   [stateful/fim/windows-registry-keys]=templates/states/fim-registry-keys.json
   [stateful/fim/windows-registry-values]=templates/states/fim-registry-values.json
