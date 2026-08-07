@@ -184,16 +184,39 @@ public class Resource {
         this.populateSpaceObject(resource, payload);
     }
 
+    /**
+     * Populates the resource's {@code space} object from the payload.
+     *
+     * <p>An existing {@code space.hash.sha256} is carried over instead of being dropped. That field
+     * is the aggregate hash of the whole space, computed by {@code SpaceService.calculateAndUpdate}
+     * and used by {@code EngineContentLoader} to decide whether a node must reload the space into its
+     * Engine. The incremental catalog-sync paths reparse the currently stored document through this
+     * method, so rebuilding {@code space} from scratch would blank the aggregate hash on every sync
+     * and leave the space unloadable until it is recomputed at the very end of the sync.
+     *
+     * @param resource The resource instance to populate.
+     * @param payload The source JSON payload.
+     */
     private void populateSpaceObject(Resource resource, JsonNode payload) {
         Map<String, Object> spaceMap = new HashMap<>();
         String spaceName = Space.STANDARD.toString();
-        if (payload.has("space") && payload.get("space").isObject()) {
-            JsonNode spaceObj = payload.get("space");
-            if (spaceObj.has("name")) {
-                spaceName = spaceObj.get("name").asText();
+        String spaceHash = null;
+        if (payload.has(Constants.KEY_SPACE) && payload.get(Constants.KEY_SPACE).isObject()) {
+            JsonNode spaceObj = payload.get(Constants.KEY_SPACE);
+            if (spaceObj.has(Constants.KEY_NAME)) {
+                spaceName = spaceObj.get(Constants.KEY_NAME).asText();
+            }
+            JsonNode hashObj = spaceObj.get(Constants.KEY_HASH);
+            if (hashObj != null && hashObj.isObject() && hashObj.hasNonNull(Constants.KEY_SHA256)) {
+                spaceHash = hashObj.get(Constants.KEY_SHA256).asText();
             }
         }
-        spaceMap.put("name", spaceName);
+        spaceMap.put(Constants.KEY_NAME, spaceName);
+        if (spaceHash != null && !spaceHash.isBlank()) {
+            Map<String, Object> hashMap = new HashMap<>();
+            hashMap.put(Constants.KEY_SHA256, spaceHash);
+            spaceMap.put(Constants.KEY_HASH, hashMap);
+        }
         resource.setSpace(spaceMap);
     }
 
