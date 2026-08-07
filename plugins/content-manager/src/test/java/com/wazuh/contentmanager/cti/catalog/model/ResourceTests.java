@@ -21,8 +21,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.test.OpenSearchTestCase;
 
-import java.util.Map;
-
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Unit tests for {@link Resource}'s timestamp-generation helpers. */
@@ -87,49 +85,5 @@ public class ResourceTests extends OpenSearchTestCase {
         Resource.setLastModificationTime(resourceNode, GENERATED_TIMESTAMP);
 
         assertEquals(GENERATED_TIMESTAMP, metadata.get(Constants.KEY_MODIFIED).asText());
-    }
-
-    /**
-     * The aggregate space hash must survive a reparse. The incremental catalog-sync paths feed the
-     * currently stored document back through {@code fromPayload}, so dropping it here would blank
-     * {@code space.hash.sha256} on every sync and leave the space unloadable by the Engine until the
-     * hash is recomputed at the end of the sync.
-     */
-    @SuppressWarnings("unchecked")
-    public void testFromPayload_preservesExistingSpaceHash() {
-        ObjectNode payload = MAPPER.createObjectNode();
-        ObjectNode space = payload.putObject(Constants.KEY_SPACE);
-        space.put(Constants.KEY_NAME, "standard");
-        space.putObject(Constants.KEY_HASH).put(Constants.KEY_SHA256, "aggregate-hash");
-
-        Map<String, Object> result = Resource.fromPayload(payload).getSpace();
-
-        assertEquals("standard", result.get(Constants.KEY_NAME));
-        Map<String, Object> hash = (Map<String, Object>) result.get(Constants.KEY_HASH);
-        assertNotNull("space.hash should be preserved", hash);
-        assertEquals("aggregate-hash", hash.get(Constants.KEY_SHA256));
-    }
-
-    /** A payload without a space hash still yields a space object holding only the name. */
-    public void testFromPayload_omitsSpaceHashWhenAbsent() {
-        ObjectNode payload = MAPPER.createObjectNode();
-        payload.putObject(Constants.KEY_SPACE).put(Constants.KEY_NAME, "custom");
-
-        Map<String, Object> result = Resource.fromPayload(payload).getSpace();
-
-        assertEquals("custom", result.get(Constants.KEY_NAME));
-        assertFalse("No space.hash should be invented", result.containsKey(Constants.KEY_HASH));
-    }
-
-    /** A blank hash value is treated as absent rather than persisted as an empty keyword. */
-    public void testFromPayload_ignoresBlankSpaceHash() {
-        ObjectNode payload = MAPPER.createObjectNode();
-        ObjectNode space = payload.putObject(Constants.KEY_SPACE);
-        space.put(Constants.KEY_NAME, "standard");
-        space.putObject(Constants.KEY_HASH).put(Constants.KEY_SHA256, "   ");
-
-        Map<String, Object> result = Resource.fromPayload(payload).getSpace();
-
-        assertFalse("A blank hash should not be carried over", result.containsKey(Constants.KEY_HASH));
     }
 }

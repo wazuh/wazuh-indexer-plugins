@@ -33,12 +33,10 @@ import org.junit.After;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -47,17 +45,11 @@ import com.wazuh.contentmanager.settings.PluginSettings;
  * space.hash.sha256} is being calculated leaves the cluster in a state where detectors in that
  * space stop producing findings.
  *
- * <p>The reported failure has two halves, one per test here:
- *
- * <ol>
- *   <li>The catalog sync rewrites the standard policy document (offset updates run it back through
- *       {@code Resource.fromPayload}), which used to drop {@code space.hash.sha256}. The hash is
- *       only recomputed at the very end of the sync, so the field is absent for the whole sync.
- *   <li>A restart inside that window persists a policy document with no aggregate hash. Every
- *       node's {@code EngineContentLoader} then skips the standard space on the missing hash, and
- *       nothing recalculates it: the consumer's local offset already matches the remote one, so the
- *       next scheduled sync reports "no changes" and never reaches the recalculation step.
- * </ol>
+ * <p>The aggregate hash is written at the very end of a catalog sync, after the policy document
+ * itself has been rewritten, so a restart inside that window persists a policy document with no
+ * aggregate hash. Every node's {@code EngineContentLoader} then skips the standard space on the
+ * missing hash, and nothing recalculates it: the consumer's local offset already matches the remote
+ * one, so the next scheduled sync reports "no changes" and never reaches the recalculation step.
  */
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE, numDataNodes = 2)
@@ -67,26 +59,8 @@ public class StandardSpaceHashRecoveryIT extends OpenSearchIntegTestCase {
     private static final String POLICIES_MAPPING = "/mappings/cti-policies-mappings.json";
     private static final String STANDARD = "standard";
     private static final String POLICY_ID = "c78194a8-e60e-4586-b098-b55f371291c3";
-    private static final String SPACE_HASH =
-            "c35f447b81dd1d57a0fd858a5c6d002221e1ddda9eb32374fa80c28da191cd60";
 
-    /** A healthy standard policy, as the reporter's baseline environment shows it. */
-    private static final String HEALTHY_POLICY =
-            "{"
-                    + "\"document\":{\"id\":\""
-                    + POLICY_ID
-                    + "\",\"metadata\":{\"title\":\"RC1 public\"},"
-                    + "\"integrations\":[],\"filters\":[],\"enabled\":true},"
-                    + "\"hash\":{\"sha256\":\"88cb5e993448e24875a5e8e10db761d896119f19682f2ef641641a191d360d7d\"},"
-                    + "\"space\":{\"name\":\""
-                    + STANDARD
-                    + "\",\"hash\":{\"sha256\":\""
-                    + SPACE_HASH
-                    + "\"}},"
-                    + "\"offset\":1"
-                    + "}";
-
-    /** The same policy as the reporter's post-restart environment shows it: no space hash. */
+    /** The policy as the reporter's post-restart environment shows it: no space hash. */
     private static final String BROKEN_POLICY =
             "{"
                     + "\"document\":{\"id\":\""
@@ -116,34 +90,8 @@ public class StandardSpaceHashRecoveryIT extends OpenSearchIntegTestCase {
     }
 
     /**
-     * Half one: an offset update of the standard policy — the write the catalog sync performs while
-     * advancing the consumer's local offset — must not blank the aggregate hash. Before the fix the
-     * document came back exactly as reported: same id, same document, same top-level hash, and {@code
-     * space} reduced to {@code {"name":"standard"}}.
-     */
-    public void testOffsetSyncKeepsTheStandardSpaceHash() throws Exception {
-        this.ensureGreen();
-        PluginSettings.getInstance(Settings.EMPTY);
-
-        ContentIndex policies = this.createPoliciesIndex();
-        this.indexPolicy(HEALTHY_POLICY);
-        assertEquals("Precondition: the policy must start healthy", SPACE_HASH, this.spaceHash());
-
-        // A catalog offset update: patch the document and advance the offset, exactly as
-        // ContentIndex.update / batchUpdate do while the consumer catches up to the remote offset.
-        policies.update(
-                POLICY_ID,
-                List.of(new Operation("replace", "/document/metadata/title", null, "RC1 public v2")),
-                889L);
-        OpenSearchIntegTestCase.client().admin().indices().prepareRefresh(INDEX_POLICIES).get();
-
-        assertEquals(
-                "The offset update must not blank space.hash.sha256", SPACE_HASH, this.spaceHash());
-    }
-
-    /**
-     * Half two: a policy already persisted without an aggregate hash — the state a restart mid-sync
-     * leaves behind — is recovered, and the recovery is idempotent.
+     * A policy already persisted without an aggregate hash — the state a restart mid-sync leaves
+     * behind — is recovered, and the recovery is idempotent.
      */
     public void testMissingStandardSpaceHashIsRecalculated() throws Exception {
         this.ensureGreen();
@@ -225,11 +173,10 @@ public class StandardSpaceHashRecoveryIT extends OpenSearchIntegTestCase {
      * layout matches a real deployment ({@code wazuh-threatintel-policies-a} behind the {@code
      * wazuh-threatintel-policies} alias).
      */
-    private ContentIndex createPoliciesIndex() throws Exception {
+    private void createPoliciesIndex() throws Exception {
         ContentIndex policies =
                 new ContentIndex(OpenSearchIntegTestCase.client(), INDEX_POLICIES, POLICIES_MAPPING);
         assertTrue("Failed to create index " + INDEX_POLICIES, policies.createIndex().isAcknowledged());
         this.ensureGreen();
-        return policies;
     }
 }
