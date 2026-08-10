@@ -37,6 +37,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -48,13 +49,16 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
     private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
     private String spaceName = "";
 
+    private final UserOverridesService userOverridesService;
+
     @Inject
     public TransportCreateFilterAction(
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
             EngineService engine,
-            EngineContentLoader engineContentLoader) {
+            EngineContentLoader engineContentLoader,
+            UserOverridesService userOverridesService) {
         super(
                 CreateFilterAction.NAME,
                 transportService,
@@ -62,6 +66,18 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
                 client,
                 engine,
                 engineContentLoader);
+        this.userOverridesService = userOverridesService;
+    }
+
+    @Override
+    protected void afterResourceCommitted(
+            String id, String spaceName, ObjectNode ctiWrapper, Runnable onDone) {
+        FilterOverrideRecorder.record(
+                this.userOverridesService,
+                spaceName,
+                UserOverridesService.storeFilter(id, ctiWrapper.toString()),
+                id,
+                onDone);
     }
 
     @Override
