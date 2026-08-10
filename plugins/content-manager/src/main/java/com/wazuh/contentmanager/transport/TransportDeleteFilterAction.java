@@ -67,8 +67,13 @@ public class TransportDeleteFilterAction extends AbstractTransportDeleteActionSp
 
     @Override
     protected void afterResourceDeleted(String id, String spaceName, Runnable onDone) {
-        FilterOverrideRecorder.record(
-                this.userOverridesService, spaceName, UserOverridesService.removeFilter(id), id, onDone);
+        OverrideRecorder.record(
+                this.userOverridesService,
+                spaceName,
+                UserOverridesService.removeFilter(id),
+                id,
+                Constants.KEY_FILTER,
+                onDone);
     }
 
     @Override

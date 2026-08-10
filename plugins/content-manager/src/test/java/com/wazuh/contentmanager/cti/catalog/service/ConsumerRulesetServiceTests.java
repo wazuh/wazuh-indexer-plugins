@@ -66,6 +66,7 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     @Mock private Environment environment;
     @Mock private SpaceService spaceService;
     @Mock private SecurityAnalyticsService securityAnalyticsService;
+    @Mock private UserOverridesService userOverridesService;
 
     @Before
     @Override
@@ -79,7 +80,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
                         this.consumersIndex,
                         this.environment,
                         this.spaceService,
-                        this.securityAnalyticsService);
+                        this.securityAnalyticsService,
+                        this.userOverridesService);
     }
 
     @After
@@ -158,14 +160,16 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         return overridesService;
     }
 
-    /** The space service is injected at construction, so a test that stubs it builds its own. */
-    private ConsumerRulesetService synchronizerWith(SpaceService spaceService) {
+    /** Both collaborators are injected at construction, so a test that stubs them builds its own. */
+    private ConsumerRulesetService synchronizerWith(
+            SpaceService spaceService, UserOverridesService overridesService) {
         return new ConsumerRulesetService(
                 this.client,
                 this.consumersIndex,
                 this.environment,
                 spaceService,
-                this.securityAnalyticsService);
+                this.securityAnalyticsService,
+                overridesService);
     }
 
     /**
@@ -175,8 +179,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     public void testUserOverridesAreAppliedBeforeTheHashAndTheEngineLoad() {
         List<String> order = new java.util.ArrayList<>();
         recordEngineReload(order);
-        ConsumerRulesetService service = synchronizerWith(stubSpaceServiceRecording(order));
-        service.setUserOverridesService(stubOverridesServiceRecording(order));
+        ConsumerRulesetService service =
+                synchronizerWith(stubSpaceServiceRecording(order), stubOverridesServiceRecording(order));
 
         service.onSyncComplete(true);
 
@@ -207,8 +211,7 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
                 .when(overridesService)
                 .apply(any(), any());
 
-        ConsumerRulesetService service = synchronizerWith(spaceService);
-        service.setUserOverridesService(overridesService);
+        ConsumerRulesetService service = synchronizerWith(spaceService, overridesService);
 
         service.onSyncComplete(true);
 
@@ -220,8 +223,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     public void testNothingIsAppliedWhenTheSyncChangedNothing() {
         List<String> order = new java.util.ArrayList<>();
         UserOverridesService overridesService = stubOverridesServiceRecording(order);
-        ConsumerRulesetService service = synchronizerWith(stubSpaceServiceRecording(order));
-        service.setUserOverridesService(overridesService);
+        ConsumerRulesetService service =
+                synchronizerWith(stubSpaceServiceRecording(order), overridesService);
 
         service.onSyncComplete(false);
 

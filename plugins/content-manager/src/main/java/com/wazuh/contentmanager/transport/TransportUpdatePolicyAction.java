@@ -474,7 +474,8 @@ public class TransportUpdatePolicyAction
                         incomingPolicy.getIndexUnclassifiedEvents(),
                         incomingPolicy.getIndexDiscardedEvents(),
                         new UserOverrides.EnrichmentDelta(removed, added)),
-                current.getFilters());
+                current.getFilters(),
+                current.getIntegrations());
     }
 
     @SuppressWarnings("unchecked")

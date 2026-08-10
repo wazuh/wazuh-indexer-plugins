@@ -360,7 +360,7 @@ The value is set by whoever produces the content: CTI content carries its own `m
 | `user-managed` | `draft` | Fully editable (metadata, category, `enabled`). |
 | `user-managed` | `standard` | Only `enabled` can change; every other field is preserved from the stored document. |
 
-When a `standard` integration's `enabled` is toggled, its related Security Analytics **detector is disabled/enabled in lockstep** as part of the same update flow. The detector shares the integration's document id, so the Content Manager calls the Security Analytics `WSetDetectorEnabledAction` (`setDetectorEnabled(id, enabled)`) to flip **only** the `enabled` flag on the existing detector, preserving its inputs, triggers and monitors. If the detector sync fails the whole update is aborted, so the two never drift.
+When a `standard` integration's `enabled` is toggled, its related Security Analytics **detector is disabled/enabled in lockstep** as part of the same update flow. The detector shares the integration's document id, so the Content Manager calls the Security Analytics `WSetDetectorEnabledAction` (`setDetectorEnabled(id, enabled)`) to flip **only** the `enabled` flag on the existing detector, preserving its inputs, triggers and monitors. If the detector sync fails the whole update is aborted, so the two never drift. The same rule holds on the synchronization side: `buildDetectorRequest` takes the detector's enabled state from the integration's own `enabled`, never from the CTI-owned `document.detector` block, which only supplies the schedule and the source indices.
 
 ---
 
@@ -519,6 +519,35 @@ Every resource document follows this envelope structure:
 }
 ```
 
+### User overrides in the `standard` space
+
+The `standard` space is rebuilt from CTI, so what the user changes there is recorded in a registry document and re-applied afterwards: the policy's settings, the filters they created, and each integration's `enabled` state.
+
+`UserOverridesService` manages a single document in the policies index under `wazuh-user-overrides` (`Constants.USER_OVERRIDES_DOC_ID`):
+
+```json
+{
+  "user_overrides": {
+    "standard": {
+      "policy": {
+        "enabled": true,
+        "index_unclassified_events": true,
+        "index_discarded_events": false,
+        "enrichments": { "removed": ["geo"], "added": [] }
+      },
+      "filters": [{ "id": "<uuid>", "document": "<the stored filter, serialized>" }],
+      "integrations": [{ "id": "<uuid>", "enabled": false }]
+    }
+  }
+}
+```
+
+It is the one document in that index with **no `space` field**: the pre-snapshot wipe selects by `space.name` and never sees it, and the plan-change reindex carries it into the new physical index.
+
+Enrichments are stored as a delta, resolved as `(what CTI publishes) − removed + added`, so values CTI adds later still reach the user. Filters are stored as serialized strings, to keep their fields out of the `"dynamic": "true"` policies mapping.
+
+Written on a `standard` policy update, on filter create, update and delete, and on integration update. Applied at the start of `ConsumerRulesetService.onSyncComplete`, before the space hash is recalculated and the engine reloaded. Idempotent, and a failure is logged without aborting the synchronization.
+
 ---
 
 ## Content synchronization pipeline
@@ -617,9 +646,10 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 ### Post-synchronization phase
 
 1. Refreshes all content indices.
-2. Upserts integrations, rules, and detectors into the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
-3. Recalculates SHA-256 hashes for policy integrity verification.
-4. Sets consumer `status` to `ready` in `.wazuh-cti-consumers` (or `failed` if an unexpected exception interrupted the cycle). See the [Reference Manual's architecture page](../../ref/modules/content-manager/architecture.md) for the full `ready` / `running` / `failed` lifecycle.
+2. Re-applies the [user overrides](#user-overrides-in-the-standard-space) to the `standard` space, before anything reads the rebuilt content.
+3. Upserts integrations, rules, and detectors into the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
+4. Recalculates SHA-256 hashes for policy integrity verification.
+5. Sets consumer `status` to `ready` in `.wazuh-cti-consumers` (or `failed` if an unexpected exception interrupted the cycle). See the [Reference Manual's architecture page](../../ref/modules/content-manager/architecture.md) for the full `ready` / `running` / `failed` lifecycle.
 
 ### Error handling
 

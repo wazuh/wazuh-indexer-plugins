@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -32,8 +33,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-/** Unit tests for {@link FilterOverrideRecorder}. */
-public class FilterOverrideRecorderTests extends OpenSearchTestCase {
+/** Unit tests for {@link OverrideRecorder}. */
+public class OverrideRecorderTests extends OpenSearchTestCase {
 
     private UserOverridesService overridesService;
     private AtomicInteger onDoneCalls;
@@ -57,15 +58,16 @@ public class FilterOverrideRecorderTests extends OpenSearchTestCase {
     }
 
     private void record(String spaceName) {
-        FilterOverrideRecorder.record(
+        OverrideRecorder.record(
                 this.overridesService,
                 spaceName,
                 UserOverridesService.storeFilter("f1", "{}"),
                 "f1",
+                Constants.KEY_FILTER,
                 this.onDoneCalls::incrementAndGet);
     }
 
-    /** A filter in the standard space is recorded, and the request is answered afterwards. */
+    /** A change in the standard space is recorded, and the request is answered afterwards. */
     public void testStandardSpaceIsRecorded() {
         stubRegistrySucceeding();
 
@@ -97,8 +99,8 @@ public class FilterOverrideRecorderTests extends OpenSearchTestCase {
     }
 
     /**
-     * A registry failure must not fail the request. By the time this runs the filter has already been
-     * written and the space hash recalculated, so the user's request did succeed.
+     * A registry failure must not fail the request. By the time this runs the resource has already
+     * been written and the space hash recalculated, so the user's request did succeed.
      */
     public void testTheRequestIsAnsweredWhenTheRegistryFails() {
         doAnswer(
@@ -133,20 +135,49 @@ public class FilterOverrideRecorderTests extends OpenSearchTestCase {
         org.mockito.ArgumentCaptor<java.util.function.UnaryOperator<UserOverrides>> captor =
                 org.mockito.ArgumentCaptor.forClass(java.util.function.UnaryOperator.class);
 
-        FilterOverrideRecorder.record(
+        OverrideRecorder.record(
                 this.overridesService,
                 Space.STANDARD.toString(),
                 UserOverridesService.removeFilter("f1"),
                 "f1",
+                Constants.KEY_FILTER,
                 this.onDoneCalls::incrementAndGet);
 
         verify(this.overridesService).update(any(), captor.capture(), any());
 
         UserOverrides current =
                 new UserOverrides(
-                        null, new ArrayList<>(java.util.List.of(new UserOverrides.StoredFilter("f1", "{}"))));
+                        null,
+                        new ArrayList<>(java.util.List.of(new UserOverrides.StoredFilter("f1", "{}"))),
+                        new ArrayList<>());
         assertTrue(
                 "the recorder must not substitute the caller's mutator",
                 captor.getValue().apply(current).getFilters().isEmpty());
+    }
+
+    /** The same guard holds for an integration, which is the other resource type recorded. */
+    public void testAnIntegrationIsRecordedInTheStandardSpaceOnly() {
+        stubRegistrySucceeding();
+
+        OverrideRecorder.record(
+                this.overridesService,
+                Space.STANDARD.toString(),
+                UserOverridesService.setIntegrationEnabled("i1", false),
+                "i1",
+                Constants.KEY_INTEGRATION,
+                this.onDoneCalls::incrementAndGet);
+        verify(this.overridesService).update(any(), any(), any());
+
+        this.overridesService = mock(UserOverridesService.class);
+        OverrideRecorder.record(
+                this.overridesService,
+                Space.DRAFT.toString(),
+                UserOverridesService.setIntegrationEnabled("i1", false),
+                "i1",
+                Constants.KEY_INTEGRATION,
+                this.onDoneCalls::incrementAndGet);
+        verifyNoInteractions(this.overridesService);
+
+        assertEquals("both requests must be answered", 2, this.onDoneCalls.get());
     }
 }

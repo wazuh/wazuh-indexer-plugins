@@ -31,10 +31,8 @@ import com.wazuh.contentmanager.utils.Constants;
  * The user's overrides for one space, as held in the registry document.
  *
  * <p>The {@code standard} space is rebuilt from CTI, so anything a user writes there needs an
- * explicit mechanism to survive. Integrations keep the user's choice in their own document, as
- * {@code document.user_enabled}; the policy settings and the filters the user created live here
- * instead, because the rebuild replaces the policy document wholesale and deletes the filters
- * outright.
+ * explicit mechanism to survive: the rebuild replaces the policy document wholesale, and deletes
+ * the filters and the integrations outright. All three therefore live here.
  *
  * <p>Absence is meaningful throughout: a {@code null} setting means the user never decided that
  * field and CTI keeps deciding it. Enrichments are held as a delta rather than as a list so that
@@ -46,14 +44,23 @@ public final class UserOverrides {
 
     private final PolicySettings policy;
     private final List<StoredFilter> filters;
+    private final List<IntegrationOverride> integrations;
 
     /**
+     * There is deliberately no shorter constructor. Every section is passed explicitly so that adding
+     * one forces each caller to decide what happens to the others, rather than dropping them
+     * silently.
+     *
      * @param policy the policy settings the user decided, or {@code null} if none.
      * @param filters the filters the user created; never {@code null} once constructed.
+     * @param integrations the integration decisions the user made; never {@code null} once
+     *     constructed.
      */
-    public UserOverrides(PolicySettings policy, List<StoredFilter> filters) {
+    public UserOverrides(
+            PolicySettings policy, List<StoredFilter> filters, List<IntegrationOverride> integrations) {
         this.policy = policy;
         this.filters = filters != null ? filters : new ArrayList<>();
+        this.integrations = integrations != null ? integrations : new ArrayList<>();
     }
 
     /**
@@ -71,6 +78,13 @@ public final class UserOverrides {
     }
 
     /**
+     * @return the integration decisions the user made in this space; empty if none.
+     */
+    public List<IntegrationOverride> getIntegrations() {
+        return this.integrations;
+    }
+
+    /**
      * Reads one space's overrides out of the registry.
      *
      * @param registryRoot the {@code user_overrides} node of the registry document, or {@code null}
@@ -80,7 +94,7 @@ public final class UserOverrides {
      */
     public static UserOverrides forSpace(JsonNode registryRoot, String spaceName) {
         if (registryRoot == null || !registryRoot.has(spaceName)) {
-            return new UserOverrides(null, new ArrayList<>());
+            return new UserOverrides(null, new ArrayList<>(), new ArrayList<>());
         }
         JsonNode spaceNode = registryRoot.get(spaceName);
 
@@ -98,7 +112,16 @@ public final class UserOverrides {
                                 entry.path(Constants.KEY_DOCUMENT).asText(null)));
             }
         }
-        return new UserOverrides(settings, stored);
+        List<IntegrationOverride> overriddenIntegrations = new ArrayList<>();
+        if (spaceNode.has(Constants.KEY_INTEGRATION_OVERRIDES)) {
+            for (JsonNode entry : spaceNode.get(Constants.KEY_INTEGRATION_OVERRIDES)) {
+                overriddenIntegrations.add(
+                        new IntegrationOverride(
+                                entry.path(Constants.KEY_ID).asText(null),
+                                entry.path(Constants.KEY_ENABLED).asBoolean()));
+            }
+        }
+        return new UserOverrides(settings, stored, overriddenIntegrations);
     }
 
     /**
@@ -122,6 +145,15 @@ public final class UserOverrides {
             filtersNode.add(entry);
         }
         spaceNode.set(Constants.KEY_STORED_FILTERS, filtersNode);
+
+        ArrayNode integrationsNode = registryRoot.arrayNode();
+        for (IntegrationOverride integration : this.integrations) {
+            ObjectNode entry = registryRoot.objectNode();
+            entry.put(Constants.KEY_ID, integration.getId());
+            entry.put(Constants.KEY_ENABLED, integration.getEnabled());
+            integrationsNode.add(entry);
+        }
+        spaceNode.set(Constants.KEY_INTEGRATION_OVERRIDES, integrationsNode);
 
         registryRoot.set(spaceName, spaceNode);
     }
@@ -343,6 +375,44 @@ public final class UserOverrides {
          */
         public String getDocument() {
             return this.document;
+        }
+    }
+
+    /**
+     * The user's decision about one integration's enabled state.
+     *
+     * <p>Held here rather than on the integration document because the rebuild deletes those
+     * documents before writing the new ones, so nothing written on them survives.
+     *
+     * <p>Only the decision is stored, not the whole document: unlike a filter, the integration itself
+     * comes from CTI and is recreated by the rebuild.
+     */
+    public static final class IntegrationOverride {
+
+        private final String id;
+        private final Boolean enabled;
+
+        /**
+         * @param id the integration's document id.
+         * @param enabled the state the user chose.
+         */
+        public IntegrationOverride(String id, Boolean enabled) {
+            this.id = id;
+            this.enabled = enabled;
+        }
+
+        /**
+         * @return the integration's document id.
+         */
+        public String getId() {
+            return this.id;
+        }
+
+        /**
+         * @return the state the user chose.
+         */
+        public Boolean getEnabled() {
+            return this.enabled;
         }
     }
 }

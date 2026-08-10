@@ -106,10 +106,12 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
                 .index(captor.capture(), any());
     }
 
-    /** A mutator that pins {@code enabled} and leaves the filters alone. */
+    /** A mutator that pins {@code enabled} and leaves the other sections alone. */
     private static UserOverrides pinEnabled(UserOverrides current) {
         return new UserOverrides(
-                new UserOverrides.PolicySettings(Boolean.FALSE, null, null, null), current.getFilters());
+                new UserOverrides.PolicySettings(Boolean.FALSE, null, null, null),
+                current.getFilters(),
+                current.getIntegrations());
     }
 
     /** A cluster that has never stored an override reads as empty, not as an error. */
@@ -291,7 +293,8 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
                     return new UserOverrides(
                             new UserOverrides.PolicySettings(
                                     null, null, null, new UserOverrides.EnrichmentDelta(Set.of("geo"), Set.of())),
-                            current.getFilters());
+                            current.getFilters(),
+                            current.getIntegrations());
                 },
                 future);
         future.actionGet();
@@ -306,7 +309,9 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
     public void testStoreFilterAddsItAndKeepsThePolicySettings() {
         UserOverrides current =
                 new UserOverrides(
-                        new UserOverrides.PolicySettings(Boolean.FALSE, null, null, null), new ArrayList<>());
+                        new UserOverrides.PolicySettings(Boolean.FALSE, null, null, null),
+                        new ArrayList<>(),
+                        new ArrayList<>());
 
         UserOverrides result =
                 UserOverridesService.storeFilter("f1", "{\"document\":{\"name\":\"filter/a/0\"}}")
@@ -325,7 +330,9 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
     public void testStoreFilterRefreshesAnExistingEntry() {
         UserOverrides current =
                 new UserOverrides(
-                        null, new ArrayList<>(List.of(new UserOverrides.StoredFilter("f1", "{\"old\":true}"))));
+                        null,
+                        new ArrayList<>(List.of(new UserOverrides.StoredFilter("f1", "{\"old\":true}"))),
+                        new ArrayList<>());
 
         UserOverrides result = UserOverridesService.storeFilter("f1", "{\"new\":true}").apply(current);
 
@@ -337,7 +344,9 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
     public void testStoreFilterKeepsTheOtherFilters() {
         UserOverrides current =
                 new UserOverrides(
-                        null, new ArrayList<>(List.of(new UserOverrides.StoredFilter("f1", "{}"))));
+                        null,
+                        new ArrayList<>(List.of(new UserOverrides.StoredFilter("f1", "{}"))),
+                        new ArrayList<>());
 
         UserOverrides result = UserOverridesService.storeFilter("f2", "{}").apply(current);
 
@@ -352,7 +361,8 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
                         new ArrayList<>(
                                 List.of(
                                         new UserOverrides.StoredFilter("f1", "{}"),
-                                        new UserOverrides.StoredFilter("f2", "{}"))));
+                                        new UserOverrides.StoredFilter("f2", "{}"))),
+                        new ArrayList<>());
 
         UserOverrides result = UserOverridesService.removeFilter("f1").apply(current);
 
@@ -365,7 +375,9 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
     public void testRemoveFilterOfAnUnknownIdIsANoOp() {
         UserOverrides current =
                 new UserOverrides(
-                        null, new ArrayList<>(List.of(new UserOverrides.StoredFilter("f1", "{}"))));
+                        null,
+                        new ArrayList<>(List.of(new UserOverrides.StoredFilter("f1", "{}"))),
+                        new ArrayList<>());
 
         UserOverrides result = UserOverridesService.removeFilter("nope").apply(current);
 
@@ -376,13 +388,72 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
     public void testFilterMutatorsDoNotMutateTheirInput() {
         List<UserOverrides.StoredFilter> original =
                 new ArrayList<>(List.of(new UserOverrides.StoredFilter("f1", "{}")));
-        UserOverrides current = new UserOverrides(null, original);
+        UserOverrides current = new UserOverrides(null, original, new ArrayList<>());
 
         UserOverridesService.storeFilter("f2", "{}").apply(current);
         UserOverridesService.removeFilter("f1").apply(current);
 
         assertEquals("the input list must be untouched", 1, original.size());
         assertEquals("f1", original.get(0).getId());
+    }
+
+    // --- Integration mutator -----------------------------------------------------------------
+
+    /** Recording an integration keeps the policy settings and the stored filters. */
+    public void testSetIntegrationEnabledKeepsTheOtherSections() {
+        UserOverrides current =
+                new UserOverrides(
+                        new UserOverrides.PolicySettings(Boolean.FALSE, null, null, null),
+                        new ArrayList<>(List.of(new UserOverrides.StoredFilter("f1", "{}"))),
+                        new ArrayList<>());
+
+        UserOverrides result = UserOverridesService.setIntegrationEnabled("i1", false).apply(current);
+
+        assertEquals(1, result.getIntegrations().size());
+        assertEquals(Boolean.FALSE, result.getIntegrations().get(0).getEnabled());
+        assertEquals(Boolean.FALSE, result.getPolicy().getEnabled());
+        assertEquals(1, result.getFilters().size());
+    }
+
+    /** Recording the same integration twice replaces the decision instead of duplicating it. */
+    public void testSetIntegrationEnabledReplacesAnExistingDecision() {
+        UserOverrides current =
+                new UserOverrides(
+                        null,
+                        new ArrayList<>(),
+                        new ArrayList<>(List.of(new UserOverrides.IntegrationOverride("i1", false))));
+
+        UserOverrides result = UserOverridesService.setIntegrationEnabled("i1", true).apply(current);
+
+        assertEquals(1, result.getIntegrations().size());
+        assertEquals(Boolean.TRUE, result.getIntegrations().get(0).getEnabled());
+    }
+
+    /** Recording one integration leaves the others alone. */
+    public void testSetIntegrationEnabledKeepsTheOtherIntegrations() {
+        UserOverrides current =
+                new UserOverrides(
+                        null,
+                        new ArrayList<>(),
+                        new ArrayList<>(List.of(new UserOverrides.IntegrationOverride("i1", false))));
+
+        assertEquals(
+                2,
+                UserOverridesService.setIntegrationEnabled("i2", true)
+                        .apply(current)
+                        .getIntegrations()
+                        .size());
+    }
+
+    /** The mutator must not modify its input, since update may re-run it after a conflict. */
+    public void testSetIntegrationEnabledDoesNotMutateItsInput() {
+        List<UserOverrides.IntegrationOverride> original =
+                new ArrayList<>(List.of(new UserOverrides.IntegrationOverride("i1", false)));
+
+        UserOverridesService.setIntegrationEnabled("i2", true)
+                .apply(new UserOverrides(null, new ArrayList<>(), original));
+
+        assertEquals("the input list must be untouched", 1, original.size());
     }
 
     // --- apply -------------------------------------------------------------------------------
@@ -626,5 +697,169 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
         assertTrue(written.contains("\"space\""));
         assertTrue(written.contains("\"standard\""));
         assertTrue(written.contains("640"));
+    }
+
+    // --- apply: integrations -----------------------------------------------------------------
+
+    private static final String REBUILT_POLICY =
+            "{\"document\":{\"id\":\"p1\",\"enrichments\":[],\"filters\":[]},"
+                    + "\"hash\":{\"sha256\":\"x\"},\"space\":{\"name\":\"standard\"}}";
+
+    /**
+     * Stubs the integration documents, keyed by logical id. Their real {@code _id} is {@code
+     * real-<logical id>}, so a test can tell the two apart; an id absent from the map resolves to
+     * nothing, as a catalogue that stopped publishing it would.
+     *
+     * <p>Call after {@link #stubRebuiltPolicy(String)}: it re-stubs {@code findDocumentIdAsync} for
+     * both indices.
+     */
+    @SuppressWarnings("unchecked")
+    private void stubIntegrations(Map<String, String> sourcesByLogicalId) {
+        doAnswer(
+                        invocation -> {
+                            String index = invocation.getArgument(0);
+                            String logicalId = invocation.getArgument(2);
+                            ActionListener<String> l = invocation.getArgument(3);
+                            if (!Constants.INDEX_INTEGRATIONS.equals(index)) {
+                                l.onResponse("real-policy-id");
+                            } else {
+                                l.onResponse(
+                                        sourcesByLogicalId.containsKey(logicalId) ? "real-" + logicalId : null);
+                            }
+                            return null;
+                        })
+                .when(this.spaceService)
+                .findDocumentIdAsync(any(), any(), any(), any());
+
+        doAnswer(
+                        invocation -> {
+                            String realId = invocation.getArgument(1);
+                            ActionListener<Map<String, Object>> l = invocation.getArgument(2);
+                            String source = sourcesByLogicalId.get(realId.replaceFirst("^real-", ""));
+                            l.onResponse(
+                                    source == null
+                                            ? null
+                                            : new ObjectMapper()
+                                                    .readValue(source, new TypeReference<Map<String, Object>>() {}));
+                            return null;
+                        })
+                .when(this.spaceService)
+                .getDocumentAsync(any(), any(), any(ActionListener.class));
+    }
+
+    private static String integrationSource(String id, boolean enabled) {
+        return "{\"document\":{\"id\":\""
+                + id
+                + "\",\"enabled\":"
+                + enabled
+                + ",\"title\":\"An integration\"},"
+                + "\"hash\":{\"sha256\":\"stale\"},\"space\":{\"name\":\"standard\"}}";
+    }
+
+    /** The user's choice is written onto the integration document, under its real _id. */
+    public void testApplySetsTheIntegrationEnabledFlag() throws Exception {
+        stubRegistryPresent(
+                "{\"user_overrides\":{\"standard\":{\"integrations\":[{\"id\":\"i1\",\"enabled\":false}]}}}",
+                1L,
+                1L);
+        stubRebuiltPolicy(REBUILT_POLICY);
+        stubIntegrations(Map.of("i1", integrationSource("i1", true)));
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        stubBulkSucceeding(bulkCaptor);
+
+        applyAndCaptureWrittenPolicy();
+
+        DocWriteRequest<?> write = bulkCaptor.getValue().requests().get(0);
+        assertEquals(Constants.INDEX_INTEGRATIONS, write.index());
+        assertEquals("real-i1", write.id());
+        assertTrue(
+                "the user's choice must be materialised on the document",
+                ((IndexRequest) write).source().utf8ToString().contains("\"enabled\":false"));
+    }
+
+    /**
+     * The integration's own hash must be recomputed. The space hash is built from the stored hash of
+     * every integration, and the engine reload is gated on the space hash, so leaving a stale one
+     * behind can stop peer nodes from ever reloading.
+     */
+    public void testApplyRecomputesTheIntegrationHash() throws Exception {
+        stubRegistryPresent(
+                "{\"user_overrides\":{\"standard\":{\"integrations\":[{\"id\":\"i1\",\"enabled\":false}]}}}",
+                1L,
+                1L);
+        stubRebuiltPolicy(REBUILT_POLICY);
+        stubIntegrations(Map.of("i1", integrationSource("i1", true)));
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        stubBulkSucceeding(bulkCaptor);
+
+        applyAndCaptureWrittenPolicy();
+
+        String written =
+                ((IndexRequest) bulkCaptor.getValue().requests().get(0)).source().utf8ToString();
+        assertFalse("the stale hash must not survive", written.contains("stale"));
+        assertTrue(written.contains("\"sha256\""));
+    }
+
+    /** An integration the catalogue no longer publishes is skipped, and the rest still apply. */
+    public void testApplySkipsAnIntegrationTheCatalogueNoLongerPublishes() throws Exception {
+        stubRegistryPresent(
+                "{\"user_overrides\":{\"standard\":{\"integrations\":"
+                        + "[{\"id\":\"gone\",\"enabled\":false},{\"id\":\"i2\",\"enabled\":false}]}}}",
+                1L,
+                1L);
+        stubRebuiltPolicy(REBUILT_POLICY);
+        stubIntegrations(Map.of("i2", integrationSource("i2", true)));
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        stubBulkSucceeding(bulkCaptor);
+
+        applyAndCaptureWrittenPolicy();
+
+        assertEquals("only the one that still exists", 1, bulkCaptor.getValue().numberOfActions());
+        assertEquals("real-i2", bulkCaptor.getValue().requests().get(0).id());
+    }
+
+    /** An integration already in the user's state needs no write. */
+    public void testApplyLeavesAnIntegrationAlreadyInTheUsersStateAlone() throws Exception {
+        stubRegistryPresent(
+                "{\"user_overrides\":{\"standard\":{\"integrations\":[{\"id\":\"i1\",\"enabled\":false}]}}}",
+                1L,
+                1L);
+        stubRebuiltPolicy(REBUILT_POLICY);
+        stubIntegrations(Map.of("i1", integrationSource("i1", false)));
+
+        applyAndCaptureWrittenPolicy();
+
+        verify(this.client, never()).bulk(any(BulkRequest.class), any());
+    }
+
+    /**
+     * Apply must not resolve until the integration write has landed. The sync recomputes the space
+     * hash as soon as apply returns, and a hash taken before the write would describe content that
+     * never existed on disk.
+     */
+    public void testApplyDoesNotResolveUntilTheIntegrationsAreWritten() throws Exception {
+        stubRegistryPresent(
+                "{\"user_overrides\":{\"standard\":{\"integrations\":[{\"id\":\"i1\",\"enabled\":false}]}}}",
+                1L,
+                1L);
+        stubRebuiltPolicy(REBUILT_POLICY);
+        stubIntegrations(Map.of("i1", integrationSource("i1", true)));
+        stubIndexSucceeding(ArgumentCaptor.forClass(IndexRequest.class));
+
+        List<ActionListener<BulkResponse>> pending = new ArrayList<>();
+        doAnswer(
+                        invocation -> {
+                            pending.add(invocation.getArgument(1));
+                            return null;
+                        })
+                .when(this.client)
+                .bulk(any(BulkRequest.class), any());
+
+        PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        this.service.apply("standard", future);
+
+        assertFalse("apply resolved before the integration write landed", future.isDone());
+        pending.get(0).onResponse(mock(BulkResponse.class));
+        assertTrue(future.isDone());
     }
 }

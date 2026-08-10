@@ -235,7 +235,8 @@ public class ContentManagerPlugin extends Plugin
                         this.threadPool,
                         this.engine,
                         this.spaceService,
-                        this.securityAnalyticsService);
+                        this.securityAnalyticsService,
+                        this.userOverridesService);
 
         // Initialize TelemetryPingJob
         this.telemetryPingJob =

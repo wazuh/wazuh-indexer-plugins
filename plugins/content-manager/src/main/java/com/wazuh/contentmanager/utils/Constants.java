@@ -325,12 +325,17 @@ public class Constants {
             "Applied user overrides for space [{}]: policy settings present={}, {} filter id(s) attached";
     public static final String W_LOG_USER_OVERRIDES_FILTER_UNREADABLE =
             "Stored filter [{}] could not be parsed and was skipped; it will not be restored: {}";
+    public static final String I_LOG_USER_OVERRIDES_INTEGRATIONS_APPLIED =
+            "Applied user overrides to {} integration(s) in space [{}]";
+    public static final String W_LOG_USER_OVERRIDES_INTEGRATION_MISSING =
+            "Integration [{}] is recorded in the user overrides registry but is not in space [{}]; "
+                    + "skipping it. The decision is kept in case the integration comes back.";
     public static final String W_LOG_USER_OVERRIDES_POLICY_MISSING =
             "No policy found for space [{}] while applying user overrides. The registry is durable, so the"
                     + " next synchronization will apply them.";
-    public static final String W_LOG_USER_OVERRIDES_FILTER_RECORD_FAILED =
-            "Failed to record filter [{}] in the user overrides registry. The filter itself is fine, but"
-                    + " it will not survive the next content rebuild of the standard space: {}";
+    public static final String W_LOG_USER_OVERRIDES_RECORD_FAILED =
+            "Failed to record {} [{}] in the user overrides registry. The change itself is fine, but it"
+                    + " will not survive the next content rebuild of the standard space: {}";
     public static final String D_LOG_SNAPSHOT_NO_INDEX_FOR_TYPE =
             "No ContentIndex found for type [{}]. Skipping.";
     public static final String D_LOG_SNAPSHOT_PARSE_LINE_FAILED =
@@ -676,6 +681,7 @@ public class Constants {
     public static final String KEY_ENRICHMENTS_REMOVED = "removed";
     public static final String KEY_ENRICHMENTS_ADDED = "added";
     public static final String KEY_STORED_FILTERS = "filters";
+    public static final String KEY_INTEGRATION_OVERRIDES = "integrations";
     public static final String KEY_MODE = "mode";
     public static final String KEY_DETECTOR = "detector";
     public static final String KEY_SOURCE = "source";

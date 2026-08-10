@@ -59,7 +59,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
     private final SecurityAnalyticsService securityAnalyticsService;
     private final SpaceService spaceService;
-    private UserOverridesService userOverridesService;
+    private final UserOverridesService userOverridesService;
 
     private Set<String> preSwapIntegrationIds = Collections.emptySet();
     private Set<String> preSwapRuleIds = Collections.emptySet();
@@ -72,17 +72,19 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * @param environment The OpenSearch environment settings.
      * @param spaceService The shared space service.
      * @param securityAnalyticsService The shared SAP service.
+     * @param userOverridesService The shared user overrides registry.
      */
     public ConsumerRulesetService(
             Client client,
             ConsumersIndex consumersIndex,
             Environment environment,
             SpaceService spaceService,
-            SecurityAnalyticsService securityAnalyticsService) {
+            SecurityAnalyticsService securityAnalyticsService,
+            UserOverridesService userOverridesService) {
         super(client, consumersIndex, environment);
         this.securityAnalyticsService = securityAnalyticsService;
         this.spaceService = spaceService;
-        this.userOverridesService = new UserOverridesService(client, spaceService);
+        this.userOverridesService = userOverridesService;
 
         this.mapper = new ObjectMapper();
         this.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
@@ -233,11 +235,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                             r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
                             e -> log.warn(Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
         }
-    }
-
-    /** Injects a {@link UserOverridesService} instance, used by tests to provide a mock. */
-    void setUserOverridesService(UserOverridesService userOverridesService) {
-        this.userOverridesService = userOverridesService;
     }
 
     /**

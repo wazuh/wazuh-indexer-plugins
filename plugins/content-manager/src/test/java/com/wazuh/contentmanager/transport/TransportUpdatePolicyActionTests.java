@@ -359,7 +359,8 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
                 List.of("connection", "url_full", "url_domain", "hash_md5", "hash_sha1", "hash_sha256");
         UserOverrides recorded =
                 captureRecordedMutator(incoming)
-                        .apply(new UserOverrides(null, new java.util.ArrayList<>()));
+                        .apply(
+                                new UserOverrides(null, new java.util.ArrayList<>(), new java.util.ArrayList<>()));
 
         Assert.assertEquals(Boolean.TRUE, recorded.getPolicy().getEnabled());
         Assert.assertEquals(Boolean.TRUE, recorded.getPolicy().getIndexUnclassifiedEvents());
@@ -385,6 +386,7 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
                                 Boolean.TRUE,
                                 Boolean.FALSE,
                                 new UserOverrides.EnrichmentDelta(Set.of("geo"), Set.of())),
+                        new java.util.ArrayList<>(),
                         new java.util.ArrayList<>());
 
         // The user re-checks "geo": the body carries all seven again.
@@ -404,7 +406,8 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
                 new UserOverrides(
                         null,
                         new java.util.ArrayList<>(
-                                List.of(new UserOverrides.StoredFilter("f1", "{\"document\":{}}"))));
+                                List.of(new UserOverrides.StoredFilter("f1", "{\"document\":{}}"))),
+                        new java.util.ArrayList<>());
 
         UserOverrides recorded = captureRecordedMutator(CTI_ENRICHMENTS).apply(priorState);
 

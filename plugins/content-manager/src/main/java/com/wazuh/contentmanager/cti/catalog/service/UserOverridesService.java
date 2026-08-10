@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -37,6 +38,7 @@ import org.opensearch.transport.client.Client;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
@@ -46,7 +48,8 @@ import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Reads and writes the single registry document that holds the user's overrides for a space: the
- * policy settings they changed and a serialized copy of the filters they created.
+ * policy settings they changed, a serialized copy of the filters they created, and the enabled
+ * state they chose for each integration.
  *
  * <p>The document lives in the policies index under {@link Constants#USER_OVERRIDES_DOC_ID} and
  * deliberately carries no {@code space} field. That absence is what keeps it out of the
@@ -167,22 +170,31 @@ public class UserOverridesService {
      * Re-applies a space's stored overrides after it has been rebuilt from CTI.
      *
      * <p>Runs after every sync that changed anything, so it must be idempotent: filters are recreated
-     * under their original ids and their ids appended to the policy only when missing.
+     * under their original ids, their ids appended to the policy only when missing, and an
+     * integration already in the user's state is left alone.
      *
      * <p>The order matters. Filters are restored first so their ids exist by the time the policy's
      * {@code filters} array is rewritten, and the policy is written once with everything merged
      * rather than once per change.
      *
+     * <p>Nothing may be left in flight when the listener fires. The sync recomputes the space hash as
+     * soon as this returns, and a hash taken over writes that had not landed would describe content
+     * that never existed -- and, because the engine reload is gated on that hash, could leave peer
+     * nodes serving the old content indefinitely.
+     *
      * @param spaceName the space to restore.
-     * @param listener notified once everything has been applied. A missing policy or an unreadable
-     *     stored filter resolves successfully: the registry is durable, so the next sync retries.
+     * @param listener notified once everything has been applied. A missing policy, an unreadable
+     *     stored filter or an integration the catalogue no longer publishes all resolve successfully:
+     *     the registry is durable, so the next sync retries.
      */
     public void apply(String spaceName, ActionListener<Void> listener) {
         this.read(
                 spaceName,
                 ActionListener.wrap(
                         overrides -> {
-                            if (overrides.getPolicy() == null && overrides.getFilters().isEmpty()) {
+                            if (overrides.getPolicy() == null
+                                    && overrides.getFilters().isEmpty()
+                                    && overrides.getIntegrations().isEmpty()) {
                                 listener.onResponse(null);
                                 return;
                             }
@@ -190,10 +202,139 @@ public class UserOverridesService {
                                     overrides,
                                     ActionListener.wrap(
                                             restoredIds ->
-                                                    this.applyToPolicy(spaceName, overrides, restoredIds, listener),
+                                                    this.restoreIntegrations(
+                                                            spaceName,
+                                                            overrides,
+                                                            ActionListener.wrap(
+                                                                    unused ->
+                                                                            this.applyToPolicy(
+                                                                                    spaceName, overrides, restoredIds, listener),
+                                                                    listener::onFailure)),
                                             listener::onFailure));
                         },
                         listener::onFailure));
+    }
+
+    /**
+     * Writes the user's choice back onto the integration documents the rebuild recreated.
+     *
+     * <p>The choice has to be materialised rather than resolved on read: Security Analytics and the
+     * engine consume these documents directly and know nothing about the registry.
+     *
+     * @param spaceName the space being restored.
+     * @param overrides the stored overrides.
+     * @param listener notified once the writes have landed.
+     */
+    private void restoreIntegrations(
+            String spaceName, UserOverrides overrides, ActionListener<Void> listener) {
+        if (overrides.getIntegrations().isEmpty()) {
+            listener.onResponse(null);
+            return;
+        }
+        this.collectIntegrationWrites(
+                spaceName,
+                overrides.getIntegrations(),
+                0,
+                new BulkRequest().setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
+                ActionListener.wrap(
+                        bulk -> {
+                            if (bulk.numberOfActions() == 0) {
+                                listener.onResponse(null);
+                                return;
+                            }
+                            log.info(
+                                    Constants.I_LOG_USER_OVERRIDES_INTEGRATIONS_APPLIED,
+                                    bulk.numberOfActions(),
+                                    spaceName);
+                            this.client.bulk(
+                                    bulk,
+                                    ActionListener.wrap(response -> listener.onResponse(null), listener::onFailure));
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Walks the recorded integrations one at a time, collecting the writes that are actually needed.
+     *
+     * <p>Sequential rather than parallel because each one needs its real {@code _id} resolved first,
+     * which is a search: the same shape {@code SpaceService} uses to walk a space's integrations.
+     */
+    private void collectIntegrationWrites(
+            String spaceName,
+            List<UserOverrides.IntegrationOverride> overrides,
+            int index,
+            BulkRequest bulk,
+            ActionListener<BulkRequest> listener) {
+        if (index == overrides.size()) {
+            listener.onResponse(bulk);
+            return;
+        }
+        UserOverrides.IntegrationOverride override = overrides.get(index);
+
+        this.spaceService.findDocumentIdAsync(
+                Constants.INDEX_INTEGRATIONS,
+                spaceName,
+                override.getId(),
+                ActionListener.wrap(
+                        realId -> {
+                            if (realId == null) {
+                                log.warn(
+                                        Constants.W_LOG_USER_OVERRIDES_INTEGRATION_MISSING,
+                                        override.getId(),
+                                        spaceName);
+                                this.collectIntegrationWrites(spaceName, overrides, index + 1, bulk, listener);
+                                return;
+                            }
+                            this.spaceService.getDocumentAsync(
+                                    Constants.INDEX_INTEGRATIONS,
+                                    realId,
+                                    ActionListener.wrap(
+                                            source -> {
+                                                addIntegrationWrite(bulk, spaceName, realId, source, override);
+                                                this.collectIntegrationWrites(
+                                                        spaceName, overrides, index + 1, bulk, listener);
+                                            },
+                                            listener::onFailure));
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Adds the write for one integration, unless it already holds the user's value.
+     *
+     * <p>Its {@code hash.sha256} is recomputed along with the change. The space hash is built from
+     * the stored hash of every integration, so a stale one there propagates straight into the space
+     * hash the sync compares against.
+     */
+    private static void addIntegrationWrite(
+            BulkRequest bulk,
+            String spaceName,
+            String realId,
+            Map<String, Object> source,
+            UserOverrides.IntegrationOverride override) {
+        if (override.getEnabled() == null) {
+            return;
+        }
+        ObjectNode wrapper = source != null ? MAPPER.valueToTree(source) : null;
+        if (wrapper == null || !wrapper.path(Constants.KEY_DOCUMENT).isObject()) {
+            log.warn(Constants.W_LOG_USER_OVERRIDES_INTEGRATION_MISSING, override.getId(), spaceName);
+            return;
+        }
+        ObjectNode document = (ObjectNode) wrapper.get(Constants.KEY_DOCUMENT);
+
+        JsonNode current = document.get(Constants.KEY_ENABLED);
+        if (current != null
+                && current.isBoolean()
+                && current.asBoolean() == override.getEnabled().booleanValue()) {
+            return;
+        }
+
+        document.put(Constants.KEY_ENABLED, override.getEnabled().booleanValue());
+        refreshHash(wrapper, document);
+        bulk.add(
+                new IndexRequest(Constants.INDEX_INTEGRATIONS)
+                        .id(realId)
+                        .source(wrapper.toString(), XContentType.JSON));
     }
 
     /**
@@ -304,8 +445,7 @@ public class UserOverridesService {
     /**
      * Writes the settings the user owns over CTI's values.
      *
-     * <p>A {@code null} setting means the user never decided that field, so CTI's value stays. That
-     * is the same absence-is-meaningful rule the integrations' {@code user_enabled} follows.
+     * <p>A {@code null} setting means the user never decided that field, so CTI's value stays.
      */
     private static void mergeSettings(ObjectNode document, UserOverrides.PolicySettings settings) {
         if (settings == null) {
@@ -381,9 +521,9 @@ public class UserOverridesService {
      * mapping is {@code dynamic: true}, so nesting a filter's fields there would auto-map every field
      * of every stored filter into the policies index.
      *
-     * <p>Everything else in the space's overrides passes through untouched. That matters because the
-     * policy settings and the filters share one registry document, so returning a fresh instance here
-     * would erase the settings the user had saved.
+     * <p>Everything else in the space's overrides passes through untouched. That matters because all
+     * three sections share one registry document, so returning a fresh instance here would erase the
+     * settings and the integration decisions the user had saved.
      *
      * @param filterId the filter's document id, reused when the filter is recreated.
      * @param document the filter's full stored document, serialized.
@@ -394,7 +534,7 @@ public class UserOverridesService {
             List<UserOverrides.StoredFilter> filters = new ArrayList<>(current.getFilters());
             filters.removeIf(stored -> filterId.equals(stored.getId()));
             filters.add(new UserOverrides.StoredFilter(filterId, document));
-            return new UserOverrides(current.getPolicy(), filters);
+            return new UserOverrides(current.getPolicy(), filters, current.getIntegrations());
         };
     }
 
@@ -411,7 +551,31 @@ public class UserOverridesService {
         return current -> {
             List<UserOverrides.StoredFilter> filters = new ArrayList<>(current.getFilters());
             filters.removeIf(stored -> filterId.equals(stored.getId()));
-            return new UserOverrides(current.getPolicy(), filters);
+            return new UserOverrides(current.getPolicy(), filters, current.getIntegrations());
+        };
+    }
+
+    /**
+     * A mutator that records the state the user chose for one integration.
+     *
+     * <p>Only the decision is recorded, not the document: the integration comes from CTI and the
+     * rebuild recreates it, so all that has to survive is which of the two states the user picked.
+     *
+     * <p>Everything else in the space's overrides passes through untouched, for the same reason as in
+     * {@link #storeFilter(String, String)}.
+     *
+     * @param integrationId the integration's document id.
+     * @param enabled the state the user chose.
+     * @return a mutator suitable for {@link #update(String, UnaryOperator, ActionListener)}.
+     */
+    public static UnaryOperator<UserOverrides> setIntegrationEnabled(
+            String integrationId, boolean enabled) {
+        return current -> {
+            List<UserOverrides.IntegrationOverride> integrations =
+                    new ArrayList<>(current.getIntegrations());
+            integrations.removeIf(override -> integrationId.equals(override.getId()));
+            integrations.add(new UserOverrides.IntegrationOverride(integrationId, enabled));
+            return new UserOverrides(current.getPolicy(), current.getFilters(), integrations);
         };
     }
 

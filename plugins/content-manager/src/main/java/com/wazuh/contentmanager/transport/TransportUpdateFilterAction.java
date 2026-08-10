@@ -65,11 +65,12 @@ public class TransportUpdateFilterAction extends AbstractTransportUpdateActionSp
     @Override
     protected void afterResourceCommitted(
             String id, String spaceName, ObjectNode ctiWrapper, Runnable onDone) {
-        FilterOverrideRecorder.record(
+        OverrideRecorder.record(
                 this.userOverridesService,
                 spaceName,
                 UserOverridesService.storeFilter(id, ctiWrapper.toString()),
                 id,
+                Constants.KEY_FILTER,
                 onDone);
     }
 

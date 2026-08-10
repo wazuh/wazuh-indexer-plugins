@@ -38,6 +38,7 @@ import java.util.Objects;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
@@ -96,13 +97,15 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
 
         // Instantiate the synchronizer with the test cluster's client.
         // Environment and ConsumersIndex are only used by syncConsumerServices(), not onSyncComplete().
+        SpaceService spaceService = new SpaceService(OpenSearchIntegTestCase.client());
         ConsumerRulesetService synchronizer =
                 new ConsumerRulesetService(
                         OpenSearchIntegTestCase.client(),
                         new ConsumersIndex(OpenSearchIntegTestCase.client()),
                         null,
-                        new SpaceService(OpenSearchIntegTestCase.client()),
-                        null);
+                        spaceService,
+                        null,
+                        new UserOverridesService(OpenSearchIntegTestCase.client(), spaceService));
 
         // First call — simulates the cluster manager node completing a sync
         synchronizer.onSyncComplete(true);

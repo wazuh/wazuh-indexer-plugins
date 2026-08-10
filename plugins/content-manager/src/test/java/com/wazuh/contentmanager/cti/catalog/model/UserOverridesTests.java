@@ -72,7 +72,8 @@ public class UserOverridesTests extends OpenSearchTestCase {
                                 Boolean.TRUE,
                                 null,
                                 new UserOverrides.EnrichmentDelta(Set.of("geo"), Set.of())),
-                        List.of(new UserOverrides.StoredFilter("filter-id", "{\"document\":{}}")));
+                        List.of(new UserOverrides.StoredFilter("filter-id", "{\"document\":{}}")),
+                        List.of());
 
         original.writeInto(root, "standard");
         UserOverrides read = UserOverrides.forSpace(root, "standard");
@@ -113,9 +114,11 @@ public class UserOverridesTests extends OpenSearchTestCase {
 
         new UserOverrides(
                         new UserOverrides.PolicySettings(Boolean.FALSE, null, null, null),
-                        List.of(new UserOverrides.StoredFilter("draft-filter", "{}")))
+                        List.of(new UserOverrides.StoredFilter("draft-filter", "{}")),
+                        List.of())
                 .writeInto(root, "draft");
-        new UserOverrides(new UserOverrides.PolicySettings(Boolean.TRUE, null, null, null), List.of())
+        new UserOverrides(
+                        new UserOverrides.PolicySettings(Boolean.TRUE, null, null, null), List.of(), List.of())
                 .writeInto(root, "standard");
 
         assertEquals(Boolean.FALSE, UserOverrides.forSpace(root, "draft").getPolicy().getEnabled());
@@ -132,9 +135,56 @@ public class UserOverridesTests extends OpenSearchTestCase {
 
         new UserOverrides(
                         new UserOverrides.PolicySettings(Boolean.FALSE, null, null, null),
-                        List.of(new UserOverrides.StoredFilter("f1", "{}")))
+                        List.of(new UserOverrides.StoredFilter("f1", "{}")),
+                        List.of(new UserOverrides.IntegrationOverride("i1", false)))
                 .writeInto(root, "standard");
 
         assertFalse(root.toString().contains("\"" + Constants.KEY_SPACE + "\""));
+    }
+
+    /** An integration override round-trips with its id and its decision. */
+    public void testIntegrationOverridesRoundTrip() {
+        ObjectNode root = MAPPER.createObjectNode();
+
+        new UserOverrides(
+                        null,
+                        List.of(),
+                        List.of(
+                                new UserOverrides.IntegrationOverride("i1", false),
+                                new UserOverrides.IntegrationOverride("i2", true)))
+                .writeInto(root, "standard");
+
+        UserOverrides read = UserOverrides.forSpace(root, "standard");
+
+        assertEquals(2, read.getIntegrations().size());
+        assertEquals("i1", read.getIntegrations().get(0).getId());
+        assertEquals(Boolean.FALSE, read.getIntegrations().get(0).getEnabled());
+        assertEquals(Boolean.TRUE, read.getIntegrations().get(1).getEnabled());
+    }
+
+    /** The three sections share one space entry, so writing one must not disturb the others. */
+    public void testTheThreeSectionsCoexist() {
+        ObjectNode root = MAPPER.createObjectNode();
+
+        new UserOverrides(
+                        new UserOverrides.PolicySettings(Boolean.FALSE, null, null, null),
+                        List.of(new UserOverrides.StoredFilter("f1", "{}")),
+                        List.of(new UserOverrides.IntegrationOverride("i1", false)))
+                .writeInto(root, "standard");
+
+        UserOverrides read = UserOverrides.forSpace(root, "standard");
+
+        assertEquals(Boolean.FALSE, read.getPolicy().getEnabled());
+        assertEquals(1, read.getFilters().size());
+        assertEquals(1, read.getIntegrations().size());
+    }
+
+    /** A registry written before integrations existed reads as an empty list, not null. */
+    public void testIntegrationsAreEmptyWhenAbsent() {
+        ObjectNode root = MAPPER.createObjectNode();
+        new UserOverrides(null, List.of(new UserOverrides.StoredFilter("f1", "{}")), List.of())
+                .writeInto(root, "standard");
+
+        assertTrue(UserOverrides.forSpace(root, "standard").getIntegrations().isEmpty());
     }
 }

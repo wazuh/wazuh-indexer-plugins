@@ -28,41 +28,44 @@ import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
- * Shared tail end of the three filter actions' registry bookkeeping.
+ * Shared tail end of the registry bookkeeping done by the transport actions.
  *
- * <p>Creating, updating and deleting a filter each live in a different transport hierarchy, but all
- * three need the same two decisions afterwards: skip every space but {@code standard}, and never
- * let a registry problem fail a request that has already succeeded.
+ * <p>Creating, updating and deleting a filter, and updating an integration, each live in a
+ * different transport hierarchy, but all of them need the same two decisions afterwards: skip every
+ * space but {@code standard}, and never let a registry problem fail a request that has already
+ * succeeded.
  */
-final class FilterOverrideRecorder {
+final class OverrideRecorder {
 
-    private static final Logger log = LogManager.getLogger(FilterOverrideRecorder.class);
+    private static final Logger log = LogManager.getLogger(OverrideRecorder.class);
 
-    private FilterOverrideRecorder() {}
+    private OverrideRecorder() {}
 
     /**
      * Applies {@code mutator} to the standard space's stored overrides, then runs {@code onDone}.
      *
      * <p>Other spaces are skipped outright: {@code draft}, {@code test} and {@code custom} are never
-     * rebuilt from CTI, so their filters survive a sync without any help.
+     * rebuilt from CTI, so what the user puts there survives a sync without any help.
      *
-     * <p>A registry failure is logged and swallowed. By the time this runs the filter itself has been
-     * written, unlinked or deleted, and the space hash recalculated -- the user's request did
-     * succeed. The cost of the failure is that this filter will not survive the next rebuild, which
-     * the log message says explicitly.
+     * <p>A registry failure is logged and swallowed. By the time this runs the resource itself has
+     * been written or deleted and the space hash recalculated -- the user's request did succeed. The
+     * cost of the failure is that this change will not survive the next rebuild, which the log
+     * message says explicitly.
      *
      * @param userOverridesService the registry.
-     * @param spaceName the space the filter operation happened in.
-     * @param mutator what to change in the registry, from {@link UserOverridesService#storeFilter} or
-     *     {@link UserOverridesService#removeFilter}.
-     * @param filterId the filter's document id, for the log message.
+     * @param spaceName the space the operation happened in.
+     * @param mutator what to change in the registry, from one of {@code UserOverridesService}'s
+     *     mutator factories.
+     * @param resourceId the resource's document id, for the log message.
+     * @param resourceType what kind of resource it is, for the log message.
      * @param onDone run once, whatever the outcome, to answer the request.
      */
     static void record(
             UserOverridesService userOverridesService,
             String spaceName,
             UnaryOperator<UserOverrides> mutator,
-            String filterId,
+            String resourceId,
+            String resourceType,
             Runnable onDone) {
         if (!Space.STANDARD.equals(spaceName)) {
             onDone.run();
@@ -76,7 +79,10 @@ final class FilterOverrideRecorder {
                         v -> onDone.run(),
                         e -> {
                             log.warn(
-                                    Constants.W_LOG_USER_OVERRIDES_FILTER_RECORD_FAILED, filterId, e.getMessage());
+                                    Constants.W_LOG_USER_OVERRIDES_RECORD_FAILED,
+                                    resourceType,
+                                    resourceId,
+                                    e.getMessage());
                             onDone.run();
                         }));
     }
