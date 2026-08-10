@@ -5,6 +5,8 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 
 - **`plugins.content_manager.cti.api`** (String, default `https://api.pre.cloud.wazuh.com/api/v1`) — base URL for the Wazuh CTI API.
 - **`plugins.content_manager.catalog.sync_interval`** (Integer, default `60`, range 10–1440) — sync interval in minutes.
+- **`plugins.content_manager.setup_wait.max_retries`** (Integer, default `4`, range 0–10) — number of retries the catalog sync job performs while waiting for the Setup plugin to report readiness on startup, before giving up until the next scheduled sync.
+- **`plugins.content_manager.setup_wait.backoff_base_seconds`** (Integer, default `20`, range 1–120) — base delay, in seconds, for the exponential backoff between those retries (delay for retry `n` is `base * 2^n`; with the defaults, 20s/40s/80s/160s = 300s / 5 min worst case).
 - **`plugins.content_manager.max_items_per_bulk`** (Integer, default `999`, range 10–999) — maximum documents per bulk indexing request.
 - **`plugins.content_manager.max_concurrent_bulks`** (Integer, default `5`, range 1–5) — maximum concurrent bulk operations.
 - **`plugins.content_manager.max_bulk_bytes`** (Long, default `5242880` / 5 MB, range 1048576–104857600 / 1–100 MB) — maximum request body size, in bytes, for a single bulk indexing request.
@@ -20,11 +22,11 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.telemetry.enabled`** (Boolean, default `true`, dynamic) — enable or disable the daily Update check service ping.
 - **`plugins.content_manager.catalog.update_on_demand`** (Boolean, default `true`) — when `false`, on-demand content updates (`POST /update`) return `403 Forbidden` for every caller, regardless of role.
 - **`plugins.content_manager.catalog.policy_update.enabled`** (Boolean, default `true`) — when `false`, policy updates (`PUT /policy/{space}`) return `403 Forbidden` for every caller, regardless of role.
-- **`plugins.content_manager.max_integrations`** (Integer, default `100`, range 0–100, dynamic) — maximum number of integrations that can be created. Requests that would exceed this limit are rejected with HTTP 400.
-- **`plugins.content_manager.max_decoders`** (Integer, default `200`, range 0–200, dynamic) — maximum number of decoders that can be created. Requests that would exceed this limit are rejected with HTTP 400.
-- **`plugins.content_manager.max_rules`** (Integer, default `200`, range 0–200, dynamic) — maximum number of rules that can be created. Requests that would exceed this limit are rejected with HTTP 400.
-- **`plugins.content_manager.max_kvdbs`** (Integer, default `100`, range 0–100, dynamic) — maximum number of KVDBs that can be created. Requests that would exceed this limit are rejected with HTTP 400.
-- **`plugins.content_manager.max_filters`** (Integer, default `100`, range 0–100, dynamic) — maximum number of filters that can be created per space. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_integrations`** (Integer, default `100`, minimum `0`, no upper bound, dynamic) — maximum number of integrations that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_decoders`** (Integer, default `200`, minimum `0`, no upper bound, dynamic) — maximum number of decoders that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_rules`** (Integer, default `200`, minimum `0`, no upper bound, dynamic) — maximum number of rules that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_kvdbs`** (Integer, default `100`, minimum `0`, no upper bound, dynamic) — maximum number of KVDBs that can be created. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.content_manager.max_filters`** (Integer, default `100`, minimum `0`, no upper bound, dynamic) — maximum number of filters that can be created per space. Requests that would exceed this limit are rejected with HTTP 400.
 
 <!-- // ANCHOR_END: settings-table -->
 
@@ -55,6 +57,20 @@ The plugin checks for new content every 60 minutes by default, but this can be c
 # opensearch.yml
 plugins.content_manager.catalog.sync_interval: 1440
 ```
+
+### Setup readiness wait (startup race)
+
+On node startup, the catalog sync job waits for the Setup plugin to finish creating its indices (signaled by the `.wazuh-setup-status` marker document) before it runs. If Setup has not finished within that wait, the sync is skipped for that run and deferred to the next scheduled run (`plugins.content_manager.catalog.sync_interval` minutes later, an hour by default) — on a slow-starting node (e.g. cluster still recovering shards), this can leave `.wazuh-cti-consumers` and the CTI content indices empty for up to that long.
+
+The wait uses exponential backoff, controlled by `plugins.content_manager.setup_wait.max_retries` and `plugins.content_manager.setup_wait.backoff_base_seconds`. With the defaults (4 retries, 20s base), the schedule is 20s, 40s, 80s, 160s — 300s (5 min) total before giving up. Increase these on environments where Setup is known to take longer to initialize:
+
+```yaml
+# opensearch.yml
+plugins.content_manager.setup_wait.max_retries: 4
+plugins.content_manager.setup_wait.backoff_base_seconds: 30
+```
+
+The example above raises the total worst-case wait to 30+60+120+240 = 450s (7.5 min).
 
 #### Custom CTI API endpoint
 

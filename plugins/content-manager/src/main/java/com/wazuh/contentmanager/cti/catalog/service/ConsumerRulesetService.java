@@ -24,7 +24,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.env.Environment;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.Client;
@@ -39,11 +38,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
+import com.wazuh.contentmanager.action.ReloadEngineContentAction;
+import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -58,9 +57,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private static final String[] DOCUMENT_ONLY_SOURCE = new String[] {Constants.KEY_DOCUMENT};
     private final ObjectMapper mapper;
 
-    private final SecurityAnalyticsServiceImpl securityAnalyticsService;
+    private final SecurityAnalyticsService securityAnalyticsService;
     private final SpaceService spaceService;
-    private final EngineService engineService;
 
     private Set<String> preSwapIntegrationIds = Collections.emptySet();
     private Set<String> preSwapRuleIds = Collections.emptySet();
@@ -71,17 +69,18 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * @param client The OpenSearch client.
      * @param consumersIndex The consumers index wrapper.
      * @param environment The OpenSearch environment settings.
-     * @param engineService The engine service for loading content into the Engine.
+     * @param spaceService The shared space service.
+     * @param securityAnalyticsService The shared SAP service.
      */
     public ConsumerRulesetService(
             Client client,
             ConsumersIndex consumersIndex,
             Environment environment,
-            EngineService engineService) {
+            SpaceService spaceService,
+            SecurityAnalyticsService securityAnalyticsService) {
         super(client, consumersIndex, environment);
-        this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
-        this.spaceService = new SpaceService(client);
-        this.engineService = engineService;
+        this.securityAnalyticsService = securityAnalyticsService;
+        this.spaceService = spaceService;
 
         this.mapper = new ObjectMapper();
         this.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
@@ -205,7 +204,18 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             } catch (IOException e) {
                 log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
             }
-            this.loadStandardSpaceIntoEngine();
+            // Broadcast a reload trigger to every node so each one loads the updated STANDARD space
+            // into its own local Engine. A routine incremental update changes only index documents
+            // (no cluster-state event), so peer nodes would otherwise not react until some unrelated
+            // cluster-state event happened to fire their listener. The broadcast targets all nodes
+            // including this one, and the per-node loader is hash-gated, so the call is idempotent
+            // and a node that is down simply converges later via the cluster-state listener.
+            this.client.execute(
+                    ReloadEngineContentAction.INSTANCE,
+                    new ReloadEngineContentRequest(),
+                    ActionListener.wrap(
+                            r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
+                            e -> log.warn(Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
         }
     }
 
@@ -234,29 +244,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             throw new IOException(e);
         } catch (TimeoutException e) {
             throw new IOException(e);
-        }
-    }
-
-    /** Builds the engine payload for the standard space and loads it into the Engine. */
-    private void loadStandardSpaceIntoEngine() {
-        if (this.engineService == null) {
-            log.warn(Constants.E_LOG_ENGINE_IS_NULL);
-            return;
-        }
-        try {
-            JsonNode payload =
-                    this.awaitResult(l -> this.spaceService.buildEnginePayload(Space.STANDARD.toString(), l));
-            RestResponse response = this.engineService.promote(payload);
-            if (response.getStatus() == RestStatus.OK.getStatus()) {
-                log.info(Constants.I_LOG_ENGINE_STANDARD_LOADED);
-            } else {
-                log.warn(
-                        Constants.W_LOG_ENGINE_STANDARD_LOAD_STATUS,
-                        response.getStatus(),
-                        response.getMessage());
-            }
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage());
         }
     }
 
@@ -426,10 +413,13 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      *     #syncIntegrations()}, keyed by document ID.
      */
     private void syncDetectors(Map<String, JsonNode> integrationDocs) throws IOException {
+        if (!(this.securityAnalyticsService instanceof SecurityAnalyticsServiceImpl sapService)) {
+            return;
+        }
         List<JsonNode> docs = new ArrayList<>();
         integrationDocs.forEach(
                 (id, doc) -> {
-                    if (this.securityAnalyticsService.buildDetectorRequest(doc, true) != null) {
+                    if (sapService.buildDetectorRequest(doc, true) != null) {
                         docs.add(doc);
                     }
                 });
@@ -545,17 +535,20 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             Set<String> staleIntegrationIds = new HashSet<>(this.preSwapIntegrationIds);
             staleIntegrationIds.removeAll(currentIntegrationIds);
 
-            for (String id : staleIntegrationIds) {
-                try {
-                    CompletableFuture<Void> future = new CompletableFuture<>();
+            if (!staleIntegrationIds.isEmpty()) {
+                CountDownLatch integrationLatch = new CountDownLatch(staleIntegrationIds.size());
+                for (String id : staleIntegrationIds) {
                     this.securityAnalyticsService.deleteIntegration(
                             id,
                             Space.STANDARD,
-                            ActionListener.wrap(r -> future.complete(null), future::completeExceptionally));
-                    future.get(60, TimeUnit.SECONDS);
-                } catch (Exception e) {
-                    log.warn("Failed to delete stale integration [{}]: {}", id, e.getMessage());
+                            ActionListener.wrap(
+                                    r -> integrationLatch.countDown(),
+                                    e -> {
+                                        log.warn("Failed to delete stale integration [{}]: {}", id, e.getMessage());
+                                        integrationLatch.countDown();
+                                    }));
                 }
+                integrationLatch.await(120, TimeUnit.SECONDS);
             }
 
             Set<String> currentRuleIds =
@@ -563,17 +556,20 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             Set<String> staleRuleIds = new HashSet<>(this.preSwapRuleIds);
             staleRuleIds.removeAll(currentRuleIds);
 
-            for (String id : staleRuleIds) {
-                try {
-                    CompletableFuture<Void> future = new CompletableFuture<>();
+            if (!staleRuleIds.isEmpty()) {
+                CountDownLatch ruleLatch = new CountDownLatch(staleRuleIds.size());
+                for (String id : staleRuleIds) {
                     this.securityAnalyticsService.deleteRule(
                             id,
                             Space.STANDARD,
-                            ActionListener.wrap(r -> future.complete(null), future::completeExceptionally));
-                    future.get(60, TimeUnit.SECONDS);
-                } catch (Exception e) {
-                    log.warn("Failed to delete stale rule [{}]: {}", id, e.getMessage());
+                            ActionListener.wrap(
+                                    r -> ruleLatch.countDown(),
+                                    e -> {
+                                        log.warn("Failed to delete stale rule [{}]: {}", id, e.getMessage());
+                                        ruleLatch.countDown();
+                                    }));
                 }
+                ruleLatch.await(120, TimeUnit.SECONDS);
             }
 
             if (!staleIntegrationIds.isEmpty() || !staleRuleIds.isEmpty()) {

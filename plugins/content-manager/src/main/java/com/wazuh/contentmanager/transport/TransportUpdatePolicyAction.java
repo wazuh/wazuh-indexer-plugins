@@ -48,6 +48,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -66,6 +67,7 @@ public class TransportUpdatePolicyAction
 
     private final SpaceService spaceService;
     private final EngineService engineService;
+    private final EngineContentLoader engineContentLoader;
     private final Client client;
     private final PayloadValidations payloadValidations;
 
@@ -75,10 +77,12 @@ public class TransportUpdatePolicyAction
             ActionFilters actionFilters,
             SpaceService spaceService,
             EngineService engineService,
+            EngineContentLoader engineContentLoader,
             Client client) {
         super(UpdatePolicyAction.NAME, transportService, actionFilters, UpdatePolicyRequest::new);
         this.spaceService = spaceService;
         this.engineService = engineService;
+        this.engineContentLoader = engineContentLoader;
         this.client = client;
         this.payloadValidations = new PayloadValidations();
     }
@@ -349,9 +353,12 @@ public class TransportUpdatePolicyAction
                 List.of(spaceName),
                 ActionListener.wrap(
                         changedSpaces -> {
-                            if (changedSpaces.contains(Space.STANDARD.toString())) {
-                                this.loadStandardSpaceIntoEngine();
-                            }
+                            TransportActionHelper.reloadStandardSpaceIntoEngine(
+                                    this.engineService,
+                                    this.spaceService,
+                                    changedSpaces,
+                                    this.engineContentLoader,
+                                    this.client);
                             listener.onResponse(new MessageStatusResponse(policyId, RestStatus.OK));
                         },
                         e -> respondWithError(listener, e)));
@@ -460,32 +467,6 @@ public class TransportUpdatePolicyAction
         ObjectNode policyNode = mapper.valueToTree(incomingPolicy);
         Resource.nestMetadataFields(policyNode);
         return policyNode;
-    }
-
-    private void loadStandardSpaceIntoEngine() {
-        if (this.engineService == null) {
-            log.warn(Constants.E_LOG_ENGINE_IS_NULL);
-            return;
-        }
-        this.spaceService.buildEnginePayload(
-                Space.STANDARD.toString(),
-                ActionListener.wrap(
-                        payload -> {
-                            try {
-                                RestResponse response = this.engineService.promote(payload);
-                                if (response.getStatus() == RestStatus.OK.getStatus()) {
-                                    log.info("Engine load for standard space completed successfully.");
-                                } else {
-                                    log.warn(
-                                            "Engine load for standard space returned status [{}]: {}",
-                                            response.getStatus(),
-                                            response.getMessage());
-                                }
-                            } catch (Exception e) {
-                                log.error("Failed to load standard space into Engine: {}", e.getMessage());
-                            }
-                        },
-                        e -> log.error("Failed to load standard space into Engine: {}", e.getMessage())));
     }
 
     private void respondWithError(ActionListener<MessageStatusResponse> listener, Exception e) {

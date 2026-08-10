@@ -4,7 +4,7 @@ The Alerting plugin is configured through cluster settings under the `plugins.al
 
 ## Monitor settings
 
-- **`plugins.alerting.monitor.max_monitors`** (Integer, default `10`, range 0–10) — maximum number of monitors allowed per node.
+- **`plugins.alerting.monitor.max_monitors`** (Integer, default `10`, minimum `0`, no upper bound) — maximum number of monitors allowed per node.
 - **`plugins.alerting.monitor.max_triggers`** (Integer, default `10`, hard max `50`) — maximum number of triggers per monitor.
 - **`plugins.alerting.monitor.doc_level_monitor_shard_fetch_size`** (Integer, default `10000`) — number of documents fetched per shard for document-level monitors.
 - **`plugins.alerting.monitor.doc_level_monitor_fan_out_nodes`** (Integer, default `1000`) — maximum number of nodes to fan out document-level monitor queries to.

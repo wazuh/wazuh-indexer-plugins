@@ -1,0 +1,9 @@
+---
+- name: package
+  fields:
+    - name: previous.installed
+      type: date
+      level: custom
+      description: >
+        Installation date before it changed.
+      example: "2026-07-01T10:00:00.000Z"
