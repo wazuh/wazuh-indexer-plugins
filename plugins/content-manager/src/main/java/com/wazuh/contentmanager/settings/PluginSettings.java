@@ -82,6 +82,12 @@ public class PluginSettings {
     private static final long DEFAULT_PIT_KEEPALIVE = 120;
     private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
 
+    // Defaults for the Setup-plugin readiness wait in CatalogSyncJob#waitForSetup(). Worst-case
+    // total wait before giving up is baseSeconds * (2^maxRetries - 1); the defaults (20s, 4 retries)
+    // give 20+40+80+160 = 300s (5 min).
+    private static final int DEFAULT_SETUP_WAIT_MAX_RETRIES = 4;
+    private static final int DEFAULT_SETUP_WAIT_BACKOFF_BASE_SECONDS = 20;
+
     private static final Pattern CATALOG_URI_PATTERN =
             Pattern.compile(".*/catalog/contexts/([^/]+)/consumers/([^/?#]+)(?:[/?#].*)?$");
 
@@ -218,6 +224,32 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /**
+     * Maximum number of retries {@code CatalogSyncJob#waitForSetup()} performs while waiting for the
+     * Setup plugin to report readiness, before giving up and deferring to the next scheduled sync.
+     */
+    public static final Setting<Integer> SETUP_WAIT_MAX_RETRIES =
+            Setting.intSetting(
+                    "plugins.content_manager.setup_wait.max_retries",
+                    DEFAULT_SETUP_WAIT_MAX_RETRIES,
+                    0,
+                    10,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /**
+     * Base delay, in seconds, for the exponential backoff {@code CatalogSyncJob#waitForSetup()} uses
+     * between retries (delay for retry {@code n} is {@code base * 2^n}).
+     */
+    public static final Setting<Integer> SETUP_WAIT_BACKOFF_BASE_SECONDS =
+            Setting.intSetting(
+                    "plugins.content_manager.setup_wait.backoff_base_seconds",
+                    DEFAULT_SETUP_WAIT_BACKOFF_BASE_SECONDS,
+                    1,
+                    120,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     /** Setting to enable mock engine service for testing environments. */
     public static final Setting<Boolean> ENGINE_MOCK_ENABLED =
             Setting.boolSetting(
@@ -344,6 +376,8 @@ public class PluginSettings {
     private final String catalogVulnerabilities;
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
+    private final int setupWaitMaxRetries;
+    private final int setupWaitBackoffBaseSeconds;
     private final boolean createDetectors;
     private final boolean updateOnDemand;
     private final boolean policyUpdateEnabled;
@@ -376,6 +410,8 @@ public class PluginSettings {
         this.catalogVulnerabilities = CATALOG_VULNERABILITIES.get(settings);
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
+        this.setupWaitMaxRetries = SETUP_WAIT_MAX_RETRIES.get(settings);
+        this.setupWaitBackoffBaseSeconds = SETUP_WAIT_BACKOFF_BASE_SECONDS.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
         this.updateOnDemand = UPDATE_ON_DEMAND.get(settings);
         this.policyUpdateEnabled = POLICY_UPDATE_ENABLED.get(settings);
@@ -721,6 +757,26 @@ public class PluginSettings {
         return this.engineMockEnabled;
     }
 
+    /**
+     * Retrieves the maximum number of retries {@code CatalogSyncJob#waitForSetup()} performs while
+     * waiting for the Setup plugin to report readiness.
+     *
+     * @return the maximum number of retries.
+     */
+    public int getSetupWaitMaxRetries() {
+        return this.setupWaitMaxRetries;
+    }
+
+    /**
+     * Retrieves the base delay, in seconds, for the exponential backoff {@code
+     * CatalogSyncJob#waitForSetup()} uses between retries.
+     *
+     * @return the base backoff delay in seconds.
+     */
+    public int getSetupWaitBackoffBaseSeconds() {
+        return this.setupWaitBackoffBaseSeconds;
+    }
+
     @Override
     public String toString() {
         return "{"
@@ -756,6 +812,12 @@ public class PluginSettings {
                 + "', "
                 + "catalogVulnerabilities='"
                 + this.catalogVulnerabilities
-                + "'}";
+                + "', "
+                + "setupWaitMaxRetries="
+                + this.setupWaitMaxRetries
+                + ", "
+                + "setupWaitBackoffBaseSeconds="
+                + this.setupWaitBackoffBaseSeconds
+                + "}";
     }
 }
