@@ -16,16 +16,22 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
@@ -34,7 +40,10 @@ import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Before;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -237,5 +246,153 @@ public class SpaceServiceTests extends OpenSearchTestCase {
                     "Policy for space '" + spaceName + "' should contain enabled: true",
                     sourceJson.contains("\"enabled\":true"));
         }
+    }
+
+    /**
+     * Tests that recalculateSpaceHashIfMissing does nothing when the space has no policy document
+     * yet, which is the state of a fresh cluster before the catalog has been synchronized.
+     */
+    public void testRecalculateSpaceHashIfMissingSkipsWhenPolicyIsAbsent() {
+        mockPolicySearch(emptySearchResponse());
+
+        AtomicReference<Set<String>> changed = new AtomicReference<>(null);
+        this.policyHashService.recalculateSpaceHashIfMissing(
+                Space.STANDARD.toString(), ActionListener.wrap(changed::set, e -> {}));
+
+        assertNotNull("Listener should have been notified", changed.get());
+        assertTrue("No space should be reported as changed", changed.get().isEmpty());
+        verify(this.client, never()).admin();
+        verify(this.client, never()).bulk(any(), any());
+    }
+
+    /** Tests that recalculateSpaceHashIfMissing leaves an already-calculated hash untouched. */
+    public void testRecalculateSpaceHashIfMissingSkipsWhenHashIsPresent() {
+        mockPolicySearch(
+                searchResponse(
+                        policyHit(
+                                "{\"space\":{\"name\":\"standard\",\"hash\":{\"sha256\":\"abc123\"}},\"hash\":{\"sha256\":\"doc-hash\"}}")));
+
+        AtomicReference<Set<String>> changed = new AtomicReference<>(null);
+        this.policyHashService.recalculateSpaceHashIfMissing(
+                Space.STANDARD.toString(), ActionListener.wrap(changed::set, e -> {}));
+
+        assertNotNull("Listener should have been notified", changed.get());
+        assertTrue("No space should be reported as changed", changed.get().isEmpty());
+        verify(this.client, never()).admin();
+        verify(this.client, never()).bulk(any(), any());
+    }
+
+    /**
+     * Tests the recovery path: a policy whose aggregate hash was never persisted (a hash calculation
+     * interrupted by a node restart) is recalculated, the resulting update carries a
+     * space.hash.sha256, and the space is reported as changed so callers can trigger an Engine
+     * reload.
+     */
+    public void testRecalculateSpaceHashIfMissingRecalculatesWhenHashIsAbsent() {
+        SearchResponse policyResponse =
+                searchResponse(
+                        policyHit("{\"space\":{\"name\":\"standard\"},\"hash\":{\"sha256\":\"doc-hash\"}}"));
+        // Both the hash check and the recalculation read the policies index.
+        mockPolicySearch(policyResponse);
+        mockPolicyIndexExists(true);
+
+        org.mockito.ArgumentCaptor<BulkRequest> bulkCaptor =
+                org.mockito.ArgumentCaptor.forClass(BulkRequest.class);
+        BulkResponse bulkResponse = org.mockito.Mockito.mock(BulkResponse.class);
+        when(bulkResponse.hasFailures()).thenReturn(false);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<BulkResponse>>getArgument(1).onResponse(bulkResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .bulk(any(BulkRequest.class), any());
+
+        AtomicReference<Set<String>> changed = new AtomicReference<>(null);
+        this.policyHashService.recalculateSpaceHashIfMissing(
+                Space.STANDARD.toString(), ActionListener.wrap(changed::set, e -> {}));
+
+        assertNotNull("Listener should have been notified", changed.get());
+        assertEquals(
+                "The standard space should be reported as changed",
+                Set.of(Space.STANDARD.toString()),
+                changed.get());
+
+        verify(this.client).bulk(bulkCaptor.capture(), any());
+        UpdateRequest update = (UpdateRequest) bulkCaptor.getValue().requests().get(0);
+        String updateJson = update.doc().source().utf8ToString();
+        assertTrue(
+                "The recalculated update should carry an aggregate hash, was: " + updateJson,
+                updateJson.contains("\"sha256\":\""));
+        assertEquals(POLICY_IDX, update.index());
+    }
+
+    /**
+     * Tests that an unreadable policies index (an expected pre-initialization state at startup) is
+     * reported as "nothing changed" instead of failing the caller.
+     */
+    public void testRecalculateSpaceHashIfMissingToleratesUnreadablePolicies() {
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onFailure(new RuntimeException("no such index"));
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
+
+        AtomicReference<Set<String>> changed = new AtomicReference<>(null);
+        AtomicReference<Boolean> failed = new AtomicReference<>(false);
+        this.policyHashService.recalculateSpaceHashIfMissing(
+                Space.STANDARD.toString(), ActionListener.wrap(changed::set, e -> failed.set(true)));
+
+        assertFalse("Failure should be handled gracefully via onResponse", failed.get());
+        assertNotNull("Listener should have been notified", changed.get());
+        assertTrue("No space should be reported as changed", changed.get().isEmpty());
+    }
+
+    private SearchHit policyHit(String sourceJson) {
+        SearchHit hit =
+                new SearchHit(1, "standard-policy-id", Collections.emptyMap(), Collections.emptyMap());
+        hit.sourceRef(new BytesArray(sourceJson.getBytes(StandardCharsets.UTF_8)));
+        return hit;
+    }
+
+    private SearchResponse searchResponse(SearchHit... hits) {
+        SearchResponse response = org.mockito.Mockito.mock(SearchResponse.class);
+        when(response.getHits())
+                .thenReturn(
+                        new SearchHits(hits, new TotalHits(hits.length, TotalHits.Relation.EQUAL_TO), 1.0f));
+        return response;
+    }
+
+    private SearchResponse emptySearchResponse() {
+        return searchResponse(new SearchHit[0]);
+    }
+
+    private void mockPolicySearch(SearchResponse response) {
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<SearchResponse>>getArgument(1).onResponse(response);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
+    }
+
+    private void mockPolicyIndexExists(boolean exists) {
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesExistsResponse.isExists()).thenReturn(exists);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
+                                    .onResponse(this.indicesExistsResponse);
+                            return null;
+                        })
+                .when(this.indicesAdminClient)
+                .exists(any(IndicesExistsRequest.class), any());
     }
 }
