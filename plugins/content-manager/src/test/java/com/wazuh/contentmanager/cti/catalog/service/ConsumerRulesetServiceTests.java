@@ -127,18 +127,21 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
                         })
                 .when(spaceService)
                 .calculateAndUpdate(any(), any());
+        return spaceService;
+    }
+
+    /**
+     * Records the engine reload, which is broadcast to every node with {@code
+     * ReloadEngineContentAction} rather than built through the space service.
+     */
+    private void recordEngineReload(List<String> order) {
         doAnswer(
                         invocation -> {
                             order.add("engine");
-                            invocation
-                                    .<ActionListener<JsonNode>>getArgument(1)
-                                    .onResponse(new ObjectMapper().createObjectNode());
                             return null;
                         })
-                .when(spaceService)
-                .buildEnginePayload(any(), any());
-
-        return spaceService;
+                .when(this.client)
+                .execute(any(), any(), any());
     }
 
     /** A {@link UserOverridesService} whose apply succeeds, recording when it ran. */
@@ -155,16 +158,27 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         return overridesService;
     }
 
+    /** The space service is injected at construction, so a test that stubs it builds its own. */
+    private ConsumerRulesetService synchronizerWith(SpaceService spaceService) {
+        return new ConsumerRulesetService(
+                this.client,
+                this.consumersIndex,
+                this.environment,
+                spaceService,
+                this.securityAnalyticsService);
+    }
+
     /**
      * The overrides must be re-applied before the space hash is recalculated and before the space is
      * loaded into the engine, so both see the merged values rather than CTI's raw ones.
      */
     public void testUserOverridesAreAppliedBeforeTheHashAndTheEngineLoad() {
         List<String> order = new java.util.ArrayList<>();
-        this.synchronizer.setSpaceService(stubSpaceServiceRecording(order));
-        this.synchronizer.setUserOverridesService(stubOverridesServiceRecording(order));
+        recordEngineReload(order);
+        ConsumerRulesetService service = synchronizerWith(stubSpaceServiceRecording(order));
+        service.setUserOverridesService(stubOverridesServiceRecording(order));
 
-        this.synchronizer.onSyncComplete(true);
+        service.onSyncComplete(true);
 
         Assert.assertEquals("the overrides must be applied first", "apply", order.get(0));
         Assert.assertTrue(
@@ -193,10 +207,10 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
                 .when(overridesService)
                 .apply(any(), any());
 
-        this.synchronizer.setSpaceService(spaceService);
-        this.synchronizer.setUserOverridesService(overridesService);
+        ConsumerRulesetService service = synchronizerWith(spaceService);
+        service.setUserOverridesService(overridesService);
 
-        this.synchronizer.onSyncComplete(true);
+        service.onSyncComplete(true);
 
         verify(spaceService).calculateAndUpdate(any(), any());
         Assert.assertTrue("the sync must still recalculate the hash", order.contains("hash"));
@@ -206,10 +220,10 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     public void testNothingIsAppliedWhenTheSyncChangedNothing() {
         List<String> order = new java.util.ArrayList<>();
         UserOverridesService overridesService = stubOverridesServiceRecording(order);
-        this.synchronizer.setSpaceService(stubSpaceServiceRecording(order));
-        this.synchronizer.setUserOverridesService(overridesService);
+        ConsumerRulesetService service = synchronizerWith(stubSpaceServiceRecording(order));
+        service.setUserOverridesService(overridesService);
 
-        this.synchronizer.onSyncComplete(false);
+        service.onSyncComplete(false);
 
         verify(overridesService, never()).apply(any(), any());
     }
