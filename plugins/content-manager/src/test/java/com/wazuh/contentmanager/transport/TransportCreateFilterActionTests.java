@@ -50,6 +50,7 @@ import java.nio.charset.StandardCharsets;
 
 import com.wazuh.contentmanager.action.ContentCreateRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -68,6 +69,7 @@ public class TransportCreateFilterActionTests extends OpenSearchTestCase {
                     + "\"author\":{\"name\":\"Wazuh\",\"email\":\"info@wazuh.com\"}}}}";
 
     private Client client;
+    private UserOverridesService overridesService;
     private TransportCreateFilterAction action;
 
     @Before
@@ -89,9 +91,24 @@ public class TransportCreateFilterActionTests extends OpenSearchTestCase {
                 .when(threadPool)
                 .schedule(any(Runnable.class), any(TimeValue.class), anyString());
         when(transportService.getThreadPool()).thenReturn(threadPool);
+        this.overridesService = mock(UserOverridesService.class);
         this.action =
                 new TransportCreateFilterAction(
-                        transportService, mock(ActionFilters.class), this.client, mock(EngineService.class));
+                        transportService,
+                        mock(ActionFilters.class),
+                        this.client,
+                        mock(EngineService.class),
+                        this.overridesService);
+
+        // Recording an override succeeds by default, so the tests that predate the registry are
+        // unaffected by it.
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Void>>getArgument(2).onResponse(null);
+                            return null;
+                        })
+                .when(this.overridesService)
+                .update(any(), any(), any(ActionListener.class));
     }
 
     @After

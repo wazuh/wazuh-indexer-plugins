@@ -175,6 +175,10 @@ public class SpaceService {
                                     }
                                     SearchRequest searchRequest = new SearchRequest(indexName);
                                     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+                                    // Selecting by space is also what keeps the user-overrides registry
+                                    // document alive: it carries no space.name on purpose. Widening this to
+                                    // match every document in the index would delete it, and silently lose
+                                    // the user's policy settings and the filters they created.
                                     sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
                                     sourceBuilder.size(10000);
                                     sourceBuilder.fetchSource(false);
@@ -1040,7 +1044,15 @@ public class SpaceService {
     private void searchPoliciesAndProcessAsync(
             List<String> targetSpaces, ActionListener<Set<String>> listener) {
         SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
-        searchRequest.source().query(QueryBuilders.matchAllQuery()).size(10000);
+        // Only actual policies. Every policy carries space.name -- it is how the wipe, getPolicy and
+        // the promotion flow all find them -- so requiring it here keeps documents that merely live in
+        // this index from being processed as if they were policies. The user-overrides registry is one
+        // such document: it deliberately has no space.name, and without this filter it fell through the
+        // space check below and had a meaningless space.hash written into it on every recalculation.
+        searchRequest
+                .source()
+                .query(QueryBuilders.boolQuery().filter(QueryBuilders.existsQuery(Constants.Q_SPACE_NAME)))
+                .size(10000);
 
         this.client.search(
                 searchRequest,

@@ -39,6 +39,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -152,6 +154,50 @@ public class SpaceServiceTests extends OpenSearchTestCase {
         verify(this.client).search(any(SearchRequest.class), any());
         // No bulk update should be performed when there are no policies
         verify(this.client, never()).bulk(any(), any());
+    }
+
+    /**
+     * The policy scan must only pick up actual policies, which are the documents carrying {@code
+     * space.name}.
+     *
+     * <p>The user-overrides registry also lives in the policies index and deliberately has no {@code
+     * space.name}. Without this filter it fell through the space check in {@code processHitsAsync} --
+     * which only skips a hit when {@code space} is present -- and had a meaningless {@code
+     * space.hash} written into it on every recalculation.
+     */
+    public void testCalculateAndUpdateOnlyScansDocumentsThatAreActuallyPolicies() {
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
+                                    .onResponse(this.indicesExistsResponse);
+                            return null;
+                        })
+                .when(this.indicesAdminClient)
+                .exists(any(IndicesExistsRequest.class), any());
+
+        when(this.searchResponse.getHits()).thenReturn(SearchHits.empty());
+        ArgumentCaptor<SearchRequest> captor = ArgumentCaptor.forClass(SearchRequest.class);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onResponse(this.searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(captor.capture(), any());
+
+        this.policyHashService.calculateAndUpdate(
+                List.of(Space.STANDARD.toString()), ActionListener.wrap(r -> {}, e -> {}));
+
+        String query = captor.getValue().source().query().toString();
+        assertTrue(
+                "the scan must require space.name, or non-policy documents are processed as policies",
+                query.contains(Constants.Q_SPACE_NAME) && query.contains("exists"));
     }
 
     /** Tests that calculateAndUpdate handles exceptions gracefully without propagating them. */

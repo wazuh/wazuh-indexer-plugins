@@ -408,9 +408,15 @@ public abstract class AbstractTransportCreateActionSpaces
                                                                                     "Created",
                                                                                     this.getResourceType(),
                                                                                     id);
-                                                                            respond(
-                                                                                    listener,
-                                                                                    new RestResponse(id, RestStatus.CREATED.getStatus()));
+                                                                            this.afterResourceCommitted(
+                                                                                    id,
+                                                                                    spaceName,
+                                                                                    ctiWrapper,
+                                                                                    () ->
+                                                                                            respond(
+                                                                                                    listener,
+                                                                                                    new RestResponse(
+                                                                                                            id, RestStatus.CREATED.getStatus())));
                                                                         },
                                                                         e -> respondWithError(listener, e))),
                                                 e -> {
@@ -462,6 +468,23 @@ public abstract class AbstractTransportCreateActionSpaces
 
     protected boolean requiresIntegrationId() {
         return true;
+    }
+
+    /**
+     * Called once the resource has been indexed, linked to its parent and the space hash recalculated
+     * -- that is, once the creation is committed and the request is about to be answered.
+     *
+     * <p>Exists so a subclass can persist something derived from the new resource without failing the
+     * request if that persistence fails. The default does nothing.
+     *
+     * @param id the created resource's document id.
+     * @param spaceName the space it was created in.
+     * @param ctiWrapper the document exactly as it was indexed.
+     * @param onDone must be run once, whatever the outcome, to answer the request.
+     */
+    protected void afterResourceCommitted(
+            String id, String spaceName, ObjectNode ctiWrapper, Runnable onDone) {
+        onDone.run();
     }
 
     protected abstract String getIndexName();

@@ -93,6 +93,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -130,6 +131,7 @@ public class ContentManagerPlugin extends Plugin
     private TelemetryPingJob telemetryPingJob;
     private EngineService engine;
     private SpaceService spaceService;
+    private UserOverridesService userOverridesService;
     private SecurityAnalyticsService securityAnalyticsService;
     private Environment environment;
     private ClusterService clusterService;
@@ -223,6 +225,7 @@ public class ContentManagerPlugin extends Plugin
 
         // Initialize services
         this.spaceService = new SpaceService(this.client);
+        this.userOverridesService = new UserOverridesService(this.client, this.spaceService);
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             this.securityAnalyticsService = new MockSecurityAnalyticsService();
         } else {
@@ -269,6 +272,7 @@ public class ContentManagerPlugin extends Plugin
                 this.engine,
                 this.logtestService,
                 this.spaceService,
+                this.userOverridesService,
                 this.securityAnalyticsService);
     }
 

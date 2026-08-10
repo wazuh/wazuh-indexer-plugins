@@ -59,7 +59,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private final ObjectMapper mapper;
 
     private final SecurityAnalyticsServiceImpl securityAnalyticsService;
-    private final SpaceService spaceService;
+    private SpaceService spaceService;
+    private UserOverridesService userOverridesService;
     private final EngineService engineService;
 
     private Set<String> preSwapIntegrationIds = Collections.emptySet();
@@ -81,6 +82,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         super(client, consumersIndex, environment);
         this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
         this.spaceService = new SpaceService(client);
+        this.userOverridesService = new UserOverridesService(client, this.spaceService);
         this.engineService = engineService;
 
         this.mapper = new ObjectMapper();
@@ -169,6 +171,20 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     Constants.INDEX_INTEGRATIONS,
                     Constants.INDEX_POLICIES);
 
+            // Re-apply the user's overrides before anything reads the rebuilt content. The Security
+            // Analytics sync below, the space hash and the engine payload must all see the merged
+            // values, not the ones CTI just wrote. This one hook covers every path that gets here --
+            // full resync, rollback to a snapshot, incremental patches and a plan change.
+            //
+            // A failure must not abort the sync: the registry is a durable document, so the worst case
+            // is that the overrides are re-applied one synchronization later. Unlike the integrations'
+            // pre-snapshot capture, there is nothing here that is about to be destroyed.
+            try {
+                this.<Void>awaitResult(l -> this.userOverridesService.apply(Space.STANDARD.toString(), l));
+            } catch (IOException e) {
+                log.error(Constants.E_LOG_USER_OVERRIDES_REGISTRY_READ_FAILED, e.getMessage());
+            }
+
             // Sync Integrations
             Map<String, JsonNode> integrationDocs = Collections.emptyMap();
             try {
@@ -207,6 +223,16 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
             this.loadStandardSpaceIntoEngine();
         }
+    }
+
+    /** Injects a {@link SpaceService} instance, used by tests to provide a mock. */
+    void setSpaceService(SpaceService spaceService) {
+        this.spaceService = spaceService;
+    }
+
+    /** Injects a {@link UserOverridesService} instance, used by tests to provide a mock. */
+    void setUserOverridesService(UserOverridesService userOverridesService) {
+        this.userOverridesService = userOverridesService;
     }
 
     /**

@@ -34,6 +34,7 @@ import com.wazuh.contentmanager.action.DeleteFilterAction;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -43,13 +44,23 @@ public class TransportDeleteFilterAction extends AbstractTransportDeleteActionSp
     private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    private final UserOverridesService userOverridesService;
+
     @Inject
     public TransportDeleteFilterAction(
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
-            EngineService engine) {
+            EngineService engine,
+            UserOverridesService userOverridesService) {
         super(DeleteFilterAction.NAME, transportService, actionFilters, client, engine);
+        this.userOverridesService = userOverridesService;
+    }
+
+    @Override
+    protected void afterResourceDeleted(String id, String spaceName, Runnable onDone) {
+        FilterOverrideRecorder.record(
+                this.userOverridesService, spaceName, UserOverridesService.removeFilter(id), id, onDone);
     }
 
     @Override

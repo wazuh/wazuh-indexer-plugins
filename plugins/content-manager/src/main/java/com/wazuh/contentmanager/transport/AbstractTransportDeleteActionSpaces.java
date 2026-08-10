@@ -242,7 +242,11 @@ public abstract class AbstractTransportDeleteActionSpaces
                                     ActionListener.wrap(
                                             changed -> {
                                                 log.info(Constants.I_LOG_SUCCESS, "Deleted", this.getResourceType(), id);
-                                                respond(listener, new RestResponse(id, RestStatus.OK.getStatus()));
+                                                this.afterResourceDeleted(
+                                                        id,
+                                                        spaceName,
+                                                        () ->
+                                                                respond(listener, new RestResponse(id, RestStatus.OK.getStatus())));
                                             },
                                             e -> respondWithError(listener, id, e)));
                         },
@@ -326,6 +330,22 @@ public abstract class AbstractTransportDeleteActionSpaces
             cause = cause.getCause();
         }
         return false;
+    }
+
+    /**
+     * Called once the resource has been unlinked from its parent, deleted and the space hash
+     * recalculated -- that is, once the deletion is committed and the request is about to be
+     * answered.
+     *
+     * <p>Exists so a subclass can drop something it had persisted for this resource without failing
+     * the request if that fails. The default does nothing.
+     *
+     * @param id the deleted resource's document id.
+     * @param spaceName the space it was deleted from.
+     * @param onDone must be run once, whatever the outcome, to answer the request.
+     */
+    protected void afterResourceDeleted(String id, String spaceName, Runnable onDone) {
+        onDone.run();
     }
 
     protected abstract String getIndexName();

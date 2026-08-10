@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -48,7 +49,9 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
@@ -68,6 +71,7 @@ public class TransportUpdatePolicyAction
     private final EngineService engineService;
     private final Client client;
     private final PayloadValidations payloadValidations;
+    private final UserOverridesService userOverridesService;
 
     @Inject
     public TransportUpdatePolicyAction(
@@ -75,12 +79,14 @@ public class TransportUpdatePolicyAction
             ActionFilters actionFilters,
             SpaceService spaceService,
             EngineService engineService,
-            Client client) {
+            Client client,
+            UserOverridesService userOverridesService) {
         super(UpdatePolicyAction.NAME, transportService, actionFilters, UpdatePolicyRequest::new);
         this.spaceService = spaceService;
         this.engineService = engineService;
         this.client = client;
         this.payloadValidations = new PayloadValidations();
+        this.userOverridesService = userOverridesService;
     }
 
     @Override
@@ -300,13 +306,23 @@ public class TransportUpdatePolicyAction
             hashNode.put(Constants.KEY_SHA256, hash);
             document.set(Constants.KEY_HASH, hashNode);
 
+            // Only the standard space is rebuilt from CTI, so only its settings need recording.
+            final PendingOverride pendingOverride =
+                    Space.STANDARD.equals(spaceName)
+                            ? new PendingOverride(
+                                    incomingPolicy,
+                                    (List<String>)
+                                            currentPolicyDoc.getOrDefault(
+                                                    Constants.KEY_ENRICHMENTS, Collections.emptyList()))
+                            : null;
+
             // Find the real document _id (async)
             this.spaceService.findDocumentIdAsync(
                     Constants.INDEX_POLICIES,
                     spaceName,
                     docId,
                     ActionListener.wrap(
-                            realId -> afterFindDocumentId(realId, document, spaceName, listener),
+                            realId -> afterFindDocumentId(realId, document, spaceName, pendingOverride, listener),
                             e -> respondWithError(listener, e)));
 
         } catch (IllegalArgumentException e) {
@@ -323,6 +339,7 @@ public class TransportUpdatePolicyAction
             String documentId,
             ObjectNode document,
             String spaceName,
+            PendingOverride pendingOverride,
             ActionListener<MessageStatusResponse> listener) {
         if (documentId == null) {
             listener.onResponse(
@@ -338,12 +355,16 @@ public class TransportUpdatePolicyAction
                 documentId,
                 document,
                 ActionListener.wrap(
-                        indexResponse -> afterIndex(indexResponse.getId(), spaceName, listener),
+                        indexResponse ->
+                                afterIndex(indexResponse.getId(), spaceName, pendingOverride, listener),
                         e -> respondWithError(listener, e)));
     }
 
     private void afterIndex(
-            String policyId, String spaceName, ActionListener<MessageStatusResponse> listener) {
+            String policyId,
+            String spaceName,
+            PendingOverride pendingOverride,
+            ActionListener<MessageStatusResponse> listener) {
         // Recalculate space hash (async)
         this.spaceService.calculateAndUpdate(
                 List.of(spaceName),
@@ -352,9 +373,101 @@ public class TransportUpdatePolicyAction
                             if (changedSpaces.contains(Space.STANDARD.toString())) {
                                 this.loadStandardSpaceIntoEngine();
                             }
-                            listener.onResponse(new MessageStatusResponse(policyId, RestStatus.OK));
+                            this.recordPolicySettings(
+                                    pendingOverride,
+                                    () -> listener.onResponse(new MessageStatusResponse(policyId, RestStatus.OK)));
                         },
                         e -> respondWithError(listener, e)));
+    }
+
+    /**
+     * What the user-overrides registry needs to record once the policy write has been committed.
+     *
+     * <p>{@code null} for every space other than {@code standard}, which is the only one rebuilt from
+     * CTI and therefore the only one whose settings can be lost.
+     *
+     * @param incomingPolicy the policy the client sent.
+     * @param currentEnrichments the enrichments stored before this update, needed to work out what
+     *     the user just changed.
+     */
+    private record PendingOverride(Policy incomingPolicy, List<String> currentEnrichments) {}
+
+    /**
+     * Records the settings the user can change on the standard policy, so the next rebuild of that
+     * space can put them back.
+     *
+     * <p>Runs after the policy has been indexed, never before: recording a change that failed to
+     * apply would make the next sync apply it anyway, turning a rejected request into a delayed one.
+     *
+     * <p>All four settings are recorded on every save, by design — editing the standard policy makes
+     * its settings the user's from then on. Enrichments are the exception: they are stored as a delta
+     * against the list CTI publishes, so an enrichment CTI adds later still reaches a user who
+     * customised the selection.
+     *
+     * <p>A registry failure is logged and swallowed. The policy is already written, so the user's
+     * request succeeded; failing it here would be a lie.
+     *
+     * @param pending what to record, or {@code null} when there is nothing to record.
+     * @param onDone run once recording has finished, successfully or not.
+     */
+    private void recordPolicySettings(PendingOverride pending, Runnable onDone) {
+        if (pending == null) {
+            onDone.run();
+            return;
+        }
+
+        List<String> incomingEnrichments = pending.incomingPolicy().getEnrichments();
+        Set<String> incoming =
+                new LinkedHashSet<>(
+                        incomingEnrichments != null ? incomingEnrichments : Collections.emptyList());
+        Set<String> effective = new LinkedHashSet<>(pending.currentEnrichments());
+
+        Set<String> removedNow = new LinkedHashSet<>(effective);
+        removedNow.removeAll(incoming);
+        Set<String> addedNow = new LinkedHashSet<>(incoming);
+        addedNow.removeAll(effective);
+
+        this.userOverridesService.update(
+                Space.STANDARD.toString(),
+                current -> mergeRecordedSettings(current, pending.incomingPolicy(), removedNow, addedNow),
+                ActionListener.wrap(
+                        v -> onDone.run(),
+                        e -> {
+                            log.error(Constants.E_LOG_USER_OVERRIDES_REGISTRY_WRITE_FAILED, e.getMessage());
+                            onDone.run();
+                        }));
+    }
+
+    /**
+     * Folds this save's enrichment change into whatever the registry already holds.
+     *
+     * <p>Removing something the user had added, or adding back something they had removed, cancels
+     * the earlier entry rather than accumulating both — otherwise a value could sit in both sets at
+     * once and the delta would stop describing the user's intent.
+     *
+     * <p>The stored filters pass through untouched: the policy and the filters share one registry
+     * document, so returning anything else here would delete the user's filters.
+     */
+    private static UserOverrides mergeRecordedSettings(
+            UserOverrides current, Policy incomingPolicy, Set<String> removedNow, Set<String> addedNow) {
+        Set<String> removed = new LinkedHashSet<>();
+        Set<String> added = new LinkedHashSet<>();
+        if (current.getPolicy() != null && current.getPolicy().getEnrichments() != null) {
+            removed.addAll(current.getPolicy().getEnrichments().getRemoved());
+            added.addAll(current.getPolicy().getEnrichments().getAdded());
+        }
+        removed.addAll(removedNow);
+        removed.removeAll(addedNow);
+        added.addAll(addedNow);
+        added.removeAll(removedNow);
+
+        return new UserOverrides(
+                new UserOverrides.PolicySettings(
+                        incomingPolicy.getEnabled(),
+                        incomingPolicy.getIndexUnclassifiedEvents(),
+                        incomingPolicy.getIndexDiscardedEvents(),
+                        new UserOverrides.EnrichmentDelta(removed, added)),
+                current.getFilters());
     }
 
     @SuppressWarnings("unchecked")
