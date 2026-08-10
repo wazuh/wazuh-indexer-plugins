@@ -114,7 +114,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         // spotless:on
     }
 
-    private JsonNode integrationDocWithDetector(String detectorJson, String... ruleIds) throws Exception {
+    private JsonNode integrationDocWithDetector(String detectorJson, boolean enabled, String... ruleIds) throws Exception {
         StringBuilder rules = new StringBuilder();
         for (int i = 0; i < ruleIds.length; i++) {
             if (i > 0) rules.append(",");
@@ -134,11 +134,12 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
               "id": "integration-1",
               "metadata": {"title": "Test Integration"},
               "category": "security",
+              "enabled": %s,
               "rules": [%s]
               %s
             }
             """,
-            rules.toString(), detectorPart);
+            enabled, rules.toString(), detectorPart);
 
         return MAPPER.readTree(fullJson);
         // spotless:on
@@ -304,14 +305,14 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
           "source": ["custom-index-*", "another-index"]
         }
         """;
-        JsonNode doc = integrationDocWithDetector(detectorJson, RULE_1);
+        JsonNode doc = integrationDocWithDetector(detectorJson, true, RULE_1);
         mockSearch(createSearchResponse(createHit(RULE_1)));
 
         WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
 
         assertNotNull("Request should not be null", request);
         assertEquals("Scan interval should match CTI value", 10, request.getInterval());
-        assertTrue("Detector should be enabled as specified in CTI", request.isEnabled());
+        assertTrue("Detector should be enabled, as the integration is", request.isEnabled());
         assertEquals("Should extract the exact number of source patterns", 2, request.getSources().size());
         assertTrue("Sources should contain the specified index pattern", request.getSources().contains("custom-index-*"));
     }
@@ -321,7 +322,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
      */
     public void testDetectorsDynamicConfigFallback() throws Exception {
         // Document without the "detector" node
-        JsonNode doc = integrationDocWithDetector(null, RULE_1);
+        JsonNode doc = integrationDocWithDetector(null, false, RULE_1);
         mockSearch(createSearchResponse(createHit(RULE_1)));
 
         WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
@@ -343,7 +344,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
           "enabled": "not-a-boolean"
         }
         """;
-        JsonNode doc = integrationDocWithDetector(detectorJson, RULE_1);
+        JsonNode doc = integrationDocWithDetector(detectorJson, true, RULE_1);
         mockSearch(createSearchResponse(createHit(RULE_1)));
 
         // The service should handle parsing errors gracefully
@@ -351,7 +352,38 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
 
         assertNotNull("Request should be created despite invalid field types", request);
         assertEquals("Should use default interval when CTI value is invalid", 2, request.getInterval());
-        assertFalse("Should default to disabled when CTI boolean is malformed", request.isEnabled());
+        assertTrue(
+                "A malformed detector.enabled cannot affect the result: it is not consulted",
+                request.isEnabled());
+    }
+
+    /**
+     * The detector's state follows the integration's own {@code enabled} flag.
+     *
+     * <p>CTI publishes {@code document.detector.enabled} as {@code true} for every integration that
+     * ships a detector, so deriving the detector's state from it left a disabled integration with a
+     * running detector on every synchronization.
+     */
+    public void testDetectorIsDisabledWhenTheIntegrationIs() throws Exception {
+        JsonNode doc = integrationDocWithDetector("{\"enabled\": true}", false, RULE_1);
+        mockSearch(createSearchResponse(createHit(RULE_1)));
+
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+
+        assertNotNull("Request should be created", request);
+        assertFalse(
+                "a disabled integration must not leave a running detector behind", request.isEnabled());
+    }
+
+    /** And an enabled integration gets a running detector, with or without a detector block. */
+    public void testDetectorIsEnabledWhenTheIntegrationIs() throws Exception {
+        JsonNode doc = integrationDocWithDetector(null, true, RULE_1);
+        mockSearch(createSearchResponse(createHit(RULE_1)));
+
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+
+        assertNotNull("Request should be created", request);
+        assertTrue("an enabled integration must get a running detector", request.isEnabled());
     }
 
     // ── extractSapErrorMessage tests ─────────────────────────────────────────

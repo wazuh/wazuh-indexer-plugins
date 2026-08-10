@@ -243,6 +243,9 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     /**
      * Builds a {@link WIndexDetectorRequest} from the given document.
      *
+     * <p>The detector is enabled when its integration is. Its schedule and source indices come from
+     * the integration's {@code detector} block, which is CTI-owned and not user-writable.
+     *
      * @param doc The JSON document containing the detector data.
      * @param rawCategory Whether to use the raw category string (true) or formatted/pretty (false).
      * @return The built request, or {@code null} if the document is missing an ID or has no rules.
@@ -276,7 +279,12 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         List<String> sourceIndices = new ArrayList<>();
         int DEFAULT_INTERVAL = 2;
         int interval = DEFAULT_INTERVAL;
-        boolean enabled = false;
+
+        // The detector's state follows the integration's own flag, not document.detector.enabled.
+        // CTI publishes that field as true for every integration that ships a detector, so reading it
+        // would start a detector for an integration the user -- or CTI itself -- had disabled, on
+        // every synchronization. Everything else in the detector block is CTI-owned configuration.
+        boolean enabled = doc.path(Constants.KEY_ENABLED).asBoolean(false);
 
         if (doc.has(Constants.KEY_DETECTOR) && doc.get(Constants.KEY_DETECTOR).isObject()) {
             JsonNode detectorNode = doc.get(Constants.KEY_DETECTOR);
@@ -301,10 +309,6 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
                             DEFAULT_INTERVAL);
                     interval = DEFAULT_INTERVAL;
                 }
-            }
-
-            if (detectorNode.has(Constants.KEY_ENABLED)) {
-                enabled = detectorNode.path(Constants.KEY_ENABLED).asBoolean(enabled);
             }
         }
 
