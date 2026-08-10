@@ -391,6 +391,13 @@ fields:
           args: {}
           args_count: {}
           executable: {}
+          pid: {}
+          name: {}
+          state: {}
+          command_line: {}
+          parent:
+            fields:
+              pid: {}
       group:
         fields:
           id: {}
@@ -414,6 +421,7 @@ fields:
           id: {}
           name: {}
       start: {}
+      state: {}
       supplemental_groups:
         fields:
           id: {}

@@ -146,6 +146,142 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
     }
 
+    /** Tests that the Setup-wait backoff settings fall back to their documented defaults. */
+    public void testSetupWaitBackoffDefaults() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        Assert.assertEquals(4, pluginSettings.getSetupWaitMaxRetries());
+        Assert.assertEquals(20, pluginSettings.getSetupWaitBackoffBaseSeconds());
+    }
+
+    /** Tests that custom Setup-wait backoff values within bounds are honored. */
+    public void testSetupWaitBackoffCustom() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.setup_wait.max_retries", 6)
+                        .put("plugins.content_manager.setup_wait.backoff_base_seconds", 45)
+                        .build();
+        PluginSettings pluginSettings = PluginSettings.getInstance(settings);
+        Assert.assertEquals(6, pluginSettings.getSetupWaitMaxRetries());
+        Assert.assertEquals(45, pluginSettings.getSetupWaitBackoffBaseSeconds());
+    }
+
+    /** Tests that a negative setup_wait.max_retries is rejected. */
+    public void testSetupWaitMaxRetriesBelowMinThrows() {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.setup_wait.max_retries", -1).build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /** Tests that a setup_wait.max_retries above the documented ceiling is rejected. */
+    public void testSetupWaitMaxRetriesAboveMaxThrows() {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.setup_wait.max_retries", 11).build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /** Tests that a setup_wait.backoff_base_seconds below the 1s floor is rejected. */
+    public void testSetupWaitBackoffBaseSecondsBelowMinThrows() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.setup_wait.backoff_base_seconds", 0)
+                        .build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /** Tests that a setup_wait.backoff_base_seconds above the documented ceiling is rejected. */
+    public void testSetupWaitBackoffBaseSecondsAboveMaxThrows() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.setup_wait.backoff_base_seconds", 121)
+                        .build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /** Tests that the resource limit settings fall back to their documented defaults. */
+    public void testResourceLimitDefaults() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+
+        Assert.assertEquals(100, pluginSettings.getMaxIntegrations());
+        Assert.assertEquals(200, pluginSettings.getMaxDecoders());
+        Assert.assertEquals(200, pluginSettings.getMaxRules());
+        Assert.assertEquals(100, pluginSettings.getMaxKvdbs());
+        Assert.assertEquals(100, pluginSettings.getMaxFilters());
+    }
+
+    /** Tests that the resource limit settings have no upper bound. */
+    public void testResourceLimitsHaveNoUpperBound() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.max_integrations", 100_000)
+                        .put("plugins.content_manager.max_decoders", 100_000)
+                        .put("plugins.content_manager.max_rules", 100_000)
+                        .put("plugins.content_manager.max_kvdbs", 100_000)
+                        .put("plugins.content_manager.max_filters", 100_000)
+                        .build();
+
+        PluginSettings pluginSettings = PluginSettings.getInstance(settings);
+
+        Assert.assertEquals(100_000, pluginSettings.getMaxIntegrations());
+        Assert.assertEquals(100_000, pluginSettings.getMaxDecoders());
+        Assert.assertEquals(100_000, pluginSettings.getMaxRules());
+        Assert.assertEquals(100_000, pluginSettings.getMaxKvdbs());
+        Assert.assertEquals(100_000, pluginSettings.getMaxFilters());
+    }
+
+    /** Tests that the resource limit settings accept Integer.MAX_VALUE. */
+    public void testResourceLimitsAcceptIntegerMaxValue() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.max_integrations", Integer.MAX_VALUE)
+                        .put("plugins.content_manager.max_decoders", Integer.MAX_VALUE)
+                        .put("plugins.content_manager.max_rules", Integer.MAX_VALUE)
+                        .put("plugins.content_manager.max_kvdbs", Integer.MAX_VALUE)
+                        .put("plugins.content_manager.max_filters", Integer.MAX_VALUE)
+                        .build();
+
+        PluginSettings pluginSettings = PluginSettings.getInstance(settings);
+
+        Assert.assertEquals(Integer.MAX_VALUE, pluginSettings.getMaxIntegrations());
+        Assert.assertEquals(Integer.MAX_VALUE, pluginSettings.getMaxDecoders());
+        Assert.assertEquals(Integer.MAX_VALUE, pluginSettings.getMaxRules());
+        Assert.assertEquals(Integer.MAX_VALUE, pluginSettings.getMaxKvdbs());
+        Assert.assertEquals(Integer.MAX_VALUE, pluginSettings.getMaxFilters());
+    }
+
+    /** Tests that the resource limit settings keep their zero floor. */
+    public void testResourceLimitsRejectNegativeValues() {
+        Assert.assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        PluginSettings.MAX_DECODERS.get(
+                                Settings.builder().put("plugins.content_manager.max_decoders", -1).build()));
+        Assert.assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        PluginSettings.MAX_FILTERS.get(
+                                Settings.builder().put("plugins.content_manager.max_filters", -1).build()));
+    }
+
+    /** Tests that zero is still a valid resource limit, blocking creation of that resource. */
+    public void testResourceLimitsAcceptZero() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.max_integrations", 0)
+                        .put("plugins.content_manager.max_decoders", 0)
+                        .put("plugins.content_manager.max_rules", 0)
+                        .put("plugins.content_manager.max_kvdbs", 0)
+                        .put("plugins.content_manager.max_filters", 0)
+                        .build();
+
+        PluginSettings pluginSettings = PluginSettings.getInstance(settings);
+
+        Assert.assertEquals(0, pluginSettings.getMaxIntegrations());
+        Assert.assertEquals(0, pluginSettings.getMaxDecoders());
+        Assert.assertEquals(0, pluginSettings.getMaxRules());
+        Assert.assertEquals(0, pluginSettings.getMaxKvdbs());
+        Assert.assertEquals(0, pluginSettings.getMaxFilters());
+    }
+
     /** Tests that getUserAgent returns the fallback value when no version has been set. */
     public void testGetUserAgentDefaultsToUnknown() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);

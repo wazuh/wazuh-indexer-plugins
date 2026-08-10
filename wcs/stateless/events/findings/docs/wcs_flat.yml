@@ -4710,6 +4710,17 @@ file.device:
   normalize: []
   short: Device that is the source of the file.
   type: keyword
+file.diff:
+  dashed_name: file-diff
+  description: Unified diff of file content changes reported by FIM when `report_changes`
+    is enabled. Shows added and removed lines in standard diff format.
+  example: 10a11 > 192.168.32.5
+  flat_name: file.diff
+  level: custom
+  name: diff
+  normalize: []
+  short: Unified diff of the file's content changes.
+  type: match_only_text
 file.directory:
   dashed_name: file-directory
   description: Directory where the file is located. It should include the drive letter,
@@ -9347,6 +9358,16 @@ package.path:
   normalize: []
   short: Path where the package is installed.
   type: keyword
+package.previous.installed:
+  dashed_name: package-previous-installed
+  description: Installation date before it changed.
+  example: '2026-07-01T10:00:00.000Z'
+  flat_name: package.previous.installed
+  level: custom
+  name: previous.installed
+  normalize: []
+  short: Installation date before it changed.
+  type: date
 package.reference:
   dashed_name: package-reference
   description: Home page or reference URL of the software in this package, if available.
@@ -13615,6 +13636,21 @@ process.previous.args_count:
   original_fieldset: process
   short: Length of the process.args array.
   type: long
+process.previous.command_line:
+  dashed_name: process-previous-command-line
+  description: 'Full command line that started the process, including the absolute
+    path to the executable, and all arguments.
+
+    Some arguments may be filtered to protect sensitive information.'
+  example: /usr/bin/ssh -l user 10.0.0.16
+  flat_name: process.previous.command_line
+  ignore_above: 1024
+  level: extended
+  name: command_line
+  normalize: []
+  original_fieldset: process
+  short: Full command line that started the process.
+  type: keyword
 process.previous.executable:
   dashed_name: process-previous-executable
   description: Absolute path to the process executable.
@@ -13626,6 +13662,55 @@ process.previous.executable:
   normalize: []
   original_fieldset: process
   short: Absolute path to the process executable.
+  type: keyword
+process.previous.name:
+  dashed_name: process-previous-name
+  description: 'Process name.
+
+    Sometimes called program name or similar.'
+  example: ssh
+  flat_name: process.previous.name
+  ignore_above: 1024
+  level: extended
+  name: name
+  normalize: []
+  original_fieldset: process
+  short: Process name.
+  type: keyword
+process.previous.parent.pid:
+  dashed_name: process-previous-parent-pid
+  description: PID of the parent process.
+  example: 1
+  flat_name: process.previous.parent.pid
+  level: custom
+  name: parent.pid
+  normalize: []
+  original_fieldset: process
+  short: PID of the parent process.
+  type: long
+process.previous.pid:
+  dashed_name: process-previous-pid
+  description: Process id.
+  example: 4242
+  flat_name: process.previous.pid
+  format: string
+  level: core
+  name: pid
+  normalize: []
+  original_fieldset: process
+  short: Process id.
+  type: long
+process.previous.state:
+  dashed_name: process-previous-state
+  description: Current state of the process, as reported by the collector.
+  example: S
+  flat_name: process.previous.state
+  ignore_above: 1024
+  level: custom
+  name: state
+  normalize: []
+  original_fieldset: process
+  short: Current state of the process, as reported by the collector.
   type: keyword
 process.real_group.id:
   dashed_name: process-real-group-id
@@ -14255,6 +14340,17 @@ process.start:
   normalize: []
   short: The time the process started.
   type: date
+process.state:
+  dashed_name: process-state
+  description: Current state of the process, as reported by the collector.
+  example: S
+  flat_name: process.state
+  ignore_above: 1024
+  level: custom
+  name: state
+  normalize: []
+  short: Current state of the process, as reported by the collector.
+  type: keyword
 process.supplemental_groups.id:
   dashed_name: process-supplemental-groups-id
   description: Unique identifier for the group on the system/platform.
@@ -15811,6 +15907,18 @@ service.origin.node.roles:
   original_fieldset: service
   short: Roles of the service node.
   type: keyword
+service.origin.previous.state:
+  dashed_name: service-origin-previous-state
+  description: Service state before it changed, e.g. `RUNNING` before a restart.
+  example: activating
+  flat_name: service.origin.previous.state
+  ignore_above: 1024
+  level: custom
+  name: previous.state
+  normalize: []
+  original_fieldset: service
+  short: Service state before it changed, e.g. `RUNNING` before a restart.
+  type: keyword
 service.origin.state:
   dashed_name: service-origin-state
   description: Current state of the service.
@@ -15853,6 +15961,17 @@ service.origin.version:
   normalize: []
   original_fieldset: service
   short: Version of the service.
+  type: keyword
+service.previous.state:
+  dashed_name: service-previous-state
+  description: Service state before it changed, e.g. `RUNNING` before a restart.
+  example: activating
+  flat_name: service.previous.state
+  ignore_above: 1024
+  level: custom
+  name: previous.state
+  normalize: []
+  short: Service state before it changed, e.g. `RUNNING` before a restart.
   type: keyword
 service.state:
   dashed_name: service-state
@@ -16019,6 +16138,18 @@ service.target.node.roles:
   - array
   original_fieldset: service
   short: Roles of the service node.
+  type: keyword
+service.target.previous.state:
+  dashed_name: service-target-previous-state
+  description: Service state before it changed, e.g. `RUNNING` before a restart.
+  example: activating
+  flat_name: service.target.previous.state
+  ignore_above: 1024
+  level: custom
+  name: previous.state
+  normalize: []
+  original_fieldset: service
+  short: Service state before it changed, e.g. `RUNNING` before a restart.
   type: keyword
 service.target.state:
   dashed_name: service-target-state

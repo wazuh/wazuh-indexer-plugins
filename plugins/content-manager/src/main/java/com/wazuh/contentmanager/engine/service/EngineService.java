@@ -18,6 +18,8 @@ package com.wazuh.contentmanager.engine.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.opensearch.core.action.ActionListener;
+
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
 public interface EngineService {
@@ -27,6 +29,15 @@ public interface EngineService {
     RestResponse validate(JsonNode resource);
 
     RestResponse promote(JsonNode policy);
+
+    /**
+     * Asynchronous variant of {@link #promote(JsonNode)} that offloads the blocking socket I/O to a
+     * background thread. Use this from transport-thread callbacks where blocking is not permitted.
+     *
+     * @param policy the Engine payload to promote.
+     * @param listener receives the {@link RestResponse} on success, or the exception on failure.
+     */
+    void promoteAsync(JsonNode policy, ActionListener<RestResponse> listener);
 
     RestResponse validateResource(String type, JsonNode resource);
 
