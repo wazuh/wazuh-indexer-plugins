@@ -33,6 +33,7 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,11 +49,12 @@ import java.util.Set;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.PostPromoteAction;
 import com.wazuh.contentmanager.action.PostPromoteRequest;
+import com.wazuh.contentmanager.action.ReloadEngineContentAction;
+import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.model.SpaceDiff;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -64,6 +66,7 @@ public class TransportPostPromoteAction
         extends HandledTransportAction<PostPromoteRequest, MessageStatusResponse> {
 
     private static final Logger log = LogManager.getLogger(TransportPostPromoteAction.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** All resource types in the order they should be processed during consolidation. */
     private static final List<String> APPLY_RESOURCE_TYPES =
@@ -87,6 +90,7 @@ public class TransportPostPromoteAction
     private final SpaceService spaceService;
     private final EngineService engine;
     private final SecurityAnalyticsService securityAnalyticsService;
+    private final Client client;
 
     @Inject
     public TransportPostPromoteAction(
@@ -94,11 +98,13 @@ public class TransportPostPromoteAction
             ActionFilters actionFilters,
             SpaceService spaceService,
             EngineService engine,
-            SecurityAnalyticsService securityAnalyticsService) {
+            SecurityAnalyticsService securityAnalyticsService,
+            Client client) {
         super(PostPromoteAction.NAME, transportService, actionFilters, PostPromoteRequest::new);
         this.spaceService = spaceService;
         this.engine = engine;
         this.securityAnalyticsService = securityAnalyticsService;
+        this.client = client;
     }
 
     // ── Entry point ──────────────────────────────────────────────────────────
@@ -122,8 +128,7 @@ public class TransportPostPromoteAction
         }
 
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            SpaceDiff spaceDiff = mapper.readValue(body, SpaceDiff.class);
+            SpaceDiff spaceDiff = MAPPER.readValue(body, SpaceDiff.class);
             this.validatePromoteRequest(spaceDiff);
 
             this.gatherPromotionDataAsync(spaceDiff, listener);
@@ -674,24 +679,29 @@ public class TransportPostPromoteAction
 
     private void invokeEngineAndConsolidate(
             PromotionContext context, Space targetSpace, ActionListener<MessageStatusResponse> listener) {
-        RestResponse engineResponse = this.engine.promote(context.enginePayload);
-
-        if (engineResponse.getStatus() != RestStatus.OK.getStatus()
-                && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
-            log.warn(Constants.W_LOG_VALIDATION_FAILED, engineResponse.getMessage());
-            try {
-                log.debug(
-                        Constants.D_LOG_ENGINE_REJECTED_PAYLOAD,
-                        new ObjectMapper().writeValueAsString(context.enginePayload));
-            } catch (IOException ignored) {
-            }
-            listener.onResponse(
-                    new MessageStatusResponse(
-                            engineResponse.getMessage(), RestStatus.fromCode(engineResponse.getStatus())));
-            return;
-        }
-        log.debug(Constants.D_LOG_ENGINE_VALIDATION_COMPLETE, targetSpace);
-        consolidateChangesAsync(context, listener);
+        this.engine.promoteAsync(
+                context.enginePayload,
+                ActionListener.wrap(
+                        engineResponse -> {
+                            if (engineResponse.getStatus() != RestStatus.OK.getStatus()
+                                    && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
+                                log.warn(Constants.W_LOG_VALIDATION_FAILED, engineResponse.getMessage());
+                                try {
+                                    log.debug(
+                                            Constants.D_LOG_ENGINE_REJECTED_PAYLOAD,
+                                            MAPPER.writeValueAsString(context.enginePayload));
+                                } catch (IOException ignored) {
+                                }
+                                listener.onResponse(
+                                        new MessageStatusResponse(
+                                                engineResponse.getMessage(),
+                                                RestStatus.fromCode(engineResponse.getStatus())));
+                                return;
+                            }
+                            log.debug(Constants.D_LOG_ENGINE_VALIDATION_COMPLETE, targetSpace);
+                            consolidateChangesAsync(context, listener);
+                        },
+                        listener::onFailure));
     }
 
     // ── Consolidation phase ──────────────────────────────────────────────────
@@ -776,7 +786,6 @@ public class TransportPostPromoteAction
 
     private void sapSyncAsync(PromotionContext context, ActionListener<Void> listener) {
         Space targetSpaceEnum = Space.fromValue(context.targetSpace);
-        ObjectMapper mapper = new ObjectMapper();
 
         List<String> rulesToDelete = new ArrayList<>(context.rulesToDelete);
         List<String> integrationsToDelete = new ArrayList<>(context.integrationsToDelete);
@@ -803,7 +812,6 @@ public class TransportPostPromoteAction
                                                                         Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
                                                                 Constants.KEY_INTEGRATIONS,
                                                                 targetSpaceEnum,
-                                                                mapper,
                                                                 context.targetSpace,
                                                                 ActionListener.wrap(
                                                                         v3 ->
@@ -813,7 +821,6 @@ public class TransportPostPromoteAction
                                                                                                 Constants.KEY_RULES, Collections.emptyMap()),
                                                                                         Constants.KEY_RULES,
                                                                                         targetSpaceEnum,
-                                                                                        mapper,
                                                                                         context.targetSpace,
                                                                                         listener),
                                                                         listener::onFailure)),
@@ -858,19 +865,11 @@ public class TransportPostPromoteAction
             Map<String, Map<String, Object>> oldVersionsForType,
             String resourceType,
             Space targetSpaceEnum,
-            ObjectMapper mapper,
             String targetSpace,
             ActionListener<Void> listener) {
         List<Map.Entry<String, Map<String, Object>>> entries = new ArrayList<>(resources.entrySet());
         upsertSapEntryAsync(
-                entries,
-                0,
-                oldVersionsForType,
-                resourceType,
-                targetSpaceEnum,
-                mapper,
-                targetSpace,
-                listener);
+                entries, 0, oldVersionsForType, resourceType, targetSpaceEnum, targetSpace, listener);
     }
 
     private void upsertSapEntryAsync(
@@ -879,7 +878,6 @@ public class TransportPostPromoteAction
             Map<String, Map<String, Object>> oldVersionsForType,
             String resourceType,
             Space targetSpaceEnum,
-            ObjectMapper mapper,
             String targetSpace,
             ActionListener<Void> listener) {
         if (idx >= entries.size()) {
@@ -896,7 +894,6 @@ public class TransportPostPromoteAction
                     oldVersionsForType,
                     resourceType,
                     targetSpaceEnum,
-                    mapper,
                     targetSpace,
                     listener);
             return;
@@ -918,7 +915,6 @@ public class TransportPostPromoteAction
                                         oldVersionsForType,
                                         resourceType,
                                         targetSpaceEnum,
-                                        mapper,
                                         targetSpace,
                                         listener),
                         e -> {
@@ -934,17 +930,16 @@ public class TransportPostPromoteAction
                                     oldVersionsForType,
                                     resourceType,
                                     targetSpaceEnum,
-                                    mapper,
                                     targetSpace,
                                     listener);
                         });
 
         if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
             this.securityAnalyticsService.upsertIntegration(
-                    mapper.valueToTree(document), targetSpaceEnum, method, itemListener);
+                    MAPPER.valueToTree(document), targetSpaceEnum, method, itemListener);
         } else {
             this.securityAnalyticsService.upsertRule(
-                    mapper.valueToTree(document), targetSpaceEnum, method, itemListener);
+                    MAPPER.valueToTree(document), targetSpaceEnum, method, itemListener);
         }
     }
 
@@ -955,10 +950,30 @@ public class TransportPostPromoteAction
         this.spaceService.calculateAndUpdate(
                 List.of(context.targetSpace),
                 ActionListener.wrap(
-                        changedSpaces ->
-                                listener.onResponse(
-                                        new MessageStatusResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK)),
+                        changedSpaces -> {
+                            // Promote loaded the content into this (coordinating) node's Engine only; the
+                            // Engine socket is node-local. Broadcast a reload so every node loads the
+                            // now-consolidated content into its own Engine, keyed off the target space's
+                            // freshly recomputed hash. Reuses the same node-local, hash-gated loader as the
+                            // STANDARD path; nodes that are down converge later via the cluster-state listener.
+                            broadcastEngineReload();
+                            listener.onResponse(
+                                    new MessageStatusResponse(Constants.S_200_PROMOTION_COMPLETED, RestStatus.OK));
+                        },
                         e -> respondWithError(listener, e)));
+    }
+
+    /**
+     * Fires the cluster-wide Engine reload broadcast (fire-and-forget). Each node reloads any tracked
+     * space whose hash changed; failures are logged and never affect the promote response.
+     */
+    private void broadcastEngineReload() {
+        this.client.execute(
+                ReloadEngineContentAction.INSTANCE,
+                new ReloadEngineContentRequest(),
+                ActionListener.wrap(
+                        r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
+                        e -> log.warn(Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
     }
 
     // ── Rollback ─────────────────────────────────────────────────────────────
@@ -1079,14 +1094,12 @@ public class TransportPostPromoteAction
     private void reconcileSapAfterRollbackAsync(
             PromotionContext context, ActionListener<Void> listener) {
         Space targetSpaceEnum = Space.fromValue(context.targetSpace);
-        ObjectMapper mapper = new ObjectMapper();
 
         revertSapAppliedAsync(
                 context.rulesToApply,
                 context.oldVersions.getOrDefault(Constants.KEY_RULES, Collections.emptyMap()),
                 Constants.KEY_RULES,
                 targetSpaceEnum,
-                mapper,
                 ActionListener.wrap(
                         v ->
                                 revertSapAppliedAsync(
@@ -1095,7 +1108,6 @@ public class TransportPostPromoteAction
                                                 Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
                                         Constants.KEY_INTEGRATIONS,
                                         targetSpaceEnum,
-                                        mapper,
                                         ActionListener.wrap(
                                                 v2 ->
                                                         restoreSapDeletedAsync(
@@ -1103,7 +1115,6 @@ public class TransportPostPromoteAction
                                                                         Constants.KEY_INTEGRATIONS, Collections.emptyMap()),
                                                                 Constants.KEY_INTEGRATIONS,
                                                                 targetSpaceEnum,
-                                                                mapper,
                                                                 ActionListener.wrap(
                                                                         v3 ->
                                                                                 restoreSapDeletedAsync(
@@ -1111,7 +1122,6 @@ public class TransportPostPromoteAction
                                                                                                 Constants.KEY_RULES, Collections.emptyMap()),
                                                                                         Constants.KEY_RULES,
                                                                                         targetSpaceEnum,
-                                                                                        mapper,
                                                                                         listener),
                                                                         e -> listener.onResponse(null))),
                                                 e -> listener.onResponse(null))),
@@ -1123,11 +1133,10 @@ public class TransportPostPromoteAction
             Map<String, Map<String, Object>> oldVersionsForType,
             String resourceType,
             Space targetSpaceEnum,
-            ObjectMapper mapper,
             ActionListener<Void> listener) {
         List<Map.Entry<String, Map<String, Object>>> entries = new ArrayList<>(resources.entrySet());
         revertSapAppliedEntryAsync(
-                entries, 0, oldVersionsForType, resourceType, targetSpaceEnum, mapper, listener);
+                entries, 0, oldVersionsForType, resourceType, targetSpaceEnum, listener);
     }
 
     private void revertSapAppliedEntryAsync(
@@ -1136,7 +1145,6 @@ public class TransportPostPromoteAction
             Map<String, Map<String, Object>> oldVersionsForType,
             String resourceType,
             Space targetSpaceEnum,
-            ObjectMapper mapper,
             ActionListener<Void> listener) {
         if (idx >= entries.size()) {
             listener.onResponse(null);
@@ -1149,23 +1157,11 @@ public class TransportPostPromoteAction
                 ActionListener.wrap(
                         v ->
                                 revertSapAppliedEntryAsync(
-                                        entries,
-                                        idx + 1,
-                                        oldVersionsForType,
-                                        resourceType,
-                                        targetSpaceEnum,
-                                        mapper,
-                                        listener),
+                                        entries, idx + 1, oldVersionsForType, resourceType, targetSpaceEnum, listener),
                         e -> {
                             log.warn(Constants.W_LOG_SAP_ROLLBACK_FAILED, resourceType, id, e.getMessage());
                             revertSapAppliedEntryAsync(
-                                    entries,
-                                    idx + 1,
-                                    oldVersionsForType,
-                                    resourceType,
-                                    targetSpaceEnum,
-                                    mapper,
-                                    listener);
+                                    entries, idx + 1, oldVersionsForType, resourceType, targetSpaceEnum, listener);
                         });
 
         ActionListener<ActionResponse> sapListener =
@@ -1181,7 +1177,7 @@ public class TransportPostPromoteAction
         } else if (oldVersion.containsKey(Constants.KEY_DOCUMENT)) {
             @SuppressWarnings("unchecked")
             Map<String, Object> document = (Map<String, Object>) oldVersion.get(Constants.KEY_DOCUMENT);
-            JsonNode docNode = mapper.valueToTree(document);
+            JsonNode docNode = MAPPER.valueToTree(document);
             if (Constants.KEY_INTEGRATIONS.equals(resourceType)) {
                 this.securityAnalyticsService.upsertIntegration(
                         docNode, targetSpaceEnum, RestRequest.Method.PUT, sapListener);
@@ -1199,10 +1195,9 @@ public class TransportPostPromoteAction
             Map<String, Map<String, Object>> snapshots,
             String resourceType,
             Space targetSpaceEnum,
-            ObjectMapper mapper,
             ActionListener<Void> listener) {
         List<Map.Entry<String, Map<String, Object>>> entries = new ArrayList<>(snapshots.entrySet());
-        restoreSapDeletedEntryAsync(entries, 0, resourceType, targetSpaceEnum, mapper, listener);
+        restoreSapDeletedEntryAsync(entries, 0, resourceType, targetSpaceEnum, listener);
     }
 
     private void restoreSapDeletedEntryAsync(
@@ -1210,7 +1205,6 @@ public class TransportPostPromoteAction
             int idx,
             String resourceType,
             Space targetSpaceEnum,
-            ObjectMapper mapper,
             ActionListener<Void> listener) {
         if (idx >= entries.size()) {
             listener.onResponse(null);
@@ -1223,7 +1217,7 @@ public class TransportPostPromoteAction
                 ActionListener.wrap(
                         v ->
                                 restoreSapDeletedEntryAsync(
-                                        entries, idx + 1, resourceType, targetSpaceEnum, mapper, listener),
+                                        entries, idx + 1, resourceType, targetSpaceEnum, listener),
                         e -> {
                             log.warn(
                                     Constants.W_LOG_SAP_ROLLBACK_RESTORE_DELETED_FAILED,
@@ -1231,13 +1225,13 @@ public class TransportPostPromoteAction
                                     id,
                                     e.getMessage());
                             restoreSapDeletedEntryAsync(
-                                    entries, idx + 1, resourceType, targetSpaceEnum, mapper, listener);
+                                    entries, idx + 1, resourceType, targetSpaceEnum, listener);
                         });
 
         if (snapshot != null && snapshot.containsKey(Constants.KEY_DOCUMENT)) {
             @SuppressWarnings("unchecked")
             Map<String, Object> document = (Map<String, Object>) snapshot.get(Constants.KEY_DOCUMENT);
-            JsonNode docNode = mapper.valueToTree(document);
+            JsonNode docNode = MAPPER.valueToTree(document);
 
             ActionListener<ActionResponse> sapListener =
                     ActionListener.wrap(

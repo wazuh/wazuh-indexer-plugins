@@ -37,8 +37,8 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 - **`plugins.security_analytics.finding_history_retention_period`** (Time, default `60d`) — retention period after which finding history indices are deleted.
 - **`plugins.security_analytics.index_timeout`** (Time, default `60s`) — timeout for Security Analytics index operations.
 - **`plugins.security_analytics.max_case_management_bulk_size`** (Integer, default `10`, range 0–100, dynamic) — maximum number of findings that can be updated in a single request to the [update findings](case-management.md#updating-findings) endpoint. Setting it to `0` disables the endpoint entirely.
-- **`plugins.security_analytics.max_detectors`** (Integer, default `10`, range 0–10, dynamic) — maximum number of user-created detectors (Content Manager detectors do not count).
-- **`plugins.security_analytics.max_rules_per_detector`** (Integer, default `50`, range 0–50, dynamic) — maximum number of rules (custom or pre-packaged) allowed in a single detector input. Requests that would exceed this limit are rejected with HTTP 400.
+- **`plugins.security_analytics.max_detectors`** (Integer, default `10`, minimum `0`, no upper bound, dynamic) — maximum number of user-created detectors (Content Manager detectors do not count).
+- **`plugins.security_analytics.max_rules_per_detector`** (Integer, default `50`, minimum `0`, no upper bound, dynamic) — maximum number of rules (custom or pre-packaged) allowed in a single detector input. Requests that would exceed this limit are rejected with HTTP 400.
 - **`plugins.security_analytics.mappings.default_schema`** (String, default `ecs`) — default field-mapping schema used to resolve a Sigma rule's raw field names to Wazuh Common Schema fields when a log type does not declare its own schema.
 
 <!-- // ANCHOR_END: settings-table -->

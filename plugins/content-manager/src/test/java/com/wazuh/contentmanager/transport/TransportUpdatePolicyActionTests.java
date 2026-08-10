@@ -42,6 +42,7 @@ import java.util.Set;
 
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.UpdatePolicyRequest;
+import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -90,6 +91,7 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
                         mock(ActionFilters.class),
                         this.spaceService,
                         engineService,
+                        mock(EngineContentLoader.class),
                         this.client);
 
         when(this.spaceService.getKnownEnrichmentTypes()).thenReturn(Collections.emptySet());

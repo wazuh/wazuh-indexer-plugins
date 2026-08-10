@@ -1553,6 +1553,9 @@
               "ignore_above": 1024,
               "type": "keyword"
             },
+            "diff": {
+              "type": "match_only_text"
+            },
             "directory": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -3166,6 +3169,13 @@
               "ignore_above": 1024,
               "type": "keyword"
             },
+            "previous": {
+              "properties": {
+                "installed": {
+                  "type": "date"
+                }
+              }
+            },
             "reference": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -4596,7 +4606,29 @@
                 "args_count": {
                   "type": "long"
                 },
+                "command_line": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
                 "executable": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "parent": {
+                  "properties": {
+                    "pid": {
+                      "type": "long"
+                    }
+                  }
+                },
+                "pid": {
+                  "type": "long"
+                },
+                "state": {
                   "ignore_above": 1024,
                   "type": "keyword"
                 }
@@ -4831,6 +4863,10 @@
             },
             "start": {
               "type": "date"
+            },
+            "state": {
+              "ignore_above": 1024,
+              "type": "keyword"
             },
             "supplemental_groups": {
               "properties": {
@@ -5358,6 +5394,14 @@
                     }
                   }
                 },
+                "previous": {
+                  "properties": {
+                    "state": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
                 "state": {
                   "ignore_above": 1024,
                   "type": "keyword"
@@ -5367,6 +5411,14 @@
                   "type": "keyword"
                 },
                 "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "previous": {
+              "properties": {
+                "state": {
                   "ignore_above": 1024,
                   "type": "keyword"
                 }
@@ -5409,6 +5461,14 @@
                       "type": "keyword"
                     },
                     "roles": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "previous": {
+                  "properties": {
+                    "state": {
                       "ignore_above": 1024,
                       "type": "keyword"
                     }
