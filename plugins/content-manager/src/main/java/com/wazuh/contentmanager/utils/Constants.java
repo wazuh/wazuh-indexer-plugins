@@ -251,12 +251,39 @@ public class Constants {
             "Partial failures deleting Security Analytics resources for space [{}]: {}";
     public static final String I_LOG_SAP_SPACE_DELETED =
             "Deleted [{}] integrations and [{}] rules from Security Analytics for space [{}]";
+    // Space-parameterized Engine load logs (space name is the first {}). The "standard" rendering of
+    // I_LOG_ENGINE_SPACE_LOADED is intentionally byte-identical to the original standard-only message
+    // so existing log-based validation keeps matching.
+    public static final String I_LOG_ENGINE_SPACE_LOADED =
+            "Engine load for {} space completed successfully.";
+    public static final String W_LOG_ENGINE_SPACE_LOAD_STATUS =
+            "Engine load for {} space returned status [{}]: {}";
+    public static final String E_LOG_ENGINE_SPACE_LOAD_FAILED =
+            "Failed to load {} space into Engine: {}";
+    public static final String E_LOG_ENGINE_RELOAD_SCHEDULE_FAILED =
+            "Failed to schedule Engine content reload: {}";
+    public static final String D_LOG_ENGINE_POLICIES_INDEX_NOT_READY =
+            "Index [{}] does not exist yet; deferring Engine content load until it is created.";
+    public static final String D_LOG_ENGINE_CLUSTER_NOT_READY =
+            "Cluster cannot serve content reads yet ({}); deferring Engine content load.";
+    public static final String W_LOG_ENGINE_RELOAD_TIMED_OUT =
+            "Engine content reload did not complete within [{}]; releasing the in-flight guard.";
+    public static final String D_LOG_ENGINE_SPACE_NO_POLICY =
+            "No policy found for {} space; skipping Engine load.";
+    public static final String D_LOG_ENGINE_SPACE_NO_HASH =
+            "No aggregate hash for {} space yet; skipping Engine load.";
+    public static final String D_LOG_ENGINE_SPACE_UNCHANGED =
+            "Content hash unchanged for {} space; Engine already up to date.";
     public static final String I_LOG_ENGINE_STANDARD_LOADED =
-            "Engine load for standard space completed successfully.";
+            "Standard space reloaded into Engine after content mutation.";
     public static final String W_LOG_ENGINE_STANDARD_LOAD_STATUS =
-            "Engine load for standard space returned status [{}]: {}";
+            "Engine returned status [{}] when reloading standard space: {}";
     public static final String E_LOG_ENGINE_STANDARD_LOAD_FAILED =
-            "Failed to load standard space into Engine: {}";
+            "Failed to reload standard space into Engine: {}";
+    public static final String D_LOG_ENGINE_RELOAD_BROADCAST_SENT =
+            "Broadcast engine content reload to all nodes after content update.";
+    public static final String W_LOG_ENGINE_RELOAD_BROADCAST_FAILED =
+            "Failed to broadcast engine content reload to cluster nodes: {}";
     public static final String E_LOG_SAP_INDEX_MISSING =
             "{} index is missing. Cannot sync {} to Security Analytics Plugin.";
     public static final String D_LOG_SAP_NOTHING_TO_SYNC =
@@ -363,6 +390,8 @@ public class Constants {
     public static final String E_LOG_GET_DOCUMENT_FAILED =
             "Failed to get document [{}] from index [{}]: {}";
     public static final String E_LOG_GET_POLICY_FAILED = "Failed to get policy for space [{}]: {}";
+    public static final String D_LOG_POLICY_INDEX_NOT_READY =
+            "Policies are not readable yet; cannot read the policy for space [{}]: {}";
     public static final String W_LOG_DOCUMENT_NOT_FOUND_FOR_DELETION =
             "Document with document.id [{}] not found in space [{}] for deletion";
     public static final String E_LOG_DELETE_RESOURCES_FAILED = "Failed to delete resources: {}";
@@ -753,8 +782,8 @@ public class Constants {
     public static final String SETUP_STATUS_DOC_ID = "setup-status";
     public static final String SETUP_STATUS_READY = "ready";
     public static final String SETUP_STATUS_FAILED = "failed";
-    public static final int MAX_SETUP_WAIT_RETRIES = 3;
-    public static final int SETUP_WAIT_BACKOFF_BASE_SECONDS = 5;
+    // The retry count and backoff base for waitForSetup() are configurable settings; see
+    // PluginSettings#SETUP_WAIT_MAX_RETRIES and PluginSettings#SETUP_WAIT_BACKOFF_BASE_SECONDS.
 
     // Resource-creation limit locks: serialize the count-then-create sequence used to enforce
     // plugins.content_manager.max_{integrations,decoders,rules,kvdbs,filters}, keyed per

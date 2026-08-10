@@ -28,6 +28,7 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.LocalNodeClusterManagerListener;
 import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -86,6 +87,7 @@ import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
+import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
@@ -129,6 +131,8 @@ public class ContentManagerPlugin extends Plugin
     private CatalogSyncJob catalogSyncJob;
     private TelemetryPingJob telemetryPingJob;
     private EngineService engine;
+    private EngineContentLoader engineContentLoader;
+    private ClusterStateListener engineContentListener;
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
     private Environment environment;
@@ -205,13 +209,30 @@ public class ContentManagerPlugin extends Plugin
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             this.engine = new MockEngineService();
         } else {
-            this.engine = new EngineServiceImpl();
+            this.engine = new EngineServiceImpl(this.threadPool);
+        }
+
+        // Initialize services shared by the sync path and the per-node engine loader
+        this.spaceService = new SpaceService(this.client);
+        this.engineContentLoader =
+                new EngineContentLoader(this.engine, this.spaceService, this.threadPool);
+
+        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+            this.securityAnalyticsService = new MockSecurityAnalyticsService();
+        } else {
+            this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
         }
 
         // Initialize CatalogSyncJob
         this.catalogSyncJob =
                 new CatalogSyncJob(
-                        this.client, this.consumersIndex, environment, this.threadPool, this.engine);
+                        this.client,
+                        this.consumersIndex,
+                        environment,
+                        this.threadPool,
+                        this.engine,
+                        this.spaceService,
+                        this.securityAnalyticsService);
 
         // Initialize TelemetryPingJob
         this.telemetryPingJob =
@@ -220,14 +241,6 @@ public class ContentManagerPlugin extends Plugin
         // Register Executors
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
         runner.registerExecutor(TelemetryPingJob.JOB_TYPE, this.telemetryPingJob);
-
-        // Initialize services
-        this.spaceService = new SpaceService(this.client);
-        if (PluginSettings.getInstance().isEngineMockEnabled()) {
-            this.securityAnalyticsService = new MockSecurityAnalyticsService();
-        } else {
-            this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
-        }
 
         this.logtestService =
                 new LogtestService(this.engine, this.securityAnalyticsService, this.client);
@@ -267,6 +280,7 @@ public class ContentManagerPlugin extends Plugin
                 this.subscriptionService,
                 this.catalogSyncJob,
                 this.engine,
+                this.engineContentLoader,
                 this.logtestService,
                 this.spaceService,
                 this.securityAnalyticsService);
@@ -289,6 +303,17 @@ public class ContentManagerPlugin extends Plugin
                     .setWazuhUid(this.clusterService.state().metadata().clusterUUID());
         }
         this.threadPool.generic().execute(this::tryLoadAccessToken);
+
+        // Load the STANDARD space into this node's local Engine on every node, not just the elected
+        // cluster manager. Engine communication is node-local (a Unix socket), so each node must
+        // load the content itself; the content data lives in cluster-wide indices. The listener
+        // fires on every cluster-state update, so a load that failed because the Engine was not yet
+        // ready is retried on a subsequent event, and late/rejoining nodes converge on join — with
+        // no dedicated timer or poll. Once loaded, each call is a cheap in-memory hash comparison.
+        this.engineContentListener = event -> this.engineContentLoader.reloadIfChanged();
+        this.clusterService.addListener(this.engineContentListener);
+        // Attempt an initial load immediately; if the Engine is not ready yet the listener retries.
+        this.engineContentLoader.reloadIfChanged();
 
         AtomicBoolean started = new AtomicBoolean(false);
         LocalNodeClusterManagerListener listener =
@@ -349,6 +374,17 @@ public class ContentManagerPlugin extends Plugin
         // runs), trigger the callback explicitly.
         if (this.clusterService.state().nodes().isLocalNodeElectedClusterManager()) {
             listener.onClusterManager();
+        }
+    }
+
+    /**
+     * Deregisters the cluster-state listener that drives the per-node Engine content load. Invoked by
+     * OpenSearch when the plugin is closed (node shutdown).
+     */
+    @Override
+    public void close() {
+        if (this.engineContentListener != null && this.clusterService != null) {
+            this.clusterService.removeListener(this.engineContentListener);
         }
     }
 
@@ -873,7 +909,9 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_RULES,
                 PluginSettings.MAX_KVDBS,
                 PluginSettings.MAX_FILTERS,
-                PluginSettings.WAZUH_UID);
+                PluginSettings.WAZUH_UID,
+                PluginSettings.SETUP_WAIT_MAX_RETRIES,
+                PluginSettings.SETUP_WAIT_BACKOFF_BASE_SECONDS);
     }
 
     @Override
@@ -896,6 +934,8 @@ public class ContentManagerPlugin extends Plugin
                 new ActionHandler<>(
                         IndexSubscriptionAction.INSTANCE, TransportIndexSubscriptionAction.class),
                 new ActionHandler<>(TriggerUpdateAction.INSTANCE, TransportTriggerUpdateAction.class),
+                new ActionHandler<>(
+                        ReloadEngineContentAction.INSTANCE, TransportReloadEngineContentAction.class),
                 new ActionHandler<>(PromoteSnapshotAction.INSTANCE, TransportPromoteSnapshotAction.class),
                 // Group 2: Subscription GET/DELETE + Space DELETE
                 new ActionHandler<>(GetSubscriptionAction.INSTANCE, TransportGetSubscriptionAction.class),

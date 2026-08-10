@@ -1,0 +1,9 @@
+---
+- name: service
+  fields:
+    - name: previous.state
+      type: keyword
+      level: custom
+      description: >
+        Service state before it changed, e.g. `RUNNING` before a restart.
+      example: activating

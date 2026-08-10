@@ -33,14 +33,20 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -67,6 +73,8 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
     @Mock private Environment environment;
     @Mock private ThreadPool threadPool;
     @Mock private EngineService engineService;
+    @Mock private SpaceService spaceService;
+    @Mock private SecurityAnalyticsService securityAnalyticsService;
     @Mock private GetRequestBuilder getRequestBuilder;
     @Mock private GetResponse getResponse;
 
@@ -86,7 +94,9 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
                         this.consumersIndex,
                         this.environment,
                         this.threadPool,
-                        this.engineService);
+                        this.engineService,
+                        this.spaceService,
+                        this.securityAnalyticsService);
 
         when(this.client.prepareGet(Constants.INDEX_SETUP_STATUS, Constants.SETUP_STATUS_DOC_ID))
                 .thenReturn(this.getRequestBuilder);
@@ -143,6 +153,39 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
                 "waitForSetup() must not sleep through the backoff when the marker already says"
                         + " failed",
                 elapsedMillis < 1000);
+    }
+
+    /**
+     * When the Setup marker never becomes ready, {@code waitForSetup()} must exhaust the full,
+     * documented backoff schedule (20s, 40s, 80s, 160s = 300s / 5 min worst case) before giving up.
+     * {@code sleepSeconds} is stubbed out so the test exercises the real retry loop and logging
+     * without actually blocking for five minutes.
+     */
+    public void testWaitForSetup_setupNeverReady_exhaustsFullBackoffScheduleThenGivesUp() {
+        when(this.getResponse.isExists()).thenReturn(false);
+
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        try {
+            doNothing().when(job).sleepSeconds(anyLong());
+        } catch (InterruptedException e) {
+            throw new AssertionError(e);
+        }
+
+        boolean result = job.waitForSetup();
+
+        Assert.assertFalse("Setup never became ready, so waitForSetup() must give up", result);
+        verify(this.getRequestBuilder, times(PluginSettings.getInstance().getSetupWaitMaxRetries() + 1))
+                .get();
+
+        InOrder inOrder = Mockito.inOrder(job);
+        try {
+            inOrder.verify(job).sleepSeconds(20L);
+            inOrder.verify(job).sleepSeconds(40L);
+            inOrder.verify(job).sleepSeconds(80L);
+            inOrder.verify(job).sleepSeconds(160L);
+        } catch (InterruptedException e) {
+            throw new AssertionError(e);
+        }
     }
 
     /** When setup never completes, the synchronization pass is skipped entirely. */

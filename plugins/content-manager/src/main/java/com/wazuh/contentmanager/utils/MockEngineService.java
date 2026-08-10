@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -55,6 +56,11 @@ public class MockEngineService implements EngineService {
     public RestResponse promote(JsonNode policy) {
         log.debug("MockEngineService.promote called");
         return new RestResponse("OK", RestStatus.OK.getStatus());
+    }
+
+    @Override
+    public void promoteAsync(JsonNode policy, ActionListener<RestResponse> listener) {
+        listener.onResponse(promote(policy));
     }
 
     @Override

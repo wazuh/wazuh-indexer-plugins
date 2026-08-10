@@ -40,7 +40,6 @@ import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
-import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -61,7 +60,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     @Mock private Client client;
     @Mock private ConsumersIndex consumersIndex;
     @Mock private Environment environment;
-    @Mock private EngineService engineService;
+    @Mock private SpaceService spaceService;
+    @Mock private SecurityAnalyticsService securityAnalyticsService;
 
     @Before
     @Override
@@ -71,7 +71,11 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         PluginSettings.getInstance(Settings.EMPTY);
         this.synchronizer =
                 new ConsumerRulesetService(
-                        this.client, this.consumersIndex, this.environment, this.engineService);
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.spaceService,
+                        this.securityAnalyticsService);
     }
 
     @After
