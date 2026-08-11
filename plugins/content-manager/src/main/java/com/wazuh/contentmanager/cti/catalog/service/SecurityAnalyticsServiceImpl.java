@@ -231,8 +231,9 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             JsonNode doc,
             boolean rawCategory,
             Method method,
+            Boolean detectorOverride,
             ActionListener<? extends ActionResponse> listener) {
-        WIndexDetectorRequest request = this.buildDetectorRequest(doc, rawCategory);
+        WIndexDetectorRequest request = this.buildDetectorRequest(doc, rawCategory, detectorOverride);
         if (request != null) {
             this.executeAsync(WIndexDetectorAction.INSTANCE, request, listener);
         } else {
@@ -243,14 +244,18 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     /**
      * Builds a {@link WIndexDetectorRequest} from the given document.
      *
-     * <p>The detector is enabled when its integration is. Its schedule and source indices come from
-     * the integration's {@code detector} block, which is CTI-owned and not user-writable.
+     * <p>The detector's schedule and source indices come from the integration's {@code detector}
+     * block, which is CTI-owned. Its enabled state is resolved as {@code integration.enabled &&
+     * (override ?? document.detector.enabled)} — see the field below.
      *
      * @param doc The JSON document containing the detector data.
+     * @param detectorOverride the state the user chose for this detector, or {@code null} if they
+     *     never chose, in which case CTI's default applies.
      * @param rawCategory Whether to use the raw category string (true) or formatted/pretty (false).
      * @return The built request, or {@code null} if the document is missing an ID or has no rules.
      */
-    public WIndexDetectorRequest buildDetectorRequest(JsonNode doc, boolean rawCategory) {
+    public WIndexDetectorRequest buildDetectorRequest(
+            JsonNode doc, boolean rawCategory, Boolean detectorOverride) {
         // Fail-fast.
         if (!doc.has(Constants.KEY_ID)) {
             log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
@@ -280,11 +285,16 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         int DEFAULT_INTERVAL = 2;
         int interval = DEFAULT_INTERVAL;
 
-        // The detector's state follows the integration's own flag, not document.detector.enabled.
-        // CTI publishes that field as true for every integration that ships a detector, so reading it
-        // would start a detector for an integration the user -- or CTI itself -- had disabled, on
-        // every synchronization. Everything else in the detector block is CTI-owned configuration.
-        boolean enabled = doc.path(Constants.KEY_ENABLED).asBoolean(false);
+        // The integration gates the detector: disabled means no detector, whatever the user chose for
+        // it, because an integration that produces nothing has nothing to detect on. When it is on, the
+        // user's override wins, and CTI's document.detector.enabled is the default. An absent default
+        // means CTI has no preference, so the integration alone decides -- which is the behaviour that
+        // shipped before this override existed.
+        boolean ctiDefault =
+                doc.path(Constants.KEY_DETECTOR).path(Constants.KEY_ENABLED).asBoolean(true);
+        boolean enabled =
+                doc.path(Constants.KEY_ENABLED).asBoolean(false)
+                        && (detectorOverride != null ? detectorOverride.booleanValue() : ctiDefault);
 
         if (doc.has(Constants.KEY_DETECTOR) && doc.get(Constants.KEY_DETECTOR).isObject()) {
             JsonNode detectorNode = doc.get(Constants.KEY_DETECTOR);

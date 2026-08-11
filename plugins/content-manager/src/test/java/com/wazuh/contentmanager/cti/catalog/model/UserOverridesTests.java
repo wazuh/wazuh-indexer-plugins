@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -144,10 +145,81 @@ public class UserOverridesTests extends OpenSearchTestCase {
         new UserOverrides(
                         new UserOverrides.PolicySettings(Boolean.FALSE, null, null, null),
                         List.of(new UserOverrides.StoredFilter("f1", "{}")),
-                        List.of(new UserOverrides.IntegrationOverride("i1", false)))
+                        List.of(new UserOverrides.IntegrationOverride("i1", false, null)))
                 .writeInto(root, "standard");
 
         assertFalse(root.toString().contains("\"" + Constants.KEY_SPACE + "\""));
+    }
+
+    /**
+     * Integrations are written as an object keyed by id, not as an array.
+     *
+     * <p>That is what lets Security Analytics record a detector decision with a single partial
+     * update: a {@code doc} merge combines objects recursively but replaces arrays wholesale, so an
+     * array would force it to read, modify and write the whole document under optimistic concurrency.
+     */
+    public void testIntegrationsAreWrittenAsAMapKeyedById() {
+        ObjectNode root = MAPPER.createObjectNode();
+
+        new UserOverrides(
+                        null,
+                        List.of(),
+                        List.of(
+                                new UserOverrides.IntegrationOverride("i1", false, null),
+                                new UserOverrides.IntegrationOverride("i2", true, null)))
+                .writeInto(root, "standard");
+
+        JsonNode written = root.path("standard").path(Constants.KEY_INTEGRATION_OVERRIDES);
+        assertTrue("must be an object, not an array", written.isObject());
+        assertFalse(written.path("i1").path(Constants.KEY_ENABLED).asBoolean());
+        assertTrue(written.path("i2").path(Constants.KEY_ENABLED).asBoolean());
+    }
+
+    /**
+     * The two decisions are independent, and either may be absent.
+     *
+     * <p>Stopping a detector must not fabricate an opinion about its integration: recording {@code
+     * false} there would disable an integration nobody asked to disable, and the override always wins
+     * over CTI.
+     */
+    public void testDetectorDecisionIsIndependentOfTheIntegrationOne() {
+        ObjectNode root = MAPPER.createObjectNode();
+
+        new UserOverrides(
+                        null,
+                        List.of(),
+                        List.of(
+                                new UserOverrides.IntegrationOverride("detector-only", null, Boolean.FALSE),
+                                new UserOverrides.IntegrationOverride("integration-only", Boolean.FALSE, null)))
+                .writeInto(root, "standard");
+
+        UserOverrides read = UserOverrides.forSpace(root, "standard");
+
+        assertEquals("detector-only", read.getIntegrations().get(0).getId());
+        assertNull(
+                "stopping a detector says nothing about the integration",
+                read.getIntegrations().get(0).getEnabled());
+        assertEquals(Boolean.FALSE, read.getIntegrations().get(0).getDetectorEnabled());
+
+        assertEquals("integration-only", read.getIntegrations().get(1).getId());
+        assertEquals(Boolean.FALSE, read.getIntegrations().get(1).getEnabled());
+        assertNull(
+                "disabling an integration says nothing about the detector on its own",
+                read.getIntegrations().get(1).getDetectorEnabled());
+    }
+
+    /** And read back with the key as the id, so the id is not duplicated inside the entry. */
+    public void testIntegrationsAreReadFromTheMapKey() {
+        ObjectNode root = MAPPER.createObjectNode();
+        new UserOverrides(
+                        null, List.of(), List.of(new UserOverrides.IntegrationOverride("i1", false, null)))
+                .writeInto(root, "standard");
+
+        UserOverrides read = UserOverrides.forSpace(root, "standard");
+
+        assertEquals(1, read.getIntegrations().size());
+        assertEquals("i1", read.getIntegrations().get(0).getId());
+        assertEquals(Boolean.FALSE, read.getIntegrations().get(0).getEnabled());
     }
 
     /** An integration override round-trips with its id and its decision. */
@@ -158,8 +230,8 @@ public class UserOverridesTests extends OpenSearchTestCase {
                         null,
                         List.of(),
                         List.of(
-                                new UserOverrides.IntegrationOverride("i1", false),
-                                new UserOverrides.IntegrationOverride("i2", true)))
+                                new UserOverrides.IntegrationOverride("i1", false, null),
+                                new UserOverrides.IntegrationOverride("i2", true, null)))
                 .writeInto(root, "standard");
 
         UserOverrides read = UserOverrides.forSpace(root, "standard");
@@ -177,7 +249,7 @@ public class UserOverridesTests extends OpenSearchTestCase {
         new UserOverrides(
                         new UserOverrides.PolicySettings(Boolean.FALSE, null, null, null),
                         List.of(new UserOverrides.StoredFilter("f1", "{}")),
-                        List.of(new UserOverrides.IntegrationOverride("i1", false)))
+                        List.of(new UserOverrides.IntegrationOverride("i1", false, null)))
                 .writeInto(root, "standard");
 
         UserOverrides read = UserOverrides.forSpace(root, "standard");

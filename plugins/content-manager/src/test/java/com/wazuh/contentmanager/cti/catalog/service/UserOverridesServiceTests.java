@@ -419,7 +419,7 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
                 new UserOverrides(
                         null,
                         new ArrayList<>(),
-                        new ArrayList<>(List.of(new UserOverrides.IntegrationOverride("i1", false))));
+                        new ArrayList<>(List.of(new UserOverrides.IntegrationOverride("i1", false, null))));
 
         UserOverrides result = UserOverridesService.setIntegrationEnabled("i1", true).apply(current);
 
@@ -433,7 +433,7 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
                 new UserOverrides(
                         null,
                         new ArrayList<>(),
-                        new ArrayList<>(List.of(new UserOverrides.IntegrationOverride("i1", false))));
+                        new ArrayList<>(List.of(new UserOverrides.IntegrationOverride("i1", false, null))));
 
         assertEquals(
                 2,
@@ -443,10 +443,30 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
                         .size());
     }
 
+    /**
+     * Toggling the integration clears the detector decision, so re-enabling an integration brings its
+     * detector back instead of leaving a stale override in charge of it.
+     */
+    public void testSetIntegrationEnabledClearsTheDetectorOverride() {
+        UserOverrides current =
+                new UserOverrides(
+                        null,
+                        new ArrayList<>(),
+                        new ArrayList<>(
+                                List.of(new UserOverrides.IntegrationOverride("i1", Boolean.TRUE, Boolean.FALSE))));
+
+        UserOverrides result = UserOverridesService.setIntegrationEnabled("i1", true).apply(current);
+
+        assertEquals(Boolean.TRUE, result.getIntegrations().get(0).getEnabled());
+        assertNull(
+                "re-enabling the integration must bring the detector back",
+                result.getIntegrations().get(0).getDetectorEnabled());
+    }
+
     /** The mutator must not modify its input, since update may re-run it after a conflict. */
     public void testSetIntegrationEnabledDoesNotMutateItsInput() {
         List<UserOverrides.IntegrationOverride> original =
-                new ArrayList<>(List.of(new UserOverrides.IntegrationOverride("i1", false)));
+                new ArrayList<>(List.of(new UserOverrides.IntegrationOverride("i1", false, null)));
 
         UserOverridesService.setIntegrationEnabled("i2", true)
                 .apply(new UserOverrides(null, new ArrayList<>(), original));
@@ -791,7 +811,7 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
     /** The user's choice is written onto the integration document, under its real _id. */
     public void testApplySetsTheIntegrationEnabledFlag() throws Exception {
         stubRegistryPresent(
-                "{\"user_overrides\":{\"standard\":{\"integrations\":[{\"id\":\"i1\",\"enabled\":false}]}}}",
+                "{\"user_overrides\":{\"standard\":{\"integrations\":{\"i1\":{\"enabled\":false}}}}}",
                 1L,
                 1L);
         stubRebuiltPolicy(REBUILT_POLICY);
@@ -816,7 +836,7 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
      */
     public void testApplyRecomputesTheIntegrationHash() throws Exception {
         stubRegistryPresent(
-                "{\"user_overrides\":{\"standard\":{\"integrations\":[{\"id\":\"i1\",\"enabled\":false}]}}}",
+                "{\"user_overrides\":{\"standard\":{\"integrations\":{\"i1\":{\"enabled\":false}}}}}",
                 1L,
                 1L);
         stubRebuiltPolicy(REBUILT_POLICY);
@@ -836,7 +856,7 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
     public void testApplySkipsAnIntegrationTheCatalogueNoLongerPublishes() throws Exception {
         stubRegistryPresent(
                 "{\"user_overrides\":{\"standard\":{\"integrations\":"
-                        + "[{\"id\":\"gone\",\"enabled\":false},{\"id\":\"i2\",\"enabled\":false}]}}}",
+                        + "{\"gone\":{\"enabled\":false},\"i2\":{\"enabled\":false}}}}}",
                 1L,
                 1L);
         stubRebuiltPolicy(REBUILT_POLICY);
@@ -853,7 +873,7 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
     /** An integration already in the user's state needs no write. */
     public void testApplyLeavesAnIntegrationAlreadyInTheUsersStateAlone() throws Exception {
         stubRegistryPresent(
-                "{\"user_overrides\":{\"standard\":{\"integrations\":[{\"id\":\"i1\",\"enabled\":false}]}}}",
+                "{\"user_overrides\":{\"standard\":{\"integrations\":{\"i1\":{\"enabled\":false}}}}}",
                 1L,
                 1L);
         stubRebuiltPolicy(REBUILT_POLICY);
@@ -871,7 +891,7 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
      */
     public void testApplyDoesNotResolveUntilTheIntegrationsAreWritten() throws Exception {
         stubRegistryPresent(
-                "{\"user_overrides\":{\"standard\":{\"integrations\":[{\"id\":\"i1\",\"enabled\":false}]}}}",
+                "{\"user_overrides\":{\"standard\":{\"integrations\":{\"i1\":{\"enabled\":false}}}}}",
                 1L,
                 1L);
         stubRebuiltPolicy(REBUILT_POLICY);

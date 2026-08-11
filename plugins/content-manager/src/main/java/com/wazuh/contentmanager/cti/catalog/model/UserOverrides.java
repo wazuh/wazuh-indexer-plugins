@@ -112,14 +112,28 @@ public final class UserOverrides {
         }
         List<IntegrationOverride> overriddenIntegrations = new ArrayList<>();
         if (spaceNode.has(Constants.KEY_INTEGRATION_OVERRIDES)) {
-            for (JsonNode entry : spaceNode.get(Constants.KEY_INTEGRATION_OVERRIDES)) {
-                overriddenIntegrations.add(
-                        new IntegrationOverride(
-                                entry.path(Constants.KEY_ID).asText(null),
-                                entry.path(Constants.KEY_ENABLED).asBoolean()));
-            }
+            spaceNode
+                    .get(Constants.KEY_INTEGRATION_OVERRIDES)
+                    .properties()
+                    .forEach(
+                            entry ->
+                                    overriddenIntegrations.add(
+                                            new IntegrationOverride(
+                                                    entry.getKey(),
+                                                    readOptionalBoolean(entry.getValue(), Constants.KEY_ENABLED),
+                                                    readOptionalBoolean(entry.getValue(), Constants.KEY_DETECTOR_ENABLED))));
         }
         return new UserOverrides(settings, stored, overriddenIntegrations);
+    }
+
+    /**
+     * @param node the entry to read from.
+     * @param field the field name.
+     * @return the boolean it holds, or {@code null} when the field is absent — which throughout this
+     *     registry means the user never decided, not {@code false}.
+     */
+    private static Boolean readOptionalBoolean(JsonNode node, String field) {
+        return node.has(field) ? Boolean.valueOf(node.get(field).asBoolean()) : null;
     }
 
     /**
@@ -144,12 +158,20 @@ public final class UserOverrides {
         }
         spaceNode.set(Constants.KEY_STORED_FILTERS, filtersNode);
 
-        ArrayNode integrationsNode = registryRoot.arrayNode();
+        // Keyed by id, not an array: a partial `doc` update merges objects recursively but replaces
+        // arrays wholesale, so this shape lets Security Analytics record one integration's detector
+        // decision with a single call, without reading and rewriting the whole document.
+        ObjectNode integrationsNode = registryRoot.objectNode();
         for (IntegrationOverride integration : this.integrations) {
             ObjectNode entry = registryRoot.objectNode();
-            entry.put(Constants.KEY_ID, integration.getId());
-            entry.put(Constants.KEY_ENABLED, integration.getEnabled());
-            integrationsNode.add(entry);
+            // Absent means undecided, so a null is omitted rather than written as null.
+            if (integration.getEnabled() != null) {
+                entry.put(Constants.KEY_ENABLED, integration.getEnabled().booleanValue());
+            }
+            if (integration.getDetectorEnabled() != null) {
+                entry.put(Constants.KEY_DETECTOR_ENABLED, integration.getDetectorEnabled().booleanValue());
+            }
+            integrationsNode.set(integration.getId(), entry);
         }
         spaceNode.set(Constants.KEY_INTEGRATION_OVERRIDES, integrationsNode);
 
@@ -302,26 +324,35 @@ public final class UserOverrides {
     }
 
     /**
-     * The user's decision about one integration's enabled state.
+     * The user's decisions about one integration: its own enabled state, and its detector's.
      *
      * <p>Held here rather than on the integration document because the rebuild deletes those
      * documents before writing the new ones, so nothing written on them survives.
      *
-     * <p>Only the decision is stored, not the whole document: unlike a filter, the integration itself
-     * comes from CTI and is recreated by the rebuild.
+     * <p>Only the decisions are stored, not the whole document: unlike a filter, the integration
+     * itself comes from CTI and is recreated by the rebuild.
+     *
+     * <p>The two are independent and either may be absent. Stopping a detector must not fabricate an
+     * opinion about its integration, because the override always wins over CTI and would disable an
+     * integration nobody asked to disable.
      */
     public static final class IntegrationOverride {
 
         private final String id;
         private final Boolean enabled;
+        private final Boolean detectorEnabled;
 
         /**
          * @param id the integration's document id.
-         * @param enabled the state the user chose.
+         * @param enabled the state the user chose for the integration, or {@code null} if they never
+         *     chose.
+         * @param detectorEnabled the state the user chose for its detector, or {@code null} if they
+         *     never chose, in which case CTI's {@code document.detector.enabled} decides.
          */
-        public IntegrationOverride(String id, Boolean enabled) {
+        public IntegrationOverride(String id, Boolean enabled, Boolean detectorEnabled) {
             this.id = id;
             this.enabled = enabled;
+            this.detectorEnabled = detectorEnabled;
         }
 
         /**
@@ -332,10 +363,17 @@ public final class UserOverrides {
         }
 
         /**
-         * @return the state the user chose.
+         * @return the state the user chose for the integration, or {@code null}.
          */
         public Boolean getEnabled() {
             return this.enabled;
+        }
+
+        /**
+         * @return the state the user chose for its detector, or {@code null}.
+         */
+        public Boolean getDetectorEnabled() {
+            return this.detectorEnabled;
         }
     }
 }

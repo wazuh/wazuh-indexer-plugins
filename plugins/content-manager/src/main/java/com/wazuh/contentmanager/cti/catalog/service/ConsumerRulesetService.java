@@ -43,6 +43,7 @@ import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -434,10 +435,30 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         if (!(this.securityAnalyticsService instanceof SecurityAnalyticsServiceImpl sapService)) {
             return;
         }
+        // One read for every detector: the user's decisions live in a single registry document.
+        Map<String, Boolean> detectorOverrides = new HashMap<>();
+        try {
+            UserOverrides overrides =
+                    this.<UserOverrides>awaitResult(
+                            l -> this.userOverridesService.read(Space.STANDARD.toString(), l));
+            overrides
+                    .getIntegrations()
+                    .forEach(
+                            override -> {
+                                if (override.getDetectorEnabled() != null) {
+                                    detectorOverrides.put(override.getId(), override.getDetectorEnabled());
+                                }
+                            });
+        } catch (IOException e) {
+            // Without the overrides every detector falls back to CTI's default, which is the state the
+            // next sync will correct. Aborting here would leave the space without detectors instead.
+            log.error(Constants.E_LOG_USER_OVERRIDES_REGISTRY_READ_FAILED, e.getMessage());
+        }
+
         List<JsonNode> docs = new ArrayList<>();
         integrationDocs.forEach(
                 (id, doc) -> {
-                    if (sapService.buildDetectorRequest(doc, true) != null) {
+                    if (sapService.buildDetectorRequest(doc, true, detectorOverrides.get(id)) != null) {
                         docs.add(doc);
                     }
                 });
@@ -469,6 +490,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 firstDoc,
                 true,
                 RestRequest.Method.POST,
+                detectorOverrides.get(firstDoc.path(Constants.KEY_ID).asText()),
                 ActionListener.wrap(
                         response -> {
                             sent.incrementAndGet();
@@ -505,6 +527,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                         doc,
                         true,
                         RestRequest.Method.POST,
+                        detectorOverrides.get(doc.path(Constants.KEY_ID).asText()),
                         ActionListener.wrap(
                                 response -> {
                                     sent.incrementAndGet();

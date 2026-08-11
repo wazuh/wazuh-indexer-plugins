@@ -580,7 +580,10 @@ public class UserOverridesService {
             List<UserOverrides.IntegrationOverride> integrations =
                     new ArrayList<>(current.getIntegrations());
             integrations.removeIf(override -> integrationId.equals(override.getId()));
-            integrations.add(new UserOverrides.IntegrationOverride(integrationId, enabled));
+            // The null is the clearing rule, not an oversight: toggling the integration drops any
+            // detector decision, so re-enabling an integration brings its detector back instead of
+            // leaving a stale override in charge of it.
+            integrations.add(new UserOverrides.IntegrationOverride(integrationId, enabled, null));
             return new UserOverrides(current.getPolicy(), current.getFilters(), integrations);
         };
     }

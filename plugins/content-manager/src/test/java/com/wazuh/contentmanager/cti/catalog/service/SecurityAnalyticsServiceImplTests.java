@@ -233,7 +233,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
     /** Integration with no rules: no query executed, returns null. */
     public void testNoRulesReturnsNull() throws Exception {
         JsonNode doc = this.integrationDoc();
-        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
         assertNull("Detector should not be created when integration has no rules", request);
         // No search should have been triggered
         verify(this.client, never()).prepareSearch(anyString());
@@ -244,7 +244,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         JsonNode doc = this.integrationDoc(RULE_1, RULE_2);
         this.mockSearch(this.createSearchResponse(this.createHit(RULE_1), this.createHit(RULE_2)));
 
-        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
 
         // Verify the query was built correctly
         verify(this.client).prepareSearch(Constants.INDEX_RULES);
@@ -264,7 +264,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         // Query returns only RULE_1 and RULE_3 (RULE_2 has enabled=false in the index)
         this.mockSearch(this.createSearchResponse(this.createHit(RULE_1), this.createHit(RULE_3)));
 
-        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
 
         // Verify the query was built with ALL three candidate IDs
         verify(this.client).prepareSearch(Constants.INDEX_RULES);
@@ -284,7 +284,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         JsonNode doc = this.integrationDoc(RULE_1, RULE_2);
         this.mockSearch(this.createEmptySearchResponse());
 
-        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
 
         // Verify the query was still built correctly with both IDs
         verify(this.client).prepareSearch(Constants.INDEX_RULES);
@@ -308,7 +308,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         JsonNode doc = integrationDocWithDetector(detectorJson, true, RULE_1);
         mockSearch(createSearchResponse(createHit(RULE_1)));
 
-        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
 
         assertNotNull("Request should not be null", request);
         assertEquals("Scan interval should match CTI value", 10, request.getInterval());
@@ -325,7 +325,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         JsonNode doc = integrationDocWithDetector(null, false, RULE_1);
         mockSearch(createSearchResponse(createHit(RULE_1)));
 
-        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
 
         assertNotNull("Request should not be null even without detector config", request);
         // Validates internal fallback logic (defaults: 2m, disabled, empty sources)
@@ -348,7 +348,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         mockSearch(createSearchResponse(createHit(RULE_1)));
 
         // The service should handle parsing errors gracefully
-        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
 
         assertNotNull("Request should be created despite invalid field types", request);
         assertEquals("Should use default interval when CTI value is invalid", 2, request.getInterval());
@@ -368,22 +368,72 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         JsonNode doc = integrationDocWithDetector("{\"enabled\": true}", false, RULE_1);
         mockSearch(createSearchResponse(createHit(RULE_1)));
 
-        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
 
         assertNotNull("Request should be created", request);
         assertFalse(
                 "a disabled integration must not leave a running detector behind", request.isEnabled());
     }
 
-    /** And an enabled integration gets a running detector, with or without a detector block. */
+    /**
+     * And an enabled integration gets a running detector when CTI expresses no preference.
+     *
+     * <p>An absent {@code document.detector.enabled} leaves the integration alone deciding, which is
+     * the behaviour shipped before the override existed and must not change.
+     */
     public void testDetectorIsEnabledWhenTheIntegrationIs() throws Exception {
         JsonNode doc = integrationDocWithDetector(null, true, RULE_1);
         mockSearch(createSearchResponse(createHit(RULE_1)));
 
-        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true);
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
 
         assertNotNull("Request should be created", request);
         assertTrue("an enabled integration must get a running detector", request.isEnabled());
+    }
+
+    /** The user's override beats CTI's default. */
+    public void testTheOverrideBeatsCti() throws Exception {
+        JsonNode doc = integrationDocWithDetector("{\"enabled\": true}", true, RULE_1);
+        mockSearch(createSearchResponse(createHit(RULE_1)));
+
+        assertFalse(
+                "the user stopped this detector",
+                this.service.buildDetectorRequest(doc, true, Boolean.FALSE).isEnabled());
+    }
+
+    /** With no override, CTI's default decides — including when it says off. */
+    public void testCtiDefaultAppliesWhenThereIsNoOverride() throws Exception {
+        JsonNode doc = integrationDocWithDetector("{\"enabled\": false}", true, RULE_1);
+        mockSearch(createSearchResponse(createHit(RULE_1)));
+
+        assertFalse(
+                "CTI ships this detector off and nobody overrode it",
+                this.service.buildDetectorRequest(doc, true, null).isEnabled());
+    }
+
+    /** And the override wins over a CTI default of off, too. */
+    public void testTheOverrideBeatsADisabledCtiDefault() throws Exception {
+        JsonNode doc = integrationDocWithDetector("{\"enabled\": false}", true, RULE_1);
+        mockSearch(createSearchResponse(createHit(RULE_1)));
+
+        assertTrue(
+                "the user started a detector CTI ships off",
+                this.service.buildDetectorRequest(doc, true, Boolean.TRUE).isEnabled());
+    }
+
+    /**
+     * A disabled integration wins over everything.
+     *
+     * <p>This is the one asymmetry in the rule: the integration gates the detector, so no override can
+     * start a detector for an integration that produces nothing.
+     */
+    public void testADisabledIntegrationBeatsTheOverride() throws Exception {
+        JsonNode doc = integrationDocWithDetector("{\"enabled\": true}", false, RULE_1);
+        mockSearch(createSearchResponse(createHit(RULE_1)));
+
+        assertFalse(
+                "a disabled integration cannot have a running detector",
+                this.service.buildDetectorRequest(doc, true, Boolean.TRUE).isEnabled());
     }
 
     // ── extractSapErrorMessage tests ─────────────────────────────────────────

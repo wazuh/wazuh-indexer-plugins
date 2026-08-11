@@ -680,6 +680,7 @@ public class Constants {
     public static final String KEY_POLICY_SETTINGS = "policy";
     public static final String KEY_STORED_FILTERS = "filters";
     public static final String KEY_INTEGRATION_OVERRIDES = "integrations";
+    public static final String KEY_DETECTOR_ENABLED = "detector_enabled";
     public static final String KEY_MODE = "mode";
     public static final String KEY_DETECTOR = "detector";
     public static final String KEY_SOURCE = "source";
