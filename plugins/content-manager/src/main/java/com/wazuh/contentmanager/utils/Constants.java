@@ -413,6 +413,16 @@ public class Constants {
     public static final String E_LOG_GET_DOCUMENT_FAILED =
             "Failed to get document [{}] from index [{}]: {}";
     public static final String E_LOG_GET_POLICY_FAILED = "Failed to get policy for space [{}]: {}";
+    public static final String W_LOG_SPACE_HASH_MISSING_RECALCULATING =
+            "Space [{}] has no aggregate hash; recalculating it.";
+    public static final String D_LOG_SPACE_HASH_PRESENT =
+            "Space [{}] already has an aggregate hash; nothing to recalculate.";
+    public static final String D_LOG_SPACE_HASH_NO_POLICY =
+            "No policy found for space [{}]; nothing to recalculate.";
+    public static final String W_LOG_SPACE_HASH_CHECK_FAILED =
+            "Could not read the policy for space [{}] to verify its aggregate hash: {}";
+    public static final String I_LOG_SPACE_HASH_RECOVERED =
+            "Recalculated the aggregate hash for space [{}] at startup.";
     public static final String D_LOG_POLICY_INDEX_NOT_READY =
             "Policies are not readable yet; cannot read the policy for space [{}]: {}";
     public static final String W_LOG_DOCUMENT_NOT_FOUND_FOR_DELETION =

@@ -1026,6 +1026,41 @@ public class SpaceService {
     }
 
     /**
+     * Recalculates a space's aggregate hash if its policy document currently has none.
+     *
+     * @param space The space to check (e.g. {@code standard}).
+     * @param listener The listener to notify with the set of changed space names; empty when no
+     *     recalculation was needed or possible.
+     */
+    @SuppressWarnings("unchecked")
+    public void recalculateSpaceHashIfMissing(String space, ActionListener<Set<String>> listener) {
+        this.getPolicy(
+                space,
+                ActionListener.wrap(
+                        policy -> {
+                            if (policy == null) {
+                                log.debug(Constants.D_LOG_SPACE_HASH_NO_POLICY, space);
+                                listener.onResponse(new HashSet<>());
+                                return;
+                            }
+                            Map<String, Object> spaceObject =
+                                    (Map<String, Object>) policy.get(Constants.KEY_SPACE);
+                            String hash = spaceObject == null ? "" : Resource.extractHash(spaceObject);
+                            if (hash != null && !hash.isBlank()) {
+                                log.debug(Constants.D_LOG_SPACE_HASH_PRESENT, space);
+                                listener.onResponse(new HashSet<>());
+                                return;
+                            }
+                            log.warn(Constants.W_LOG_SPACE_HASH_MISSING_RECALCULATING, space);
+                            this.calculateAndUpdate(List.of(space), listener);
+                        },
+                        e -> {
+                            log.warn(Constants.W_LOG_SPACE_HASH_CHECK_FAILED, space, e.getMessage());
+                            listener.onResponse(new HashSet<>());
+                        }));
+    }
+
+    /**
      * Asynchronously calculates and updates the aggregate hash for all policies in the given spaces.
      *
      * @param targetSpaces The list of target spaces to process.
