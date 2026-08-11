@@ -229,14 +229,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
                                             try {
                                                 SetupPlugin.this.indices.forEach(Index::initialize);
+                                                SetupPlugin.this.setupStatusIndex.markReady();
                                             } catch (Exception e) {
                                                 log.error("Setup initialization failed: {}", e.getMessage(), e);
                                                 SetupPlugin.this.setupStatusIndex.markFailed();
                                             }
-
-                                            // Signal that all indices are ready. Consumers of this
-                                            // marker may now start working with them.
-                                            SetupPlugin.this.setupStatusIndex.markReady();
                                         });
                     }
 
