@@ -46,6 +46,7 @@ import java.util.concurrent.ExecutorService;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -77,6 +78,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     @Mock private CatalogSyncJob catalogSyncJob;
     @Mock private TelemetryPingJob telemetryPingJob;
     @Mock private EngineContentLoader engineContentLoader;
+    @Mock private SpaceService spaceService;
     @Mock private ConsumersIndex consumersIndex;
     @Mock private ClusterState clusterState;
     @Mock private DiscoveryNodes discoveryNodes;
@@ -112,6 +114,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.injectField(this.plugin, "catalogSyncJob", this.catalogSyncJob);
         this.injectField(this.plugin, "telemetryPingJob", this.telemetryPingJob);
         this.injectField(this.plugin, "engineContentLoader", this.engineContentLoader);
+        this.injectField(this.plugin, "spaceService", this.spaceService);
         this.injectField(this.plugin, "consumersIndex", this.consumersIndex);
 
         ContentManagerPluginTests.clearInstance();
@@ -243,6 +246,55 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                         any(Runnable.class),
                         eq(TimeValue.timeValueSeconds(expectedDelay)),
                         eq(ThreadPool.Names.GENERIC));
+    }
+
+    /**
+     * Tests that a failed standard-space-hash recovery schedules exactly one retry with the expected
+     * backoff delay. The spaceService mock calls {@code onFailure} to simulate a transient failure.
+     */
+    public void testStandardSpaceHashRetryScheduledOnFirstFailure() throws Exception {
+        PluginSettings.getInstance(Settings.EMPTY);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<?>>getArgument(1)
+                                    .onFailure(new RuntimeException("all shards failed"));
+                            return null;
+                        })
+                .when(this.spaceService)
+                .recalculateSpaceHashIfMissing(anyString(), any());
+
+        this.invokePrivateIntMethod("ensureStandardSpaceHash", 0);
+
+        long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
+        verify(this.threadPool)
+                .schedule(
+                        any(Runnable.class),
+                        eq(TimeValue.timeValueSeconds(expectedDelay)),
+                        eq(ThreadPool.Names.GENERIC));
+    }
+
+    /**
+     * Tests that once the retry budget is exhausted, no further retry is scheduled for hash recovery.
+     * The private method is invoked with {@code attempt == MAX_JOB_SCHEDULE_RETRIES} so the failure
+     * lands on the "give up" path.
+     */
+    public void testStandardSpaceHashGiveUpAfterMaxRetries() throws Exception {
+        PluginSettings.getInstance(Settings.EMPTY);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<?>>getArgument(1)
+                                    .onFailure(new RuntimeException("all shards failed"));
+                            return null;
+                        })
+                .when(this.spaceService)
+                .recalculateSpaceHashIfMissing(anyString(), any());
+
+        this.invokePrivateIntMethod("ensureStandardSpaceHash", Constants.MAX_JOB_SCHEDULE_RETRIES);
+
+        verify(this.threadPool, never())
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
     }
 
     /** Tests that catalogSyncJob.trigger() is NOT called when the node is not elected leader. */

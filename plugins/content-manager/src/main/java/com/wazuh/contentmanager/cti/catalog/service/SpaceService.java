@@ -31,6 +31,7 @@ import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchPhaseExecutionException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.GroupedActionListener;
@@ -974,7 +975,8 @@ public class SpaceService {
                             // operational error: every node reads policies from startup onwards.
                             // Callers still get the failure and decide.
                             if (ExceptionsHelper.unwrap(e, IndexNotFoundException.class) != null
-                                    || ExceptionsHelper.unwrap(e, ClusterBlockException.class) != null) {
+                                    || ExceptionsHelper.unwrap(e, ClusterBlockException.class) != null
+                                    || ExceptionsHelper.unwrap(e, SearchPhaseExecutionException.class) != null) {
                                 log.debug(Constants.D_LOG_POLICY_INDEX_NOT_READY, space, e.getMessage());
                             } else {
                                 log.error(Constants.E_LOG_GET_POLICY_FAILED, space, e.getMessage());
@@ -1052,7 +1054,7 @@ public class SpaceService {
                         },
                         e -> {
                             log.warn(Constants.W_LOG_SPACE_HASH_CHECK_FAILED, space, e.getMessage());
-                            listener.onResponse(new HashSet<>());
+                            listener.onFailure(e);
                         }));
     }
 

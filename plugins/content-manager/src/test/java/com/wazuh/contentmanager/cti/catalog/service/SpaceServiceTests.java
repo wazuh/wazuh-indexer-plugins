@@ -328,10 +328,10 @@ public class SpaceServiceTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests that an unreadable policies index (an expected pre-initialization state at startup) is
-     * reported as "nothing changed" instead of failing the caller.
+     * Tests that an unreadable policies index (an expected pre-initialization state at startup)
+     * propagates the failure to the caller so it can decide whether to retry.
      */
-    public void testRecalculateSpaceHashIfMissingToleratesUnreadablePolicies() {
+    public void testRecalculateSpaceHashIfMissingPropagatesFailure() {
         doAnswer(
                         invocation -> {
                             invocation
@@ -343,13 +343,12 @@ public class SpaceServiceTests extends OpenSearchTestCase {
                 .search(any(SearchRequest.class), any());
 
         AtomicReference<Set<String>> changed = new AtomicReference<>(null);
-        AtomicReference<Boolean> failed = new AtomicReference<>(false);
+        AtomicReference<Exception> failure = new AtomicReference<>(null);
         this.policyHashService.recalculateSpaceHashIfMissing(
-                Space.STANDARD.toString(), ActionListener.wrap(changed::set, e -> failed.set(true)));
+                Space.STANDARD.toString(), ActionListener.wrap(changed::set, failure::set));
 
-        assertFalse("Failure should be handled gracefully via onResponse", failed.get());
-        assertNotNull("Listener should have been notified", changed.get());
-        assertTrue("No space should be reported as changed", changed.get().isEmpty());
+        assertNotNull("Failure should be propagated via onFailure", failure.get());
+        assertNull("onResponse should not have been called", changed.get());
     }
 
     private SearchHit policyHit(String sourceJson) {

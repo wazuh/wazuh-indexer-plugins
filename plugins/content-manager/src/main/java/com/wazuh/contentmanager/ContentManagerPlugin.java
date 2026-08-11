@@ -74,7 +74,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -620,26 +619,37 @@ public class ContentManagerPlugin extends Plugin
      * space on that missing hash, so its content is never loaded into the Engine and detectors in
      * that space stop producing findings. Nothing else recomputes it: the next sync recalculates the
      * hash only when it actually finds new content.
+     *
+     * <p>On startup the policies index shards may not be allocated yet (especially in a multi-node
+     * cluster); this method retries with a linear backoff up to {@link
+     * Constants#MAX_JOB_SCHEDULE_RETRIES} times before giving up.
      */
     private void ensureStandardSpaceHash() {
+        this.ensureStandardSpaceHash(0);
+    }
+
+    private void ensureStandardSpaceHash(int attempt) {
         String standard = Space.STANDARD.toString();
-        try {
-            Set<String> changedSpaces =
-                    this.<Set<String>>awaitResult(
-                            listener -> this.spaceService.recalculateSpaceHashIfMissing(standard, listener));
-            if (changedSpaces == null || !changedSpaces.contains(standard)) {
-                return;
-            }
-            log.info(Constants.I_LOG_SPACE_HASH_RECOVERED, standard);
-            this.client.execute(
-                    ReloadEngineContentAction.INSTANCE,
-                    new ReloadEngineContentRequest(),
-                    ActionListener.wrap(
-                            r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
-                            e -> log.warn(Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
-        }
+        this.spaceService.recalculateSpaceHashIfMissing(
+                standard,
+                ActionListener.wrap(
+                        changedSpaces -> {
+                            if (changedSpaces == null || !changedSpaces.contains(standard)) {
+                                return;
+                            }
+                            log.info(Constants.I_LOG_SPACE_HASH_RECOVERED, standard);
+                            this.client.execute(
+                                    ReloadEngineContentAction.INSTANCE,
+                                    new ReloadEngineContentRequest(),
+                                    ActionListener.wrap(
+                                            r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
+                                            e ->
+                                                    log.warn(
+                                                            Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
+                        },
+                        e ->
+                                this.retryWithBackoff(
+                                        "Standard Space Hash Recovery", attempt, this::ensureStandardSpaceHash)));
     }
 
     /**
@@ -756,29 +766,29 @@ public class ContentManagerPlugin extends Plugin
                                 }
                             } catch (Exception e) {
                                 log.warn(Constants.W_LOG_CATALOG_SYNC_JOB_FAILED, e.getMessage());
-                                this.retryJobScheduling("Catalog Sync Job", attempt, this::scheduleCatalogSyncJob);
+                                this.retryWithBackoff("Catalog Sync Job", attempt, this::scheduleCatalogSyncJob);
                             }
                         });
     }
 
     /**
-     * Reschedules a failed job-registration attempt on the generic thread pool with a linear backoff.
-     * Stops after {@link Constants#MAX_JOB_SCHEDULE_RETRIES} attempts and logs an error.
+     * Reschedules a failed operation on the generic thread pool with a linear backoff. Stops after
+     * {@link Constants#MAX_JOB_SCHEDULE_RETRIES} attempts and logs an error.
      *
-     * @param jobName human-readable name used in log messages.
+     * @param taskName human-readable name used in log messages.
      * @param attempt zero-based attempt counter of the call that just failed.
-     * @param retryAction callback that re-runs the scheduling logic with the given attempt index.
+     * @param retryAction callback that re-runs the operation with the given attempt index.
      */
-    private void retryJobScheduling(String jobName, int attempt, IntConsumer retryAction) {
+    private void retryWithBackoff(String taskName, int attempt, IntConsumer retryAction) {
         int nextAttempt = attempt + 1;
         if (nextAttempt > Constants.MAX_JOB_SCHEDULE_RETRIES) {
-            log.error(Constants.E_LOG_JOB_SCHEDULE_GIVE_UP, jobName, Constants.MAX_JOB_SCHEDULE_RETRIES);
+            log.error(Constants.E_LOG_JOB_SCHEDULE_GIVE_UP, taskName, Constants.MAX_JOB_SCHEDULE_RETRIES);
             return;
         }
         long delaySeconds = (long) nextAttempt * Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
         log.info(
                 Constants.I_LOG_JOB_SCHEDULE_RETRY,
-                jobName,
+                taskName,
                 nextAttempt,
                 Constants.MAX_JOB_SCHEDULE_RETRIES,
                 delaySeconds);
@@ -862,7 +872,7 @@ public class ContentManagerPlugin extends Plugin
                                 }
                             } catch (Exception e) {
                                 log.warn(Constants.W_LOG_TELEMETRY_JOB_FAILED, e.getMessage());
-                                this.retryJobScheduling(
+                                this.retryWithBackoff(
                                         "Telemetry Ping Job", attempt, this::scheduleTelemetryPingJob);
                             }
                         });

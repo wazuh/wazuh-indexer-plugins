@@ -541,8 +541,7 @@ public class Constants {
             "Catalog Sync Job scheduled successfully.";
     public static final String W_LOG_CATALOG_SYNC_JOB_FAILED =
             "Failed to schedule Catalog Sync Job: {}, retrying";
-    public static final String E_LOG_JOB_SCHEDULE_GIVE_UP =
-            "Giving up scheduling {} after {} attempts.";
+    public static final String E_LOG_JOB_SCHEDULE_GIVE_UP = "Giving up {} after {} attempts.";
     public static final String I_LOG_JOB_SCHEDULE_RETRY = "Retrying {} (attempt {}/{}) in {}s.";
     public static final String D_LOG_TELEMETRY_JOB_DISABLED =
             "Telemetry job is disabled via settings. Skipping registration.";
