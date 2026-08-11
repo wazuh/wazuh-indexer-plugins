@@ -1,0 +1,17 @@
+---
+- name: state
+  title: State
+  description: >
+    State custom fields.
+  type: group
+  fields:
+    - name: document_version
+      type: integer
+      level: custom
+      description: >
+        Version of the document.
+    - name: modified_at
+      type: date
+      level: custom
+      description: >
+        Date/time when the state was last modified.

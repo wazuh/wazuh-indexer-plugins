@@ -65,6 +65,7 @@
 - Reduce TTL for historical information about deletes in-memory [(#1328)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1328)
 - Integration's mode [(#1356)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1356)
 - Load standard space into all cluster nodes [(#1376)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1376)
+- Create the `wazuh-agent-config` index [(#1419)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1419)
 - Added `previous` value fields to the WCS for process, service, and package inventory changes [(#1413)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1413)
 - Create the `wazuh-agent-stats` index [(#1425)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1425)
 
