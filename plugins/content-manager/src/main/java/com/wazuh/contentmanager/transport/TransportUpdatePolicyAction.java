@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -224,20 +223,20 @@ public class TransportUpdatePolicyAction
             ActionListener<MessageStatusResponse> listener) {
         try {
             if (currentPolicy == null) {
+                log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, Constants.KEY_POLICY, spaceName);
                 listener.onResponse(
                         new MessageStatusResponse(
-                                "Policy document not found in " + spaceName + " space.",
-                                RestStatus.INTERNAL_SERVER_ERROR));
+                                "Policy document not found in " + spaceName + " space.", RestStatus.NOT_FOUND));
                 return;
             }
 
             Map<String, Object> currentPolicyDoc =
                     (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
             if (currentPolicyDoc == null) {
+                log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, Constants.KEY_POLICY, spaceName);
                 listener.onResponse(
                         new MessageStatusResponse(
-                                "Policy document not found in " + spaceName + " space.",
-                                RestStatus.INTERNAL_SERVER_ERROR));
+                                "Policy document not found in " + spaceName + " space.", RestStatus.NOT_FOUND));
                 return;
             }
 
@@ -329,10 +328,10 @@ public class TransportUpdatePolicyAction
             String spaceName,
             ActionListener<MessageStatusResponse> listener) {
         if (documentId == null) {
+            log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, Constants.KEY_POLICY, spaceName);
             listener.onResponse(
                     new MessageStatusResponse(
-                            "Policy document not found in " + spaceName + " space.",
-                            RestStatus.INTERNAL_SERVER_ERROR));
+                            "Policy document not found in " + spaceName + " space.", RestStatus.NOT_FOUND));
             return;
         }
 
@@ -470,17 +469,17 @@ public class TransportUpdatePolicyAction
     }
 
     private void respondWithError(ActionListener<MessageStatusResponse> listener, Exception e) {
-        OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
-        if (osEx != null && osEx.status().getStatus() < 500) {
-            log.warn(Constants.W_LOG_VALIDATION_FAILED, osEx.getMessage());
-            listener.onResponse(new MessageStatusResponse(osEx.getMessage(), osEx.status()));
+        RestResponse classified = TransportActionHelper.classifyException(e);
+        if (classified != null) {
+            RestStatus status = RestStatus.fromCode(classified.getStatus());
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, classified.getMessage());
+            listener.onResponse(new MessageStatusResponse(classified.getMessage(), status));
             return;
         }
         log.error(
                 Constants.E_LOG_OPERATION_FAILED, "updating", Constants.KEY_POLICY, e.getMessage(), e);
         listener.onResponse(
                 new MessageStatusResponse(
-                        Constants.E_500_INTERNAL_SERVER_ERROR + " " + e.getMessage(),
-                        RestStatus.INTERNAL_SERVER_ERROR));
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
     }
 }

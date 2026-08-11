@@ -22,8 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchException;
-import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.ActionFilters;
@@ -356,20 +354,17 @@ public abstract class AbstractTransportUpdateActionSpaces
     }
 
     private void respondWithError(ActionListener<ContentResponse> listener, String id, Exception e) {
-        OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-        if (secEx != null) {
-            listener.onResponse(new ContentResponse(secEx.getMessage(), secEx.status()));
-            return;
-        }
-        OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
-        if (osEx != null) {
-            listener.onResponse(new ContentResponse(osEx.getMessage(), osEx.status()));
+        RestResponse classified = TransportActionHelper.classifyException(e);
+        if (classified != null) {
+            listener.onResponse(
+                    new ContentResponse(
+                            classified.getMessage(), RestStatus.fromCode(classified.getStatus())));
             return;
         }
         log.error(Constants.E_LOG_UNEXPECTED, "updating", this.getResourceType(), id, e.getMessage());
         listener.onResponse(
                 new ContentResponse(
-                        "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
     }
 
     protected RestResponse preserveMetadata(

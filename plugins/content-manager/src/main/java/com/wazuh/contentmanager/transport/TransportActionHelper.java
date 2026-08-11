@@ -77,16 +77,17 @@ public final class TransportActionHelper {
                             }
                         },
                         ex -> {
-                            OpenSearchSecurityException secEx = extractSecurityException(ex);
-                            if (secEx != null) {
-                                listener.onResponse(
-                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
-                            } else {
-                                listener.onResponse(
-                                        new RestResponse(
-                                                "Draft policy check failed: " + ex.getMessage(),
-                                                RestStatus.BAD_REQUEST.getStatus()));
+                            RestResponse classified = classifyException(ex);
+                            if (classified != null) {
+                                log.warn("Draft policy check failed: {}", classified.getMessage());
+                                listener.onResponse(classified);
+                                return;
                             }
+                            log.error("Draft policy check failed: {}", ex.getMessage(), ex);
+                            listener.onResponse(
+                                    new RestResponse(
+                                            Constants.E_500_INTERNAL_SERVER_ERROR,
+                                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
                         }));
     }
 
@@ -205,5 +206,72 @@ public final class TransportActionHelper {
             cause = cause.getCause();
         }
         return null;
+    }
+
+    /**
+     * Walks the exception cause chain looking for an {@link IllegalArgumentException}. Application
+     * code throws this type deliberately to signal a business condition (e.g. "resource already
+     * exists in target space" during promotion) rather than a server fault, so it should map to a
+     * client error rather than fall through to a generic Internal Server Error.
+     */
+    public static IllegalArgumentException extractIllegalArgumentException(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause != null) {
+            if (cause instanceof IllegalArgumentException) {
+                return (IllegalArgumentException) cause;
+            }
+            cause = cause.getCause();
+        }
+        return null;
+    }
+
+    /**
+     * Classifies an exception into a client-facing {@link RestResponse} following the plugin's
+     * status-code convention, in a fixed order:
+     *
+     * <ol>
+     *   <li>{@link OpenSearchSecurityException} -&gt; its own status.
+     *   <li>Any other {@link OpenSearchException} (this includes {@code
+     *       VersionConflictEngineException}, whose {@code status()} already correctly resolves to
+     *       409) -&gt; its own status, but only when it's below 500; a genuine server fault (e.g. a
+     *       cluster block) is left unclassified so the caller logs it and returns a generic 500.
+     *   <li>An {@link IllegalArgumentException} raised by our own code to signal a business condition
+     *       -&gt; 400.
+     * </ol>
+     *
+     * @return the classified response, or {@code null} if the exception is unclassified. Callers
+     *     should treat {@code null} as a genuine server fault: log it at {@code ERROR} with the real
+     *     exception detail and respond with a fixed, generic 500 message (never the raw exception
+     *     text) — see {@link Constants#E_500_INTERNAL_SERVER_ERROR}.
+     */
+    public static RestResponse classifyException(Throwable throwable) {
+        OpenSearchSecurityException secEx = extractSecurityException(throwable);
+        if (secEx != null) {
+            return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+        }
+        OpenSearchException osEx = extractOpenSearchException(throwable);
+        if (osEx != null && osEx.status().getStatus() < 500) {
+            return new RestResponse(osEx.getMessage(), osEx.status().getStatus());
+        }
+        IllegalArgumentException iae = extractIllegalArgumentException(throwable);
+        if (iae != null) {
+            return new RestResponse(iae.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+        }
+        return null;
+    }
+
+    /**
+     * Builds the client-facing response for a downstream (Engine/SAP) validation call from that
+     * call's own status: when the downstream service rejected the request as invalid (status &lt;
+     * 500), its response is already client-shaped and is passed through as-is. When the downstream
+     * status indicates a genuine communication/infra failure (&gt;= 500), the status is preserved but
+     * the message is replaced with a fixed, generic one — never force a communication failure into
+     * 400, and never leak the downstream service's internal failure detail in a 5xx body.
+     */
+    public static RestResponse fromDownstreamValidation(RestResponse downstreamResponse) {
+        if (downstreamResponse.getStatus() < 500) {
+            return downstreamResponse;
+        }
+        return new RestResponse(Constants.E_500_INTERNAL_SERVER_ERROR, downstreamResponse.getStatus());
     }
 }

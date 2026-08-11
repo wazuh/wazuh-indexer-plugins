@@ -42,6 +42,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.Mockito.*;
 
@@ -128,7 +129,7 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                         argThat(
                                 response -> {
                                     Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
-                                    Assert.assertEquals("Unexpected failure", response.getMessage());
+                                    Assert.assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
                                     return true;
                                 }));
     }

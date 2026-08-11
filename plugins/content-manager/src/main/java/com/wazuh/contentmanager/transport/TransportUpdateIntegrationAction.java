@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.transport;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
@@ -238,10 +237,13 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
 
         RestResponse engineResponse = this.engine.validate(enginePayload);
         if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
+            RestResponse response = TransportActionHelper.fromDownstreamValidation(engineResponse);
             listener.onResponse(
                     new RestResponse(
-                            Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
-                            RestStatus.BAD_REQUEST.getStatus()));
+                            response.getStatus() < 500
+                                    ? Constants.E_400_ENGINE_VALIDATION_FAILED + " " + response.getMessage()
+                                    : response.getMessage(),
+                            response.getStatus()));
             return;
         }
 
@@ -253,15 +255,19 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
                 ActionListener.wrap(
                         response -> listener.onResponse(null),
                         e -> {
-                            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-                            if (secEx != null) {
+                            RestResponse classified = TransportActionHelper.classifyException(e);
+                            if (classified != null) {
                                 listener.onResponse(
-                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
+                                        new RestResponse(
+                                                Constants.E_SECURITY_ANALYTICS_ERROR + " " + classified.getMessage(),
+                                                classified.getStatus()));
                                 return;
                             }
                             listener.onResponse(
                                     new RestResponse(
-                                            Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                                            Constants.E_SECURITY_ANALYTICS_ERROR
+                                                    + " "
+                                                    + Constants.E_500_INTERNAL_SERVER_ERROR,
                                             RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
                         }));
     }
@@ -292,15 +298,19 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
                 ActionListener.wrap(
                         response -> listener.onResponse(null),
                         e -> {
-                            OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-                            if (secEx != null) {
+                            RestResponse classified = TransportActionHelper.classifyException(e);
+                            if (classified != null) {
                                 listener.onResponse(
-                                        new RestResponse(secEx.getMessage(), secEx.status().getStatus()));
+                                        new RestResponse(
+                                                Constants.E_SECURITY_ANALYTICS_ERROR + " " + classified.getMessage(),
+                                                classified.getStatus()));
                                 return;
                             }
                             listener.onResponse(
                                     new RestResponse(
-                                            Constants.E_SECURITY_ANALYTICS_ERROR + " " + e.getMessage(),
+                                            Constants.E_SECURITY_ANALYTICS_ERROR
+                                                    + " "
+                                                    + Constants.E_500_INTERNAL_SERVER_ERROR,
                                             RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
                         }));
     }

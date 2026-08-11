@@ -99,7 +99,7 @@ public class ResourceLockService {
             ActionListener<String> listener) {
         if (attempt > Constants.MAX_LOCK_ACQUIRE_RETRIES) {
             listener.onFailure(
-                    new IOException(
+                    new ResourceLockTimeoutException(
                             "Timed out waiting for the resource-creation lock on ["
                                     + resourceType
                                     + "/"
