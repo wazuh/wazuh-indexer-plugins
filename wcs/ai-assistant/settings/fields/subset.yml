@@ -5,10 +5,9 @@ fields:
     fields:
       settings:
         fields:
-          conversationRetentionDays: {}
-          privacyDefaultOn: {}
-          privacyDefaultPerProvider: {}
-          userCanOverride: {}
+          privacy_default_on: {}
+          privacy_default_per_provider: {}
+          user_can_override: {}
       providers:
         fields:
           name: {}
@@ -17,4 +16,9 @@ fields:
           model: {}
           api_key: {}
           is_default: {}
+      field_policy:
+        fields:
+          field: {}
+          action: {}
+          kind: {}
       visible_to: {}

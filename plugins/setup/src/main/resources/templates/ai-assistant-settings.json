@@ -17,6 +17,22 @@
       "date_detection": false,
       "dynamic": "strict",
       "properties": {
+        "field_policy": {
+          "properties": {
+            "action": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "field": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "kind": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
         "providers": {
           "properties": {
             "api_key": {
@@ -46,16 +62,13 @@
         },
         "settings": {
           "properties": {
-            "conversationRetentionDays": {
-              "type": "integer"
-            },
-            "privacyDefaultOn": {
+            "privacy_default_on": {
               "type": "boolean"
             },
-            "privacyDefaultPerProvider": {
+            "privacy_default_per_provider": {
               "type": "object"
             },
-            "userCanOverride": {
+            "user_can_override": {
               "type": "boolean"
             }
           }

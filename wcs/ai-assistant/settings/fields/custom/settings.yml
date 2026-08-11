@@ -2,8 +2,8 @@
 - name: base
   title: Wazuh AI Assistant Settings
   description: >
-    Fields describing the AI providers and models, and the global settings, of the
-    Wazuh AI assistant.
+    Fields describing the AI providers and models, the global settings, and the
+    field anonymization policy of the Wazuh AI assistant.
   type: group
   group: 2
   fields:
@@ -42,31 +42,51 @@
       description: >
         Whether this provider is the one used by default.
       example: true
-    - name: settings.conversationRetentionDays
-      type: integer
-      level: custom
-      description: >
-        Number of days a conversation is kept before deletion.
-      example: 7
-    - name: settings.privacyDefaultOn
+    - name: settings.privacy_default_on
       type: boolean
       level: custom
+      short: Whether privacy mode is enabled by default for new conversations.
       description: >
         Whether privacy mode is enabled by default for new conversations.
       example: false
-    - name: settings.privacyDefaultPerProvider
+    - name: settings.privacy_default_per_provider
       type: object
       level: custom
+      short: Per-provider override of the default privacy mode.
       description: >
-        Per-provider override of the default privacy mode.
+        Per-provider override of the default privacy mode, keyed by provider name.
       example: '{"test-ai": true}'
-    - name: settings.userCanOverride
+    - name: settings.user_can_override
       type: boolean
       level: custom
+      short: Whether users may override the default privacy setting for their own conversations.
       description: >
         Whether users are allowed to override the default privacy setting for
         their own conversations.
       example: true
+    - name: field_policy.field
+      type: keyword
+      level: custom
+      short: Fully qualified name of the event field this policy entry applies to.
+      description: >
+        Fully qualified name of the event field this policy entry applies to.
+      example: "wazuh.agent.name"
+    - name: field_policy.action
+      type: keyword
+      level: custom
+      short: Whether the field is sent to the AI provider verbatim or anonymized first.
+      description: >
+        Whether the field is sent to the AI provider verbatim ('allow') or
+        anonymized before it leaves the cluster ('anonymize').
+      example: "anonymize"
+    - name: field_policy.kind
+      type: keyword
+      level: custom
+      short: What kind of data is being anonymized. Only set on 'anonymize' entries.
+      description: >
+        What kind of data is being anonymized (e.g. 'HOST', 'IP'). Only set on
+        entries whose action is 'anonymize'.
+      example: "HOST"
     - name: visible_to
       type: keyword
       level: custom
