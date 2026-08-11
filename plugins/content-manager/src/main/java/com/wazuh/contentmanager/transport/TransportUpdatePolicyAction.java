@@ -36,7 +36,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -311,14 +310,7 @@ public class TransportUpdatePolicyAction
             document.set(Constants.KEY_HASH, hashNode);
 
             // Only the standard space is rebuilt from CTI, so only its settings need recording.
-            final PendingOverride pendingOverride =
-                    Space.STANDARD.equals(spaceName)
-                            ? new PendingOverride(
-                                    incomingPolicy,
-                                    (List<String>)
-                                            currentPolicyDoc.getOrDefault(
-                                                    Constants.KEY_ENRICHMENTS, Collections.emptyList()))
-                            : null;
+            final Policy pendingOverride = Space.STANDARD.equals(spaceName) ? incomingPolicy : null;
 
             // Find the real document _id (async)
             this.spaceService.findDocumentIdAsync(
@@ -343,7 +335,7 @@ public class TransportUpdatePolicyAction
             String documentId,
             ObjectNode document,
             String spaceName,
-            PendingOverride pendingOverride,
+            Policy pendingOverride,
             ActionListener<MessageStatusResponse> listener) {
         if (documentId == null) {
             listener.onResponse(
@@ -367,7 +359,7 @@ public class TransportUpdatePolicyAction
     private void afterIndex(
             String policyId,
             String spaceName,
-            PendingOverride pendingOverride,
+            Policy pendingOverride,
             ActionListener<MessageStatusResponse> listener) {
         // Recalculate space hash (async)
         this.spaceService.calculateAndUpdate(
@@ -388,18 +380,6 @@ public class TransportUpdatePolicyAction
     }
 
     /**
-     * What the user-overrides registry needs to record once the policy write has been committed.
-     *
-     * <p>{@code null} for every space other than {@code standard}, which is the only one rebuilt from
-     * CTI and therefore the only one whose settings can be lost.
-     *
-     * @param incomingPolicy the policy the client sent.
-     * @param currentEnrichments the enrichments stored before this update, needed to work out what
-     *     the user just changed.
-     */
-    private record PendingOverride(Policy incomingPolicy, List<String> currentEnrichments) {}
-
-    /**
      * Records the settings the user can change on the standard policy, so the next rebuild of that
      * space can put them back.
      *
@@ -407,36 +387,25 @@ public class TransportUpdatePolicyAction
      * apply would make the next sync apply it anyway, turning a rejected request into a delayed one.
      *
      * <p>All four settings are recorded on every save, by design — editing the standard policy makes
-     * its settings the user's from then on. Enrichments are the exception: they are stored as a delta
-     * against the list CTI publishes, so an enrichment CTI adds later still reaches a user who
-     * customised the selection.
+     * its settings the user's from then on.
      *
      * <p>A registry failure is logged and swallowed. The policy is already written, so the user's
      * request succeeded; failing it here would be a lie.
      *
-     * @param pending what to record, or {@code null} when there is nothing to record.
+     * @param incomingPolicy the policy the client sent, or {@code null} for a space other than {@code
+     *     standard}, which is the only one rebuilt from CTI and so the only one that can lose
+     *     settings.
      * @param onDone run once recording has finished, successfully or not.
      */
-    private void recordPolicySettings(PendingOverride pending, Runnable onDone) {
-        if (pending == null) {
+    private void recordPolicySettings(Policy incomingPolicy, Runnable onDone) {
+        if (incomingPolicy == null) {
             onDone.run();
             return;
         }
 
-        List<String> incomingEnrichments = pending.incomingPolicy().getEnrichments();
-        Set<String> incoming =
-                new LinkedHashSet<>(
-                        incomingEnrichments != null ? incomingEnrichments : Collections.emptyList());
-        Set<String> effective = new LinkedHashSet<>(pending.currentEnrichments());
-
-        Set<String> removedNow = new LinkedHashSet<>(effective);
-        removedNow.removeAll(incoming);
-        Set<String> addedNow = new LinkedHashSet<>(incoming);
-        addedNow.removeAll(effective);
-
         this.userOverridesService.update(
                 Space.STANDARD.toString(),
-                current -> mergeRecordedSettings(current, pending.incomingPolicy(), removedNow, addedNow),
+                current -> mergeRecordedSettings(current, incomingPolicy),
                 ActionListener.wrap(
                         v -> onDone.run(),
                         e -> {
@@ -446,34 +415,18 @@ public class TransportUpdatePolicyAction
     }
 
     /**
-     * Folds this save's enrichment change into whatever the registry already holds.
+     * Records this save's settings, replacing whatever the registry held for the policy.
      *
-     * <p>Removing something the user had added, or adding back something they had removed, cancels
-     * the earlier entry rather than accumulating both — otherwise a value could sit in both sets at
-     * once and the delta would stop describing the user's intent.
-     *
-     * <p>The stored filters pass through untouched: the policy and the filters share one registry
-     * document, so returning anything else here would delete the user's filters.
+     * <p>The stored filters and integration decisions pass through untouched: all three sections
+     * share one registry document, so returning anything else here would delete them.
      */
-    private static UserOverrides mergeRecordedSettings(
-            UserOverrides current, Policy incomingPolicy, Set<String> removedNow, Set<String> addedNow) {
-        Set<String> removed = new LinkedHashSet<>();
-        Set<String> added = new LinkedHashSet<>();
-        if (current.getPolicy() != null && current.getPolicy().getEnrichments() != null) {
-            removed.addAll(current.getPolicy().getEnrichments().getRemoved());
-            added.addAll(current.getPolicy().getEnrichments().getAdded());
-        }
-        removed.addAll(removedNow);
-        removed.removeAll(addedNow);
-        added.addAll(addedNow);
-        added.removeAll(removedNow);
-
+    private static UserOverrides mergeRecordedSettings(UserOverrides current, Policy incomingPolicy) {
         return new UserOverrides(
                 new UserOverrides.PolicySettings(
                         incomingPolicy.getEnabled(),
                         incomingPolicy.getIndexUnclassifiedEvents(),
                         incomingPolicy.getIndexDiscardedEvents(),
-                        new UserOverrides.EnrichmentDelta(removed, added)),
+                        incomingPolicy.getEnrichments()),
                 current.getFilters(),
                 current.getIntegrations());
     }

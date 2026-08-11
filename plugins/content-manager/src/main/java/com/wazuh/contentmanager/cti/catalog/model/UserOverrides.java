@@ -21,9 +21,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -169,19 +167,20 @@ public final class UserOverrides {
         private final Boolean enabled;
         private final Boolean indexUnclassifiedEvents;
         private final Boolean indexDiscardedEvents;
-        private final EnrichmentDelta enrichments;
+        private final List<String> enrichments;
 
         /**
          * @param enabled the policy's {@code enabled} flag, or {@code null} if undecided.
          * @param indexUnclassifiedEvents the {@code index_unclassified_events} flag, or {@code null}.
          * @param indexDiscardedEvents the {@code index_discarded_events} flag, or {@code null}.
-         * @param enrichments the enrichment delta, or {@code null}.
+         * @param enrichments the enrichments the user kept, or {@code null} if they never chose. An
+         *     empty list is a choice; {@code null} is the absence of one.
          */
         public PolicySettings(
                 Boolean enabled,
                 Boolean indexUnclassifiedEvents,
                 Boolean indexDiscardedEvents,
-                EnrichmentDelta enrichments) {
+                List<String> enrichments) {
             this.enabled = enabled;
             this.indexUnclassifiedEvents = indexUnclassifiedEvents;
             this.indexDiscardedEvents = indexDiscardedEvents;
@@ -210,9 +209,9 @@ public final class UserOverrides {
         }
 
         /**
-         * @return the enrichment delta, or {@code null} if the user never changed the selection.
+         * @return the enrichments the user kept, or {@code null} if they never changed the selection.
          */
-        public EnrichmentDelta getEnrichments() {
+        public List<String> getEnrichments() {
             return this.enrichments;
         }
 
@@ -221,9 +220,14 @@ public final class UserOverrides {
          * @return the settings it holds, with absent fields left {@code null}.
          */
         static PolicySettings from(JsonNode node) {
-            EnrichmentDelta delta = null;
+            // Absence and emptiness are different: no list means the user never chose and CTI decides,
+            // an empty one means they unchecked everything.
+            List<String> enrichments = null;
             if (node.has(Constants.KEY_ENRICHMENTS)) {
-                delta = EnrichmentDelta.from(node.get(Constants.KEY_ENRICHMENTS));
+                enrichments = new ArrayList<>();
+                for (JsonNode entry : node.get(Constants.KEY_ENRICHMENTS)) {
+                    enrichments.add(entry.asText());
+                }
             }
             return new PolicySettings(
                     node.has(Constants.KEY_ENABLED) ? node.get(Constants.KEY_ENABLED).asBoolean() : null,
@@ -233,7 +237,7 @@ public final class UserOverrides {
                     node.has(Constants.KEY_INDEX_DISCARDED_EVENTS)
                             ? node.get(Constants.KEY_INDEX_DISCARDED_EVENTS).asBoolean()
                             : null,
-                    delta);
+                    enrichments);
         }
 
         /**
@@ -253,91 +257,10 @@ public final class UserOverrides {
                 node.put(Constants.KEY_INDEX_DISCARDED_EVENTS, this.indexDiscardedEvents.booleanValue());
             }
             if (this.enrichments != null) {
-                node.set(Constants.KEY_ENRICHMENTS, this.enrichments.toNode(factory));
+                ArrayNode list = factory.arrayNode();
+                this.enrichments.forEach(list::add);
+                node.set(Constants.KEY_ENRICHMENTS, list);
             }
-            return node;
-        }
-    }
-
-    /**
-     * What the user removed from, and added to, the enrichment list CTI publishes.
-     *
-     * <p>Stored as a delta rather than as the resulting list on purpose: an enrichment CTI starts
-     * publishing after the user customised their selection still reaches them, which a stored list
-     * would freeze out.
-     */
-    public static final class EnrichmentDelta {
-
-        private final Set<String> removed;
-        private final Set<String> added;
-
-        /**
-         * @param removed enrichments the user unchecked, or {@code null} for none.
-         * @param added enrichments the user checked on top of CTI's list, or {@code null} for none.
-         */
-        public EnrichmentDelta(Set<String> removed, Set<String> added) {
-            this.removed = removed != null ? removed : Set.of();
-            this.added = added != null ? added : Set.of();
-        }
-
-        /**
-         * @return the enrichments the user unchecked.
-         */
-        public Set<String> getRemoved() {
-            return this.removed;
-        }
-
-        /**
-         * @return the enrichments the user checked on top of CTI's list.
-         */
-        public Set<String> getAdded() {
-            return this.added;
-        }
-
-        /**
-         * Resolves the effective enrichment list.
-         *
-         * @param ctiList the list CTI published, as found in the rebuilt policy.
-         * @return that list minus the removals, plus the additions. Set semantics, so a value CTI also
-         *     publishes cannot be duplicated by an addition.
-         */
-        public List<String> applyTo(List<String> ctiList) {
-            Set<String> result = new LinkedHashSet<>(ctiList != null ? ctiList : List.of());
-            result.removeAll(this.removed);
-            result.addAll(this.added);
-            return new ArrayList<>(result);
-        }
-
-        /**
-         * @param node the stored {@code enrichments} node.
-         * @return the delta it holds.
-         */
-        static EnrichmentDelta from(JsonNode node) {
-            return new EnrichmentDelta(
-                    readSet(node, Constants.KEY_ENRICHMENTS_REMOVED),
-                    readSet(node, Constants.KEY_ENRICHMENTS_ADDED));
-        }
-
-        private static Set<String> readSet(JsonNode node, String field) {
-            Set<String> values = new LinkedHashSet<>();
-            if (node.has(field)) {
-                node.get(field).forEach(entry -> values.add(entry.asText()));
-            }
-            return values;
-        }
-
-        /**
-         * @param factory any node from the target document, used only as a node factory.
-         * @return this delta as a node.
-         */
-        ObjectNode toNode(ObjectNode factory) {
-            ObjectNode node = factory.objectNode();
-            ArrayNode removedNode = factory.arrayNode();
-            this.removed.forEach(removedNode::add);
-            ArrayNode addedNode = factory.arrayNode();
-            this.added.forEach(addedNode::add);
-            node.set(Constants.KEY_ENRICHMENTS_REMOVED, removedNode);
-            node.set(Constants.KEY_ENRICHMENTS_ADDED, addedNode);
             return node;
         }
     }

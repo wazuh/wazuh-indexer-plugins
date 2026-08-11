@@ -678,8 +678,6 @@ public class Constants {
     // User overrides registry keys
     public static final String KEY_USER_OVERRIDES = "user_overrides";
     public static final String KEY_POLICY_SETTINGS = "policy";
-    public static final String KEY_ENRICHMENTS_REMOVED = "removed";
-    public static final String KEY_ENRICHMENTS_ADDED = "added";
     public static final String KEY_STORED_FILTERS = "filters";
     public static final String KEY_INTEGRATION_OVERRIDES = "integrations";
     public static final String KEY_MODE = "mode";

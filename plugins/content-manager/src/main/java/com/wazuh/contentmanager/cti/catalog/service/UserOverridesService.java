@@ -464,11 +464,17 @@ public class UserOverridesService {
                     Constants.KEY_INDEX_DISCARDED_EVENTS, settings.getIndexDiscardedEvents().booleanValue());
         }
         if (settings.getEnrichments() != null) {
-            List<String> ctiList = new ArrayList<>();
-            document.path(Constants.KEY_ENRICHMENTS).forEach(entry -> ctiList.add(entry.asText()));
+            List<String> published = new ArrayList<>();
+            document.path(Constants.KEY_ENRICHMENTS).forEach(entry -> published.add(entry.asText()));
+
+            // Keep only what CTI still publishes. A stored value it dropped would otherwise be
+            // resurrected on every sync, leaving the policy naming an enrichment the engine does not
+            // know.
+            List<String> effective = new ArrayList<>(settings.getEnrichments());
+            effective.retainAll(published);
 
             ArrayNode merged = document.arrayNode();
-            settings.getEnrichments().applyTo(ctiList).forEach(merged::add);
+            effective.forEach(merged::add);
             document.set(Constants.KEY_ENRICHMENTS, merged);
         }
     }

@@ -37,7 +37,6 @@ import org.junit.Before;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
@@ -291,8 +290,7 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
                 current -> {
                     current.getFilters().forEach(filter -> seen.add(filter.getId()));
                     return new UserOverrides(
-                            new UserOverrides.PolicySettings(
-                                    null, null, null, new UserOverrides.EnrichmentDelta(Set.of("geo"), Set.of())),
+                            new UserOverrides.PolicySettings(null, null, null, List.of("geo")),
                             current.getFilters(),
                             current.getIntegrations());
                 },
@@ -515,14 +513,11 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
         verify(this.spaceService, never()).getPolicy(any(), any());
     }
 
-    /**
-     * The user's booleans are written over CTI's, and the enrichment delta is resolved against the
-     * list CTI just published rather than against a stored copy.
-     */
-    public void testApplyOverwritesTheSettingsAndResolvesTheEnrichmentDelta() throws Exception {
+    /** The user's booleans are written over CTI's, and the stored list replaces CTI's. */
+    public void testApplyReplacesTheEnrichmentsWithTheStoredList() throws Exception {
         stubRegistryPresent(
                 "{\"user_overrides\":{\"standard\":{\"policy\":{\"enabled\":false,"
-                        + "\"enrichments\":{\"removed\":[\"geo\"],\"added\":[]}},\"filters\":[]}}}",
+                        + "\"enrichments\":[\"connection\"]},\"filters\":[]}}}",
                 1L,
                 1L);
         stubRebuiltPolicy(
@@ -533,9 +528,46 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
         String written = applyAndCaptureWrittenPolicy();
 
         assertTrue("the user's choice must win", written.contains("\"enabled\":false"));
-        assertFalse("the removed enrichment must be gone", written.contains("\"geo\""));
-        assertTrue("CTI's other enrichments must stay", written.contains("\"connection\""));
-        assertTrue("an enrichment CTI added later must come through", written.contains("\"asn\""));
+        assertTrue(written.contains("\"connection\""));
+        assertFalse("what the user did not keep must be gone", written.contains("\"geo\""));
+        assertFalse(written.contains("\"asn\""));
+    }
+
+    /**
+     * An enrichment CTI stopped publishing is dropped rather than resurrected. CTI is not expected to
+     * change the set, but a stored list would otherwise keep naming a value the engine no longer
+     * knows, on every sync, forever.
+     */
+    public void testApplyDropsStoredEnrichmentsCtiNoLongerPublishes() throws Exception {
+        stubRegistryPresent(
+                "{\"user_overrides\":{\"standard\":{\"policy\":"
+                        + "{\"enrichments\":[\"connection\",\"retired\"]},\"filters\":[]}}}",
+                1L,
+                1L);
+        stubRebuiltPolicy(
+                "{\"document\":{\"id\":\"p1\",\"enrichments\":[\"geo\",\"connection\"],\"filters\":[]},"
+                        + "\"hash\":{\"sha256\":\"x\"},\"space\":{\"name\":\"standard\"}}");
+
+        String written = applyAndCaptureWrittenPolicy();
+
+        assertTrue(written.contains("\"connection\""));
+        assertFalse(written.contains("\"retired\""));
+    }
+
+    /** A user who never decided keeps CTI's list untouched. */
+    public void testApplyLeavesTheEnrichmentsAloneWhenTheUserNeverDecided() throws Exception {
+        stubRegistryPresent(
+                "{\"user_overrides\":{\"standard\":{\"policy\":{\"enabled\":false},\"filters\":[]}}}",
+                1L,
+                1L);
+        stubRebuiltPolicy(
+                "{\"document\":{\"id\":\"p1\",\"enrichments\":[\"geo\",\"connection\"],\"filters\":[]},"
+                        + "\"hash\":{\"sha256\":\"x\"},\"space\":{\"name\":\"standard\"}}");
+
+        String written = applyAndCaptureWrittenPolicy();
+
+        assertTrue(written.contains("\"geo\""));
+        assertTrue(written.contains("\"connection\""));
     }
 
     /** A setting the user never decided is left exactly as CTI published it. */

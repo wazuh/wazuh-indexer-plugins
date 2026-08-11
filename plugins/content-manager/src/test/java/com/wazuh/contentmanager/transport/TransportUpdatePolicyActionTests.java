@@ -347,11 +347,8 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
         return captor.getValue();
     }
 
-    /**
-     * Saving the standard policy records all four settings, and the enrichment change is stored as a
-     * delta so enrichments CTI publishes later still reach this user.
-     */
-    public void testStandardUpdateRecordsAllFourSettingsAndAnEnrichmentDelta() {
+    /** Saving the standard policy records all four settings, the enrichments as the list sent. */
+    public void testStandardUpdateRecordsAllFourSettings() {
         stubStandardPolicy(CTI_ENRICHMENTS);
 
         // The client sends six of the seven, dropping "geo".
@@ -365,37 +362,25 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
         Assert.assertEquals(Boolean.TRUE, recorded.getPolicy().getEnabled());
         Assert.assertEquals(Boolean.TRUE, recorded.getPolicy().getIndexUnclassifiedEvents());
         Assert.assertEquals(Boolean.FALSE, recorded.getPolicy().getIndexDiscardedEvents());
-        Assert.assertEquals(Set.of("geo"), recorded.getPolicy().getEnrichments().getRemoved());
-        Assert.assertTrue(recorded.getPolicy().getEnrichments().getAdded().isEmpty());
+        Assert.assertEquals(incoming, recorded.getPolicy().getEnrichments());
     }
 
-    /**
-     * Re-adding an enrichment the user had previously removed clears the removal, so the same value
-     * does not stay suppressed forever.
-     */
-    public void testReAddingAPreviouslyRemovedEnrichmentClearsTheRemoval() {
-        // The stored policy is the result of the first save: six enrichments, no "geo".
+    /** A later save replaces the stored list rather than merging with it. */
+    public void testASecondSaveReplacesTheStoredEnrichmentList() {
         List<String> withoutGeo =
                 List.of("connection", "url_full", "url_domain", "hash_md5", "hash_sha1", "hash_sha256");
         stubStandardPolicy(withoutGeo);
 
         UserOverrides priorState =
                 new UserOverrides(
-                        new UserOverrides.PolicySettings(
-                                Boolean.TRUE,
-                                Boolean.TRUE,
-                                Boolean.FALSE,
-                                new UserOverrides.EnrichmentDelta(Set.of("geo"), Set.of())),
+                        new UserOverrides.PolicySettings(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, withoutGeo),
                         new java.util.ArrayList<>(),
                         new java.util.ArrayList<>());
 
         // The user re-checks "geo": the body carries all seven again.
         UserOverrides recorded = captureRecordedMutator(CTI_ENRICHMENTS).apply(priorState);
 
-        Assert.assertTrue(
-                "the removal must be cleared",
-                recorded.getPolicy().getEnrichments().getRemoved().isEmpty());
-        Assert.assertEquals(Set.of("geo"), recorded.getPolicy().getEnrichments().getAdded());
+        Assert.assertEquals(CTI_ENRICHMENTS, recorded.getPolicy().getEnrichments());
     }
 
     /** The filters already stored in the registry survive a policy save untouched. */

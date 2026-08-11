@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.opensearch.test.OpenSearchTestCase;
 
 import java.util.List;
-import java.util.Set;
 
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -31,32 +30,44 @@ public class UserOverridesTests extends OpenSearchTestCase {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /** A removal sticks, and enrichments CTI adds later still come through. */
-    public void testEnrichmentDeltaRemovesAndLetsNewCtiValuesThrough() {
-        UserOverrides.EnrichmentDelta delta =
-                new UserOverrides.EnrichmentDelta(Set.of("geo"), Set.of());
+    /** The stored enrichment list round-trips verbatim. */
+    public void testEnrichmentListRoundTrips() {
+        ObjectNode root = MAPPER.createObjectNode();
 
-        List<String> result = delta.applyTo(List.of("geo", "connection", "url_full"));
-        assertEquals(List.of("connection", "url_full"), result);
+        new UserOverrides(
+                        new UserOverrides.PolicySettings(null, null, null, List.of("connection", "url_full")),
+                        List.of(),
+                        List.of())
+                .writeInto(root, "standard");
 
-        // CTI ships a new enrichment: the user who removed "geo" still receives it.
-        List<String> withNewValue = delta.applyTo(List.of("geo", "connection", "url_full", "asn"));
-        assertEquals(List.of("connection", "url_full", "asn"), withNewValue);
+        assertEquals(
+                List.of("connection", "url_full"),
+                UserOverrides.forSpace(root, "standard").getPolicy().getEnrichments());
     }
 
-    /** An addition survives even when CTI stops publishing it. */
-    public void testEnrichmentDeltaKeepsUserAdditions() {
-        UserOverrides.EnrichmentDelta delta =
-                new UserOverrides.EnrichmentDelta(Set.of(), Set.of("custom_one"));
+    /**
+     * A user who never saved has no list, which is not the same as having saved an empty one. Absence
+     * means CTI decides; an empty list means the user unchecked everything.
+     */
+    public void testAbsentEnrichmentListStaysNull() {
+        ObjectNode root = MAPPER.createObjectNode();
 
-        assertEquals(List.of("connection", "custom_one"), delta.applyTo(List.of("connection")));
+        new UserOverrides(
+                        new UserOverrides.PolicySettings(Boolean.TRUE, null, null, null), List.of(), List.of())
+                .writeInto(root, "standard");
+
+        assertNull(UserOverrides.forSpace(root, "standard").getPolicy().getEnrichments());
     }
 
-    /** An empty delta leaves CTI's list untouched. */
-    public void testEmptyEnrichmentDeltaIsIdentity() {
-        UserOverrides.EnrichmentDelta delta = new UserOverrides.EnrichmentDelta(Set.of(), Set.of());
+    /** And an empty list survives as an empty list. */
+    public void testEmptyEnrichmentListIsPreserved() {
+        ObjectNode root = MAPPER.createObjectNode();
 
-        assertEquals(List.of("geo", "connection"), delta.applyTo(List.of("geo", "connection")));
+        new UserOverrides(
+                        new UserOverrides.PolicySettings(null, null, null, List.of()), List.of(), List.of())
+                .writeInto(root, "standard");
+
+        assertEquals(List.of(), UserOverrides.forSpace(root, "standard").getPolicy().getEnrichments());
     }
 
     /**
@@ -68,10 +79,7 @@ public class UserOverridesTests extends OpenSearchTestCase {
         UserOverrides original =
                 new UserOverrides(
                         new UserOverrides.PolicySettings(
-                                Boolean.FALSE,
-                                Boolean.TRUE,
-                                null,
-                                new UserOverrides.EnrichmentDelta(Set.of("geo"), Set.of())),
+                                Boolean.FALSE, Boolean.TRUE, null, List.of("connection")),
                         List.of(new UserOverrides.StoredFilter("filter-id", "{\"document\":{}}")),
                         List.of());
 
@@ -83,7 +91,7 @@ public class UserOverridesTests extends OpenSearchTestCase {
         assertNull(
                 "a setting the user never decided must stay absent, not become false",
                 read.getPolicy().getIndexDiscardedEvents());
-        assertEquals(Set.of("geo"), read.getPolicy().getEnrichments().getRemoved());
+        assertEquals(List.of("connection"), read.getPolicy().getEnrichments());
         assertEquals(1, read.getFilters().size());
         assertEquals("filter-id", read.getFilters().get(0).getId());
         assertEquals("{\"document\":{}}", read.getFilters().get(0).getDocument());

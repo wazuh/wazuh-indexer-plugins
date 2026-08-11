@@ -533,7 +533,7 @@ The `standard` space is rebuilt from CTI, so what the user changes there is reco
         "enabled": true,
         "index_unclassified_events": true,
         "index_discarded_events": false,
-        "enrichments": { "removed": ["geo"], "added": [] }
+        "enrichments": ["connection", "url_full"]
       },
       "filters": [{ "id": "<uuid>", "document": "<the stored filter, serialized>" }],
       "integrations": [{ "id": "<uuid>", "enabled": false }]
@@ -544,7 +544,7 @@ The `standard` space is rebuilt from CTI, so what the user changes there is reco
 
 It is the one document in that index with **no `space` field**: the pre-snapshot wipe selects by `space.name` and never sees it, and the plan-change reindex carries it into the new physical index.
 
-Enrichments are stored as a delta, resolved as `(what CTI publishes) − removed + added`, so values CTI adds later still reach the user. Filters are stored as serialized strings, to keep their fields out of the `"dynamic": "true"` policies mapping.
+Enrichments are stored as the resulting list, and on apply only the values CTI still publishes are kept. Filters are stored as serialized strings, to keep their fields out of the `"dynamic": "true"` policies mapping.
 
 Written on a `standard` policy update, on filter create, update and delete, and on integration update. Applied at the start of `ConsumerRulesetService.onSyncComplete`, before the space hash is recalculated and the engine reloaded. Idempotent, and a failure is logged without aborting the synchronization.
 
