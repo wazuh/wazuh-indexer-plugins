@@ -1,0 +1,151 @@
+---
+- name: wazuh
+  title: Wazuh
+  description: >
+    Wazuh Inc. custom fields.
+  type: group
+  fields:
+    - name: agent.id
+      type: keyword
+      level: custom
+      description: >
+        Unique identifier of the agent. Used as the document id.
+      example: "001"
+    - name: agent.statistics.agent.status
+      type: keyword
+      level: custom
+      description: >
+        Connection status as seen by the agent itself.
+      example: "connected"
+    - name: agent.statistics.agent.last_keepalive
+      type: date
+      level: custom
+      description: >
+        Date/time of the last keepalive, stamped with the agent's own clock.
+      example: "2026-08-02T10:06:50Z"
+    - name: agent.statistics.agent.messages.count
+      type: long
+      level: custom
+      description: >
+        Number of messages held by the agent module. Not monotonic.
+      example: 602
+    - name: agent.statistics.agent.tasks.dispatched.total
+      type: long
+      level: custom
+      description: >
+        Total tasks dispatched by the agent module over the agent's uptime.
+      example: 4
+    - name: agent.statistics.agent.tasks.discarded_duplicate.total
+      type: long
+      level: custom
+      description: >
+        Total tasks discarded as duplicates over the agent's uptime.
+      example: 0
+    - name: agent.statistics.agent.tasks.failed.total
+      type: long
+      level: custom
+      description: >
+        Total tasks failed in the agent module over the agent's uptime.
+      example: 0
+    - name: agent.statistics.logcollector.global.start
+      type: date
+      level: custom
+      description: >
+        Date/time when the logcollector global period started.
+      example: "2026-08-02T09:43:50Z"
+    - name: agent.statistics.logcollector.global.end
+      type: date
+      level: custom
+      description: >
+        Date/time when the logcollector global period ended.
+      example: "2026-08-02T10:06:50Z"
+    - name: agent.statistics.logcollector.global.files.location
+      type: keyword
+      level: custom
+      description: >
+        Log source read by logcollector during the global period.
+      example: "df -P"
+    - name: agent.statistics.logcollector.global.files.events
+      type: long
+      level: custom
+      description: >
+        Events read from the log source during the global period.
+      example: 32
+    - name: agent.statistics.logcollector.global.files.bytes
+      type: long
+      level: custom
+      description: >
+        Bytes read from the log source during the global period.
+      example: 3436
+    - name: agent.statistics.logcollector.global.files.targets.name
+      type: keyword
+      level: custom
+      description: >
+        Target the log source events are forwarded to, global period.
+      example: "agent"
+    - name: agent.statistics.logcollector.global.files.targets.drops
+      type: long
+      level: custom
+      description: >
+        Events dropped for the target during the global period.
+      example: 0
+    - name: agent.statistics.logcollector.interval.start
+      type: date
+      level: custom
+      description: >
+        Date/time when the last closed logcollector interval started.
+      example: "2026-08-02T10:06:50Z"
+    - name: agent.statistics.logcollector.interval.end
+      type: date
+      level: custom
+      description: >
+        Date/time when the last closed logcollector interval ended.
+      example: "2026-08-02T10:07:50Z"
+    - name: agent.statistics.logcollector.interval.files.location
+      type: keyword
+      level: custom
+      description: >
+        Log source read by logcollector during the last closed interval.
+      example: "df -P"
+    - name: agent.statistics.logcollector.interval.files.events
+      type: long
+      level: custom
+      description: >
+        Events read from the log source during the last closed interval.
+      example: 32
+    - name: agent.statistics.logcollector.interval.files.bytes
+      type: long
+      level: custom
+      description: >
+        Bytes read from the log source during the last closed interval.
+      example: 3436
+    - name: agent.statistics.logcollector.interval.files.targets.name
+      type: keyword
+      level: custom
+      description: >
+        Target the log source events are forwarded to, last closed interval.
+      example: "agent"
+    - name: agent.statistics.logcollector.interval.files.targets.drops
+      type: long
+      level: custom
+      description: >
+        Events dropped for the target during the last closed interval.
+      example: 0
+    - name: cluster.name
+      type: keyword
+      level: custom
+      description: >
+        Wazuh cluster name.
+      example: "wazuh-cluster"
+    - name: cluster.node
+      type: keyword
+      level: custom
+      description: >
+        Wazuh cluster node name.
+      example: "wazuh-node-1"
+    - name: schema.version
+      type: keyword
+      level: custom
+      description: >
+        Wazuh schema version.
+      example: "1"

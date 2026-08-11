@@ -143,6 +143,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
         // State indices
         this.indices.add(new StateIndex("wazuh-agent-config", "templates/states/agent-config"));
+        this.indices.add(new StateIndex("wazuh-agent-stats", "templates/states/agent-stats"));
         this.indices.add(new StateIndex("wazuh-states-sca", "templates/states/sca"));
         this.indices.add(new StateIndex("wazuh-states-fim-files", "templates/states/fim-files"));
         this.indices.add(new StateIndex("wazuh-states-fim-registry-keys", "templates/states/fim-registry-keys"));
