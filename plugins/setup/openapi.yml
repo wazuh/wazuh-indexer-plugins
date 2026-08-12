@@ -241,6 +241,39 @@ paths:
           description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
 
   /ai_assistant/settings/providers/{id}:
+    get:
+      summary: Read a single AI provider by id
+      operationId: getAiAssistantProvider
+      tags:
+        - AI Assistant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAssistantProvider"
+              examples:
+                default:
+                  summary: A single provider
+                  value:
+                    _id: 8c11c90d-1ead-4901-a5f0-1bd6d0a931cb
+                    name: test-ai
+                    type: anthropic
+                    base_url: https://api.anthropic.com
+                    model: claude-opus-4-6
+                    api_key: "enc:v1:SC/RyOIBkdm+kGl"
+                    is_default: true
+        "403":
+          description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/settings/read` cluster permission.
+        "404":
+          description: Not Found - No provider exists with the given id.
     put:
       summary: Create or update an AI provider by id
       operationId: putAiAssistantProvider
