@@ -165,6 +165,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-sessions"));
 
         // State indices
+        this.indices.add(new StateIndex("wazuh-agent-config", "templates/states/agent-config"));
+        this.indices.add(new StateIndex("wazuh-agent-stats", "templates/states/agent-stats"));
         this.indices.add(new StateIndex("wazuh-states-sca", "templates/states/sca"));
         this.indices.add(new StateIndex("wazuh-states-fim-files", "templates/states/fim-files"));
         this.indices.add(new StateIndex("wazuh-states-fim-registry-keys", "templates/states/fim-registry-keys"));
@@ -257,14 +259,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
                                             try {
                                                 SetupPlugin.this.indices.forEach(Index::initialize);
+                                                SetupPlugin.this.setupStatusIndex.markReady();
                                             } catch (Exception e) {
                                                 log.error("Setup initialization failed: {}", e.getMessage(), e);
                                                 SetupPlugin.this.setupStatusIndex.markFailed();
                                             }
-
-                                            // Signal that all indices are ready. Consumers of this
-                                            // marker may now start working with them.
-                                            SetupPlugin.this.setupStatusIndex.markReady();
                                         });
                     }
 
