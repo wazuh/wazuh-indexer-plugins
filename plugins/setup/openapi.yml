@@ -421,10 +421,6 @@ components:
           type: string
         is_default:
           type: boolean
-        references:
-          type: array
-          items: {}
-          description: Client-supplied, indexer-opaque metadata. No fixed shape.
         updated_at:
           type: string
           format: date-time
@@ -490,10 +486,6 @@ components:
           type: string
         is_default:
           type: boolean
-        references:
-          type: array
-          items: {}
-          description: Client-supplied, indexer-opaque metadata. No fixed shape.
         updated_at:
           type: string
           format: date-time
@@ -526,10 +518,6 @@ components:
           type: string
         is_default:
           type: boolean
-        references:
-          type: array
-          items: {}
-          description: Client-supplied, indexer-opaque metadata. No fixed shape.
         updated_at:
           type: string
           format: date-time
