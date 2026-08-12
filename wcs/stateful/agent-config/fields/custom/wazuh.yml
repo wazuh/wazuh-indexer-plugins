@@ -1,0 +1,2105 @@
+---
+- name: wazuh
+  title: Wazuh
+  description: >
+    Wazuh Inc. custom fields.
+  type: group
+  fields:
+    - name: agent.configuration.content.agent-info.integrity_interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent-info.integrity_interval.
+    - name: agent.configuration.content.agent-info.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent-info.interval.
+    - name: agent.configuration.content.agent-info.synchronization.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: agent-info.synchronization.enabled.
+    - name: agent.configuration.content.agent-info.synchronization.max_eps
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent-info.synchronization.max_eps.
+    - name: agent.configuration.content.agent-info.synchronization.response_timeout
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent-info.synchronization.response_timeout.
+    - name: agent.configuration.content.agent-info.synchronization.retries
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent-info.synchronization.retries.
+    - name: agent.configuration.content.agent-info.synchronization.sync_end_delay
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent-info.synchronization.sync_end_delay.
+    - name: agent.configuration.content.agent-info.task_registry.max_entries
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent-info.task_registry.max_entries.
+    - name: agent.configuration.content.agent-info.task_registry.ttl
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent-info.task_registry.ttl.
+    - name: agent.configuration.content.agent-upgrade.ca_store
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent-upgrade.ca_store.
+    - name: agent.configuration.content.agent-upgrade.ca_verification
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: agent-upgrade.ca_verification.
+    - name: agent.configuration.content.agent-upgrade.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: agent-upgrade.enabled.
+    - name: agent.configuration.content.agent.agent.auto_restart
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.auto_restart.
+    - name: agent.configuration.content.agent.agent.batch.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.batch.interval.
+    - name: agent.configuration.content.agent.agent.batch.size
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.batch.size.
+    - name: agent.configuration.content.agent.agent.config-profile
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.config-profile.
+    - name: agent.configuration.content.agent.agent.config_report.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.config_report.enabled.
+    - name: agent.configuration.content.agent.agent.config_report.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.config_report.interval.
+    - name: agent.configuration.content.agent.agent.enrollment.agent_certificate_path
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.enrollment.agent_certificate_path.
+    - name: agent.configuration.content.agent.agent.enrollment.agent_key_path
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.enrollment.agent_key_path.
+    - name: agent.configuration.content.agent.agent.enrollment.agent_name
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.enrollment.agent_name.
+    - name: agent.configuration.content.agent.agent.enrollment.authorization_pass_path
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.enrollment.authorization_pass_path.
+    - name: agent.configuration.content.agent.agent.enrollment.auto_method
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.enrollment.auto_method.
+    - name: agent.configuration.content.agent.agent.enrollment.delay_after_enrollment
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.enrollment.delay_after_enrollment.
+    - name: agent.configuration.content.agent.agent.enrollment.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.enrollment.enabled.
+    - name: agent.configuration.content.agent.agent.enrollment.group
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.enrollment.group.
+    - name: agent.configuration.content.agent.agent.enrollment.interface_index
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.enrollment.interface_index.
+    - name: agent.configuration.content.agent.agent.enrollment.manager_address
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.enrollment.manager_address.
+    - name: agent.configuration.content.agent.agent.enrollment.port
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.enrollment.port.
+    - name: agent.configuration.content.agent.agent.enrollment.server_certificate_path
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.enrollment.server_certificate_path.
+    - name: agent.configuration.content.agent.agent.enrollment.ssl_cipher
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.enrollment.ssl_cipher.
+    - name: agent.configuration.content.agent.agent.ip_update_interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.ip_update_interval.
+    - name: agent.configuration.content.agent.agent.manager.address
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.manager.address.
+    - name: agent.configuration.content.agent.agent.manager.interface_index
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.manager.interface_index.
+    - name: agent.configuration.content.agent.agent.manager.max_retries
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.manager.max_retries.
+    - name: agent.configuration.content.agent.agent.manager.port
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.manager.port.
+    - name: agent.configuration.content.agent.agent.manager.retry_interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.manager.retry_interval.
+    - name: agent.configuration.content.agent.agent.notify_time
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.notify_time.
+    - name: agent.configuration.content.agent.agent.remote_conf
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.remote_conf.
+    - name: agent.configuration.content.agent.agent.ssl.certificate
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.ssl.certificate.
+    - name: agent.configuration.content.agent.agent.ssl.certificate_authorities
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.ssl.certificate_authorities.
+    - name: agent.configuration.content.agent.agent.ssl.ciphers
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.ssl.ciphers.
+    - name: agent.configuration.content.agent.agent.ssl.key
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: agent.agent.ssl.key.
+    - name: agent.configuration.content.agent.agent.ssl.verification_mode
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.ssl.verification_mode.
+    - name: agent.configuration.content.agent.agent.stats_report.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.stats_report.enabled.
+    - name: agent.configuration.content.agent.agent.stats_report.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.stats_report.interval.
+    - name: agent.configuration.content.agent.agent.time-reconnect
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.agent.time-reconnect.
+    - name: agent.configuration.content.agent.internal.agent.debug
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.agent.debug.
+    - name: agent.configuration.content.agent.internal.agent.normal_level
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.agent.normal_level.
+    - name: agent.configuration.content.agent.internal.agent.recv_timeout
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.agent.recv_timeout.
+    - name: agent.configuration.content.agent.internal.agent.remote_conf
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.agent.remote_conf.
+    - name: agent.configuration.content.agent.internal.agent.state_interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.agent.state_interval.
+    - name: agent.configuration.content.agent.internal.agent.tolerance
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.agent.tolerance.
+    - name: agent.configuration.content.agent.internal.agent.warn_level
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.agent.warn_level.
+    - name: agent.configuration.content.agent.internal.monitord.compress
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.monitord.compress.
+    - name: agent.configuration.content.agent.internal.monitord.daily_rotations
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.monitord.daily_rotations.
+    - name: agent.configuration.content.agent.internal.monitord.day_wait
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.monitord.day_wait.
+    - name: agent.configuration.content.agent.internal.monitord.keep_log_days
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.monitord.keep_log_days.
+    - name: agent.configuration.content.agent.internal.monitord.rotate_log
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.monitord.rotate_log.
+    - name: agent.configuration.content.agent.internal.monitord.size_rotate
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: agent.internal.monitord.size_rotate.
+    - name: agent.configuration.content.agent.package_uninstallation.package_uninstallation
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: agent.package_uninstallation.package_uninstallation.
+    - name: agent.configuration.content.aws-s3.buckets.access_key
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.access_key.
+    - name: agent.configuration.content.aws-s3.buckets.aws_account_alias
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.aws_account_alias.
+    - name: agent.configuration.content.aws-s3.buckets.aws_account_id
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.aws_account_id.
+    - name: agent.configuration.content.aws-s3.buckets.aws_profile
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.aws_profile.
+    - name: agent.configuration.content.aws-s3.buckets.discard_field
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.discard_field.
+    - name: agent.configuration.content.aws-s3.buckets.discard_regex
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.discard_regex.
+    - name: agent.configuration.content.aws-s3.buckets.iam_role_arn
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.iam_role_arn.
+    - name: agent.configuration.content.aws-s3.buckets.iam_role_duration
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.iam_role_duration.
+    - name: agent.configuration.content.aws-s3.buckets.name
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.name.
+    - name: agent.configuration.content.aws-s3.buckets.only_logs_after
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.buckets.only_logs_after.
+    - name: agent.configuration.content.aws-s3.buckets.path
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.path.
+    - name: agent.configuration.content.aws-s3.buckets.path_suffix
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.path_suffix.
+    - name: agent.configuration.content.aws-s3.buckets.regions
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.regions.
+    - name: agent.configuration.content.aws-s3.buckets.remove_from_bucket
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.buckets.remove_from_bucket.
+    - name: agent.configuration.content.aws-s3.buckets.secret_key
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.secret_key.
+    - name: agent.configuration.content.aws-s3.buckets.service_endpoint
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.service_endpoint.
+    - name: agent.configuration.content.aws-s3.buckets.sts_endpoint
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.buckets.sts_endpoint.
+    - name: agent.configuration.content.aws-s3.buckets.type
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.buckets.type.
+    - name: agent.configuration.content.aws-s3.day
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.day.
+    - name: agent.configuration.content.aws-s3.disabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.disabled.
+    - name: agent.configuration.content.aws-s3.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.interval.
+    - name: agent.configuration.content.aws-s3.run_on_start
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.run_on_start.
+    - name: agent.configuration.content.aws-s3.services.access_key
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.access_key.
+    - name: agent.configuration.content.aws-s3.services.aws_account_alias
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.aws_account_alias.
+    - name: agent.configuration.content.aws-s3.services.aws_account_id
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.aws_account_id.
+    - name: agent.configuration.content.aws-s3.services.aws_log_groups
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.aws_log_groups.
+    - name: agent.configuration.content.aws-s3.services.aws_profile
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.aws_profile.
+    - name: agent.configuration.content.aws-s3.services.discard_field
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.discard_field.
+    - name: agent.configuration.content.aws-s3.services.discard_regex
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.discard_regex.
+    - name: agent.configuration.content.aws-s3.services.iam_role_arn
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.iam_role_arn.
+    - name: agent.configuration.content.aws-s3.services.iam_role_duration
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.iam_role_duration.
+    - name: agent.configuration.content.aws-s3.services.only_logs_after
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.services.only_logs_after.
+    - name: agent.configuration.content.aws-s3.services.regions
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.regions.
+    - name: agent.configuration.content.aws-s3.services.remove_log_streams
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.services.remove_log_streams.
+    - name: agent.configuration.content.aws-s3.services.secret_key
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.secret_key.
+    - name: agent.configuration.content.aws-s3.services.service_endpoint
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.service_endpoint.
+    - name: agent.configuration.content.aws-s3.services.sts_endpoint
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.services.sts_endpoint.
+    - name: agent.configuration.content.aws-s3.services.type
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.services.type.
+    - name: agent.configuration.content.aws-s3.skip_on_error
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.skip_on_error.
+    - name: agent.configuration.content.aws-s3.subscribers.aws_profile
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.subscribers.aws_profile.
+    - name: agent.configuration.content.aws-s3.subscribers.discard_field
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.subscribers.discard_field.
+    - name: agent.configuration.content.aws-s3.subscribers.discard_regex
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.subscribers.discard_regex.
+    - name: agent.configuration.content.aws-s3.subscribers.external_id
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.subscribers.external_id.
+    - name: agent.configuration.content.aws-s3.subscribers.iam_role_arn
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.subscribers.iam_role_arn.
+    - name: agent.configuration.content.aws-s3.subscribers.iam_role_duration
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.subscribers.iam_role_duration.
+    - name: agent.configuration.content.aws-s3.subscribers.service_endpoint
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.subscribers.service_endpoint.
+    - name: agent.configuration.content.aws-s3.subscribers.sqs_name
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.subscribers.sqs_name.
+    - name: agent.configuration.content.aws-s3.subscribers.sts_endpoint
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: aws-s3.subscribers.sts_endpoint.
+    - name: agent.configuration.content.aws-s3.subscribers.type
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.subscribers.type.
+    - name: agent.configuration.content.aws-s3.time
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.time.
+    - name: agent.configuration.content.aws-s3.wday
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: aws-s3.wday.
+    - name: agent.configuration.content.azure-logs.content.account_key
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: azure-logs.content.account_key.
+    - name: agent.configuration.content.azure-logs.content.account_name
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: azure-logs.content.account_name.
+    - name: agent.configuration.content.azure-logs.content.application_id
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: azure-logs.content.application_id.
+    - name: agent.configuration.content.azure-logs.content.application_key
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: azure-logs.content.application_key.
+    - name: agent.configuration.content.azure-logs.content.auth_path
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: azure-logs.content.auth_path.
+    - name: agent.configuration.content.azure-logs.content.tag
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: azure-logs.content.tag.
+    - name: agent.configuration.content.azure-logs.content.tenantdomain
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: azure-logs.content.tenantdomain.
+    - name: agent.configuration.content.azure-logs.content.type
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: azure-logs.content.type.
+    - name: agent.configuration.content.azure-logs.day
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: azure-logs.day.
+    - name: agent.configuration.content.azure-logs.disabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: azure-logs.disabled.
+    - name: agent.configuration.content.azure-logs.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: azure-logs.interval.
+    - name: agent.configuration.content.azure-logs.run_on_start
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: azure-logs.run_on_start.
+    - name: agent.configuration.content.azure-logs.time
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: azure-logs.time.
+    - name: agent.configuration.content.azure-logs.timeout
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: azure-logs.timeout.
+    - name: agent.configuration.content.azure-logs.wday
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: azure-logs.wday.
+    - name: agent.configuration.content.command.command
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: command.command.
+    - name: agent.configuration.content.command.day
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: command.day.
+    - name: agent.configuration.content.command.disabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: command.disabled.
+    - name: agent.configuration.content.command.ignore_output
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: command.ignore_output.
+    - name: agent.configuration.content.command.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: command.interval.
+    - name: agent.configuration.content.command.run_on_start
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: command.run_on_start.
+    - name: agent.configuration.content.command.skip_verification
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: command.skip_verification.
+    - name: agent.configuration.content.command.tag
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: command.tag.
+    - name: agent.configuration.content.command.time
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: command.time.
+    - name: agent.configuration.content.command.verify_md5
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: command.verify_md5.
+    - name: agent.configuration.content.command.verify_sha1
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: command.verify_sha1.
+    - name: agent.configuration.content.command.verify_sha256
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: command.verify_sha256.
+    - name: agent.configuration.content.command.wday
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: command.wday.
+    - name: agent.configuration.content.docker-listener.attempts
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: docker-listener.attempts.
+    - name: agent.configuration.content.docker-listener.day
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: docker-listener.day.
+    - name: agent.configuration.content.docker-listener.disabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: docker-listener.disabled.
+    - name: agent.configuration.content.docker-listener.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: docker-listener.interval.
+    - name: agent.configuration.content.docker-listener.run_on_start
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: docker-listener.run_on_start.
+    - name: agent.configuration.content.docker-listener.time
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: docker-listener.time.
+    - name: agent.configuration.content.docker-listener.wday
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: docker-listener.wday.
+    - name: agent.configuration.content.execd.active-response.disabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: execd.active-response.disabled.
+    - name: agent.configuration.content.execd.active-response.repeated_offenders
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: execd.active-response.repeated_offenders.
+    - name: agent.configuration.content.execd.internal.execd.max_restart_lock
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: execd.internal.execd.max_restart_lock.
+    - name: agent.configuration.content.execd.internal.execd.request_timeout
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: execd.internal.execd.request_timeout.
+    - name: agent.configuration.content.execd.logging.json
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: execd.logging.json.
+    - name: agent.configuration.content.execd.logging.plain
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: execd.logging.plain.
+    - name: agent.configuration.content.fim.internal.rootcheck.sleep
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.internal.rootcheck.sleep.
+    - name: agent.configuration.content.fim.internal.syscheck.debug
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.internal.syscheck.debug.
+    - name: agent.configuration.content.fim.internal.syscheck.default_max_depth
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.internal.syscheck.default_max_depth.
+    - name: agent.configuration.content.fim.internal.syscheck.file_max_size
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.internal.syscheck.file_max_size.
+    - name: agent.configuration.content.fim.internal.syscheck.max_audit_entries
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.internal.syscheck.max_audit_entries.
+    - name: agent.configuration.content.fim.internal.syscheck.max_fd_win_rt
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.internal.syscheck.max_fd_win_rt.
+    - name: agent.configuration.content.fim.internal.syscheck.rt_delay
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.internal.syscheck.rt_delay.
+    - name: agent.configuration.content.fim.internal.syscheck.symlink_scan_interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.internal.syscheck.symlink_scan_interval.
+    - name: agent.configuration.content.fim.rootcheck.base_directory
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.rootcheck.base_directory.
+    - name: agent.configuration.content.fim.rootcheck.check_dev
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.rootcheck.check_dev.
+    - name: agent.configuration.content.fim.rootcheck.check_if
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.rootcheck.check_if.
+    - name: agent.configuration.content.fim.rootcheck.check_pids
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.rootcheck.check_pids.
+    - name: agent.configuration.content.fim.rootcheck.check_ports
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.rootcheck.check_ports.
+    - name: agent.configuration.content.fim.rootcheck.check_sys
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.rootcheck.check_sys.
+    - name: agent.configuration.content.fim.rootcheck.disabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.rootcheck.disabled.
+    - name: agent.configuration.content.fim.rootcheck.frequency
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.rootcheck.frequency.
+    - name: agent.configuration.content.fim.rootcheck.ignore
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.rootcheck.ignore.
+    - name: agent.configuration.content.fim.rootcheck.ignore_sregex
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.rootcheck.ignore_sregex.
+    - name: agent.configuration.content.fim.rootcheck.scanall
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.rootcheck.scanall.
+    - name: agent.configuration.content.fim.rootcheck.skip_nfs
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.rootcheck.skip_nfs.
+    - name: agent.configuration.content.fim.syscheck.diff.disk_quota.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.diff.disk_quota.enabled.
+    - name: agent.configuration.content.fim.syscheck.diff.disk_quota.limit
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.diff.disk_quota.limit.
+    - name: agent.configuration.content.fim.syscheck.diff.file_size.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.diff.file_size.enabled.
+    - name: agent.configuration.content.fim.syscheck.diff.file_size.limit
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.diff.file_size.limit.
+    - name: agent.configuration.content.fim.syscheck.directories.diff_size_limit
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.directories.diff_size_limit.
+    - name: agent.configuration.content.fim.syscheck.directories.dir
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.directories.dir.
+    - name: agent.configuration.content.fim.syscheck.directories.opts
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.directories.opts.
+    - name: agent.configuration.content.fim.syscheck.directories.recursion_level
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.directories.recursion_level.
+    - name: agent.configuration.content.fim.syscheck.directories.restrict
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.directories.restrict.
+    - name: agent.configuration.content.fim.syscheck.directories.symbolic_link
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.directories.symbolic_link.
+    - name: agent.configuration.content.fim.syscheck.directories.tags
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.directories.tags.
+    - name: agent.configuration.content.fim.syscheck.disabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.disabled.
+    - name: agent.configuration.content.fim.syscheck.file_limit.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.file_limit.enabled.
+    - name: agent.configuration.content.fim.syscheck.file_limit.entries
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.file_limit.entries.
+    - name: agent.configuration.content.fim.syscheck.frequency
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.frequency.
+    - name: agent.configuration.content.fim.syscheck.ignore
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.ignore.
+    - name: agent.configuration.content.fim.syscheck.ignore_sregex
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.ignore_sregex.
+    - name: agent.configuration.content.fim.syscheck.key_ignore.arch
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.key_ignore.arch.
+    - name: agent.configuration.content.fim.syscheck.key_ignore.entry
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.key_ignore.entry.
+    - name: agent.configuration.content.fim.syscheck.key_ignore_sregex.arch
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.key_ignore_sregex.arch.
+    - name: agent.configuration.content.fim.syscheck.key_ignore_sregex.entry
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.key_ignore_sregex.entry.
+    - name: agent.configuration.content.fim.syscheck.max_eps
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.max_eps.
+    - name: agent.configuration.content.fim.syscheck.max_files_per_second
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.max_files_per_second.
+    - name: agent.configuration.content.fim.syscheck.nodiff
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.nodiff.
+    - name: agent.configuration.content.fim.syscheck.notify_first_scan
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.notify_first_scan.
+    - name: agent.configuration.content.fim.syscheck.process_priority
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.process_priority.
+    - name: agent.configuration.content.fim.syscheck.registry.arch
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.registry.arch.
+    - name: agent.configuration.content.fim.syscheck.registry.diff_size_limit
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.registry.diff_size_limit.
+    - name: agent.configuration.content.fim.syscheck.registry.entry
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.registry.entry.
+    - name: agent.configuration.content.fim.syscheck.registry.opts
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.registry.opts.
+    - name: agent.configuration.content.fim.syscheck.registry.recursion_level
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.registry.recursion_level.
+    - name: agent.configuration.content.fim.syscheck.registry.restrict_key
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.registry.restrict_key.
+    - name: agent.configuration.content.fim.syscheck.registry.restrict_value
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.registry.restrict_value.
+    - name: agent.configuration.content.fim.syscheck.registry.tags
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.registry.tags.
+    - name: agent.configuration.content.fim.syscheck.registry_limit.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.registry_limit.enabled.
+    - name: agent.configuration.content.fim.syscheck.registry_limit.entries
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.registry_limit.entries.
+    - name: agent.configuration.content.fim.syscheck.registry_nodiff.arch
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.registry_nodiff.arch.
+    - name: agent.configuration.content.fim.syscheck.registry_nodiff.entry
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.registry_nodiff.entry.
+    - name: agent.configuration.content.fim.syscheck.registry_nodiff_sregex.arch
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.registry_nodiff_sregex.arch.
+    - name: agent.configuration.content.fim.syscheck.registry_nodiff_sregex.entry
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.registry_nodiff_sregex.entry.
+    - name: agent.configuration.content.fim.syscheck.scan_day
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.scan_day.
+    - name: agent.configuration.content.fim.syscheck.scan_time
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.scan_time.
+    - name: agent.configuration.content.fim.syscheck.skip_dev
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.skip_dev.
+    - name: agent.configuration.content.fim.syscheck.skip_nfs
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.skip_nfs.
+    - name: agent.configuration.content.fim.syscheck.skip_proc
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.skip_proc.
+    - name: agent.configuration.content.fim.syscheck.skip_sys
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.skip_sys.
+    - name: agent.configuration.content.fim.syscheck.synchronization.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.synchronization.enabled.
+    - name: agent.configuration.content.fim.syscheck.synchronization.integrity_interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.synchronization.integrity_interval.
+    - name: agent.configuration.content.fim.syscheck.synchronization.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.synchronization.interval.
+    - name: agent.configuration.content.fim.syscheck.synchronization.max_eps
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.synchronization.max_eps.
+    - name: agent.configuration.content.fim.syscheck.synchronization.response_timeout
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.synchronization.response_timeout.
+    - name: agent.configuration.content.fim.syscheck.synchronization.sync_end_delay
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.synchronization.sync_end_delay.
+    - name: agent.configuration.content.fim.syscheck.value_ignore.arch
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.value_ignore.arch.
+    - name: agent.configuration.content.fim.syscheck.value_ignore.entry
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.value_ignore.entry.
+    - name: agent.configuration.content.fim.syscheck.value_ignore_sregex.arch
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.value_ignore_sregex.arch.
+    - name: agent.configuration.content.fim.syscheck.value_ignore_sregex.entry
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.value_ignore_sregex.entry.
+    - name: agent.configuration.content.fim.syscheck.whodata.audit_key
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: fim.syscheck.whodata.audit_key.
+    - name: agent.configuration.content.fim.syscheck.whodata.provider
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.whodata.provider.
+    - name: agent.configuration.content.fim.syscheck.whodata.queue_size
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.whodata.queue_size.
+    - name: agent.configuration.content.fim.syscheck.whodata.restart_audit
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.whodata.restart_audit.
+    - name: agent.configuration.content.fim.syscheck.whodata.startup_healthcheck
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.whodata.startup_healthcheck.
+    - name: agent.configuration.content.fim.syscheck.windows_audit_interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: fim.syscheck.windows_audit_interval.
+    - name: agent.configuration.content.gcp-bucket.buckets.bucket
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: gcp-bucket.buckets.bucket.
+    - name: agent.configuration.content.gcp-bucket.buckets.credentials_file
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: gcp-bucket.buckets.credentials_file.
+    - name: agent.configuration.content.gcp-bucket.buckets.only_logs_after
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-bucket.buckets.only_logs_after.
+    - name: agent.configuration.content.gcp-bucket.buckets.prefix
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: gcp-bucket.buckets.prefix.
+    - name: agent.configuration.content.gcp-bucket.buckets.remove_from_bucket
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: gcp-bucket.buckets.remove_from_bucket.
+    - name: agent.configuration.content.gcp-bucket.buckets.type
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-bucket.buckets.type.
+    - name: agent.configuration.content.gcp-bucket.day
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: gcp-bucket.day.
+    - name: agent.configuration.content.gcp-bucket.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-bucket.enabled.
+    - name: agent.configuration.content.gcp-bucket.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: gcp-bucket.interval.
+    - name: agent.configuration.content.gcp-bucket.logging
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-bucket.logging.
+    - name: agent.configuration.content.gcp-bucket.run_on_start
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-bucket.run_on_start.
+    - name: agent.configuration.content.gcp-bucket.time
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-bucket.time.
+    - name: agent.configuration.content.gcp-bucket.wday
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-bucket.wday.
+    - name: agent.configuration.content.gcp-pubsub.credentials_file
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: gcp-pubsub.credentials_file.
+    - name: agent.configuration.content.gcp-pubsub.day
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: gcp-pubsub.day.
+    - name: agent.configuration.content.gcp-pubsub.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-pubsub.enabled.
+    - name: agent.configuration.content.gcp-pubsub.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: gcp-pubsub.interval.
+    - name: agent.configuration.content.gcp-pubsub.logging
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-pubsub.logging.
+    - name: agent.configuration.content.gcp-pubsub.max_messages
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: gcp-pubsub.max_messages.
+    - name: agent.configuration.content.gcp-pubsub.num_threads
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: gcp-pubsub.num_threads.
+    - name: agent.configuration.content.gcp-pubsub.project_id
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: gcp-pubsub.project_id.
+    - name: agent.configuration.content.gcp-pubsub.pull_on_start
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-pubsub.pull_on_start.
+    - name: agent.configuration.content.gcp-pubsub.subscription_name
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: gcp-pubsub.subscription_name.
+    - name: agent.configuration.content.gcp-pubsub.time
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-pubsub.time.
+    - name: agent.configuration.content.gcp-pubsub.wday
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: gcp-pubsub.wday.
+    - name: agent.configuration.content.github.api_auth.api_token
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: github.api_auth.api_token.
+    - name: agent.configuration.content.github.api_auth.org_name
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: github.api_auth.org_name.
+    - name: agent.configuration.content.github.curl_max_size
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: github.curl_max_size.
+    - name: agent.configuration.content.github.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: github.enabled.
+    - name: agent.configuration.content.github.event_type
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: github.event_type.
+    - name: agent.configuration.content.github.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: github.interval.
+    - name: agent.configuration.content.github.only_future_events
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: github.only_future_events.
+    - name: agent.configuration.content.github.time_delay
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: github.time_delay.
+    - name: agent.configuration.content.logcollector.internal.logcollector.debug
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.debug.
+    - name: agent.configuration.content.logcollector.internal.logcollector.exclude_files_interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.exclude_files_interval.
+    - name: agent.configuration.content.logcollector.internal.logcollector.force_reload
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.force_reload.
+    - name: agent.configuration.content.logcollector.internal.logcollector.input_threads
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.input_threads.
+    - name: agent.configuration.content.logcollector.internal.logcollector.loop_timeout
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.loop_timeout.
+    - name: agent.configuration.content.logcollector.internal.logcollector.max_files
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.max_files.
+    - name: agent.configuration.content.logcollector.internal.logcollector.max_lines
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.max_lines.
+    - name: agent.configuration.content.logcollector.internal.logcollector.open_attempts
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.open_attempts.
+    - name: agent.configuration.content.logcollector.internal.logcollector.queue_size
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.queue_size.
+    - name: agent.configuration.content.logcollector.internal.logcollector.reload_delay
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.reload_delay.
+    - name: agent.configuration.content.logcollector.internal.logcollector.reload_interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.reload_interval.
+    - name: agent.configuration.content.logcollector.internal.logcollector.remote_commands
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.remote_commands.
+    - name: agent.configuration.content.logcollector.internal.logcollector.rlimit_nofile
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.rlimit_nofile.
+    - name: agent.configuration.content.logcollector.internal.logcollector.sample_log_length
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.sample_log_length.
+    - name: agent.configuration.content.logcollector.internal.logcollector.sock_fail_time
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.sock_fail_time.
+    - name: agent.configuration.content.logcollector.internal.logcollector.state_interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.state_interval.
+    - name: agent.configuration.content.logcollector.internal.logcollector.vcheck_files
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.internal.logcollector.vcheck_files.
+    - name: agent.configuration.content.logcollector.localfile.age
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.age.
+    - name: agent.configuration.content.logcollector.localfile.alias
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.alias.
+    - name: agent.configuration.content.logcollector.localfile.channel
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.channel.
+    - name: agent.configuration.content.logcollector.localfile.command
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.command.
+    - name: agent.configuration.content.logcollector.localfile.djb_program_name
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.djb_program_name.
+    - name: agent.configuration.content.logcollector.localfile.duplicate
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.duplicate.
+    - name: agent.configuration.content.logcollector.localfile.exclude
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.exclude.
+    - name: agent.configuration.content.logcollector.localfile.file
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.file.
+    - name: agent.configuration.content.logcollector.localfile.filters.expression
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.filters.expression.
+    - name: agent.configuration.content.logcollector.localfile.filters.field
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.filters.field.
+    - name: agent.configuration.content.logcollector.localfile.filters.ignore_if_missing
+      type: boolean
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.filters.ignore_if_missing.
+    - name: agent.configuration.content.logcollector.localfile.filters_disabled
+      type: boolean
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.filters_disabled.
+    - name: agent.configuration.content.logcollector.localfile.frequency
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.frequency.
+    - name: agent.configuration.content.logcollector.localfile.ignore.type
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.ignore.type.
+    - name: agent.configuration.content.logcollector.localfile.ignore.value
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.ignore.value.
+    - name: agent.configuration.content.logcollector.localfile.ignore_binaries
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.ignore_binaries.
+    - name: agent.configuration.content.logcollector.localfile.logformat
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.logformat.
+    - name: agent.configuration.content.logcollector.localfile.max-size
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.max-size.
+    - name: agent.configuration.content.logcollector.localfile.multiline_regex.match
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.multiline_regex.match.
+    - name: agent.configuration.content.logcollector.localfile.multiline_regex.regex
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.multiline_regex.regex.
+    - name: agent.configuration.content.logcollector.localfile.multiline_regex.replace
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.multiline_regex.replace.
+    - name: agent.configuration.content.logcollector.localfile.multiline_regex.timeout
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.multiline_regex.timeout.
+    - name: agent.configuration.content.logcollector.localfile.only-future-events
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.only-future-events.
+    - name: agent.configuration.content.logcollector.localfile.out_format.format
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.out_format.format.
+    - name: agent.configuration.content.logcollector.localfile.out_format.target
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.out_format.target.
+    - name: agent.configuration.content.logcollector.localfile.query.level
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.query.level.
+    - name: agent.configuration.content.logcollector.localfile.query.type
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.query.type.
+    - name: agent.configuration.content.logcollector.localfile.query.value
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.query.value.
+    - name: agent.configuration.content.logcollector.localfile.reconnect_time
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.reconnect_time.
+    - name: agent.configuration.content.logcollector.localfile.restrict.type
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.restrict.type.
+    - name: agent.configuration.content.logcollector.localfile.restrict.value
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.localfile.restrict.value.
+    - name: agent.configuration.content.logcollector.localfile.target
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.localfile.target.
+    - name: agent.configuration.content.logcollector.socket.location
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.socket.location.
+    - name: agent.configuration.content.logcollector.socket.mode
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: logcollector.socket.mode.
+    - name: agent.configuration.content.logcollector.socket.name
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.socket.name.
+    - name: agent.configuration.content.logcollector.socket.prefix
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: logcollector.socket.prefix.
+    - name: agent.configuration.content.ms_graph.api_auth.api_type
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.api_auth.api_type.
+    - name: agent.configuration.content.ms_graph.api_auth.client_id
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: ms_graph.api_auth.client_id.
+    - name: agent.configuration.content.ms_graph.api_auth.name
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: ms_graph.api_auth.name.
+    - name: agent.configuration.content.ms_graph.api_auth.secret_value
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: ms_graph.api_auth.secret_value.
+    - name: agent.configuration.content.ms_graph.api_auth.tenant_id
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: ms_graph.api_auth.tenant_id.
+    - name: agent.configuration.content.ms_graph.curl_max_size
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.curl_max_size.
+    - name: agent.configuration.content.ms_graph.day
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.day.
+    - name: agent.configuration.content.ms_graph.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.enabled.
+    - name: agent.configuration.content.ms_graph.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.interval.
+    - name: agent.configuration.content.ms_graph.only_future_events
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.only_future_events.
+    - name: agent.configuration.content.ms_graph.page_size
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.page_size.
+    - name: agent.configuration.content.ms_graph.resources.name
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: ms_graph.resources.name.
+    - name: agent.configuration.content.ms_graph.resources.relationship
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: ms_graph.resources.relationship.
+    - name: agent.configuration.content.ms_graph.run_on_start
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.run_on_start.
+    - name: agent.configuration.content.ms_graph.time
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.time.
+    - name: agent.configuration.content.ms_graph.time_delay
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.time_delay.
+    - name: agent.configuration.content.ms_graph.version
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.version.
+    - name: agent.configuration.content.ms_graph.wday
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: ms_graph.wday.
+    - name: agent.configuration.content.office365.api_auth.api_type
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: office365.api_auth.api_type.
+    - name: agent.configuration.content.office365.api_auth.client_id
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: office365.api_auth.client_id.
+    - name: agent.configuration.content.office365.api_auth.client_secret
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: office365.api_auth.client_secret.
+    - name: agent.configuration.content.office365.api_auth.client_secret_path
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: office365.api_auth.client_secret_path.
+    - name: agent.configuration.content.office365.api_auth.tenant_id
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: office365.api_auth.tenant_id.
+    - name: agent.configuration.content.office365.curl_max_size
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: office365.curl_max_size.
+    - name: agent.configuration.content.office365.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: office365.enabled.
+    - name: agent.configuration.content.office365.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: office365.interval.
+    - name: agent.configuration.content.office365.only_future_events
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: office365.only_future_events.
+    - name: agent.configuration.content.office365.subscriptions
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: office365.subscriptions.
+    - name: agent.configuration.content.sca.day
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: sca.day.
+    - name: agent.configuration.content.sca.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: sca.enabled.
+    - name: agent.configuration.content.sca.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: sca.interval.
+    - name: agent.configuration.content.sca.max_eps
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: sca.max_eps.
+    - name: agent.configuration.content.sca.policies.policy
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Agent module configuration: sca.policies.policy.
+    - name: agent.configuration.content.sca.scan_on_start
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: sca.scan_on_start.
+    - name: agent.configuration.content.sca.synchronization.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: sca.synchronization.enabled.
+    - name: agent.configuration.content.sca.synchronization.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: sca.synchronization.interval.
+    - name: agent.configuration.content.sca.synchronization.max_eps
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: sca.synchronization.max_eps.
+    - name: agent.configuration.content.sca.synchronization.response_timeout
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: sca.synchronization.response_timeout.
+    - name: agent.configuration.content.sca.synchronization.sync_end_delay
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: sca.synchronization.sync_end_delay.
+    - name: agent.configuration.content.sca.time
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: sca.time.
+    - name: agent.configuration.content.sca.wday
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: sca.wday.
+    - name: agent.configuration.content.syscollector.browser_extensions
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.browser_extensions.
+    - name: agent.configuration.content.syscollector.disabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.disabled.
+    - name: agent.configuration.content.syscollector.groups
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.groups.
+    - name: agent.configuration.content.syscollector.hardware
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.hardware.
+    - name: agent.configuration.content.syscollector.hotfixes
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.hotfixes.
+    - name: agent.configuration.content.syscollector.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: syscollector.interval.
+    - name: agent.configuration.content.syscollector.max_eps
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: syscollector.max_eps.
+    - name: agent.configuration.content.syscollector.network
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.network.
+    - name: agent.configuration.content.syscollector.notify_first_scan
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.notify_first_scan.
+    - name: agent.configuration.content.syscollector.os
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.os.
+    - name: agent.configuration.content.syscollector.packages
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.packages.
+    - name: agent.configuration.content.syscollector.ports
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.ports.
+    - name: agent.configuration.content.syscollector.ports_all
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.ports_all.
+    - name: agent.configuration.content.syscollector.processes
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.processes.
+    - name: agent.configuration.content.syscollector.scan-on-start
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.scan-on-start.
+    - name: agent.configuration.content.syscollector.services
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.services.
+    - name: agent.configuration.content.syscollector.synchronization.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.synchronization.enabled.
+    - name: agent.configuration.content.syscollector.synchronization.integrity_interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: syscollector.synchronization.integrity_interval.
+    - name: agent.configuration.content.syscollector.synchronization.interval
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: syscollector.synchronization.interval.
+    - name: agent.configuration.content.syscollector.synchronization.max_eps
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: syscollector.synchronization.max_eps.
+    - name: agent.configuration.content.syscollector.synchronization.response_timeout
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: syscollector.synchronization.response_timeout.
+    - name: agent.configuration.content.syscollector.synchronization.sync_end_delay
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: syscollector.synchronization.sync_end_delay.
+    - name: agent.configuration.content.syscollector.users
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: syscollector.users.
+    - name: agent.configuration.content.wazuh_control.enabled
+      type: keyword
+      level: custom
+      description: >
+        Agent module configuration: wazuh_control.enabled.
+    - name: agent.configuration.content.wmodules.internal_options.wazuh_modules.debug
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: wmodules.internal_options.wazuh_modules.debug.
+    - name: agent.configuration.content.wmodules.internal_options.wazuh_modules.kill_timeout
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: wmodules.internal_options.wazuh_modules.kill_timeout.
+    - name: agent.configuration.content.wmodules.internal_options.wazuh_modules.max_eps
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: wmodules.internal_options.wazuh_modules.max_eps.
+    - name: agent.configuration.content.wmodules.internal_options.wazuh_modules.task_nice
+      type: long
+      level: custom
+      description: >
+        Agent module configuration: wmodules.internal_options.wazuh_modules.task_nice.
+    - name: agent.configuration.modules
+      type: keyword
+      level: custom
+      ignore_above: 256
+      description: >
+        List of modules present in the reported agent configuration.
+    - name: agent.id
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Unique identifier of the Wazuh agent.
+    - name: cluster.name
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Wazuh cluster name.
+    - name: cluster.node
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Wazuh cluster node name.
+    - name: schema.version
+      type: keyword
+      level: custom
+      ignore_above: 1024
+      description: >
+        Wazuh schema version.
