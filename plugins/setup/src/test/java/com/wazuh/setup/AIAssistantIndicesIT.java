@@ -34,10 +34,12 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.containsString;
 
 /**
- * Integration tests verifying that the setup plugin creates the AI assistant resources: the {@code
- * wazuh-ai-assistant-sessions} data stream (with its index template and ISM policy) and the hidden
- * {@code .wazuh-ai-assistant-settings} index, which holds both the AI providers configuration and
- * the assistant-wide settings.
+ * Integration tests verifying that the setup plugin creates the AI assistant sessions resources:
+ * the {@code wazuh-ai-assistant-sessions} data stream, its index template and its ISM policy.
+ *
+ * <p>The AI assistant's providers, settings and field policy no longer live in a setup-plugin-owned
+ * index: they are merged into the content-manager-owned {@code .wazuh-internal-state} index and
+ * reached only through the setup plugin's admin endpoint (see {@code AiAssistantSettingsAdminIT}).
  */
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public class AIAssistantIndicesIT extends OpenSearchRestTestCase {
@@ -45,7 +47,7 @@ public class AIAssistantIndicesIT extends OpenSearchRestTestCase {
     private static final String SESSIONS_DATA_STREAM = "wazuh-ai-assistant-sessions";
     private static final String SESSIONS_TEMPLATE = SESSIONS_DATA_STREAM + "-template";
     private static final String SESSIONS_POLICY = "ai-assistant-sessions-policy";
-    private static final String SETTINGS_INDEX = ".wazuh-ai-assistant-settings";
+    private static final String SETTINGS_INDEX = ".wazuh-settings";
 
     private static final int MAX_WAIT_SECONDS = 120;
     private static final int POLL_INTERVAL_MS = 500;
@@ -172,126 +174,6 @@ public class AIAssistantIndicesIT extends OpenSearchRestTestCase {
         assertThat(body, containsString(SESSIONS_POLICY));
         assertThat(body, containsString("\"min_index_age\":\"1d\""));
         assertThat(body, containsString("\"min_index_age\":\"7d\""));
-    }
-
-    /**
-     * Verifies that the AI assistant settings index is created as a hidden index with strict
-     * mappings, holding both the {@code providers} and the {@code settings} objects.
-     *
-     * @throws IOException if there is an issue with the HTTP request
-     * @throws ParseException if there is an issue parsing the response
-     */
-    public void testSettingsIndexCreated() throws IOException, ParseException {
-        Request request = new Request("GET", "/" + SETTINGS_INDEX);
-        request.addParameter("expand_wildcards", "all");
-        Response response = client().performRequest(request);
-        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-
-        logger.info("Index response for [{}]: {}", SETTINGS_INDEX, body);
-        assertThat(body, containsString(SETTINGS_INDEX));
-        assertThat(body, containsString("\"hidden\":\"true\""));
-        assertThat(body, containsString("\"dynamic\":\"strict\""));
-        assertThat(body, containsString("\"providers\""));
-        assertThat(body, containsString("api_key"));
-        assertThat(body, containsString("\"settings\""));
-        assertThat(body, containsString("conversationRetentionDays"));
-        assertThat(body, containsString("privacyDefaultOn"));
-        assertThat(body, containsString("privacyDefaultPerProvider"));
-        assertThat(body, containsString("userCanOverride"));
-    }
-
-    /**
-     * Verifies that the strict mapping of the settings index rejects unknown fields.
-     *
-     * @throws IOException if there is an issue with the HTTP request
-     */
-    public void testSettingsIndexRejectsUnknownFields() throws IOException {
-        Request request = new Request("POST", "/" + SETTINGS_INDEX + "/_doc");
-        request.setJsonEntity("{\"providers\":{\"name\":\"test-ai\"},\"unexpected_field\":\"value\"}");
-
-        ResponseException exception =
-                expectThrows(ResponseException.class, () -> client().performRequest(request));
-        assertEquals(400, exception.getResponse().getStatusLine().getStatusCode());
-    }
-
-    /**
-     * Verifies that a provider document and a settings document can coexist in the same index, since
-     * the settings index holds two kinds of documents sharing a single strict mapping.
-     *
-     * @throws IOException if there is an issue with the HTTP request
-     */
-    public void testSettingsIndexHoldsProvidersAndSettingsDocuments() throws IOException {
-        Request providerDoc = new Request("POST", "/" + SETTINGS_INDEX + "/_doc");
-        providerDoc.setJsonEntity(
-                "{\"providers\":{\"name\":\"test-ai\",\"type\":\"anthropic\","
-                        + "\"base_url\":\"https://api.anthropic.com\",\"model\":\"claude-opus-4-6\","
-                        + "\"api_key\":\"enc:v1:SC/RyOIBkdm+kGl\",\"is_default\":true}}");
-        Response providerResponse = client().performRequest(providerDoc);
-        assertEquals(201, providerResponse.getStatusLine().getStatusCode());
-
-        Request settingsDoc = new Request("PUT", "/" + SETTINGS_INDEX + "/_doc/1");
-        settingsDoc.setJsonEntity(
-                "{\"settings\":{\"conversationRetentionDays\":0,\"privacyDefaultOn\":false,"
-                        + "\"privacyDefaultPerProvider\":{},\"userCanOverride\":true}}");
-        Response settingsResponse = client().performRequest(settingsDoc);
-        assertEquals(201, settingsResponse.getStatusLine().getStatusCode());
-    }
-
-    /**
-     * Verifies that a document indexed without a {@code visible_to} field comes back with the backend
-     * roles allowed to read it, injected by the plugin's action filter. Clients never write the field
-     * themselves, and a value they do send is overwritten.
-     *
-     * @throws IOException if there is an issue with the HTTP request
-     * @throws ParseException if there is an issue parsing the response
-     */
-    public void testSettingsDocumentsAreStampedWithVisibleTo() throws IOException, ParseException {
-        Request document = new Request("PUT", "/" + SETTINGS_INDEX + "/_doc/visibility-check");
-        document.addParameter("refresh", "true");
-        document.setJsonEntity(
-                "{\"providers\":{\"name\":\"visibility-check\"},\"visible_to\":[\"attacker\"]}");
-        assertEquals(201, client().performRequest(document).getStatusLine().getStatusCode());
-
-        Response response =
-                client().performRequest(new Request("GET", "/" + SETTINGS_INDEX + "/_doc/visibility-check"));
-        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-
-        logger.info("Document response for [{}]: {}", SETTINGS_INDEX, body);
-        assertThat(body, containsString("\"visible_to\":[\"admin\",\"wazuh-admin\"]"));
-    }
-
-    /**
-     * Verifies that the documents created through the write paths that do not go through a plain index
-     * request - bulk items and {@code doc_as_upsert} updates - are stamped as well, and that a value
-     * sent by the client is discarded.
-     *
-     * @throws IOException if there is an issue with the HTTP request
-     * @throws ParseException if there is an issue parsing the response
-     */
-    public void testVisibleToIsStampedOnEveryWritePath() throws IOException, ParseException {
-        Request bulk = new Request("POST", "/_bulk");
-        bulk.addParameter("refresh", "true");
-        bulk.setJsonEntity(
-                "{\"index\":{\"_index\":\""
-                        + SETTINGS_INDEX
-                        + "\",\"_id\":\"bulk-check\"}}\n"
-                        + "{\"providers\":{\"name\":\"bulk-ai\"},\"visible_to\":[\"attacker\"]}\n");
-        client().performRequest(bulk);
-
-        Request upsert = new Request("POST", "/" + SETTINGS_INDEX + "/_update/upsert-check");
-        upsert.addParameter("refresh", "true");
-        upsert.setJsonEntity(
-                "{\"doc\":{\"providers\":{\"name\":\"upsert-ai\"}},\"doc_as_upsert\":true}");
-        client().performRequest(upsert);
-
-        for (String id : new String[] {"bulk-check", "upsert-check"}) {
-            Response response =
-                    client().performRequest(new Request("GET", "/" + SETTINGS_INDEX + "/_doc/" + id));
-            String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-
-            logger.info("Document [{}] of [{}]: {}", id, SETTINGS_INDEX, body);
-            assertThat(body, containsString("\"visible_to\":[\"admin\",\"wazuh-admin\"]"));
-        }
     }
 
     /**
