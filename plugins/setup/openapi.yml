@@ -127,10 +127,12 @@ paths:
 
   /ai_assistant/settings:
     get:
-      summary: Read the AI assistant's providers, settings and field policy
+      summary: Read the AI assistant's settings and field policy
       description: |
-        Reads the combined providers, settings and field policy configuration from
-        `.wazuh-internal-state`. Never includes the CTI access token also stored there.
+        Reads the `settings` and `field_policy` keys from the reserved settings document in
+        `.wazuh-internal-state`. Providers are stored as separate documents; read them via
+        `GET /ai_assistant/settings/providers`. Never includes the CTI access token also
+        stored there.
       operationId: getAiAssistantSettings
       tags:
         - AI Assistant
@@ -143,7 +145,7 @@ paths:
                 $ref: "#/components/schemas/AiAssistantSettingsResponse"
               examples:
                 default:
-                  summary: Providers, settings and field policy
+                  summary: Settings and field policy
                   value:
                     settings:
                       privacy_default_on: false
@@ -158,14 +160,6 @@ paths:
                         kind: IP
                       - field: wazuh.agent.id
                         action: allow
-                    providers:
-                      - _id: 8c11c90d-1ead-4901-a5f0-1bd6d0a931cb
-                        name: test-ai
-                        type: anthropic
-                        base_url: https://api.anthropic.com
-                        model: claude-opus-4-6
-                        api_key: "enc:v1:SC/RyOIBkdm+kGl"
-                        is_default: true
         "403":
           description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/settings/read` cluster permission.
     put:
@@ -333,6 +327,8 @@ paths:
                     id: 8c11c90d-1ead-4901-a5f0-1bd6d0a931cb
         "403":
           description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
+        "404":
+          description: Not Found - No provider exists with the given id.
 
 components:
   schemas:
@@ -427,10 +423,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AiAssistantFieldPolicyEntry"
-        providers:
-          type: array
-          items:
-            $ref: "#/components/schemas/AiAssistantProvider"
 
     AiAssistantSettingsRequest:
       type: object
