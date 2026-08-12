@@ -129,9 +129,8 @@ paths:
     get:
       summary: Read the AI assistant's settings and field policy
       description: |
-        Reads the `settings` and `field_policy` keys from the reserved settings document in
-        `.wazuh-internal-state`. Providers are stored as separate documents; read them via
-        `GET /ai_assistant/providers`.
+        Reads the reserved settings document in `.wazuh-internal-state`. Providers are stored as separate 
+        documents; read them via `GET /ai_assistant/providers`.
       operationId: getAiAssistantSettings
       tags:
         - AI Assistant
@@ -146,10 +145,9 @@ paths:
                 default:
                   summary: Settings and field policy
                   value:
-                    settings:
-                      privacy_default_on: false
-                      privacy_default_per_provider: {}
-                      user_can_override: true
+                    privacy_default_on: false
+                    privacy_default_per_provider: {}
+                    user_can_override: true
                     field_policy:
                       - field: wazuh.agent.name
                         action: anonymize
@@ -164,7 +162,7 @@ paths:
     put:
       summary: Upsert the AI assistant's settings and field policy
       description: |
-        Persists the `settings` and `field_policy` keys to the reserved settings document in
+        Persists the settings and `field_policy` to the reserved settings document in
         `.wazuh-internal-state`. Any other key in the request body is ignored.
       operationId: putAiAssistantSettings
       tags:
@@ -385,17 +383,6 @@ components:
         - message
         - status
 
-    AiAssistantSettings:
-      type: object
-      properties:
-        privacy_default_on:
-          type: boolean
-        privacy_default_per_provider:
-          type: object
-          additionalProperties: true
-        user_can_override:
-          type: boolean
-
     AiAssistantFieldPolicyEntry:
       type: object
       required:
@@ -434,12 +421,26 @@ components:
           type: string
         is_default:
           type: boolean
+        references:
+          type: array
+          items: {}
+          description: Client-supplied, indexer-opaque metadata. No fixed shape.
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          description: When this document was last written. Always server-stamped.
 
     AiAssistantSettingsResponse:
       type: object
       properties:
-        settings:
-          $ref: "#/components/schemas/AiAssistantSettings"
+        privacy_default_on:
+          type: boolean
+        privacy_default_per_provider:
+          type: object
+          additionalProperties: true
+        user_can_override:
+          type: boolean
         field_policy:
           type: array
           items:
@@ -455,10 +456,16 @@ components:
 
     AiAssistantSettingsRequest:
       type: object
-      description: Only the `settings` and `field_policy` keys are persisted; anything else is ignored.
+      description: |
+        Only these keys are persisted; anything else is ignored.
       properties:
-        settings:
-          $ref: "#/components/schemas/AiAssistantSettings"
+        privacy_default_on:
+          type: boolean
+        privacy_default_per_provider:
+          type: object
+          additionalProperties: true
+        user_can_override:
+          type: boolean
         field_policy:
           type: array
           items:
@@ -483,6 +490,14 @@ components:
           type: string
         is_default:
           type: boolean
+        references:
+          type: array
+          items: {}
+          description: Client-supplied, indexer-opaque metadata. No fixed shape.
+        updated_at:
+          type: string
+          format: date-time
+          description: Ignored if sent — always overwritten with a server-stamped timestamp.
 
     AiAssistantProviderCreateRequest:
       type: object
@@ -511,6 +526,14 @@ components:
           type: string
         is_default:
           type: boolean
+        references:
+          type: array
+          items: {}
+          description: Client-supplied, indexer-opaque metadata. No fixed shape.
+        updated_at:
+          type: string
+          format: date-time
+          description: Ignored if sent — always overwritten with a server-stamped timestamp.
 
     AiAssistantProviderWriteResponse:
       type: object
