@@ -45,8 +45,7 @@ Service account used by the Wazuh Manager for data ingestion and content reads.
   - `read` on `.wazuh-cti-consumers`, `wazuh-active-responses*`, `wazuh-threatintel-*`.
   - `read`, `index` on `wazuh-events-v5-*`, `wazuh-metrics-*`.
   - `read`, `index`, `delete` on `wazuh-states-*`.
-  - `read`, `index` on `wazuh-agent-config*`.
-  - `read`, `index` on `wazuh-agent-stats*`.
+  - `read`, `index` and `delete` on `wazuh-agent-*`.
   - `manage_point_in_time` on `.wazuh-threatintel-vulnerabilities*`, `wazuh-threatintel-*`.
 
 #### `wazuh_admin`
