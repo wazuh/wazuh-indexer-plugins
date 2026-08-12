@@ -110,8 +110,17 @@ function map_ai_assistant_modules() {
   if [[ -d "wcs/ai-assistant/sessions" ]]; then
     all_modules["ai-assistant/sessions"]="templates/streams/ai-assistant-sessions.json"
   fi
-  if [[ -d "wcs/ai-assistant/settings" ]]; then
-    all_modules["ai-assistant/settings"]="templates/ai-assistant-settings.json"
+}
+
+# ====
+# Map internal-state module. Unlike every other module, its generated template
+# is consumed by the content-manager plugin (CredentialsIndex), not by setup, so
+# the mapped value is a full repo-relative path rather than a bare filename under
+# plugins/setup/src/main/resources/templates/.
+# ====
+function map_internal_state_module() {
+  if [[ -d "wcs/internal-state" ]]; then
+    all_modules["internal-state"]="plugins/content-manager/src/main/resources/mappings/internal-state-mapping.json"
   fi
 }
 
@@ -203,6 +212,11 @@ function sort_and_output_modules() {
     done
   fi
 
+  if [[ -n "${all_modules[internal-state]}" ]]; then
+    echo "  # Internal state module" >>"$output_file"
+    echo "  [internal-state]=${all_modules[internal-state]}" >>"$output_file"
+  fi
+
   echo ")" >>"$output_file"
 }
 
@@ -231,6 +245,8 @@ function main() {
   map_cve_module
 
   map_ai_assistant_modules
+
+  map_internal_state_module
 
   # Sort and output
   sort_and_output_modules "$output_file"

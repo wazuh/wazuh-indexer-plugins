@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    ".wazuh-ai-assistant-settings*"
+    ".wazuh-internal-state*"
   ],
   "priority": 1,
   "template": {
@@ -9,7 +9,7 @@
         "codec": "zstd",
         "number_of_shards": "1",
         "number_of_replicas": "0",
-        "refresh_interval": "1s",
+        "refresh_interval": "-1",
         "hidden": true
       }
     }
