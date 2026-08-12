@@ -21,7 +21,6 @@ classDiagram
     <<abstract>> WazuhIndex
     class StateIndex
     class StreamIndex
-    class AIAssistantSettingsIndex
 
     %% Relations
     IndexInitializer <|-- Index : implements
@@ -29,7 +28,6 @@ classDiagram
     Index <|-- WazuhIndex
     WazuhIndex <|-- StateIndex
     WazuhIndex <|-- StreamIndex
-    StateIndex <|-- AIAssistantSettingsIndex
 
     %% Schemas
     class IndexInitializer {
@@ -43,7 +41,7 @@ classDiagram
         String index
         String template
         +Index(String index, String template)
-        +setClient(Client client) IndexInitializer
+        +setClient(Client client) IndexInitiali— including administrators, by designzer
         +setClusterService(ClusterService clusterService) IndexInitializer
         +setIndexUtils(IndexUtils utils) IndexInitializer
         +indexExists(String indexName) bool
@@ -65,11 +63,6 @@ classDiagram
         +createIndex(String index)
     }
     class StateIndex {
-    }
-    class AIAssistantSettingsIndex {
-        +String INDEX_NAME
-        +String VISIBILITY_FIELD
-        +List~String~ VISIBLE_TO
     }
 ```
 
@@ -525,7 +518,7 @@ The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh
 
 ### Overview
 
-The AI assistant stores its conversation history in the **`wazuh-ai-assistant-sessions`** data stream (a `StreamIndex`), and its providers configuration plus assistant-wide settings in the hidden **`.wazuh-ai-assistant-settings`** index (an `AIAssistantSettingsIndex`, a `StateIndex` that also holds the constants backing its access control). Both use strict mappings.
+The AI assistant stores its conversation history in the **`wazuh-ai-assistant-sessions`** data stream (a `StreamIndex`). Its providers configuration, assistant-wide settings and field policy live in the hidden **`.wazuh-internal-state`** index reached only through the setup plugin's administrative AI assistant API, described below. Both indices use strict mappings.
 
 ### Sessions data stream (`wazuh-ai-assistant-sessions`)
 
@@ -547,39 +540,70 @@ The AI assistant stores its conversation history in the **`wazuh-ai-assistant-se
 
 Access is granted by the `wazuh_ai_assistant` role, defined in the `wazuh-indexer` repository and mapped to every authenticated user. Reads are filtered with DLS parameter substitution (`{"term": {"user": "${user.name}"}}`), so a user only retrieves their own conversations; writes carry no DLS query. The restriction also applies to users holding a role that grants `read` on the `*` index pattern.
 
-### Settings index (`.wazuh-ai-assistant-settings`)
+#### Administrative sessions API
 
-#### Index template
-- **Location**: `plugins/setup/src/main/resources/templates/ai-assistant-settings.json`
-- **Index Pattern**: `.wazuh-ai-assistant-settings*`
-- **Priority**: 1
-- **Hidden**: yes. Not rolled over and not managed by ISM (registered as a plain `StateIndex`, like the stateful inventory indices — no timestamps, always represents the current configuration)
+Because the per-owner DLS blocks even `wazuh-admin`/`admin` from reading anyone else's conversations, a separate privileged API lets administrators and the Dashboard backend operate on any user's sessions (support, audit, moderation) without weakening the isolation above for everyone else:
 
-The index holds two kinds of documents under one mapping, avoiding a second index for what would otherwise be a handful of settings fields. Each kind lives under its own top-level object, so the two never collide despite the strict mapping:
+| Endpoint | Method | Cluster permission | Backed by |
+| --- | --- | --- | --- |
+| `/_plugins/_setup/ai_assistant/sessions` | `GET` | `plugin:wazuh/ai_assistant/sessions/read` | `SearchSessionsAction` / `TransportSearchSessionsAction` |
+| `/_plugins/_setup/ai_assistant/sessions/{id}` | `DELETE` | `plugin:wazuh/ai_assistant/sessions/write` | `DeleteSessionAction` / `TransportDeleteSessionAction` |
 
-- One document per configured AI provider, under **providers**: `providers.name`, `providers.type`, `providers.base_url`, `providers.model`, `providers.api_key`, `providers.is_default`. `providers.api_key`.
-- Assistant-wide settings, under **settings**: `settings.conversationRetentionDays`, `settings.privacyDefaultOn`, `settings.privacyDefaultPerProvider`, `settings.userCanOverride`.
+`GET` accepts an optional `user` query parameter (omit it to search across every user) and an optional `size` parameter (default 100, capped at `AiAssistantSessionsAdminIndex.MAX_SEARCH_SIZE` = 500).
 
-Both kinds also carry a top-level **visible_to** keyword listing the backend roles allowed to read the document. It is never written by clients — see *Access control* below.
+The DLS bypass is implemented in `AiAssistantSessionsAdminIndex`: both operations run the underlying `client.search`/`client.execute(DeleteByQueryAction...)` call inside `ThreadContext.stashContext()`, so the calling user's security context, and therefore their per-owner DLS, does not apply to that internal call. The bypass only takes effect for callers the security plugin has already authorized to invoke the gating transport action in the first place; a caller without the cluster permission never reaches this code at all. `wazuh_admin` is granted both permissions (read + write); `wazuh_demo` and `wazuh_readonly` are granted read only.
+
+### Settings, field policy and providers (`.wazuh-internal-state`)
+
+`.wazuh-internal-state` is created and owned by the **Content Manager** plugin (`CredentialsIndex`), not by setup — setup only reads and writes it through the administrative AI assistant API described below. Its mapping is generated by the `wcs/internal-state` WCS module and lands at `plugins/content-manager/src/main/resources/mappings/internal-state-mapping.json`; it is `dynamic: strict`.
+
+The index holds several kinds of documents under one mapping, avoiding a separate index for what would otherwise be a handful of settings fields.
+
+- One document per configured AI provider, id an arbitrary UUID: `name`, `type`, `base_url`, `model`, `api_key`, `is_default`, `updated_at`.
+- A single reserved-id document (id `"wazuh-ai-assistant-settings"`) holding the assistant-wide settings and the field anonymization policy, under `field_policy`
+- A single reserved-id document (`"credentials"`), owned entirely by Content Manager. The administrative AI assistant API never reads or returns this document.
 
 Example documents:
 
 ```json
 // Provider document
-{ "providers": { "name": "test-ai", "type": "anthropic", "base_url": "https://api.anthropic.com", "model": "claude-opus-4-6", "api_key": "enc:v1:SC/RyOIBkdm+kGl", "is_default": true } }
+{ "name": "test-ai", "type": "anthropic", "base_url": "https://api.anthropic.com", "model": "claude-opus-4-6", "api_key": "enc:v1:SC/RyOIBkdm+kGl", "is_default": true, "updated_at": "2026-08-03T09:54:52.193Z" }
 
-// Settings document
-{ "settings": { "conversationRetentionDays": 0, "privacyDefaultOn": false, "privacyDefaultPerProvider": {}, "userCanOverride": true } }
+// Settings + field policy document (reserved id "wazuh-ai-assistant-settings")
+{
+  "privacy_default_on": false,
+  "privacy_default_per_provider": {},
+  "user_can_override": true,
+  "field_policy": [
+    { "field": "wazuh.agent.name", "action": "anonymize", "kind": "HOST" },
+    { "field": "wazuh.agent.host.ip", "action": "anonymize", "kind": "IP" },
+    { "field": "wazuh.agent.id", "action": "allow" }
+  ]
+}
 ```
 
-#### Access control
+#### Administrative AI assistant API
 
-The index holds the AI provider API keys, so it must stay unreadable for the roles granting `read` on `*`. OpenSearch Security has no deny rules, so the exclusion is expressed as a Document Level Security query instead, in two halves:
+`.wazuh-internal-state` is registered as an OpenSearch Security system index, so no role's index permissionscan access the documents of the index. So queries to this index depen on the Administrative API provided for it:
+| Endpoint | Method | Cluster permission | Backed by |
+| --- | --- | --- | --- |
+| `/_plugins/_setup/ai_assistant/settings` | `GET` | `plugin:wazuh/ai_assistant/settings/read` | `GetAiAssistantSettingsAction` / `TransportGetAiAssistantSettingsAction`, `Operation.SETTINGS` |
+| `/_plugins/_setup/ai_assistant/settings` | `PUT` | `plugin:wazuh/ai_assistant/settings/write` | `PutAiAssistantSettingsAction` / `TransportPutAiAssistantSettingsAction`, `Operation.SETTINGS` |
+| `/_plugins/_setup/ai_assistant/providers` | `GET` | `plugin:wazuh/ai_assistant/settings/read` | same `Get*` action, `Operation.LIST_PROVIDERS` — `AiAssistantSettingsAdminIndex.listProviders()` |
+| `/_plugins/_setup/ai_assistant/providers` | `POST` | `plugin:wazuh/ai_assistant/settings/write` | same `Put*` action, `Operation.PUT_PROVIDER`; body must carry the UUID `id` to create with |
+| `/_plugins/_setup/ai_assistant/providers/{id}` | `PUT`, `DELETE` | `plugin:wazuh/ai_assistant/settings/write` | same, `Operation.PUT_PROVIDER` / `Operation.DELETE_PROVIDER` |
 
-- `AIAssistantSettingsVisibilityFilter`, an `ActionFilter` registered by `SetupPlugin.getActionFilters()`, intercepts every `IndexRequest`, `UpdateRequest` and `BulkRequest` item whose target index starts with `.wazuh-ai-assistant-settings` and overwrites `visible_to` with the `VISIBLE_TO` constant (`["admin", "wazuh-admin"]`), whatever the client sent. It runs at `Integer.MIN_VALUE` order, so no other filter observes the un-stamped document. Update requests get both their partial document and their upsert stamped: a partial update merges into a source that already holds the field, but an upsert creates a document from scratch.
-- The `wazuh_ai_assistant_settings` role, defined in the `wazuh-indexer` repository and mapped to every authenticated user, carries the DLS query `{"terms": {"visible_to": [${user.roles}]}}`. `${user.roles}` expands to the reader's **backend** roles, not to its mapped security roles: `admin` (behind `all_access` and `wazuh_admin`) and `wazuh-admin` (carried by the `wazuh-admin` internal user, which is mapped by username). A reader holding neither backend role matches no document, so `wazuh-manager`, `wazuh-demo`, `wazuh-readonly` and any custom role granting `read` on `*` get an empty result set.
+`GET /ai_assistant/settings` returns the settings document flat providers are a separate resource, listed via `GET /ai_assistant/providers`, which excludes the two reserved document ids (`"wazuh-ai-assistant-settings"`, `"credentials"`). 
 
-The index is deliberately **not** a security system index. Registering it there requires `plugins.security.system_indices.permission.enabled: true`, which additionally turns `.opendistro_security` into a super-admin-certificate-only index and makes OpenSearch Security reject every request whose resolved index set contains a protected system index. In that mode `GET _cat/indices/.*` returns a `403` for every user, `admin` included.
+`PUT /ai_assistant/settings` always replaces the whole document: the caller sends the complete set of settings fields and the complete `field_policy` array on every write, not a partial diff 
+
+`POST /ai_assistant/providers`'s body must include an `id` field, since other integrations depend on the document ending up with the exact id they sent: it must be a UUID, rejected with `400` when missing or malformed
+
+`DELETE /ai_assistant/providers/{id}` returns `404` when no provider exists with that id, including on a repeated delete.
+
+`GET /ai_assistant/settings` returns the settings document's source as-is. 
+
+`GET /ai_assistant/providers` returns `{"providers": [{..., "_id": "..."}]}`, each entry the provider document's source flattened with its `_id`, assembled by `AiAssistantSettingsAdminIndex.listProviders()`.
 
 ### ISM policy (`ai-assistant-sessions-policy`)
 
@@ -604,4 +628,10 @@ The index is deliberately **not** a security system index. Registering it there 
 ### Testing
 
 Integration tests for the AI assistant indices are located at:
-`plugins/setup/src/test/java/com/wazuh/setup/AiAssistantIndicesIT.java`
+`plugins/setup/src/test/java/com/wazuh/setup/AIAssistantIndicesIT.java`
+
+Integration tests for the administrative sessions API are located at:
+`plugins/setup/src/test/java/com/wazuh/setup/AiAssistantSessionsAdminIT.java`
+
+Integration tests for the administrative AI assistant API are located at:
+`plugins/setup/src/test/java/com/wazuh/setup/AiAssistantSettingsAdminIT.java`
