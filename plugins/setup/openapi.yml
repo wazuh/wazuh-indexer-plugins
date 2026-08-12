@@ -131,8 +131,7 @@ paths:
       description: |
         Reads the `settings` and `field_policy` keys from the reserved settings document in
         `.wazuh-internal-state`. Providers are stored as separate documents; read them via
-        `GET /ai_assistant/settings/providers`. Never includes the CTI access token also
-        stored there.
+        `GET /ai_assistant/providers`.
       operationId: getAiAssistantSettings
       tags:
         - AI Assistant
@@ -198,10 +197,40 @@ paths:
         "403":
           description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
 
-  /ai_assistant/settings/providers:
+  /ai_assistant/providers:
+    get:
+      summary: List every AI provider
+      description: |
+        Returns every provider document in `.wazuh-internal-state`.
+      operationId: listAiAssistantProviders
+      tags:
+        - AI Assistant
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAssistantProviderListResponse"
+              examples:
+                default:
+                  summary: Provider list
+                  value:
+                    providers:
+                      - _id: 8c11c90d-1ead-4901-a5f0-1bd6d0a931cb
+                        name: test-ai
+                        type: anthropic
+                        base_url: https://api.anthropic.com
+                        model: claude-opus-4-6
+                        api_key: "enc:v1:SC/RyOIBkdm+kGl"
+                        is_default: true
+        "403":
+          description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/settings/read` cluster permission.
     post:
       summary: Create an AI provider
-      description: Creates a new provider document with a generated id.
+      description: |
+        Creates a new provider document. The body must include an `id`, which must be a UUID and
+        is used as the document id.
       operationId: createAiAssistantProvider
       tags:
         - AI Assistant
@@ -210,7 +239,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AiAssistantProviderRequest"
+              $ref: "#/components/schemas/AiAssistantProviderCreateRequest"
+            examples:
+              default:
+                summary: Create with a client-supplied UUID
+                value:
+                  id: 8c11c90d-1ead-4901-a5f0-1bd6d0a931cb
+                  name: test-ai
+                  type: anthropic
+                  base_url: https://api.anthropic.com
+                  model: claude-opus-4-6
+                  api_key: "enc:v1:SC/RyOIBkdm+kGl"
+                  is_default: true
       responses:
         "200":
           description: OK - Provider created.
@@ -226,50 +266,30 @@ paths:
                     status: 200
                     id: 8c11c90d-1ead-4901-a5f0-1bd6d0a931cb
         "400":
-          description: Bad Request - Empty or malformed request body.
+          description: |
+            Bad Request - Empty/malformed request body, missing `id`, or a non-UUID `id`.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestResponse"
+              examples:
+                missing_id:
+                  summary: Missing id
+                  value:
+                    message: "Provider id is required."
+                    status: 400
+                invalid_id:
+                  summary: Non-UUID id
+                  value:
+                    message: "Provider id must be a valid UUID."
+                    status: 400
         "403":
           description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
 
-  /ai_assistant/settings/providers/{id}:
-    get:
-      summary: Read a single AI provider by id
-      operationId: getAiAssistantProvider
-      tags:
-        - AI Assistant
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AiAssistantProvider"
-              examples:
-                default:
-                  summary: A single provider
-                  value:
-                    _id: 8c11c90d-1ead-4901-a5f0-1bd6d0a931cb
-                    name: test-ai
-                    type: anthropic
-                    base_url: https://api.anthropic.com
-                    model: claude-opus-4-6
-                    api_key: "enc:v1:SC/RyOIBkdm+kGl"
-                    is_default: true
-        "403":
-          description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/settings/read` cluster permission.
-        "404":
-          description: Not Found - No provider exists with the given id.
+  /ai_assistant/providers/{id}:
     put:
-      summary: Create or update an AI provider by id
+      summary: Update an AI provider by id
+      description: Creates or updates the provider document with the given id.
       operationId: putAiAssistantProvider
       tags:
         - AI Assistant
@@ -302,6 +322,7 @@ paths:
           description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
     delete:
       summary: Delete an AI provider by id
+      description: Deletes the provider document with the given id.
       operationId: deleteAiAssistantProvider
       tags:
         - AI Assistant
@@ -424,6 +445,14 @@ components:
           items:
             $ref: "#/components/schemas/AiAssistantFieldPolicyEntry"
 
+    AiAssistantProviderListResponse:
+      type: object
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiAssistantProvider"
+
     AiAssistantSettingsRequest:
       type: object
       description: Only the `settings` and `field_policy` keys are persisted; anything else is ignored.
@@ -437,8 +466,37 @@ components:
 
     AiAssistantProviderRequest:
       type: object
+      description: Body for `PUT /ai_assistant/providers/{id}` — the path segment is the id.
       additionalProperties: false
       properties:
+        name:
+          type: string
+        type:
+          type: string
+          example: anthropic
+        base_url:
+          type: string
+          format: uri
+        model:
+          type: string
+        api_key:
+          type: string
+        is_default:
+          type: boolean
+
+    AiAssistantProviderCreateRequest:
+      type: object
+      description: Body for `POST /ai_assistant/providers`.
+      additionalProperties: false
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: |
+            The document id the provider is created with. Must be a UUID. Never persisted as a
+            provider field.
         name:
           type: string
         type:
