@@ -559,7 +559,7 @@ The DLS bypass is implemented in `AiAssistantSessionsAdminIndex`: both operation
 
 The index holds several kinds of documents under one mapping, avoiding a separate index for what would otherwise be a handful of settings fields.
 
-- One document per configured AI provider, id an arbitrary UUID: `name`, `type`, `base_url`, `model`, `api_key`, `is_default`, `updated_at`.
+- One document per configured AI provider, id an arbitrary UUID: `name`, `type`, `base_url`, `model`, `api_key`, `is_default`, `updated_at`. `listProviders()` caps the result at `AiAssistantSettingsAdminIndex.MAX_PROVIDERS` = 500.
 - A single reserved-id document (id `"wazuh-ai-assistant-settings"`) holding the assistant-wide settings and the field anonymization policy, under `field_policy`
 - A single reserved-id document (`"credentials"`), owned entirely by Content Manager. The administrative AI assistant API never reads or returns this document.
 
