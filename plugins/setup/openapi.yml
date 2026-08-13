@@ -31,6 +31,12 @@ tags:
       These are stored, along with the CTI access token, in the hidden system index
       `.wazuh-internal-state`, which is unreachable through ordinary index permissions; these
       endpoints are the only way to read or write that data.
+  - name: AI Assistant Sessions
+    description: |
+      Administrative operations over the `wazuh-ai-assistant-sessions` data stream. Every user's
+      own reads are restricted by Document Level Security to their own conversations
+      (`user` == `${user.name}`); these endpoints let an administrator search or delete any user's
+      sessions, bypassing that restriction, without weakening it for ordinary users.
 
 security:
   - bearerAuth: []
@@ -349,6 +355,108 @@ paths:
         "404":
           description: Not Found - No provider exists with the given id.
 
+  /ai_assistant/sessions:
+    get:
+      summary: Search AI assistant sessions across every user
+      description: |
+        Searches the `wazuh-ai-assistant-sessions` data stream, bypassing the per-owner Document
+        Level Security that normally restricts a user to their own conversations.
+      operationId: searchAiAssistantSessions
+      tags:
+        - AI Assistant Sessions
+      parameters:
+        - name: user
+          in: query
+          required: false
+          description: Filter by exact username. Omitted or blank returns sessions for every user.
+          schema:
+            type: string
+        - name: size
+          in: query
+          required: false
+          description: Maximum number of sessions to return.
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 500
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAssistantSessionSearchResponse"
+              examples:
+                default:
+                  summary: Sessions across users
+                  value:
+                    total: 2
+                    sessions:
+                      - _id: "8c11c90d-1ead-4901-a5f0-1bd6d0a931cb"
+                        "@timestamp": "2026-08-13T10:00:00.000Z"
+                        created_at: "2026-08-13T10:00:00.000Z"
+                        updated_at: "2026-08-13T10:05:00.000Z"
+                        title: "Investigating alert 12345"
+                        user: "wazuh-demo"
+                        messages: []
+        "400":
+          description: Bad Request - `size` outside the 1-500 range.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                invalid_size:
+                  summary: size out of range
+                  value:
+                    message: "'size' must be between 1 and 500."
+                    status: 400
+        "403":
+          description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/sessions/read` cluster permission.
+
+  /ai_assistant/sessions/{id}:
+    delete:
+      summary: Delete an AI assistant session by id
+      description: |
+        Deletes a single session document by id, regardless of which user owns it.
+      operationId: deleteAiAssistantSession
+      tags:
+        - AI Assistant Sessions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK - Session deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                success:
+                  summary: Session deleted
+                  value:
+                    message: "Session deleted."
+                    status: 200
+        "403":
+          description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/sessions/write` cluster permission.
+        "404":
+          description: Not Found - No session exists with the given id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                not_found:
+                  summary: Session not found
+                  value:
+                    message: "Session not found."
+                    status: 404
+
 components:
   schemas:
     WazuhSettingsRequest:
@@ -522,6 +630,42 @@ components:
           type: string
           format: date-time
           description: Ignored if sent — always overwritten with a server-stamped timestamp.
+
+    AiAssistantSession:
+      type: object
+      description: |
+        A session document. Field set is not fixed beyond what's shown — `messages` is stored
+        unindexed (`enabled: false`) since its shape is provider-dependent.
+      properties:
+        _id:
+          type: string
+        "@timestamp":
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        title:
+          type: string
+        user:
+          type: string
+        messages:
+          description: Opaque, provider-dependent conversation content. Not indexed.
+
+    AiAssistantSessionSearchResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+          format: int64
+          description: Total matching hits, before the `size` cap.
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiAssistantSession"
 
     AiAssistantProviderWriteResponse:
       type: object
