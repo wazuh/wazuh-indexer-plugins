@@ -58,7 +58,6 @@ Full access to all Wazuh features, excluding super-admin features such as the se
 - **Cluster permissions:**
   - Base: `cluster_composite_ops`, `cluster_monitor`.
   - Wazuh settings (setup plugin): `plugin:wazuh/settings/write`.
-  - AI assistant sessions (setup plugin): `plugin:wazuh/ai_assistant/sessions/read`, `plugin:wazuh/ai_assistant/sessions/write` — see [AI assistant administrative sessions API](#ai-assistant-administrative-sessions-api) below.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`, `plugin:wazuh/ai_assistant/settings/write` — see [AI assistant administrative API](#ai-assistant-administrative-api) below.
   - Content Manager: full.
   - Security Analytics: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
@@ -80,7 +79,6 @@ Default interactive user: can visualize data and manage threat intelligence / Co
 
 - **Cluster permissions:**
   - Base: `cluster_composite_ops`, `cluster_monitor`.
-  - AI assistant sessions (setup plugin): `plugin:wazuh/ai_assistant/sessions/read`.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`.
   - Content Manager: full content operations (no subscription create/delete, no policy update).
   - Security Analytics: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
@@ -96,7 +94,6 @@ Read-only access across the platform.
 
 - **Cluster permissions:**
   - Base: `cluster_composite_ops`, `cluster_monitor`.
-  - AI assistant sessions (setup plugin): `plugin:wazuh/ai_assistant/sessions/read`.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`.
   - Content Manager: `subscription/get`, `logtest*`, `version/check`.
   - Security Analytics: read-only (upstream `cluster:admin/opensearch/securityanalytics/*` get/search/list actions) plus the Wazuh custom `rules/evaluate`.
@@ -117,18 +114,7 @@ Grants every authenticated user access to their own AI assistant conversations, 
 
 `${user.name}` is substituted at query time with the name of the authenticated user, so each user retrieves only the conversations whose `user` field holds their own username.
 
-## AI assistant administrative sessions API
-
-The per-owner DLS above blocks even `wazuh-admin`/`admin` from reading anyone else's conversations — deliberately, since the DLS is what makes `wazuh_ai_assistant` safe to map to every user. Administrators and the Dashboard backend still need a way to operate on any user's sessions for support, audit or moderation, without weakening that isolation. This is exposed as a privileged API in the setup plugin rather than by adding index permissions:
-
-| Endpoint | Method | Cluster permission |
-| --- | --- | --- |
-| `/_plugins/_setup/ai_assistant/sessions` | `GET` | `plugin:wazuh/ai_assistant/sessions/read` |
-| `/_plugins/_setup/ai_assistant/sessions/{id}` | `DELETE` | `plugin:wazuh/ai_assistant/sessions/write` |
-
-Both cluster permissions are defined in `action_groups.wazuh.yml`, following the same pattern as `plugin:wazuh/settings/write`.
-
-`wazuh_admin` holds both permissions (read + write). `wazuh_demo` and `wazuh_readonly` hold read only. `dashboard_server` and `wazuh_manager` hold neither.
+The per-owner DLS applies to every user, including `wazuh-admin` and `admin`
 
 ## AI assistant administrative API
 

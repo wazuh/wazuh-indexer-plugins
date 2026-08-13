@@ -48,12 +48,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-import com.wazuh.setup.action.DeleteSessionAction;
 import com.wazuh.setup.action.GetAiAssistantSettingsAction;
 import com.wazuh.setup.action.PutAiAssistantSettingsAction;
 import com.wazuh.setup.action.PutSettingsAction;
-import com.wazuh.setup.action.SearchSessionsAction;
-import com.wazuh.setup.index.AiAssistantSessionsAdminIndex;
 import com.wazuh.setup.index.AiAssistantSettingsAdminIndex;
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
@@ -62,20 +59,16 @@ import com.wazuh.setup.index.SetupStatusIndex;
 import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
 import com.wazuh.setup.rest.RestDeleteAiAssistantProviderAction;
-import com.wazuh.setup.rest.RestDeleteSessionAction;
 import com.wazuh.setup.rest.RestGetAiAssistantSettingsAction;
 import com.wazuh.setup.rest.RestListAiAssistantProvidersAction;
 import com.wazuh.setup.rest.RestPostAiAssistantProviderAction;
 import com.wazuh.setup.rest.RestPutAiAssistantProviderAction;
 import com.wazuh.setup.rest.RestPutAiAssistantSettingsAction;
 import com.wazuh.setup.rest.RestPutSettingsAction;
-import com.wazuh.setup.rest.RestSearchSessionsAction;
 import com.wazuh.setup.settings.PluginSettings;
-import com.wazuh.setup.transport.TransportDeleteSessionAction;
 import com.wazuh.setup.transport.TransportGetAiAssistantSettingsAction;
 import com.wazuh.setup.transport.TransportPutAiAssistantSettingsAction;
 import com.wazuh.setup.transport.TransportPutSettingsAction;
-import com.wazuh.setup.transport.TransportSearchSessionsAction;
 import com.wazuh.setup.utils.JsonUtils;
 
 /**
@@ -93,7 +86,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private ThreadPool threadPool;
     private SettingsIndex settingsIndex;
     private SetupStatusIndex setupStatusIndex;
-    private AiAssistantSessionsAdminIndex sessionsAdminIndex;
     private AiAssistantSettingsAdminIndex settingsAdminIndex;
     // spotless:off
     private final String[] categories = {
@@ -201,15 +193,12 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                     index.setUtils(utils);
                 });
 
-        // Privileged, DLS-bypassing access to the AI assistant sessions data stream
-        this.sessionsAdminIndex = new AiAssistantSessionsAdminIndex(client, threadPool);
-
         // Privileged access to the AI assistant's providers
         this.settingsAdminIndex = new AiAssistantSettingsAdminIndex(client, threadPool);
 
-        // Expose the settings index and the admin indices so they can be injected into their
+        // Expose the settings index and the admin index so they can be injected into their
         // respective transport actions.
-        return List.of(this.settingsIndex, this.sessionsAdminIndex, this.settingsAdminIndex);
+        return List.of(this.settingsIndex, this.settingsAdminIndex);
     }
 
     @Override
@@ -292,8 +281,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
             Supplier<DiscoveryNodes> nodesInCluster) {
         return List.of(
                 new RestPutSettingsAction(),
-                new RestSearchSessionsAction(),
-                new RestDeleteSessionAction(),
                 new RestGetAiAssistantSettingsAction(),
                 new RestListAiAssistantProvidersAction(),
                 new RestPutAiAssistantSettingsAction(),
@@ -307,10 +294,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         return List.of(
                 new ActionPlugin.ActionHandler<>(
                         PutSettingsAction.INSTANCE, TransportPutSettingsAction.class),
-                new ActionPlugin.ActionHandler<>(
-                        SearchSessionsAction.INSTANCE, TransportSearchSessionsAction.class),
-                new ActionPlugin.ActionHandler<>(
-                        DeleteSessionAction.INSTANCE, TransportDeleteSessionAction.class),
                 new ActionPlugin.ActionHandler<>(
                         GetAiAssistantSettingsAction.INSTANCE, TransportGetAiAssistantSettingsAction.class),
                 new ActionPlugin.ActionHandler<>(

@@ -540,18 +540,7 @@ The AI assistant stores its conversation history in the **`wazuh-ai-assistant-se
 
 Access is granted by the `wazuh_ai_assistant` role, defined in the `wazuh-indexer` repository and mapped to every authenticated user. Reads are filtered with DLS parameter substitution (`{"term": {"user": "${user.name}"}}`), so a user only retrieves their own conversations; writes carry no DLS query. The restriction also applies to users holding a role that grants `read` on the `*` index pattern.
 
-#### Administrative sessions API
-
-Because the per-owner DLS blocks even `wazuh-admin`/`admin` from reading anyone else's conversations, a separate privileged API lets administrators and the Dashboard backend operate on any user's sessions (support, audit, moderation) without weakening the isolation above for everyone else:
-
-| Endpoint | Method | Cluster permission | Backed by |
-| --- | --- | --- | --- |
-| `/_plugins/_setup/ai_assistant/sessions` | `GET` | `plugin:wazuh/ai_assistant/sessions/read` | `SearchSessionsAction` / `TransportSearchSessionsAction` |
-| `/_plugins/_setup/ai_assistant/sessions/{id}` | `DELETE` | `plugin:wazuh/ai_assistant/sessions/write` | `DeleteSessionAction` / `TransportDeleteSessionAction` |
-
-`GET` accepts an optional `user` query parameter (omit it to search across every user) and an optional `size` parameter (default 100, capped at `AiAssistantSessionsAdminIndex.MAX_SEARCH_SIZE` = 500).
-
-The DLS bypass is implemented in `AiAssistantSessionsAdminIndex`: both operations run the underlying `client.search`/`client.execute(DeleteByQueryAction...)` call inside `ThreadContext.stashContext()`, so the calling user's security context, and therefore their per-owner DLS, does not apply to that internal call. The bypass only takes effect for callers the security plugin has already authorized to invoke the gating transport action in the first place; a caller without the cluster permission never reaches this code at all. `wazuh_admin` is granted both permissions (read + write); `wazuh_demo` and `wazuh_readonly` are granted read only.
+Sessions are read and written by each user directly against the data stream, under that per-owner DLS; the setup plugin exposes no administrative API over them.
 
 ### Settings, field policy and providers (`.wazuh-internal-state`)
 
@@ -629,9 +618,6 @@ Example documents:
 
 Integration tests for the AI assistant indices are located at:
 `plugins/setup/src/test/java/com/wazuh/setup/AIAssistantIndicesIT.java`
-
-Integration tests for the administrative sessions API are located at:
-`plugins/setup/src/test/java/com/wazuh/setup/AiAssistantSessionsAdminIT.java`
 
 Integration tests for the administrative AI assistant API are located at:
 `plugins/setup/src/test/java/com/wazuh/setup/AiAssistantSettingsAdminIT.java`
