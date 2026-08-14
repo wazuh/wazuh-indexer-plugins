@@ -142,6 +142,13 @@ public class TransportPutAiAssistantSettingsAction
             targetId = bodyIdString;
         }
 
+        if (AiAssistantSettingsAdminIndex.RESERVED_PROVIDER_IDS.contains(targetId)) {
+            listener.onResponse(
+                    new PutAiAssistantSettingsResponse(
+                            "Provider id is reserved.", RestStatus.BAD_REQUEST, null));
+            return;
+        }
+
         this.settingsAdminIndex.putProvider(
                 targetId,
                 provider,
@@ -168,13 +175,20 @@ public class TransportPutAiAssistantSettingsAction
     private void deleteProvider(
             PutAiAssistantSettingsRequest request,
             ActionListener<PutAiAssistantSettingsResponse> listener) {
+        String targetId = request.getProviderId();
+        if (AiAssistantSettingsAdminIndex.RESERVED_PROVIDER_IDS.contains(targetId)) {
+            listener.onResponse(
+                    new PutAiAssistantSettingsResponse(
+                            "Provider id is reserved.", RestStatus.BAD_REQUEST, null));
+            return;
+        }
         this.settingsAdminIndex.deleteProvider(
-                request.getProviderId(),
+                targetId,
                 ActionListener.wrap(
                         response ->
                                 listener.onResponse(
                                         new PutAiAssistantSettingsResponse(
-                                                "Provider deleted.", RestStatus.OK, request.getProviderId())),
+                                                "Provider deleted.", RestStatus.OK, targetId)),
                         e -> {
                             if (!(e instanceof ResourceNotFoundException)) {
                                 log.error("Failed to delete AI assistant provider: {}", e.getMessage(), e);

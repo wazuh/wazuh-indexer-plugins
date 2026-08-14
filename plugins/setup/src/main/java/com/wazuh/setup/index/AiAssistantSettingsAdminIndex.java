@@ -59,6 +59,10 @@ public class AiAssistantSettingsAdminIndex {
     /** Reserved document id holding content-manager's own credentials. Never touched. */
     private static final String CREDENTIALS_DOCUMENT_ID = "credentials";
 
+    /** Document ids reserved for non-provider documents; never a valid provider id. */
+    public static final Set<String> RESERVED_PROVIDER_IDS =
+            Set.of(SETTINGS_DOCUMENT_ID, CREDENTIALS_DOCUMENT_ID);
+
     private static final String PRIVACY_DEFAULT_ON_FIELD = "privacy_default_on";
     private static final String PRIVACY_DEFAULT_PER_PROVIDER_FIELD = "privacy_default_per_provider";
     private static final String USER_CAN_OVERRIDE_FIELD = "user_can_override";

@@ -592,7 +592,7 @@ Example documents:
 
 `DELETE /ai_assistant/providers/{id}` returns `404` when no provider exists with that id, including on a repeated delete.
 
-`GET /ai_assistant/settings` returns the settings document's source as-is. 
+`PUT`/`DELETE /ai_assistant/providers/{id}` both reject the reserved document ids (`wazuh-ai-assistant-settings`, `credentials`) with `400`, checked in `TransportPutAiAssistantSettingsAction` before either operation reaches the index.
 
 `GET /ai_assistant/providers` returns `{"providers": [{..., "_id": "..."}]}`, each entry the provider document's source flattened with its `_id`, assembled by `AiAssistantSettingsAdminIndex.listProviders()`.
 

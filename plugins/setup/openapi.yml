@@ -287,7 +287,10 @@ paths:
   /ai_assistant/providers/{id}:
     put:
       summary: Update an AI provider by id
-      description: Creates or updates the provider document with the given id.
+      description: |
+        Creates or updates the provider document with the given id. The path segment is not
+        restricted to a UUID, but the reserved ids `wazuh-ai-assistant-settings` and `credentials`
+        are rejected.
       operationId: putAiAssistantProvider
       tags:
         - AI Assistant
@@ -311,16 +314,26 @@ paths:
               schema:
                 $ref: "#/components/schemas/AiAssistantProviderWriteResponse"
         "400":
-          description: Bad Request - Empty or malformed request body.
+          description: |
+            Bad Request - Empty/malformed request body, or the path `id` is one of the reserved
+            document ids (`wazuh-ai-assistant-settings`, `credentials`).
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/RestResponse"
+              examples:
+                reserved_id:
+                  summary: Reserved id
+                  value:
+                    message: "Provider id is reserved."
+                    status: 400
         "403":
           description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
     delete:
       summary: Delete an AI provider by id
-      description: Deletes the provider document with the given id.
+      description: |
+        Deletes the provider document with the given id. The reserved ids
+        `wazuh-ai-assistant-settings` and `credentials` are rejected rather than deleted.
       operationId: deleteAiAssistantProvider
       tags:
         - AI Assistant
@@ -344,6 +357,18 @@ paths:
                     message: "Provider deleted."
                     status: 200
                     id: 8c11c90d-1ead-4901-a5f0-1bd6d0a931cb
+        "400":
+          description: Bad Request - The id is one of the reserved document ids (`wazuh-ai-assistant-settings`, `credentials`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                reserved_id:
+                  summary: Reserved id
+                  value:
+                    message: "Provider id is reserved."
+                    status: 400
         "403":
           description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
         "404":

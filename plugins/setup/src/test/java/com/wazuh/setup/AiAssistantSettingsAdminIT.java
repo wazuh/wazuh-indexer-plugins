@@ -58,8 +58,38 @@ public class AiAssistantSettingsAdminIT extends OpenSearchRestTestCase {
     private static final String PROVIDERS_FIELD = "providers";
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /**
+     * Preserves indices upon test completion to prevent the test framework from deleting indices
+     * created by the SetupPlugin between tests.
+     *
+     * @return true to preserve indices
+     */
     @Override
     protected boolean preserveIndicesUponCompletion() {
+        return true;
+    }
+
+    /**
+     * Preserves data streams upon test completion. Other IT classes in this module (e.g. {@code
+     * DataStreamsIT}) depend on the events/findings data streams the setup plugin creates once at
+     * node bootstrap surviving for the life of the whole {@code integTest} run; without this
+     * override, this class's default teardown wipes them cluster-wide.
+     *
+     * @return true to preserve data streams
+     */
+    @Override
+    protected boolean preserveDataStreamsUponCompletion() {
+        return true;
+    }
+
+    /**
+     * Preserves index templates upon test completion, for the same reason as {@link
+     * #preserveDataStreamsUponCompletion()}.
+     *
+     * @return true to preserve templates
+     */
+    @Override
+    protected boolean preserveTemplatesUponCompletion() {
         return true;
     }
 
@@ -227,6 +257,31 @@ public class AiAssistantSettingsAdminIT extends OpenSearchRestTestCase {
         ResponseException exception =
                 expectThrows(ResponseException.class, () -> client().performRequest(create));
         assertEquals(400, exception.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
+     * Verifies that {@code PUT}/{@code DELETE} on a reserved document id ({@code
+     * wazuh-ai-assistant-settings}, {@code credentials}) is rejected with {@code 400}, instead of
+     * silently overwriting or deleting the settings document or content-manager's credentials.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     */
+    public void testProviderWriteRejectsReservedIds() throws IOException {
+        for (String reservedId : new String[] {SETTINGS_DOCUMENT_ID, CREDENTIALS_DOCUMENT_ID}) {
+            Request put = new Request("PUT", PROVIDERS_URI + "/" + reservedId);
+            put.setJsonEntity(
+                    "{\"name\":\"attacker-ai\",\"type\":\"anthropic\","
+                            + "\"base_url\":\"https://api.anthropic.com\",\"model\":\"claude-opus-4-6\","
+                            + "\"api_key\":\"secret\",\"is_default\":true}");
+            ResponseException putException =
+                    expectThrows(ResponseException.class, () -> client().performRequest(put));
+            assertEquals(400, putException.getResponse().getStatusLine().getStatusCode());
+
+            Request delete = new Request("DELETE", PROVIDERS_URI + "/" + reservedId);
+            ResponseException deleteException =
+                    expectThrows(ResponseException.class, () -> client().performRequest(delete));
+            assertEquals(400, deleteException.getResponse().getStatusLine().getStatusCode());
+        }
     }
 
     /**
