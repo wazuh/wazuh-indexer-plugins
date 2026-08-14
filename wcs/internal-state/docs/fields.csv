@@ -1,0 +1,15 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,false,base,access_token,keyword,custom,,enc:v1:SC/RyOIBkdm+kGl,Encrypted CTI access token used by the Content Manager plugin.
+9.1.0,true,base,api_key,keyword,custom,,,Encrypted API key used to authenticate against the provider.
+9.1.0,true,base,base_url,keyword,custom,,https://api.anthropic.com,Base URL of the provider's API.
+9.1.0,true,base,is_default,boolean,custom,,True,Whether this provider is the one used by default.
+9.1.0,true,base,model,keyword,custom,,claude-opus-4-6,Model to request from the provider.
+9.1.0,true,base,name,keyword,custom,,test-ai,Name given to the provider configuration.
+9.1.0,true,base,privacy_default_on,boolean,custom,,False,Whether privacy mode is enabled by default for new conversations.
+9.1.0,true,base,privacy_default_per_provider,object,custom,,"{""test-ai"": true}",Per-provider override of the default privacy mode.
+9.1.0,true,base,type,keyword,custom,,anthropic,Provider implementation to use.
+9.1.0,true,base,updated_at,date,custom,,2026-08-03T09:54:52.193Z,"When this document was last written, stamped by the indexer."
+9.1.0,true,base,user_can_override,boolean,custom,,True,Whether users may override the default privacy setting for their own conversations.
+9.1.0,true,field_policy,field_policy.action,keyword,custom,,anonymize,Whether the field is sent to the AI provider verbatim or anonymized first.
+9.1.0,true,field_policy,field_policy.field,keyword,custom,,wazuh.agent.name,Fully qualified name of the event field this policy entry applies to.
+9.1.0,true,field_policy,field_policy.kind,keyword,custom,,HOST,What kind of data is being anonymized. Only set on 'anonymize' entries.
