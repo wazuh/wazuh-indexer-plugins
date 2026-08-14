@@ -1,0 +1,28 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
+9.1.0,true,state,state.document_version,integer,custom,,,Version of the document.
+9.1.0,true,state,state.modified_at,date,custom,,,Date/time when the state was last modified.
+9.1.0,true,wazuh,wazuh.agent.id,keyword,custom,,001,Unique identifier of the agent. Used as the document id.
+9.1.0,true,wazuh,wazuh.agent.statistics.agent.last_keepalive,date,custom,,2026-08-02T10:06:50Z,"Date/time of the last keepalive, stamped with the agent's own clock."
+9.1.0,true,wazuh,wazuh.agent.statistics.agent.messages.count,long,custom,,602,Number of messages held by the agent module. Not monotonic.
+9.1.0,true,wazuh,wazuh.agent.statistics.agent.status,keyword,custom,,connected,Connection status as seen by the agent itself.
+9.1.0,true,wazuh,wazuh.agent.statistics.agent.tasks.discarded_duplicate.total,long,custom,,0,Total tasks discarded as duplicates over the agent's uptime.
+9.1.0,true,wazuh,wazuh.agent.statistics.agent.tasks.dispatched.total,long,custom,,4,Total tasks dispatched by the agent module over the agent's uptime.
+9.1.0,true,wazuh,wazuh.agent.statistics.agent.tasks.failed.total,long,custom,,0,Total tasks failed in the agent module over the agent's uptime.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.global.end,date,custom,,2026-08-02T10:06:50Z,Date/time when the logcollector global period ended.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.global.files.bytes,long,custom,,3436,Bytes read from the log source during the global period.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.global.files.events,long,custom,,32,Events read from the log source during the global period.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.global.files.location,keyword,custom,,df -P,Log source read by logcollector during the global period.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.global.files.targets.drops,long,custom,,0,Events dropped for the target during the global period.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.global.files.targets.name,keyword,custom,,agent,"Target the log source events are forwarded to, global period."
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.global.start,date,custom,,2026-08-02T09:43:50Z,Date/time when the logcollector global period started.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.interval.end,date,custom,,2026-08-02T10:07:50Z,Date/time when the last closed logcollector interval ended.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.interval.files.bytes,long,custom,,3436,Bytes read from the log source during the last closed interval.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.interval.files.events,long,custom,,32,Events read from the log source during the last closed interval.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.interval.files.location,keyword,custom,,df -P,Log source read by logcollector during the last closed interval.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.interval.files.targets.drops,long,custom,,0,Events dropped for the target during the last closed interval.
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.interval.files.targets.name,keyword,custom,,agent,"Target the log source events are forwarded to, last closed interval."
+9.1.0,true,wazuh,wazuh.agent.statistics.logcollector.interval.start,date,custom,,2026-08-02T10:06:50Z,Date/time when the last closed logcollector interval started.
+9.1.0,true,wazuh,wazuh.cluster.name,keyword,custom,,wazuh-cluster,Wazuh cluster name.
+9.1.0,true,wazuh,wazuh.cluster.node,keyword,custom,,wazuh-node-1,Wazuh cluster node name.
+9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1,Wazuh schema version.
