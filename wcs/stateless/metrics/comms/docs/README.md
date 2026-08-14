@@ -1,4 +1,9 @@
-## `wazuh-metrics-comms` index data model
+## `wazuh-metrics-comms-v4` index data model
+
+Every counter in this index is written from the Wazuh Manager's legacy
+communication path, so the documents only describe agents below v5.0.0. The
+`-v4` suffix states that in the name. Agents on 5.x report over HTTPS and get
+their own index.
 
 ### Fields summary
 
@@ -14,7 +19,7 @@ The detail of the fields can be found in the csv file [Fields](fields.csv).
 
 ### Data stream
 
-- **Index pattern:** `wazuh-metrics-comms*`
+- **Index pattern:** `wazuh-metrics-comms-v4*`
 - **ISM policy:** `stream-metrics-policy` — deletes backing indices older than 30 days.
 
 ### Field table
