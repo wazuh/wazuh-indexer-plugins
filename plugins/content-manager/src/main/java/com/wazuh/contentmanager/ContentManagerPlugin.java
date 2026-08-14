@@ -74,6 +74,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -87,6 +88,7 @@ import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
@@ -511,6 +513,11 @@ public class ContentManagerPlugin extends Plugin
                                     // another node finds them already present.
                                     this.ensureDefaultSpacesExist();
 
+                                    // Recover the standard space's aggregate hash if a previous hash
+                                    // calculation was interrupted (e.g. by a node restart). Must run
+                                    // after the indices exist.
+                                    this.ensureStandardSpaceHash();
+
                                     this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();
@@ -601,6 +608,37 @@ public class ContentManagerPlugin extends Plugin
             this.<Void>awaitResult(listener -> this.spaceService.initializeDefaultSpaces(listener));
         } catch (Exception e) {
             log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, "spaces", e.getMessage());
+        }
+    }
+
+    /**
+     * Recalculates the standard space's aggregate hash when its policy document has none.
+     *
+     * <p>The hash is written at the very end of a catalog sync, after the policy document itself has
+     * been rewritten, so a node restart inside that window leaves the standard policy without a
+     * {@code space.hash.sha256}. Every node's {@code EngineContentLoader} then skips the standard
+     * space on that missing hash, so its content is never loaded into the Engine and detectors in
+     * that space stop producing findings. Nothing else recomputes it: the next sync recalculates the
+     * hash only when it actually finds new content.
+     */
+    private void ensureStandardSpaceHash() {
+        String standard = Space.STANDARD.toString();
+        try {
+            Set<String> changedSpaces =
+                    this.<Set<String>>awaitResult(
+                            listener -> this.spaceService.recalculateSpaceHashIfMissing(standard, listener));
+            if (changedSpaces == null || !changedSpaces.contains(standard)) {
+                return;
+            }
+            log.info(Constants.I_LOG_SPACE_HASH_RECOVERED, standard);
+            this.client.execute(
+                    ReloadEngineContentAction.INSTANCE,
+                    new ReloadEngineContentRequest(),
+                    ActionListener.wrap(
+                            r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
+                            e -> log.warn(Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
+        } catch (Exception e) {
+            log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
         }
     }
 

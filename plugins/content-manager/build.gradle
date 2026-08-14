@@ -218,7 +218,8 @@ integTest {
   systemProperty "user", System.getProperty("user", "admin")
   systemProperty "password", System.getProperty("password", "admin")
 
-  // ContentManagerPluginIT and SpaceInitializationIT extend OpenSearchIntegTestCase
+  // ContentManagerPluginIT, SpaceInitializationIT and StandardSpaceHashRecoveryIT
+  // extend OpenSearchIntegTestCase
   // and, once the Gradle testcluster is up, connect to it as an ExternalTestCluster
   // over the plain (non-TLS) transport protocol. That connection can't join a
   // security-enabled cluster's TLS-only transport layer, so it always times out
@@ -229,6 +230,7 @@ integTest {
     filter {
       excludeTestsMatching "com.wazuh.contentmanager.ContentManagerPluginIT"
       excludeTestsMatching "com.wazuh.contentmanager.SpaceInitializationIT"
+      excludeTestsMatching "com.wazuh.contentmanager.StandardSpaceHashRecoveryIT"
     }
   }
 
