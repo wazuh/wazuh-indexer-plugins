@@ -1,0 +1,10 @@
+---
+name: wazuh-agent-config
+fields:
+  base:
+    fields:
+      message: {}
+  state:
+    fields: "*"
+  wazuh:
+    fields: "*"
