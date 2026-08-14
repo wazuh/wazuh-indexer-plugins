@@ -41,7 +41,7 @@ classDiagram
         String index
         String template
         +Index(String index, String template)
-        +setClient(Client client) IndexInitiali— including administrators, by designzer
+        +setClient(Client client) IndexInitializer
         +setClusterService(ClusterService clusterService) IndexInitializer
         +setIndexUtils(IndexUtils utils) IndexInitializer
         +indexExists(String indexName) bool
