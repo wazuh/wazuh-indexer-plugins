@@ -573,7 +573,9 @@ Example documents:
 
 #### Administrative AI assistant API
 
-`.wazuh-internal-state` is registered as an OpenSearch Security system index, so no role's index permissionscan access the documents of the index. So queries to this index depen on the Administrative API provided for it:
+`.wazuh-internal-state` is registered as an OpenSearch Security system index, so no role's index permissions can reach its documents. Every query to this index goes through the administrative API below:
+
+| Endpoint | Method | Cluster permission | Backed by |
 | Endpoint | Method | Cluster permission | Backed by |
 | --- | --- | --- | --- |
 | `/_plugins/_setup/ai_assistant/settings` | `GET` | `plugin:wazuh/ai_assistant/settings/read` | `GetAiAssistantSettingsAction` / `TransportGetAiAssistantSettingsAction`, `Operation.SETTINGS` |
