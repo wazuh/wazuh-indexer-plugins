@@ -584,7 +584,7 @@ Example documents:
 | `/_plugins/_setup/ai_assistant/providers` | `POST` | `plugin:wazuh/ai_assistant/settings/write` | same `Put*` action, `Operation.PUT_PROVIDER`; body must carry the UUID `id` to create with |
 | `/_plugins/_setup/ai_assistant/providers/{id}` | `PUT`, `DELETE` | `plugin:wazuh/ai_assistant/settings/write` | same, `Operation.PUT_PROVIDER` / `Operation.DELETE_PROVIDER` |
 
-`GET /ai_assistant/settings` returns the settings document flat providers are a separate resource, listed via `GET /ai_assistant/providers`, which excludes the two reserved document ids (`"wazuh-ai-assistant-settings"`, `"credentials"`). 
+`GET /ai_assistant/settings` returns the settings document's source as-is, with its fields flat at the root. Providers are a separate resource, listed via `GET /ai_assistant/providers`, which excludes the two reserved document ids (`"wazuh-ai-assistant-settings"` and `"credentials"`).
 
 `PUT /ai_assistant/settings` always replaces the whole document: the caller sends the complete set of settings fields and the complete `field_policy` array on every write, not a partial diff 
 
