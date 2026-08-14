@@ -52,10 +52,10 @@ These settings control the plugin's general behavior.
 
 These settings cap how many notification configuration documents can exist, to bound resource usage. All are dynamic. Creation requests that would exceed a limit are rejected with HTTP 400; existing configurations are unaffected when a limit is lowered.
 
-- **`plugins.notifications.max_notification_configs`** (Integer, default `40`, range 0–40) — global cap on the total number of notification configuration documents of any type (channels, groups, senders, and active responses all count against this shared limit).
-- **`plugins.notifications.max_notification_groups`** (Integer, default `10`, range 0–10) — cap on the number of `email_group` configurations. Counts against, and in addition to, `max_notification_configs`.
-- **`plugins.notifications.max_notification_senders`** (Integer, default `5`, range 0–5) — cap on the number of `smtp_account` and `ses_account` configurations combined. Counts against, and in addition to, `max_notification_configs`.
-- **`plugins.notifications.max_active_responses`** (Integer, default `10`, range 0–10) — cap on the number of `active_response` configurations. Counts against, and in addition to, `max_notification_configs`.
+- **`plugins.notifications.max_notification_configs`** (Integer, default `40`, minimum `0`, no upper bound) — global cap on the total number of notification configuration documents of any type (channels, groups, senders, and active responses all count against this shared limit).
+- **`plugins.notifications.max_notification_groups`** (Integer, default `10`, minimum `0`, no upper bound) — cap on the number of `email_group` configurations. Counts against, and in addition to, `max_notification_configs`.
+- **`plugins.notifications.max_notification_senders`** (Integer, default `5`, minimum `0`, no upper bound) — cap on the number of `smtp_account` and `ses_account` configurations combined. Counts against, and in addition to, `max_notification_configs`.
+- **`plugins.notifications.max_active_responses`** (Integer, default `10`, minimum `0`, no upper bound) — cap on the number of `active_response` configurations. Counts against, and in addition to, `max_notification_configs`.
 
 > **Note:** These are separate from `opensearch.notifications.general.default_items_query_count` and other `general.*` settings above — they live under a distinct `plugins.notifications.*` prefix.
 

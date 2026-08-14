@@ -65,6 +65,9 @@
 - Reduce TTL for historical information about deletes in-memory [(#1328)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1328)
 - Integration's mode [(#1356)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1356)
 - Load standard space into all cluster nodes [(#1376)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1376)
+- Create the `wazuh-agent-config` index [(#1419)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1419)
+- Added `previous` value fields to the WCS for process, service, and package inventory changes [(#1413)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1413)
+- Create the `wazuh-agent-stats` index [(#1425)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1425)
 
 ### Changed
 - Add dependabot scan to the content-manager plugin [(#442)](https://github.com/wazuh/wazuh-indexer-plugins/issues/442)
@@ -173,6 +176,7 @@
 - [BUG] Vulnerability Detection empty for all agents after a transient snapshot bootstrap failure [(#1383)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1383)
 - [BUG] `enabled` flag not evaluated on various resource-related operations [(#1394)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1394)
 - [BUG] Log test does not use manually enabled integrations [(#1410)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1410)
+- [BUG] Undefined state if a node is restarted while the standard space hash is being calculated [(#1773)](https://github.com/wazuh/wazuh-indexer/issues/1773)
 
 ## Prior versions
 - []()

@@ -2782,6 +2782,14 @@
           }
         },
         {
+          "wcs_file_diff": {
+            "path_match": "file.diff",
+            "mapping": {
+              "type": "match_only_text"
+            }
+          }
+        },
+        {
           "wcs_file_directory": {
             "path_match": "file.directory",
             "mapping": {
@@ -5796,6 +5804,14 @@
           }
         },
         {
+          "wcs_package_previous_installed": {
+            "path_match": "package.previous.installed",
+            "mapping": {
+              "type": "date"
+            }
+          }
+        },
+        {
           "wcs_package_reference": {
             "path_match": "package.reference",
             "mapping": {
@@ -8570,8 +8586,51 @@
           }
         },
         {
+          "wcs_process_previous_command_line": {
+            "path_match": "process.previous.command_line",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_process_previous_executable": {
             "path_match": "process.previous.executable",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_process_previous_name": {
+            "path_match": "process.previous.name",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_process_previous_parent_pid": {
+            "path_match": "process.previous.parent.pid",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_process_previous_pid": {
+            "path_match": "process.previous.pid",
+            "mapping": {
+              "type": "long"
+            }
+          }
+        },
+        {
+          "wcs_process_previous_state": {
+            "path_match": "process.previous.state",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -8965,6 +9024,15 @@
             "path_match": "process.start",
             "mapping": {
               "type": "date"
+            }
+          }
+        },
+        {
+          "wcs_process_state": {
+            "path_match": "process.state",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
             }
           }
         },
@@ -9934,6 +10002,15 @@
           }
         },
         {
+          "wcs_service_origin_previous_state": {
+            "path_match": "service.origin.previous.state",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_service_origin_state": {
             "path_match": "service.origin.state",
             "mapping": {
@@ -9954,6 +10031,15 @@
         {
           "wcs_service_origin_version": {
             "path_match": "service.origin.version",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_service_previous_state": {
+            "path_match": "service.previous.state",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -10035,6 +10121,15 @@
         {
           "wcs_service_target_node_roles": {
             "path_match": "service.target.node.roles",
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        {
+          "wcs_service_target_previous_state": {
+            "path_match": "service.target.previous.state",
             "mapping": {
               "ignore_above": 1024,
               "type": "keyword"
@@ -20565,7 +20660,11 @@
           "properties": {}
         },
         "package": {
-          "properties": {}
+          "properties": {
+            "previous": {
+              "properties": {}
+            }
+          }
         },
         "policy": {
           "properties": {}
@@ -20775,7 +20874,11 @@
               }
             },
             "previous": {
-              "properties": {}
+              "properties": {
+                "parent": {
+                  "properties": {}
+                }
+              }
             },
             "real_group": {
               "properties": {}
@@ -20913,12 +21016,21 @@
               "properties": {
                 "node": {
                   "properties": {}
+                },
+                "previous": {
+                  "properties": {}
                 }
               }
+            },
+            "previous": {
+              "properties": {}
             },
             "target": {
               "properties": {
                 "node": {
+                  "properties": {}
+                },
+                "previous": {
                   "properties": {}
                 }
               }
