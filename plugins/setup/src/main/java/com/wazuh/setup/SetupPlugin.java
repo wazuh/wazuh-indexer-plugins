@@ -150,7 +150,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
         // Metrics data streams
         this.indices.add(new StreamIndex("wazuh-metrics-agents", "templates/streams/metrics-agents"));
-        this.indices.add(new StreamIndex("wazuh-metrics-comms", "templates/streams/metrics-comms"));
+        this.indices.add(new StreamIndex("wazuh-metrics-comms-v4", "templates/streams/metrics-comms"));
         this.indices.add(new StreamIndex("wazuh-metrics-normalization", "templates/streams/metrics-normalization"));
 
         // AI assistant sessions data stream (stores the users' conversations with the AI assistant)

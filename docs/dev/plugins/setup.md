@@ -492,7 +492,7 @@ Integration tests for the active responses data stream are located at:
 
 ### Overview
 
-The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh-metrics-agents`, `wazuh-metrics-comms`, `wazuh-metrics-normalization`) with a 30-day retention period.
+The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh-metrics-agents`, `wazuh-metrics-comms-v4`, `wazuh-metrics-normalization`) with a 30-day retention period.
 
 ### Policy details
 - **Policy Name**: `stream-metrics-policy`
