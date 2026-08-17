@@ -112,9 +112,9 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
 
         // Verify that the index was created with the correct request
         verify(this.indicesAdminClient).create(any(CreateIndexRequest.class));
-        // Verify that the policies were indexed (5 policies: events, findings, raw-events,
-        // active-responses, metrics)
-        verify(this.client, times(5)).index(any(IndexRequest.class));
+        // Verify that the policies were indexed (6 policies: events, findings, raw-events,
+        // active-responses, metrics, ai-assistant-sessions)
+        verify(this.client, times(6)).index(any(IndexRequest.class));
     }
 
     /**

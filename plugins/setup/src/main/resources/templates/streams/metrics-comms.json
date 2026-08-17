@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-metrics-comms*"
+    "wazuh-metrics-comms-v4*"
   ],
   "priority": 1,
   "data_stream": {},
@@ -20,7 +20,7 @@
       },
       "mapping.total_fields.limit": 1000,
       "plugins.index_state_management.policy_id": "stream-metrics-policy",
-      "plugins.index_state_management.rollover_alias": "wazuh-metrics-comms"
+      "plugins.index_state_management.rollover_alias": "wazuh-metrics-comms-v4"
     },
     "mappings": {
       "date_detection": false,

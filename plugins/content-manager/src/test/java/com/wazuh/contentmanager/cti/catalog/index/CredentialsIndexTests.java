@@ -92,15 +92,16 @@ public class CredentialsIndexTests extends OpenSearchTestCase {
                 .exists(any(IndicesExistsRequest.class), any());
     }
 
-    /** loadMappingFromResources should return non-empty JSON from the classpath resource. */
-    public void testLoadMappingFromResources() throws IOException {
+    /** loadIndexTemplate should pull a non-empty mapping and settings from the classpath resource. */
+    public void testLoadIndexTemplate() throws IOException {
         Client client = mock(Client.class);
         CredentialsIndex idx = new CredentialsIndex(client, threadPool);
 
-        String mapping = idx.loadMappingFromResources();
+        CredentialsIndex.IndexTemplateParts template = idx.loadIndexTemplate();
 
-        Assert.assertNotNull(mapping);
-        Assert.assertTrue(mapping.contains(CredentialsIndex.ACCESS_TOKEN_FIELD));
+        Assert.assertNotNull(template.mappings);
+        Assert.assertTrue(template.mappings.contains(CredentialsIndex.ACCESS_TOKEN_FIELD));
+        Assert.assertEquals("true", template.settings.get("index.hidden"));
     }
 
     /** deleteDocument() calls client.delete() and returns the delete response when index exists. */

@@ -1,0 +1,79 @@
+{
+  "index_patterns": [
+    ".wazuh-internal-state*"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "codec": "zstd",
+        "hidden": true,
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "refresh_interval": "-1"
+      }
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict",
+      "properties": {
+        "access_token": {
+          "doc_values": false,
+          "index": false,
+          "type": "keyword"
+        },
+        "api_key": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "base_url": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "field_policy": {
+          "properties": {
+            "action": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "field": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "kind": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        "is_default": {
+          "type": "boolean"
+        },
+        "model": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "name": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "privacy_default_on": {
+          "type": "boolean"
+        },
+        "privacy_default_per_provider": {
+          "type": "object"
+        },
+        "type": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "updated_at": {
+          "type": "date"
+        },
+        "user_can_override": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

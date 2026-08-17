@@ -1,0 +1,21 @@
+---
+name: wazuh-internal-state
+fields:
+  base:
+    fields:
+      access_token: {}
+      name: {}
+      type: {}
+      base_url: {}
+      model: {}
+      api_key: {}
+      is_default: {}
+      updated_at: {}
+      privacy_default_on: {}
+      privacy_default_per_provider: {}
+      user_can_override: {}
+      field_policy:
+        fields:
+          field: {}
+          action: {}
+          kind: {}
