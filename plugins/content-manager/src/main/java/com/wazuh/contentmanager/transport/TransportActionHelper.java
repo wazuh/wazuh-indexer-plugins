@@ -18,9 +18,11 @@ package com.wazuh.contentmanager.transport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
+import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilders;
@@ -231,10 +233,13 @@ public final class TransportActionHelper {
      *
      * <ol>
      *   <li>{@link OpenSearchSecurityException} -&gt; its own status.
+     *   <li>{@link ClusterBlockException} is always left unclassified so the caller logs it and
+     *       returns a generic 500, even though its own {@code status()} (e.g. 403 for a write block)
+     *       is below 500; by convention a cluster block is a server fault, not a client error.
      *   <li>Any other {@link OpenSearchException} (this includes {@code
      *       VersionConflictEngineException}, whose {@code status()} already correctly resolves to
-     *       409) -&gt; its own status, but only when it's below 500; a genuine server fault (e.g. a
-     *       cluster block) is left unclassified so the caller logs it and returns a generic 500.
+     *       409) -&gt; its own status, but only when it's below 500; any other genuine server fault
+     *       is left unclassified so the caller logs it and returns a generic 500.
      *   <li>An {@link IllegalArgumentException} raised by our own code to signal a business condition
      *       -&gt; 400.
      * </ol>
@@ -248,6 +253,9 @@ public final class TransportActionHelper {
         OpenSearchSecurityException secEx = extractSecurityException(throwable);
         if (secEx != null) {
             return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
+        }
+        if (ExceptionsHelper.unwrap(throwable, ClusterBlockException.class) != null) {
+            return null;
         }
         OpenSearchException osEx = extractOpenSearchException(throwable);
         if (osEx != null && osEx.status().getStatus() < 500) {

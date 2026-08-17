@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -417,12 +418,13 @@ public class TransportPostPromoteAction
                                                     String targetDocSpaceName = targetDocSpace.get(Constants.KEY_NAME);
                                                     if (targetSpace.equals(targetDocSpaceName)) {
                                                         listener.onFailure(
-                                                                new IllegalArgumentException(
+                                                                new OpenSearchStatusException(
                                                                         "Resource '"
                                                                                 + resourceId
                                                                                 + "' already exists in target space '"
                                                                                 + targetSpace
-                                                                                + "', use UPDATE operation instead"));
+                                                                                + "', use UPDATE operation instead",
+                                                                        RestStatus.CONFLICT));
                                                         return;
                                                     }
                                                 }
