@@ -195,6 +195,8 @@ public class Constants {
             "Could not initialize consumer [{}]: no local snapshot at [{}] and no remote source is configured.";
     public static final String I_LOG_UPDATING_CONSUMER_CONTENT =
             "Updating consumer [{}] content (offset {} → {}).";
+    public static final String W_LOG_CTI_RATE_LIMITED =
+            "CTI API rate-limited request [{}] (HTTP 429); retrying in {}s (attempt {}/{}).";
     public static final String E_LOG_MANIFEST_NOT_FOUND =
             "Snapshot manifest not found at [{}]; consumer cannot be initialized and will be retried on the next sync.";
     public static final String E_LOG_MANIFEST_ENTRY_MISSING =

@@ -88,6 +88,12 @@ public class PluginSettings {
     private static final int DEFAULT_SETUP_WAIT_MAX_RETRIES = 4;
     private static final int DEFAULT_SETUP_WAIT_BACKOFF_BASE_SECONDS = 20;
 
+    // Defaults for the CTI HTTP client 429 (Too Many Requests) retry loop in ApiClient. On a 429 the
+    // client honors the server Retry-After header (in practice the CTI API asks for ~30-60s); only
+    // when that header is absent does it fall back to exponential backoff (base * 2^attempt).
+    private static final int DEFAULT_CLIENT_MAX_RETRIES = 3;
+    private static final int DEFAULT_CLIENT_RETRY_BACKOFF_BASE_SECONDS = 30;
+
     private static final Pattern CATALOG_URI_PATTERN =
             Pattern.compile(".*/catalog/contexts/([^/]+)/consumers/([^/?#]+)(?:[/?#].*)?$");
 
@@ -250,6 +256,33 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /**
+     * Maximum number of retries the CTI HTTP client performs when the API responds with HTTP 429 (Too
+     * Many Requests), before returning the 429 response to the caller.
+     */
+    public static final Setting<Integer> CLIENT_MAX_RETRIES =
+            Setting.intSetting(
+                    "plugins.content_manager.client.max_retries",
+                    DEFAULT_CLIENT_MAX_RETRIES,
+                    0,
+                    10,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /**
+     * Base delay, in seconds, for the exponential backoff the CTI HTTP client uses between 429
+     * retries when the response carries no usable Retry-After header (delay for retry {@code n} is
+     * {@code base * 2^n}).
+     */
+    public static final Setting<Integer> CLIENT_RETRY_BACKOFF_BASE_SECONDS =
+            Setting.intSetting(
+                    "plugins.content_manager.client.retry_backoff_base_seconds",
+                    DEFAULT_CLIENT_RETRY_BACKOFF_BASE_SECONDS,
+                    1,
+                    300,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     /** Setting to enable mock engine service for testing environments. */
     public static final Setting<Boolean> ENGINE_MOCK_ENABLED =
             Setting.boolSetting(
@@ -378,6 +411,8 @@ public class PluginSettings {
     private final boolean engineMockEnabled;
     private final int setupWaitMaxRetries;
     private final int setupWaitBackoffBaseSeconds;
+    private final int clientMaxRetries;
+    private final int clientRetryBackoffBaseSeconds;
     private final boolean createDetectors;
     private final boolean updateOnDemand;
     private final boolean policyUpdateEnabled;
@@ -412,6 +447,8 @@ public class PluginSettings {
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
         this.setupWaitMaxRetries = SETUP_WAIT_MAX_RETRIES.get(settings);
         this.setupWaitBackoffBaseSeconds = SETUP_WAIT_BACKOFF_BASE_SECONDS.get(settings);
+        this.clientMaxRetries = CLIENT_MAX_RETRIES.get(settings);
+        this.clientRetryBackoffBaseSeconds = CLIENT_RETRY_BACKOFF_BASE_SECONDS.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
         this.updateOnDemand = UPDATE_ON_DEMAND.get(settings);
         this.policyUpdateEnabled = POLICY_UPDATE_ENABLED.get(settings);
@@ -775,6 +812,25 @@ public class PluginSettings {
      */
     public int getSetupWaitBackoffBaseSeconds() {
         return this.setupWaitBackoffBaseSeconds;
+    }
+
+    /**
+     * Retrieves the maximum number of 429 retries the CTI HTTP client performs.
+     *
+     * @return the maximum number of retries.
+     */
+    public int getClientMaxRetries() {
+        return this.clientMaxRetries;
+    }
+
+    /**
+     * Retrieves the base delay, in seconds, for the CTI HTTP client's 429 exponential-backoff
+     * fallback.
+     *
+     * @return the base backoff delay in seconds.
+     */
+    public int getClientRetryBackoffBaseSeconds() {
+        return this.clientRetryBackoffBaseSeconds;
     }
 
     @Override
