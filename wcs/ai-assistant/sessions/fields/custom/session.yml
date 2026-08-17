@@ -1,0 +1,44 @@
+---
+- name: base
+  title: Wazuh AI Assistant Sessions
+  description: >
+    Fields describing a user's conversation with the Wazuh AI assistant.
+  type: group
+  group: 2
+  fields:
+    - name: user
+      type: keyword
+      level: custom
+      description: >
+        Name of the user the conversation belongs to.
+      example: "admin"
+    - name: title
+      type: keyword
+      level: custom
+      description: >
+        Title of the conversation, usually derived from the first message sent by the user.
+      example: "how many agents are connected?"
+    - name: created_at
+      type: date
+      level: custom
+      description: >
+        Date and time when the conversation was created.
+      example: "2026-08-03T12:43:45.534Z"
+    - name: updated_at
+      type: date
+      level: custom
+      description: >
+        Date and time when the conversation was last updated.
+      example: "2026-08-03T12:43:46.475Z"
+    - name: messages
+      type: object
+      enabled: false
+      index: false
+      level: custom
+      short: Conversation turns, stored verbatim to reconstruct the chat in the UI.
+      description: >
+        Conversation turns (author and content, plus any other data returned by
+        the AI provider). Shape varies by provider, so the object is unmapped:
+        stored in _source and returned as-is, but neither indexed nor searchable.
+        Only used to reconstruct the conversation in the UI.
+      example: '[{"created_at": 1785761025503, "role": "user", "content": "how many agents are connected?"}]'

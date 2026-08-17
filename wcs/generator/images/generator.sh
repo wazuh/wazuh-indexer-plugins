@@ -150,7 +150,7 @@ generate_mappings() {
   local in_file="$out_dir/generated/elasticsearch/legacy/template.json"
 
   # Transform legacy index template for OpenSearch compatibility
-  if [[ "$ecs_module" =~ "stateless/" ]]; then
+  if [[ "$ecs_module" =~ "stateless/" || "$ecs_module" == "ai-assistant/sessions" ]]; then
     # Transform time-series templates to use data streams
     jq '{
       "index_patterns": .index_patterns,

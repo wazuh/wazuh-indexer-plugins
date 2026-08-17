@@ -52,7 +52,7 @@ function detect_modified_modules() {
   local modified_modules=()
   modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
   for file in $modified_files; do
-    if [[ ($file == wcs/state* || $file == wcs/content* || $file == wcs/settings* || $file == wcs/cve*) && ($file == *.yml || $file == *.json) ]]; then
+    if [[ ($file == wcs/state* || $file == wcs/content* || $file == wcs/settings* || $file == wcs/cve* || $file == wcs/ai-assistant* || $file == wcs/internal-state*) && ($file == *.yml || $file == *.json) ]]; then
       # Try to match the file to one of the known module keys for exact detection
       for key in "${!module_to_file[@]}"; do
         if [[ $file == wcs/$key/* || $file == wcs/$key ]]; then
@@ -162,6 +162,7 @@ function copy_files() {
 
   echo "---> Index templates"
   local destination_file
+  local destination_path
   local resources_path="plugins/setup/src/main/resources"
   local mappings_path="mappings/${ECS_VERSION}/generated/elasticsearch/legacy/opensearch-template.json"
   for ecs_module in "${modules_to_update[@]}"; do
@@ -171,9 +172,17 @@ function copy_files() {
       echo "  - '$ecs_module' skipped (no index template)"
       continue
     fi
-    # Copying index templates to the initialization plugin resources folder
-    cp "$repo_path/wcs/$ecs_module/$mappings_path" "$resources_path/$destination_file"
-    echo "  - '$destination_file' updated"
+    # Most modules map to a bare filename copied under the setup plugin's resources.
+    # A module whose value is already a full repo-relative path (starts with
+    # "plugins/") is consumed by a different plugin (e.g. internal-state, read by
+    # content-manager's CredentialsIndex), so copy it there directly instead.
+    if [[ "$destination_file" == plugins/* ]]; then
+      destination_path="$destination_file"
+    else
+      destination_path="$resources_path/$destination_file"
+    fi
+    cp "$repo_path/wcs/$ecs_module/$mappings_path" "$destination_path"
+    echo "  - '$destination_path' updated"
   done
 
   echo "---> CSV documentation"
@@ -191,8 +200,8 @@ function copy_files() {
   local docs_ecs_path
   local flat_ecs_path="mappings/${ECS_VERSION}/generated/ecs/ecs_flat.yml"
   for ecs_module in "${modules_to_update[@]}"; do
-    # Flat WCS is only required for the stateless modules
-    if [[ "$ecs_module" =~ stateless/* ]]; then
+    # Flat WCS is only required for the stateless, AI assistant and internal-state modules
+    if [[ "$ecs_module" =~ stateless/* || "$ecs_module" =~ ai-assistant/* || "$ecs_module" == "internal-state" ]]; then
       # Copying flat WCS template to the wcs/<module>/docs/ folder
       docs_ecs_path="$repo_path/wcs/$ecs_module/docs"
       mkdir -p "$docs_ecs_path"

@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ExceptionsHelper;
@@ -45,14 +48,17 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
-import com.wazuh.contentmanager.utils.Constants;
 
-/** Manages the hidden .wazuh-internal-state index used to persist the CTI access token. */
+/**
+ * Manages the hidden {@code .wazuh-internal-state} index used to persist the CTI access token, and
+ * shared with the setup plugin's AI assistant endpoint.
+ */
 public class CredentialsIndex {
     private static final Logger log = LogManager.getLogger(CredentialsIndex.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static final String INDEX_NAME = ".wazuh-internal-state";
-    private static final String MAPPING_PATH = "/mappings/credentials-mapping.json";
+    private static final String MAPPING_PATH = "/mappings/internal-state-mapping.json";
     private static final String DOCUMENT_ID = "credentials";
     static final String ACCESS_TOKEN_FIELD = "access_token";
 
@@ -135,25 +141,20 @@ public class CredentialsIndex {
 
     private void createIndexAsync(ActionListener<CreateIndexResponse> listener) {
         try (ThreadContext.StoredContext ignored = this.stashContext()) {
-            Settings settings =
-                    Settings.builder()
-                            .put("index.number_of_replicas", 0)
-                            .put("index.hidden", true)
-                            .put(Constants.KEY_INDEX_CODEC, Constants.CODEC_ZSTD)
-                            .put(Constants.KEY_INDEX_REFRESH_INTERVAL, Constants.REFRESH_INTERVAL_DISABLED)
-                            .build();
-
-            String mappings;
+            IndexTemplateParts template;
             try {
-                mappings = this.loadMappingFromResources();
+                template = this.loadIndexTemplate();
             } catch (IOException e) {
-                log.error("Could not read mappings for index [{}]", INDEX_NAME);
+                log.error("Could not read the index template for index [{}]", INDEX_NAME);
                 listener.onResponse(null);
                 return;
             }
 
             CreateIndexRequest request =
-                    new CreateIndexRequest().index(INDEX_NAME).mapping(mappings).settings(settings);
+                    new CreateIndexRequest()
+                            .index(INDEX_NAME)
+                            .mapping(template.mappings)
+                            .settings(template.settings);
 
             this.client
                     .admin()
@@ -304,24 +305,19 @@ public class CredentialsIndex {
         // Stash the caller's security context so the client runs as the plugin, which has system index
         // access.
         try (ThreadContext.StoredContext ignoredContext = this.stashContext()) {
-            Settings settings =
-                    Settings.builder()
-                            .put("index.number_of_replicas", 0)
-                            .put("index.hidden", true)
-                            .put(Constants.KEY_INDEX_CODEC, Constants.CODEC_ZSTD)
-                            .put(Constants.KEY_INDEX_REFRESH_INTERVAL, Constants.REFRESH_INTERVAL_DISABLED)
-                            .build();
-
-            String mappings;
+            IndexTemplateParts template;
             try {
-                mappings = this.loadMappingFromResources();
+                template = this.loadIndexTemplate();
             } catch (IOException e) {
-                log.error("Could not read mappings for index [{}]", INDEX_NAME);
+                log.error("Could not read the index template for index [{}]", INDEX_NAME);
                 return null;
             }
 
             CreateIndexRequest request =
-                    new CreateIndexRequest().index(INDEX_NAME).mapping(mappings).settings(settings);
+                    new CreateIndexRequest()
+                            .index(INDEX_NAME)
+                            .mapping(template.mappings)
+                            .settings(template.settings);
 
             try {
                 return this.client
@@ -344,17 +340,35 @@ public class CredentialsIndex {
     }
 
     /**
-     * Loads the index mapping JSON from the resources folder.
+     * Loads the index template JSON from the resources folder
      *
-     * @return the mapping as a JSON string.
-     * @throws IOException if reading the resource fails.
+     * @return the mapping (as a JSON string) and settings.
+     * @throws IOException if reading or parsing the resource fails.
      */
-    protected String loadMappingFromResources() throws IOException {
+    protected IndexTemplateParts loadIndexTemplate() throws IOException {
         try (InputStream is = this.getClass().getResourceAsStream(MAPPING_PATH)) {
             if (is == null) {
                 throw new java.io.FileNotFoundException("Mapping file not found: " + MAPPING_PATH);
             }
-            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            JsonNode root = MAPPER.readTree(is);
+            JsonNode template = root.path("template");
+            String mappings = MAPPER.writeValueAsString(template.path("mappings"));
+            Map<String, Object> settingsMap = MAPPER.convertValue(template.path("settings"), Map.class);
+            Settings settings = Settings.builder().loadFromMap(settingsMap).build();
+            return new IndexTemplateParts(mappings, settings);
+        }
+    }
+
+    /**
+     * The mapping and settings extracted from the generated index template's {@code template} object.
+     */
+    protected static final class IndexTemplateParts {
+        final String mappings;
+        final Settings settings;
+
+        IndexTemplateParts(String mappings, Settings settings) {
+            this.mappings = mappings;
+            this.settings = settings;
         }
     }
 }
