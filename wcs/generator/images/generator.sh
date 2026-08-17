@@ -11,6 +11,33 @@ set -euo pipefail
 ECS_VERSION="${ECS_VERSION:-v9.1.0}"
 ECS_SOURCE="${ECS_SOURCE:-/source}"
 
+# Temporary files, removed on exit by the cleanup function
+PROBE_DIR=""
+EXCLUDE_FILE=""
+
+# Function to remove the temporary files. Runs on every exit, successful or not,
+# so nothing is left behind when the generation fails halfway through. Always
+# returns 0: the status of an EXIT trap becomes the status of the script.
+cleanup() {
+  rm -rf "${PROBE_DIR:-}" "${EXCLUDE_FILE:-}"
+  return 0
+}
+trap cleanup EXIT
+
+# Fields removed from every generated module, as flat paths.
+# ECS copies all the fields of a field set into each of its reuses.
+#
+# Current list of excluded fields:
+#   * file.diff belongs to the root file object only, not to the file reuses
+#     under threat.indicator, threat.enrichments.indicator and their
+#     wazuh.threat counterparts.
+EXCLUDED_FIELDS=(
+  "threat.indicator.file.diff"
+  "threat.enrichments.indicator.file.diff"
+  "wazuh.threat.indicator.file.diff"
+  "wazuh.threat.enrichments.indicator.file.diff"
+)
+
 # Function to display usage information
 show_usage() {
   echo "Usage: $0"
@@ -30,7 +57,44 @@ fi
 # Function to get the OpenTelemetry semantic conventions version for a given ECS version
 # Required since ECS v9.0.0.
 get_otel_version() {
-  curl -s "https://raw.githubusercontent.com/elastic/ecs/refs/tags/${ECS_VERSION}/otel-semconv-version"
+  # Fail on HTTP errors (-f) and report them (-S), so an error page is never
+  # taken for a version, without the progress meter (-s)
+  curl -fSs "https://raw.githubusercontent.com/elastic/ecs/refs/tags/${ECS_VERSION}/otel-semconv-version"
+}
+
+# Function to write an ECS exclusion file with the EXCLUDED_FIELDS entries that
+# the module has. The ones it doesn't have must be left out: the ECS exclusion
+# filter fails when asked to remove a field it can't find. Presence is read from
+# the flat field list of the intermediate files, where every line is the flat
+# name of a field followed by a colon. Nothing is written when no entry applies
+# to the module.
+# Arguments: flat field list, exclusion file to write.
+write_exclude_file() {
+  local flat_file="$1"
+  local exclude_file="$2"
+  local path
+  local field
+  local field_set
+  local -a fields
+  # Fields to remove grouped by field set, as expected by the exclusion file
+  # format: a list of field sets, each with the fields to remove from it
+  local -A fields_by_set=()
+
+  for path in "${EXCLUDED_FIELDS[@]}"; do
+    if grep -qxF "${path}:" "$flat_file"; then
+      fields_by_set["${path%%.*}"]+=" ${path#*.}"
+      echo "Excluding field: $path"
+    fi
+  done
+
+  for field_set in "${!fields_by_set[@]}"; do
+    printf -- '- name: %s\n  fields:\n' "$field_set" >>"$exclude_file"
+    # Split the space separated list into an array, to write one entry per field
+    read -r -a fields <<<"${fields_by_set[$field_set]}"
+    for field in "${fields[@]}"; do
+      printf -- '    - name: %s\n' "$field" >>"$exclude_file"
+    done
+  done
 }
 
 # Function to generate mappings
@@ -51,11 +115,33 @@ generate_mappings() {
     include_wcs="$indexer_path/ecs/stateless/events/main/fields/custom"
   fi
 
-  # Generate mappings
+  local otel_version
+  otel_version=$(get_otel_version)
+
+  PROBE_DIR=$(mktemp -d)
+  EXCLUDE_FILE=$(mktemp --suffix=.yml)
+
+  # First pass: generate the intermediate files only, to find out which of the
+  # EXCLUDED_FIELDS this module has
   python scripts/generator.py --strict \
-    --semconv-version "$(get_otel_version)" \
+    --semconv-version "$otel_version" \
     --include "$in_files_dir/custom/" "${include_wcs}" \
     --subset "$in_files_dir/subset.yml" \
+    --intermediate-only \
+    --out "$PROBE_DIR"
+
+  local exclude_args=()
+  write_exclude_file "$PROBE_DIR/generated/ecs/ecs_flat.yml" "$EXCLUDE_FILE"
+  if [[ -s "$EXCLUDE_FILE" ]]; then
+    exclude_args=(--exclude "$EXCLUDE_FILE")
+  fi
+
+  # Second pass: generate mappings, without the excluded fields
+  python scripts/generator.py --strict \
+    --semconv-version "$otel_version" \
+    --include "$in_files_dir/custom/" "${include_wcs}" \
+    --subset "$in_files_dir/subset.yml" \
+    "${exclude_args[@]+"${exclude_args[@]}"}" \
     --template-settings "$in_files_dir/template-settings.json" \
     --template-settings-legacy "$in_files_dir/template-settings-legacy.json" \
     --mapping-settings "$in_files_dir/mapping-settings.json" \
@@ -64,7 +150,7 @@ generate_mappings() {
   local in_file="$out_dir/generated/elasticsearch/legacy/template.json"
 
   # Transform legacy index template for OpenSearch compatibility
-  if [[ "$ecs_module" =~ "stateless/" ]]; then
+  if [[ "$ecs_module" =~ "stateless/" || "$ecs_module" == "ai-assistant/sessions" ]]; then
     # Transform time-series templates to use data streams
     jq '{
       "index_patterns": .index_patterns,

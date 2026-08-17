@@ -22,11 +22,14 @@ The following tables list the indices created by this plugin.
 | `wazuh-metrics-agents`         | Stores statistics about the Wazuh Agents state.                                                                                                                                                                                            |
 | `wazuh-metrics-comms`          | Stores statistics about the Wazuh Manager usage and performance. The information includes the number of events decoded, bytes received, and TCP sessions.                                                                                   |
 | `wazuh-metrics-normalization`  | Stores statistics about the Wazuh Engine's event normalization (decoding) stage.                                                                                                                                                           |
+| `wazuh-ai-assistant-sessions`  | Stores the users' conversations with the AI assistant. Rolled over daily, kept for 7 days. Each document carries the owning username in its `user` field; Document Level Security restricts every user to their own conversations.        |
 
 ### Stateful indices
 
 | Index                                       | Description                                                                                                                                                                                                   |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wazuh-agent-config`                        | Most recent configuration reported by each agent, per module. The existing document is overwritten on each report, so no history is kept.                                                                      |
+| `wazuh-agent-stats`                         | Most recent statistics reported by each agent, keyed by module. The existing document is overwritten on each report, so no history is kept.                                                                     |
 | `wazuh-states-sca`                          | Security Configuration Assessment (SCA) scan results.                                                                                                                                                         |
 | `wazuh-states-fim-files`                    | File Integrity Monitoring: information about monitored files.                                                                                                                                                 |
 | `wazuh-states-fim-registry-keys`            | File Integrity Monitoring: information about the Windows registry (keys).                                                                                                                                     |
@@ -54,6 +57,7 @@ These indices support the plugin's own operation rather than storing Wazuh data 
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `.wazuh-setup-status`      | Hidden, single-document index recording the plugin's initialization state (`running`, `ready`, or `failed`). See [Architecture](architecture.md#readiness-marker). |
 | `.wazuh-settings`          | Stores cluster-wide Wazuh settings managed through the [API reference](api-reference.md), such as the Engine's raw-event indexing flag. |
+| `.wazuh-internal-state` | Hidden system index holding the AI assistant's providers configuration, assistant-wide settings and field policy, plus Content Manager's internal state. Reachable only through the plugin's administrative AI assistant API. |
 | ISM policy config index    | Internal OpenSearch Index State Management configuration index used to register the plugin's rollover policies.       |
 
 ## Install

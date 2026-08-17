@@ -15,7 +15,7 @@ These default users and roles definitions are stored in the `internal_users.yml`
 
 Each default user is mapped 1:1 to the role of the matching name in `roles_mapping.yml`. The `wazuh-admin` user is additionally reachable through the `admin` backend role.
 
-- **`wazuh-manager`** → `wazuh_manager` — service account for the Wazuh Manager: read/write on stateless (events, metrics) indices, read/write/delete on stateful (states) indices, and read on consumers, threat intelligence and active-responses.
+- **`wazuh-manager`** → `wazuh_manager` — service account for the Wazuh Manager: read/write on stateless (events, metrics) indices, read/write/delete on stateful (states) indices, read/write on the agent statistics and configuration indexes, and read on consumers, threat intelligence and active-responses.
 - **`wazuh-admin`** → `wazuh_admin` — administrator: read access to all Wazuh indices, write access to Wazuh settings, full Content Manager and Security Analytics access, and management of alerting, notifications, reporting and index management. Excludes super-admin (security configuration).
 - **`wazuh-demo`** → `wazuh_demo` — default interactive user: read data, manage threat intelligence content, full Content Manager content operations and Security Analytics, and read-only alerting, notifications, reporting and index management.
 - **`wazuh-readonly`** → `wazuh_readonly` — read-only access to indices, settings, subscriptions and Security Analytics (detectors, findings, alerts).
@@ -24,9 +24,11 @@ Each default user is mapped 1:1 to the role of the matching name in `roles_mappi
 
 There is no dedicated internal user for the `dashboard_server` role below — it is mapped to the built-in OpenSearch `kibanaserver` user, which the Wazuh Dashboard authenticates as internally.
 
+Besides the 1:1 roles, `wazuh_ai_assistant` is mapped to **every** authenticated user. It is the only role not tied to a single user, and exists to attach a Document Level Security query to an index.
+
 ### Roles
 
-Six default roles are defined in `roles.yml`. Each role is self-contained (it grants everything its user needs on its own) and is `reserved` - it cannot be edited in place. To customize, duplicate the role and edit the copy (see [Defining Users and Roles](./defining-users-and-roles.md)).
+Seven default roles are defined in `roles.yml`. Each role is self-contained (it grants everything its user needs on its own) and is `reserved` - it cannot be edited in place. To customize, duplicate the role and edit the copy (see [Defining Users and Roles](./defining-users-and-roles.md)).
 
 #### `dashboard_server`
 
@@ -45,6 +47,7 @@ Service account used by the Wazuh Manager for data ingestion and content reads.
   - `read` on `.wazuh-cti-consumers`, `wazuh-active-responses*`, `wazuh-threatintel-*`.
   - `read`, `index` on `wazuh-events-v5-*`, `wazuh-metrics-*`.
   - `read`, `index`, `delete` on `wazuh-states-*`.
+  - `read`, `index` and `delete` on `wazuh-agent-*`.
   - `manage_point_in_time` on `.wazuh-threatintel-vulnerabilities*`, `wazuh-threatintel-*`.
 
 #### `wazuh_admin`
@@ -54,6 +57,7 @@ Full access to all Wazuh features, excluding super-admin features such as the se
 - **Cluster permissions:**
   - Base: `cluster_composite_ops`, `cluster_monitor`.
   - Wazuh settings (setup plugin): `plugin:wazuh/settings/write`.
+  - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`, `plugin:wazuh/ai_assistant/settings/write` — see [AI assistant administrative API](#ai-assistant-administrative-api) below.
   - Content Manager: full.
   - Security Analytics: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
   - Alerting: full.
@@ -74,6 +78,7 @@ Default interactive user: can visualize data and manage threat intelligence / Co
 
 - **Cluster permissions:**
   - Base: `cluster_composite_ops`, `cluster_monitor`.
+  - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`.
   - Content Manager: full content operations (no subscription create/delete, no policy update).
   - Security Analytics: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
   - Alerting, Anomaly detection, Notifications, Reporting, Index management: **read-only**.
@@ -88,6 +93,7 @@ Read-only access across the platform.
 
 - **Cluster permissions:**
   - Base: `cluster_composite_ops`, `cluster_monitor`.
+  - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`.
   - Content Manager: `subscription/get`, `logtest*`, `version/check`.
   - Security Analytics: read-only (upstream `cluster:admin/opensearch/securityanalytics/*` get/search/list actions) plus the Wazuh custom `rules/evaluate`.
   - Alerting, Anomaly detection, Notifications, Reporting, Index management: **read-only**.
@@ -95,6 +101,33 @@ Read-only access across the platform.
   - `get`, `read`, `indices:admin/aliases/get`, `indices:monitor/*` on `*`, `.kibana*`.
   - `read` on `.wazuh-settings`.
   - `read` on `.wazuh-internal-state`.
+
+#### `wazuh_ai_assistant`
+
+Grants every authenticated user access to their own AI assistant conversations, stored in the `wazuh-ai-assistant-sessions` data stream. Mapped to `*` (all users) in `roles_mapping.yml`.
+
+- **Cluster permissions:** none.
+- **Index permissions:**
+  - `read` on `wazuh-ai-assistant-sessions*`, `.ds-wazuh-ai-assistant-sessions-*`, restricted with the DLS query `{"term": {"user": "${user.name}"}}`.
+  - `write` on the same patterns, with no DLS query (DLS filters reads, not writes).
+
+`${user.name}` is substituted at query time with the name of the authenticated user, so each user retrieves only the conversations whose `user` field holds their own username.
+
+The per-owner DLS applies to every user, including `wazuh-admin` and `admin`
+
+## AI assistant administrative API
+
+The AI assistant's providers configuration, assistant-wide settings and field policy live together in the hidden `.wazuh-internal-state` index.
+
+| Endpoint | Method | Cluster permission |
+| --- | --- | --- |
+| `/_plugins/_setup/ai_assistant/settings` | `GET` | `plugin:wazuh/ai_assistant/settings/read` |
+| `/_plugins/_setup/ai_assistant/settings` | `PUT` | `plugin:wazuh/ai_assistant/settings/write` |
+| `/_plugins/_setup/ai_assistant/providers` | `GET` | `plugin:wazuh/ai_assistant/settings/read` |
+| `/_plugins/_setup/ai_assistant/providers` | `POST` | `plugin:wazuh/ai_assistant/settings/write` |
+| `/_plugins/_setup/ai_assistant/providers/{id}` | `PUT`, `DELETE` | `plugin:wazuh/ai_assistant/settings/write` |
+
+`wazuh_admin` holds both permissions (read + write). `wazuh_demo` and `wazuh_readonly` hold read only. `dashboard_server` and `wazuh_manager` hold neither.
 
 ## Sensitive configuration endpoints
 

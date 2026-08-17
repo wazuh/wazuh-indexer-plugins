@@ -51,24 +51,19 @@ public class PluginSettings {
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
 
-    private static final int MAXIMUM_MAX_INTEGRATIONS = 100;
-    public static final int DEFAULT_MAX_INTEGRATIONS = MAXIMUM_MAX_INTEGRATIONS;
+    public static final int DEFAULT_MAX_INTEGRATIONS = 100;
     private static final int MINIMUM_MAX_INTEGRATIONS = 0;
 
-    private static final int MAXIMUM_MAX_DECODERS = 200;
-    public static final int DEFAULT_MAX_DECODERS = MAXIMUM_MAX_DECODERS;
+    public static final int DEFAULT_MAX_DECODERS = 200;
     private static final int MINIMUM_MAX_DECODERS = 0;
 
-    private static final int MAXIMUM_MAX_RULES = 200;
-    public static final int DEFAULT_MAX_RULES = MAXIMUM_MAX_RULES;
+    public static final int DEFAULT_MAX_RULES = 200;
     private static final int MINIMUM_MAX_RULES = 0;
 
-    private static final int MAXIMUM_MAX_KVDBS = 100;
-    public static final int DEFAULT_MAX_KVDBS = MAXIMUM_MAX_KVDBS;
+    public static final int DEFAULT_MAX_KVDBS = 100;
     private static final int MINIMUM_MAX_KVDBS = 0;
 
-    private static final int MAXIMUM_MAX_FILTERS = 100;
-    public static final int DEFAULT_MAX_FILTERS = MAXIMUM_MAX_FILTERS;
+    public static final int DEFAULT_MAX_FILTERS = 100;
     private static final int MINIMUM_MAX_FILTERS = 0;
 
     private static final long DEFAULT_MAX_BULK_BYTES = 5L * 1024 * 1024;
@@ -86,6 +81,12 @@ public class PluginSettings {
 
     private static final long DEFAULT_PIT_KEEPALIVE = 120;
     private static final boolean DEFAULT_ENGINE_MOCK_ENABLED = false;
+
+    // Defaults for the Setup-plugin readiness wait in CatalogSyncJob#waitForSetup(). Worst-case
+    // total wait before giving up is baseSeconds * (2^maxRetries - 1); the defaults (20s, 4 retries)
+    // give 20+40+80+160 = 300s (5 min).
+    private static final int DEFAULT_SETUP_WAIT_MAX_RETRIES = 4;
+    private static final int DEFAULT_SETUP_WAIT_BACKOFF_BASE_SECONDS = 20;
 
     private static final Pattern CATALOG_URI_PATTERN =
             Pattern.compile(".*/catalog/contexts/([^/]+)/consumers/([^/?#]+)(?:[/?#].*)?$");
@@ -223,6 +224,32 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /**
+     * Maximum number of retries {@code CatalogSyncJob#waitForSetup()} performs while waiting for the
+     * Setup plugin to report readiness, before giving up and deferring to the next scheduled sync.
+     */
+    public static final Setting<Integer> SETUP_WAIT_MAX_RETRIES =
+            Setting.intSetting(
+                    "plugins.content_manager.setup_wait.max_retries",
+                    DEFAULT_SETUP_WAIT_MAX_RETRIES,
+                    0,
+                    10,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /**
+     * Base delay, in seconds, for the exponential backoff {@code CatalogSyncJob#waitForSetup()} uses
+     * between retries (delay for retry {@code n} is {@code base * 2^n}).
+     */
+    public static final Setting<Integer> SETUP_WAIT_BACKOFF_BASE_SECONDS =
+            Setting.intSetting(
+                    "plugins.content_manager.setup_wait.backoff_base_seconds",
+                    DEFAULT_SETUP_WAIT_BACKOFF_BASE_SECONDS,
+                    1,
+                    120,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     /** Setting to enable mock engine service for testing environments. */
     public static final Setting<Boolean> ENGINE_MOCK_ENABLED =
             Setting.boolSetting(
@@ -274,7 +301,6 @@ public class PluginSettings {
                     "plugins.content_manager.max_integrations",
                     DEFAULT_MAX_INTEGRATIONS,
                     MINIMUM_MAX_INTEGRATIONS,
-                    MAXIMUM_MAX_INTEGRATIONS,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -287,7 +313,6 @@ public class PluginSettings {
                     "plugins.content_manager.max_decoders",
                     DEFAULT_MAX_DECODERS,
                     MINIMUM_MAX_DECODERS,
-                    MAXIMUM_MAX_DECODERS,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -300,7 +325,6 @@ public class PluginSettings {
                     "plugins.content_manager.max_rules",
                     DEFAULT_MAX_RULES,
                     MINIMUM_MAX_RULES,
-                    MAXIMUM_MAX_RULES,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -313,7 +337,6 @@ public class PluginSettings {
                     "plugins.content_manager.max_kvdbs",
                     DEFAULT_MAX_KVDBS,
                     MINIMUM_MAX_KVDBS,
-                    MAXIMUM_MAX_KVDBS,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -326,7 +349,6 @@ public class PluginSettings {
                     "plugins.content_manager.max_filters",
                     DEFAULT_MAX_FILTERS,
                     MINIMUM_MAX_FILTERS,
-                    MAXIMUM_MAX_FILTERS,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -354,6 +376,8 @@ public class PluginSettings {
     private final String catalogVulnerabilities;
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
+    private final int setupWaitMaxRetries;
+    private final int setupWaitBackoffBaseSeconds;
     private final boolean createDetectors;
     private final boolean updateOnDemand;
     private final boolean policyUpdateEnabled;
@@ -386,6 +410,8 @@ public class PluginSettings {
         this.catalogVulnerabilities = CATALOG_VULNERABILITIES.get(settings);
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
+        this.setupWaitMaxRetries = SETUP_WAIT_MAX_RETRIES.get(settings);
+        this.setupWaitBackoffBaseSeconds = SETUP_WAIT_BACKOFF_BASE_SECONDS.get(settings);
         this.createDetectors = CREATE_DETECTORS.get(settings);
         this.updateOnDemand = UPDATE_ON_DEMAND.get(settings);
         this.policyUpdateEnabled = POLICY_UPDATE_ENABLED.get(settings);
@@ -731,6 +757,26 @@ public class PluginSettings {
         return this.engineMockEnabled;
     }
 
+    /**
+     * Retrieves the maximum number of retries {@code CatalogSyncJob#waitForSetup()} performs while
+     * waiting for the Setup plugin to report readiness.
+     *
+     * @return the maximum number of retries.
+     */
+    public int getSetupWaitMaxRetries() {
+        return this.setupWaitMaxRetries;
+    }
+
+    /**
+     * Retrieves the base delay, in seconds, for the exponential backoff {@code
+     * CatalogSyncJob#waitForSetup()} uses between retries.
+     *
+     * @return the base backoff delay in seconds.
+     */
+    public int getSetupWaitBackoffBaseSeconds() {
+        return this.setupWaitBackoffBaseSeconds;
+    }
+
     @Override
     public String toString() {
         return "{"
@@ -766,6 +812,12 @@ public class PluginSettings {
                 + "', "
                 + "catalogVulnerabilities='"
                 + this.catalogVulnerabilities
-                + "'}";
+                + "', "
+                + "setupWaitMaxRetries="
+                + this.setupWaitMaxRetries
+                + ", "
+                + "setupWaitBackoffBaseSeconds="
+                + this.setupWaitBackoffBaseSeconds
+                + "}";
     }
 }

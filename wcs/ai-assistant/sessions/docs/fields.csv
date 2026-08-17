@@ -1,0 +1,7 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,created_at,date,custom,,2026-08-03T12:43:45.534Z,Date and time when the conversation was created.
+9.1.0,false,base,messages,object,custom,,"[{""created_at"": 1785761025503, ""role"": ""user"", ""content"": ""how many agents are connected?""}]","Conversation turns, stored verbatim to reconstruct the chat in the UI."
+9.1.0,true,base,title,keyword,custom,,how many agents are connected?,"Title of the conversation, usually derived from the first message sent by the user."
+9.1.0,true,base,updated_at,date,custom,,2026-08-03T12:43:46.475Z,Date and time when the conversation was last updated.
+9.1.0,true,base,user,keyword,custom,,admin,Name of the user the conversation belongs to.

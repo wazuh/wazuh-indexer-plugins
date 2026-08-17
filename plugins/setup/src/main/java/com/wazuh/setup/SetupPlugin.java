@@ -48,15 +48,26 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
+import com.wazuh.setup.action.GetAiAssistantSettingsAction;
+import com.wazuh.setup.action.PutAiAssistantSettingsAction;
 import com.wazuh.setup.action.PutSettingsAction;
+import com.wazuh.setup.index.AiAssistantSettingsAdminIndex;
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.SettingsIndex;
 import com.wazuh.setup.index.SetupStatusIndex;
 import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
+import com.wazuh.setup.rest.RestDeleteAiAssistantProviderAction;
+import com.wazuh.setup.rest.RestGetAiAssistantSettingsAction;
+import com.wazuh.setup.rest.RestListAiAssistantProvidersAction;
+import com.wazuh.setup.rest.RestPostAiAssistantProviderAction;
+import com.wazuh.setup.rest.RestPutAiAssistantProviderAction;
+import com.wazuh.setup.rest.RestPutAiAssistantSettingsAction;
 import com.wazuh.setup.rest.RestPutSettingsAction;
 import com.wazuh.setup.settings.PluginSettings;
+import com.wazuh.setup.transport.TransportGetAiAssistantSettingsAction;
+import com.wazuh.setup.transport.TransportPutAiAssistantSettingsAction;
 import com.wazuh.setup.transport.TransportPutSettingsAction;
 import com.wazuh.setup.utils.JsonUtils;
 
@@ -75,6 +86,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private ThreadPool threadPool;
     private SettingsIndex settingsIndex;
     private SetupStatusIndex setupStatusIndex;
+    private AiAssistantSettingsAdminIndex settingsAdminIndex;
     // spotless:off
     private final String[] categories = {
         "access-management",
@@ -141,7 +153,12 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StreamIndex("wazuh-metrics-comms", "templates/streams/metrics-comms"));
         this.indices.add(new StreamIndex("wazuh-metrics-normalization", "templates/streams/metrics-normalization"));
 
+        // AI assistant sessions data stream (stores the users' conversations with the AI assistant)
+        this.indices.add(new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-sessions"));
+
         // State indices
+        this.indices.add(new StateIndex("wazuh-agent-config", "templates/states/agent-config"));
+        this.indices.add(new StateIndex("wazuh-agent-stats", "templates/states/agent-stats"));
         this.indices.add(new StateIndex("wazuh-states-sca", "templates/states/sca"));
         this.indices.add(new StateIndex("wazuh-states-fim-files", "templates/states/fim-files"));
         this.indices.add(new StateIndex("wazuh-states-fim-registry-keys", "templates/states/fim-registry-keys"));
@@ -176,8 +193,12 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                     index.setUtils(utils);
                 });
 
-        // Expose the settings index so it can be injected into TransportPutSettingsAction.
-        return List.of(this.settingsIndex);
+        // Privileged access to the AI assistant's providers
+        this.settingsAdminIndex = new AiAssistantSettingsAdminIndex(client, threadPool);
+
+        // Expose the settings index and the admin index so they can be injected into their
+        // respective transport actions.
+        return List.of(this.settingsIndex, this.settingsAdminIndex);
     }
 
     @Override
@@ -227,14 +248,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
                                             try {
                                                 SetupPlugin.this.indices.forEach(Index::initialize);
+                                                SetupPlugin.this.setupStatusIndex.markReady();
                                             } catch (Exception e) {
                                                 log.error("Setup initialization failed: {}", e.getMessage(), e);
                                                 SetupPlugin.this.setupStatusIndex.markFailed();
                                             }
-
-                                            // Signal that all indices are ready. Consumers of this
-                                            // marker may now start working with them.
-                                            SetupPlugin.this.setupStatusIndex.markReady();
                                         });
                     }
 
@@ -261,14 +279,25 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
             SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
-        return List.of(new RestPutSettingsAction());
+        return List.of(
+                new RestPutSettingsAction(),
+                new RestGetAiAssistantSettingsAction(),
+                new RestListAiAssistantProvidersAction(),
+                new RestPutAiAssistantSettingsAction(),
+                new RestPostAiAssistantProviderAction(),
+                new RestPutAiAssistantProviderAction(),
+                new RestDeleteAiAssistantProviderAction());
     }
 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return List.of(
                 new ActionPlugin.ActionHandler<>(
-                        PutSettingsAction.INSTANCE, TransportPutSettingsAction.class));
+                        PutSettingsAction.INSTANCE, TransportPutSettingsAction.class),
+                new ActionPlugin.ActionHandler<>(
+                        GetAiAssistantSettingsAction.INSTANCE, TransportGetAiAssistantSettingsAction.class),
+                new ActionPlugin.ActionHandler<>(
+                        PutAiAssistantSettingsAction.INSTANCE, TransportPutAiAssistantSettingsAction.class));
     }
 
     @Override

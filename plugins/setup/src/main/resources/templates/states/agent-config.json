@@ -1,0 +1,1829 @@
+{
+  "index_patterns": [
+    "wazuh-agent-config*"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "mapping.total_fields.limit": 1000,
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "query.default_field": [
+          "wazuh.agent.id"
+        ],
+        "refresh_interval": "5s"
+      }
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "true",
+      "properties": {
+        "message": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "state": {
+          "properties": {
+            "document_version": {
+              "type": "integer"
+            },
+            "modified_at": {
+              "type": "date"
+            }
+          }
+        },
+        "wazuh": {
+          "properties": {
+            "agent": {
+              "properties": {
+                "configuration": {
+                  "properties": {
+                    "content": {
+                      "properties": {
+                        "agent": {
+                          "properties": {
+                            "agent": {
+                              "properties": {
+                                "auto_restart": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "batch": {
+                                  "properties": {
+                                    "interval": {
+                                      "type": "long"
+                                    },
+                                    "size": {
+                                      "type": "long"
+                                    }
+                                  }
+                                },
+                                "config-profile": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "config_report": {
+                                  "properties": {
+                                    "enabled": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "interval": {
+                                      "type": "long"
+                                    }
+                                  }
+                                },
+                                "enrollment": {
+                                  "properties": {
+                                    "agent_certificate_path": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "agent_key_path": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "agent_name": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "authorization_pass_path": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "auto_method": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "delay_after_enrollment": {
+                                      "type": "long"
+                                    },
+                                    "enabled": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "group": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "interface_index": {
+                                      "type": "long"
+                                    },
+                                    "manager_address": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "port": {
+                                      "type": "long"
+                                    },
+                                    "server_certificate_path": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "ssl_cipher": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "ip_update_interval": {
+                                  "type": "long"
+                                },
+                                "manager": {
+                                  "properties": {
+                                    "address": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "interface_index": {
+                                      "type": "long"
+                                    },
+                                    "max_retries": {
+                                      "type": "long"
+                                    },
+                                    "port": {
+                                      "type": "long"
+                                    },
+                                    "retry_interval": {
+                                      "type": "long"
+                                    }
+                                  }
+                                },
+                                "notify_time": {
+                                  "type": "long"
+                                },
+                                "remote_conf": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "ssl": {
+                                  "properties": {
+                                    "certificate": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "certificate_authorities": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "ciphers": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "key": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "verification_mode": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "stats_report": {
+                                  "properties": {
+                                    "enabled": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "interval": {
+                                      "type": "long"
+                                    }
+                                  }
+                                },
+                                "time-reconnect": {
+                                  "type": "long"
+                                }
+                              }
+                            },
+                            "internal": {
+                              "properties": {
+                                "agent": {
+                                  "properties": {
+                                    "debug": {
+                                      "type": "long"
+                                    },
+                                    "normal_level": {
+                                      "type": "long"
+                                    },
+                                    "recv_timeout": {
+                                      "type": "long"
+                                    },
+                                    "remote_conf": {
+                                      "type": "long"
+                                    },
+                                    "state_interval": {
+                                      "type": "long"
+                                    },
+                                    "tolerance": {
+                                      "type": "long"
+                                    },
+                                    "warn_level": {
+                                      "type": "long"
+                                    }
+                                  }
+                                },
+                                "monitord": {
+                                  "properties": {
+                                    "compress": {
+                                      "type": "long"
+                                    },
+                                    "daily_rotations": {
+                                      "type": "long"
+                                    },
+                                    "day_wait": {
+                                      "type": "long"
+                                    },
+                                    "keep_log_days": {
+                                      "type": "long"
+                                    },
+                                    "rotate_log": {
+                                      "type": "long"
+                                    },
+                                    "size_rotate": {
+                                      "type": "long"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "package_uninstallation": {
+                              "properties": {
+                                "package_uninstallation": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "agent-info": {
+                          "properties": {
+                            "integrity_interval": {
+                              "type": "long"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "synchronization": {
+                              "properties": {
+                                "enabled": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "max_eps": {
+                                  "type": "long"
+                                },
+                                "response_timeout": {
+                                  "type": "long"
+                                },
+                                "retries": {
+                                  "type": "long"
+                                },
+                                "sync_end_delay": {
+                                  "type": "long"
+                                }
+                              }
+                            },
+                            "task_registry": {
+                              "properties": {
+                                "max_entries": {
+                                  "type": "long"
+                                },
+                                "ttl": {
+                                  "type": "long"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "agent-upgrade": {
+                          "properties": {
+                            "ca_store": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "ca_verification": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "enabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "aws-s3": {
+                          "properties": {
+                            "buckets": {
+                              "properties": {
+                                "access_key": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "aws_account_alias": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "aws_account_id": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "aws_profile": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "discard_field": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "discard_regex": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "iam_role_arn": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "iam_role_duration": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "name": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "only_logs_after": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "path": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "path_suffix": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "regions": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "remove_from_bucket": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "secret_key": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "service_endpoint": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "sts_endpoint": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "type": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "day": {
+                              "type": "long"
+                            },
+                            "disabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "run_on_start": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "services": {
+                              "properties": {
+                                "access_key": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "aws_account_alias": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "aws_account_id": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "aws_log_groups": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "aws_profile": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "discard_field": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "discard_regex": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "iam_role_arn": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "iam_role_duration": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "only_logs_after": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "regions": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "remove_log_streams": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "secret_key": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "service_endpoint": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "sts_endpoint": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "type": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "skip_on_error": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "subscribers": {
+                              "properties": {
+                                "aws_profile": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "discard_field": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "discard_regex": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "external_id": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "iam_role_arn": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "iam_role_duration": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "service_endpoint": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "sqs_name": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "sts_endpoint": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "type": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "time": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "wday": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "azure-logs": {
+                          "properties": {
+                            "content": {
+                              "properties": {
+                                "account_key": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "account_name": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "application_id": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "application_key": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "auth_path": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "tag": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "tenantdomain": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "type": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "day": {
+                              "type": "long"
+                            },
+                            "disabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "run_on_start": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "time": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "timeout": {
+                              "type": "long"
+                            },
+                            "wday": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "command": {
+                          "properties": {
+                            "command": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "day": {
+                              "type": "long"
+                            },
+                            "disabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "ignore_output": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "run_on_start": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "skip_verification": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "tag": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "time": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "verify_md5": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "verify_sha1": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "verify_sha256": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "wday": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "docker-listener": {
+                          "properties": {
+                            "attempts": {
+                              "type": "long"
+                            },
+                            "day": {
+                              "type": "long"
+                            },
+                            "disabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "run_on_start": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "time": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "wday": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "execd": {
+                          "properties": {
+                            "active-response": {
+                              "properties": {
+                                "disabled": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "repeated_offenders": {
+                                  "type": "long"
+                                }
+                              }
+                            },
+                            "internal": {
+                              "properties": {
+                                "execd": {
+                                  "properties": {
+                                    "max_restart_lock": {
+                                      "type": "long"
+                                    },
+                                    "request_timeout": {
+                                      "type": "long"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "logging": {
+                              "properties": {
+                                "json": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "plain": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "fim": {
+                          "properties": {
+                            "internal": {
+                              "properties": {
+                                "rootcheck": {
+                                  "properties": {
+                                    "sleep": {
+                                      "type": "long"
+                                    }
+                                  }
+                                },
+                                "syscheck": {
+                                  "properties": {
+                                    "debug": {
+                                      "type": "long"
+                                    },
+                                    "default_max_depth": {
+                                      "type": "long"
+                                    },
+                                    "file_max_size": {
+                                      "type": "long"
+                                    },
+                                    "max_audit_entries": {
+                                      "type": "long"
+                                    },
+                                    "max_fd_win_rt": {
+                                      "type": "long"
+                                    },
+                                    "rt_delay": {
+                                      "type": "long"
+                                    },
+                                    "symlink_scan_interval": {
+                                      "type": "long"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "rootcheck": {
+                              "properties": {
+                                "base_directory": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "check_dev": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "check_if": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "check_pids": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "check_ports": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "check_sys": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "disabled": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "frequency": {
+                                  "type": "long"
+                                },
+                                "ignore": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "ignore_sregex": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "scanall": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "skip_nfs": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "syscheck": {
+                              "properties": {
+                                "diff": {
+                                  "properties": {
+                                    "disk_quota": {
+                                      "properties": {
+                                        "enabled": {
+                                          "ignore_above": 1024,
+                                          "type": "keyword"
+                                        },
+                                        "limit": {
+                                          "type": "long"
+                                        }
+                                      }
+                                    },
+                                    "file_size": {
+                                      "properties": {
+                                        "enabled": {
+                                          "ignore_above": 1024,
+                                          "type": "keyword"
+                                        },
+                                        "limit": {
+                                          "type": "long"
+                                        }
+                                      }
+                                    }
+                                  }
+                                },
+                                "directories": {
+                                  "properties": {
+                                    "diff_size_limit": {
+                                      "type": "long"
+                                    },
+                                    "dir": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "opts": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "recursion_level": {
+                                      "type": "long"
+                                    },
+                                    "restrict": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "symbolic_link": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "tags": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "disabled": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "file_limit": {
+                                  "properties": {
+                                    "enabled": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "entries": {
+                                      "type": "long"
+                                    }
+                                  }
+                                },
+                                "frequency": {
+                                  "type": "long"
+                                },
+                                "ignore": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "ignore_sregex": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "key_ignore": {
+                                  "properties": {
+                                    "arch": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "entry": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "key_ignore_sregex": {
+                                  "properties": {
+                                    "arch": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "entry": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "max_eps": {
+                                  "type": "long"
+                                },
+                                "max_files_per_second": {
+                                  "type": "long"
+                                },
+                                "nodiff": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "notify_first_scan": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "process_priority": {
+                                  "type": "long"
+                                },
+                                "registry": {
+                                  "properties": {
+                                    "arch": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "diff_size_limit": {
+                                      "type": "long"
+                                    },
+                                    "entry": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "opts": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "recursion_level": {
+                                      "type": "long"
+                                    },
+                                    "restrict_key": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "restrict_value": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "tags": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "registry_limit": {
+                                  "properties": {
+                                    "enabled": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "entries": {
+                                      "type": "long"
+                                    }
+                                  }
+                                },
+                                "registry_nodiff": {
+                                  "properties": {
+                                    "arch": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "entry": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "registry_nodiff_sregex": {
+                                  "properties": {
+                                    "arch": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "entry": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "scan_day": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "scan_time": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "skip_dev": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "skip_nfs": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "skip_proc": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "skip_sys": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "synchronization": {
+                                  "properties": {
+                                    "enabled": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "integrity_interval": {
+                                      "type": "long"
+                                    },
+                                    "interval": {
+                                      "type": "long"
+                                    },
+                                    "max_eps": {
+                                      "type": "long"
+                                    },
+                                    "response_timeout": {
+                                      "type": "long"
+                                    },
+                                    "sync_end_delay": {
+                                      "type": "long"
+                                    }
+                                  }
+                                },
+                                "value_ignore": {
+                                  "properties": {
+                                    "arch": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "entry": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "value_ignore_sregex": {
+                                  "properties": {
+                                    "arch": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "entry": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "whodata": {
+                                  "properties": {
+                                    "audit_key": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "provider": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "queue_size": {
+                                      "type": "long"
+                                    },
+                                    "restart_audit": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "startup_healthcheck": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "windows_audit_interval": {
+                                  "type": "long"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "gcp-bucket": {
+                          "properties": {
+                            "buckets": {
+                              "properties": {
+                                "bucket": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "credentials_file": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "only_logs_after": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "prefix": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "remove_from_bucket": {
+                                  "type": "long"
+                                },
+                                "type": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "day": {
+                              "type": "long"
+                            },
+                            "enabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "logging": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "run_on_start": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "time": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "wday": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "gcp-pubsub": {
+                          "properties": {
+                            "credentials_file": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "day": {
+                              "type": "long"
+                            },
+                            "enabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "logging": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "max_messages": {
+                              "type": "long"
+                            },
+                            "num_threads": {
+                              "type": "long"
+                            },
+                            "project_id": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "pull_on_start": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "subscription_name": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "time": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "wday": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "github": {
+                          "properties": {
+                            "api_auth": {
+                              "properties": {
+                                "api_token": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "org_name": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "curl_max_size": {
+                              "type": "long"
+                            },
+                            "enabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "event_type": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "only_future_events": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "time_delay": {
+                              "type": "long"
+                            }
+                          }
+                        },
+                        "logcollector": {
+                          "properties": {
+                            "internal": {
+                              "properties": {
+                                "logcollector": {
+                                  "properties": {
+                                    "debug": {
+                                      "type": "long"
+                                    },
+                                    "exclude_files_interval": {
+                                      "type": "long"
+                                    },
+                                    "force_reload": {
+                                      "type": "long"
+                                    },
+                                    "input_threads": {
+                                      "type": "long"
+                                    },
+                                    "loop_timeout": {
+                                      "type": "long"
+                                    },
+                                    "max_files": {
+                                      "type": "long"
+                                    },
+                                    "max_lines": {
+                                      "type": "long"
+                                    },
+                                    "open_attempts": {
+                                      "type": "long"
+                                    },
+                                    "queue_size": {
+                                      "type": "long"
+                                    },
+                                    "reload_delay": {
+                                      "type": "long"
+                                    },
+                                    "reload_interval": {
+                                      "type": "long"
+                                    },
+                                    "remote_commands": {
+                                      "type": "long"
+                                    },
+                                    "rlimit_nofile": {
+                                      "type": "long"
+                                    },
+                                    "sample_log_length": {
+                                      "type": "long"
+                                    },
+                                    "sock_fail_time": {
+                                      "type": "long"
+                                    },
+                                    "state_interval": {
+                                      "type": "long"
+                                    },
+                                    "vcheck_files": {
+                                      "type": "long"
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "localfile": {
+                              "properties": {
+                                "age": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "alias": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "channel": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "command": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "djb_program_name": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "duplicate": {
+                                  "type": "long"
+                                },
+                                "exclude": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "file": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "filters": {
+                                  "properties": {
+                                    "expression": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "field": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "ignore_if_missing": {
+                                      "type": "boolean"
+                                    }
+                                  }
+                                },
+                                "filters_disabled": {
+                                  "type": "boolean"
+                                },
+                                "frequency": {
+                                  "type": "long"
+                                },
+                                "ignore": {
+                                  "properties": {
+                                    "type": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "value": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "ignore_binaries": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "logformat": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "max-size": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "multiline_regex": {
+                                  "properties": {
+                                    "match": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "regex": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "replace": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "timeout": {
+                                      "type": "long"
+                                    }
+                                  }
+                                },
+                                "only-future-events": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "out_format": {
+                                  "properties": {
+                                    "format": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "target": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "query": {
+                                  "properties": {
+                                    "level": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "type": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "value": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "reconnect_time": {
+                                  "type": "long"
+                                },
+                                "restrict": {
+                                  "properties": {
+                                    "type": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    },
+                                    "value": {
+                                      "ignore_above": 1024,
+                                      "type": "keyword"
+                                    }
+                                  }
+                                },
+                                "target": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "socket": {
+                              "properties": {
+                                "location": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "mode": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "name": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "prefix": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "ms_graph": {
+                          "properties": {
+                            "api_auth": {
+                              "properties": {
+                                "api_type": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "client_id": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "name": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "secret_value": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "tenant_id": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "curl_max_size": {
+                              "type": "long"
+                            },
+                            "day": {
+                              "type": "long"
+                            },
+                            "enabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "only_future_events": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "page_size": {
+                              "type": "long"
+                            },
+                            "resources": {
+                              "properties": {
+                                "name": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "relationship": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "run_on_start": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "time": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "time_delay": {
+                              "type": "long"
+                            },
+                            "version": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "wday": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "office365": {
+                          "properties": {
+                            "api_auth": {
+                              "properties": {
+                                "api_type": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "client_id": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "client_secret": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "client_secret_path": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "tenant_id": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "curl_max_size": {
+                              "type": "long"
+                            },
+                            "enabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "only_future_events": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "subscriptions": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "sca": {
+                          "properties": {
+                            "day": {
+                              "type": "long"
+                            },
+                            "enabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "max_eps": {
+                              "type": "long"
+                            },
+                            "policies": {
+                              "properties": {
+                                "policy": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                }
+                              }
+                            },
+                            "scan_on_start": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "synchronization": {
+                              "properties": {
+                                "enabled": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "interval": {
+                                  "type": "long"
+                                },
+                                "max_eps": {
+                                  "type": "long"
+                                },
+                                "response_timeout": {
+                                  "type": "long"
+                                },
+                                "sync_end_delay": {
+                                  "type": "long"
+                                }
+                              }
+                            },
+                            "time": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "wday": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "syscollector": {
+                          "properties": {
+                            "browser_extensions": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "disabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "groups": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "hardware": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "hotfixes": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "interval": {
+                              "type": "long"
+                            },
+                            "max_eps": {
+                              "type": "long"
+                            },
+                            "network": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "notify_first_scan": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "os": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "packages": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "ports": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "ports_all": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "processes": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "scan-on-start": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "services": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            },
+                            "synchronization": {
+                              "properties": {
+                                "enabled": {
+                                  "ignore_above": 1024,
+                                  "type": "keyword"
+                                },
+                                "integrity_interval": {
+                                  "type": "long"
+                                },
+                                "interval": {
+                                  "type": "long"
+                                },
+                                "max_eps": {
+                                  "type": "long"
+                                },
+                                "response_timeout": {
+                                  "type": "long"
+                                },
+                                "sync_end_delay": {
+                                  "type": "long"
+                                }
+                              }
+                            },
+                            "users": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "wazuh_control": {
+                          "properties": {
+                            "enabled": {
+                              "ignore_above": 1024,
+                              "type": "keyword"
+                            }
+                          }
+                        },
+                        "wmodules": {
+                          "properties": {
+                            "internal_options": {
+                              "properties": {
+                                "wazuh_modules": {
+                                  "properties": {
+                                    "debug": {
+                                      "type": "long"
+                                    },
+                                    "kill_timeout": {
+                                      "type": "long"
+                                    },
+                                    "max_eps": {
+                                      "type": "long"
+                                    },
+                                    "task_nice": {
+                                      "type": "long"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "modules": {
+                      "ignore_above": 256,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "id": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "cluster": {
+              "properties": {
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "node": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            },
+            "schema": {
+              "properties": {
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
