@@ -105,6 +105,22 @@ The Unix socket used for Engine communication does not exist.
 2. Check the Engine configuration for the socket path.
 3. Ensure the `engine/sockets/` directory exists under the Wazuh Indexer installation path.
 
+### Sync fails with a request timeout during a CTI rate-limit
+
+A synchronization pass fails and the log shows a timeout on a CTI request, e.g.:
+
+```
+Error during content update: Timeout deadline: 10000 MILLISECONDS, actual: 10000 MILLISECONDS
+```
+
+This means the CTI API rate-limited the request (HTTP 429). The client now honors the response `Retry-After` header and retries automatically (see [CTI rate-limit retries](configuration.md#cti-rate-limit-retries-http-429)), so a transient rate-limit self-recovers within the pass.
+
+#### Resolution
+
+1. If the failure is transient, no action is needed — the request is retried and the next scheduled sync resumes from the last checkpoint (no data is lost or duplicated).
+2. If 429s persist across passes, the instance is being rate-limited by CTI for longer than the retry budget. Increase `plugins.content_manager.client.max_retries` and/or `plugins.content_manager.client.retry_backoff_base_seconds`.
+3. Look for the warning `CTI API rate-limited request [...] (HTTP 429); retrying in {}s` in the logs to confirm the retry path is engaging.
+
 ## Diagnostic commands
 
 ### Check consumer state
