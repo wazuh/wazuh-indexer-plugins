@@ -169,36 +169,39 @@ jobs:
       - name: Trigger content sync and wait for readiness
         run: |
             base="${BASE_URL}"
-            deadline=$((SECONDS + 1800))   # ~15 min, snapshot indexing could be slow.
-            shard_fail_count=0
+            deadline=$((SECONDS + 1800))
+            fail_count=0
             while [ $SECONDS -lt $deadline ]; do
-                consumers_response=$(curl -s "$base/.wazuh-cti-consumers/_search?filter_path=hits.hits._source.status")
-                echo "Consumers response: ${consumers_response}"
-                if echo "${consumers_response}" | grep -q "all shards failed"; then
-                    shard_fail_count=$((shard_fail_count + 1))
-                    if [ "$shard_fail_count" -ge 3 ]; then
-                        echo "Cluster is broken: .wazuh-cti-consumers returned 'all shards failed' 3 times in a row."
+                consumer_response=$(curl -s "$base/.wazuh-cti-consumers/_doc/cti:catalog:consumer:ruleset?filter_path=_source.status")
+                echo "Ruleset consumer response: ${consumer_response}"
+                if echo "${consumer_response}" | grep -qE '"error"'; then
+                    fail_count=$((fail_count + 1))
+                    if [ "$fail_count" -ge 3 ]; then
+                        echo "Cluster is broken: ruleset consumer query returned errors 3 times in a row."
                         docker logs wazuh-indexer | tail -150
                         exit 1
                     fi
                 else
-                    shard_fail_count=0
+                    fail_count=0
                 fi
-                ready=$(echo "${consumers_response}" | grep -o '"ready"' | wc -l)
+                ruleset_ready=false
+                if echo "${consumer_response}" | grep -q '"ready"'; then
+                    ruleset_ready=true
+                fi
                 sap_response=$(curl -s -w '\n%{http_code}' "$base/.opensearch-sap-pre-packaged-rules-config")
                 sap_code=$(echo "${sap_response}" | tail -1)
                 echo "SAP rules config response (HTTP ${sap_code})"
-                if [ "$ready" -eq 3 ] && [ "$sap_code" = "200" ]; then
-                    echo "All 3 CTI consumers ready and SAP rules config present (${SECONDS}s)."
+                if [ "$ruleset_ready" = true ] && [ "$sap_code" = "200" ]; then
+                    echo "Ruleset consumer ready and SAP rules config present (${SECONDS}s)."
                     break
                 fi
-                echo "Waiting — ${ready}/3 consumers ready, SAP rules config: ${sap_code} (${SECONDS}s)..."
+                echo "Waiting — ruleset consumer ready: ${ruleset_ready}, SAP rules config: ${sap_code} (${SECONDS}s)..."
                 sleep 10
             done
 
-            if [ "$ready" -ne 3 ] || [ "$sap_code" != "200" ]; then
+            if [ "$ruleset_ready" != true ] || [ "$sap_code" != "200" ]; then
                 echo "Indexer content sync did not complete in time."
-                echo "--- CTI consumers (sync state) ---"; curl -s "$base/.wazuh-cti-consumers/_search" || true
+                echo "--- Ruleset consumer ---"; curl -s "$base/.wazuh-cti-consumers/_doc/cti:catalog:consumer:ruleset" || true
                 docker logs wazuh-indexer | tail -150
                 exit 1
             fi
