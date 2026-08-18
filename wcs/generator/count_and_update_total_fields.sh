@@ -265,7 +265,7 @@ if $PROCESS_ALL; then
   # Keep only stateless/ and cti/ modules
   filtered=()
   for m in "${MODULES[@]:-}"; do
-    if [[ "$m" == stateless/* || "$m" == cti/* || "$m" == filters || "$m" == cve ]]; then
+    if [[ "$m" == stateless/* || "$m" == cti/* || "$m" == filters || "$m" == cve || "$m" == ai-assistant/sessions ]]; then
       filtered+=("$m")
     fi
   done

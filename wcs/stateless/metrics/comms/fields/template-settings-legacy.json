@@ -1,11 +1,11 @@
 {
   "index_patterns": [
-    "wazuh-metrics-comms*"
+    "wazuh-metrics-comms-v4*"
   ],
   "order": 1,
   "data_stream": {},
   "settings": {
-    "plugins.index_state_management.rollover_alias": "wazuh-metrics-comms",
+    "plugins.index_state_management.rollover_alias": "wazuh-metrics-comms-v4",
     "plugins.index_state_management.policy_id": "stream-metrics-policy",
     "index": {
       "codec": "zstd",

@@ -1,5 +1,7 @@
 module_to_file=(
   # Wazuh modules
+  [stateful/agent-config]=templates/states/agent-config.json
+  [stateful/agent-stats]=templates/states/agent-stats.json
   [stateful/fim/files]=templates/states/fim-files.json
   [stateful/fim/windows-registry-keys]=templates/states/fim-registry-keys.json
   [stateful/fim/windows-registry-values]=templates/states/fim-registry-values.json
@@ -34,4 +36,8 @@ module_to_file=(
   [content/ioc]=templates/content/ioc.json
   # CVE module
   [cve]=templates/cve.json
+  # AI assistant modules
+  [ai-assistant/sessions]=templates/streams/ai-assistant-sessions.json
+  # Internal state module
+  [internal-state]=plugins/content-manager/src/main/resources/mappings/internal-state-mapping.json
 )
