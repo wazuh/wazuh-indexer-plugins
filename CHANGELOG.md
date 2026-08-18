@@ -133,6 +133,7 @@
 - Findings case management pt.2 [(#1334)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1334)
 - Allow dates on Content Manager's REST API [(#1349)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1349)
 - Update the Content Manager OpenAPI (`openapi.yml`) to match the current API [(#1353)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1353)
+- Rename the `metrics-comms` stream to `wazuh-metrics-comms-v4` [(#1458)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1458)
 
 ### Removed
 - Remove plugins not planned for 5.x [(#440)](https://github.com/wazuh/wazuh-indexer-plugins/issues/440)
