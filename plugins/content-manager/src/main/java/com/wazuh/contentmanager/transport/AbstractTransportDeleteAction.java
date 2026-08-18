@@ -303,6 +303,11 @@ public abstract class AbstractTransportDeleteAction
     private void respondWithError(ActionListener<ContentResponse> listener, String id, Exception e) {
         RestResponse classified = TransportActionHelper.classifyException(e);
         if (classified != null) {
+            log.warn(
+                    Constants.W_LOG_OPERATION_FAILED,
+                    "Deleting",
+                    this.getResourceType(),
+                    classified.getMessage());
             listener.onResponse(
                     new ContentResponse(
                             classified.getMessage(), RestStatus.fromCode(classified.getStatus())));

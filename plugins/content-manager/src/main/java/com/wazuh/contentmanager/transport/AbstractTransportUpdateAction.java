@@ -285,7 +285,7 @@ public abstract class AbstractTransportUpdateAction
                                 if (syncError != null) {
                                     if (syncError.getStatus() < 500) {
                                         log.warn(
-                                                Constants.W_LOG_FAILED_TO,
+                                                Constants.E_LOG_FAILED_TO,
                                                 "sync updated",
                                                 this.getResourceType(),
                                                 id,
@@ -354,6 +354,11 @@ public abstract class AbstractTransportUpdateAction
     private void respondWithError(ActionListener<ContentResponse> listener, String id, Exception e) {
         RestResponse classified = TransportActionHelper.classifyException(e);
         if (classified != null) {
+            log.warn(
+                    Constants.W_LOG_OPERATION_FAILED,
+                    "Updating",
+                    this.getResourceType(),
+                    classified.getMessage());
             listener.onResponse(
                     new ContentResponse(
                             classified.getMessage(), RestStatus.fromCode(classified.getStatus())));

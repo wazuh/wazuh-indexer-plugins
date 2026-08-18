@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -302,14 +303,14 @@ public abstract class AbstractTransportCreateAction
                                             e -> respondWithError(lockReleasingListener, e)));
                         },
                         e -> {
-                            if (e instanceof ResourceLockTimeoutException) {
+                            if (ExceptionsHelper.unwrap(e, ResourceLockTimeoutException.class) != null) {
                                 log.warn(
                                         "Failed to acquire resource-creation lock for [{}]: {}",
                                         this.getResourceType(),
                                         e.getMessage());
                                 listener.onResponse(
                                         new ContentResponse(
-                                                Constants.E_503_RESOURCE_LOCK_TIMEOUT, RestStatus.TOO_MANY_REQUESTS));
+                                                Constants.E_429_RESOURCE_LOCK_TIMEOUT, RestStatus.TOO_MANY_REQUESTS));
                                 return;
                             }
                             respondWithError(listener, e);
@@ -394,7 +395,7 @@ public abstract class AbstractTransportCreateAction
                             if (syncError != null) {
                                 if (syncError.getStatus() < 500) {
                                     log.warn(
-                                            Constants.W_LOG_FAILED_TO,
+                                            Constants.E_LOG_FAILED_TO,
                                             "sync",
                                             this.getResourceType(),
                                             id,
