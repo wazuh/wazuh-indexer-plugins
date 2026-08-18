@@ -117,6 +117,7 @@ public class Constants {
     public static final String E_LOG_SAP_SYNC_FAILED = "Failed to sync {} in Security Analytics: {}";
     public static final String E_LOG_OPERATION_FAILED = "Error {} {}: {}";
     public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
+    public static final String W_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
     public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
     public static final String E_LOG_MISSING_FIELD = "Missing '{}' field.";
     public static final String E_LOG_MISSING_OBJECT = "Missing '{}' object.";

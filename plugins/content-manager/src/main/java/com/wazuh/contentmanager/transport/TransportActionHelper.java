@@ -25,6 +25,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
@@ -233,9 +234,11 @@ public final class TransportActionHelper {
      *
      * <ol>
      *   <li>{@link OpenSearchSecurityException} -&gt; its own status.
-     *   <li>{@link ClusterBlockException} is always left unclassified so the caller logs it and
-     *       returns a generic 500, even though its own {@code status()} (e.g. 403 for a write block)
-     *       is below 500; by convention a cluster block is a server fault, not a client error.
+     *   <li>{@link ClusterBlockException} and {@link IndexNotFoundException} are always left
+     *       unclassified so the caller logs it and returns a generic 500, even though their own
+     *       {@code status()} is below 500 (403 for a write block, 404 for a missing index); by
+     *       convention these are server faults, not client errors, and their raw message (e.g. an
+     *       internal index name) must not leak in the response body.
      *   <li>Any other {@link OpenSearchException} (this includes {@code
      *       VersionConflictEngineException}, whose {@code status()} already correctly resolves to
      *       409) -&gt; its own status, but only when it's below 500; any other genuine server fault
@@ -255,6 +258,9 @@ public final class TransportActionHelper {
             return new RestResponse(secEx.getMessage(), secEx.status().getStatus());
         }
         if (ExceptionsHelper.unwrap(throwable, ClusterBlockException.class) != null) {
+            return null;
+        }
+        if (ExceptionsHelper.unwrap(throwable, IndexNotFoundException.class) != null) {
             return null;
         }
         OpenSearchException osEx = extractOpenSearchException(throwable);

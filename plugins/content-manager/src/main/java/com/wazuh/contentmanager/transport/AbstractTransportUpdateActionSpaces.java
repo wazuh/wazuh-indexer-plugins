@@ -287,12 +287,21 @@ public abstract class AbstractTransportUpdateActionSpaces
                     ActionListener.wrap(
                             syncError -> {
                                 if (syncError != null) {
-                                    log.error(
-                                            Constants.E_LOG_FAILED_TO,
-                                            "sync updated",
-                                            this.getResourceType(),
-                                            id,
-                                            "with external services. Reason: " + syncError.getMessage());
+                                    if (syncError.getStatus() < 500) {
+                                        log.warn(
+                                                Constants.W_LOG_FAILED_TO,
+                                                "sync updated",
+                                                this.getResourceType(),
+                                                id,
+                                                "with external services. Reason: " + syncError.getMessage());
+                                    } else {
+                                        log.error(
+                                                Constants.E_LOG_FAILED_TO,
+                                                "sync updated",
+                                                this.getResourceType(),
+                                                id,
+                                                "with external services. Reason: " + syncError.getMessage());
+                                    }
                                     respond(listener, syncError);
                                     return;
                                 }

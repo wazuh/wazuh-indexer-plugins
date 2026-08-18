@@ -392,12 +392,21 @@ public abstract class AbstractTransportCreateAction
                 ActionListener.wrap(
                         syncError -> {
                             if (syncError != null) {
-                                log.error(
-                                        Constants.E_LOG_FAILED_TO,
-                                        "sync",
-                                        this.getResourceType(),
-                                        id,
-                                        "with external services (Engine/SAP). Reason: " + syncError.getMessage());
+                                if (syncError.getStatus() < 500) {
+                                    log.warn(
+                                            Constants.W_LOG_FAILED_TO,
+                                            "sync",
+                                            this.getResourceType(),
+                                            id,
+                                            "with external services (Engine/SAP). Reason: " + syncError.getMessage());
+                                } else {
+                                    log.error(
+                                            Constants.E_LOG_FAILED_TO,
+                                            "sync",
+                                            this.getResourceType(),
+                                            id,
+                                            "with external services (Engine/SAP). Reason: " + syncError.getMessage());
+                                }
                                 listener.onResponse(
                                         new ContentResponse(
                                                 syncError.getMessage(), RestStatus.fromCode(syncError.getStatus())));

@@ -26,6 +26,7 @@ import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.Before;
@@ -247,6 +248,21 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
         assertEquals(RestStatus.FORBIDDEN, clusterBlockException.status());
 
         RestResponse classified = TransportActionHelper.classifyException(clusterBlockException);
+
+        assertNull(classified);
+    }
+
+    /**
+     * {@link IndexNotFoundException} carries a 404 status (below 500), but a missing internal plugin
+     * index is a server fault, not a client not-found. It must be left unclassified so the caller
+     * returns a generic 500 and does not leak the internal index name in the response body.
+     */
+    public void testClassifyExceptionLeavesIndexNotFoundUnclassified() {
+        IndexNotFoundException indexNotFoundException =
+                new IndexNotFoundException("wazuh-threatintel-policies");
+        assertEquals(RestStatus.NOT_FOUND, indexNotFoundException.status());
+
+        RestResponse classified = TransportActionHelper.classifyException(indexNotFoundException);
 
         assertNull(classified);
     }
