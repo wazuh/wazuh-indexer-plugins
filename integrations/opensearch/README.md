@@ -1,6 +1,6 @@
 # Wazuh to OpenSearch Integration Developer Guide
 
-This document describes how to prepare a Docker Compose environment to test the integration between Wazuh and the OpenSearch Stack. For a detailed guide on how to integrate Wazuh with OpenSearch Stack, please refer to the [Wazuh documentation](https://documentation.wazuh.com/current/integrations-guide/OpenSearch-stack/index.html).
+This document describes how to prepare a Docker Compose environment to test the integration between Wazuh and the OpenSearch Stack. For a detailed guide on how to integrate Wazuh with OpenSearch Stack, please refer to the [Wazuh documentation](https://documentation.wazuh.com/current/integrations-guide/opensearch/index.html).
 
 ## Requirements
 

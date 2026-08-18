@@ -178,6 +178,7 @@
 - [BUG] Vulnerability Detection empty for all agents after a transient snapshot bootstrap failure [(#1383)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1383)
 - [BUG] Log test does not use manually enabled integrations [(#1410)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1410)
 - [BUG] Undefined state if a node is restarted while the standard space hash is being calculated [(#1773)](https://github.com/wazuh/wazuh-indexer/issues/1773)
+- [BUG] Fix issues in workflows [(#1449)](https://github.com/wazuh/wazuh-indexer/issues/1449)
 
 ## Prior versions
 - []()

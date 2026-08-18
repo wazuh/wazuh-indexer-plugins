@@ -12,7 +12,7 @@ To verify everything is working correctly, try generating reports following the 
 ### Preparing packages
 
 - Wazuh Indexer package (debian package based on OpenSearch 3.1.0). Compiled locally using the [Docker builder](https://github.com/wazuh/wazuh-indexer/tree/main/build-scripts): `bash builder.sh -d deb -a x64`.
-- Wazuh Dashboard package (debian package based on OpenSearch 3.1.0). Downloaded from [wazuh-dashboard actions](https://github.com/wazuh/wazuh-dashboard/actions/runs/16009728935).
+- Wazuh Dashboard package (debian package based on OpenSearch 3.1.0). Downloaded from [wazuh-dashboard actions](https://github.com/wazuh/wazuh-dashboard/actions/workflows/5_builderpackage_dashboard.yml).
 
 > Note: To test using RPM packages, update the Vagrant configuration and provisioning scripts accordingly (for example, change `generic/ubuntu2204` to `generic/centos7` in the Vagrantfile and replace Debian-specific installation commands with RPM equivalents).
 
