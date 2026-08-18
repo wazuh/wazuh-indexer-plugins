@@ -69,6 +69,7 @@
 - Create the `wazuh-agent-config` index [(#1419)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1419)
 - Added `previous` value fields to the WCS for process, service, and package inventory changes [(#1413)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1413)
 - Create the `wazuh-agent-stats` index [(#1425)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1425)
+- Test fixes in content manager tests [(#1451)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1451)
 
 ### Changed
 - Add dependabot scan to the content-manager plugin [(#442)](https://github.com/wazuh/wazuh-indexer-plugins/issues/442)
@@ -178,6 +179,7 @@
 - [BUG] Vulnerability Detection empty for all agents after a transient snapshot bootstrap failure [(#1383)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1383)
 - [BUG] Log test does not use manually enabled integrations [(#1410)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1410)
 - [BUG] Undefined state if a node is restarted while the standard space hash is being calculated [(#1773)](https://github.com/wazuh/wazuh-indexer/issues/1773)
+- [BUG] Fix issues in workflows [(#1449)](https://github.com/wazuh/wazuh-indexer/issues/1449)
 
 ## Prior versions
 - []()

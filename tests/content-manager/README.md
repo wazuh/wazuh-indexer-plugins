@@ -62,14 +62,13 @@ demand via the Alerting `_execute` API to avoid waiting for its schedule. The
 detector's `custom_rules` references the **CTI rule id** (not the SAP rule `_id`),
 which is how the Wazuh SAP fork resolves promoted custom rules.
 
-## CI (planned)
+## CI
 
-Per-PR the workflow will build the content-manager ZIP, provision a running
-cluster with the Engine, install the freshly built plugin over it — the same way
-the `sync-env.sh` helper does (`opensearch-plugin remove --purge
-wazuh-indexer-content-manager` then `opensearch-plugin install file://…/wazuh-indexer-content-manager-<ver>.zip`,
-restart) — and then run this suite. A fresh cluster per run sidesteps the
-test/custom reset limitation above.
+The workflow `5_testcomponent_content_manager.yml` runs on every PR that touches
+`plugins/content-manager/` or `tests/content-manager/`. It builds the plugin ZIP,
+starts the full wazuh-indexer Docker image (which already bundles the Engine),
+swaps in the freshly built package, waits for a content sync, and runs this suite.
+A fresh container per run sidesteps the test/custom reset limitation above.
 
 ## Source of truth
 
