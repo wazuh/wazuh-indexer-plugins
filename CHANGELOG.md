@@ -65,6 +65,7 @@
 - Reduce TTL for historical information about deletes in-memory [(#1328)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1328)
 - Integration's mode [(#1356)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1356)
 - Load standard space into all cluster nodes [(#1376)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1376)
+- AI assistant support [(#1422)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1422)
 - Create the `wazuh-agent-config` index [(#1419)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1419)
 - Added `previous` value fields to the WCS for process, service, and package inventory changes [(#1413)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1413)
 - Create the `wazuh-agent-stats` index [(#1425)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1425)
@@ -132,6 +133,7 @@
 - Findings case management pt.2 [(#1334)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1334)
 - Allow dates on Content Manager's REST API [(#1349)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1349)
 - Update the Content Manager OpenAPI (`openapi.yml`) to match the current API [(#1353)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1353)
+- Rename the `metrics-comms` stream to `wazuh-metrics-comms-v4` [(#1458)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1458)
 
 ### Removed
 - Remove plugins not planned for 5.x [(#440)](https://github.com/wazuh/wazuh-indexer-plugins/issues/440)
