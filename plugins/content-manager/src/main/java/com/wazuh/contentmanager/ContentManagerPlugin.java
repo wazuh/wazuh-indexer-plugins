@@ -134,6 +134,8 @@ public class ContentManagerPlugin extends Plugin
     private EngineService engine;
     private EngineContentLoader engineContentLoader;
     private ClusterStateListener engineContentListener;
+    private ClusterStateListener standardSpaceHashListener;
+    private final AtomicBoolean standardSpaceHashInFlight = new AtomicBoolean(false);
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
     private Environment environment;
@@ -384,8 +386,11 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void close() {
-        if (this.engineContentListener != null && this.clusterService != null) {
-            this.clusterService.removeListener(this.engineContentListener);
+        if (this.clusterService != null) {
+            if (this.engineContentListener != null) {
+                this.clusterService.removeListener(this.engineContentListener);
+            }
+            this.unregisterStandardSpaceHashListener();
         }
     }
 
@@ -621,19 +626,25 @@ public class ContentManagerPlugin extends Plugin
      * hash only when it actually finds new content.
      *
      * <p>On startup the policies index shards may not be allocated yet (especially in a multi-node
-     * cluster); this method retries with a linear backoff up to {@link
-     * Constants#MAX_JOB_SCHEDULE_RETRIES} times before giving up.
+     * cluster), so the read fails transiently ("all shards failed"). Rather than retrying a fixed
+     * number of times and giving up, a read failure registers a cluster-state listener that
+     * reattempts on each subsequent cluster-state update until the read succeeds — the same
+     * self-healing pattern used for per-node Engine content loading ({@link #engineContentListener})
      */
     private void ensureStandardSpaceHash() {
-        this.ensureStandardSpaceHash(0);
-    }
-
-    private void ensureStandardSpaceHash(int attempt) {
+        // A cluster-state update can fire this again while a previous attempt is still in flight;
+        // skip the overlap so we do not launch redundant concurrent policy reads.
+        if (!this.standardSpaceHashInFlight.compareAndSet(false, true)) {
+            return;
+        }
         String standard = Space.STANDARD.toString();
         this.spaceService.recalculateSpaceHashIfMissing(
                 standard,
                 ActionListener.wrap(
                         changedSpaces -> {
+                            // The read succeeded; stop retrying.
+                            this.standardSpaceHashInFlight.set(false);
+                            this.unregisterStandardSpaceHashListener();
                             if (changedSpaces == null || !changedSpaces.contains(standard)) {
                                 return;
                             }
@@ -647,9 +658,34 @@ public class ContentManagerPlugin extends Plugin
                                                     log.warn(
                                                             Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
                         },
-                        e ->
-                                this.retryWithBackoff(
-                                        "Standard Space Hash Recovery", attempt, this::ensureStandardSpaceHash)));
+                        e -> {
+                            // Transient startup failure: keep retrying on every cluster-state update
+                            // until the policies index becomes readable.
+                            this.standardSpaceHashInFlight.set(false);
+                            this.registerStandardSpaceHashListener();
+                        }));
+    }
+
+    /**
+     * Registers the cluster-state listener that retries {@link #ensureStandardSpaceHash()} on each
+     * cluster-state update. Idempotent: a listener is registered at most once, and re-registration
+     * while one is already active is a no-op.
+     */
+    private synchronized void registerStandardSpaceHashListener() {
+        if (this.standardSpaceHashListener != null) {
+            return;
+        }
+        log.debug(Constants.D_LOG_SPACE_HASH_RETRY_SCHEDULED);
+        this.standardSpaceHashListener = event -> this.ensureStandardSpaceHash();
+        this.clusterService.addListener(this.standardSpaceHashListener);
+    }
+
+    /** Deregisters the standard-space-hash retry listener if one is currently active. */
+    private synchronized void unregisterStandardSpaceHashListener() {
+        if (this.standardSpaceHashListener != null) {
+            this.clusterService.removeListener(this.standardSpaceHashListener);
+            this.standardSpaceHashListener = null;
+        }
     }
 
     /**

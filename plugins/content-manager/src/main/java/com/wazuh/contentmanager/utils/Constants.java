@@ -404,6 +404,8 @@ public class Constants {
             "Recalculated the aggregate hash for space [{}] at startup.";
     public static final String D_LOG_POLICY_INDEX_NOT_READY =
             "Policies are not readable yet; cannot read the policy for space [{}]: {}";
+    public static final String D_LOG_SPACE_HASH_RETRY_SCHEDULED =
+            "Standard space hash not readable yet; will retry on the next cluster-state update.";
     public static final String W_LOG_DOCUMENT_NOT_FOUND_FOR_DELETION =
             "Document with document.id [{}] not found in space [{}] for deletion";
     public static final String E_LOG_DELETE_RESOURCES_FAILED = "Failed to delete resources: {}";

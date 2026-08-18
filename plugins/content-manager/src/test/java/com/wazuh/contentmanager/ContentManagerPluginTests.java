@@ -19,6 +19,7 @@ package com.wazuh.contentmanager;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.LocalNodeClusterManagerListener;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -249,10 +250,11 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests that a failed standard-space-hash recovery schedules exactly one retry with the expected
-     * backoff delay. The spaceService mock calls {@code onFailure} to simulate a transient failure.
+     * Tests that a transient standard-space-hash read failure registers a cluster-state listener to
+     * retry, instead of scheduling a bounded backoff. The spaceService mock calls {@code onFailure}
+     * to simulate the "all shards failed" startup condition.
      */
-    public void testStandardSpaceHashRetryScheduledOnFirstFailure() throws Exception {
+    public void testStandardSpaceHashRegistersListenerOnTransientFailure() throws Exception {
         PluginSettings.getInstance(Settings.EMPTY);
         doAnswer(
                         invocation -> {
@@ -264,37 +266,66 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                 .when(this.spaceService)
                 .recalculateSpaceHashIfMissing(anyString(), any());
 
-        this.invokePrivateIntMethod("ensureStandardSpaceHash", 0);
+        this.invokePrivateMethod("ensureStandardSpaceHash");
 
-        long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
-        verify(this.threadPool)
-                .schedule(
-                        any(Runnable.class),
-                        eq(TimeValue.timeValueSeconds(expectedDelay)),
-                        eq(ThreadPool.Names.GENERIC));
+        // A cluster-state listener is registered so the read is retried on the next state update;
+        // no bounded backoff is scheduled on the thread pool.
+        verify(this.clusterService).addListener(any(ClusterStateListener.class));
+        verify(this.threadPool, never())
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
     }
 
     /**
-     * Tests that once the retry budget is exhausted, no further retry is scheduled for hash recovery.
-     * The private method is invoked with {@code attempt == MAX_JOB_SCHEDULE_RETRIES} so the failure
-     * lands on the "give up" path.
+     * Tests that a successful standard-space-hash read does not register any retry listener: there is
+     * nothing to retry.
      */
-    public void testStandardSpaceHashGiveUpAfterMaxRetries() throws Exception {
+    public void testStandardSpaceHashDoesNotRegisterListenerOnSuccess() throws Exception {
         PluginSettings.getInstance(Settings.EMPTY);
         doAnswer(
                         invocation -> {
-                            invocation
-                                    .<ActionListener<?>>getArgument(1)
-                                    .onFailure(new RuntimeException("all shards failed"));
+                            invocation.<ActionListener<Set<String>>>getArgument(1).onResponse(new HashSet<>());
                             return null;
                         })
                 .when(this.spaceService)
                 .recalculateSpaceHashIfMissing(anyString(), any());
 
-        this.invokePrivateIntMethod("ensureStandardSpaceHash", Constants.MAX_JOB_SCHEDULE_RETRIES);
+        this.invokePrivateMethod("ensureStandardSpaceHash");
 
-        verify(this.threadPool, never())
-                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+        verify(this.clusterService, never()).addListener(any(ClusterStateListener.class));
+    }
+
+    /**
+     * Tests that the retry listener keeps reattempting on cluster-state updates and, once the read
+     * finally succeeds, deregisters itself so the policy read does not run on every future update.
+     */
+    public void testStandardSpaceHashListenerRetriesUntilSuccessAndDeregisters() throws Exception {
+        PluginSettings.getInstance(Settings.EMPTY);
+        // Fail the first attempt (registers the listener), succeed on the second (fired by the
+        // listener), returning an empty changed-set so no Engine reload is broadcast.
+        final int[] calls = {0};
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Set<String>> listener = invocation.getArgument(1);
+                            if (calls[0]++ == 0) {
+                                listener.onFailure(new RuntimeException("all shards failed"));
+                            } else {
+                                listener.onResponse(new HashSet<>());
+                            }
+                            return null;
+                        })
+                .when(this.spaceService)
+                .recalculateSpaceHashIfMissing(anyString(), any());
+
+        this.invokePrivateMethod("ensureStandardSpaceHash");
+
+        ArgumentCaptor<ClusterStateListener> captor =
+                ArgumentCaptor.forClass(ClusterStateListener.class);
+        verify(this.clusterService).addListener(captor.capture());
+
+        // Simulate the next cluster-state update: the retry succeeds and the listener is removed.
+        captor.getValue().clusterChanged(null);
+
+        verify(this.clusterService).removeListener(captor.getValue());
     }
 
     /** Tests that catalogSyncJob.trigger() is NOT called when the node is not elected leader. */
