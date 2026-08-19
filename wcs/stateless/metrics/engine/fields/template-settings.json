@@ -6,7 +6,6 @@
   "data_stream": {},
   "template": {
     "settings": {
-      "plugins.index_state_management.rollover_alias": "wazuh-metrics-normalization",
       "plugins.index_state_management.policy_id": "stream-metrics-policy",
       "index": {
         "codec": "zstd",

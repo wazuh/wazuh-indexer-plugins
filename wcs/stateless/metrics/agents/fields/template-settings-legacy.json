@@ -5,7 +5,6 @@
   "order": 1,
   "data_stream": {},
   "settings": {
-    "plugins.index_state_management.rollover_alias": "wazuh-metrics-agents",
     "plugins.index_state_management.policy_id": "stream-metrics-policy",
     "index": {
       "codec": "zstd",
