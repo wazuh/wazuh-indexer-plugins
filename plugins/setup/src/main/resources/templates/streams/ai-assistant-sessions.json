@@ -15,7 +15,8 @@
           "title",
           "user"
         ],
-        "refresh_interval": "1s"
+        "refresh_interval": "1s",
+        "max_docvalue_fields_search": 100
       },
       "mapping.total_fields.limit": 1000,
       "plugins.index_state_management.policy_id": "ai-assistant-sessions-policy",

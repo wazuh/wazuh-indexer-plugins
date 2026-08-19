@@ -25,13 +25,13 @@
         "refresh_interval": "2s"
       },
       "mapping.nested_fields.limit": 50,
-      "mapping.total_fields.limit": 3000,
+      "mapping.total_fields.limit": 1000,
       "plugins.index_state_management.policy_id": "stream-findings-policy",
       "plugins.index_state_management.rollover_alias": "wazuh-findings-v5"
     },
     "mappings": {
       "date_detection": false,
-      "dynamic": "strict",
+      "dynamic": "strict_allow_templates",
       "dynamic_templates": [
         {
           "wcs_agent_build_original": {

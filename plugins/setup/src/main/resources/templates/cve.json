@@ -13,7 +13,8 @@
         "query.default_field": [
           "name"
         ],
-        "refresh_interval": "5s"
+        "refresh_interval": "5s",
+        "max_docvalue_fields_search": 100
       },
       "mapping.total_fields.limit": 1000
     },

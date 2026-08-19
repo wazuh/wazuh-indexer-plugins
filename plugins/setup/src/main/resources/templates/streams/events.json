@@ -21,7 +21,8 @@
           "wazuh.cluster.node",
           "wazuh.schema.version"
         ],
-        "refresh_interval": "2s"
+        "refresh_interval": "2s",
+        "max_docvalue_fields_search": 100
       },
       "mapping.nested_fields.limit": 50,
       "mapping.total_fields.limit": 1000,
