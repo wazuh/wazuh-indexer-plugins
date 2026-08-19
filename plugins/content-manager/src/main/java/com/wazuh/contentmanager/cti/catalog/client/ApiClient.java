@@ -312,37 +312,36 @@ public class ApiClient implements AutoCloseable {
     /**
      * Computes how long to wait before the next 429 retry, in seconds.
      *
-     * <p>Prefers the server's {@code Retry-After} header, parsed either as delta-seconds or an
-     * RFC-1123 HTTP-date. When the header is absent, unparseable, or non-positive, falls back to an
-     * exponential backoff of {@code base * 2^attempt}. The total number of retries is bounded by
-     * {@code max_retries}.
+     * <p>The wait is the greater of the exponential backoff floor ({@code base * 2^attempt}) and the
+     * server's {@code Retry-After} header (parsed as delta-seconds or an RFC-1123 HTTP-date). The
+     * backoff floor is always enforced, so a missing, zero, or too-small {@code Retry-After} cannot
+     * collapse the wait to near-zero and burn every retry in milliseconds; a {@code Retry-After} that
+     * asks for longer than the floor is honored. The total number of retries is bounded by {@code
+     * max_retries}.
      *
      * @param response the 429 response.
-     * @param attempt the zero-based retry attempt index (used for the backoff fallback).
+     * @param attempt the zero-based retry attempt index (drives the backoff floor).
      * @return the wait in seconds, never negative.
      */
     long computeRetryDelaySeconds(SimpleHttpResponse response, int attempt) {
         PluginSettings settings = PluginSettings.getInstance();
 
-        long delay = -1;
-        Header retryAfter = response.getFirstHeader(HttpHeaders.RETRY_AFTER);
-        if (retryAfter != null && retryAfter.getValue() != null) {
-            String value = retryAfter.getValue().trim();
+        long backoff = (long) settings.getClientRetryBackoffBaseSeconds() * (1L << attempt);
+
+        long retryAfter = -1;
+        Header header = response.getFirstHeader(HttpHeaders.RETRY_AFTER);
+        if (header != null && header.getValue() != null) {
+            String value = header.getValue().trim();
             try {
-                delay = Long.parseLong(value);
+                retryAfter = Long.parseLong(value);
             } catch (NumberFormatException e) {
                 Instant when = DateUtils.parseStandardDate(value);
                 if (when != null) {
-                    delay = when.getEpochSecond() - Instant.now().getEpochSecond();
+                    retryAfter = when.getEpochSecond() - Instant.now().getEpochSecond();
                 }
             }
         }
 
-        if (delay < 0) {
-            // No usable Retry-After: exponential backoff fallback (base * 2^attempt).
-            delay = (long) settings.getClientRetryBackoffBaseSeconds() * (1L << attempt);
-        }
-
-        return Math.max(0, delay);
+        return Math.max(backoff, Math.max(0, retryAfter));
     }
 }

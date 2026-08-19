@@ -33,9 +33,11 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.settings.PluginSettingsTests;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -70,7 +72,9 @@ public class ApiClientRetryTests extends OpenSearchTestCase {
 
     /**
      * A {@link #realMethodClient()} with {@code executeOnce} stubbed to return the scripted responses
-     * in order (repeating the last one once exhausted), standing in for the network.
+     * in order (repeating the last one once exhausted), standing in for the network. The retry delay
+     * is stubbed to {@code 0} so these control-flow tests do not sleep; delay computation is covered
+     * by the dedicated {@code computeRetryDelaySeconds} tests.
      */
     private static ApiClient scriptedClient(SimpleHttpResponse... responses) throws Exception {
         ApiClient client = realMethodClient();
@@ -84,6 +88,7 @@ public class ApiClientRetryTests extends OpenSearchTestCase {
                         })
                 .when(client)
                 .executeOnce(any(SimpleHttpRequest.class), anyLong());
+        doReturn(0L).when(client).computeRetryDelaySeconds(any(SimpleHttpResponse.class), anyInt());
         return client;
     }
 
@@ -134,25 +139,52 @@ public class ApiClientRetryTests extends OpenSearchTestCase {
                 .executeOnce(any(SimpleHttpRequest.class), anyLong());
     }
 
-    /** A numeric Retry-After header is honored verbatim. */
-    public void testRetryAfterNumericSeconds() {
+    /** A numeric Retry-After larger than the backoff floor is honored verbatim. */
+    public void testRetryAfterLargerThanFloorHonored() {
         ApiClient client = realMethodClient();
+        int base = PluginSettings.getInstance().getClientRetryBackoffBaseSeconds();
+        long above = base * 4L; // strictly greater than the attempt-0 floor (base * 1)
 
-        long delay = client.computeRetryDelaySeconds(response(HttpStatus.SC_TOO_MANY_REQUESTS, "5"), 0);
+        long delay =
+                client.computeRetryDelaySeconds(
+                        response(HttpStatus.SC_TOO_MANY_REQUESTS, Long.toString(above)), 0);
 
-        assertEquals(5L, delay);
+        assertEquals(above, delay);
     }
 
-    /** An HTTP-date Retry-After header is converted to a delta in seconds. */
+    /**
+     * Regression for the observed 60s/0s/0s collapse: a {@code Retry-After: 0} must NOT be honored
+     * verbatim — the exponential backoff floor (base * 2^attempt) is applied instead.
+     */
+    public void testZeroRetryAfterFlooredToBackoff() {
+        ApiClient client = realMethodClient();
+        int base = PluginSettings.getInstance().getClientRetryBackoffBaseSeconds();
+
+        long delay = client.computeRetryDelaySeconds(response(HttpStatus.SC_TOO_MANY_REQUESTS, "0"), 1);
+
+        assertEquals((long) base * 2, delay); // max(base * 2^1, 0)
+    }
+
+    /** A Retry-After smaller than the backoff floor is raised to the floor. */
+    public void testSmallRetryAfterFlooredToBackoff() {
+        ApiClient client = realMethodClient();
+        int base = PluginSettings.getInstance().getClientRetryBackoffBaseSeconds();
+
+        long delay = client.computeRetryDelaySeconds(response(HttpStatus.SC_TOO_MANY_REQUESTS, "5"), 2);
+
+        assertEquals((long) base * 4, delay); // max(base * 2^2, 5)
+    }
+
+    /** An HTTP-date Retry-After larger than the floor is converted to a delta and honored. */
     public void testRetryAfterHttpDate() {
         ApiClient client = realMethodClient();
-        String httpDate = DateUtils.formatStandardDate(Instant.now().plusSeconds(30));
+        String httpDate = DateUtils.formatStandardDate(Instant.now().plusSeconds(180));
 
         long delay =
                 client.computeRetryDelaySeconds(response(HttpStatus.SC_TOO_MANY_REQUESTS, httpDate), 0);
 
-        // Allow a small tolerance for clock movement between formatting and evaluation.
-        assertTrue("delay was " + delay, delay >= 25 && delay <= 31);
+        // ~180s, with a small tolerance for clock movement between formatting and evaluation.
+        assertTrue("delay was " + delay, delay >= 175 && delay <= 181);
     }
 
     /** A missing Retry-After header falls back to exponential backoff: base * 2^attempt. */
