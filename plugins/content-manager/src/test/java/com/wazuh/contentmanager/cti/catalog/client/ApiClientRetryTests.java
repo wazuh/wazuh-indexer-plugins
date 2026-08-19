@@ -139,43 +139,45 @@ public class ApiClientRetryTests extends OpenSearchTestCase {
                 .executeOnce(any(SimpleHttpRequest.class), anyLong());
     }
 
-    /** A numeric Retry-After larger than the backoff floor is honored verbatim. */
-    public void testRetryAfterLargerThanFloorHonored() {
+    /**
+     * A positive Retry-After is honored verbatim, even when it is smaller than the exponential
+     * backoff would be at this attempt — the server's explicit short wait must not be inflated.
+     */
+    public void testPositiveRetryAfterHonoredVerbatim() {
         ApiClient client = realMethodClient();
-        int base = PluginSettings.getInstance().getClientRetryBackoffBaseSeconds();
-        long above = base * 4L; // strictly greater than the attempt-0 floor (base * 1)
 
+        // attempt 3 → backoff would be base * 2^3 (e.g. 240s); a 20s Retry-After must still win.
         long delay =
-                client.computeRetryDelaySeconds(
-                        response(HttpStatus.SC_TOO_MANY_REQUESTS, Long.toString(above)), 0);
+                client.computeRetryDelaySeconds(response(HttpStatus.SC_TOO_MANY_REQUESTS, "20"), 3);
 
-        assertEquals(above, delay);
+        assertEquals(20L, delay);
     }
 
     /**
      * Regression for the observed 60s/0s/0s collapse: a {@code Retry-After: 0} must NOT be honored
-     * verbatim — the exponential backoff floor (base * 2^attempt) is applied instead.
+     * verbatim — it is treated as unusable and the exponential backoff (base * 2^attempt) applies.
      */
-    public void testZeroRetryAfterFlooredToBackoff() {
+    public void testZeroRetryAfterFallsBackToBackoff() {
         ApiClient client = realMethodClient();
         int base = PluginSettings.getInstance().getClientRetryBackoffBaseSeconds();
 
         long delay = client.computeRetryDelaySeconds(response(HttpStatus.SC_TOO_MANY_REQUESTS, "0"), 1);
 
-        assertEquals((long) base * 2, delay); // max(base * 2^1, 0)
+        assertEquals((long) base * 2, delay); // 2^1 = 2
     }
 
-    /** A Retry-After smaller than the backoff floor is raised to the floor. */
-    public void testSmallRetryAfterFlooredToBackoff() {
+    /** A negative Retry-After is treated as unusable and falls back to exponential backoff. */
+    public void testNegativeRetryAfterFallsBackToBackoff() {
         ApiClient client = realMethodClient();
         int base = PluginSettings.getInstance().getClientRetryBackoffBaseSeconds();
 
-        long delay = client.computeRetryDelaySeconds(response(HttpStatus.SC_TOO_MANY_REQUESTS, "5"), 2);
+        long delay =
+                client.computeRetryDelaySeconds(response(HttpStatus.SC_TOO_MANY_REQUESTS, "-5"), 0);
 
-        assertEquals((long) base * 4, delay); // max(base * 2^2, 5)
+        assertEquals((long) base, delay); // 2^0 = 1
     }
 
-    /** An HTTP-date Retry-After larger than the floor is converted to a delta and honored. */
+    /** A positive HTTP-date Retry-After is converted to a delta and honored. */
     public void testRetryAfterHttpDate() {
         ApiClient client = realMethodClient();
         String httpDate = DateUtils.formatStandardDate(Instant.now().plusSeconds(180));

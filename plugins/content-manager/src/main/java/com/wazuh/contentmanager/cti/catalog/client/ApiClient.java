@@ -312,21 +312,17 @@ public class ApiClient implements AutoCloseable {
     /**
      * Computes how long to wait before the next 429 retry, in seconds.
      *
-     * <p>The wait is the greater of the exponential backoff floor ({@code base * 2^attempt}) and the
-     * server's {@code Retry-After} header (parsed as delta-seconds or an RFC-1123 HTTP-date). The
-     * backoff floor is always enforced, so a missing, zero, or too-small {@code Retry-After} cannot
-     * collapse the wait to near-zero and burn every retry in milliseconds; a {@code Retry-After} that
-     * asks for longer than the floor is honored. The total number of retries is bounded by {@code
-     * max_retries}.
+     * <p>A positive {@code Retry-After} header (parsed as delta-seconds or an RFC-1123 HTTP-date) is
+     * honored verbatim. Only when {@code Retry-After} is missing, unparseable, or non-positive does
+     * the method fall back to exponential backoff ({@code base * 2^attempt}). The total number of
+     * retries is bounded by {@code max_retries}.
      *
      * @param response the 429 response.
-     * @param attempt the zero-based retry attempt index (drives the backoff floor).
+     * @param attempt the zero-based retry attempt index (drives the backoff fallback).
      * @return the wait in seconds, never negative.
      */
     long computeRetryDelaySeconds(SimpleHttpResponse response, int attempt) {
         PluginSettings settings = PluginSettings.getInstance();
-
-        long backoff = (long) settings.getClientRetryBackoffBaseSeconds() * (1L << attempt);
 
         long retryAfter = -1;
         Header header = response.getFirstHeader(HttpHeaders.RETRY_AFTER);
@@ -342,6 +338,12 @@ public class ApiClient implements AutoCloseable {
             }
         }
 
-        return Math.max(backoff, Math.max(0, retryAfter));
+        if (retryAfter > 0) {
+            // Trust an explicit, positive Retry-After exactly as the server asked.
+            return retryAfter;
+        }
+
+        // Missing, unparseable, or non-positive (e.g. CTI's bogus Retry-After: 0): exponential backoff.
+        return (long) settings.getClientRetryBackoffBaseSeconds() * (1L << attempt);
     }
 }
