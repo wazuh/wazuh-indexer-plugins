@@ -142,7 +142,6 @@
 - ECS object removal [(#604)](https://github.com/wazuh/wazuh-indexer-plugins/issues/604)
 - Removal of alerts and archives index templates [(#689)](https://github.com/wazuh/wazuh-indexer-plugins/issues/689)
 - Make Unclassified events standard WCS category [(#1348)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1348)
-- Some Wazuh indices get 1 replica on multi-node clusters due to `auto_expand_replicas` [(#1354)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1354)
 
 ### Fixed
 - Wrong folder structure under `ecs` folder [(#461)](https://github.com/wazuh/wazuh-indexer-plugins/issues/461)

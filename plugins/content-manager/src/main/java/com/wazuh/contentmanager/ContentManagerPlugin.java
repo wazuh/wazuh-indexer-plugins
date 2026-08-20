@@ -717,6 +717,7 @@ public class ContentManagerPlugin extends Plugin
                 Settings settings =
                         Settings.builder()
                                 .put("index.number_of_replicas", 0)
+                                .put("index.auto_expand_replicas", "0-1")
                                 .put("index.hidden", true)
                                 .put(Constants.KEY_INDEX_REFRESH_INTERVAL, Constants.REFRESH_INTERVAL_DISABLED)
                                 .build();
