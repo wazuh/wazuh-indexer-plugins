@@ -25,7 +25,7 @@
         "refresh_interval": "2s"
       },
       "mapping.nested_fields.limit": 50,
-      "mapping.total_fields.limit": 3000,
+      "mapping.total_fields.limit": 1000,
       "plugins.index_state_management.policy_id": "stream-findings-policy"
     },
     "mappings": {
