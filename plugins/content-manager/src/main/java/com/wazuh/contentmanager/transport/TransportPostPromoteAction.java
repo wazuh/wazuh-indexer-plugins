@@ -52,8 +52,10 @@ import com.wazuh.contentmanager.action.PostPromoteRequest;
 import com.wazuh.contentmanager.action.ReloadEngineContentAction;
 import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.DetectorLookupService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.utils.DetectorRuleGuard;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.SpaceDiff;
 import com.wazuh.contentmanager.utils.Constants;
@@ -91,6 +93,7 @@ public class TransportPostPromoteAction
     private final EngineService engine;
     private final SecurityAnalyticsService securityAnalyticsService;
     private final Client client;
+    private final DetectorLookupService detectorLookupService;
 
     @Inject
     public TransportPostPromoteAction(
@@ -105,6 +108,7 @@ public class TransportPostPromoteAction
         this.engine = engine;
         this.securityAnalyticsService = securityAnalyticsService;
         this.client = client;
+        this.detectorLookupService = new DetectorLookupService(client);
     }
 
     // ── Entry point ──────────────────────────────────────────────────────────
@@ -131,7 +135,18 @@ public class TransportPostPromoteAction
             SpaceDiff spaceDiff = MAPPER.readValue(body, SpaceDiff.class);
             this.validatePromoteRequest(spaceDiff);
 
-            this.gatherPromotionDataAsync(spaceDiff, listener);
+            this.validateNoDetectorLeftEmptyAsync(
+                    spaceDiff,
+                    ActionListener.wrap(
+                            rejection -> {
+                                if (rejection != null) {
+                                    log.warn(Constants.W_LOG_VALIDATION_FAILED, rejection);
+                                    listener.onResponse(new MessageStatusResponse(rejection, RestStatus.BAD_REQUEST));
+                                    return;
+                                }
+                                this.gatherPromotionDataAsync(spaceDiff, listener);
+                            },
+                            e -> respondWithError(listener, e)));
         } catch (IllegalArgumentException e) {
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             listener.onResponse(new MessageStatusResponse(e.getMessage(), RestStatus.BAD_REQUEST));
@@ -1334,6 +1349,109 @@ public class TransportPostPromoteAction
                 throw new IllegalArgumentException(Constants.E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY);
             }
         }
+    }
+
+    /**
+     * Rejects a promotion that would leave a running detector with no enabled rules.
+     *
+     * <p>Only applies when promoting into {@code custom}, the space detectors resolve their rules
+     * from. The decision is made on the resulting state, so an update that does not change a rule's
+     * {@code enabled} flag never blocks, and a detector that already had no enabled rules is left
+     * alone.
+     *
+     * @param spaceDiff the requested promotion.
+     * @param listener receives the rejection message, or {@code null} when the promotion may proceed.
+     */
+    private void validateNoDetectorLeftEmptyAsync(
+            SpaceDiff spaceDiff, ActionListener<String> listener) {
+        Space sourceSpace = spaceDiff.getSpace();
+        if (sourceSpace == null || sourceSpace.promote() != Space.CUSTOM) {
+            listener.onResponse(null);
+            return;
+        }
+
+        List<SpaceDiff.OperationItem> ruleChanges =
+                spaceDiff.getChanges() == null ? null : spaceDiff.getChanges().getRules();
+        if (ruleChanges == null || ruleChanges.isEmpty()) {
+            listener.onResponse(null);
+            return;
+        }
+
+        // Removals are accounted for, but today they cannot reach this check: deleting a rule
+        // already strips its id from every detector that referenced it, because Security Analytics
+        // matches references by content-manager document id and that id is shared by the copy of
+        // the rule in every space. By the time the removal is promoted, the detector no longer
+        // references the rule and the lookup below returns nothing. The accounting is kept so the
+        // guard still holds if that cascade is ever made space-aware.
+        Set<String> changedRuleIds = new HashSet<>();
+        Set<String> removedRuleIds = new HashSet<>();
+        for (SpaceDiff.OperationItem item : ruleChanges) {
+            changedRuleIds.add(item.getId());
+            if (item.getOperation() == SpaceDiff.Operation.REMOVE) {
+                removedRuleIds.add(item.getId());
+            }
+        }
+
+        this.detectorLookupService.findDetectorsUsingRules(
+                changedRuleIds,
+                ActionListener.wrap(
+                        affected -> {
+                            if (affected.isEmpty()) {
+                                listener.onResponse(null);
+                                return;
+                            }
+
+                            Set<String> allRuleIds = new HashSet<>();
+                            affected.forEach(detector -> allRuleIds.addAll(detector.ruleIds()));
+
+                            this.detectorLookupService.fetchRuleEnabledStates(
+                                    allRuleIds,
+                                    Space.CUSTOM,
+                                    ActionListener.wrap(
+                                            currentEnabled ->
+                                                    this.detectorLookupService.fetchRuleEnabledStates(
+                                                            changedRuleIds,
+                                                            sourceSpace,
+                                                            ActionListener.wrap(
+                                                                    incomingEnabled ->
+                                                                            listener.onResponse(
+                                                                                    firstRejection(
+                                                                                            affected,
+                                                                                            currentEnabled,
+                                                                                            incomingEnabled,
+                                                                                            removedRuleIds)),
+                                                                    listener::onFailure)),
+                                            listener::onFailure));
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Returns the rejection message for the first detector the promotion would empty, or {@code null}
+     * when none would be.
+     */
+    private static String firstRejection(
+            List<DetectorLookupService.DetectorRules> detectors,
+            Map<String, Boolean> currentEnabled,
+            Map<String, Boolean> incomingEnabled,
+            Set<String> removedRuleIds) {
+        for (DetectorLookupService.DetectorRules detector : detectors) {
+            if (DetectorRuleGuard.wouldLeaveDetectorEmpty(
+                    detector.ruleIds(), currentEnabled, incomingEnabled, removedRuleIds)) {
+                String culprit =
+                        detector.ruleIds().stream()
+                                .filter(
+                                        id ->
+                                                Boolean.TRUE.equals(currentEnabled.get(id))
+                                                        && (removedRuleIds.contains(id)
+                                                                || Boolean.FALSE.equals(incomingEnabled.get(id))))
+                                .findFirst()
+                                .orElse("");
+                return String.format(
+                        Locale.ROOT, Constants.E_400_PROMOTION_EMPTIES_DETECTOR, culprit, detector.name());
+            }
+        }
+        return null;
     }
 
     // ── Inner classes ────────────────────────────────────────────────────────

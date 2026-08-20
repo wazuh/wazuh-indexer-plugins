@@ -81,6 +81,9 @@ public class Constants {
             "Logtest is only supported for the 'test', 'custom' and 'standard' spaces. Received space: '%s'.";
     public static final String E_400_INTEGRATION_NOT_FOUND =
             "Integration [%s] not found in the '%s' space.";
+    public static final String E_400_PROMOTION_EMPTIES_DETECTOR =
+            "Rule [%s] cannot be promoted because it would leave detector [%s] without enabled rules. "
+                    + "Delete the detector if you want to stop it.";
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_412_UNPROTECTED_CREDENTIALS_INDEX =
             "Registration is disabled because the '"
@@ -126,6 +129,8 @@ public class Constants {
     public static final String W_LOG_RESOURCE_NOT_FOUND = "{} [{}] not found.";
     public static final String W_LOG_EXTERNAL_NOT_FOUND =
             "Resource {} [{}] not found in external service, continuing deletion.";
+    public static final String W_LOG_DETECTOR_LOOKUP_FAILED =
+            "Could not read detectors while validating promotion: {}";
     public static final String D_LOG_SAP_SEND = "Sending {} [{}] with ID [{}] to Security Analytics.";
     public static final String D_LOG_SAP_DELETED = "{} deleted successfully (document.id={}{}).";
     public static final String D_LOG_SAP_DELETE_ASYNC =
