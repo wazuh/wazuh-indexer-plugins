@@ -9,10 +9,12 @@
         "codec": "zstd",
         "number_of_shards": "1",
         "number_of_replicas": "0",
+        "auto_expand_replicas": "0-1",
         "refresh_interval": "5s",
         "query.default_field": [
           "name"
-        ]
+        ],
+        "max_docvalue_fields_search": 100
       },
       "mapping.total_fields.limit": 1000
     }

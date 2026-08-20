@@ -16,6 +16,11 @@ declare -a modules_to_update
 declare -A module_to_file
 declare force_update=false
 
+# Modules whose generated template must be converted from static properties to
+# dynamic_templates, to keep the field mapping count of the wazuh-events and
+# wazuh-findings data streams low. See convert_to_dynamic_templates.py.
+declare -a dynamic_template_modules=("stateless/events/main" "stateless/events/findings")
+
 # ====
 # Checks that the script is run from the intended location
 # ====
@@ -183,6 +188,17 @@ function copy_files() {
     fi
     cp "$repo_path/wcs/$ecs_module/$mappings_path" "$destination_path"
     echo "  - '$destination_path' updated"
+  done
+
+  echo "---> Dynamic templates"
+  for ecs_module in "${modules_to_update[@]}"; do
+    for dynamic_module in "${dynamic_template_modules[@]}"; do
+      if [[ "$ecs_module" == "$dynamic_module" ]]; then
+        destination_path="$resources_path/${module_to_file[$ecs_module]}"
+        python3 "$repo_path/wcs/generator/convert_to_dynamic_templates.py" "$destination_path" "$destination_path"
+        echo "  - '$destination_path' converted to dynamic_templates"
+      fi
+    done
   done
 
   echo "---> CSV documentation"

@@ -7,11 +7,12 @@
   "template": {
     "settings": {
       "plugins.index_state_management.policy_id": "stream-findings-policy",
-      "mapping.total_fields.limit": 3000,
+      "mapping.total_fields.limit": 1000,
       "index": {
         "codec": "zstd",
         "number_of_shards": "1",
         "number_of_replicas": "0",
+        "auto_expand_replicas": "0-1",
         "refresh_interval": "2s",
         "query.default_field": [
           "agent.host.architecture",
