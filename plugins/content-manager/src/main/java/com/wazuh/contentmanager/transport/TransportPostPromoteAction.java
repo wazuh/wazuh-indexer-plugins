@@ -39,12 +39,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.PostPromoteAction;
@@ -1377,12 +1379,6 @@ public class TransportPostPromoteAction
             return;
         }
 
-        // Removals are accounted for, but today they cannot reach this check: deleting a rule
-        // already strips its id from every detector that referenced it, because Security Analytics
-        // matches references by content-manager document id and that id is shared by the copy of
-        // the rule in every space. By the time the removal is promoted, the detector no longer
-        // references the rule and the lookup below returns nothing. The accounting is kept so the
-        // guard still holds if that cascade is ever made space-aware.
         Set<String> changedRuleIds = new HashSet<>();
         Set<String> removedRuleIds = new HashSet<>();
         for (SpaceDiff.OperationItem item : ruleChanges) {
@@ -1415,7 +1411,7 @@ public class TransportPostPromoteAction
                                                             ActionListener.wrap(
                                                                     incomingEnabled ->
                                                                             listener.onResponse(
-                                                                                    firstRejection(
+                                                                                    rejectionMessage(
                                                                                             affected,
                                                                                             currentEnabled,
                                                                                             incomingEnabled,
@@ -1427,32 +1423,86 @@ public class TransportPostPromoteAction
     }
 
     /**
-     * Returns the rejection message for the first detector the promotion would empty, or {@code null}
+     * Returns the rejection message naming every detector the promotion would empty, or {@code null}
      * when none would be.
+     *
+     * <p>A promotion carries the whole space diff, so a single one can empty several detectors, each
+     * through a different rule. All of them are reported together, otherwise the user would fix one
+     * per attempt without knowing how many are left. The listing is ordered by detector name so the
+     * same promotion always produces the same message.
+     *
+     * @param detectors the enabled detectors referencing the promoted rules.
+     * @param currentEnabled enabled state of those detectors' rules in the target space.
+     * @param incomingEnabled enabled state carried by the promotion.
+     * @param removedRuleIds rule ids the promotion deletes.
+     * @return the message to return as {@code 400}, or {@code null} to let the promotion through.
      */
-    private static String firstRejection(
+    static String rejectionMessage(
             List<DetectorLookupService.DetectorRules> detectors,
             Map<String, Boolean> currentEnabled,
             Map<String, Boolean> incomingEnabled,
             Set<String> removedRuleIds) {
+
+        List<EmptiedDetector> emptied = new ArrayList<>();
         for (DetectorLookupService.DetectorRules detector : detectors) {
             if (DetectorRuleGuard.wouldLeaveDetectorEmpty(
                     detector.ruleIds(), currentEnabled, incomingEnabled, removedRuleIds)) {
-                String culprit =
-                        detector.ruleIds().stream()
-                                .filter(
-                                        id ->
-                                                Boolean.TRUE.equals(currentEnabled.get(id))
-                                                        && (removedRuleIds.contains(id)
-                                                                || Boolean.FALSE.equals(incomingEnabled.get(id))))
-                                .findFirst()
-                                .orElse("");
-                return String.format(
-                        Locale.ROOT, Constants.E_400_PROMOTION_EMPTIES_DETECTOR, culprit, detector.name());
+                emptied.add(
+                        new EmptiedDetector(
+                                detector.name(),
+                                culpritRule(detector, currentEnabled, incomingEnabled, removedRuleIds)));
             }
         }
-        return null;
+
+        if (emptied.isEmpty()) {
+            return null;
+        }
+        emptied.sort(Comparator.comparing(EmptiedDetector::detectorName));
+
+        if (emptied.size() == 1) {
+            EmptiedDetector only = emptied.get(0);
+            return String.format(
+                    Locale.ROOT,
+                    Constants.E_400_PROMOTION_EMPTIES_DETECTOR,
+                    only.culpritRule(),
+                    only.detectorName());
+        }
+
+        String listing =
+                emptied.stream()
+                        .map(
+                                item ->
+                                        String.format(
+                                                Locale.ROOT,
+                                                "[%s] by disabling rule [%s]",
+                                                item.detectorName(),
+                                                item.culpritRule()))
+                        .collect(Collectors.joining(", "));
+        return String.format(
+                Locale.ROOT, Constants.E_400_PROMOTION_EMPTIES_DETECTORS, emptied.size(), listing);
     }
+
+    /**
+     * Returns the first rule of the detector that the promotion takes away, which is the one worth
+     * naming to the user.
+     */
+    private static String culpritRule(
+            DetectorLookupService.DetectorRules detector,
+            Map<String, Boolean> currentEnabled,
+            Map<String, Boolean> incomingEnabled,
+            Set<String> removedRuleIds) {
+        return detector.ruleIds().stream()
+                .filter(
+                        id ->
+                                Boolean.TRUE.equals(currentEnabled.get(id))
+                                        && (removedRuleIds.contains(id)
+                                                || Boolean.FALSE.equals(incomingEnabled.get(id))))
+                .findFirst()
+                .orElse("");
+    }
+
+    /** A detector the promotion would empty, with the rule that empties it. */
+    private record EmptiedDetector(String detectorName, String culpritRule) {}
 
     // ── Inner classes ────────────────────────────────────────────────────────
 

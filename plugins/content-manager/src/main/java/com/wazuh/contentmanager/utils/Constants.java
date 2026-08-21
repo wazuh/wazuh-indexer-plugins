@@ -83,7 +83,12 @@ public class Constants {
             "Integration [%s] not found in the '%s' space.";
     public static final String E_400_PROMOTION_EMPTIES_DETECTOR =
             "Rule [%s] cannot be promoted because it would leave detector [%s] without enabled rules. "
-                    + "Delete the detector if you want to stop it.";
+                    + "Disable or delete the detector, or keep one of its rules enabled.";
+
+    public static final String E_400_PROMOTION_EMPTIES_DETECTORS =
+            "This promotion would leave %d detectors without enabled rules: %s. "
+                    + "Disable or delete them, or keep one of their rules enabled.";
+
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_412_UNPROTECTED_CREDENTIALS_INDEX =
             "Registration is disabled because the '"
