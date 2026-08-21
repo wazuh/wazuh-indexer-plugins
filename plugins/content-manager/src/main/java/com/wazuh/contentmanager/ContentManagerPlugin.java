@@ -74,7 +74,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -135,6 +134,8 @@ public class ContentManagerPlugin extends Plugin
     private EngineService engine;
     private EngineContentLoader engineContentLoader;
     private ClusterStateListener engineContentListener;
+    private ClusterStateListener standardSpaceHashListener;
+    private final AtomicBoolean standardSpaceHashInFlight = new AtomicBoolean(false);
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
     private Environment environment;
@@ -385,8 +386,11 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void close() {
-        if (this.engineContentListener != null && this.clusterService != null) {
-            this.clusterService.removeListener(this.engineContentListener);
+        if (this.clusterService != null) {
+            if (this.engineContentListener != null) {
+                this.clusterService.removeListener(this.engineContentListener);
+            }
+            this.unregisterStandardSpaceHashListener();
         }
     }
 
@@ -620,25 +624,67 @@ public class ContentManagerPlugin extends Plugin
      * space on that missing hash, so its content is never loaded into the Engine and detectors in
      * that space stop producing findings. Nothing else recomputes it: the next sync recalculates the
      * hash only when it actually finds new content.
+     *
+     * <p>On startup the policies index shards may not be allocated yet (especially in a multi-node
+     * cluster), so the read fails transiently ("all shards failed"). Rather than retrying a fixed
+     * number of times and giving up, a read failure registers a cluster-state listener that
+     * reattempts on each subsequent cluster-state update until the read succeeds — the same
+     * self-healing pattern used for per-node Engine content loading ({@link #engineContentListener})
      */
     private void ensureStandardSpaceHash() {
+        // A cluster-state update can fire this again while a previous attempt is still in flight;
+        // skip the overlap so we do not launch redundant concurrent policy reads.
+        if (!this.standardSpaceHashInFlight.compareAndSet(false, true)) {
+            return;
+        }
         String standard = Space.STANDARD.toString();
-        try {
-            Set<String> changedSpaces =
-                    this.<Set<String>>awaitResult(
-                            listener -> this.spaceService.recalculateSpaceHashIfMissing(standard, listener));
-            if (changedSpaces == null || !changedSpaces.contains(standard)) {
-                return;
-            }
-            log.info(Constants.I_LOG_SPACE_HASH_RECOVERED, standard);
-            this.client.execute(
-                    ReloadEngineContentAction.INSTANCE,
-                    new ReloadEngineContentRequest(),
-                    ActionListener.wrap(
-                            r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
-                            e -> log.warn(Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
+        this.spaceService.recalculateSpaceHashIfMissing(
+                standard,
+                ActionListener.wrap(
+                        changedSpaces -> {
+                            // The read succeeded; stop retrying.
+                            this.standardSpaceHashInFlight.set(false);
+                            this.unregisterStandardSpaceHashListener();
+                            if (changedSpaces == null || !changedSpaces.contains(standard)) {
+                                return;
+                            }
+                            log.info(Constants.I_LOG_SPACE_HASH_RECOVERED, standard);
+                            this.client.execute(
+                                    ReloadEngineContentAction.INSTANCE,
+                                    new ReloadEngineContentRequest(),
+                                    ActionListener.wrap(
+                                            r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
+                                            e ->
+                                                    log.warn(
+                                                            Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
+                        },
+                        e -> {
+                            // Transient startup failure: keep retrying on every cluster-state update
+                            // until the policies index becomes readable.
+                            this.standardSpaceHashInFlight.set(false);
+                            this.registerStandardSpaceHashListener();
+                        }));
+    }
+
+    /**
+     * Registers the cluster-state listener that retries {@link #ensureStandardSpaceHash()} on each
+     * cluster-state update. Idempotent: a listener is registered at most once, and re-registration
+     * while one is already active is a no-op.
+     */
+    private synchronized void registerStandardSpaceHashListener() {
+        if (this.standardSpaceHashListener != null) {
+            return;
+        }
+        log.debug(Constants.D_LOG_SPACE_HASH_RETRY_SCHEDULED);
+        this.standardSpaceHashListener = event -> this.ensureStandardSpaceHash();
+        this.clusterService.addListener(this.standardSpaceHashListener);
+    }
+
+    /** Deregisters the standard-space-hash retry listener if one is currently active. */
+    private synchronized void unregisterStandardSpaceHashListener() {
+        if (this.standardSpaceHashListener != null) {
+            this.clusterService.removeListener(this.standardSpaceHashListener);
+            this.standardSpaceHashListener = null;
         }
     }
 
@@ -671,6 +717,7 @@ public class ContentManagerPlugin extends Plugin
                 Settings settings =
                         Settings.builder()
                                 .put("index.number_of_replicas", 0)
+                                .put("index.auto_expand_replicas", "0-1")
                                 .put("index.hidden", true)
                                 .put(Constants.KEY_INDEX_REFRESH_INTERVAL, Constants.REFRESH_INTERVAL_DISABLED)
                                 .build();
@@ -756,29 +803,29 @@ public class ContentManagerPlugin extends Plugin
                                 }
                             } catch (Exception e) {
                                 log.warn(Constants.W_LOG_CATALOG_SYNC_JOB_FAILED, e.getMessage());
-                                this.retryJobScheduling("Catalog Sync Job", attempt, this::scheduleCatalogSyncJob);
+                                this.retryWithBackoff("Catalog Sync Job", attempt, this::scheduleCatalogSyncJob);
                             }
                         });
     }
 
     /**
-     * Reschedules a failed job-registration attempt on the generic thread pool with a linear backoff.
-     * Stops after {@link Constants#MAX_JOB_SCHEDULE_RETRIES} attempts and logs an error.
+     * Reschedules a failed operation on the generic thread pool with a linear backoff. Stops after
+     * {@link Constants#MAX_JOB_SCHEDULE_RETRIES} attempts and logs an error.
      *
-     * @param jobName human-readable name used in log messages.
+     * @param taskName human-readable name used in log messages.
      * @param attempt zero-based attempt counter of the call that just failed.
-     * @param retryAction callback that re-runs the scheduling logic with the given attempt index.
+     * @param retryAction callback that re-runs the operation with the given attempt index.
      */
-    private void retryJobScheduling(String jobName, int attempt, IntConsumer retryAction) {
+    private void retryWithBackoff(String taskName, int attempt, IntConsumer retryAction) {
         int nextAttempt = attempt + 1;
         if (nextAttempt > Constants.MAX_JOB_SCHEDULE_RETRIES) {
-            log.error(Constants.E_LOG_JOB_SCHEDULE_GIVE_UP, jobName, Constants.MAX_JOB_SCHEDULE_RETRIES);
+            log.error(Constants.E_LOG_JOB_SCHEDULE_GIVE_UP, taskName, Constants.MAX_JOB_SCHEDULE_RETRIES);
             return;
         }
         long delaySeconds = (long) nextAttempt * Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
         log.info(
                 Constants.I_LOG_JOB_SCHEDULE_RETRY,
-                jobName,
+                taskName,
                 nextAttempt,
                 Constants.MAX_JOB_SCHEDULE_RETRIES,
                 delaySeconds);
@@ -862,7 +909,7 @@ public class ContentManagerPlugin extends Plugin
                                 }
                             } catch (Exception e) {
                                 log.warn(Constants.W_LOG_TELEMETRY_JOB_FAILED, e.getMessage());
-                                this.retryJobScheduling(
+                                this.retryWithBackoff(
                                         "Telemetry Ping Job", attempt, this::scheduleTelemetryPingJob);
                             }
                         });
@@ -949,7 +996,9 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_FILTERS,
                 PluginSettings.WAZUH_UID,
                 PluginSettings.SETUP_WAIT_MAX_RETRIES,
-                PluginSettings.SETUP_WAIT_BACKOFF_BASE_SECONDS);
+                PluginSettings.SETUP_WAIT_BACKOFF_BASE_SECONDS,
+                PluginSettings.CLIENT_MAX_RETRIES,
+                PluginSettings.CLIENT_RETRY_BACKOFF_BASE_SECONDS);
     }
 
     @Override

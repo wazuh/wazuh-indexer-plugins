@@ -3,7 +3,7 @@
 The generation of the Wazuh Common Schema is automated using a set of scripts and Docker projects.
 
 - [compose.yml](./compose.yml): Docker Compose file to define the services for the schema generator.
-- [generate_schema.sh](./generate_schema.sh): generates the complete schema. The list of modules to generate is read from the [module_list.txt](../module_list.txt) file. Copies the generated files to the appropriate folders. The index templates are copied to Setup plugin's [resources/](../../plugins/setup/src/main/resources/) folder, while the CSV files are copied to each module's `docs/` folder.
+- [generate_schema.sh](./generate_schema.sh): generates the complete schema. The list of modules to generate is read from the [module_list.txt](../module_list.txt) file. Copies the generated files to the appropriate folders. The index templates are copied to Setup plugin's [resources/](../../plugins/setup/src/main/resources/) folder, while the CSV files are copied to each module's `docs/` folder. For the `stateless/events/main` and `stateless/events/findings` modules, it also converts the copied template to `dynamic_templates` via `convert_to_dynamic_templates.py`.
 - [push_schema.sh](./push_schema.sh): commits and pushes the changes in the schema to the repository. This script is meant to be used by our GH Workflow. Do not use it locally.
 - [run_generator.sh](./run_generator.sh): Script to start the Docker Compose project. This is the main entry point for the schema generation.
 - [update_module_list.sh](./update_module_list.sh): generates the [module_list.txt](../module_list.txt) file, by scanning the [wcs/](..) folder. Run this script whenever a new module is added.
@@ -11,10 +11,12 @@ The generation of the Wazuh Common Schema is automated using a set of scripts an
 - [images/generator.sh](./images/generator.sh): our actual schema generation script. It is executed inside the container. Contains post-processing steps to make the templates compatible with OpenSearch and to adapt them to our needs. Its `EXCLUDED_FIELDS` list holds the fields to remove from every module, used to drop the unwanted copies of a custom field.
 - [images/schema_sanitizer.py](./images/schema_sanitizer.py): Python script that modifies the ECS source mapping files to meet WCS requirements before generating the final templates. It is executedi in the image build process.
 - [count_and_update_total_fields.sh](./count_and_update_total_fields.sh): counts fields in a generated index template and proposes (or applies with --apply) an updated mapping.total_fields.limit rounded up to the next 500.
+- [convert_to_dynamic_templates.py](./convert_to_dynamic_templates.py): converts a generated index template's monolithic static `properties` block into a `dynamic_templates` array, so fields are mapped lazily on first ingest instead of all at once. Used to keep the field mapping count of the `wazuh-events` and `wazuh-findings` data streams (`stateless/events/main` and `stateless/events/findings` modules) under the `mapping.total_fields.limit`, since those streams define far more fields than any single document actually uses. `generate_schema.sh` runs it automatically for those two modules; see "Dynamic templates" below.
 
 ### Requirements
 
 - [Docker Compose](https://docs.docker.com/compose/install/)
+- [Python 3](https://www.python.org/) (for `convert_to_dynamic_templates.py` and `count_and_update_total_fields.sh`)
 
 ### Usage
 
@@ -32,6 +34,8 @@ However, it can also be run locally. To do so, follow these steps.
     ```bash
     ./generate_schema.sh
     ```
+
+    This also converts the `stateless/events/main` and `stateless/events/findings` templates to `dynamic_templates` (see "Dynamic templates" below) when either module is regenerated.
 
 3. Update the number of total field of each module:
     ``` bash
@@ -56,6 +60,26 @@ In order to make this template compatible with OpenSearch, the following changes
 The tooling takes care of these changes automatically, generating the `opensearch-template.json` file as a result.
 
 If a module has been removed from the repository, the `generate_schema.sh` script will skip it gracefully, issuing a warning message instead of failing.
+
+### Dynamic templates
+
+The `wazuh-events` and `wazuh-findings` data streams (`stateless/events/main` and `stateless/events/findings` modules) cover a very large surface of possible fields, but any single document only ever populates a small subset of them. Mapping every field statically at index-template level counts all of them towards `mapping.total_fields.limit` right away, which can exhaust the limit before any real data is ingested.
+
+To avoid this, [convert_to_dynamic_templates.py](./convert_to_dynamic_templates.py) rewrites the generated template's static `properties` block into a `dynamic_templates` array (one `path_match` rule per field, keyed off the original mapping) plus a minimal `properties` scaffolding for the object structure. Field mappings are then created lazily, only when a document actually uses them, while still constraining each field to its intended type. A handful of fields (`@timestamp`, `labels`, `message`, `tags`) are kept as static `properties` rather than converted.
+
+`generate_schema.sh` runs this conversion automatically, in place, on the copied `templates/streams/events.json` and `templates/streams/findings.json` files whenever `stateless/events/main` or `stateless/events/findings` is regenerated — no manual step is required. The conversion is idempotent: if a template already has `dynamic_templates` populated, the script leaves it unchanged.
+
+To run it manually against an already-generated template:
+
+```bash
+python3 wcs/generator/convert_to_dynamic_templates.py input_template.json [output_template.json]
+```
+
+Omitting the output path prints the result to stdout instead of writing a file. To convert a template in place (as the pipeline does):
+
+```bash
+find plugins/setup/src/main/resources/templates/streams/ -name "events.json" -type f -exec python3 wcs/generator/convert_to_dynamic_templates.py {} {} \;
+```
 
 ### Uploading templates to the Indexer
 
