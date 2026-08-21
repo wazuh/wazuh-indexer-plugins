@@ -6,13 +6,13 @@
   "data_stream": {},
   "template": {
     "settings": {
-      "plugins.index_state_management.rollover_alias": "wazuh-events-raw-v5",
       "plugins.index_state_management.policy_id": "stream-raw-events-policy",
       "mapping.nested_fields.limit": 10,
       "index": {
         "codec": "zstd",
         "number_of_shards": "1",
         "number_of_replicas": "0",
+        "auto_expand_replicas": "0-1",
         "refresh_interval": "5s",
         "query.default_field": [
           "wazuh.agent.id",
