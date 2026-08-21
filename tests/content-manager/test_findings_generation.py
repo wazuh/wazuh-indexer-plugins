@@ -3,7 +3,8 @@
 Builds a Content Manager integration/decoder/rule, promotes it to custom (so the
 rule syncs to Security Analytics), then creates a SAP detector over it, indexes a
 matching event into the category's ``wazuh-events-v5-*`` data stream, runs the
-detector's monitor on demand, and asserts a finding is produced.
+detector's monitor on demand, and asserts an enriched finding is produced in
+``wazuh-findings-v5-*``.
 
 Promotion alone does NOT create a detector for user content (only the CTI ruleset
 sync does), so this scenario drives the detector via the SAP API. The detector's
@@ -54,11 +55,12 @@ def findings_env(client):
     uid = uuid.uuid4().hex[:6]
     title = f"ctfind{uid}"  # integration title == SAP log type == detector_type
     trigger = f"ct_trigger_{uid}"
-    events_index = f"{C.EVENTS_INDEX_PREFIX}other"  # category 'other'
+    category = "other"
+    events_index = f"{C.EVENTS_INDEX_PREFIX}{category}"
 
-    iid = client.create(C.INTEGRATIONS, P.make_integration(title=title, category="other"))
+    iid = client.create(C.INTEGRATIONS, P.make_integration(title=title, category=category))
     did = client.create(C.DECODERS, P.make_decoder(name=f"decoder/{title}/0"), integration=iid)
-    detection = {"condition": "selection", "selection": {"event.action": trigger}}
+    detection = {"condition": "selection", "selection": {"event.action": [trigger]}}
     rid = client.create(
         C.RULES, P.make_rule(product=title, title=f"findrule-{uid}", detection=detection), integration=iid
     )
@@ -71,6 +73,15 @@ def findings_env(client):
         promote = client.post(C.PROMOTE, json={"space": space, "changes": preview.json()["changes"]})
         assert promote.status_code == 200, promote.text
 
+    # Ensure the events index exists before creating the detector so the
+    # doc-level monitor can initialise its percolation query index against
+    # the real mapping.
+    client.index_event(
+        events_index,
+        P.wcs_event("_init_", _now_iso(), integration_name=title, integration_category=category),
+    )
+    client.refresh(events_index)
+
     resp = client.create_detector(P.sap_detector(title, events_index, cti_rule_id=rid))
     assert resp.status_code in (200, 201), f"detector create failed: {resp.text}"
     detector_id = resp.json()["_id"]
@@ -81,6 +92,7 @@ def findings_env(client):
     context = {
         "title": title,
         "trigger": trigger,
+        "category": category,
         "events_index": events_index,
         "detector_id": detector_id,
         "monitors": monitors,
@@ -92,12 +104,16 @@ def findings_env(client):
 
 def _index_and_run(client, ctx, action):
     """Index one event with ``event.action == action``, run the monitors, return doc id."""
-    resp = client.index_event(ctx["events_index"], P.wcs_event(action, _now_iso()))
+    resp = client.index_event(
+        ctx["events_index"],
+        P.wcs_event(action, _now_iso(), integration_name=ctx["title"], integration_category=ctx["category"]),
+    )
     doc_id = resp.json()["_id"]
     client.refresh(ctx["events_index"])
     for monitor_id in ctx["monitors"]:
         run = client.execute_monitor(monitor_id)
         assert run.status_code == 200, run.text
+    client.post("/_refresh")
     return doc_id
 
 
@@ -105,7 +121,7 @@ def _index_and_run(client, ctx, action):
 def test_matching_event_generates_finding(client, findings_env):
     doc_id = _index_and_run(client, findings_env, findings_env["trigger"])
 
-    matched = _wait_for(lambda: doc_id in client.finding_doc_ids(findings_env["title"]))
+    matched = _wait_for(lambda: doc_id in client.finding_doc_ids(findings_env["title"]), attempts=30)
     assert matched, f"no finding referenced the matching event {doc_id}"
 
 
