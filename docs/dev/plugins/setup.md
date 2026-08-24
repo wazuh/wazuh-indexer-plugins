@@ -558,6 +558,24 @@ readers never see a partially populated index. The two slots alternate on each s
 whatever the shipped JSON declares. That covers the live slot, the shadow slot and — as a last line
 of defence — the alias name itself.
 
+### Who creates them
+
+This plugin does, and only this plugin, on a cluster where both are installed. The Content Manager
+keeps an `ensureResourceIndicesExist()` fallback so a deployment without this plugin still works,
+but it waits for the `.wazuh-setup-status` readiness marker first and then finds the indices already
+present. Without that wait it won the race by a wide margin — it created six of the eight about 16
+seconds before this plugin reached its threat-intel block, which meant they were created before
+their index templates were installed and so did not pick them up.
+
+To confirm on a running cluster, read the `templates` field of the creation entries in the log:
+
+```bash
+grep 'creating index' /var/log/wazuh-indexer/wazuh-cluster.log | grep threatintel
+```
+
+Every `wazuh-threatintel-*-a` line must name its own `<name>-template`. An empty `templates []`
+means something created the index before the template existed.
+
 ### Recovering an index that squats the alias name
 
 If a write reaches the alias name before anything creates the alias, OpenSearch auto-creates a
