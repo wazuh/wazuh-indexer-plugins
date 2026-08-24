@@ -22,6 +22,9 @@
   - [Notifications](dev/plugins/notifications.md)
   - [Security Analytics](dev/plugins/security-analytics.md)
   - [Common Utils](dev/plugins/common-utils.md)
+- [Claude Code skills](dev/skills/index.md)
+  - [Documentation review](dev/skills/docs-review.md)
+  - [Performance tuning](dev/skills/perf-tuning.md)
 
 # Reference manual
 - [Introduction]()
