@@ -30,11 +30,10 @@ hours of load-test time.
   primary script for every attribution test in this skill. See "Running a
   test" below.
 - **Real VM**: an internal Vagrant box representative of a small production
-  deployment (not part of this repo — ask the team for access). Real specs:
-  2 vCPU / 3.8GB RAM / ~978MB JVM heap (auto-sized to 25% of RAM) —
-  **roughly half the heap of every Docker test**. Any percentage-of-heap
-  setting behaves materially differently here than in Docker; see "Docker
-  vs. VM" below.
+  deployment (not part of this repo — ask the team for access and current
+  resource profile). It runs with **roughly half the heap of every Docker
+  test**. Any percentage-of-heap setting behaves materially differently here
+  than in Docker; see "Docker vs. VM" below.
 
 ## Mental model: three mechanisms, don't conflate them
 
@@ -59,12 +58,12 @@ effect."
 
 These cost real investigation time to discover. Don't re-derive them.
 
-- **Merging index topology can *increase* memory, not reduce it.** The
-  shard-consolidation PoC (merging 8 per-category `wazuh-events-v5`/
-  `wazuh-findings-v5` streams into 2 unified ones) cut index/shard count
-  exactly as designed (-14 indices) but increased avg heap +18.5%, CPU avg
-  +142% relative, GC activity avg +274% relative — because OpenSearch
-  Security Analytics scopes detectors purely by **which index they read**,
+- **Merging index topology can *increase* memory, not reduce it.** A
+  shard-consolidation PoC (merging several per-category `wazuh-events-v5`/
+  `wazuh-findings-v5` streams into a couple of unified ones) cut index/shard
+  count exactly as designed, but measurably increased avg heap, CPU, and GC
+  activity relative to baseline — because OpenSearch Security Analytics
+  scopes detectors purely by **which index they read**,
   with **no query-level category filter**. Once all categories share one
   index, every detector evaluates every event instead of just the one that
   used to see real traffic. Any future index-merge proposal must account for
@@ -104,7 +103,7 @@ These cost real investigation time to discover. Don't re-derive them.
   ID→object lookups (monitor-id→detector, logtype/rule lists), not full
   documents. Zeroing them mainly adds a `size: 10000` search query per
   finding — trading a small heap saving for real CPU/search-thread-pool load,
-  which is usually the *scarcer* resource on a small VM (2 vCPU). Prefer
+  which is usually the *scarcer* resource on a small VM. Prefer
   raising these TTLs over lowering them unless a specific measurement shows
   otherwise.
 - **`events_backpressure` must stay enabled.** Silent finding-shedding via
@@ -149,7 +148,7 @@ Each is right for different things.
 
 | Use Docker for | Use the VM for |
 |---|---|
-| The main one-variable-at-a-time attribution sweep — controlled, disposable, fast-iterating | Percentage-of-heap settings (e.g. `percolate_query_docs_size_memory_percentage_limit`) — 10% is ≈205MB on Docker's 2GB heap vs. ≈98MB on the VM's 978MB heap; Docker cannot predict VM behavior for these |
+| The main one-variable-at-a-time attribution sweep — controlled, disposable, fast-iterating | Percentage-of-heap settings (e.g. `percolate_query_docs_size_memory_percentage_limit`) — the same percentage yields a very different absolute byte budget on Docker's 2GB heap vs. the VM's much smaller heap; Docker cannot predict VM behavior for these |
 | JFR allocation recordings, class histograms, full heap dumps | Settings persistence after a real service restart (`_cluster/settings?include_defaults=true` diffed before/after) |
 | Anything needing many repeated, cheap, from-scratch runs | Multi-hour slow-leak detection (Docker's ~20 min runs structurally cannot catch this — poll `_nodes/stats/jvm,breaker` every few minutes over hours) |
 | | Startup/config error checks after a settings change (`grep -iE "error|exception|warn"` in the cluster log around a restart) |
@@ -168,15 +167,17 @@ cd <path-to-indexer_metrics>
 ```
 
 - `--push` rebuilds and installs the plugins; `--validate` runs the real
-  content-manager CTI-sync pipeline (this is what creates the ~21 real
-  detectors — don't skip it if the test needs realistic detector fan-out).
+  content-manager CTI-sync pipeline (this is what creates the real
+  detectors, one per log type in use — don't skip it if the test needs
+  realistic detector fan-out).
 - `--keep-up` leaves the container running afterward for `docker exec`
   inspection — use this when you need to apply a live `_cluster/settings`
   change and re-run without re-paying the push+validate cost.
 - Match `--jvm-mem`/`--container-cpus`/`--container-mem` to the real VM's
-  specs (978m / 2 / 3800m) when the goal is a VM-representative baseline,
-  not the tool's own defaults (2g / 4 / 4g) — every prior comparison used the
-  more generous defaults, which understates real-world pressure.
+  specs (ask the team for its current profile) when the goal is a
+  VM-representative baseline, not the tool's own more generous defaults —
+  every prior comparison used those defaults, which understates real-world
+  pressure.
 - Output lands in `output/<title>_<timestamp>/`, including `heap_analysis.md`
   (the unified report: heap timeline, per-plugin index store size, class
   histogram, JFR allocation call trees) and `metrics.csv`/`chart.png`.

@@ -15,7 +15,7 @@ Legend: **Dynamic** = live-tunable via `PUT _cluster/settings`, no restart.
 ## content-manager (`wazuh-indexer-plugins/plugins/content-manager`)
 
 Settings file: `plugins/content-manager/src/main/java/com/wazuh/contentmanager/settings/PluginSettings.java`.
-Registered in `ContentManagerPlugin.java:889-912` (`getSettings()`).
+Registered in `ContentManagerPlugin.java`'s `getSettings()`.
 
 **All bulk/concurrency settings here are Static, despite being informally
 described as "semaphore-controlled" — the semaphore size is fixed once at
@@ -53,8 +53,11 @@ Cluster Settings API. Changing the fallback/bounds requires a code change.
 ## security-analytics (`wazuh-indexer-security-analytics`)
 
 Settings file: `src/main/java/org/opensearch/securityanalytics/settings/SecurityAnalyticsSettings.java`.
-Registered in `SecurityAnalyticsPlugin.java:437-475` (`getSettings()`). 37 of
-38 settings here are Dynamic — this is by far the most live-tunable plugin.
+Registered in `SecurityAnalyticsPlugin.java`'s `getSettings()`.
+36 of 38 settings here are Dynamic — this is by far the most live-tunable plugin. The
+two non-Dynamic exceptions are `enriched_findings_rule_cache_max_size` (table below)
+and `IS_CORRELATION_INDEX_SETTING` (an `IndexScope`-only internal marker, not
+memory-relevant, not listed in the table below).
 
 ### Enrichment pipeline (`WazuhEnrichedFindingService.java`)
 
@@ -71,7 +74,7 @@ Registered in `SecurityAnalyticsPlugin.java:437-475` (`getSettings()`). 37 of
 
 | Setting | Default | Range | Dynamic? | Recommended |
 |---|---|---|---|---|
-| `plugins.security_analytics.correlation.max_in_flight_findings` | 50 | 1–1000 | Dynamic | 10 (5× the VM's 2 vCPU count) |
+| `plugins.security_analytics.correlation.max_in_flight_findings` | 50 | 1–1000 | Dynamic | 10 |
 | `plugins.security_analytics.correlation.max_pending_findings` | 10000 | 1–1,000,000 | Dynamic | 2000 |
 | `plugins.security_analytics.correlation.events_backpressure.enabled` | true | — | Dynamic | **must stay true** — see SKILL.md guardrails |
 | `plugins.security_analytics.correlation.events_backpressure.high_watermark_percent` | 100 | 1–100 | Dynamic | 80 (keep ≥30pt gap over low watermark) |
@@ -84,7 +87,7 @@ Registered in `SecurityAnalyticsPlugin.java:437-475` (`getSettings()`). 37 of
 
 | Setting | Default | Range | Dynamic? | Recommended |
 |---|---|---|---|---|
-| `plugins.security_analytics.enable_detectors_with_dedicated_query_indices` | true | — | Dynamic | false — **zero-cost, confirmed dead end for the current 45-shard SAP finding, see SKILL.md "Known traps"; set anyway as a guardrail against future multi-detector-per-logtype proliferation** |
+| `plugins.security_analytics.enable_detectors_with_dedicated_query_indices` | true | — | Dynamic | false — **zero-cost, confirmed dead end for the current SAP shard-count finding, see SKILL.md "Known traps"; set anyway as a guardrail against future multi-detector-per-logtype proliferation** |
 | `plugins.security_analytics.max_detectors` | 10 | ≥0 | Dynamic | unchanged — CTI/content-manager-created detectors are exempt from this cap, so it doesn't bound the fan-out problem |
 | `plugins.security_analytics.max_rules_per_detector` | 50 | ≥0 | Dynamic | unchanged |
 | `plugins.security_analytics.max_case_management_bulk_size` | 10 | 0–100 | Dynamic | unchanged |
@@ -109,7 +112,7 @@ lever on the detector-fan-out blast radius.
 | Setting | Default | Range | Recommended |
 |---|---|---|---|
 | `plugins.alerting.monitor.percolate_query_max_num_docs_in_memory` | 50000 | min 1000 | 5000 |
-| `plugins.alerting.monitor.percolate_query_docs_size_memory_percentage_limit` | 10 | 0–100 | 4 (≈39MB on the VM's 978MB heap, vs. ≈98MB at default — meaningful margin against an 80%+-loaded parent breaker) |
+| `plugins.alerting.monitor.percolate_query_docs_size_memory_percentage_limit` | 10 | 0–100 | 4 (a meaningfully smaller absolute byte budget on the VM's heap than the default — meaningful margin against an 80%+-loaded parent breaker) |
 | `plugins.alerting.monitor.doc_level_monitor_shard_fetch_size` | 10000 | 1–10000 | 2000 |
 | `plugins.alerting.monitor.doc_level_monitor_fan_out_nodes` | 1000 | — | unchanged (low relevance on a single-node deployment) |
 | `plugins.alerting.monitor.doc_level_monitor_fanout_max_duration` | 3m | — | 1m |
@@ -129,8 +132,8 @@ separately).
 ## setup plugin (`wazuh-indexer-plugins/plugins/setup`)
 
 Settings file: `plugins/setup/src/main/java/com/wazuh/setup/settings/PluginSettings.java`.
-Exactly 3 registered settings, confirmed 1:1 against `SetupPlugin.java:254-257`
-(`getSettings()`) — **no memory-relevant live-tunable setting exists in this
+Exactly 3 registered settings, confirmed 1:1 against `SetupPlugin.java`'s
+`getSettings()` — **no memory-relevant live-tunable setting exists in this
 plugin at all.**
 
 | Setting | Default | Dynamic? | Memory-relevant? |
@@ -167,7 +170,7 @@ access) as of 2026-08-06:
 | `indices.breaker.total.limit` | 80% (upstream default 95%) | Set in `opensearch.yml` on the VM already; `use_real_memory: true` |
 | `indexing_pressure.memory.limit` | 10% | Set in `opensearch.yml` already |
 | `search_backpressure.mode` | enforced | Set in `opensearch.yml` already; node-duress thresholds (`cpu_threshold=0.9`, `heap_threshold=0.7`) are still defaults, unverified whether tuning them helps |
-| `indices.memory.index_buffer_size` | 10% (~98MB), default | **Static, `NodeScope`-only** — confirmed in `IndexingMemoryController.java`. Untuned; halving to 5% is a genuine, previously-unexplored lever |
+| `indices.memory.index_buffer_size` | 10%, default | **Static, `NodeScope`-only** — confirmed in `IndexingMemoryController.java`. Untuned; halving to 5% is a genuine, previously-unexplored lever |
 | Thread pools (`thread_pool.write/search/bulk.*`) | no overrides, defaults apply | **Not yet given the same verification depth as the settings above** — named explicitly in the team issue, still needs a dedicated pass before testing |
 | Circuit breakers other than `total` (`fielddata.limit`, `request.limit`, `network.breaker.inflight_requests.limit`) | only `total.limit` confirmed live so far | Same — needs its own verification pass |
 | Shard indexing backpressure | not yet checked | Distinct mechanism from Security Analytics' `events_backpressure` — do not conflate the two |
@@ -184,10 +187,11 @@ installed OpenSearch 3.6.0 distribution.
 ## Confirmed dead end (do not re-test without new evidence)
 
 `plugins.security_analytics.enable_detectors_with_dedicated_query_indices`
-was hypothesized as the fix for a live-VM finding of 45 of 92 total shards
-(49%) belonging to per-log-type `.opensearch-sap-<logtype>-detectors-queries-
-optimized-*` / `.opensearch-sap-<logtype>-alerts` index pairs (21 log
-types). Traced directly in `TransportIndexDetectorAction.java`:
+was hypothesized as the fix for a live-VM finding that a large share of
+total shards belonged to per-log-type
+`.opensearch-sap-<logtype>-detectors-queries-optimized-*` /
+`.opensearch-sap-<logtype>-alerts` index pairs, one pair per log type in
+use. Traced directly in `TransportIndexDetectorAction.java`:
 
 - Only consulted in `createDetector()` and `onGetResponse()` (detector
   update); the update path has an explicit early-out that preserves an
@@ -199,7 +203,7 @@ types). Traced directly in `TransportIndexDetectorAction.java`:
   strict 1:1 world, the "shared" mode produces the same index count as the
   "dedicated" mode, just without a UUID suffix.
 
-**Verdict**: toggling this setting will not reduce the 45-shard count on
+**Verdict**: toggling this setting will not reduce the shard count on
 this deployment's topology. The actual fix requires a content-manager/
 security-analytics code change (e.g. only create detector indices for log
 types actually ingested) — file as a separate follow-up issue per the team
