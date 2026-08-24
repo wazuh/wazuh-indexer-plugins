@@ -21,13 +21,17 @@ import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
+import org.apache.hc.client5.http.utils.DateUtils;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.util.Timeout;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.SSLContext;
 
@@ -35,6 +39,7 @@ import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -43,6 +48,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Client for interacting with the Wazuh CTI Catalog API.
@@ -51,6 +57,8 @@ import com.wazuh.contentmanager.settings.PluginSettings;
  * service, specifically handling consumer context retrieval.
  */
 public class ApiClient implements AutoCloseable {
+
+    private static final Logger log = LogManager.getLogger(ApiClient.class);
 
     private final String baseUri;
     private final ResourceUrlResolver urlResolver;
@@ -100,6 +108,10 @@ public class ApiClient implements AutoCloseable {
                 HttpAsyncClients.custom()
                         .setIOReactorConfig(ioReactorConfig)
                         .setDefaultHeaders(defaultHeaders)
+                        // Keep the default transient-I/O retry, but never let the async client retry on
+                        // a response status code: a 429 must surface to executeWithRetry() so the
+                        // Retry-After backoff runs on the calling thread
+                        .setRetryStrategy(new StatusCodeAwareRetryStrategy())
                         .setConnectionManager(
                                 PoolingAsyncClientConnectionManagerBuilder.create()
                                         .setTlsStrategy(
@@ -178,14 +190,7 @@ public class ApiClient implements AutoCloseable {
             throws ExecutionException, InterruptedException, TimeoutException {
         String uri = this.urlResolver.resolve(this.buildConsumerURI(consumerUri));
         SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
-
-        final Future<SimpleHttpResponse> future =
-                this.client.execute(
-                        SimpleRequestProducer.create(request),
-                        SimpleResponseConsumer.create(),
-                        new HttpResponseCallback(request, "Outgoing request failed"));
-
-        return future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+        return this.executeWithRetry(request);
     }
 
     /**
@@ -210,14 +215,7 @@ public class ApiClient implements AutoCloseable {
                                 + toOffset);
 
         SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
-
-        final Future<SimpleHttpResponse> future =
-                this.client.execute(
-                        SimpleRequestProducer.create(request),
-                        SimpleResponseConsumer.create(),
-                        new HttpResponseCallback(request, "Outgoing request failed"));
-
-        return future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+        return this.executeWithRetry(request);
     }
 
     /**
@@ -243,13 +241,109 @@ public class ApiClient implements AutoCloseable {
             throws ExecutionException, InterruptedException, TimeoutException {
         String uri = this.urlResolver.resolve(this.buildReleasesUpdatesURI(tag));
         SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
+        return this.executeWithRetry(request);
+    }
 
+    /**
+     * Executes an HTTP request, retrying on HTTP 429 (Too Many Requests) responses.
+     *
+     * <p>Each attempt blocks up to {@link PluginSettings#getClientTimeout()} seconds on a single
+     * round-trip. When the API responds with 429 and retries remain, the wait is derived from the
+     * {@code Retry-After} header (or an exponential-backoff fallback) via {@link
+     * #computeRetryDelaySeconds}, slept off on the calling thread, and the request is re-issued.
+     * Retries are bounded by {@link PluginSettings#getClientMaxRetries()}; once exhausted the last
+     * 429 response is returned to the caller, which handles the non-200 status as before.
+     *
+     * @param request the request to execute.
+     * @return the {@link SimpleHttpResponse} of the first non-429 attempt, or the last 429 response
+     *     if all retries are exhausted.
+     * @throws ExecutionException If the computation threw an exception.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException If a single attempt exceeded the client timeout.
+     */
+    SimpleHttpResponse executeWithRetry(SimpleHttpRequest request)
+            throws ExecutionException, InterruptedException, TimeoutException {
+        PluginSettings settings = PluginSettings.getInstance();
+        int maxRetries = settings.getClientMaxRetries();
+        long clientTimeout = settings.getClientTimeout();
+
+        SimpleHttpResponse response = null;
+        for (int attempt = 0; attempt <= maxRetries; attempt++) {
+            response = this.executeOnce(request, clientTimeout);
+
+            if (response.getCode() != HttpStatus.SC_TOO_MANY_REQUESTS || attempt == maxRetries) {
+                return response;
+            }
+
+            long delaySeconds = this.computeRetryDelaySeconds(response, attempt);
+            log.warn(
+                    Constants.W_LOG_CTI_RATE_LIMITED,
+                    request.getRequestUri(),
+                    delaySeconds,
+                    attempt + 1,
+                    maxRetries);
+            Thread.sleep(TimeUnit.SECONDS.toMillis(delaySeconds));
+        }
+        return response;
+    }
+
+    /**
+     * Executes a single HTTP round-trip, blocking up to {@code clientTimeout} seconds on the
+     * response.
+     *
+     * @param request the request to execute.
+     * @param clientTimeout the per-attempt deadline in seconds.
+     * @return the {@link SimpleHttpResponse}.
+     * @throws ExecutionException If the computation threw an exception.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException If the wait timed out.
+     */
+    SimpleHttpResponse executeOnce(SimpleHttpRequest request, long clientTimeout)
+            throws ExecutionException, InterruptedException, TimeoutException {
         final Future<SimpleHttpResponse> future =
                 this.client.execute(
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
 
-        return future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+        return future.get(clientTimeout, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Computes how long to wait before the next 429 retry, in seconds.
+     *
+     * <p>A positive {@code Retry-After} header (parsed as delta-seconds or an RFC-1123 HTTP-date) is
+     * honored verbatim. Only when {@code Retry-After} is missing, unparseable, or non-positive does
+     * the method fall back to exponential backoff ({@code base * 2^attempt}). The total number of
+     * retries is bounded by {@code max_retries}.
+     *
+     * @param response the 429 response.
+     * @param attempt the zero-based retry attempt index (drives the backoff fallback).
+     * @return the wait in seconds, never negative.
+     */
+    long computeRetryDelaySeconds(SimpleHttpResponse response, int attempt) {
+        PluginSettings settings = PluginSettings.getInstance();
+
+        long retryAfter = -1;
+        Header header = response.getFirstHeader(HttpHeaders.RETRY_AFTER);
+        if (header != null && header.getValue() != null) {
+            String value = header.getValue().trim();
+            try {
+                retryAfter = Long.parseLong(value);
+            } catch (NumberFormatException e) {
+                Instant when = DateUtils.parseStandardDate(value);
+                if (when != null) {
+                    retryAfter = when.getEpochSecond() - Instant.now().getEpochSecond();
+                }
+            }
+        }
+
+        if (retryAfter > 0) {
+            // Trust an explicit, positive Retry-After exactly as the server asked.
+            return retryAfter;
+        }
+
+        // Missing, unparseable, or non-positive (e.g. CTI's bogus Retry-After: 0): exponential backoff.
+        return (long) settings.getClientRetryBackoffBaseSeconds() * (1L << attempt);
     }
 }

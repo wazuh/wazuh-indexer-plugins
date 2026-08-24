@@ -131,13 +131,15 @@ messages.control.replaced.total:
   type: long
 messages.control.usage:
   dashed_name: messages-control-usage
-  description: Current utilization ratio of the control message queue (0.0–1.0).
-  example: 0.42
+  description: Current number of messages held in the control message queue. This
+    is an absolute count, not a ratio. The field is declared as float for historical
+    reasons; changing the type would require a reindex.
+  example: 42
   flat_name: messages.control.usage
   level: custom
   name: control.usage
   normalize: []
-  short: Current utilization ratio of the control message queue (0.0–1.0).
+  short: Messages currently held in the control queue.
   type: float
 messages.states.total:
   dashed_name: messages-states-total
@@ -201,25 +203,25 @@ network.ingress.bytes:
   type: long
 queue.capacity:
   dashed_name: queue-capacity
-  description: Maximum configured capacity of the message queue.
+  description: Maximum size in bytes configured for the received-message queue, where
+    0 means unlimited. This is a byte limit, not a message count.
   example: 131072
   flat_name: queue.capacity
   level: custom
   name: capacity
   normalize: []
-  short: Maximum configured capacity of the message queue.
+  short: Byte limit configured for the received-message queue.
   type: integer
 queue.size:
   dashed_name: queue-size
-  description: Current number of messages queued. This is a gauge representing instantaneous
-    queue occupancy.
+  description: Current size in bytes of the received-message queue. This is a gauge
+    representing instantaneous queue occupancy, not a message count.
   example: 0
   flat_name: queue.size
   level: custom
   name: size
   normalize: []
-  short: Current number of messages queued. This is a gauge representing instantaneous
-    queue occupancy.
+  short: Bytes currently held in the received-message queue.
   type: integer
 tcp.sessions:
   dashed_name: tcp-sessions

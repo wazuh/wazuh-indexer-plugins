@@ -51,6 +51,7 @@ public class IndexStateManagement extends Index {
     static final String RAW_EVENTS_POLICY = "stream-raw-events-policy";
     static final String ACTIVE_RESPONSES_POLICY = "stream-active-responses-policy";
     static final String METRICS_POLICY = "stream-metrics-policy";
+    static final String AI_ASSISTANT_SESSIONS_POLICY = "ai-assistant-sessions-policy";
 
     /** Base path for ISM policy files */
     static final String POLICIES_PATH = "policies/";
@@ -73,6 +74,7 @@ public class IndexStateManagement extends Index {
         this.policies.add(RAW_EVENTS_POLICY);
         this.policies.add(ACTIVE_RESPONSES_POLICY);
         this.policies.add(METRICS_POLICY);
+        this.policies.add(AI_ASSISTANT_SESSIONS_POLICY);
     }
 
     /**

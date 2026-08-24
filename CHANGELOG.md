@@ -65,6 +65,7 @@
 - Reduce TTL for historical information about deletes in-memory [(#1328)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1328)
 - Integration's mode [(#1356)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1356)
 - Load standard space into all cluster nodes [(#1376)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1376)
+- AI assistant support [(#1422)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1422)
 - Create the `wazuh-agent-config` index [(#1419)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1419)
 - Added `previous` value fields to the WCS for process, service, and package inventory changes [(#1413)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1413)
 - Create the `wazuh-agent-stats` index [(#1425)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1425)
@@ -132,6 +133,7 @@
 - Findings case management pt.2 [(#1334)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1334)
 - Allow dates on Content Manager's REST API [(#1349)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1349)
 - Update the Content Manager OpenAPI (`openapi.yml`) to match the current API [(#1353)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1353)
+- Rename the `metrics-comms` stream to `wazuh-metrics-comms-v4` [(#1458)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1458)
 
 ### Removed
 - Remove plugins not planned for 5.x [(#440)](https://github.com/wazuh/wazuh-indexer-plugins/issues/440)
@@ -140,7 +142,6 @@
 - ECS object removal [(#604)](https://github.com/wazuh/wazuh-indexer-plugins/issues/604)
 - Removal of alerts and archives index templates [(#689)](https://github.com/wazuh/wazuh-indexer-plugins/issues/689)
 - Make Unclassified events standard WCS category [(#1348)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1348)
-- Some Wazuh indices get 1 replica on multi-node clusters due to `auto_expand_replicas` [(#1354)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1354)
 
 ### Fixed
 - Wrong folder structure under `ecs` folder [(#461)](https://github.com/wazuh/wazuh-indexer-plugins/issues/461)
@@ -176,6 +177,8 @@
 - [BUG] Vulnerability Detection empty for all agents after a transient snapshot bootstrap failure [(#1383)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1383)
 - [BUG] Log test does not use manually enabled integrations [(#1410)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1410)
 - [BUG] Undefined state if a node is restarted while the standard space hash is being calculated [(#1773)](https://github.com/wazuh/wazuh-indexer/issues/1773)
+- [BUG] Fix issues in workflows [(#1449)](https://github.com/wazuh/wazuh-indexer/issues/1449)
+- Failed to save/update ManagedIndexMetaData [(#1828)](https://github.com/wazuh/wazuh-indexer/issues/1828)
 
 ## Prior versions
 - []()
