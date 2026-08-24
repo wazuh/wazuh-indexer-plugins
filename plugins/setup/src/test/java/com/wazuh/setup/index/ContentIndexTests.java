@@ -141,6 +141,24 @@ public class ContentIndexTests extends OpenSearchTestCase {
         verify(this.indicesAdminClient, never()).create(any(CreateIndexRequest.class));
     }
 
+    /**
+     * After a blue/green swap the alias points at the alternate slot and the slot it came from is
+     * deleted, so the cluster has an alias and no {@code -a} index. Creating {@code -a} with the
+     * alias would ask for a second write index on it, which fails and aborts the whole setup
+     * initialization loop. The alias existing is enough: nothing is done.
+     */
+    public void testCreateIndexIsANoOpWhenTheAliasPointsAtTheAlternateSlot() {
+        // The swap left the alias on -b and deleted -a.
+        doReturn(false).when(this.routingTable).hasIndex(PHYSICAL);
+        doReturn(true).when(this.metadata).hasAlias(ALIAS);
+
+        this.contentIndex.createIndex(ALIAS);
+
+        verify(this.indicesAdminClient, never()).create(any(CreateIndexRequest.class));
+        verify(this.indicesAdminClient, never()).aliases(any(IndicesAliasesRequest.class));
+        verify(this.indicesAdminClient, never()).delete(any(DeleteIndexRequest.class));
+    }
+
     /** A fully provisioned index is left untouched. */
     public void testCreateIndexIsANoOpWhenIndexAndAliasExist() {
         doReturn(true).when(this.routingTable).hasIndex(PHYSICAL);

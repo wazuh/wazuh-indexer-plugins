@@ -145,6 +145,15 @@ public class ContentIndex extends WazuhIndex {
      * text field, which cannot be aggregated or sorted on. It also occupies the alias's name, so the
      * alias cannot be created until it is gone. The content it holds is re-downloaded from CTI.
      *
+     * <p>Once the alias exists the topology is in place and nothing more is done, whichever physical
+     * index it points at. It is not always {@code -a}: the Content Manager's blue/green swap moves
+     * the alias to the alternate slot and then deletes the one it came from, so a cluster that has
+     * changed content source sits on {@code <name>-b} with no {@code <name>-a} at all. Creating
+     * {@code <name>-a} with the alias then would ask OpenSearch for a second write index on the same
+     * alias, which fails with {@code alias [...] has more than one write index}. That aborts {@code
+     * SetupPlugin}'s initialization loop, so every index registered after this one is skipped and the
+     * readiness marker is set to failed, on every restart.
+     *
      * @param index name of the public alias. The concrete index created is this name plus {@link
      *     #SUFFIX_A}.
      */
@@ -154,8 +163,13 @@ public class ContentIndex extends WazuhIndex {
         try {
             this.deleteSquatterIndex(index);
 
+            if (this.aliasExists(index)) {
+                log.debug("Alias {} already exists. Skipping.", index);
+                return;
+            }
+
             if (this.indexExists(physicalName)) {
-                this.ensureAlias(index, physicalName);
+                this.addAlias(index, physicalName);
                 return;
             }
 
@@ -212,17 +226,23 @@ public class ContentIndex extends WazuhIndex {
     }
 
     /**
-     * Points the public alias at the concrete index when the concrete index already exists without
-     * it. Nothing is done when the alias is already present.
+     * Returns whether the public alias exists, whichever concrete index it points at.
+     *
+     * @param alias the public alias name.
+     * @return true if the alias exists on the cluster, false otherwise.
+     */
+    private boolean aliasExists(String alias) {
+        return this.clusterService.state().metadata().hasAlias(alias);
+    }
+
+    /**
+     * Points the public alias at the concrete index. Only called when the concrete index exists and
+     * the alias does not, so there is no write index to conflict with.
      *
      * @param alias the public alias name.
      * @param physicalName the concrete index the alias must point at.
      */
-    private void ensureAlias(String alias, String physicalName) {
-        if (this.clusterService.state().metadata().hasAlias(alias)) {
-            log.debug("Index {} and its alias {} already exist. Skipping.", physicalName, alias);
-            return;
-        }
+    private void addAlias(String alias, String physicalName) {
         log.info("Index {} exists without its alias {}. Adding it.", physicalName, alias);
         IndicesAliasesRequest request =
                 new IndicesAliasesRequest()
