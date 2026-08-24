@@ -21,9 +21,10 @@ _JSON = {"Content-Type": "application/json", "Accept": "application/json"}
 class CMClient:
     """Client for a running wazuh-indexer with the Content Manager plugin."""
 
-    def __init__(self, base_url, user="admin", password="admin", max_retries=5):
+    def __init__(self, base_url, user="admin", password="admin", max_retries=5, timeout=(5, 30)):
         self.base_url = base_url.rstrip("/")
         self.max_retries = max_retries
+        self.timeout = timeout
         self.session = requests.Session()
         self.session.auth = (user, password)
         self.session.verify = False
@@ -36,7 +37,7 @@ class CMClient:
         url = f"{self.base_url}{path}"
         last = None
         for attempt in range(1, self.max_retries + 1):
-            last = self.session.request(method, url, json=json, params=params)
+            last = self.session.request(method, url, json=json, params=params, timeout=self.timeout)
             if last.status_code != 429:
                 return last
             time.sleep(attempt)
@@ -174,17 +175,22 @@ class CMClient:
         assert resp.status_code in (200, 201), f"index event -> {resp.status_code}: {resp.text}"
         return resp
 
-    def findings(self, detector_type):
-        """Return the Security Analytics findings body for a detector type."""
-        resp = self.get(C.SA_FINDINGS, params={"detectorType": detector_type})
-        assert resp.status_code == 200, f"findings search -> {resp.status_code}: {resp.text}"
-        return resp.json()
+    def findings(self, integration_name):
+        """Return enriched findings for an integration from ``wazuh-findings-v5-*``."""
+        self.refresh(C.FINDINGS_INDEX_PATTERN)
+        body = self.search(
+            C.FINDINGS_INDEX_PATTERN,
+            {"term": {"wazuh.integration.name": {"value": integration_name}}},
+        )
+        return body["hits"]["hits"]
 
-    def finding_doc_ids(self, detector_type):
-        """Return the set of event doc ids referenced by this detector's findings."""
+    def finding_doc_ids(self, integration_name):
+        """Return the set of event doc ids referenced by enriched findings."""
         ids = set()
-        for finding in self.findings(detector_type).get("findings", []):
-            ids.update(finding.get("related_doc_ids", []))
+        for hit in self.findings(integration_name):
+            doc_id = hit.get("_source", {}).get("event", {}).get("doc_id")
+            if doc_id:
+                ids.add(doc_id)
         return ids
 
 

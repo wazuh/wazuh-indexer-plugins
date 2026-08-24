@@ -41,7 +41,7 @@ Wazuh uses rules to monitor the events and logs in your network to detect securi
 
 **References**:
 
-- https://documentation.wazuh.com/current/user-manual/ruleset/getting-started.html#github-repository
+- https://documentation.wazuh.com/current/user-manual/ruleset/index.html#github-repository
 - https://github.com/wazuh/wazuh/tree/main/ruleset
 
 ### Wazuh Security Events to Amazon Security Lake

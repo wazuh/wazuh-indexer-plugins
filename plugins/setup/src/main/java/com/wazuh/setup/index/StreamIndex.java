@@ -90,13 +90,6 @@ public class StreamIndex extends WazuhIndex {
             // Dynamically set the index patterns to match this specific index
             indexTemplate.setIndexPatterns(List.of(this.index + "*"));
 
-            // Dynamically update the rollover alias if it exists in the base template
-            Map<String, Object> settingsMap = indexTemplate.getSettings();
-            if (settingsMap != null
-                    && settingsMap.containsKey("plugins.index_state_management.rollover_alias")) {
-                settingsMap.put("plugins.index_state_management.rollover_alias", this.index);
-            }
-
             String indexMappings = mapper.writeValueAsString(indexTemplate.getMappings());
             CompressedXContent compressedMapping = new CompressedXContent(indexMappings);
             Settings settings = Settings.builder().loadFromMap(indexTemplate.getSettings()).build();
