@@ -18,7 +18,13 @@ package com.wazuh.contentmanager.utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.cluster.node.info.NodeInfo;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoResponse;
+import org.opensearch.action.admin.cluster.node.info.PluginsAndModules;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.plugins.PluginInfo;
 import org.opensearch.transport.client.Client;
 
 import java.util.Map;
@@ -39,6 +45,9 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 public class SetupReadiness {
 
     private static final Logger log = LogManager.getLogger(SetupReadiness.class);
+
+    /** Name the Setup plugin registers itself under, as declared in its {@code build.gradle}. */
+    private static final String SETUP_PLUGIN_NAME = "wazuh-indexer-setup";
 
     private final Client client;
 
@@ -64,6 +73,10 @@ public class SetupReadiness {
      * @return true if the Setup plugin reported readiness, false otherwise.
      */
     public boolean awaitReady() {
+        if (!this.isSetupPluginInstalled()) {
+            log.info(Constants.I_LOG_SETUP_PLUGIN_ABSENT);
+            return false;
+        }
         int maxRetries = PluginSettings.getInstance().getSetupWaitMaxRetries();
         int backoffBaseSeconds = PluginSettings.getInstance().getSetupWaitBackoffBaseSeconds();
         for (int attempt = 0; ; attempt++) {
@@ -86,6 +99,45 @@ public class SetupReadiness {
                 Thread.currentThread().interrupt();
                 return false;
             }
+        }
+    }
+
+    /**
+     * Returns whether the Setup plugin is installed on any node of the cluster.
+     *
+     * <p>Without this check {@link #awaitReady()} would burn its whole backoff schedule waiting for a
+     * marker that is never going to be written, delaying everything behind it by five minutes on
+     * exactly the deployment the caller's fallback exists to serve. A failure to read the plugin list
+     * is reported as "installed" so a transient error makes the caller wait rather than skip the wait
+     * and race the Setup plugin.
+     *
+     * @return true if the Setup plugin is installed, or if the plugin list could not be read.
+     */
+    boolean isSetupPluginInstalled() {
+        try {
+            NodesInfoResponse response =
+                    this.client
+                            .admin()
+                            .cluster()
+                            .prepareNodesInfo()
+                            .clear()
+                            .addMetric(NodesInfoRequest.Metric.PLUGINS.metricName())
+                            .get(TimeValue.timeValueSeconds(PluginSettings.getInstance().getClientTimeout()));
+            for (NodeInfo node : response.getNodes()) {
+                PluginsAndModules plugins = node.getInfo(PluginsAndModules.class);
+                if (plugins == null) {
+                    continue;
+                }
+                for (PluginInfo plugin : plugins.getPluginInfos()) {
+                    if (SETUP_PLUGIN_NAME.equals(plugin.getName())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            log.debug(Constants.D_LOG_SETUP_PLUGIN_LOOKUP_FAILED, e.getMessage());
+            return true;
         }
     }
 

@@ -55,6 +55,25 @@ public class SetupReadinessTests extends OpenSearchTestCase {
         this.setupReadiness = new SetupReadiness(this.client);
     }
 
+    /**
+     * A cluster without the Setup plugin has no marker coming, so there is nothing to wait for: the
+     * caller's fallback runs immediately instead of after the full backoff schedule.
+     */
+    public void testSetupPluginAbsentReturnsFalseWithoutSleeping() throws Exception {
+        SetupReadiness readiness = spy(this.setupReadiness);
+        doReturn(false).when(readiness).isSetupPluginInstalled();
+
+        Assert.assertFalse(readiness.awaitReady());
+        verify(readiness, never()).sleepSeconds(anyLong());
+        verify(this.getRequestBuilder, never()).get();
+    }
+
+    /** A plugin list that cannot be read is treated as "installed", so the caller still waits. */
+    public void testPluginLookupFailureIsTreatedAsInstalled() {
+        // The mocked client has no nodes-info stubbing, so the lookup throws.
+        Assert.assertTrue(this.setupReadiness.isSetupPluginInstalled());
+    }
+
     /** The marker already reports ready, so the first check returns true. */
     public void testMarkerReadyReturnsTrue() {
         when(this.getResponse.isExists()).thenReturn(true);

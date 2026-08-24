@@ -177,6 +177,10 @@ public class Constants {
             "Index [{}] holds no documents but the local offset is [{}]. Resetting the offset so the "
                     + "content is downloaded again.";
     public static final String D_LOG_INDEX_COUNT_FAILED = "Could not count the documents in [{}]: {}";
+    public static final String I_LOG_SETUP_PLUGIN_ABSENT =
+            "The Setup plugin is not installed on this cluster. Not waiting for its readiness marker.";
+    public static final String D_LOG_SETUP_PLUGIN_LOOKUP_FAILED =
+            "Could not read the installed plugin list, assuming the Setup plugin is present: {}";
     public static final String E_LOG_SETUP_INIT_FAILED =
             "Setup plugin initialization failed. Skipping catalog synchronization until Setup succeeds "
                     + "(typically after a node restart).";
