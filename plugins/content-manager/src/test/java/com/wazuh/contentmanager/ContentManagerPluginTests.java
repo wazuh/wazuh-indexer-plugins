@@ -19,6 +19,7 @@ package com.wazuh.contentmanager;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.LocalNodeClusterManagerListener;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -46,6 +47,7 @@ import java.util.concurrent.ExecutorService;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -77,6 +79,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     @Mock private CatalogSyncJob catalogSyncJob;
     @Mock private TelemetryPingJob telemetryPingJob;
     @Mock private EngineContentLoader engineContentLoader;
+    @Mock private SpaceService spaceService;
     @Mock private ConsumersIndex consumersIndex;
     @Mock private ClusterState clusterState;
     @Mock private DiscoveryNodes discoveryNodes;
@@ -112,6 +115,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.injectField(this.plugin, "catalogSyncJob", this.catalogSyncJob);
         this.injectField(this.plugin, "telemetryPingJob", this.telemetryPingJob);
         this.injectField(this.plugin, "engineContentLoader", this.engineContentLoader);
+        this.injectField(this.plugin, "spaceService", this.spaceService);
         this.injectField(this.plugin, "consumersIndex", this.consumersIndex);
 
         ContentManagerPluginTests.clearInstance();
@@ -243,6 +247,85 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                         any(Runnable.class),
                         eq(TimeValue.timeValueSeconds(expectedDelay)),
                         eq(ThreadPool.Names.GENERIC));
+    }
+
+    /**
+     * Tests that a transient standard-space-hash read failure registers a cluster-state listener to
+     * retry, instead of scheduling a bounded backoff. The spaceService mock calls {@code onFailure}
+     * to simulate the "all shards failed" startup condition.
+     */
+    public void testStandardSpaceHashRegistersListenerOnTransientFailure() throws Exception {
+        PluginSettings.getInstance(Settings.EMPTY);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<?>>getArgument(1)
+                                    .onFailure(new RuntimeException("all shards failed"));
+                            return null;
+                        })
+                .when(this.spaceService)
+                .recalculateSpaceHashIfMissing(anyString(), any());
+
+        this.invokePrivateMethod("ensureStandardSpaceHash");
+
+        // A cluster-state listener is registered so the read is retried on the next state update;
+        // no bounded backoff is scheduled on the thread pool.
+        verify(this.clusterService).addListener(any(ClusterStateListener.class));
+        verify(this.threadPool, never())
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+    }
+
+    /**
+     * Tests that a successful standard-space-hash read does not register any retry listener: there is
+     * nothing to retry.
+     */
+    public void testStandardSpaceHashDoesNotRegisterListenerOnSuccess() throws Exception {
+        PluginSettings.getInstance(Settings.EMPTY);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Set<String>>>getArgument(1).onResponse(new HashSet<>());
+                            return null;
+                        })
+                .when(this.spaceService)
+                .recalculateSpaceHashIfMissing(anyString(), any());
+
+        this.invokePrivateMethod("ensureStandardSpaceHash");
+
+        verify(this.clusterService, never()).addListener(any(ClusterStateListener.class));
+    }
+
+    /**
+     * Tests that the retry listener keeps reattempting on cluster-state updates and, once the read
+     * finally succeeds, deregisters itself so the policy read does not run on every future update.
+     */
+    public void testStandardSpaceHashListenerRetriesUntilSuccessAndDeregisters() throws Exception {
+        PluginSettings.getInstance(Settings.EMPTY);
+        // Fail the first attempt (registers the listener), succeed on the second (fired by the
+        // listener), returning an empty changed-set so no Engine reload is broadcast.
+        final int[] calls = {0};
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Set<String>> listener = invocation.getArgument(1);
+                            if (calls[0]++ == 0) {
+                                listener.onFailure(new RuntimeException("all shards failed"));
+                            } else {
+                                listener.onResponse(new HashSet<>());
+                            }
+                            return null;
+                        })
+                .when(this.spaceService)
+                .recalculateSpaceHashIfMissing(anyString(), any());
+
+        this.invokePrivateMethod("ensureStandardSpaceHash");
+
+        ArgumentCaptor<ClusterStateListener> captor =
+                ArgumentCaptor.forClass(ClusterStateListener.class);
+        verify(this.clusterService).addListener(captor.capture());
+
+        // Simulate the next cluster-state update: the retry succeeds and the listener is removed.
+        captor.getValue().clusterChanged(null);
+
+        verify(this.clusterService).removeListener(captor.getValue());
     }
 
     /** Tests that catalogSyncJob.trigger() is NOT called when the node is not elected leader. */
