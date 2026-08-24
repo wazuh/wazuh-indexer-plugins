@@ -128,8 +128,10 @@ task verifyContentTemplates {
   description = "Assert the content index templates match the Content Manager's mappings"
   group = "verification"
 
+  // Resolved relative to this project, so it works both in the root multi-project build and in the
+  // standalone `cd plugins/setup && ./gradlew check` build CI runs.
   def templatesDir = file("src/main/resources/templates/content")
-  def mappingsDir = new File(rootProject.projectDir, "plugins/content-manager/src/main/resources/mappings")
+  def mappingsDir = file("../content-manager/src/main/resources/mappings")
   def pairs = [
     "ioc.json"            : "cti-ioc-mappings.json",
     "filters.json"        : "cti-filters-mappings.json",
@@ -142,10 +144,14 @@ task verifyContentTemplates {
   ]
 
   inputs.dir(templatesDir)
-  inputs.dir(mappingsDir)
   outputs.upToDateWhen { false }
 
   doLast {
+    // A checkout without the sibling plugin has nothing to compare against.
+    if (!mappingsDir.isDirectory()) {
+      logger.lifecycle("Skipping: the Content Manager mappings are not present at ${mappingsDir}")
+      return
+    }
     def slurper = new groovy.json.JsonSlurper()
     def problems = []
     pairs.each { template, mapping ->
