@@ -119,6 +119,59 @@ test {
   include '**/*Tests.class'
 }
 
+// The threat-intel content index mappings exist twice on purpose: this plugin ships them as
+// index templates (templates/content/*.json) and the Content Manager keeps its own copies
+// (mappings/cti-*-mappings.json) so it can still create the blue/green shadow indices and
+// run standalone. Both copies must describe the same index, so compare them at build time
+// rather than discovering the drift in production. See issue #1476.
+task verifyContentTemplates {
+  description = "Assert the content index templates match the Content Manager's mappings"
+  group = "verification"
+
+  def templatesDir = file("src/main/resources/templates/content")
+  def mappingsDir = new File(rootProject.projectDir, "plugins/content-manager/src/main/resources/mappings")
+  def pairs = [
+    "ioc.json"            : "cti-ioc-mappings.json",
+    "filters.json"        : "cti-filters-mappings.json",
+    "decoders.json"       : "cti-decoders-mappings.json",
+    "rules.json"          : "cti-rules-mappings.json",
+    "kvdbs.json"          : "cti-kvdbs-mappings.json",
+    "integrations.json"   : "cti-integrations-mappings.json",
+    "policies.json"       : "cti-policies-mappings.json",
+    "vulnerabilities.json": "cti-cve-mappings.json",
+  ]
+
+  inputs.dir(templatesDir)
+  inputs.dir(mappingsDir)
+  outputs.upToDateWhen { false }
+
+  doLast {
+    def slurper = new groovy.json.JsonSlurper()
+    def problems = []
+    pairs.each { template, mapping ->
+      def templateFile = new File(templatesDir, template)
+      def mappingFile = new File(mappingsDir, mapping)
+      if (!templateFile.exists()) {
+        problems << "missing index template: ${templateFile}"
+        return
+      }
+      if (!mappingFile.exists()) {
+        problems << "missing Content Manager mapping: ${mappingFile}"
+        return
+      }
+      def templated = slurper.parse(templateFile).template.mappings
+      def mapped = slurper.parse(mappingFile)
+      if (templated != mapped) {
+        problems << "${template} and ${mapping} describe different mappings"
+      }
+    }
+    if (!problems.isEmpty()) {
+      throw new GradleException("Content index template verification failed:\n  - " + problems.join("\n  - "))
+    }
+  }
+}
+tasks.named("check").configure { dependsOn(verifyContentTemplates) }
+
 def getPlugin(pluginName) {
   provider(new Callable<RegularFile>() {
     @Override
