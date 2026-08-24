@@ -169,6 +169,14 @@ public class Constants {
     public static final String D_LOG_REGULAR_URL_RESOLVER =
             "Consumer [{}] is not registered; using public download URLs.";
     public static final String E_LOG_INDEX_CREATE_FAILED = "Failed to create index [{}]: {}";
+    public static final String E_LOG_SYNC_ABORTED_INDEX_MISSING =
+            "Index [{}] is missing and could not be created. Aborting the [{}] synchronization pass "
+                    + "rather than letting a write auto-create a dynamically mapped index under the alias "
+                    + "name.";
+    public static final String W_LOG_EMPTY_INDEX_OFFSET_RESET =
+            "Index [{}] holds no documents but the local offset is [{}]. Resetting the offset so the "
+                    + "content is downloaded again.";
+    public static final String D_LOG_INDEX_COUNT_FAILED = "Could not count the documents in [{}]: {}";
     public static final String W_LOG_LOCAL_OFFSET_EXCEEDS_REMOTE =
             "Local offset [{}] exceeds remote offset [{}] for consumer [{}]. Resetting.";
     public static final String W_LOG_LOCAL_SNAPSHOT_CHECK_FAILED =
