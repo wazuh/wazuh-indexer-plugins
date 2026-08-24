@@ -1,0 +1,162 @@
+access_token:
+  dashed_name: access-token
+  description: Encrypted CTI access token used by the Content Manager plugin to authenticate
+    against the Wazuh CTI API. Not indexed, so it cannot be searched or filtered on.
+    Not exposed through any REST API.
+  doc_values: false
+  example: enc:v1:SC/RyOIBkdm+kGl
+  flat_name: access_token
+  index: false
+  level: custom
+  name: access_token
+  normalize: []
+  short: Encrypted CTI access token used by the Content Manager plugin.
+  type: keyword
+api_key:
+  dashed_name: api-key
+  description: Encrypted API key used to authenticate against the provider. Only present
+    on provider documents.
+  flat_name: api_key
+  ignore_above: 1024
+  level: custom
+  name: api_key
+  normalize: []
+  short: Encrypted API key used to authenticate against the provider.
+  type: keyword
+base_url:
+  dashed_name: base-url
+  description: Base URL of the provider's API. Only present on provider documents.
+  example: https://api.anthropic.com
+  flat_name: base_url
+  ignore_above: 1024
+  level: custom
+  name: base_url
+  normalize: []
+  short: Base URL of the provider's API.
+  type: keyword
+field_policy.action:
+  dashed_name: field-policy-action
+  description: Whether the field is sent to the AI provider verbatim ('allow') or
+    anonymized before it leaves the cluster ('anonymize'). Only present on the settings
+    document.
+  example: anonymize
+  flat_name: field_policy.action
+  ignore_above: 1024
+  level: custom
+  name: field_policy.action
+  normalize: []
+  short: Whether the field is sent to the AI provider verbatim or anonymized first.
+  type: keyword
+field_policy.field:
+  dashed_name: field-policy-field
+  description: Fully qualified name of the event field this policy entry applies to.
+    Only present on the settings document.
+  example: wazuh.agent.name
+  flat_name: field_policy.field
+  ignore_above: 1024
+  level: custom
+  name: field_policy.field
+  normalize: []
+  short: Fully qualified name of the event field this policy entry applies to.
+  type: keyword
+field_policy.kind:
+  dashed_name: field-policy-kind
+  description: What kind of data is being anonymized (e.g. 'HOST', 'IP'). Only set
+    on entries whose action is 'anonymize'. Only present on the settings document.
+  example: HOST
+  flat_name: field_policy.kind
+  ignore_above: 1024
+  level: custom
+  name: field_policy.kind
+  normalize: []
+  short: What kind of data is being anonymized. Only set on 'anonymize' entries.
+  type: keyword
+is_default:
+  dashed_name: is-default
+  description: Whether this provider is the one used by default. Only present on provider
+    documents.
+  example: true
+  flat_name: is_default
+  level: custom
+  name: is_default
+  normalize: []
+  short: Whether this provider is the one used by default.
+  type: boolean
+model:
+  dashed_name: model
+  description: Model to request from the provider. Only present on provider documents.
+  example: claude-opus-4-6
+  flat_name: model
+  ignore_above: 1024
+  level: custom
+  name: model
+  normalize: []
+  short: Model to request from the provider.
+  type: keyword
+name:
+  dashed_name: name
+  description: Name given to the provider configuration. Only present on provider
+    documents.
+  example: test-ai
+  flat_name: name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  short: Name given to the provider configuration.
+  type: keyword
+privacy_default_on:
+  dashed_name: privacy-default-on
+  description: Whether privacy mode is enabled by default for new conversations. Only
+    present on the settings document.
+  example: false
+  flat_name: privacy_default_on
+  level: custom
+  name: privacy_default_on
+  normalize: []
+  short: Whether privacy mode is enabled by default for new conversations.
+  type: boolean
+privacy_default_per_provider:
+  dashed_name: privacy-default-per-provider
+  description: Per-provider override of the default privacy mode, keyed by provider
+    name. Only present on the settings document.
+  example: '{"test-ai": true}'
+  flat_name: privacy_default_per_provider
+  level: custom
+  name: privacy_default_per_provider
+  normalize: []
+  short: Per-provider override of the default privacy mode.
+  type: object
+type:
+  dashed_name: type
+  description: Provider implementation to use. Only present on provider documents.
+  example: anthropic
+  flat_name: type
+  ignore_above: 1024
+  level: custom
+  name: type
+  normalize: []
+  short: Provider implementation to use.
+  type: keyword
+updated_at:
+  dashed_name: updated-at
+  description: When this document was last written. Always set by the indexer on every
+    create/update, overwriting any value the client sends.
+  example: '2026-08-03T09:54:52.193Z'
+  flat_name: updated_at
+  level: custom
+  name: updated_at
+  normalize: []
+  short: When this document was last written, stamped by the indexer.
+  type: date
+user_can_override:
+  dashed_name: user-can-override
+  description: Whether users are allowed to override the default privacy setting for
+    their own conversations. Only present on the settings document.
+  example: true
+  flat_name: user_can_override
+  level: custom
+  name: user_can_override
+  normalize: []
+  short: Whether users may override the default privacy setting for their own conversations.
+  type: boolean

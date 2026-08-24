@@ -249,17 +249,35 @@ def sap_detector(detector_type, events_index, cti_rule_id, name=None):
                 }
             }
         ],
-        "triggers": [],
+        "triggers": [
+            {
+                "name": f"{detector_type}-trigger",
+                "severity": "1",
+                "ids": [],
+                "sev_levels": ["low"],
+                "tags": [],
+                "actions": [],
+                "detection_types": ["rules"],
+            }
+        ],
     }
 
 
-def wcs_event(action, timestamp):
+def wcs_event(action, timestamp, integration_name=None, integration_category=None):
     """A minimal WCS event document for an events data stream."""
-    return {
+    doc = {
         "@timestamp": timestamp,
         "event": {"action": action, "kind": "event"},
         "agent": {"id": "000", "name": "component-test"},
     }
+    if integration_name or integration_category:
+        doc["wazuh"] = {
+            "integration": {
+                "name": integration_name or "",
+                "category": integration_category or "",
+            }
+        }
+    return doc
 
 
 # ── Logtest: rich decoder + per-modifier rule matrix ───────────────────────

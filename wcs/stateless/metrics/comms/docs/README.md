@@ -1,4 +1,9 @@
-## `wazuh-metrics-comms` index data model
+## `wazuh-metrics-comms-v4` index data model
+
+Every counter in this index is written from the Wazuh Manager's legacy
+communication path, so the documents only describe agents below v5.0.0. The
+`-v4` suffix states that in the name. Agents on 5.x report over HTTPS and get
+their own index.
 
 ### Fields summary
 
@@ -14,7 +19,7 @@ The detail of the fields can be found in the csv file [Fields](fields.csv).
 
 ### Data stream
 
-- **Index pattern:** `wazuh-metrics-comms*`
+- **Index pattern:** `wazuh-metrics-comms-v4*`
 - **ISM policy:** `stream-metrics-policy` — deletes backing indices older than 30 days.
 
 ### Field table
@@ -23,14 +28,14 @@ The detail of the fields can be found in the csv file [Fields](fields.csv).
 |-------|------|-------|-------------|
 | `@timestamp` | date | core | Date/time when the event originated. |
 | `event.module` | keyword | core | Name of the module this data is coming from. |
-| `queue.size` | integer | custom | Current number of messages queued (gauge). |
-| `queue.capacity` | integer | custom | Maximum configured capacity of the message queue. |
+| `queue.size` | integer | custom | Current size in bytes of the received-message queue (gauge). |
+| `queue.capacity` | integer | custom | Maximum size in bytes configured for the received-message queue, where `0` means unlimited. |
 | `tcp.sessions` | integer | custom | Current number of active TCP sessions. |
 | `discarded.total` | long | custom | Cumulative number of discarded messages. |
 | `events.total` | long | custom | Cumulative number of events forwarded to downstream components. |
 | `messages.total` | long | custom | Cumulative number of control messages received. |
 | `messages.control.dropped_on_close.total` | long | custom | Cumulative number of messages dropped when the agent connection closed. |
-| `messages.control.usage` | float | custom | Current utilization ratio of the control message queue (0.0–1.0). |
+| `messages.control.usage` | float | custom | Current number of messages held in the control message queue (absolute count, not a ratio). |
 | `messages.control.received.total` | long | custom | Cumulative number of control messages inserted into the control queue. |
 | `messages.control.replaced.total` | long | custom | Cumulative number of control messages replaced in the queue. |
 | `messages.control.processed.total` | long | custom | Cumulative number of control messages processed from the queue. |

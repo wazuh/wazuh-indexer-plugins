@@ -1,0 +1,18 @@
+{
+  "index_patterns": [
+    ".wazuh-internal-state*"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "codec": "zstd",
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "auto_expand_replicas": "0-1",
+        "refresh_interval": "-1",
+        "hidden": true
+      }
+    }
+  }
+}

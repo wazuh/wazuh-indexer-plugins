@@ -1,0 +1,124 @@
+---
+- name: base
+  title: Wazuh Internal State
+  description: >
+    Fields describing the Wazuh Indexer's own internal, admin-only state: the CTI
+    access token, and the AI assistant's providers, models, global settings and
+    field anonymization policy. All fields live at the document root — there is no
+    'providers'/'settings' wrapper object; a document either holds one provider's
+    fields, or the assistant-wide settings plus field policy, or the CTI token.
+  type: group
+  group: 2
+  fields:
+    - name: access_token
+      type: keyword
+      level: custom
+      index: false
+      short: Encrypted CTI access token used by the Content Manager plugin.
+      description: >
+        Encrypted CTI access token used by the Content Manager plugin to
+        authenticate against the Wazuh CTI API. Not indexed, so it cannot be
+        searched or filtered on. Not exposed through any REST API.
+      example: "enc:v1:SC/RyOIBkdm+kGl"
+    - name: name
+      type: keyword
+      level: custom
+      short: Name given to the provider configuration.
+      description: >
+        Name given to the provider configuration. Only present on provider
+        documents.
+      example: "test-ai"
+    - name: type
+      type: keyword
+      level: custom
+      short: Provider implementation to use.
+      description: >
+        Provider implementation to use. Only present on provider documents.
+      example: "anthropic"
+    - name: base_url
+      type: keyword
+      level: custom
+      short: Base URL of the provider's API.
+      description: >
+        Base URL of the provider's API. Only present on provider documents.
+      example: "https://api.anthropic.com"
+    - name: model
+      type: keyword
+      level: custom
+      short: Model to request from the provider.
+      description: >
+        Model to request from the provider. Only present on provider documents.
+      example: "claude-opus-4-6"
+    - name: api_key
+      type: keyword
+      level: custom
+      short: Encrypted API key used to authenticate against the provider.
+      description: >
+        Encrypted API key used to authenticate against the provider. Only
+        present on provider documents.
+    - name: is_default
+      type: boolean
+      level: custom
+      short: Whether this provider is the one used by default.
+      description: >
+        Whether this provider is the one used by default. Only present on
+        provider documents.
+      example: true
+    - name: updated_at
+      type: date
+      level: custom
+      short: When this document was last written, stamped by the indexer.
+      description: >
+        When this document was last written. Always set by the indexer on every
+        create/update, overwriting any value the client sends.
+      example: "2026-08-03T09:54:52.193Z"
+    - name: privacy_default_on
+      type: boolean
+      level: custom
+      short: Whether privacy mode is enabled by default for new conversations.
+      description: >
+        Whether privacy mode is enabled by default for new conversations. Only
+        present on the settings document.
+      example: false
+    - name: privacy_default_per_provider
+      type: object
+      level: custom
+      short: Per-provider override of the default privacy mode.
+      description: >
+        Per-provider override of the default privacy mode, keyed by provider
+        name. Only present on the settings document.
+      example: '{"test-ai": true}'
+    - name: user_can_override
+      type: boolean
+      level: custom
+      short: Whether users may override the default privacy setting for their own conversations.
+      description: >
+        Whether users are allowed to override the default privacy setting for
+        their own conversations. Only present on the settings document.
+      example: true
+    - name: field_policy.field
+      type: keyword
+      level: custom
+      short: Fully qualified name of the event field this policy entry applies to.
+      description: >
+        Fully qualified name of the event field this policy entry applies to.
+        Only present on the settings document.
+      example: "wazuh.agent.name"
+    - name: field_policy.action
+      type: keyword
+      level: custom
+      short: Whether the field is sent to the AI provider verbatim or anonymized first.
+      description: >
+        Whether the field is sent to the AI provider verbatim ('allow') or
+        anonymized before it leaves the cluster ('anonymize'). Only present on
+        the settings document.
+      example: "anonymize"
+    - name: field_policy.kind
+      type: keyword
+      level: custom
+      short: What kind of data is being anonymized. Only set on 'anonymize' entries.
+      description: >
+        What kind of data is being anonymized (e.g. 'HOST', 'IP'). Only set on
+        entries whose action is 'anonymize'. Only present on the settings
+        document.
+      example: "HOST"

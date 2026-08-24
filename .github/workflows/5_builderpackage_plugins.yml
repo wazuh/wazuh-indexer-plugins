@@ -23,6 +23,10 @@ on:
         description: "ID used to identify the workflow uniquely."
         type: string
         required: false
+      skip-tests:
+        description: "Skip test execution (use assemble instead of build)"
+        type: boolean
+        default: false
   workflow_call:
     inputs:
       revision:
@@ -37,6 +41,10 @@ on:
         description: "ID used to identify the workflow uniquely."
         type: string
         required: false
+      skip-tests:
+        description: "Skip test execution (use assemble instead of build)"
+        type: boolean
+        default: false
 
 # ==========================
 # Bibliography
@@ -59,6 +67,9 @@ jobs:
       security_analytics_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}
       common_utils_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_common_utils_branch }}
       alerting_plugin_ref: ${{ steps.branches.outputs.wazuh_indexer_alerting_branch }}
+      common_utils_sha: ${{ steps.common-utils-sha.outputs.sha }}
+      alerting_sha: ${{ steps.alerting-sha.outputs.sha }}
+      security_analytics_sha: ${{ steps.security-analytics-sha.outputs.sha }}
     steps:
       - uses: actions/checkout@v7
       - name: Resolve branches
@@ -66,6 +77,21 @@ jobs:
         uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver@5.0.1
         with:
           branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+      - name: Get common-utils latest commit
+        id: common-utils-sha
+        run: |
+          SHA=$(git ls-remote https://github.com/wazuh/wazuh-indexer-common-utils.git "${{ steps.branches.outputs.wazuh_indexer_common_utils_branch }}" | cut -f1 | tr -d '[:space:]')
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+      - name: Get alerting latest commit
+        id: alerting-sha
+        run: |
+          SHA=$(git ls-remote https://github.com/wazuh/wazuh-indexer-alerting.git "${{ steps.branches.outputs.wazuh_indexer_alerting_branch }}" | cut -f1 | tr -d '[:space:]')
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+      - name: Get security-analytics latest commit
+        id: security-analytics-sha
+        run: |
+          SHA=$(git ls-remote https://github.com/wazuh/wazuh-indexer-security-analytics.git "${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch }}" | cut -f1 | tr -d '[:space:]')
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
 
   get-version:
     runs-on:
@@ -88,17 +114,27 @@ jobs:
       - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
     needs: [branches, get-version]
     steps:
+      - name: Restore Maven Local Cache
+        id: cache-common-utils
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.get-version.outputs.version }}
+          restore-keys: |
+            m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-
       - name: Publish to Maven Local
+        if: steps.cache-common-utils.outputs.cache-hit != 'true'
         uses: wazuh/wazuh-indexer-common-utils/.github/actions/5_local_maven_publisher@5.0.1
         with:
           version: ${{ needs.get-version.outputs.version }}
           revision: ${{ inputs.revision }}
           reference: ${{ needs.branches.outputs.common_utils_plugin_ref }}
       - name: Cache Maven Local
-        uses: actions/cache/save@v6
+        if: steps.cache-common-utils.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
         with:
           path: ~/.m2/repository
-          key: ${{ github.run_id }}-common-utils
+          key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.get-version.outputs.version }}
 
   publish-alerting:
     runs-on:
@@ -106,22 +142,35 @@ jobs:
     needs: [branches, get-version, publish-common-utils]
     if: inputs.plugin == 'content-manager'
     steps:
-      - name: Restore Maven Local Cache (common-utils)
-        uses: actions/cache/restore@v6
+      - name: Restore Maven Local Cache
+        id: cache-alerting
+        uses: actions/cache/restore@v5
         with:
           path: ~/.m2/repository
-          key: ${{ github.run_id }}-common-utils
+          key: m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_plugin_ref }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.get-version.outputs.version }}
+          restore-keys: |
+            m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_plugin_ref }}-${{ needs.branches.outputs.alerting_sha }}-
+      - name: Restore Maven Local Cache (common-utils)
+        if: steps.cache-alerting.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.get-version.outputs.version }}
+          restore-keys: |
+            m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-
       - name: Publish to Maven Local
+        if: steps.cache-alerting.outputs.cache-hit != 'true'
         uses: wazuh/wazuh-indexer-alerting/.github/actions/5_local_maven_publisher@5.0.1
         with:
           version: ${{ needs.get-version.outputs.version }}
           revision: ${{ inputs.revision }}
           reference: ${{ needs.branches.outputs.alerting_plugin_ref }}
       - name: Cache Maven Local
-        uses: actions/cache/save@v6
+        if: steps.cache-alerting.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
         with:
           path: ~/.m2/repository
-          key: ${{ github.run_id }}-alerting
+          key: m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_plugin_ref }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.get-version.outputs.version }}
 
   publish-security-analytics:
     runs-on:
@@ -129,22 +178,35 @@ jobs:
     needs: [branches, get-version, publish-common-utils, publish-alerting]
     if: inputs.plugin == 'content-manager'
     steps:
-      - name: Restore Maven Local Cache (alerting)
-        uses: actions/cache/restore@v6
+      - name: Restore Maven Local Cache
+        id: cache-sap
+        uses: actions/cache/restore@v5
         with:
           path: ~/.m2/repository
-          key: ${{ github.run_id }}-alerting
+          key: m2-sap-all-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-${{ needs.get-version.outputs.version }}
+          restore-keys: |
+            m2-sap-all-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-
+      - name: Restore Maven Local Cache (alerting)
+        if: steps.cache-sap.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.m2/repository
+          key: m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_plugin_ref }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.get-version.outputs.version }}
+          restore-keys: |
+            m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_plugin_ref }}-${{ needs.branches.outputs.alerting_sha }}-
       - name: Publish to Maven Local
+        if: steps.cache-sap.outputs.cache-hit != 'true'
         uses: wazuh/wazuh-indexer-security-analytics/.github/actions/5_local_maven_publisher@5.0.1
         with:
           version: ${{ needs.get-version.outputs.version }}
           revision: ${{ inputs.revision }}
           reference: ${{ needs.branches.outputs.security_analytics_plugin_ref }}
       - name: Cache Maven Local
-        uses: actions/cache/save@v6
+        if: steps.cache-sap.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
         with:
           path: ~/.m2/repository
-          key: ${{ github.run_id }}-security-analytics
+          key: m2-sap-all-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-${{ needs.get-version.outputs.version }}
 
   build:
     needs: [branches, get-version, publish-common-utils, publish-security-analytics]
@@ -173,14 +235,18 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
-          key: ${{ github.run_id }}-common-utils
+          key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.get-version.outputs.version }}
+          restore-keys: |
+            m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_plugin_ref }}-${{ needs.branches.outputs.common_utils_sha }}-
 
       - name: Restore Maven Local Cache (security-analytics with deps)
         if: inputs.plugin == 'content-manager'
         uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
-          key: ${{ github.run_id }}-security-analytics
+          key: m2-sap-all-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-${{ needs.get-version.outputs.version }}
+          restore-keys: |
+            m2-sap-all-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.branches.outputs.security_analytics_plugin_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-
 
       - name: Build with Gradle
         working-directory: ./plugins/${{ inputs.plugin }}
@@ -192,8 +258,13 @@ jobs:
           # Hand the build user the workspace and the restored Maven local cache.
           cp -a "$HOME/.m2" /home/builder/.m2 2>/dev/null || true
           chown -R builder:builder "$GITHUB_WORKSPACE" /home/builder
+          if [ "${{ inputs.skip-tests }}" = "true" ]; then
+            gradle_cmd="assemble"
+          else
+            gradle_cmd="build -PnumNodes=1"
+          fi
           runuser -u builder -- env "JAVA_HOME=$JAVA_HOME" "PATH=$PATH" "GRADLE_USER_HOME=/home/builder/.gradle" \
-            ./gradlew build -PnumNodes=1 -Dversion=${{ needs.get-version.outputs.version }} -Drevision=${{ inputs.revision }}
+            ./gradlew $gradle_cmd -Dversion=${{ needs.get-version.outputs.version }} -Drevision=${{ inputs.revision }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7

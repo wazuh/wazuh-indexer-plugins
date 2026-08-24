@@ -1,5 +1,5 @@
 ---
-name: wazuh-metrics-comms
+name: wazuh-metrics-comms-v4
 fields:
   base:
     fields:

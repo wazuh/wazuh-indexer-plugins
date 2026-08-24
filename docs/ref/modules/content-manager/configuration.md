@@ -11,6 +11,8 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.max_concurrent_bulks`** (Integer, default `5`, range 1–5) — maximum concurrent bulk operations.
 - **`plugins.content_manager.max_bulk_bytes`** (Long, default `5242880` / 5 MB, range 1048576–104857600 / 1–100 MB) — maximum request body size, in bytes, for a single bulk indexing request.
 - **`plugins.content_manager.client.timeout`** (Long, default `10`, range 10–50) — HTTP client timeout in seconds for CTI API requests.
+- **`plugins.content_manager.client.max_retries`** (Integer, default `3`, range 0–10) — number of times a CTI API request is retried after an HTTP 429 (Too Many Requests) response, before the 429 is returned to the caller.
+- **`plugins.content_manager.client.retry_backoff_base_seconds`** (Integer, default `30`, range 1–300) — base delay, in seconds, for the exponential backoff used between 429 retries when the response carries no usable `Retry-After` header (delay for retry `n` is `base * 2^n`).
 - **`plugins.content_manager.pit_keepalive`** (Long, default `120`, range 60–600) — point-in-time keepalive in seconds used during paginated index scans.
 - **`plugins.content_manager.engine.mock`** (Boolean, default `false`) — bypasses real Engine socket calls, returning mocked responses instead. Intended for testing only.
 - **`plugins.content_manager.catalog.update_on_start`** (Boolean, default `true`) — trigger content sync when the plugin starts.
@@ -71,6 +73,20 @@ plugins.content_manager.setup_wait.backoff_base_seconds: 30
 ```
 
 The example above raises the total worst-case wait to 30+60+120+240 = 450s (7.5 min).
+
+### CTI rate-limit retries (HTTP 429)
+
+When the CTI API rate-limits a request it responds with HTTP 429 and a `Retry-After` header. The HTTP client honors that header: it waits the indicated time and retries the request, so a rate-limit no longer fails the synchronization pass. If the response carries no usable `Retry-After` header, it falls back to exponential backoff (`base * 2^n`).
+
+The behavior is controlled by `plugins.content_manager.client.max_retries` and `plugins.content_manager.client.retry_backoff_base_seconds`. With the defaults (3 retries, 30s base), the fallback schedule is 30s, 60s, 120s — 210s (3.5 min) worst case before the 429 is surfaced and the pass defers to the next scheduled run:
+
+```yaml
+# opensearch.yml
+plugins.content_manager.client.max_retries: 3
+plugins.content_manager.client.retry_backoff_base_seconds: 30
+```
+
+The `Retry-After` header, when present, always takes precedence over the backoff base — the base applies only when the header is missing or unparseable.
 
 #### Custom CTI API endpoint
 
