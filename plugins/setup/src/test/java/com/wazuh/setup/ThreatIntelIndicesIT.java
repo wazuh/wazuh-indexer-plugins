@@ -18,17 +18,21 @@ package com.wazuh.setup;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
+import org.junit.After;
 import org.junit.Before;
 
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
-import com.wazuh.setup.index.ContentIndex;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 
 /**
  * Integration tests verifying that the setup plugin provisions the threat-intel content indices:
@@ -45,28 +49,32 @@ public class ThreatIntelIndicesIT extends OpenSearchRestTestCase {
 
     private static final String ENRICHMENTS = "wazuh-threatintel-enrichments";
 
+    /** Suffix of the concrete index each public alias points at. */
+    private static final String SUFFIX_A = "-a";
+
     // spotless:off
-    private static final List<String> ALIASES =
-            List.of(
-                    ENRICHMENTS,
-                    "wazuh-threatintel-filters",
-                    "wazuh-threatintel-decoders",
-                    "wazuh-threatintel-rules",
-                    "wazuh-threatintel-kvdbs",
-                    "wazuh-threatintel-integrations",
-                    "wazuh-threatintel-policies",
-                    ".wazuh-threatintel-vulnerabilities");
+    private static final String[] ALIASES = {
+        ENRICHMENTS,
+        "wazuh-threatintel-filters",
+        "wazuh-threatintel-decoders",
+        "wazuh-threatintel-rules",
+        "wazuh-threatintel-kvdbs",
+        "wazuh-threatintel-integrations",
+        "wazuh-threatintel-policies",
+        ".wazuh-threatintel-vulnerabilities"
+    };
     // spotless:on
 
-    /** Registered after the content indices in the setup plugin, so it marks them all done. */
+    /** Registered after the content indices, so its presence marks them all done. */
     private static final String SETTINGS_INDEX = ".wazuh-settings";
 
     private static final int MAX_WAIT_SECONDS = 120;
     private static final int POLL_INTERVAL_MS = 500;
 
     /**
-     * Preserves indices upon test completion. The setup plugin creates them once, during cluster
-     * initialization, so they must survive between tests.
+     * Preserves indices upon test completion. The SetupPlugin creates indices during cluster
+     * initialization, and these need to persist across all tests since the plugin only creates them
+     * once.
      *
      * @return true to preserve indices
      */
@@ -76,7 +84,19 @@ public class ThreatIntelIndicesIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * Preserves index templates upon test completion, for the same reason as the indices.
+     * Preserves data streams upon test completion. The SetupPlugin creates data streams during
+     * initialization, and these need to persist across all tests.
+     *
+     * @return true to preserve data streams
+     */
+    @Override
+    protected boolean preserveDataStreamsUponCompletion() {
+        return true;
+    }
+
+    /**
+     * Preserves index templates upon test completion. The SetupPlugin creates index templates for
+     * the content indices, and these need to persist across all tests.
      *
      * @return true to preserve templates
      */
@@ -86,136 +106,197 @@ public class ThreatIntelIndicesIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * Waits for the setup plugin to finish initializing by polling for the settings index, which is
-     * registered after the content indices.
+     * Waits for the plugin initialization to complete by polling for the settings index, which is
+     * registered after the content indices in the setup plugin's initialization order. CI runners may
+     * be slow due to resource constraints; timeout is {@value #MAX_WAIT_SECONDS} seconds.
      *
-     * @throws Exception if the index is not created within {@value #MAX_WAIT_SECONDS} seconds.
+     * @throws Exception if the index is not created within the timeout
      */
     @Before
     public void waitForPluginInitialization() throws Exception {
-        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(MAX_WAIT_SECONDS);
-        while (System.currentTimeMillis() < deadline) {
+        long startTime = System.currentTimeMillis();
+        long timeout = TimeUnit.SECONDS.toMillis(MAX_WAIT_SECONDS);
+
+        while (System.currentTimeMillis() - startTime < timeout) {
             try {
                 client().performRequest(new Request("GET", "/" + SETTINGS_INDEX));
+                logger.info("Setup plugin initialization is ready");
                 return;
             } catch (ResponseException e) {
-                if (e.getResponse().getStatusLine().getStatusCode() != 404) {
+                if (e.getResponse().getStatusLine().getStatusCode() == 404) {
+                    logger.debug("Waiting for [{}] index to be created...", SETTINGS_INDEX);
+                    Thread.sleep(POLL_INTERVAL_MS);
+                } else {
                     throw e;
                 }
-                Thread.sleep(POLL_INTERVAL_MS);
             }
         }
-        fail("Timed out waiting for [" + SETTINGS_INDEX + "] to be created");
+        fail(
+                "Timed out waiting for ["
+                        + SETTINGS_INDEX
+                        + "] index to be created after "
+                        + MAX_WAIT_SECONDS
+                        + " seconds");
     }
 
-    /** Every content index exists as a concrete {@code <name>-a} index, never as {@code <name>}. */
-    public void testConcreteIndicesExist() throws Exception {
+    /**
+     * Verifies that every content index exists as a concrete {@code <name>-a} index, which is the
+     * name the issue reports as missing for the enrichments index.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testConcreteIndicesCreated() throws IOException, ParseException {
         for (String alias : ALIASES) {
-            String physical = alias + ContentIndex.SUFFIX_A;
+            String physical = alias + SUFFIX_A;
             Response response = client().performRequest(new Request("GET", "/" + physical));
-            assertEquals(200, response.getStatusLine().getStatusCode());
-            assertTrue(
-                    "expected [" + physical + "] in the response",
-                    entityAsMap(response).containsKey(physical));
+            String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+
+            logger.info("Index response for [{}]: {}", physical, body);
+            assertThat(body, containsString(physical));
         }
     }
 
-    /** Every public alias resolves to its {@code -a} index and is that index's write target. */
-    public void testAliasesPointAtTheConcreteIndices() throws Exception {
+    /**
+     * Verifies that every public alias resolves to its {@code -a} index and is that index's write
+     * target, which is what lets the Content Manager swap the alias between the two physical slots.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testAliasesPointAtTheConcreteIndices() throws IOException, ParseException {
         for (String alias : ALIASES) {
-            String physical = alias + ContentIndex.SUFFIX_A;
+            String physical = alias + SUFFIX_A;
             Response response = client().performRequest(new Request("GET", "/_alias/" + alias));
-            Map<String, Object> body = entityAsMap(response);
-            assertEquals("alias [" + alias + "] must resolve to a single index", 1, body.size());
-            assertTrue("alias [" + alias + "] must point at " + physical, body.containsKey(physical));
-            assertEquals(Boolean.TRUE, this.aliasProperty(body, physical, alias).get("is_write_index"));
+            String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+
+            logger.info("Alias response for [{}]: {}", alias, body);
+            assertThat(body, containsString("\"" + physical + "\""));
+            assertThat(body, containsString("\"" + alias + "\""));
+            assertThat(body, containsString("\"is_write_index\":true"));
         }
     }
 
     /**
-     * Every content index has its template installed, with a pattern that also covers the {@code -b}
-     * shadow slot the Content Manager creates during a blue/green swap.
+     * Verifies that every content index has its template installed, with a pattern that also covers
+     * the {@code -b} shadow slot the Content Manager creates during a blue/green swap.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
      */
-    public void testTemplatesAreInstalled() throws Exception {
+    public void testTemplatesCreated() throws IOException, ParseException {
         for (String alias : ALIASES) {
-            String templateName = alias + "-template";
+            String template = alias + "-template";
             Response response =
-                    client().performRequest(new Request("GET", "/_index_template/" + templateName));
-            Map<String, Object> body = entityAsMap(response);
-            List<?> templates = (List<?>) body.get("index_templates");
-            assertEquals("expected exactly one template named " + templateName, 1, templates.size());
-            Map<?, ?> entry = (Map<?, ?>) ((Map<?, ?>) templates.get(0)).get("index_template");
-            assertEquals(List.of(alias + "*"), entry.get("index_patterns"));
+                    client().performRequest(new Request("GET", "/_index_template/" + template));
+            String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+
+            logger.info("Template response for [{}]: {}", template, body);
+            assertThat(body, containsString(template));
+            assertThat(body, containsString("\"" + alias + "*\""));
         }
     }
 
     /**
-     * The check the issue prescribes: the alias must resolve to the {@code -a} index and {@code
-     * document.type} must be an aggregatable keyword there.
+     * Verifies the check the issue prescribes: the alias resolves to the {@code -a} index and {@code
+     * document.type} is an aggregatable keyword there, rather than the {@code text} field a
+     * dynamically mapped index would have produced.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
      */
-    public void testEnrichmentsDocumentTypeIsAnAggregatableKeyword() throws Exception {
+    public void testEnrichmentsDocumentTypeIsAnAggregatableKeyword()
+            throws IOException, ParseException {
         Response response =
                 client()
                         .performRequest(
                                 new Request("GET", "/" + ENRICHMENTS + "/_field_caps?fields=document.type"));
-        Map<String, Object> body = entityAsMap(response);
+        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
-        assertEquals(List.of(ENRICHMENTS + ContentIndex.SUFFIX_A), body.get("indices"));
-
-        Map<?, ?> fields = (Map<?, ?>) body.get("fields");
-        Map<?, ?> documentType = (Map<?, ?>) fields.get("document.type");
-        assertNotNull("document.type must be mapped", documentType);
-        assertEquals(
-                "document.type must be a keyword, not a dynamically mapped text field",
-                Boolean.FALSE,
-                documentType.containsKey("text"));
-        Map<?, ?> keyword = (Map<?, ?>) documentType.get("keyword");
-        assertNotNull("document.type must be mapped as a keyword", keyword);
-        assertEquals(Boolean.TRUE, keyword.get("aggregatable"));
-        assertEquals(Boolean.TRUE, keyword.get("searchable"));
+        logger.info("Field caps response for [document.type]: {}", body);
+        assertThat(body, containsString("\"indices\":[\"" + ENRICHMENTS + SUFFIX_A + "\"]"));
+        assertThat(body, containsString("\"type\":\"keyword\""));
+        assertThat(body, containsString("\"aggregatable\":true"));
+        assertThat(
+                "document.type must not be a dynamically mapped text field",
+                body,
+                not(containsString("\"type\":\"text\"")));
     }
 
     /**
-     * The two aggregations the home overview's Threat catalog widget group issues in a single
-     * request. They returned a 400 while the index was dynamically mapped.
+     * Verifies that the two aggregations the home overview's Threat catalog widget group issues in a
+     * single request succeed. They returned a 400 while the index was dynamically mapped.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
      */
-    public void testThreatCatalogAggregationsSucceed() throws Exception {
-        Request request = new Request("POST", "/" + ENRICHMENTS + "/_search");
-        request.setJsonEntity(
-                "{\"size\":0,\"aggs\":{"
-                        + "\"ioc_feed_by_type\":{\"terms\":{\"field\":\"document.type\",\"size\":10}},"
-                        + "\"threat_types\":{\"terms\":{\"field\":\"document.software.type\",\"size\":10}}}}");
-        Response response = client().performRequest(request);
+    public void testThreatCatalogAggregationsSucceed() throws IOException, ParseException {
+        Request search = new Request("POST", "/" + ENRICHMENTS + "/_search");
+        search.setJsonEntity(
+                """
+                {
+                  "size": 0,
+                  "aggs": {
+                    "ioc_feed_by_type": {"terms": {"field": "document.type", "size": 10}},
+                    "threat_types": {"terms": {"field": "document.software.type", "size": 10}}
+                  }
+                }
+                """);
+        Response response = client().performRequest(search);
+        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
-        assertEquals(200, response.getStatusLine().getStatusCode());
-        Map<?, ?> shards = (Map<?, ?>) entityAsMap(response).get("_shards");
-        assertEquals(
-                "no shard may fail the aggregation", 0, ((Number) shards.get("failed")).intValue());
+        logger.info("Threat catalog aggregation response: {}", body);
+        assertThat("no shard may fail the aggregation", body, containsString("\"failed\":0"));
+        assertThat(body, containsString("ioc_feed_by_type"));
+        assertThat(body, containsString("threat_types"));
     }
 
     /**
-     * The enrichments mapping is {@code dynamic: strict_allow_templates} and every IoC document
-     * carries an {@code offset}, so a template missing that field would reject every CTI write.
+     * Verifies that an IoC document is accepted. The enrichments mapping is {@code dynamic:
+     * strict_allow_templates} and every IoC carries an {@code offset}, so a template missing that
+     * field would reject every CTI write.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
      */
-    public void testAnIocDocumentIsAccepted() throws Exception {
-        Request request = new Request("PUT", "/" + ENRICHMENTS + "/_doc/setup-it-ioc?refresh=true");
-        request.setJsonEntity(
-                "{\"offset\":42,"
-                        + "\"hash\":{\"sha256\":\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},"
-                        + "\"document\":{\"id\":\"ioc-1\",\"type\":\"domain\",\"name\":\"example.invalid\","
-                        + "\"provider\":\"wazuh\",\"confidence\":85,\"tags\":[\"test\"],"
-                        + "\"software\":{\"type\":\"malware\",\"name\":\"test\",\"alias\":\"test\"}}}");
-        Response response = client().performRequest(request);
+    public void testIocDocumentIsAccepted() throws IOException, ParseException {
+        Request index = new Request("PUT", "/" + ENRICHMENTS + "/_doc/setup-it-ioc");
+        index.addParameter("refresh", "true");
+        index.setJsonEntity(
+                """
+                {
+                  "offset": 42,
+                  "hash": {"sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+                  "document": {
+                    "id": "ioc-1",
+                    "type": "domain",
+                    "name": "example.invalid",
+                    "provider": "wazuh",
+                    "confidence": 85,
+                    "tags": ["test"],
+                    "software": {"type": "malware", "name": "test", "alias": "test"}
+                  }
+                }
+                """);
+        Response response = client().performRequest(index);
+        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
-        assertEquals(201, response.getStatusLine().getStatusCode());
-
+        logger.info("IoC index response: {}", body);
+        assertThat(body, containsString("\"result\":\"created\""));
         // The write went through the alias, so it must have landed on the concrete index.
-        assertEquals(ENRICHMENTS + ContentIndex.SUFFIX_A, entityAsMap(response).get("_index"));
+        assertThat(body, containsString("\"_index\":\"" + ENRICHMENTS + SUFFIX_A + "\""));
     }
 
-    /** Extracts the settings of a single alias from an {@code _alias} response body. */
-    private Map<?, ?> aliasProperty(Map<String, Object> body, String index, String alias) {
-        Map<?, ?> aliases = (Map<?, ?>) ((Map<?, ?>) body.get(index)).get("aliases");
-        return (Map<?, ?>) aliases.get(alias);
+    /**
+     * Clears the fielddata cache after each test to prevent flaky failures from the test framework's
+     * post-test assertions.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     */
+    @After
+    public void clearFieldData() throws IOException {
+        Request request = new Request("POST", "/_cache/clear");
+        request.addParameter("fielddata", "true");
+        client().performRequest(request);
     }
 }

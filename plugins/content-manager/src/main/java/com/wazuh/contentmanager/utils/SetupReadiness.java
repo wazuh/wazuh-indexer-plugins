@@ -72,19 +72,14 @@ public class SetupReadiness {
                 return true;
             }
             if (status == SetupStatus.FAILED) {
-                log.error(
-                        "Setup plugin initialization failed. Skipping catalog synchronization until Setup succeeds (typically after a node restart.");
+                log.error(Constants.E_LOG_SETUP_INIT_FAILED);
                 return false;
             }
             if (attempt >= maxRetries) {
                 return false;
             }
             long delaySeconds = backoffBaseSeconds * (1L << attempt);
-            log.info(
-                    "Setup plugin initialization not complete yet. Retrying in {}s (attempt {}/{}).",
-                    delaySeconds,
-                    attempt + 1,
-                    maxRetries);
+            log.info(Constants.I_LOG_SETUP_NOT_READY_RETRYING, delaySeconds, attempt + 1, maxRetries);
             try {
                 this.sleepSeconds(delaySeconds);
             } catch (InterruptedException e) {
@@ -135,7 +130,7 @@ public class SetupReadiness {
             }
             return SetupStatus.RUNNING;
         } catch (Exception e) {
-            log.debug("Could not read setup status marker: {}", e.getMessage());
+            log.debug(Constants.D_LOG_SETUP_STATUS_READ_FAILED, e.getMessage());
             return SetupStatus.RUNNING;
         }
     }

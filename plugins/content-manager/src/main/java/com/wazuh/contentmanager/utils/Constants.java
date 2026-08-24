@@ -177,6 +177,13 @@ public class Constants {
             "Index [{}] holds no documents but the local offset is [{}]. Resetting the offset so the "
                     + "content is downloaded again.";
     public static final String D_LOG_INDEX_COUNT_FAILED = "Could not count the documents in [{}]: {}";
+    public static final String E_LOG_SETUP_INIT_FAILED =
+            "Setup plugin initialization failed. Skipping catalog synchronization until Setup succeeds "
+                    + "(typically after a node restart).";
+    public static final String I_LOG_SETUP_NOT_READY_RETRYING =
+            "Setup plugin initialization not complete yet. Retrying in {}s (attempt {}/{}).";
+    public static final String D_LOG_SETUP_STATUS_READ_FAILED =
+            "Could not read setup status marker: {}";
     public static final String W_LOG_SETUP_NOT_READY_PROVISIONING =
             "The Setup plugin did not report readiness. Provisioning the threat-intel indices from "
                     + "this plugin instead; they will not pick up the Setup plugin's index templates.";
