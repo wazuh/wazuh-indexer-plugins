@@ -139,6 +139,7 @@ public class ContentManagerPlugin extends Plugin
     private final AtomicBoolean standardSpaceHashInFlight = new AtomicBoolean(false);
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
+    private SetupReadiness setupReadiness;
     private Environment environment;
     private ClusterService clusterService;
     private LogtestService logtestService;
@@ -201,6 +202,7 @@ public class ContentManagerPlugin extends Plugin
 
         this.consumersIndex = new ConsumersIndex(client);
         this.credentialsIndex = new CredentialsIndex(client, threadPool);
+        this.setupReadiness = new SetupReadiness(client);
         this.plansService = new PlansServiceImpl();
         this.subscriptionService =
                 new SubscriptionServiceImpl(
@@ -505,22 +507,11 @@ public class ContentManagerPlugin extends Plugin
                                                 e);
                                     }
 
-                                    // The Setup plugin owns the threat-intel index topology: each one
-                                    // is created as <name>-a with the public alias <name> pointing at
-                                    // it. Wait for it to report readiness before touching them, so this
-                                    // fallback does not race it (see issue #1476) — without the wait it
-                                    // wins the race and the indices are created here, from this
-                                    // plugin's own mappings, before Setup has even installed their
-                                    // index templates.
-                                    if (!new SetupReadiness(this.client).awaitReady()) {
-                                        log.warn(Constants.W_LOG_SETUP_NOT_READY_PROVISIONING);
-                                    }
-
                                     // Create the threat-intel ruleset resource indices up front so
                                     // custom-ruleset REST endpoints work even when catalog
                                     // synchronization is disabled, or when the Setup plugin is not
-                                    // installed at all. Whenever Setup did provision them, the
-                                    // existence check below makes this a no-op.
+                                    // installed at all. Waits for the Setup plugin first; see the
+                                    // method's documentation.
                                     this.ensureResourceIndicesExist();
 
                                     // Seed the default space policies (draft, test, custom) so
@@ -592,8 +583,18 @@ public class ContentManagerPlugin extends Plugin
      * without this step the indices never get created and the custom-ruleset REST endpoints fail with
      * "no such index". Each missing index is created with its configured mappings and public alias,
      * matching what a normal first sync would produce.
+     *
+     * <p>This is a fallback for a deployment without the Setup plugin, which owns the threat-intel
+     * index topology and creates each index as {@code <name>-a} with the public alias {@code <name>}
+     * pointing at it. So the method blocks on the Setup plugin's readiness marker first and, whenever
+     * Setup did provision them, finds them all present and does nothing. Skipping that wait is what
+     * made this method win the race and create the indices from this plugin's own mappings, before
+     * Setup had even installed their index templates (see issue #1476).
      */
     private void ensureResourceIndicesExist() {
+        if (!this.setupReadiness.awaitReady()) {
+            log.warn(Constants.W_LOG_SETUP_NOT_READY_PROVISIONING);
+        }
         for (Map.Entry<String, String> entry : Constants.RESOURCE_INDEX_MAPPINGS.entrySet()) {
             String indexName = entry.getKey();
             try {

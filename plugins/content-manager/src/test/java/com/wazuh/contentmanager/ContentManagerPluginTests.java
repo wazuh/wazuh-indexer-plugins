@@ -55,6 +55,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.SetupReadiness;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -132,6 +133,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.injectField(this.plugin, "engineContentLoader", this.engineContentLoader);
         this.injectField(this.plugin, "spaceService", this.spaceService);
         this.injectField(this.plugin, "consumersIndex", this.consumersIndex);
+        this.injectField(this.plugin, "setupReadiness", new SetupReadiness(this.client));
 
         ContentManagerPluginTests.clearInstance();
     }
