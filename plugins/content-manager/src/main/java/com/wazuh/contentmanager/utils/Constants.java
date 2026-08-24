@@ -195,6 +195,8 @@ public class Constants {
             "Could not initialize consumer [{}]: no local snapshot at [{}] and no remote source is configured.";
     public static final String I_LOG_UPDATING_CONSUMER_CONTENT =
             "Updating consumer [{}] content (offset {} → {}).";
+    public static final String W_LOG_CTI_RATE_LIMITED =
+            "CTI API rate-limited request [{}] (HTTP 429); retrying in {}s (attempt {}/{}).";
     public static final String E_LOG_MANIFEST_NOT_FOUND =
             "Snapshot manifest not found at [{}]; consumer cannot be initialized and will be retried on the next sync.";
     public static final String E_LOG_MANIFEST_ENTRY_MISSING =
@@ -402,6 +404,8 @@ public class Constants {
             "Recalculated the aggregate hash for space [{}] at startup.";
     public static final String D_LOG_POLICY_INDEX_NOT_READY =
             "Policies are not readable yet; cannot read the policy for space [{}]: {}";
+    public static final String D_LOG_SPACE_HASH_RETRY_SCHEDULED =
+            "Standard space hash not readable yet; will retry on the next cluster-state update.";
     public static final String W_LOG_DOCUMENT_NOT_FOUND_FOR_DELETION =
             "Document with document.id [{}] not found in space [{}] for deletion";
     public static final String E_LOG_DELETE_RESOURCES_FAILED = "Failed to delete resources: {}";
@@ -541,8 +545,7 @@ public class Constants {
             "Catalog Sync Job scheduled successfully.";
     public static final String W_LOG_CATALOG_SYNC_JOB_FAILED =
             "Failed to schedule Catalog Sync Job: {}, retrying";
-    public static final String E_LOG_JOB_SCHEDULE_GIVE_UP =
-            "Giving up scheduling {} after {} attempts.";
+    public static final String E_LOG_JOB_SCHEDULE_GIVE_UP = "Giving up {} after {} attempts.";
     public static final String I_LOG_JOB_SCHEDULE_RETRY = "Retrying {} (attempt {}/{}) in {}s.";
     public static final String D_LOG_TELEMETRY_JOB_DISABLED =
             "Telemetry job is disabled via settings. Skipping registration.";

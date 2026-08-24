@@ -228,6 +228,7 @@ public class ContentIndex {
         Settings.Builder settingsBuilder =
                 Settings.builder()
                         .put("index.number_of_replicas", 0)
+                        .put("index.auto_expand_replicas", "0-1")
                         .put(Constants.KEY_INDEX_CODEC, Constants.CODEC_ZSTD);
         if (Constants.INDEX_CVES.equals(this.indexName)) {
             settingsBuilder.put("index.hidden", true);
@@ -289,6 +290,7 @@ public class ContentIndex {
         Settings settings =
                 Settings.builder()
                         .put("index.number_of_replicas", 0)
+                        .put("index.auto_expand_replicas", "0-1")
                         .put("index.hidden", true)
                         .put(Constants.KEY_INDEX_CODEC, Constants.CODEC_ZSTD)
                         .build();

@@ -1,0 +1,11 @@
+---
+name: wazuh-ai-assistant-sessions
+fields:
+  base:
+    fields:
+      "@timestamp": {}
+      user: {}
+      title: {}
+      created_at: {}
+      updated_at: {}
+      messages: {}

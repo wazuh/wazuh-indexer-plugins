@@ -36,4 +36,8 @@ module_to_file=(
   [content/ioc]=templates/content/ioc.json
   # CVE module
   [cve]=templates/cve.json
+  # AI assistant modules
+  [ai-assistant/sessions]=templates/streams/ai-assistant-sessions.json
+  # Internal state module
+  [internal-state]=plugins/content-manager/src/main/resources/mappings/internal-state-mapping.json
 )
