@@ -7,7 +7,9 @@
   "template": {
     "settings": {
       "index": {
+        "auto_expand_replicas": "0-1",
         "codec": "zstd",
+        "max_docvalue_fields_search": 100,
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
@@ -25,8 +27,7 @@
         "refresh_interval": "5s"
       },
       "mapping.total_fields.limit": 1000,
-      "plugins.index_state_management.policy_id": "stream-metrics-policy",
-      "plugins.index_state_management.rollover_alias": "wazuh-metrics-agents"
+      "plugins.index_state_management.policy_id": "stream-metrics-policy"
     },
     "mappings": {
       "date_detection": false,

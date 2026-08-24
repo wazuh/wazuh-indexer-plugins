@@ -62,3 +62,6 @@ DETECTORS_CONFIG_INDEX = ".opensearch-sap-detectors-config"
 # Events data streams the detectors read (one per integration category).
 EVENTS_INDEX_PREFIX = "wazuh-events-v5-"
 
+# Enriched findings data streams (one per integration category).
+FINDINGS_INDEX_PATTERN = "wazuh-findings-v5-*"
+
