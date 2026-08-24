@@ -112,6 +112,7 @@ import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
 import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
+import com.wazuh.contentmanager.utils.SetupReadiness;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
@@ -504,10 +505,22 @@ public class ContentManagerPlugin extends Plugin
                                                 e);
                                     }
 
+                                    // The Setup plugin owns the threat-intel index topology: each one
+                                    // is created as <name>-a with the public alias <name> pointing at
+                                    // it. Wait for it to report readiness before touching them, so this
+                                    // fallback does not race it (see issue #1476) — without the wait it
+                                    // wins the race and the indices are created here, from this
+                                    // plugin's own mappings, before Setup has even installed their
+                                    // index templates.
+                                    if (!new SetupReadiness(this.client).awaitReady()) {
+                                        log.warn(Constants.W_LOG_SETUP_NOT_READY_PROVISIONING);
+                                    }
+
                                     // Create the threat-intel ruleset resource indices up front so
                                     // custom-ruleset REST endpoints work even when catalog
-                                    // synchronization is disabled. When sync is enabled it will
-                                    // find these already present and skip re-creating them.
+                                    // synchronization is disabled, or when the Setup plugin is not
+                                    // installed at all. Whenever Setup did provision them, the
+                                    // existence check below makes this a no-op.
                                     this.ensureResourceIndicesExist();
 
                                     // Seed the default space policies (draft, test, custom) so

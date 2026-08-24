@@ -18,7 +18,6 @@ package com.wazuh.contentmanager.jobscheduler.jobs;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.env.Environment;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
@@ -26,9 +25,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -40,8 +37,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
-import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.SetupReadiness;
 
 /**
  * Job responsible for executing the synchronization logic for Rules and Decoders consumers. This
@@ -68,6 +64,7 @@ public class CatalogSyncJob implements JobExecutor {
     private final Client client;
     private final ThreadPool threadPool;
     private final List<AbstractConsumerService> synchronizers;
+    private final SetupReadiness setupReadiness;
 
     /**
      * Constructs a new CatalogSyncJob.
@@ -88,6 +85,7 @@ public class CatalogSyncJob implements JobExecutor {
             SpaceService spaceService,
             SecurityAnalyticsService securityAnalyticsService) {
         this.client = client;
+        this.setupReadiness = new SetupReadiness(client);
         this.threadPool = threadPool;
         this.synchronizers =
                 List.of(
@@ -251,91 +249,12 @@ public class CatalogSyncJob implements JobExecutor {
     }
 
     /**
-     * Blocks until the Setup plugin reports its initialization as {@value
-     * Constants#SETUP_STATUS_READY} via the {@value Constants#SETUP_STATUS_DOC_ID} marker document in
-     * the {@value Constants#INDEX_SETUP_STATUS} index. Retries up to {@link
-     * PluginSettings#SETUP_WAIT_MAX_RETRIES} times with exponential backoff starting at {@link
-     * PluginSettings#SETUP_WAIT_BACKOFF_BASE_SECONDS} before giving up (defaults: 20s, 40s, 80s, 160s
-     * = 300s / 5 min worst case). If the marker already reports {@value
-     * Constants#SETUP_STATUS_FAILED}, returns immediately without retrying — a failed Setup boot will
-     * not fix itself within the same boot.
+     * Waits for the Setup plugin to finish initializing, so no catalog content is downloaded before
+     * the indices it owns exist. Delegates to {@link SetupReadiness#awaitReady()}.
      *
      * @return true if the Setup plugin reported readiness, false otherwise.
      */
     boolean waitForSetup() {
-        int maxRetries = PluginSettings.getInstance().getSetupWaitMaxRetries();
-        int backoffBaseSeconds = PluginSettings.getInstance().getSetupWaitBackoffBaseSeconds();
-        for (int attempt = 0; ; attempt++) {
-            SetupStatus status = this.readSetupStatus();
-            if (status == SetupStatus.READY) {
-                return true;
-            }
-            if (status == SetupStatus.FAILED) {
-                log.error(
-                        "Setup plugin initialization failed. Skipping catalog synchronization until Setup succeeds (typically after a node restart.");
-                return false;
-            }
-            if (attempt >= maxRetries) {
-                return false;
-            }
-            long delaySeconds = backoffBaseSeconds * (1L << attempt);
-            log.info(
-                    "Setup plugin initialization not complete yet. Retrying in {}s (attempt {}/{}).",
-                    delaySeconds,
-                    attempt + 1,
-                    maxRetries);
-            try {
-                this.sleepSeconds(delaySeconds);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return false;
-            }
-        }
-    }
-
-    /**
-     * Sleeps for the given number of seconds. Extracted from {@link #waitForSetup()} so tests can
-     * stub it out and exercise the full retry loop without actually blocking for its real duration.
-     *
-     * @param seconds The number of seconds to sleep.
-     * @throws InterruptedException if the thread is interrupted while sleeping.
-     */
-    void sleepSeconds(long seconds) throws InterruptedException {
-        TimeUnit.SECONDS.sleep(seconds);
-    }
-
-    /** The three states the Setup plugin's readiness marker can report. */
-    private enum SetupStatus {
-        RUNNING,
-        READY,
-        FAILED
-    }
-
-    /**
-     * Reads the Setup plugin's readiness marker. Any failure (index not created yet, cluster not
-     * ready) is treated as {@link SetupStatus#RUNNING} so the caller retries.
-     *
-     * @return the marker's current {@link SetupStatus}.
-     */
-    private SetupStatus readSetupStatus() {
-        try {
-            GetResponse response =
-                    this.client.prepareGet(Constants.INDEX_SETUP_STATUS, Constants.SETUP_STATUS_DOC_ID).get();
-            if (!response.isExists()) {
-                return SetupStatus.RUNNING;
-            }
-            Map<String, Object> source = response.getSourceAsMap();
-            Object value = source != null ? source.get(Constants.KEY_STATUS) : null;
-            if (Constants.SETUP_STATUS_READY.equals(value)) {
-                return SetupStatus.READY;
-            }
-            if (Constants.SETUP_STATUS_FAILED.equals(value)) {
-                return SetupStatus.FAILED;
-            }
-            return SetupStatus.RUNNING;
-        } catch (Exception e) {
-            log.debug("Could not read setup status marker: {}", e.getMessage());
-            return SetupStatus.RUNNING;
-        }
+        return this.setupReadiness.awaitReady();
     }
 }

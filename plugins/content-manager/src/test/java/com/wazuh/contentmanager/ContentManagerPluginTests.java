@@ -18,6 +18,8 @@ package com.wazuh.contentmanager;
 
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.get.GetRequestBuilder;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.LocalNodeClusterManagerListener;
@@ -42,6 +44,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -108,6 +111,18 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         when(this.clusterState.metadata()).thenReturn(this.metadata);
         when(this.metadata.clusterUUID()).thenReturn("test-cluster-uuid");
         when(this.discoveryNodes.isLocalNodeElectedClusterManager()).thenReturn(false);
+
+        // The plugin waits for the Setup plugin's readiness marker before provisioning the
+        // threat-intel indices, so present a Setup that has already finished. Without this the wait
+        // reads no marker at all and backs off through its full five-minute schedule.
+        GetRequestBuilder setupStatusGet = mock(GetRequestBuilder.class);
+        GetResponse setupStatusResponse = mock(GetResponse.class);
+        when(this.client.prepareGet(Constants.INDEX_SETUP_STATUS, Constants.SETUP_STATUS_DOC_ID))
+                .thenReturn(setupStatusGet);
+        when(setupStatusGet.get()).thenReturn(setupStatusResponse);
+        when(setupStatusResponse.isExists()).thenReturn(true);
+        when(setupStatusResponse.getSourceAsMap())
+                .thenReturn(Map.of(Constants.KEY_STATUS, Constants.SETUP_STATUS_READY));
 
         this.injectField(this.plugin, "client", this.client);
         this.injectField(this.plugin, "clusterService", this.clusterService);
