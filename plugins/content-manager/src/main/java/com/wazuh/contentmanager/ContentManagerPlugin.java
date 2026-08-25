@@ -584,12 +584,18 @@ public class ContentManagerPlugin extends Plugin
      * "no such index". Each missing index is created with its configured mappings and public alias,
      * matching what a normal first sync would produce.
      *
-     * <p>This is a fallback for a deployment without the Setup plugin, which owns the threat-intel
-     * index topology and creates each index as {@code <name>-a} with the public alias {@code <name>}
-     * pointing at it. So the method blocks on the Setup plugin's readiness marker first and, whenever
-     * Setup did provision them, finds them all present and does nothing. Skipping that wait is what
-     * made this method win the race and create the indices from this plugin's own mappings, before
-     * Setup had even installed their index templates (see issue #1476).
+     * <p>This is a fallback for a deployment where the Setup plugin does not provision them, which
+     * owns the threat-intel index topology and creates each index as {@code <name>-a} with the public
+     * alias {@code <name>} pointing at it. So the method blocks on the Setup plugin's readiness
+     * marker first and, whenever Setup did provision them, finds them all present and does nothing.
+     * Skipping that wait is what made this method win the race and create the indices from this
+     * plugin's own mappings, before Setup had even installed their index templates (see issue #1476).
+     *
+     * <p>The fallback covers two cases, not one: the Setup plugin absent, and the Setup plugin
+     * installed but reporting failed. In the second case these indices are created here from this
+     * plugin's own mappings, so no index template applies to them. The mappings themselves are
+     * equivalent — the {@code verifyContentTemplates} Gradle task fails the build if the two copies
+     * diverge — but template-supplied settings are not, which is what the accompanying warning says.
      */
     private void ensureResourceIndicesExist() {
         // Only a Setup plugin that is installed but did not become ready is worth warning about.

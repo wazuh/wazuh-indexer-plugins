@@ -170,15 +170,15 @@ public class Constants {
             "Consumer [{}] is not registered; using public download URLs.";
     public static final String E_LOG_INDEX_CREATE_FAILED = "Failed to create index [{}]: {}";
     public static final String E_LOG_SYNC_ABORTED_INDICES_MISSING =
-            "Skipping the [{}] synchronization pass: the Setup plugin reported ready but these target "
-                    + "indices do not exist: {}. No content is downloaded until they do, so a write "
-                    + "cannot auto-create a dynamically mapped index under an alias name.";
+            "Skipping [{}] synchronization: the Setup plugin reported ready but these indices are "
+                    + "missing: {}. No content is downloaded until they exist. Restart to let the Setup "
+                    + "plugin create them.";
     public static final String W_LOG_EMPTY_INDEX_OFFSET_RESET =
-            "Index [{}] holds no documents but the local offset is [{}]. Resetting the offset so the "
-                    + "content is downloaded again.";
+            "Index [{}] is empty but the local offset is [{}]. Resetting the offset to download the "
+                    + "content again.";
     public static final String D_LOG_INDEX_COUNT_FAILED = "Could not count the documents in [{}]: {}";
     public static final String I_LOG_SETUP_PLUGIN_ABSENT =
-            "The Setup plugin is not installed on this cluster. Not waiting for its readiness marker.";
+            "The Setup plugin is not installed, so there is nothing to wait for.";
     public static final String D_LOG_SETUP_PLUGIN_LOOKUP_FAILED =
             "Could not read the installed plugin list, assuming the Setup plugin is present: {}";
     public static final String E_LOG_SETUP_INIT_FAILED =
@@ -189,8 +189,8 @@ public class Constants {
     public static final String D_LOG_SETUP_STATUS_READ_FAILED =
             "Could not read setup status marker: {}";
     public static final String W_LOG_SETUP_NOT_READY_PROVISIONING =
-            "The Setup plugin did not report readiness. Provisioning the threat-intel indices from "
-                    + "this plugin instead; they will not pick up the Setup plugin's index templates.";
+            "The Setup plugin did not complete, so this plugin is creating the threat intel indices "
+                    + "itself. Their settings may differ from the ones the Setup plugin applies.";
     public static final String W_LOG_LOCAL_OFFSET_EXCEEDS_REMOTE =
             "Local offset [{}] exceeds remote offset [{}] for consumer [{}]. Resetting.";
     public static final String W_LOG_LOCAL_SNAPSHOT_CHECK_FAILED =
