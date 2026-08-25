@@ -138,24 +138,43 @@ public class DetectorLookupServiceTests extends OpenSearchTestCase {
         assertTrue(result.get().isEmpty());
     }
 
-    /** A missing detectors index yields an empty list rather than an error. */
-    @SuppressWarnings("unchecked")
+    /**
+     * A cluster with no detectors yet answers with no hits, not with an error: the search is issued
+     * with {@code LENIENT_EXPAND_OPEN}, which resolves a missing index to an empty result.
+     */
     public void testFindDetectorsUsingRulesToleratesMissingIndex() {
-        doAnswer(
-                        invocation -> {
-                            ActionListener<SearchResponse> listener =
-                                    (ActionListener<SearchResponse>) invocation.getArguments()[1];
-                            listener.onFailure(new RuntimeException("index_not_found_exception"));
-                            return null;
-                        })
-                .when(this.client)
-                .search(any(SearchRequest.class), any(ActionListener.class));
+        stubSearch(searchResponseOf());
 
         AtomicReference<List<DetectorLookupService.DetectorRules>> result = new AtomicReference<>();
         this.service.findDetectorsUsingRules(
                 Set.of("r1"), ActionListener.wrap(result::set, e -> fail(e.getMessage())));
 
         assertTrue(result.get().isEmpty());
+    }
+
+    /**
+     * Any other search failure is propagated. Returning an empty list would read as "no detector
+     * references these rules" and let a promotion through on a guard that never ran.
+     */
+    @SuppressWarnings("unchecked")
+    public void testFindDetectorsUsingRulesPropagatesSearchFailures() {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener =
+                                    (ActionListener<SearchResponse>) invocation.getArguments()[1];
+                            listener.onFailure(new RuntimeException("shard failure"));
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any(ActionListener.class));
+
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        this.service.findDetectorsUsingRules(
+                Set.of("r1"),
+                ActionListener.wrap(r -> fail("the failure should not be swallowed"), failure::set));
+
+        assertNotNull(failure.get());
+        assertEquals("shard failure", failure.get().getMessage());
     }
 
     /** Rule states are keyed by document id, defaulting to enabled when the field is absent. */

@@ -90,11 +90,13 @@ public class DetectorLookupService {
      *
      * <p>Disabled detectors are filtered out: a stopped detector needs no protection.
      *
-     * <p>Best-effort: if the detectors index cannot be read (for example, it does not exist yet), an
-     * empty list is returned so a promotion is never blocked by a lookup problem.
+     * <p>A failed search is propagated to the caller and fails the promotion: it must not be let
+     * through on a guard that could not read its inputs. A cluster with no detectors index yet is not
+     * one of those failures, because the search uses {@code LENIENT_EXPAND_OPEN} and gets an empty
+     * result instead of an error.
      *
      * @param ruleIds the content-manager rule ids being promoted.
-     * @param listener receives the affected detectors.
+     * @param listener receives the affected detectors, or the failure that prevented reading them.
      */
     public void findDetectorsUsingRules(
             Set<String> ruleIds, ActionListener<List<DetectorRules>> listener) {
@@ -138,7 +140,7 @@ public class DetectorLookupService {
                         },
                         e -> {
                             log.warn(Constants.W_LOG_DETECTOR_LOOKUP_FAILED, e.getMessage());
-                            listener.onResponse(Collections.emptyList());
+                            listener.onFailure(e);
                         }));
     }
 
