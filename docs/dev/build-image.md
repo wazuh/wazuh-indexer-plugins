@@ -29,7 +29,7 @@ The tools and source code to generate a package of Wazuh Indexer are hosted in t
 
 ## Building wazuh-indexer Docker images
 
-The [docker](./docker) folder contains the code to build Docker images. Below there is an example of the command needed to build the image. Set the build arguments and the image tag accordingly.
+The docker folder (`wazuh-indexer/build-scripts/docker`) contains the code to build Docker images. Below there is an example of the command needed to build the image. Set the build arguments and the image tag accordingly.
 
 The Docker image is built from a wazuh-indexer tarball (tar.gz), which must be placed in `wazuh-indexer/build-scripts/docker` and named following the convention `wazuh-indexer-<arch>.tar.gz`, where `<arch>` matches Docker's architecture naming (`amd64` or `arm64`).
 
