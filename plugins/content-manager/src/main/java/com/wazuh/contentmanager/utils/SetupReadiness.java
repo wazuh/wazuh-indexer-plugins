@@ -52,6 +52,14 @@ public class SetupReadiness {
     private final Client client;
 
     /**
+     * Memoised answer to {@link #isSetupPluginInstalled()}. Plugins are loaded when the node starts
+     * and cannot be added or removed without a restart, so the answer cannot change while this node
+     * lives. Only a definitive answer is cached: a failed lookup stays uncached so a transient error
+     * does not pin the result for the rest of the node's lifetime.
+     */
+    private volatile Boolean setupPluginInstalled;
+
+    /**
      * Constructor.
      *
      * @param client The OpenSearch client used to read the readiness marker.
@@ -113,7 +121,11 @@ public class SetupReadiness {
      *
      * @return true if the Setup plugin is installed, or if the plugin list could not be read.
      */
-    boolean isSetupPluginInstalled() {
+    public boolean isSetupPluginInstalled() {
+        Boolean cached = this.setupPluginInstalled;
+        if (cached != null) {
+            return cached;
+        }
         try {
             NodesInfoResponse response =
                     this.client
@@ -130,10 +142,12 @@ public class SetupReadiness {
                 }
                 for (PluginInfo plugin : plugins.getPluginInfos()) {
                     if (SETUP_PLUGIN_NAME.equals(plugin.getName())) {
+                        this.setupPluginInstalled = true;
                         return true;
                     }
                 }
             }
+            this.setupPluginInstalled = false;
             return false;
         } catch (Exception e) {
             log.debug(Constants.D_LOG_SETUP_PLUGIN_LOOKUP_FAILED, e.getMessage());

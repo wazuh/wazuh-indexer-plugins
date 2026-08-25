@@ -592,7 +592,9 @@ public class ContentManagerPlugin extends Plugin
      * Setup had even installed their index templates (see issue #1476).
      */
     private void ensureResourceIndicesExist() {
-        if (!this.setupReadiness.awaitReady()) {
+        // Only a Setup plugin that is installed but did not become ready is worth warning about.
+        // Its absence is the expected path for this fallback and awaitReady() already reports it.
+        if (!this.setupReadiness.awaitReady() && this.setupReadiness.isSetupPluginInstalled()) {
             log.warn(Constants.W_LOG_SETUP_NOT_READY_PROVISIONING);
         }
         for (Map.Entry<String, String> entry : Constants.RESOURCE_INDEX_MAPPINGS.entrySet()) {

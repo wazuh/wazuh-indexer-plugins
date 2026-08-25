@@ -74,6 +74,18 @@ public class SetupReadinessTests extends OpenSearchTestCase {
         Assert.assertTrue(this.setupReadiness.isSetupPluginInstalled());
     }
 
+    /**
+     * A failed lookup must not be memoised, or one transient error would pin the answer for the rest
+     * of the node's lifetime.
+     */
+    public void testPluginLookupFailureIsNotCached() {
+        Assert.assertTrue(this.setupReadiness.isSetupPluginInstalled());
+        Assert.assertTrue(this.setupReadiness.isSetupPluginInstalled());
+
+        // Two calls, two attempts: nothing was cached.
+        verify(this.client, times(2)).admin();
+    }
+
     /** The marker already reports ready, so the first check returns true. */
     public void testMarkerReadyReturnsTrue() {
         when(this.getResponse.isExists()).thenReturn(true);
