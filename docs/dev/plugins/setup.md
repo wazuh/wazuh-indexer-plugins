@@ -567,6 +567,19 @@ present. Without that wait it won the race by a wide margin — it created six o
 seconds before this plugin reached its threat-intel block, which meant they were created before
 their index templates were installed and so did not pick them up.
 
+Downloading CTI content requires two things to be true, and the Content Manager checks both before
+any write reaches these indices:
+
+1. `.wazuh-setup-status` reports `status: ready`, which this plugin writes only after every index it
+   owns exists.
+2. The target indices of that consumer exist.
+
+If either check fails the consumer skips its pass and logs at ERROR; it creates nothing. That is
+what keeps a mis-provisioned index from becoming a squatted one: a write through the alias name
+would otherwise auto-create a concrete index there with dynamic mappings. See issues #1476 and
+#1481, where the second of those took out vulnerability detection and package inventory because the
+global-map documents could not be indexed into an inferred mapping.
+
 To confirm on a running cluster, read the `templates` field of the creation entries in the log:
 
 ```bash

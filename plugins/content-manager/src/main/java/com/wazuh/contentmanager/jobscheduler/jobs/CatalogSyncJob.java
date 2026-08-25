@@ -212,6 +212,10 @@ public class CatalogSyncJob implements JobExecutor {
 
     SyncOutcome performSynchronization() {
         try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            // Content download requires two things to be true: the Setup plugin reported ready, and
+            // the target indices it provisions exist. This is the first; the second is checked per
+            // consumer by AbstractConsumerService, which skips its own pass when any of its indices
+            // is absent, so one mis-provisioned index cannot silently become a squatted one.
             if (!this.waitForSetup()) {
                 log.error(
                         "Setup plugin initialization did not complete in time. Skipping catalog"

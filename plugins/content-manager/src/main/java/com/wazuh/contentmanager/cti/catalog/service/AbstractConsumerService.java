@@ -33,9 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.action.PromoteSnapshotAction;
@@ -375,6 +373,27 @@ public abstract class AbstractConsumerService {
     }
 
     /**
+     * Returns the target indices of this consumer that do not exist.
+     *
+     * <p>The Setup plugin creates each one as {@code <name>-a} with the public alias {@code <name>}
+     * pointing at it, and marks itself ready only once they are all in place, so on a correctly
+     * configured cluster this is always empty. A name is reported missing when neither an index nor
+     * an alias answers to it.
+     *
+     * @return the absent index names, empty when they all exist.
+     */
+    public List<String> missingTargetIndices() {
+        List<String> missing = new ArrayList<>();
+        for (String type : this.getMappings().keySet()) {
+            String indexName = this.getIndexName(type);
+            if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
+                missing.add(indexName);
+            }
+        }
+        return missing;
+    }
+
+    /**
      * Returns whether an index holds no documents. A read failure is reported as "not empty" so a
      * transient error never triggers a full content re-download.
      *
@@ -570,36 +589,22 @@ public abstract class AbstractConsumerService {
             boolean feedUnreachable = catalogConfigured && remoteConsumer == null;
 
             Map<String, ContentIndex> indicesMap = new HashMap<>();
-
             for (Map.Entry<String, String> entry : this.getMappings().entrySet()) {
                 String indexName = this.getIndexName(entry.getKey());
-                ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
-                indicesMap.put(entry.getKey(), index);
+                indicesMap.put(entry.getKey(), new ContentIndex(this.client, indexName, entry.getValue()));
+            }
 
-                // Check if index exists to avoid creation exception
-                boolean indexExists =
-                        this.client.admin().indices().prepareExists(indexName).get().isExists();
-
-                if (!indexExists) {
-                    // The Setup plugin provisions these indices before it marks itself ready, and this
-                    // service does not run until then, so reaching this branch means the index is missing
-                    // for another reason. Create it, but never continue without it: the writes below go
-                    // through the alias name, and OpenSearch would auto-create a concrete index there with
-                    // dynamic mappings, turning every declared keyword into a text field that cannot be
-                    // aggregated or sorted on. Abort the pass instead and let the caller retry.
-                    boolean created = false;
-                    try {
-                        // ContentIndex.createIndex() already logs the creation; avoid a duplicate here.
-                        // It returns null (having logged why) when the mappings cannot be read.
-                        created = index.createIndex() != null;
-                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                        log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
-                    }
-                    if (!created) {
-                        log.error(Constants.E_LOG_SYNC_ABORTED_INDEX_MISSING, indexName, consumerType);
-                        return new SyncResult(false, feedUnreachable);
-                    }
-                }
+            // The second of the two preconditions for downloading content: the Setup plugin reported
+            // ready (checked by the caller) and this consumer's target indices exist. Nothing is
+            // created here — the Setup plugin owns the threat-intel index topology. Downloading into a
+            // missing index is what caused the defect this guard exists for: the writes below go
+            // through the alias name, so OpenSearch would auto-create a concrete index there with
+            // dynamic mappings, turning every declared keyword into a text field that can be neither
+            // aggregated nor sorted on, and squatting the name the alias needs.
+            List<String> missingIndices = this.missingTargetIndices();
+            if (!missingIndices.isEmpty()) {
+                log.error(Constants.E_LOG_SYNC_ABORTED_INDICES_MISSING, consumerType, missingIndices);
+                return new SyncResult(false, feedUnreachable);
             }
 
             // When a plan change is detected, download into hidden shadow indices and atomically
