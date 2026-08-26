@@ -136,30 +136,39 @@ Refer to the `tools/test-cluster/README.md` for provisioning and usage instructi
 
 After completing the setup, verify everything works:
 
-```bash
-cd wazuh-indexer-plugins
-./gradlew :wazuh-indexer-content-manager:compileJava
-```
-
-For the Notifications plugin (Kotlin-based, separate repository):
-
-```bash
-cd wazuh-indexer-notifications
-./gradlew build
-```
-
 For the Common Utils plugin (Shared Library):
 
 ```bash
 cd wazuh-indexer-common-utils
-./gradlew clean build publishToMavenLocal
+./gradlew clean publishToMavenLocal
 ```
 
 For the Alerting plugin:
 
 ```bash
 cd wazuh-indexer-alerting
-./gradlew build
+./gradlew clean publishToMavenLocal
+```
+
+For the Notifications plugin (Kotlin-based, separate repository):
+
+```bash
+cd wazuh-indexer-notifications/notifications
+./gradlew clean publishToMavenLocal
+```
+
+For the Security Analytics plugin:
+
+```bash
+cd wazuh-indexer-security-analytics/commons
+../gradlew clean publishToMavenLocal
+cd ..
+./gradlew clean publishToMavenLocal
+```
+
+```bash
+cd wazuh-indexer-plugins
+./gradlew :wazuh-indexer-content-manager:compileJava
 ```
 
 If compilation succeeds, your environment is ready. See [Build from Sources](build-sources.md) for more build commands.
