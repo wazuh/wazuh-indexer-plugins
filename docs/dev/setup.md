@@ -171,8 +171,4 @@ cd wazuh-indexer-plugins
 ./gradlew :wazuh-indexer-content-manager:compileJava
 ```
 
-
-
-
-
 If compilation succeeds, your environment is ready. See [Build from Sources](build-sources.md) for more build commands.
