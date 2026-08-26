@@ -3,6 +3,7 @@
 set -e
 
 declare -A all_modules
+declare -A content_cm_mappings
 
 # ====
 # Checks that the script is run from the intended location
@@ -133,19 +134,29 @@ function map_settings_modules() {
 }
 
 # ====
-# Map IoC module
+# Map content modules. These describe the wazuh-threatintel-* indices the setup plugin creates
+# and the Content Manager fills from CTI. Every directory under wcs/content/ is picked up, so a
+# new content module needs no change here.
+#
+# Their mappings are consumed twice: the setup plugin creates the index from the generated index
+# template, and the Content Manager keeps a bare mappings document so it can create the
+# blue/green shadow index during a content swap without setup intervention. The second
+# destination is recorded in content_cm_mappings and emitted as module_to_cm_mapping.
 # ====
-function map_ioc_module() {
-  local module_name="content/ioc"
-  all_modules["$module_name"]="templates/${module_name}.json"
-}
-
-# ====
-# Map Engine Filter module
-# ====
-function map_engine_filter_module() {
-  local module_name="content/filters"
-  all_modules["$module_name"]="templates/${module_name}.json"
+function map_content_modules() {
+  local module_name
+  local cm_file
+  for dir in wcs/content/*/; do
+    [[ -d "$dir" ]] || continue
+    module_name=$(basename "$dir")
+    all_modules["content/$module_name"]="templates/content/${module_name}.json"
+    # The Content Manager named its CVE mappings after the content, not the module.
+    case "$module_name" in
+      vulnerabilities) cm_file="cti-cve-mappings.json" ;;
+      *) cm_file="cti-${module_name}-mappings.json" ;;
+    esac
+    content_cm_mappings["content/$module_name"]="plugins/content-manager/src/main/resources/mappings/${cm_file}"
+  done
 }
 
 # ====
@@ -187,14 +198,13 @@ function sort_and_output_modules() {
     echo "  [settings]=${all_modules[settings]}" >>"$output_file"
   fi
 
-  if [[ -n "${all_modules[content/filters]}" ]]; then
-    echo "  # Engine filter module" >>"$output_file"
-    echo "  [content/filters]=${all_modules[content/filters]}" >>"$output_file"
-  fi
-
-  if [[ -n "${all_modules[content/ioc]}" ]]; then
-    echo "  # IoC module" >>"$output_file"
-    echo "  [content/ioc]=${all_modules[content/ioc]}" >>"$output_file"
+  local content_keys
+  content_keys=$(printf '%s\n' "${!all_modules[@]}" | grep "^content/" | sort)
+  if [[ -n "$content_keys" ]]; then
+    echo "  # Content modules" >>"$output_file"
+    for key in $content_keys; do
+      echo "  [$key]=${all_modules[$key]}" >>"$output_file"
+    done
   fi
 
   if [[ -n "${all_modules[cve]}" ]]; then
@@ -218,6 +228,23 @@ function sort_and_output_modules() {
   fi
 
   echo ")" >>"$output_file"
+
+  # Second destination for the content modules: the Content Manager's own copy of the mappings,
+  # derived from the generated index template by sync_content_mappings.py.
+  if [[ -n "$content_keys" ]]; then
+    {
+      echo
+      echo "# Content modules whose mappings the Content Manager also needs. It keeps a bare mappings"
+      echo "# document so it can create the blue/green shadow index during a content swap without setup"
+      echo "# intervention, so both copies must describe the same index. Only the setup index template"
+      echo "# above is authored; generate_schema.sh derives these from it via sync_content_mappings.py."
+      echo "module_to_cm_mapping=("
+      for key in $content_keys; do
+        echo "  [$key]=${content_cm_mappings[$key]}"
+      done
+      echo ")"
+    } >>"$output_file"
+  fi
 }
 
 # ====
@@ -228,8 +255,9 @@ function main() {
   output_file="wcs/module_list.txt"
 
   # Clear the associative array
-  unset all_modules
+  unset all_modules content_cm_mappings
   declare -A all_modules
+  declare -A content_cm_mappings
 
   # Map all modules
   map_stateful_modules
@@ -238,9 +266,7 @@ function main() {
 
   map_settings_modules
 
-  map_ioc_module
-
-  map_engine_filter_module
+  map_content_modules
 
   map_cve_module
 

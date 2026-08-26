@@ -14,6 +14,7 @@ set -euo pipefail
 # Global variables
 declare -a modules_to_update
 declare -A module_to_file
+declare -A module_to_cm_mapping
 declare force_update=false
 
 # Modules whose generated template must be converted from static properties to
@@ -158,6 +159,8 @@ function update_modified_modules() {
 # ====
 # Copy index templates and CSV documentation to their corresponding folders.
 #  - Index templates are copied to plugins/setup/src/main/resources/
+#  - Content Manager mappings are derived from those templates, for the content modules whose
+#    mappings that plugin also needs (see module_to_cm_mapping in module_list.txt)
 #  - CSV documentation is copied to wcs/<module>/docs/
 # ====
 function copy_files() {
@@ -199,6 +202,18 @@ function copy_files() {
         echo "  - '$destination_path' converted to dynamic_templates"
       fi
     done
+  done
+
+  echo "---> Content Manager mappings"
+  local cm_mapping
+  for ecs_module in "${modules_to_update[@]}"; do
+    cm_mapping=${module_to_cm_mapping[$ecs_module]:-}
+    if [[ -z "$cm_mapping" ]]; then
+      continue
+    fi
+    destination_path="$resources_path/${module_to_file[$ecs_module]}"
+    python3 "$repo_path/wcs/generator/sync_content_mappings.py" "$destination_path" "$cm_mapping"
+    echo "  - '$cm_mapping' derived from '$destination_path'"
   done
 
   echo "---> CSV documentation"
