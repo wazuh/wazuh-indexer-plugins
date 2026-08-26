@@ -1,0 +1,34 @@
+{
+  "index_patterns": [
+    ".wazuh-threatintel-vulnerabilities*"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "auto_expand_replicas": "0-1",
+        "codec": "zstd",
+        "hidden": "true",
+        "number_of_replicas": "0",
+        "number_of_shards": "1"
+      }
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict_allow_templates",
+      "properties": {
+        "offset": {
+          "type": "unsigned_long"
+        },
+        "type": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "document": {
+          "type": "object",
+          "enabled": false
+        }
+      }
+    }
+  }
+}

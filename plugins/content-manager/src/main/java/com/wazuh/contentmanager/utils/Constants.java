@@ -169,6 +169,28 @@ public class Constants {
     public static final String D_LOG_REGULAR_URL_RESOLVER =
             "Consumer [{}] is not registered; using public download URLs.";
     public static final String E_LOG_INDEX_CREATE_FAILED = "Failed to create index [{}]: {}";
+    public static final String E_LOG_SYNC_ABORTED_INDICES_MISSING =
+            "Skipping [{}] synchronization: the Setup plugin reported ready but these indices are "
+                    + "missing: {}. No content is downloaded until they exist. Restart to let the Setup "
+                    + "plugin create them.";
+    public static final String W_LOG_EMPTY_INDEX_OFFSET_RESET =
+            "Index [{}] is empty but the local offset is [{}]. Resetting the offset to download the "
+                    + "content again.";
+    public static final String D_LOG_INDEX_COUNT_FAILED = "Could not count the documents in [{}]: {}";
+    public static final String I_LOG_SETUP_PLUGIN_ABSENT =
+            "The Setup plugin is not installed, so there is nothing to wait for.";
+    public static final String D_LOG_SETUP_PLUGIN_LOOKUP_FAILED =
+            "Could not read the installed plugin list, assuming the Setup plugin is present: {}";
+    public static final String E_LOG_SETUP_INIT_FAILED =
+            "Setup plugin initialization failed. Skipping catalog synchronization until Setup succeeds "
+                    + "(typically after a node restart).";
+    public static final String I_LOG_SETUP_NOT_READY_RETRYING =
+            "Setup plugin initialization not complete yet. Retrying in {}s (attempt {}/{}).";
+    public static final String D_LOG_SETUP_STATUS_READ_FAILED =
+            "Could not read setup status marker: {}";
+    public static final String W_LOG_SETUP_NOT_READY_PROVISIONING =
+            "The Setup plugin did not complete, so this plugin is creating the threat intel indices "
+                    + "itself. Their settings may differ from the ones the Setup plugin applies.";
     public static final String W_LOG_LOCAL_OFFSET_EXCEEDS_REMOTE =
             "Local offset [{}] exceeds remote offset [{}] for consumer [{}]. Resetting.";
     public static final String W_LOG_LOCAL_SNAPSHOT_CHECK_FAILED =

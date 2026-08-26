@@ -18,6 +18,8 @@ package com.wazuh.contentmanager;
 
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.get.GetRequestBuilder;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.LocalNodeClusterManagerListener;
@@ -42,6 +44,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -52,6 +55,7 @@ import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.SetupReadiness;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -109,6 +113,18 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         when(this.metadata.clusterUUID()).thenReturn("test-cluster-uuid");
         when(this.discoveryNodes.isLocalNodeElectedClusterManager()).thenReturn(false);
 
+        // The plugin waits for the Setup plugin's readiness marker before provisioning the
+        // threat-intel indices, so present a Setup that has already finished. Without this the wait
+        // reads no marker at all and backs off through its full five-minute schedule.
+        GetRequestBuilder setupStatusGet = mock(GetRequestBuilder.class);
+        GetResponse setupStatusResponse = mock(GetResponse.class);
+        when(this.client.prepareGet(Constants.INDEX_SETUP_STATUS, Constants.SETUP_STATUS_DOC_ID))
+                .thenReturn(setupStatusGet);
+        when(setupStatusGet.get()).thenReturn(setupStatusResponse);
+        when(setupStatusResponse.isExists()).thenReturn(true);
+        when(setupStatusResponse.getSourceAsMap())
+                .thenReturn(Map.of(Constants.KEY_STATUS, Constants.SETUP_STATUS_READY));
+
         this.injectField(this.plugin, "client", this.client);
         this.injectField(this.plugin, "clusterService", this.clusterService);
         this.injectField(this.plugin, "threadPool", this.threadPool);
@@ -117,6 +133,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.injectField(this.plugin, "engineContentLoader", this.engineContentLoader);
         this.injectField(this.plugin, "spaceService", this.spaceService);
         this.injectField(this.plugin, "consumersIndex", this.consumersIndex);
+        this.injectField(this.plugin, "setupReadiness", new SetupReadiness(this.client));
 
         ContentManagerPluginTests.clearInstance();
     }

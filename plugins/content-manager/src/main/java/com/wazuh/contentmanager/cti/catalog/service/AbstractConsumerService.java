@@ -22,6 +22,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
@@ -31,9 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.action.PromoteSnapshotAction;
@@ -373,6 +373,49 @@ public abstract class AbstractConsumerService {
     }
 
     /**
+     * Returns the target indices of this consumer that do not exist.
+     *
+     * <p>The Setup plugin creates each one as {@code <name>-a} with the public alias {@code <name>}
+     * pointing at it, and marks itself ready only once they are all in place, so on a correctly
+     * configured cluster this is always empty. A name is reported missing when neither an index nor
+     * an alias answers to it.
+     *
+     * @return the absent index names, empty when they all exist.
+     */
+    public List<String> missingTargetIndices() {
+        List<String> missing = new ArrayList<>();
+        for (String type : this.getMappings().keySet()) {
+            String indexName = this.getIndexName(type);
+            if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
+                missing.add(indexName);
+            }
+        }
+        return missing;
+    }
+
+    /**
+     * Returns whether an index holds no documents. A read failure is reported as "not empty" so a
+     * transient error never triggers a full content re-download.
+     *
+     * @param indexName The index (or alias) to count documents on.
+     * @return true when the index is reachable and holds no documents, false otherwise.
+     */
+    private boolean isIndexEmpty(String indexName) {
+        try {
+            SearchResponse response =
+                    this.client
+                            .prepareSearch(indexName)
+                            .setSize(0)
+                            .setTrackTotalHits(true)
+                            .get(TimeValue.timeValueSeconds(PluginSettings.getInstance().getClientTimeout()));
+            return response.getHits().getTotalHits().value() == 0;
+        } catch (Exception e) {
+            log.debug(Constants.D_LOG_INDEX_COUNT_FAILED, indexName, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Refreshes the specified indices to make recent changes searchable. Any errors during refresh
      * are logged as warnings but do not interrupt execution.
      *
@@ -546,24 +589,22 @@ public abstract class AbstractConsumerService {
             boolean feedUnreachable = catalogConfigured && remoteConsumer == null;
 
             Map<String, ContentIndex> indicesMap = new HashMap<>();
-
             for (Map.Entry<String, String> entry : this.getMappings().entrySet()) {
                 String indexName = this.getIndexName(entry.getKey());
-                ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
-                indicesMap.put(entry.getKey(), index);
+                indicesMap.put(entry.getKey(), new ContentIndex(this.client, indexName, entry.getValue()));
+            }
 
-                // Check if index exists to avoid creation exception
-                boolean indexExists =
-                        this.client.admin().indices().prepareExists(indexName).get().isExists();
-
-                if (!indexExists) {
-                    try {
-                        // ContentIndex.createIndex() already logs the creation; avoid a duplicate here.
-                        index.createIndex();
-                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                        log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
-                    }
-                }
+            // The second of the two preconditions for downloading content: the Setup plugin reported
+            // ready (checked by the caller) and this consumer's target indices exist. Nothing is
+            // created here — the Setup plugin owns the threat-intel index topology. Downloading into a
+            // missing index is what caused the defect this guard exists for: the writes below go
+            // through the alias name, so OpenSearch would auto-create a concrete index there with
+            // dynamic mappings, turning every declared keyword into a text field that can be neither
+            // aggregated nor sorted on, and squatting the name the alias needs.
+            List<String> missingIndices = this.missingTargetIndices();
+            if (!missingIndices.isEmpty()) {
+                log.error(Constants.E_LOG_SYNC_ABORTED_INDICES_MISSING, consumerType, missingIndices);
+                return new SyncResult(false, feedUnreachable);
             }
 
             // When a plan change is detected, download into hidden shadow indices and atomically
@@ -606,6 +647,22 @@ public abstract class AbstractConsumerService {
                             currentOffset,
                             remoteConsumer.getOffset(),
                             consumerType);
+                    currentOffset = 0;
+                }
+            }
+
+            // Empty-index resilience. A non-zero offset says the content was already downloaded, so
+            // only incremental changes would be applied and an empty index would stay empty. Reset the
+            // offset so this pass reinitializes from a snapshot instead. This recovers the index the
+            // Setup plugin had to delete because a dynamically mapped index was squatting its alias
+            // name (see issue #1476), and any other case where the content is gone but the offset is
+            // not. Restricted to single-index consumers (IoCs, CVEs), where an empty index is
+            // unambiguous; the ruleset consumer spans six indices, of which some are legitimately
+            // empty.
+            if (currentOffset > 0 && this.getMappings().size() == 1) {
+                String onlyIndex = indicesMap.values().iterator().next().getIndexName();
+                if (this.isIndexEmpty(onlyIndex)) {
+                    log.warn(Constants.W_LOG_EMPTY_INDEX_OFFSET_RESET, onlyIndex, currentOffset);
                     currentOffset = 0;
                 }
             }

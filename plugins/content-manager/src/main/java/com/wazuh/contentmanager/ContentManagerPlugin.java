@@ -112,6 +112,7 @@ import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
 import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
+import com.wazuh.contentmanager.utils.SetupReadiness;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
@@ -138,6 +139,7 @@ public class ContentManagerPlugin extends Plugin
     private final AtomicBoolean standardSpaceHashInFlight = new AtomicBoolean(false);
     private SpaceService spaceService;
     private SecurityAnalyticsService securityAnalyticsService;
+    private SetupReadiness setupReadiness;
     private Environment environment;
     private ClusterService clusterService;
     private LogtestService logtestService;
@@ -200,6 +202,7 @@ public class ContentManagerPlugin extends Plugin
 
         this.consumersIndex = new ConsumersIndex(client);
         this.credentialsIndex = new CredentialsIndex(client, threadPool);
+        this.setupReadiness = new SetupReadiness(client);
         this.plansService = new PlansServiceImpl();
         this.subscriptionService =
                 new SubscriptionServiceImpl(
@@ -506,8 +509,9 @@ public class ContentManagerPlugin extends Plugin
 
                                     // Create the threat-intel ruleset resource indices up front so
                                     // custom-ruleset REST endpoints work even when catalog
-                                    // synchronization is disabled. When sync is enabled it will
-                                    // find these already present and skip re-creating them.
+                                    // synchronization is disabled, or when the Setup plugin is not
+                                    // installed at all. Waits for the Setup plugin first; see the
+                                    // method's documentation.
                                     this.ensureResourceIndicesExist();
 
                                     // Seed the default space policies (draft, test, custom) so
@@ -579,8 +583,26 @@ public class ContentManagerPlugin extends Plugin
      * without this step the indices never get created and the custom-ruleset REST endpoints fail with
      * "no such index". Each missing index is created with its configured mappings and public alias,
      * matching what a normal first sync would produce.
+     *
+     * <p>This is a fallback for a deployment where the Setup plugin does not provision them, which
+     * owns the threat-intel index topology and creates each index as {@code <name>-a} with the public
+     * alias {@code <name>} pointing at it. So the method blocks on the Setup plugin's readiness
+     * marker first and, whenever Setup did provision them, finds them all present and does nothing.
+     * Skipping that wait is what made this method win the race and create the indices from this
+     * plugin's own mappings, before Setup had even installed their index templates (see issue #1476).
+     *
+     * <p>The fallback covers two cases, not one: the Setup plugin absent, and the Setup plugin
+     * installed but reporting failed. In the second case these indices are created here from this
+     * plugin's own mappings, so no index template applies to them. The mappings themselves are
+     * equivalent — the {@code verifyContentTemplates} Gradle task fails the build if the two copies
+     * diverge — but template-supplied settings are not, which is what the accompanying warning says.
      */
     private void ensureResourceIndicesExist() {
+        // Only a Setup plugin that is installed but did not become ready is worth warning about.
+        // Its absence is the expected path for this fallback and awaitReady() already reports it.
+        if (!this.setupReadiness.awaitReady() && this.setupReadiness.isSetupPluginInstalled()) {
+            log.warn(Constants.W_LOG_SETUP_NOT_READY_PROVISIONING);
+        }
         for (Map.Entry<String, String> entry : Constants.RESOURCE_INDEX_MAPPINGS.entrySet()) {
             String indexName = entry.getKey();
             try {

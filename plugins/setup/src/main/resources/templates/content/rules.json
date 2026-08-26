@@ -1,0 +1,185 @@
+{
+  "index_patterns": [
+    "wazuh-threatintel-rules*"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "auto_expand_replicas": "0-1",
+        "codec": "zstd",
+        "number_of_replicas": "0",
+        "number_of_shards": "1"
+      }
+    },
+    "mappings": {
+      "dynamic": "false",
+      "properties": {
+        "document": {
+          "properties": {
+            "id": {
+              "type": "keyword"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "keyword"
+                },
+                "author": {
+                  "type": "keyword"
+                },
+                "date": {
+                  "type": "date"
+                },
+                "modified": {
+                  "type": "date"
+                },
+                "description": {
+                  "type": "text"
+                },
+                "references": {
+                  "type": "keyword"
+                },
+                "documentation": {
+                  "type": "keyword"
+                },
+                "supports": {
+                  "type": "keyword"
+                }
+              }
+            },
+            "detection": {
+              "type": "object",
+              "enabled": false
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "falsepositives": {
+              "type": "keyword"
+            },
+            "fields": {
+              "type": "keyword"
+            },
+            "level": {
+              "type": "keyword"
+            },
+            "license": {
+              "type": "keyword"
+            },
+            "logsource": {
+              "properties": {
+                "category": {
+                  "type": "keyword"
+                },
+                "definition": {
+                  "type": "text"
+                },
+                "product": {
+                  "type": "keyword"
+                },
+                "service": {
+                  "type": "keyword"
+                }
+              }
+            },
+            "name": {
+              "type": "keyword"
+            },
+            "related": {
+              "type": "nested",
+              "properties": {
+                "id": {
+                  "type": "keyword"
+                },
+                "type": {
+                  "type": "keyword"
+                }
+              }
+            },
+            "scope": {
+              "type": "keyword"
+            },
+            "sigma_id": {
+              "type": "keyword"
+            },
+            "status": {
+              "type": "keyword"
+            },
+            "tags": {
+              "type": "keyword"
+            },
+            "taxonomy": {
+              "type": "keyword"
+            },
+            "threat": {
+              "type": "object",
+              "properties": {
+                "tactic": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "technique": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "subtechnique": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "keyword"
+                    },
+                    "name": {
+                      "type": "keyword"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "hash": {
+          "properties": {
+            "sha256": {
+              "type": "keyword"
+            }
+          }
+        },
+        "offset": {
+          "type": "unsigned_long"
+        },
+        "space": {
+          "properties": {
+            "name": {
+              "type": "keyword"
+            }
+          }
+        },
+        "type": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        }
+      }
+    }
+  }
+}

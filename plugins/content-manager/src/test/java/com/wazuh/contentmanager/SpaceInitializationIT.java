@@ -18,7 +18,6 @@ package com.wazuh.contentmanager;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.settings.Settings;
@@ -29,12 +28,11 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.After;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
@@ -54,13 +52,13 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
     private static final String Q_SPACE_NAME = "space.name";
     private static final String[] SPACE_NAMES = {"draft", "test", "custom"};
 
-    private static final Map<String, String> INDEX_MAPPINGS =
-            Map.of(
-                    "wazuh-threatintel-rules", "/mappings/cti-rules-mappings.json",
-                    "wazuh-threatintel-decoders", "/mappings/cti-decoders-mappings.json",
-                    "wazuh-threatintel-kvdbs", "/mappings/cti-kvdbs-mappings.json",
-                    "wazuh-threatintel-integrations", "/mappings/cti-integrations-mappings.json",
-                    "wazuh-threatintel-policies", "/mappings/cti-policies-mappings.json");
+    private static final List<String> CONTENT_INDICES =
+            List.of(
+                    "wazuh-threatintel-rules",
+                    "wazuh-threatintel-decoders",
+                    "wazuh-threatintel-kvdbs",
+                    "wazuh-threatintel-integrations",
+                    INDEX_POLICIES);
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
@@ -88,8 +86,8 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
     public void testOnSyncCompleteDoesNotDuplicateSpaces() throws Exception {
         this.ensureGreen(TimeValue.timeValueMinutes(2));
 
-        // Create all content indices required by onSyncComplete
-        this.createContentIndices();
+        // The plugin provisions the content indices onSyncComplete needs; wait for them.
+        this.awaitContentIndices();
 
         // Initialize PluginSettings in the test JVM (the plugin runs in the external cluster JVM)
         PluginSettings.getInstance(
@@ -159,37 +157,33 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
                 .get();
     }
 
-    /** Creates all content indices required by the post-sync workflow with their proper mappings. */
-    private void createContentIndices() throws Exception {
-        Settings indexSettings =
-                Settings.builder()
-                        .put("index.number_of_replicas", 0)
-                        .put("index.number_of_shards", 1)
-                        .build();
-
-        for (Map.Entry<String, String> entry : INDEX_MAPPINGS.entrySet()) {
-            String indexName = entry.getKey();
-            String mappingPath = entry.getValue();
-
-            String mapping;
-            try (InputStream is = this.getClass().getResourceAsStream(mappingPath)) {
-                assertNotNull("Could not find mapping resource: " + mappingPath, is);
-                mapping = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-            }
-
-            CreateIndexRequest request =
-                    new CreateIndexRequest().index(indexName).mapping(mapping).settings(indexSettings);
-
-            assertTrue(
-                    "Failed to create index " + indexName,
-                    OpenSearchIntegTestCase.client()
-                            .admin()
-                            .indices()
-                            .create(request)
-                            .actionGet()
-                            .isAcknowledged());
-        }
-
+    /**
+     * Waits for the content indices the post-sync workflow needs.
+     *
+     * <p>This test connects to the Gradle test cluster as an {@code ExternalTestCluster}, so {@link
+     * #nodePlugins()} does not apply and both the Setup and Content Manager plugins are running
+     * there. Each of these indices is provisioned as {@code <name>-a} with the public alias {@code
+     * <name>} pointing at it, by the Setup plugin at node start and by {@code
+     * ContentManagerPlugin#ensureResourceIndicesExist()} otherwise. Creating them here as concrete
+     * indices named after the aliases therefore fails with "invalid index name [...], already exists
+     * as alias": a concrete index cannot take a name an alias already holds. Wait for them instead.
+     */
+    private void awaitContentIndices() throws Exception {
+        assertBusy(
+                () -> {
+                    for (String indexName : CONTENT_INDICES) {
+                        assertTrue(
+                                "Index " + indexName + " was not provisioned by the plugin",
+                                OpenSearchIntegTestCase.client()
+                                        .admin()
+                                        .indices()
+                                        .prepareExists(indexName)
+                                        .get()
+                                        .isExists());
+                    }
+                },
+                2,
+                TimeUnit.MINUTES);
         this.ensureGreen();
     }
 }
