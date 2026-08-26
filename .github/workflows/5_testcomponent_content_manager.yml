@@ -188,20 +188,29 @@ jobs:
                 if echo "${consumer_response}" | grep -q '"ready"'; then
                     ruleset_ready=true
                 fi
+                # The vulnerabilities consumer feeds .wazuh-threatintel-vulnerabilities,
+                # asserted by the vulnerabilities component tests.
+                vd_response=$(curl -s "$base/.wazuh-cti-consumers/_doc/cti:catalog:consumer:vulnerabilities?filter_path=_source.status")
+                echo "Vulnerabilities consumer response: ${vd_response}"
+                vd_ready=false
+                if echo "${vd_response}" | grep -q '"ready"'; then
+                    vd_ready=true
+                fi
                 sap_response=$(curl -s -w '\n%{http_code}' "$base/.opensearch-sap-pre-packaged-rules-config")
                 sap_code=$(echo "${sap_response}" | tail -1)
                 echo "SAP rules config response (HTTP ${sap_code})"
-                if [ "$ruleset_ready" = true ] && [ "$sap_code" = "200" ]; then
-                    echo "Ruleset consumer ready and SAP rules config present (${SECONDS}s)."
+                if [ "$ruleset_ready" = true ] && [ "$vd_ready" = true ] && [ "$sap_code" = "200" ]; then
+                    echo "Ruleset + vulnerabilities consumers ready and SAP rules config present (${SECONDS}s)."
                     break
                 fi
-                echo "Waiting — ruleset consumer ready: ${ruleset_ready}, SAP rules config: ${sap_code} (${SECONDS}s)..."
+                echo "Waiting — ruleset ready: ${ruleset_ready}, vulnerabilities ready: ${vd_ready}, SAP rules config: ${sap_code} (${SECONDS}s)..."
                 sleep 10
             done
 
-            if [ "$ruleset_ready" != true ] || [ "$sap_code" != "200" ]; then
+            if [ "$ruleset_ready" != true ] || [ "$vd_ready" != true ] || [ "$sap_code" != "200" ]; then
                 echo "Indexer content sync did not complete in time."
                 echo "--- Ruleset consumer ---"; curl -s "$base/.wazuh-cti-consumers/_doc/cti:catalog:consumer:ruleset" || true
+                echo "--- Vulnerabilities consumer ---"; curl -s "$base/.wazuh-cti-consumers/_doc/cti:catalog:consumer:vulnerabilities" || true
                 docker logs wazuh-indexer | tail -150
                 exit 1
             fi
