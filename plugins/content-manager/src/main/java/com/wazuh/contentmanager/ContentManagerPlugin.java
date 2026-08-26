@@ -73,7 +73,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -85,7 +84,6 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
@@ -507,26 +505,28 @@ public class ContentManagerPlugin extends Plugin
                                                 e);
                                     }
 
-                                    // Create the threat-intel ruleset resource indices up front so
-                                    // custom-ruleset REST endpoints work even when catalog
-                                    // synchronization is disabled, or when the Setup plugin is not
-                                    // installed at all. Waits for the Setup plugin first; see the
-                                    // method's documentation.
-                                    this.ensureResourceIndicesExist();
+                                    this.tryLoadAccessToken();
+
+                                    // Everything below writes into the threat-intel indices, which the
+                                    // Setup plugin owns. This plugin no longer creates any of them: it
+                                    // only ever created the six ruleset indices, never the IoC or CVE
+                                    // ones, so a deployment without the Setup plugin was broken either
+                                    // way. Stop here instead of half-provisioning it.
+                                    if (!this.setupReadiness.awaitReady()) {
+                                        log.error(Constants.E_LOG_SETUP_NOT_READY_INIT_ABORTED);
+                                        return;
+                                    }
 
                                     // Seed the default space policies (draft, test, custom) so
                                     // custom-ruleset operations that require a draft policy work even
-                                    // when catalog synchronization is disabled. Must run after the
-                                    // indices exist. Idempotent (opType=CREATE), so a later sync or
-                                    // another node finds them already present.
+                                    // when catalog synchronization is disabled. Idempotent
+                                    // (opType=CREATE), so a later sync or another node finds them
+                                    // already present.
                                     this.ensureDefaultSpacesExist();
 
                                     // Recover the standard space's aggregate hash if a previous hash
-                                    // calculation was interrupted (e.g. by a node restart). Must run
-                                    // after the indices exist.
+                                    // calculation was interrupted (e.g. by a restart).
                                     this.ensureStandardSpaceHash();
-
-                                    this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();
                                 }
@@ -574,52 +574,6 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Creates the space-aware threat-intel ruleset resource indices (policies, integrations, rules,
-     * kvdbs, decoders, filters) if they do not already exist.
-     *
-     * <p>These indices are otherwise created lazily during catalog synchronization. When both {@code
-     * plugins.content_manager.catalog.update_on_start} and {@code
-     * plugins.content_manager.catalog.update_on_schedule} are disabled no synchronization runs, so
-     * without this step the indices never get created and the custom-ruleset REST endpoints fail with
-     * "no such index". Each missing index is created with its configured mappings and public alias,
-     * matching what a normal first sync would produce.
-     *
-     * <p>This is a fallback for a deployment where the Setup plugin does not provision them, which
-     * owns the threat-intel index topology and creates each index as {@code <name>-a} with the public
-     * alias {@code <name>} pointing at it. So the method blocks on the Setup plugin's readiness
-     * marker first and, whenever Setup did provision them, finds them all present and does nothing.
-     * Skipping that wait is what made this method win the race and create the indices from this
-     * plugin's own mappings, before Setup had even installed their index templates (see issue #1476).
-     *
-     * <p>The fallback covers two cases, not one: the Setup plugin absent, and the Setup plugin
-     * installed but reporting failed. In the second case these indices are created here from this
-     * plugin's own mappings, so no index template applies to them. The mappings themselves are
-     * equivalent — the {@code verifyContentTemplates} Gradle task fails the build if the two copies
-     * diverge — but template-supplied settings are not, which is what the accompanying warning says.
-     */
-    private void ensureResourceIndicesExist() {
-        // Only a Setup plugin that is installed but did not become ready is worth warning about.
-        // Its absence is the expected path for this fallback and awaitReady() already reports it.
-        if (!this.setupReadiness.awaitReady() && this.setupReadiness.isSetupPluginInstalled()) {
-            log.warn(Constants.W_LOG_SETUP_NOT_READY_PROVISIONING);
-        }
-        for (Map.Entry<String, String> entry : Constants.RESOURCE_INDEX_MAPPINGS.entrySet()) {
-            String indexName = entry.getKey();
-            try {
-                boolean exists =
-                        this.awaitResult(listener -> ClusterInfo.indexExists(this.client, indexName, listener));
-                if (!exists) {
-                    // ContentIndex.createIndex() creates the physical index and its alias, and logs
-                    // the creation itself.
-                    new ContentIndex(this.client, indexName, entry.getValue()).createIndex();
-                }
-            } catch (Exception e) {
-                log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
-            }
-        }
-    }
-
-    /**
      * Seeds the default space policy documents (draft, test, custom) if they do not already exist.
      *
      * <p>These are otherwise created only during catalog synchronization (in {@code
@@ -627,7 +581,7 @@ public class ContentManagerPlugin extends Plugin
      * custom-ruleset operations that first check for it (e.g. creating an integration) fail with
      * "Draft policy not found" even though the resource indices are present. This seeds them at
      * startup via the same idempotent {@code opType=CREATE} logic, so a later sync or another node
-     * finds them already present. Must run after {@link #ensureResourceIndicesExist()}.
+     * finds them already present. Requires the Setup plugin to have provisioned the indices.
      */
     private void ensureDefaultSpacesExist() {
         try {

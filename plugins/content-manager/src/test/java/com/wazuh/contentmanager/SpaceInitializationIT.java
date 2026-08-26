@@ -163,10 +163,9 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
      * <p>This test connects to the Gradle test cluster as an {@code ExternalTestCluster}, so {@link
      * #nodePlugins()} does not apply and both the Setup and Content Manager plugins are running
      * there. Each of these indices is provisioned as {@code <name>-a} with the public alias {@code
-     * <name>} pointing at it, by the Setup plugin at node start and by {@code
-     * ContentManagerPlugin#ensureResourceIndicesExist()} otherwise. Creating them here as concrete
-     * indices named after the aliases therefore fails with "invalid index name [...], already exists
-     * as alias": a concrete index cannot take a name an alias already holds. Wait for them instead.
+     * <name>} pointing at it, by the Setup plugin. Creating them here as concrete indices named after
+     * the aliases therefore fails with "invalid index name [...], already exists as alias": a
+     * concrete index cannot take a name an alias already holds. Wait for them instead.
      */
     private void awaitContentIndices() throws Exception {
         assertBusy(

@@ -177,8 +177,9 @@ public class Constants {
             "Index [{}] is empty but the local offset is [{}]. Resetting the offset to download the "
                     + "content again.";
     public static final String D_LOG_INDEX_COUNT_FAILED = "Could not count the documents in [{}]: {}";
-    public static final String I_LOG_SETUP_PLUGIN_ABSENT =
-            "The Setup plugin is not installed, so there is nothing to wait for.";
+    public static final String E_LOG_SETUP_PLUGIN_ABSENT =
+            "The Setup plugin is not installed. It owns the indices this plugin reads and writes, so "
+                    + "install it and restart.";
     public static final String D_LOG_SETUP_PLUGIN_LOOKUP_FAILED =
             "Could not read the installed plugin list, assuming the Setup plugin is present: {}";
     public static final String E_LOG_SETUP_INIT_FAILED =
@@ -188,9 +189,10 @@ public class Constants {
             "Setup plugin initialization not complete yet. Retrying in {}s (attempt {}/{}).";
     public static final String D_LOG_SETUP_STATUS_READ_FAILED =
             "Could not read setup status marker: {}";
-    public static final String W_LOG_SETUP_NOT_READY_PROVISIONING =
-            "The Setup plugin did not complete, so this plugin is creating the threat intel indices "
-                    + "itself. Their settings may differ from the ones the Setup plugin applies.";
+    public static final String E_LOG_SETUP_NOT_READY_INIT_ABORTED =
+            "The Setup plugin has not configured the indexer, so initialization cannot continue. The "
+                    + "threat intel indices are created by the Setup plugin; without them no content is "
+                    + "downloaded and the custom ruleset endpoints will not work.";
     public static final String W_LOG_LOCAL_OFFSET_EXCEEDS_REMOTE =
             "Local offset [{}] exceeds remote offset [{}] for consumer [{}]. Resetting.";
     public static final String W_LOG_LOCAL_SNAPSHOT_CHECK_FAILED =
@@ -732,18 +734,6 @@ public class Constants {
     public static final String MAPPING_KVDBS = "/mappings/cti-kvdbs-mappings.json";
     public static final String MAPPING_DECODERS = "/mappings/cti-decoders-mappings.json";
     public static final String MAPPING_FILTERS = "/mappings/cti-filters-mappings.json";
-
-    // Index name -> mapping file for the space-aware ruleset resource indices. These are created
-    // unconditionally at startup so the custom-ruleset REST endpoints work even when catalog
-    // synchronization is disabled (update_on_start=false and update_on_schedule=false).
-    public static final Map<String, String> RESOURCE_INDEX_MAPPINGS =
-            Map.of(
-                    INDEX_POLICIES, MAPPING_POLICIES,
-                    INDEX_INTEGRATIONS, MAPPING_INTEGRATIONS,
-                    INDEX_RULES, MAPPING_RULES,
-                    INDEX_KVDBS, MAPPING_KVDBS,
-                    INDEX_DECODERS, MAPPING_DECODERS,
-                    INDEX_FILTERS, MAPPING_FILTERS);
 
     // Resources Indices Mapping for space-aware resources (used by SpaceService for promotion).
     // Note: IoCs and CVEs are NOT included here because they use flat storage without spaces.

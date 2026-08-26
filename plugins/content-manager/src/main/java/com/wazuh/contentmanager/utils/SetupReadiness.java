@@ -82,7 +82,7 @@ public class SetupReadiness {
      */
     public boolean awaitReady() {
         if (!this.isSetupPluginInstalled()) {
-            log.info(Constants.I_LOG_SETUP_PLUGIN_ABSENT);
+            log.error(Constants.E_LOG_SETUP_PLUGIN_ABSENT);
             return false;
         }
         int maxRetries = PluginSettings.getInstance().getSetupWaitMaxRetries();
