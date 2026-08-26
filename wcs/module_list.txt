@@ -30,14 +30,24 @@ module_to_file=(
   [stateless/metrics/engine]=templates/streams/metrics-normalization.json
   # Settings module
   [settings]=templates/settings.json
-  # Engine filter module
+  # Content modules
   [content/filters]=templates/content/filters.json
-  # IoC module
   [content/ioc]=templates/content/ioc.json
+  [content/vulnerabilities]=templates/content/vulnerabilities.json
   # CVE module
   [cve]=templates/cve.json
   # AI assistant modules
   [ai-assistant/sessions]=templates/streams/ai-assistant-sessions.json
   # Internal state module
   [internal-state]=plugins/content-manager/src/main/resources/mappings/internal-state-mapping.json
+)
+
+# Content modules whose mappings the Content Manager also needs. It keeps a bare mappings
+# document so it can create the blue/green shadow index during a content swap without setup
+# intervention, so both copies must describe the same index. Only the setup index template
+# above is authored; generate_schema.sh derives these from it via sync_content_mappings.py.
+module_to_cm_mapping=(
+  [content/filters]=plugins/content-manager/src/main/resources/mappings/cti-filters-mappings.json
+  [content/ioc]=plugins/content-manager/src/main/resources/mappings/cti-ioc-mappings.json
+  [content/vulnerabilities]=plugins/content-manager/src/main/resources/mappings/cti-cve-mappings.json
 )
