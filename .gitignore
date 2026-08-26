@@ -7,6 +7,9 @@ build
 # Ignore Idea IDE directory
 .idea/
 
+# Ignore VS Code IDE directory
+.vscode/
+
 # Log file
 *.log
 
