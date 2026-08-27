@@ -31,8 +31,13 @@ module_to_file=(
   # Settings module
   [settings]=templates/settings.json
   # Content modules
+  [content/decoders]=templates/content/decoders.json
   [content/filters]=templates/content/filters.json
+  [content/integrations]=templates/content/integrations.json
   [content/ioc]=templates/content/ioc.json
+  [content/kvdbs]=templates/content/kvdbs.json
+  [content/policies]=templates/content/policies.json
+  [content/rules]=templates/content/rules.json
   [content/vulnerabilities]=templates/content/vulnerabilities.json
   # CVE module
   [cve]=templates/cve.json
@@ -40,14 +45,4 @@ module_to_file=(
   [ai-assistant/sessions]=templates/streams/ai-assistant-sessions.json
   # Internal state module
   [internal-state]=plugins/content-manager/src/main/resources/mappings/internal-state-mapping.json
-)
-
-# Content modules whose mappings the Content Manager also needs. It keeps a bare mappings
-# document so it can create the blue/green shadow index during a content swap without setup
-# intervention, so both copies must describe the same index. Only the setup index template
-# above is authored; generate_schema.sh derives these from it via sync_content_mappings.py.
-module_to_cm_mapping=(
-  [content/filters]=plugins/content-manager/src/main/resources/mappings/cti-filters-mappings.json
-  [content/ioc]=plugins/content-manager/src/main/resources/mappings/cti-ioc-mappings.json
-  [content/vulnerabilities]=plugins/content-manager/src/main/resources/mappings/cti-cve-mappings.json
 )
