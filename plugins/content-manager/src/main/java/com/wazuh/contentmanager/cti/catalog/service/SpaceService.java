@@ -25,12 +25,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.NoShardAvailableActionException;
+import org.opensearch.action.UnavailableShardsException;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchPhaseExecutionException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.GroupedActionListener;
@@ -39,6 +42,7 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilders;
@@ -973,12 +977,11 @@ public class SpaceService {
                             }
                         },
                         e -> {
-                            // A missing policies index or a cluster block (typically "state not
-                            // recovered / initialized") is an expected pre-initialization state, not an
-                            // operational error: every node reads policies from startup onwards.
-                            // Callers still get the failure and decide.
-                            if (ExceptionsHelper.unwrap(e, IndexNotFoundException.class) != null
-                                    || ExceptionsHelper.unwrap(e, ClusterBlockException.class) != null) {
+                            // A missing policies index, a cluster block, or shards that are not yet
+                            // allocated are expected pre-initialization states, not operational
+                            // errors: every node reads policies from startup onwards. Callers still
+                            // get the failure and decide.
+                            if (isTransientReadFailure(e)) {
                                 log.debug(Constants.D_LOG_POLICY_INDEX_NOT_READY, space, e.getMessage());
                             } else {
                                 log.error(Constants.E_LOG_GET_POLICY_FAILED, space, e.getMessage());
@@ -986,6 +989,40 @@ public class SpaceService {
                             listener.onFailure(
                                     new IOException("Failed to retrieve policy: " + e.getMessage(), e));
                         }));
+    }
+
+    /**
+     * Classifies a read failure as an expected, self-healing startup condition rather than a real
+     * error.
+     *
+     * <p>During startup (especially on a multi-node cluster) the policies index shards may not be
+     * allocated yet: the index is briefly absent ({@link IndexNotFoundException}), the cluster state
+     * is not recovered ({@link ClusterBlockException}), or a search reaches the coordinating node
+     * before any shard copy is active. The last case surfaces as a {@link
+     * SearchPhaseExecutionException} ("all shards failed") whose shard-level cause is a {@link
+     * NoShardAvailableActionException} or {@link UnavailableShardsException}.
+     *
+     * <p>Only these specific cases are transient. A generic {@link SearchPhaseExecutionException} — a
+     * malformed query, an aggregation error — is a real failure and must not be swallowed, since that
+     * class covers <em>all</em> search failures. The single exception is one whose status is {@code
+     * 503 SERVICE_UNAVAILABLE}: that is "all shards failed" reported without a shard-level cause
+     * attached (empty {@code shardFailures}), still an availability problem and not a query problem.
+     *
+     * @param e the failure to classify.
+     * @return {@code true} if the failure is an expected startup condition that will self-heal once
+     *     the cluster finishes recovering.
+     */
+    private static boolean isTransientReadFailure(Exception e) {
+        if (ExceptionsHelper.unwrap(e, IndexNotFoundException.class) != null
+                || ExceptionsHelper.unwrap(e, ClusterBlockException.class) != null
+                || ExceptionsHelper.unwrap(e, NoShardAvailableActionException.class) != null
+                || ExceptionsHelper.unwrap(e, UnavailableShardsException.class) != null) {
+            return true;
+        }
+        SearchPhaseExecutionException searchFailure =
+                (SearchPhaseExecutionException)
+                        ExceptionsHelper.unwrap(e, SearchPhaseExecutionException.class);
+        return searchFailure != null && searchFailure.status() == RestStatus.SERVICE_UNAVAILABLE;
     }
 
     /**
@@ -1055,8 +1092,10 @@ public class SpaceService {
                             this.calculateAndUpdate(List.of(space), listener);
                         },
                         e -> {
-                            log.warn(Constants.W_LOG_SPACE_HASH_CHECK_FAILED, space, e.getMessage());
-                            listener.onResponse(new HashSet<>());
+                            if (!isTransientReadFailure(e)) {
+                                log.warn(Constants.W_LOG_SPACE_HASH_CHECK_FAILED, space, e.getMessage());
+                            }
+                            listener.onFailure(e);
                         }));
     }
 

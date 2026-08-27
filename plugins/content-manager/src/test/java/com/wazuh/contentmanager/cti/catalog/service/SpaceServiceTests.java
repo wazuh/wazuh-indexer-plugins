@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import org.apache.lucene.search.TotalHits;
+import org.opensearch.action.NoShardAvailableActionException;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
@@ -24,13 +25,17 @@ import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.search.SearchPhaseExecutionException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
@@ -40,6 +45,7 @@ import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Before;
 
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
@@ -374,10 +380,10 @@ public class SpaceServiceTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests that an unreadable policies index (an expected pre-initialization state at startup) is
-     * reported as "nothing changed" instead of failing the caller.
+     * Tests that an unreadable policies index (an expected pre-initialization state at startup)
+     * propagates the failure to the caller so it can decide whether to retry.
      */
-    public void testRecalculateSpaceHashIfMissingToleratesUnreadablePolicies() {
+    public void testRecalculateSpaceHashIfMissingPropagatesFailure() {
         doAnswer(
                         invocation -> {
                             invocation
@@ -389,13 +395,58 @@ public class SpaceServiceTests extends OpenSearchTestCase {
                 .search(any(SearchRequest.class), any());
 
         AtomicReference<Set<String>> changed = new AtomicReference<>(null);
-        AtomicReference<Boolean> failed = new AtomicReference<>(false);
+        AtomicReference<Exception> failure = new AtomicReference<>(null);
         this.policyHashService.recalculateSpaceHashIfMissing(
-                Space.STANDARD.toString(), ActionListener.wrap(changed::set, e -> failed.set(true)));
+                Space.STANDARD.toString(), ActionListener.wrap(changed::set, failure::set));
 
-        assertFalse("Failure should be handled gracefully via onResponse", failed.get());
-        assertNotNull("Listener should have been notified", changed.get());
-        assertTrue("No space should be reported as changed", changed.get().isEmpty());
+        assertNotNull("Failure should be propagated via onFailure", failure.get());
+        assertNull("onResponse should not have been called", changed.get());
+    }
+
+    /**
+     * Verifies the transient-failure classifier: only genuine shard-recovery conditions are treated
+     * as transient. A generic {@link SearchPhaseExecutionException} caused by a bad query (status
+     * 400) must NOT be swallowed, otherwise real search failures would silently disappear.
+     */
+    public void testIsTransientReadFailureClassification() throws Exception {
+        ShardId shardId = new ShardId("wazuh-threatintel-policies", "_na_", 0);
+
+        // "all shards failed" with no shard-level cause attached — reported as 503 → transient.
+        assertTrue(
+                isTransientReadFailure(
+                        new SearchPhaseExecutionException(
+                                "query", "all shards failed", ShardSearchFailure.EMPTY_ARRAY)));
+
+        // "all shards failed" whose shard cause is NoShardAvailable (shards recovering) → transient.
+        assertTrue(
+                isTransientReadFailure(
+                        new SearchPhaseExecutionException(
+                                "query",
+                                "all shards failed",
+                                new NoShardAvailableActionException(shardId),
+                                ShardSearchFailure.EMPTY_ARRAY)));
+
+        // A bare NoShardAvailable → transient.
+        assertTrue(isTransientReadFailure(new NoShardAvailableActionException(shardId)));
+
+        // A real query error (status 400) → NOT transient; must propagate as an error.
+        assertFalse(
+                isTransientReadFailure(
+                        new SearchPhaseExecutionException(
+                                "query",
+                                "parse error",
+                                new IllegalArgumentException("bad query"),
+                                ShardSearchFailure.EMPTY_ARRAY)));
+
+        // An unrelated failure → NOT transient.
+        assertFalse(isTransientReadFailure(new RuntimeException("boom")));
+    }
+
+    @SuppressForbidden(reason = "Unit test reflection on a private classifier")
+    private static boolean isTransientReadFailure(Exception e) throws Exception {
+        Method method = SpaceService.class.getDeclaredMethod("isTransientReadFailure", Exception.class);
+        method.setAccessible(true);
+        return (boolean) method.invoke(null, e);
     }
 
     private SearchHit policyHit(String sourceJson) {

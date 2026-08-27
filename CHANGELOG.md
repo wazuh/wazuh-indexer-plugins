@@ -142,7 +142,6 @@
 - ECS object removal [(#604)](https://github.com/wazuh/wazuh-indexer-plugins/issues/604)
 - Removal of alerts and archives index templates [(#689)](https://github.com/wazuh/wazuh-indexer-plugins/issues/689)
 - Make Unclassified events standard WCS category [(#1348)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1348)
-- Some Wazuh indices get 1 replica on multi-node clusters due to `auto_expand_replicas` [(#1354)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1354)
 
 ### Fixed
 - Wrong folder structure under `ecs` folder [(#461)](https://github.com/wazuh/wazuh-indexer-plugins/issues/461)
@@ -179,6 +178,8 @@
 - [BUG] Log test does not use manually enabled integrations [(#1410)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1410)
 - [BUG] User's enabled state is lost on CTI updates [(#1403)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1403)
 - [BUG] Undefined state if a node is restarted while the standard space hash is being calculated [(#1773)](https://github.com/wazuh/wazuh-indexer/issues/1773)
+- [BUG] Fix issues in workflows [(#1449)](https://github.com/wazuh/wazuh-indexer/issues/1449)
+- Failed to save/update ManagedIndexMetaData [(#1828)](https://github.com/wazuh/wazuh-indexer/issues/1828)
 
 ## Prior versions
 - []()

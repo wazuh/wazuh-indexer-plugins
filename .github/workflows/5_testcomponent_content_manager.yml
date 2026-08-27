@@ -34,7 +34,7 @@ env:
   # The component tests don't exercise security. The image ships no TLS certs, so
   # the test cluster runs with the security plugin disabled → plain HTTP, no auth.
   # Validated locally against the ECR image.
-  BASE_URL: "https://localhost:9200"
+  BASE_URL: "http://localhost:9200"
 
 jobs:
   get-version:
@@ -66,6 +66,7 @@ jobs:
     with:
       plugin: content-manager
       revision: "0"
+      skip-tests: true
     secrets: inherit
 
   component-tests:
@@ -98,6 +99,7 @@ jobs:
           # still starts the Wazuh Engine.
           docker run -d --name wazuh-indexer \
             -p 9200:9200 \
+            --ulimit memlock=-1:-1 \
             -e "plugins.security.disabled=true" \
             -e "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g" \
             "${IMAGE}"
@@ -112,64 +114,103 @@ jobs:
           done
           echo "Indexer did not become healthy in time."; docker logs wazuh-indexer | tail -100; exit 1
 
+      - name: Download CTI snapshots
+        run: |
+          set -euo pipefail
+          version=$(jq -r '"\(.version)-\(.stage)"' VERSION.json)
+          wget -q -O /tmp/download_snapshots.sh \
+            https://raw.githubusercontent.com/wazuh/wazuh-indexer/refs/heads/main/build-scripts/download_snapshots.sh
+          bash /tmp/download_snapshots.sh \
+            --env "https://api.pre.cloud.wazuh.com/api/v1" \
+            --version "$version" \
+            --output-dir ./snapshots
+
       - name: Swap in the freshly built Content Manager plugin
         run: |
           set -euo pipefail
+          # Delete all indices via API (keeps cluster state consistent, unlike rm -rf on the data dir).
+          curl -s -X DELETE "${BASE_URL}/*?expand_wildcards=open,hidden&allow_no_indices=true" || true
           plugin_bin=/usr/share/wazuh-indexer/bin/opensearch-plugin
-          # opensearch-plugin (via opensearch-env) sources /etc/sysconfig/wazuh-indexer
-          # unless OPENSEARCH_PATH_CONF is set; that file is absent in the image, so the
-          # CLI aborts under `docker exec` without this env.
           exec_plugin="docker exec -e OPENSEARCH_PATH_CONF=/usr/share/wazuh-indexer/config wazuh-indexer ${plugin_bin}"
           zip=$(ls pkg/wazuh-indexer-content-manager-*.zip | head -1)
           echo "Installing ${zip}"
           docker cp "${zip}" wazuh-indexer:/tmp/content-manager.zip
-          # Remove the version bundled in the image, install the PR build, then restart.
           $exec_plugin remove --purge wazuh-indexer-content-manager
           $exec_plugin install -b file:///tmp/content-manager.zip
-          # Align the distribution version with the repo under test, so /version/check
-          # queries CTI for the source's tag even if the base image is a different stage.
           docker cp VERSION.json wazuh-indexer:/usr/share/wazuh-indexer/VERSION.json
           cfg=/usr/share/wazuh-indexer/config/opensearch.yml
           docker exec wazuh-indexer sh -c \
             "grep -q '^plugins.security.disabled' ${cfg} || printf '\nplugins.security.disabled: true\n' >> ${cfg}"
+          # Wipe stale engine data (mirrors push.sh --cleanup).
+          docker exec wazuh-indexer sh -c "\
+            rm -rf /usr/share/wazuh-indexer/engine/data/content \
+                   /usr/share/wazuh-indexer/engine/data/kvdb-ioc \
+                   /usr/share/wazuh-indexer/engine/data/outputs \
+                   /usr/share/wazuh-indexer/engine/data/store/engine \
+                   /usr/share/wazuh-indexer/engine/data/store/ioc \
+                   /usr/share/wazuh-indexer/engine/data/store/kvdb-ioc \
+                   /usr/share/wazuh-indexer/engine/data/store/router \
+                   /usr/share/wazuh-indexer/engine/data/iocs.ndjson"
+          # Place pre-downloaded CTI snapshots so the plugin loads them on startup.
+          docker exec wazuh-indexer rm -rf /usr/share/wazuh-indexer/plugins/wazuh-indexer-content-manager/snapshots
+          docker cp ./snapshots wazuh-indexer:/usr/share/wazuh-indexer/plugins/wazuh-indexer-content-manager/snapshots
           docker restart wazuh-indexer
 
       - name: Wait for the indexer to be healthy (after restart)
         run: |
           for i in $(seq 1 60); do
             if curl -s "${BASE_URL}/_cluster/health" | grep -qE '"status":"(green|yellow)"'; then
-              echo "Indexer is healthy."; break
+              echo "Indexer is healthy."; exit 0
             fi
             sleep 5
           done
-          # Informational: confirm the Engine socket is present (logtest/findings need it).
-          docker exec wazuh-indexer ls -l /usr/share/wazuh-indexer/engine/sockets/ \
-            || echo "WARNING: engine socket missing — logtest/findings need a running Engine."
+          echo "Indexer did not become healthy after restart."; docker logs wazuh-indexer | tail -100; exit 1
 
       - name: Trigger content sync and wait for readiness
         run: |
             base="${BASE_URL}"
-            deadline=$((SECONDS + 900))   # ~15 min, snapshot indexing could be slow.
-            draft_ready=""; sap_ready=""
+            deadline=$((SECONDS + 1800))
+            fail_count=0
             while [ $SECONDS -lt $deadline ]; do
-                if [ -z "$draft_ready" ]; then
-                    hits=$(curl -s "$base/wazuh-threatintel-policies/_search" \
-                    -H 'Content-Type: application/json' \
-                    -d '{"size":0,"track_total_hits":true,"query":{"term":{"space.name":{"value":"draft"}}}}' \
-                    | grep -oE '"value":[0-9]+' | head -1 | grep -oE '[0-9]+' || echo 0)
-                    [ "${hits:-0}" -gt 0 ] && { draft_ready=1; echo "Draft policy present (${SECONDS}s)."; }
+                consumer_response=$(curl -s "$base/.wazuh-cti-consumers/_doc/cti:catalog:consumer:ruleset?filter_path=_source.status")
+                echo "Ruleset consumer response: ${consumer_response}"
+                if echo "${consumer_response}" | grep -qE '"error"'; then
+                    fail_count=$((fail_count + 1))
+                    if [ "$fail_count" -ge 3 ]; then
+                        echo "Cluster is broken: ruleset consumer query returned errors 3 times in a row."
+                        docker logs wazuh-indexer | tail -150
+                        exit 1
+                    fi
+                else
+                    fail_count=0
                 fi
-                if [ -z "$sap_ready" ]; then
-                    code=$(curl -s -o /dev/null -w '%{http_code}' "$base/.opensearch-sap-pre-packaged-rules-config")
-                    [ "$code" = "200" ] && { sap_ready=1; echo "SAP rules config present (${SECONDS}s)."; }
+                ruleset_ready=false
+                if echo "${consumer_response}" | grep -q '"ready"'; then
+                    ruleset_ready=true
                 fi
-                [ -n "$draft_ready" ] && [ -n "$sap_ready" ] && break
+                # The vulnerabilities consumer feeds .wazuh-threatintel-vulnerabilities,
+                # asserted by the vulnerabilities component tests.
+                vd_response=$(curl -s "$base/.wazuh-cti-consumers/_doc/cti:catalog:consumer:vulnerabilities?filter_path=_source.status")
+                echo "Vulnerabilities consumer response: ${vd_response}"
+                vd_ready=false
+                if echo "${vd_response}" | grep -q '"ready"'; then
+                    vd_ready=true
+                fi
+                sap_response=$(curl -s -w '\n%{http_code}' "$base/.opensearch-sap-pre-packaged-rules-config")
+                sap_code=$(echo "${sap_response}" | tail -1)
+                echo "SAP rules config response (HTTP ${sap_code})"
+                if [ "$ruleset_ready" = true ] && [ "$vd_ready" = true ] && [ "$sap_code" = "200" ]; then
+                    echo "Ruleset + vulnerabilities consumers ready and SAP rules config present (${SECONDS}s)."
+                    break
+                fi
+                echo "Waiting — ruleset ready: ${ruleset_ready}, vulnerabilities ready: ${vd_ready}, SAP rules config: ${sap_code} (${SECONDS}s)..."
                 sleep 10
             done
 
-            if [ -z "$draft_ready" ] || [ -z "$sap_ready" ]; then
+            if [ "$ruleset_ready" != true ] || [ "$vd_ready" != true ] || [ "$sap_code" != "200" ]; then
                 echo "Indexer content sync did not complete in time."
-                echo "--- CTI consumers (sync state) ---"; curl -s "$base/.wazuh-cti-consumers/_search" || true
+                echo "--- Ruleset consumer ---"; curl -s "$base/.wazuh-cti-consumers/_doc/cti:catalog:consumer:ruleset" || true
+                echo "--- Vulnerabilities consumer ---"; curl -s "$base/.wazuh-cti-consumers/_doc/cti:catalog:consumer:vulnerabilities" || true
                 docker logs wazuh-indexer | tail -150
                 exit 1
             fi

@@ -5,12 +5,12 @@
   "order": 1,
   "data_stream": {},
   "settings": {
-    "plugins.index_state_management.rollover_alias": "wazuh-metrics-agents",
     "plugins.index_state_management.policy_id": "stream-metrics-policy",
     "index": {
       "codec": "zstd",
       "number_of_shards": "1",
       "number_of_replicas": "0",
+      "auto_expand_replicas": "0-1",
       "refresh_interval": "5s",
       "query.default_field": [
         "wazuh.agent.id",
@@ -23,7 +23,8 @@
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"
-      ]
+      ],
+      "max_docvalue_fields_search": 100
     },
     "mapping.total_fields.limit": 1000
   }

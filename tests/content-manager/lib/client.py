@@ -21,9 +21,10 @@ _JSON = {"Content-Type": "application/json", "Accept": "application/json"}
 class CMClient:
     """Client for a running wazuh-indexer with the Content Manager plugin."""
 
-    def __init__(self, base_url, user="admin", password="admin", max_retries=5):
+    def __init__(self, base_url, user="admin", password="admin", max_retries=5, timeout=(5, 30)):
         self.base_url = base_url.rstrip("/")
         self.max_retries = max_retries
+        self.timeout = timeout
         self.session = requests.Session()
         self.session.auth = (user, password)
         self.session.verify = False
@@ -36,7 +37,7 @@ class CMClient:
         url = f"{self.base_url}{path}"
         last = None
         for attempt in range(1, self.max_retries + 1):
-            last = self.session.request(method, url, json=json, params=params)
+            last = self.session.request(method, url, json=json, params=params, timeout=self.timeout)
             if last.status_code != 429:
                 return last
             time.sleep(attempt)
@@ -144,6 +145,38 @@ class CMClient:
         """Return the draft policy ``_source`` (or ``None`` if absent)."""
         return self.get_policy(C.SPACE_DRAFT)
 
+    # ── CTI consumers ─────────────────────────────────────────────────────
+
+    def consumer_status(self, consumer_type):
+        """Return a consumer's ``status`` string from ``.wazuh-cti-consumers``.
+
+        Returns ``None`` if the consumer document does not exist yet (the
+        consumer has not started) or carries no status field.
+        """
+        resp = self.get(f"/{C.INDEX_CONSUMERS}/_doc/{consumer_type}", params={"filter_path": "_source.status"})
+        if resp.status_code != 200:
+            return None
+        return resp.json().get("_source", {}).get("status")
+
+    # ── Aggregation helpers ───────────────────────────────────────────────
+
+    def terms_agg(self, index, field, size=10000):
+        """Return ``{value: doc_count}`` for a terms aggregation over ``field``."""
+        self.refresh(index)
+        body = {"size": 0, "aggs": {"values": {"terms": {"field": field, "size": size}}}}
+        resp = self.post(f"/{index}/_search", json=body)
+        assert resp.status_code == 200, f"terms agg {index}.{field} -> {resp.status_code}: {resp.text}"
+        buckets = resp.json()["aggregations"]["values"]["buckets"]
+        return {b["key"]: b["doc_count"] for b in buckets}
+
+    def cardinality_agg(self, index, field):
+        """Return the cardinality (distinct count) of ``field`` in ``index``."""
+        self.refresh(index)
+        body = {"size": 0, "aggs": {"unique_count": {"cardinality": {"field": field}}}}
+        resp = self.post(f"/{index}/_search", json=body)
+        assert resp.status_code == 200, f"cardinality agg {index}.{field} -> {resp.status_code}: {resp.text}"
+        return resp.json()["aggregations"]["unique_count"]["value"]
+
     # ── Findings pipeline (Security Analytics + Alerting) ──────────────────
 
     def create_detector(self, payload):
@@ -174,17 +207,22 @@ class CMClient:
         assert resp.status_code in (200, 201), f"index event -> {resp.status_code}: {resp.text}"
         return resp
 
-    def findings(self, detector_type):
-        """Return the Security Analytics findings body for a detector type."""
-        resp = self.get(C.SA_FINDINGS, params={"detectorType": detector_type})
-        assert resp.status_code == 200, f"findings search -> {resp.status_code}: {resp.text}"
-        return resp.json()
+    def findings(self, integration_name):
+        """Return enriched findings for an integration from ``wazuh-findings-v5-*``."""
+        self.refresh(C.FINDINGS_INDEX_PATTERN)
+        body = self.search(
+            C.FINDINGS_INDEX_PATTERN,
+            {"term": {"wazuh.integration.name": {"value": integration_name}}},
+        )
+        return body["hits"]["hits"]
 
-    def finding_doc_ids(self, detector_type):
-        """Return the set of event doc ids referenced by this detector's findings."""
+    def finding_doc_ids(self, integration_name):
+        """Return the set of event doc ids referenced by enriched findings."""
         ids = set()
-        for finding in self.findings(detector_type).get("findings", []):
-            ids.update(finding.get("related_doc_ids", []))
+        for hit in self.findings(integration_name):
+            doc_id = hit.get("_source", {}).get("event", {}).get("doc_id")
+            if doc_id:
+                ids.add(doc_id)
         return ids
 
 
