@@ -8,13 +8,13 @@
       "index": {
         "auto_expand_replicas": "0-1",
         "mapping.total_fields.limit": 1000,
+        "max_docvalue_fields_search": 100,
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
           "wazuh.agent.id"
         ],
-        "refresh_interval": "5s",
-        "max_docvalue_fields_search": 100
+        "refresh_interval": "5s"
       },
       "mapping.total_fields.limit": 1000
     },
