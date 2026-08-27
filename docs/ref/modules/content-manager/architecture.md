@@ -149,6 +149,8 @@ POST /promote
   → Delete removed integrations/rules from Security Analytics
 ```
 
+A space can be promoted regardless of its policy's `enabled` value. Promoting a space whose policy has `enabled: false` is expected behavior, not an error condition.
+
 ### Rollback on failure
 
 If any Content Manager index mutation fails during the consolidation phase, the promotion endpoint automatically performs a last-in-first-out (LIFO) rollback to restore the system to its pre-promotion state.
