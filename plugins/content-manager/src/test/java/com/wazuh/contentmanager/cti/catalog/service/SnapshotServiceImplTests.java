@@ -243,6 +243,49 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
+     * When the content indices report dropped documents, the snapshot is only partially indexed. The
+     * consumer offset must stay where it is: incremental syncs resume from it, so advancing it over
+     * the gap would strand the missing documents permanently.
+     */
+    public void testInitialize_DoesNotAdvanceOffsetWhenDocumentsWereDropped() throws Exception {
+        // Mock
+        String url = "http://example.com/snapshot.zip";
+        long offset = 100L;
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getOffset()).thenReturn(offset);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(offset);
+
+        // A t0 consumer doc must exist, otherwise updateLocalOffset would bail out on its own and
+        // the test would pass without exercising the drop gate at all.
+        String existingConsumerJson =
+                "{\"name\":\"test-consumer\",\"context\":\"test-context\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\","
+                        + "\"resource\":\"https://cti.example/catalog/contexts/test-context/consumers/test-consumer\","
+                        + "\"is_public\":true,\"status\":\"running\",\"local_offset\":0,\"remote_offset\":100}";
+        org.opensearch.action.get.GetResponse t0Response =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(t0Response.isExists()).thenReturn(true);
+        when(t0Response.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset")).thenReturn(t0Response);
+
+        // The cluster shed documents that never made it back, exactly as on DTT node-9.
+        when(this.contentIndexMock.getDroppedDocuments()).thenReturn(9332L);
+
+        Path zipPath =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"12345678\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"12345678\", \"title\": \"Test Kvdb\"}}}");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        // Act
+        boolean result = this.snapshotService.initialize(this.remoteConsumer);
+
+        // Assert
+        Assert.assertFalse("a partial load must not report success", result);
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
+    }
+
+    /**
      * Tests that documents with type "policy" are indexed correctly.
      *
      * @throws URISyntaxException

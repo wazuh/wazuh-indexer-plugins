@@ -175,6 +175,8 @@ public class SnapshotServiceImpl implements SnapshotService {
         boolean success = false;
 
         try {
+            this.resetDroppedDocuments();
+
             // 1. Download Snapshot
             snapshotZip = this.snapshotClient.downloadFile(snapshotUrl);
             if (snapshotZip == null) {
@@ -215,7 +217,15 @@ public class SnapshotServiceImpl implements SnapshotService {
             } else {
                 this.cleanup(snapshotZip);
             }
-            // 3. Partial update of consumer state: bump local_offset to the snapshot offset and
+            // 3. Refuse to commit progress over a partial load: leaving local_offset where it is
+            // makes the next sync re-run the snapshot instead of silently skipping the gap.
+            long dropped = this.getDroppedDocuments();
+            if (dropped > 0) {
+                log.error(Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE, this.consumerType, dropped);
+                return false;
+            }
+
+            // 4. Partial update of consumer state: bump local_offset to the snapshot offset and
             // keep the remote_offset (set at t0 from RemoteConsumer.last_offset) so the
             // incremental update path can close the gap. Identity fields and status are preserved
             // from the t0 write.
@@ -380,6 +390,22 @@ public class SnapshotServiceImpl implements SnapshotService {
         return this.maxOffsetSeen;
     }
 
+    /** Clears the dropped-document counters before a load, so the tally covers this run only. */
+    private void resetDroppedDocuments() {
+        this.indicesMap.values().forEach(ContentIndex::resetDroppedDocuments);
+    }
+
+    /**
+     * Total documents the content indices gave up on during this load. A non-zero value means the
+     * snapshot is only partially indexed, so the consumer offset must not be advanced over the gap:
+     * incremental syncs resume from the offset and would never backfill the missing documents.
+     *
+     * @return the number of dropped documents across all content indices.
+     */
+    private long getDroppedDocuments() {
+        return this.indicesMap.values().stream().mapToLong(ContentIndex::getDroppedDocuments).sum();
+    }
+
     /**
      * Initializes content from a pre-packaged local snapshot zip file using consumer metadata from
      * the external {@code manifest.json} located in the snapshots' directory.
@@ -403,6 +429,8 @@ public class SnapshotServiceImpl implements SnapshotService {
         long startMs = System.currentTimeMillis();
 
         try {
+            this.resetDroppedDocuments();
+
             // 1. Clear indices
             this.indicesMap.values().forEach(ContentIndex::clear);
 
@@ -440,7 +468,15 @@ public class SnapshotServiceImpl implements SnapshotService {
                 localZip.getFileName(),
                 System.currentTimeMillis() - startMs);
 
-        // 4. Partial update of consumer state: bump local_offset to the highest offset observed
+        // 4. Refuse to commit progress over a partial load: leaving local_offset where it is
+        // makes the next sync re-run the snapshot instead of silently skipping the gap.
+        long dropped = this.getDroppedDocuments();
+        if (dropped > 0) {
+            log.error(Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE, this.consumerType, dropped);
+            return false;
+        }
+
+        // 5. Partial update of consumer state: bump local_offset to the highest offset observed
         // while indexing. Identity fields, is_public, status and remote_offset are owned by the
         // t0 write performed by AbstractConsumerService.writeInitialConsumer.
         return this.updateLocalOffset(this.maxOffsetSeen);

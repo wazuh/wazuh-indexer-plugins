@@ -43,13 +43,17 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.breaker.CircuitBreakingException;
+import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -60,6 +64,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.wazuh.contentmanager.cti.catalog.model.*;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
@@ -84,6 +89,10 @@ public class ContentIndex {
     private static final long UPDATE_INITIAL_BACKOFF_MS = 1000;
     private static final long UPDATE_MAX_BACKOFF_MS = 30_000;
 
+    private static final int MAX_BULK_RETRIES = 3;
+    private static final long BULK_INITIAL_BACKOFF_MS = 1000;
+    private static final long BULK_MAX_BACKOFF_MS = 30_000;
+
     /** Maximum number of UPDATE offsets to batch into a single MultiGet + BulkRequest. */
     public static final int UPDATE_SUB_BATCH_SIZE = 50;
 
@@ -93,6 +102,14 @@ public class ContentIndex {
     private final Client client;
     private final PluginSettings pluginSettings;
     private final Semaphore semaphore;
+
+    /**
+     * Documents this instance failed to index and gave up on, either because the failure was not
+     * retryable or because the retry budget was exhausted. Callers loading a full snapshot must check
+     * this before advancing the consumer offset, otherwise the dropped documents are never
+     * backfilled.
+     */
+    private final AtomicLong droppedDocuments = new AtomicLong();
 
     /**
      * The public alias name (e.g., {@code "wazuh-threatintel-rules"}). All read operations use this
@@ -712,46 +729,184 @@ public class ContentIndex {
     }
 
     /**
-     * Executes a bulk request asynchronously.
+     * Executes a bulk request asynchronously, retrying the items the cluster sheds under load.
+     *
+     * <p>The indexer is deliberately configured to shed writes rather than exhaust the heap (see
+     * {@code indices.breaker.total.limit} in {@code opensearch.prod.yml}), so a rejected bulk is an
+     * expected, transient outcome that the client is responsible for re-submitting. Only the failed
+     * items are retried, with exponential backoff, up to {@link #MAX_BULK_RETRIES} attempts.
+     *
+     * <p>Items that fail for a non-retryable reason, and items still failing once the retry budget is
+     * exhausted, are counted in {@link #getDroppedDocuments()} so callers can avoid committing
+     * progress over an incomplete load.
+     *
+     * <p>The concurrency permit is held for the whole retry chain, so {@link
+     * #waitForPendingUpdates()} also waits for outstanding retries.
      *
      * @param bulkRequest The BulkRequest containing multiple index/delete operations.
      */
     public void executeBulk(BulkRequest bulkRequest) {
         try {
             this.semaphore.acquire();
-            this.client.bulk(
-                    bulkRequest,
-                    new ActionListener<>() {
-                        @Override
-                        public void onResponse(BulkResponse bulkResponse) {
-                            ContentIndex.this.semaphore.release();
-                            if (bulkResponse.hasFailures()) {
-                                log.warn(
-                                        Constants.W_LOG_BULK_INDEXING_FAILURES, bulkResponse.buildFailureMessage());
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            ContentIndex.this.semaphore.release();
-                            log.error(Constants.E_LOG_BULK_INDEX_OPERATION_FAILED, e.getMessage());
-                        }
-                    });
         } catch (InterruptedException e) {
             log.error(Constants.E_LOG_SEMAPHORE_INTERRUPTED, e.getMessage());
             Thread.currentThread().interrupt();
+            return;
+        }
+        this.submitBulk(bulkRequest, 0, BULK_INITIAL_BACKOFF_MS);
+    }
+
+    /**
+     * Submits one attempt of a bulk request. Releases the concurrency permit acquired by {@link
+     * #executeBulk(BulkRequest)} once the request settles for good; a scheduled retry keeps holding
+     * it.
+     *
+     * @param bulkRequest The operations to submit on this attempt.
+     * @param attempt The zero-based attempt number.
+     * @param backoffMs The delay to apply before the next attempt, if one is needed.
+     */
+    private void submitBulk(BulkRequest bulkRequest, int attempt, long backoffMs) {
+        this.client.bulk(
+                bulkRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(BulkResponse bulkResponse) {
+                        if (!bulkResponse.hasFailures()) {
+                            ContentIndex.this.semaphore.release();
+                            return;
+                        }
+
+                        BulkRequest retryRequest = new BulkRequest();
+                        int permanent = 0;
+                        String lastPermanentFailure = null;
+                        String lastRetryableFailure = null;
+
+                        for (BulkItemResponse item : bulkResponse.getItems()) {
+                            if (!item.isFailed()) {
+                                continue;
+                            }
+                            BulkItemResponse.Failure failure = item.getFailure();
+                            if (isRetryable(failure)) {
+                                retryRequest.add(bulkRequest.requests().get(item.getItemId()));
+                                lastRetryableFailure = item.getFailureMessage();
+                            } else {
+                                permanent++;
+                                lastPermanentFailure = item.getFailureMessage();
+                            }
+                        }
+
+                        if (permanent > 0) {
+                            ContentIndex.this.droppedDocuments.addAndGet(permanent);
+                            log.error(Constants.E_LOG_BULK_ITEMS_NOT_RETRYABLE, permanent, lastPermanentFailure);
+                        }
+
+                        if (retryRequest.numberOfActions() == 0) {
+                            ContentIndex.this.semaphore.release();
+                            return;
+                        }
+                        ContentIndex.this.retryOrDrop(retryRequest, attempt, backoffMs, lastRetryableFailure);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        if (isRetryable(e)) {
+                            ContentIndex.this.retryOrDrop(bulkRequest, attempt, backoffMs, e.getMessage());
+                            return;
+                        }
+                        ContentIndex.this.droppedDocuments.addAndGet(bulkRequest.numberOfActions());
+                        log.error(Constants.E_LOG_BULK_INDEX_OPERATION_FAILED, e.getMessage());
+                        ContentIndex.this.semaphore.release();
+                    }
+                });
+    }
+
+    /**
+     * Schedules another attempt for the shed operations, or gives up and counts them as dropped once
+     * the retry budget is exhausted. Releases the concurrency permit on every terminal path.
+     *
+     * @param retryRequest The operations still pending.
+     * @param attempt The zero-based attempt number that just failed.
+     * @param backoffMs The delay to apply before this retry.
+     * @param failureMessage The failure reported by the last attempt, for logging.
+     */
+    private void retryOrDrop(
+            BulkRequest retryRequest, int attempt, long backoffMs, String failureMessage) {
+        int pending = retryRequest.numberOfActions();
+
+        if (attempt >= MAX_BULK_RETRIES) {
+            this.droppedDocuments.addAndGet(pending);
+            log.error(Constants.E_LOG_BULK_RETRIES_EXHAUSTED, pending, MAX_BULK_RETRIES, failureMessage);
+            this.semaphore.release();
+            return;
+        }
+
+        log.warn(
+                Constants.W_LOG_BULK_RETRY_SCHEDULED, pending, attempt + 1, MAX_BULK_RETRIES, backoffMs);
+
+        long nextBackoffMs = Math.min(backoffMs * 2, BULK_MAX_BACKOFF_MS);
+        try {
+            this.client
+                    .threadPool()
+                    .schedule(
+                            () -> this.submitBulk(retryRequest, attempt + 1, nextBackoffMs),
+                            TimeValue.timeValueMillis(backoffMs),
+                            ThreadPool.Names.GENERIC);
+        } catch (Exception e) {
+            // The node is shutting down, or the scheduler refused the task: the permit must not leak.
+            this.droppedDocuments.addAndGet(pending);
+            log.error(Constants.E_LOG_BULK_RETRY_SCHEDULE_FAILED, pending, e.getMessage());
+            this.semaphore.release();
         }
     }
 
-    private static boolean isCircuitBreakerException(Exception e) {
-        Throwable cause = e;
+    /**
+     * Returns the number of documents this instance failed to index and gave up on since the last
+     * {@link #resetDroppedDocuments()}.
+     *
+     * @return The dropped document count.
+     */
+    public long getDroppedDocuments() {
+        return this.droppedDocuments.get();
+    }
+
+    /** Resets the dropped document counter. Call before starting a full snapshot load. */
+    public void resetDroppedDocuments() {
+        this.droppedDocuments.set(0);
+    }
+
+    /** Returns true if any cause in the chain is an instance of the given type. */
+    private static boolean hasCause(Throwable throwable, Class<? extends Throwable> type) {
+        Throwable cause = throwable;
         while (cause != null) {
-            if (cause instanceof CircuitBreakingException) {
+            if (type.isInstance(cause)) {
                 return true;
             }
             cause = cause.getCause();
         }
         return false;
+    }
+
+    private static boolean isCircuitBreakerException(Exception e) {
+        return hasCause(e, CircuitBreakingException.class);
+    }
+
+    /**
+     * Whether a failure is the cluster shedding load rather than rejecting the document itself.
+     * Circuit breaker trips and thread pool / indexing pressure rejections are transient and clear on
+     * their own, so the operation is worth re-submitting.
+     */
+    private static boolean isRetryable(Exception e) {
+        return hasCause(e, CircuitBreakingException.class)
+                || hasCause(e, OpenSearchRejectedExecutionException.class);
+    }
+
+    /** Per-item variant of {@link #isRetryable(Exception)}, which also honours the REST status. */
+    private static boolean isRetryable(BulkItemResponse.Failure failure) {
+        RestStatus status = failure.getStatus();
+        if (status == RestStatus.TOO_MANY_REQUESTS || status == RestStatus.SERVICE_UNAVAILABLE) {
+            return true;
+        }
+        return isRetryable(failure.getCause());
     }
 
     /**
