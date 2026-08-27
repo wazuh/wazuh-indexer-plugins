@@ -34,10 +34,9 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.agent.configuration.content.agent.agent.enrollment.server_certificate_path,keyword,custom,,,Agent module configuration: agent.agent.enrollment.server_certificate_path.
 9.1.0,true,wazuh,wazuh.agent.configuration.content.agent.agent.enrollment.ssl_cipher,keyword,custom,,,Agent module configuration: agent.agent.enrollment.ssl_cipher.
 9.1.0,true,wazuh,wazuh.agent.configuration.content.agent.agent.ip_update_interval,long,custom,,,Agent module configuration: agent.agent.ip_update_interval.
-9.1.0,true,wazuh,wazuh.agent.configuration.content.agent.agent.manager.address,keyword,custom,,,Agent module configuration: agent.agent.manager.address.
+9.1.0,true,wazuh,wazuh.agent.configuration.content.agent.agent.manager.endpoint,keyword,custom,,,Agent module configuration: agent.agent.manager.endpoint.
 9.1.0,true,wazuh,wazuh.agent.configuration.content.agent.agent.manager.interface_index,long,custom,,,Agent module configuration: agent.agent.manager.interface_index.
 9.1.0,true,wazuh,wazuh.agent.configuration.content.agent.agent.manager.max_retries,long,custom,,,Agent module configuration: agent.agent.manager.max_retries.
-9.1.0,true,wazuh,wazuh.agent.configuration.content.agent.agent.manager.port,long,custom,,,Agent module configuration: agent.agent.manager.port.
 9.1.0,true,wazuh,wazuh.agent.configuration.content.agent.agent.manager.retry_interval,long,custom,,,Agent module configuration: agent.agent.manager.retry_interval.
 9.1.0,true,wazuh,wazuh.agent.configuration.content.agent.agent.notify_time,long,custom,,,Agent module configuration: agent.agent.notify_time.
 9.1.0,true,wazuh,wazuh.agent.configuration.content.agent.agent.remote_conf,keyword,custom,,,Agent module configuration: agent.agent.remote_conf.
