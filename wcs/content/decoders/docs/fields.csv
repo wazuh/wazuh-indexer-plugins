@@ -1,0 +1,23 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,offset,unsigned_long,custom,,,The CTI offset the document was delivered at.
+9.1.0,true,base,yaml,text,custom,,,"The resource definition as the Engine consumes it, in YAML."
+9.1.0,false,document,document.check,object,custom,,,"The decoder's check stage, stored verbatim and not indexed."
+9.1.0,false,document,document.definitions,object,custom,,,"The decoder's definitions block, stored verbatim and not indexed."
+9.1.0,true,document,document.enabled,boolean,custom,,,Whether the resource is enabled.
+9.1.0,true,document,document.id,keyword,custom,,,Unique identifier of the resource.
+9.1.0,true,document,document.metadata.author,keyword,custom,,,Author of the resource.
+9.1.0,true,document,document.metadata.compatibility,keyword,custom,,,Products or versions the resource is compatible with.
+9.1.0,true,document,document.metadata.date,date,custom,,,Date the resource was created.
+9.1.0,true,document,document.metadata.description,text,custom,,,Description of what the resource does.
+9.1.0,true,document,document.metadata.documentation,keyword,custom,,,Documentation for the resource.
+9.1.0,true,document,document.metadata.modified,date,custom,,,Date the resource was last modified.
+9.1.0,true,document,document.metadata.module,keyword,custom,,,Module the decoder belongs to.
+9.1.0,true,document,document.metadata.references,keyword,custom,,,External references for the resource.
+9.1.0,true,document,document.metadata.supports,keyword,custom,,,Products or log formats the resource supports.
+9.1.0,true,document,document.metadata.title,keyword,custom,,,Title of the resource.
+9.1.0,true,document,document.metadata.versions,keyword,custom,,,Versions of the supported product the decoder covers.
+9.1.0,true,document,document.name,keyword,custom,,,Name of the resource.
+9.1.0,false,document,document.normalize,object,custom,,,"The decoder's normalize stage, stored verbatim and not indexed."
+9.1.0,true,document,document.parents,keyword,custom,,,Parent decoders this decoder extends.
+9.1.0,true,hash,hash.sha256,keyword,custom,,,The SHA-256 hash of the resource document.
+9.1.0,true,space,space.name,keyword,custom,,,Name of the space the resource belongs to.

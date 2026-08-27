@@ -17,51 +17,57 @@
       "properties": {
         "document": {
           "properties": {
+            "content": {
+              "enabled": false,
+              "type": "object"
+            },
+            "enabled": {
+              "type": "boolean"
+            },
             "id": {
+              "ignore_above": 1024,
               "type": "keyword"
             },
             "metadata": {
-              "type": "object",
               "properties": {
-                "title": {
-                  "type": "keyword"
-                },
                 "author": {
+                  "ignore_above": 1024,
                   "type": "keyword"
                 },
                 "date": {
                   "type": "date"
                 },
+                "description": {
+                  "norms": false,
+                  "type": "text"
+                },
+                "documentation": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
                 "modified": {
                   "type": "date"
                 },
-                "description": {
-                  "type": "text"
-                },
                 "references": {
-                  "type": "keyword"
-                },
-                "documentation": {
+                  "ignore_above": 1024,
                   "type": "keyword"
                 },
                 "supports": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "title": {
+                  "ignore_above": 1024,
                   "type": "keyword"
                 }
               }
-            },
-            "enabled": {
-              "type": "boolean"
-            },
-            "content": {
-              "type": "object",
-              "enabled": false
             }
           }
         },
         "hash": {
-          "type": "object",
           "properties": {
             "sha256": {
+              "ignore_above": 1024,
               "type": "keyword"
             }
           }
@@ -69,16 +75,17 @@
         "offset": {
           "type": "unsigned_long"
         },
-        "yaml": {
-          "type": "text"
-        },
         "space": {
-          "type": "object",
           "properties": {
             "name": {
+              "ignore_above": 1024,
               "type": "keyword"
             }
           }
+        },
+        "yaml": {
+          "norms": false,
+          "type": "text"
         }
       }
     }

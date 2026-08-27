@@ -1,0 +1,23 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,offset,unsigned_long,custom,,,The CTI offset the document was delivered at.
+9.1.0,true,document,document.category,keyword,custom,,,Category the integration belongs to.
+9.1.0,true,document,document.decoders,keyword,custom,,,Decoders the integration includes.
+9.1.0,true,document,document.default_parent,keyword,custom,,,Decoder used as the default parent for the integration.
+9.1.0,true,document,document.detector.enabled,boolean,custom,,,Whether the integration creates a detector.
+9.1.0,true,document,document.detector.interval,integer,custom,,,"Interval, in minutes, at which the detector runs."
+9.1.0,true,document,document.detector.source,keyword,custom,,,Source the detector reads from.
+9.1.0,true,document,document.enabled,boolean,custom,,,Whether the resource is enabled.
+9.1.0,true,document,document.id,keyword,custom,,,Unique identifier of the resource.
+9.1.0,true,document,document.kvdbs,keyword,custom,,,Key-value databases the integration includes.
+9.1.0,true,document,document.metadata.author,keyword,custom,,,Author of the resource.
+9.1.0,true,document,document.metadata.date,date,custom,,,Date the resource was created.
+9.1.0,true,document,document.metadata.description,text,custom,,,Description of what the resource does.
+9.1.0,true,document,document.metadata.documentation,keyword,custom,,,Documentation for the resource.
+9.1.0,true,document,document.metadata.modified,date,custom,,,Date the resource was last modified.
+9.1.0,true,document,document.metadata.references,keyword,custom,,,External references for the resource.
+9.1.0,true,document,document.metadata.supports,keyword,custom,,,Products or log formats the resource supports.
+9.1.0,true,document,document.metadata.title,keyword,custom,,,Title of the resource.
+9.1.0,true,document,document.mode,keyword,custom,,,Whether the integration is protected or user-managed.
+9.1.0,true,document,document.rules,keyword,custom,,,Rules the integration includes.
+9.1.0,true,hash,hash.sha256,keyword,custom,,,The SHA-256 hash of the resource document.
+9.1.0,true,space,space.name,keyword,custom,,,Name of the space the resource belongs to.

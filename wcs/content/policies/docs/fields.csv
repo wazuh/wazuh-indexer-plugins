@@ -1,0 +1,21 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,offset,unsigned_long,custom,,,The CTI offset the document was delivered at.
+9.1.0,true,document,document.enabled,boolean,custom,,,Whether the resource is enabled.
+9.1.0,true,document,document.enrichments,keyword,custom,,,Enrichments the policy applies.
+9.1.0,true,document,document.filters,keyword,custom,,,Filters the policy applies.
+9.1.0,true,document,document.id,keyword,custom,,,Unique identifier of the resource.
+9.1.0,true,document,document.index_discarded_events,boolean,custom,,,Whether events discarded by the policy are indexed.
+9.1.0,true,document,document.index_unclassified_events,boolean,custom,,,Whether events the policy cannot classify are indexed.
+9.1.0,true,document,document.integrations,keyword,custom,,,Integrations the policy includes.
+9.1.0,true,document,document.metadata.author,keyword,custom,,,Author of the resource.
+9.1.0,true,document,document.metadata.compatibility,keyword,custom,,,Products or versions the resource is compatible with.
+9.1.0,true,document,document.metadata.date,date,custom,,,Date the resource was created.
+9.1.0,true,document,document.metadata.description,text,custom,,,Description of what the resource does.
+9.1.0,true,document,document.metadata.documentation,keyword,custom,,,Documentation for the resource.
+9.1.0,true,document,document.metadata.modified,date,custom,,,Date the resource was last modified.
+9.1.0,true,document,document.metadata.references,keyword,custom,,,External references for the resource.
+9.1.0,true,document,document.metadata.title,keyword,custom,,,Title of the resource.
+9.1.0,true,document,document.root_decoder,keyword,custom,,,Decoder the policy uses as the root of the decoder tree.
+9.1.0,true,hash,hash.sha256,keyword,custom,,,The SHA-256 hash of the resource document.
+9.1.0,true,space,space.hash.sha256,keyword,custom,,,The aggregate SHA-256 hash of the space's content.
+9.1.0,true,space,space.name,keyword,custom,,,Name of the space the resource belongs to.

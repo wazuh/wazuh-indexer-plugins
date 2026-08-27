@@ -1,0 +1,39 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,offset,unsigned_long,custom,,,The CTI offset the document was delivered at.
+9.1.0,true,base,type,text,custom,,,The type of the CTI content.
+9.1.0,true,base,type.keyword,keyword,custom,,,The type of the CTI content.
+9.1.0,false,document,document.detection,object,custom,,,"The rule's detection block, stored verbatim and not indexed."
+9.1.0,true,document,document.enabled,boolean,custom,,,Whether the resource is enabled.
+9.1.0,true,document,document.falsepositives,keyword,custom,,,Known false positives for the rule.
+9.1.0,true,document,document.fields,keyword,custom,,,Fields the rule reports when it matches.
+9.1.0,true,document,document.id,keyword,custom,,,Unique identifier of the resource.
+9.1.0,true,document,document.level,keyword,custom,,,Severity level of the rule.
+9.1.0,true,document,document.license,keyword,custom,,,License the rule is distributed under.
+9.1.0,true,document,document.logsource.category,keyword,custom,,,Log source category the rule applies to.
+9.1.0,true,document,document.logsource.definition,text,custom,,,Free-form description of the log source the rule expects.
+9.1.0,true,document,document.logsource.product,keyword,custom,,,Product that produces the log source.
+9.1.0,true,document,document.logsource.service,keyword,custom,,,Service that produces the log source.
+9.1.0,true,document,document.metadata.author,keyword,custom,,,Author of the resource.
+9.1.0,true,document,document.metadata.date,date,custom,,,Date the resource was created.
+9.1.0,true,document,document.metadata.description,text,custom,,,Description of what the resource does.
+9.1.0,true,document,document.metadata.documentation,keyword,custom,,,Documentation for the resource.
+9.1.0,true,document,document.metadata.modified,date,custom,,,Date the resource was last modified.
+9.1.0,true,document,document.metadata.references,keyword,custom,,,External references for the resource.
+9.1.0,true,document,document.metadata.supports,keyword,custom,,,Products or log formats the resource supports.
+9.1.0,true,document,document.metadata.title,keyword,custom,,,Title of the resource.
+9.1.0,true,document,document.name,keyword,custom,,,Name of the resource.
+9.1.0,true,document,document.related.id,keyword,custom,,,Identifier of a related rule.
+9.1.0,true,document,document.related.type,keyword,custom,,,How the related rule relates to this one.
+9.1.0,true,document,document.scope,keyword,custom,,,Scope the rule applies to.
+9.1.0,true,document,document.sigma_id,keyword,custom,,,Identifier of the Sigma rule this rule derives from.
+9.1.0,true,document,document.status,keyword,custom,,,Maturity status of the rule.
+9.1.0,true,document,document.tags,keyword,custom,,,Tags describing the rule.
+9.1.0,true,document,document.taxonomy,keyword,custom,,,Taxonomy the rule is classified under.
+9.1.0,true,document,document.threat.subtechnique.id,keyword,custom,,,MITRE ATT&CK sub-technique identifier.
+9.1.0,true,document,document.threat.subtechnique.name,keyword,custom,,,MITRE ATT&CK sub-technique name.
+9.1.0,true,document,document.threat.tactic.id,keyword,custom,,,MITRE ATT&CK tactic identifier.
+9.1.0,true,document,document.threat.tactic.name,keyword,custom,,,MITRE ATT&CK tactic name.
+9.1.0,true,document,document.threat.technique.id,keyword,custom,,,MITRE ATT&CK technique identifier.
+9.1.0,true,document,document.threat.technique.name,keyword,custom,,,MITRE ATT&CK technique name.
+9.1.0,true,hash,hash.sha256,keyword,custom,,,The SHA-256 hash of the resource document.
+9.1.0,true,space,space.name,keyword,custom,,,Name of the space the resource belongs to.
