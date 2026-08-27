@@ -400,7 +400,8 @@ public class LogtestService {
                                 .query(
                                         QueryBuilders.boolQuery()
                                                 .must(QueryBuilders.termsQuery(Constants.Q_DOCUMENT_ID, ruleIds))
-                                                .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString())))
+                                                .must(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()))
+                                                .must(QueryBuilders.termQuery(Constants.Q_DOCUMENT_ENABLED, true)))
                                 .size(ruleIds.size()))
                 .execute(
                         ActionListener.wrap(
