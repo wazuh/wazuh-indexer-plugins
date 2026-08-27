@@ -13,8 +13,10 @@
         "query.default_field": [
           "wazuh.agent.id"
         ],
-        "refresh_interval": "5s"
-      }
+        "refresh_interval": "5s",
+        "max_docvalue_fields_search": 100
+      },
+      "mapping.total_fields.limit": 1000
     },
     "mappings": {
       "date_detection": false,
@@ -133,7 +135,7 @@
                                 },
                                 "manager": {
                                   "properties": {
-                                    "address": {
+                                    "endpoint": {
                                       "ignore_above": 1024,
                                       "type": "keyword"
                                     },
@@ -141,9 +143,6 @@
                                       "type": "long"
                                     },
                                     "max_retries": {
-                                      "type": "long"
-                                    },
-                                    "port": {
                                       "type": "long"
                                     },
                                     "retry_interval": {
