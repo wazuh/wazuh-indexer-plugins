@@ -116,6 +116,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             String effectiveType = this.firstNonBlank(current.getType(), this.consumerType);
             String effectiveResource = this.firstNonBlank(current.getResource(), this.consumerUri);
             boolean effectiveIsPublic = current.isPublic();
+            List<String> effectivePendingSyncPhases = current.getPendingSyncPhases();
 
             long currentFromOffset = fromOffset;
             long lastAppliedOffset = fromOffset;
@@ -179,7 +180,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 effectiveName,
                                 effectiveType,
                                 effectiveResource,
-                                effectiveIsPublic);
+                                effectiveIsPublic,
+                                effectivePendingSyncPhases);
                         throw e;
                     }
                 }
@@ -197,7 +199,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 effectiveName,
                                 effectiveType,
                                 effectiveResource,
-                                effectiveIsPublic);
+                                effectiveIsPublic,
+                                effectivePendingSyncPhases);
                         throw e;
                     }
                 }
@@ -214,7 +217,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 effectiveIsPublic,
                                 LocalConsumer.Status.RUNNING,
                                 lastAppliedOffset,
-                                toOffset),
+                                toOffset,
+                                effectivePendingSyncPhases),
                         true);
 
                 batchCount++;
@@ -361,7 +365,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             String effectiveName,
             String effectiveType,
             String effectiveResource,
-            boolean effectiveIsPublic) {
+            boolean effectiveIsPublic,
+            List<String> effectivePendingSyncPhases) {
         if (lastAppliedOffset > fromOffset) {
             try {
                 this.consumersIndex.setConsumer(
@@ -373,7 +378,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 effectiveIsPublic,
                                 LocalConsumer.Status.RUNNING,
                                 lastAppliedOffset,
-                                toOffset),
+                                toOffset,
+                                effectivePendingSyncPhases),
                         true);
             } catch (Exception ce) {
                 log.error(

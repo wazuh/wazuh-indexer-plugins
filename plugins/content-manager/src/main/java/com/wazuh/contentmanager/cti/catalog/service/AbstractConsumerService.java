@@ -253,11 +253,71 @@ public abstract class AbstractConsumerService {
                             current.isPublic(),
                             status,
                             current.getLocalOffset(),
-                            current.getRemoteOffset());
+                            current.getRemoteOffset(),
+                            current.getPendingSyncPhases());
             this.consumersIndex.setConsumer(updated);
             log.debug(Constants.D_LOG_CONSUMER_STATUS_SET, consumerType, status);
         } catch (Exception e) {
             log.warn(Constants.W_LOG_CONSUMER_STATUS_FAILED, consumerType, status, e.getMessage());
+        }
+    }
+
+    /**
+     * Reads the names of SAP sync sub-phases still owed a retry from the {@code
+     * .wazuh-cti-consumers} document, so a caller can re-attempt them on a pass that otherwise has
+     * nothing new to sync. Read failures and an absent document are treated as "nothing pending"
+     * rather than propagated, so a transient read error never permanently wedges a retry.
+     *
+     * @return The pending phase names, or an empty list if none are pending or the document is
+     *     absent/unreadable.
+     */
+    protected List<String> readPendingSyncPhases() {
+        String consumerType = this.getConsumerType();
+        try {
+            GetResponse response = this.consumersIndex.getConsumer(consumerType);
+            if (response == null || !response.isExists()) {
+                return Collections.emptyList();
+            }
+            LocalConsumer current = MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class);
+            List<String> phases = current.getPendingSyncPhases();
+            return phases != null ? phases : Collections.emptyList();
+        } catch (Exception e) {
+            log.debug(Constants.D_LOG_CONSUMER_PENDING_PHASES_READ_FAILED, consumerType, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Persists the names of SAP sync sub-phases still owed a retry to the {@code
+     * .wazuh-cti-consumers} document. This is a partial update: it preserves all identity fields,
+     * status and offsets, mutating only {@code pending_sync_phases}. When the consumer document does
+     * not yet exist, the call is a no-op since identity fields would not be derivable.
+     *
+     * @param phases The pending phase names to persist; an empty list clears all pending phases.
+     */
+    protected void setPendingSyncPhases(List<String> phases) {
+        String consumerType = this.getConsumerType();
+        try {
+            GetResponse response = this.consumersIndex.getConsumer(consumerType);
+            if (response == null || !response.isExists()) {
+                log.debug(Constants.D_LOG_CONSUMER_PENDING_PHASES_DOC_ABSENT, consumerType, phases);
+                return;
+            }
+            LocalConsumer current = MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class);
+            LocalConsumer updated =
+                    new LocalConsumer(
+                            current.getContext(),
+                            current.getName(),
+                            current.getType(),
+                            current.getResource(),
+                            current.isPublic(),
+                            current.getStatus(),
+                            current.getLocalOffset(),
+                            current.getRemoteOffset(),
+                            phases);
+            this.consumersIndex.setConsumer(updated);
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_CONSUMER_PENDING_PHASES_FAILED, consumerType, e.getMessage());
         }
     }
 

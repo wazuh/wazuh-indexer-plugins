@@ -26,6 +26,8 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Data Transfer Object representing the local state of a CTI Catalog Consumer.
@@ -82,6 +84,9 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
 
     @JsonProperty("is_public")
     private boolean isPublic;
+
+    @JsonProperty("pending_sync_phases")
+    private List<String> pendingSyncPhases = Collections.emptyList();
 
     /** Default constructor. */
     public LocalConsumer() {
@@ -171,6 +176,41 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     }
 
     /**
+     * Constructs a LocalConsumer with full state details including explicit status and pending SAP
+     * sync phases.
+     *
+     * @param context The context identifier.
+     * @param name The consumer name.
+     * @param type The consumer type identifier.
+     * @param resource The full CTI consumer URL.
+     * @param isPublic Whether the consumer is public.
+     * @param status The current synchronization status.
+     * @param localOffset The current offset processed locally.
+     * @param remoteOffset The last known offset available remotely.
+     * @param pendingSyncPhases Names of SAP sync sub-phases still owed a retry.
+     */
+    public LocalConsumer(
+            String context,
+            String name,
+            String type,
+            String resource,
+            boolean isPublic,
+            Status status,
+            long localOffset,
+            long remoteOffset,
+            List<String> pendingSyncPhases) {
+        this.context = context;
+        this.name = name;
+        this.type = type;
+        this.resource = resource;
+        this.isPublic = isPublic;
+        this.status = status;
+        this.localOffset = localOffset;
+        this.remoteOffset = remoteOffset;
+        this.pendingSyncPhases = pendingSyncPhases != null ? pendingSyncPhases : Collections.emptyList();
+    }
+
+    /**
      * Gets the current synchronization status of the consumer.
      *
      * @return The {@link Status} indicating whether the consumer is ready, running, or failed.
@@ -210,6 +250,16 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     /** Returns true if the consumer is public. */
     public boolean isPublic() {
         return this.isPublic;
+    }
+
+    /**
+     * Gets the names of SAP sync sub-phases still owed a retry.
+     *
+     * @return The pending phase names (e.g. "integrations", "rules", "detectors"), or an empty list
+     *     if none are pending.
+     */
+    public List<String> getPendingSyncPhases() {
+        return this.pendingSyncPhases;
     }
 
     @Override
@@ -268,6 +318,7 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
                 .field("status", this.status != null ? this.status.toString() : Status.READY.toString())
                 .field("local_offset", this.localOffset)
                 .field("remote_offset", this.remoteOffset)
+                .field("pending_sync_phases", this.pendingSyncPhases)
                 .endObject();
 
         return builder;

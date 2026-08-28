@@ -56,6 +56,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
     private static final Logger log = LogManager.getLogger(ConsumerRulesetService.class);
     private static final String[] DOCUMENT_ONLY_SOURCE = new String[] {Constants.KEY_DOCUMENT};
+    private static final String PHASE_DETECTORS = "detectors";
     private final ObjectMapper mapper;
 
     private final SecurityAnalyticsService securityAnalyticsService;
@@ -165,6 +166,18 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     public void onSyncComplete(boolean isUpdated) {
         this.initializeSpaces();
 
+        List<String> pendingPhases = this.readPendingSyncPhases();
+        boolean createDetectors = PluginSettings.getInstance().getCreateDetectors();
+
+        boolean shouldSyncIntegrations = isUpdated || pendingPhases.contains(Constants.KEY_INTEGRATIONS);
+        boolean shouldSyncRules = isUpdated || pendingPhases.contains(Constants.KEY_RULES);
+        boolean shouldSyncDetectors =
+                createDetectors && (isUpdated || pendingPhases.contains(PHASE_DETECTORS));
+
+        if (!shouldSyncIntegrations && !shouldSyncRules && !shouldSyncDetectors) {
+            return;
+        }
+
         if (isUpdated) {
             this.refreshIndices(
                     Constants.INDEX_RULES,
@@ -186,36 +199,64 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             } catch (IOException e) {
                 log.error(Constants.E_LOG_USER_OVERRIDES_REGISTRY_READ_FAILED, e.getMessage());
             }
+        }
 
-            // Sync Integrations
-            Map<String, JsonNode> integrationDocs = Collections.emptyMap();
+        List<String> stillPending = new ArrayList<>();
+
+        // Sync Integrations
+        Map<String, JsonNode> integrationDocs = Collections.emptyMap();
+        if (shouldSyncIntegrations) {
             try {
-                integrationDocs = this.syncIntegrations();
+                IntegrationsSyncResult result = this.syncIntegrations();
+                integrationDocs = result.docs();
+                if (!result.success()) {
+                    stillPending.add(Constants.KEY_INTEGRATIONS);
+                }
             } catch (Exception e) {
                 log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_INTEGRATIONS, e.getMessage(), e);
+                stillPending.add(Constants.KEY_INTEGRATIONS);
             }
+        } else if (shouldSyncDetectors) {
+            // Detectors need the integration documents even though integrations itself isn't due
+            // for a retry this pass.
+            integrationDocs = this.readIntegrationDocs();
+        }
 
-            // Sync Rules
+        // Sync Rules
+        if (shouldSyncRules) {
             try {
-                this.syncRules();
+                if (!this.syncRules()) {
+                    stillPending.add(Constants.KEY_RULES);
+                }
             } catch (Exception e) {
                 log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_RULES, e.getMessage(), e);
+                stillPending.add(Constants.KEY_RULES);
             }
+        }
 
-            // Sync Detectors (reuses integration docs already fetched above)
-            if (PluginSettings.getInstance().getCreateDetectors()) {
-                try {
-                    this.syncDetectors(integrationDocs);
-                } catch (Exception e) {
-                    log.error(Constants.E_LOG_SAP_SYNC_FAILED, "detectors", e.getMessage(), e);
+        // Sync Detectors (reuses integration docs already fetched above)
+        if (shouldSyncDetectors) {
+            try {
+                if (!this.syncDetectors(integrationDocs)) {
+                    stillPending.add(PHASE_DETECTORS);
                 }
+            } catch (Exception e) {
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, PHASE_DETECTORS, e.getMessage(), e);
+                stillPending.add(PHASE_DETECTORS);
             }
+        }
 
-            if (this.shadowSwapPerformed) {
-                this.deleteStaleResources();
-                this.shadowSwapPerformed = false;
-            }
+        this.setPendingSyncPhases(stillPending);
+        if (!stillPending.isEmpty()) {
+            log.error(Constants.E_LOG_SAP_SYNC_DEGRADED, this.getConsumerType(), stillPending);
+        }
 
+        if (this.shadowSwapPerformed) {
+            this.deleteStaleResources();
+            this.shadowSwapPerformed = false;
+        }
+
+        if (isUpdated) {
             // Reload STANDARD space, as it was updated.
             try {
                 this.<Set<String>>awaitResult(
@@ -267,13 +308,24 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     }
 
     /**
-     * Synchronizes Integrations from the internal index to the Security Analytics Plugin. Uses
-     * parallel execution with a CountDownLatch to ensure all async requests complete.
+     * Result of {@link #syncIntegrations()}.
      *
-     * @return the extracted document nodes keyed by document ID, for reuse by {@link
+     * @param docs the extracted document nodes keyed by document ID, for reuse by {@link
      *     #syncDetectors(Map)}.
+     * @param success {@code true} if every integration was sent successfully (or there was nothing
+     *     to sync); {@code false} if the source index is missing or at least one item failed.
      */
-    private Map<String, JsonNode> syncIntegrations() {
+    private record IntegrationsSyncResult(Map<String, JsonNode> docs, boolean success) {}
+
+    /**
+     * Reads the Integrations from the internal index, without sending anything to Security
+     * Analytics. Used both by {@link #syncIntegrations()} and, on its own, by {@link
+     * #onSyncComplete(boolean)} when detectors need the integration documents but integrations
+     * itself is not due for a retry this pass.
+     *
+     * @return the extracted document nodes keyed by document ID.
+     */
+    private Map<String, JsonNode> readIntegrationDocs() {
         Map<String, JsonNode> docs = new LinkedHashMap<>();
 
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
@@ -299,11 +351,28 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                             docs.put(id, doc);
                         }
                     });
+        } catch (Exception e) {
+            log.error(Constants.E_LOG_SAP_SYNC_UNEXPECTED, "integrations", e.getMessage());
+        }
+        return docs;
+    }
 
-            if (docs.isEmpty()) {
-                return docs;
-            }
+    /**
+     * Synchronizes Integrations from the internal index to the Security Analytics Plugin. Uses
+     * parallel execution with a CountDownLatch to ensure all async requests complete.
+     *
+     * @return the extracted document nodes and whether every one of them was sent successfully.
+     */
+    private IntegrationsSyncResult syncIntegrations() {
+        Map<String, JsonNode> docs = this.readIntegrationDocs();
+        if (docs.isEmpty()) {
+            // Empty means either "nothing to sync" (success) or "index missing", which
+            // readIntegrationDocs() already logged; distinguish them without a second log line.
+            return new IntegrationsSyncResult(docs, !this.indexIsMissing(Constants.INDEX_INTEGRATIONS));
+        }
 
+        boolean success = true;
+        try {
             CountDownLatch latch = new CountDownLatch(docs.size());
             AtomicInteger sent = new AtomicInteger();
             List<String> failed = Collections.synchronizedList(new ArrayList<>());
@@ -328,36 +397,39 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "integrations");
+                success = false;
             }
             if (sent.get() > 0) {
                 log.info(
-                        Constants.I_LOG_SAP_SUMMARY,
-                        sent.get(),
-                        integrations.size(),
-                        "integrations",
-                        Space.STANDARD);
+                        Constants.I_LOG_SAP_SUMMARY, sent.get(), docs.size(), "integrations", Space.STANDARD);
             }
             if (!failed.isEmpty()) {
-                log.warn(
+                log.error(
                         Constants.W_LOG_SAP_PARTIAL, failed.size(), "integrations", Space.STANDARD, failed);
+                success = false;
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error(Constants.E_LOG_SAP_SYNC_INTERRUPTED, "integrations", e.getMessage());
+            success = false;
         } catch (Exception e) {
             log.error(Constants.E_LOG_SAP_SYNC_UNEXPECTED, "integrations", e.getMessage());
+            success = false;
         }
-        return docs;
+        return new IntegrationsSyncResult(docs, success);
     }
 
     /**
      * Synchronizes Rules from the internal index to the Security Analytics Plugin. Supports both
      * Standard and Custom rules.
+     *
+     * @return {@code true} if every rule was sent successfully (or there was nothing to sync);
+     *     {@code false} if the source index is missing or at least one item failed.
      */
-    private void syncRules() {
+    private boolean syncRules() {
         if (this.indexIsMissing(Constants.INDEX_RULES)) {
             log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Rules", "rules");
-            return;
+            return false;
         }
 
         try {
@@ -368,7 +440,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                                             Constants.INDEX_RULES, Space.STANDARD, DOCUMENT_ONLY_SOURCE, l));
             if (rules.isEmpty()) {
                 log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "rules");
-                return;
+                return true;
             }
 
             Map<String, JsonNode> docs = new LinkedHashMap<>();
@@ -381,7 +453,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     });
 
             if (docs.isEmpty()) {
-                return;
+                return true;
             }
 
             CountDownLatch latch = new CountDownLatch(docs.size());
@@ -406,20 +478,26 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                                         }));
                     });
 
+            boolean success = true;
             if (!latch.await(60, TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "rules");
+                success = false;
             }
             if (sent.get() > 0) {
-                log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), rules.size(), "rules", Space.STANDARD);
+                log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), docs.size(), "rules", Space.STANDARD);
             }
             if (!failed.isEmpty()) {
-                log.warn(Constants.W_LOG_SAP_PARTIAL, failed.size(), "rules", Space.STANDARD, failed);
+                log.error(Constants.W_LOG_SAP_PARTIAL, failed.size(), "rules", Space.STANDARD, failed);
+                success = false;
             }
+            return success;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error(Constants.E_LOG_SAP_SYNC_INTERRUPTED, "rules", e.getMessage());
+            return false;
         } catch (Exception e) {
             log.error(Constants.E_LOG_SAP_SYNC_UNEXPECTED, "rules", e.getMessage());
+            return false;
         }
     }
 
@@ -429,11 +507,13 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * created in parallel.
      *
      * @param integrationDocs the integration document nodes already extracted by {@link
-     *     #syncIntegrations()}, keyed by document ID.
+     *     #syncIntegrations()} (or {@link #readIntegrationDocs()}), keyed by document ID.
+     * @return {@code true} if every detector was sent successfully (or there was nothing to sync);
+     *     {@code false} if required source indices are missing or at least one item failed.
      */
-    private void syncDetectors(Map<String, JsonNode> integrationDocs) throws IOException {
+    private boolean syncDetectors(Map<String, JsonNode> integrationDocs) {
         if (!(this.securityAnalyticsService instanceof SecurityAnalyticsServiceImpl sapService)) {
-            return;
+            return true;
         }
         // One read for every detector: the user's decisions live in a single registry document.
         Map<String, Boolean> detectorOverrides = new HashMap<>();
@@ -464,7 +544,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 });
 
         if (docs.isEmpty()) {
-            return;
+            return true;
         }
 
         // detectors reference the wazuh-events-v5-* data streams as source indices, and Security
@@ -474,7 +554,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             log.error(
                     "Skipping detectors sync. Required source indices not found: {}",
                     String.join(", ", missingIndices));
-            return;
+            return false;
         }
 
         log.debug(Constants.D_LOG_SAP_DETECTORS_SYNCING, docs.size(), 1, docs.size() - 1);
@@ -509,15 +589,16 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         try {
             if (!firstLatch.await(30, TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "detectors");
-                return;
+                return false;
             }
         } catch (InterruptedException e) {
             log.error(Constants.E_LOG_DETECTOR_WAIT_INTERRUPTED, e);
             Thread.currentThread().interrupt();
-            return;
+            return false;
         }
 
         // Process remaining detectors in parallel
+        boolean timedOut = false;
         if (docs.size() > 1) {
             CountDownLatch parallelLatch = new CountDownLatch(docs.size() - 1);
             for (int i = 1; i < docs.size(); i++) {
@@ -547,10 +628,12 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             try {
                 if (!parallelLatch.await(60, TimeUnit.SECONDS)) {
                     log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "detectors");
+                    timedOut = true;
                 }
             } catch (InterruptedException e) {
                 log.error(Constants.E_LOG_DETECTOR_WAIT_INTERRUPTED, e);
                 Thread.currentThread().interrupt();
+                timedOut = true;
             }
         }
 
@@ -560,8 +643,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), docs.size(), "detectors", Space.STANDARD);
         }
         if (!failed.isEmpty()) {
-            log.warn(Constants.W_LOG_SAP_PARTIAL, failed.size(), "detectors", Space.STANDARD, failed);
+            log.error(Constants.W_LOG_SAP_PARTIAL, failed.size(), "detectors", Space.STANDARD, failed);
         }
+        return !timedOut && failed.isEmpty();
     }
 
     /**
