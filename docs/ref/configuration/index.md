@@ -140,7 +140,7 @@ Verify the limit applied to the running node by checking `max_file_descriptors`:
 curl -k -u <INDEXER_USERNAME>:<INDEXER_PASSWORD> "https://<INDEXER_IP_ADDRESS>:9200/_nodes/stats/process?filter_path=**.max_file_descriptors&pretty"
 ```
 
-## Avoiding unnecessary service restarts (needrestart)
+## Avoiding unnecessary service restarts (`needrestart`)
 
 On Debian and Ubuntu systems with `needrestart` installed, Wazuh Indexer may get restarted automatically every time `apt` installs or upgrades **any** package, even one unrelated to Wazuh Indexer. On Ubuntu 24.04 and 26.04 this happens silently, without asking for confirmation.
 
@@ -148,16 +148,20 @@ This happens because some bundled Java native libraries (used for compression an
 
 To stop `needrestart` from restarting Wazuh Indexer on unrelated `apt` operations, add one of the following to `/etc/needrestart/conf.d/`:
 
-**Ignore only the affected temporary files** (recommended — `needrestart` still checks the service for other legitimate reasons to restart):
+### Ignore only the affected temporary files (recommended)
+
+`needrestart` still checks the service for other legitimate reasons to restart:
 
 ```console
 echo 'push(@{$nrconf{blacklist_mappings}}, qr(^/var/lib/wazuh-indexer/tmp/));' > /etc/needrestart/conf.d/wazuh-indexer-tmp.conf
 ```
 
-**Ignore the service entirely** (`needrestart` will never flag Wazuh Indexer for restart, including for legitimate reasons such as a libc update):
+### Ignore the service entirely
+
+`needrestart` will never flag Wazuh Indexer for restart, including for legitimate reasons such as a libc update:
 
 ```console
-echo '$nrconf{blacklist_rc} = [ qr(^wazuh-indexer) ];' > /etc/needrestart/conf.d/wazuh-indexer.conf
+echo 'push(@{$nrconf{blacklist_rc}}, qr(^wazuh-indexer));' > /etc/needrestart/conf.d/wazuh-indexer.conf
 ```
 
 Verify the change:
