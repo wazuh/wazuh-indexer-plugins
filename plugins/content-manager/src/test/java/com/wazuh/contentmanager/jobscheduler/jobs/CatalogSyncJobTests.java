@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -96,7 +97,8 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
                         this.threadPool,
                         this.engineService,
                         this.spaceService,
-                        this.securityAnalyticsService);
+                        this.securityAnalyticsService,
+                        mock(UserOverridesService.class));
 
         when(this.client.prepareGet(Constants.INDEX_SETUP_STATUS, Constants.SETUP_STATUS_DOC_ID))
                 .thenReturn(this.getRequestBuilder);
