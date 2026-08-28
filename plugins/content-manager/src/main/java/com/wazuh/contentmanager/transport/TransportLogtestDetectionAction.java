@@ -23,8 +23,10 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
 
 import java.util.List;
@@ -37,6 +39,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 public class TransportLogtestDetectionAction
@@ -44,21 +47,37 @@ public class TransportLogtestDetectionAction
 
     private final LogtestService logtestService;
     private final PayloadValidations payloadValidations;
+    private final ThreadPool threadPool;
 
     @Inject
     public TransportLogtestDetectionAction(
             TransportService transportService,
             ActionFilters actionFilters,
+            ThreadPool threadPool,
             LogtestService logtestService) {
         super(
                 LogtestDetectionAction.NAME, transportService, actionFilters, LogtestDetectionRequest::new);
         this.logtestService = logtestService;
         this.payloadValidations = new PayloadValidations();
+        this.threadPool = threadPool;
     }
 
     @Override
     protected void doExecute(
             Task task, LogtestDetectionRequest request, ActionListener<LogtestResponse> listener) {
+        // Run on the dedicated bounded pool so blocking engine work never occupies a transport
+        // thread and excess concurrency is shed as 429 rather than accumulating on the heap.
+        try {
+            this.threadPool
+                    .executor(PluginSettings.LOGTEST_THREAD_POOL)
+                    .execute(() -> process(request, listener));
+        } catch (OpenSearchRejectedExecutionException e) {
+            listener.onResponse(
+                    new LogtestResponse(Constants.E_429_LOGTEST_BUSY, RestStatus.TOO_MANY_REQUESTS));
+        }
+    }
+
+    private void process(LogtestDetectionRequest request, ActionListener<LogtestResponse> listener) {
         try {
             // 1. Parse JSON
             ObjectMapper mapper = new ObjectMapper();
