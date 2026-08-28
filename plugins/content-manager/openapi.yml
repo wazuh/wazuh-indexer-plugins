@@ -1075,6 +1075,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1113,6 +1115,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1167,6 +1171,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -2692,6 +2698,26 @@ components:
               value:
                 message: "Registration is disabled because the credentials index is not configured as a system index. Add it to plugins.security.system_indices.indices in opensearch.yml and restart."
                 status: 412
+
+    PayloadTooLarge:
+      description: |
+        Payload Too Large - The logtest request body exceeds the maximum allowed
+        size and is rejected at the REST layer before it is parsed or dispatched.
+
+        The limit is controlled by the `plugins.content_manager.logtest.max_body_bytes`
+        setting (default 1 MiB). A log line is at most a few kilobytes; this bound
+        prevents an oversized event from being amplified into the response and
+        exhausting the indexer's heap.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            event_too_large:
+              summary: logtest body over the size limit
+              value:
+                message: "logtest payload exceeds the maximum allowed size of 1048576 bytes."
+                status: 413
 
     InternalServerError:
       description: |
