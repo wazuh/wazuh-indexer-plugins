@@ -31,7 +31,7 @@ testClusters.integTest {
 
   // Environment variables.
   systemProperty "wazuh.version", "${wazuh_version}-beta3"
-  
+
   // Plugin settings.
   setting 'plugins.content_manager.catalog.update_on_start', 'true'
 }
@@ -433,7 +433,7 @@ The plugin communicates with the Wazuh Engine via a **Unix Domain Socket (UDS)**
 
 Located at: `engine/client/EngineSocketClient.java`
 
-- Connects to the socket at `/usr/share/wazuh-indexer/engine/sockets/engine-api.sock`.
+- Connects to the socket at `/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock`.
 - Sends **HTTP-over-UDS** requests: builds a standard HTTP/1.1 request string (method, headers, JSON body) and writes it to the socket channel.
 - Each request opens a new `SocketChannel` (using `StandardProtocolFamily.UNIX`) that is closed after the response is read.
 - Parses the HTTP response, extracting the status code and JSON body.

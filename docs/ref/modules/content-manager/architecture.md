@@ -64,7 +64,7 @@ Manages the four content spaces (standard, draft, test, custom). Routes CUD oper
 
 ### Engine client
 
-Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-indexer/engine/sockets/engine-api.sock`. Used for logtest execution, content validation, and configuration reload.
+Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock`. Used for logtest execution, content validation, and configuration reload.
 
 ## Data flows
 
