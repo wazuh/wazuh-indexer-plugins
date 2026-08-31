@@ -57,7 +57,7 @@ public class EngineSocketClientTests extends OpenSearchTestCase {
         EngineSocketClient client = new EngineSocketClient();
 
         Assert.assertEquals(
-                "/usr/share/wazuh-indexer/engine/sockets/engine-api.sock", client.getSocketPath());
+                "/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock", client.getSocketPath());
     }
 
     /** Test that the custom socket path constructor sets the path correctly. */

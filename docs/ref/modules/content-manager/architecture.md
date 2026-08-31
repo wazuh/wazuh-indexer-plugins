@@ -64,7 +64,7 @@ Manages the four content spaces (standard, draft, test, custom). Routes CUD oper
 
 ### Engine client
 
-Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-indexer/engine/sockets/engine-api.sock`. Used for logtest execution, content validation, and configuration reload.
+Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock`. Used for logtest execution, content validation, and configuration reload.
 
 ## Data flows
 
@@ -148,6 +148,8 @@ POST /promote
       → Updates use PUT (existing document)
   → Delete removed integrations/rules from Security Analytics
 ```
+
+A space can be promoted regardless of its policy's `enabled` value. Promoting a space whose policy has `enabled: false` is expected behavior, not an error condition.
 
 ### Rollback on failure
 

@@ -40,6 +40,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -67,13 +68,16 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
 
     private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
 
+    private final UserOverridesService userOverridesService;
+
     @Inject
     public TransportUpdateIntegrationAction(
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
             EngineService engine,
-            EngineContentLoader engineContentLoader) {
+            EngineContentLoader engineContentLoader,
+            UserOverridesService userOverridesService) {
         super(
                 UpdateIntegrationAction.NAME,
                 transportService,
@@ -81,6 +85,28 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
                 client,
                 engine,
                 engineContentLoader);
+        this.userOverridesService = userOverridesService;
+    }
+
+    /**
+     * Records the enabled state the user chose, so it survives the next rebuild of the space.
+     *
+     * <p>{@code enabled} is the only field a user can change on a standard integration, and the
+     * rebuild deletes and recreates the document from CTI -- which is why the choice cannot simply
+     * live on the document itself.
+     */
+    @Override
+    protected void afterResourceCommitted(
+            String id, String spaceName, ObjectNode ctiWrapper, Runnable onDone) {
+        boolean enabled =
+                ctiWrapper.path(Constants.KEY_DOCUMENT).path(Constants.KEY_ENABLED).asBoolean(true);
+        OverrideRecorder.record(
+                this.userOverridesService,
+                spaceName,
+                UserOverridesService.setIntegrationEnabled(id, enabled),
+                id,
+                Constants.KEY_INTEGRATION,
+                onDone);
     }
 
     @Override

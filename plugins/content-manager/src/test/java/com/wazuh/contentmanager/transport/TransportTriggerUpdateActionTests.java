@@ -39,6 +39,7 @@ import com.wazuh.contentmanager.action.TriggerUpdateRequest;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -152,7 +153,8 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                         threadPool,
                         mock(EngineService.class),
                         mock(SpaceService.class),
-                        mock(SecurityAnalyticsService.class));
+                        mock(SecurityAnalyticsService.class),
+                        mock(UserOverridesService.class));
         TransportTriggerUpdateAction realAction =
                 new TransportTriggerUpdateAction(
                         mock(TransportService.class), mock(ActionFilters.class), realCatalogSyncJob);

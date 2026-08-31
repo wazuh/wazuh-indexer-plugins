@@ -90,7 +90,7 @@ During promotion, the Content Manager:
 The Content Manager communicates with the Wazuh Engine through a Unix domain socket located at:
 
 ```
-/usr/share/wazuh-indexer/engine/sockets/engine-api.sock
+/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock
 ```
 
 This socket is used for:

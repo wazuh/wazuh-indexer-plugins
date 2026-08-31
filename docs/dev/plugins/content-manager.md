@@ -31,7 +31,7 @@ testClusters.integTest {
 
   // Environment variables.
   systemProperty "wazuh.version", "${wazuh_version}-beta3"
-  
+
   // Plugin settings.
   setting 'plugins.content_manager.catalog.update_on_start', 'true'
 }
@@ -362,6 +362,16 @@ The value is set by whoever produces the content: CTI content carries its own `m
 
 When a `standard` integration's `enabled` is toggled, its related Security Analytics **detector is disabled/enabled in lockstep** as part of the same update flow. The detector shares the integration's document id, so the Content Manager calls the Security Analytics `WSetDetectorEnabledAction` (`setDetectorEnabled(id, enabled)`) to flip **only** the `enabled` flag on the existing detector, preserving its inputs, triggers and monitors. If the detector sync fails the whole update is aborted, so the two never drift.
 
+On the synchronization side, `buildDetectorRequest` resolves the detector's state as:
+
+```
+detector.enabled = integration.enabled && (user override ?? document.detector.enabled)
+```
+
+The integration gates it, so a disabled integration never leaves a running detector whatever the user chose for it. When the integration is on, the user's override wins and CTI's `document.detector.enabled` is the default — absent there means CTI has no preference and the integration alone decides. The rest of the `detector` block is CTI-owned and supplies only the schedule and the source indices.
+
+The override is the user's Start/Stop from Security Analytics, kept in the [registry](#user-overrides-in-the-standard-space). Toggling the integration clears it, so re-enabling an integration brings its detector back rather than leaving a stale decision in charge.
+
 ---
 
 ## YAML content-type support
@@ -433,7 +443,7 @@ The plugin communicates with the Wazuh Engine via a **Unix Domain Socket (UDS)**
 
 Located at: `engine/client/EngineSocketClient.java`
 
-- Connects to the socket at `/usr/share/wazuh-indexer/engine/sockets/engine-api.sock`.
+- Connects to the socket at `/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock`.
 - Sends **HTTP-over-UDS** requests: builds a standard HTTP/1.1 request string (method, headers, JSON body) and writes it to the socket channel.
 - Each request opens a new `SocketChannel` (using `StandardProtocolFamily.UNIX`) that is closed after the response is read.
 - Parses the HTTP response, extracting the status code and JSON body.
@@ -518,6 +528,40 @@ Every resource document follows this envelope structure:
   }
 }
 ```
+
+### User overrides in the `standard` space
+
+The `standard` space is rebuilt from CTI, so what the user changes there is recorded in a registry document and re-applied afterwards: the policy's settings, the filters they created, and each integration's `enabled` state along with its detector's.
+
+`UserOverridesService` manages a single document in the policies index under `wazuh-user-overrides` (`Constants.USER_OVERRIDES_DOC_ID`):
+
+```json
+{
+  "user_overrides": {
+    "standard": {
+      "policy": {
+        "enabled": true,
+        "index_unclassified_events": true,
+        "index_discarded_events": false,
+        "enrichments": ["connection", "url_full"]
+      },
+      "filters": [{ "id": "<uuid>", "document": "<the stored filter, serialized>" }],
+      "integrations": {
+        "<uuid>": { "enabled": false },
+        "<another uuid>": { "detector_enabled": false }
+      }
+    }
+  }
+}
+```
+
+Both integration fields are optional, and absence means the user never decided: the two entries above are "the user disabled this integration" and "the user stopped this one's detector without touching the integration".
+
+It is the one document in that index with **no `space` field**: the pre-snapshot wipe selects by `space.name` and never sees it, and the plan-change reindex carries it into the new physical index.
+
+Enrichments are stored as the resulting list, and on apply only the values CTI still publishes are kept. Filters are stored as serialized strings, to keep their fields out of the `"dynamic": "true"` policies mapping. Integrations are keyed by id rather than listed, so Security Analytics can record a detector decision with a single partial update — a `doc` merge combines objects recursively but replaces arrays wholesale.
+
+Written on a `standard` policy update, on filter create, update and delete, and on integration update. The detector decision is written by Security Analytics itself, which cannot call this plugin — the dependency only runs the other way — but writes the registry document directly. Applied at the start of `ConsumerRulesetService.onSyncComplete`, before the space hash is recalculated and the engine reloaded. Idempotent, and a failure is logged without aborting the synchronization.
 
 ---
 
@@ -617,9 +661,10 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 ### Post-synchronization phase
 
 1. Refreshes all content indices.
-2. Upserts integrations, rules, and detectors into the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
-3. Recalculates SHA-256 hashes for policy integrity verification.
-4. Sets consumer `status` to `ready` in `.wazuh-cti-consumers` (or `failed` if an unexpected exception interrupted the cycle). See the [Reference Manual's architecture page](../../ref/modules/content-manager/architecture.md) for the full `ready` / `running` / `failed` lifecycle.
+2. Re-applies the [user overrides](#user-overrides-in-the-standard-space) to the `standard` space, before anything reads the rebuilt content.
+3. Upserts integrations, rules, and detectors into the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
+4. Recalculates SHA-256 hashes for policy integrity verification.
+5. Sets consumer `status` to `ready` in `.wazuh-cti-consumers` (or `failed` if an unexpected exception interrupted the cycle). See the [Reference Manual's architecture page](../../ref/modules/content-manager/architecture.md) for the full `ready` / `running` / `failed` lifecycle.
 
 ### Error handling
 
