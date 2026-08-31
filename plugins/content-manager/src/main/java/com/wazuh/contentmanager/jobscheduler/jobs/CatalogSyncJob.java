@@ -38,6 +38,7 @@ import com.wazuh.contentmanager.cti.catalog.service.ConsumerIocService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -78,6 +79,9 @@ public class CatalogSyncJob implements JobExecutor {
      * @param threadPool The thread pool manager, used to offload blocking tasks to the generic
      *     executor.
      * @param engineService The engine service for notifying the Engine about IOC updates.
+     * @param spaceService The shared space service.
+     * @param securityAnalyticsService The shared SAP service.
+     * @param userOverridesService The shared user overrides registry, re-applied after every sync.
      */
     public CatalogSyncJob(
             Client client,
@@ -86,13 +90,19 @@ public class CatalogSyncJob implements JobExecutor {
             ThreadPool threadPool,
             EngineService engineService,
             SpaceService spaceService,
-            SecurityAnalyticsService securityAnalyticsService) {
+            SecurityAnalyticsService securityAnalyticsService,
+            UserOverridesService userOverridesService) {
         this.client = client;
         this.threadPool = threadPool;
         this.synchronizers =
                 List.of(
                         new ConsumerRulesetService(
-                                client, consumersIndex, environment, spaceService, securityAnalyticsService),
+                                client,
+                                consumersIndex,
+                                environment,
+                                spaceService,
+                                securityAnalyticsService,
+                                userOverridesService),
                         new ConsumerIocService(client, consumersIndex, environment, engineService),
                         new ConsumerCveService(client, consumersIndex, environment));
     }

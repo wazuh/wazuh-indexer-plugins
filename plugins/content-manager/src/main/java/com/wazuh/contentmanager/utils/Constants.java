@@ -81,6 +81,14 @@ public class Constants {
             "Logtest is only supported for the 'test', 'custom' and 'standard' spaces. Received space: '%s'.";
     public static final String E_400_INTEGRATION_NOT_FOUND =
             "Integration [%s] not found in the '%s' space.";
+    public static final String E_400_PROMOTION_EMPTIES_DETECTOR =
+            "Rule [%s] cannot be promoted because it would leave detector [%s] without enabled rules. "
+                    + "Disable or delete the detector, or keep one of its rules enabled.";
+
+    public static final String E_400_PROMOTION_EMPTIES_DETECTORS =
+            "This promotion would leave %d detectors without enabled rules: %s. "
+                    + "Disable or delete them, or keep one of their rules enabled.";
+
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_412_UNPROTECTED_CREDENTIALS_INDEX =
             "Registration is disabled because the '"
@@ -126,6 +134,8 @@ public class Constants {
     public static final String W_LOG_RESOURCE_NOT_FOUND = "{} [{}] not found.";
     public static final String W_LOG_EXTERNAL_NOT_FOUND =
             "Resource {} [{}] not found in external service, continuing deletion.";
+    public static final String W_LOG_DETECTOR_LOOKUP_FAILED =
+            "Could not read detectors while validating promotion: {}";
     public static final String D_LOG_SAP_SEND = "Sending {} [{}] with ID [{}] to Security Analytics.";
     public static final String D_LOG_SAP_DELETED = "{} deleted successfully (document.id={}{}).";
     public static final String D_LOG_SAP_DELETE_ASYNC =
@@ -315,6 +325,29 @@ public class Constants {
     public static final String D_LOG_SNAPSHOT_WAIT_PENDING_BULK =
             "Waiting for pending bulk updates to finish...";
     public static final String E_LOG_SNAPSHOT_PROCESS_FAILED = "Error processing snapshot: {}";
+
+    // Log messages - user overrides registry (UserOverridesService)
+    public static final String E_LOG_USER_OVERRIDES_REGISTRY_READ_FAILED =
+            "Failed to read the user overrides registry: {}";
+    public static final String E_LOG_USER_OVERRIDES_REGISTRY_WRITE_FAILED =
+            "Failed to write the user overrides registry: {}";
+    public static final String D_LOG_USER_OVERRIDES_REGISTRY_CONFLICT =
+            "User overrides registry write conflicted on attempt {}; re-reading and retrying.";
+    public static final String I_LOG_USER_OVERRIDES_APPLIED =
+            "Applied user overrides for space [{}]: policy settings present={}, {} filter id(s) attached";
+    public static final String W_LOG_USER_OVERRIDES_FILTER_UNREADABLE =
+            "Stored filter [{}] could not be parsed and was skipped; it will not be restored: {}";
+    public static final String I_LOG_USER_OVERRIDES_INTEGRATIONS_APPLIED =
+            "Applied user overrides to {} integration(s) in space [{}]";
+    public static final String W_LOG_USER_OVERRIDES_INTEGRATION_MISSING =
+            "Integration [{}] is recorded in the user overrides registry but is not in space [{}]; "
+                    + "skipping it. The decision is kept in case the integration comes back.";
+    public static final String W_LOG_USER_OVERRIDES_POLICY_MISSING =
+            "No policy found for space [{}] while applying user overrides. The registry is durable, so the"
+                    + " next synchronization will apply them.";
+    public static final String W_LOG_USER_OVERRIDES_RECORD_FAILED =
+            "Failed to record {} [{}] in the user overrides registry. The change itself is fine, but it"
+                    + " will not survive the next content rebuild of the standard space: {}";
     public static final String D_LOG_SNAPSHOT_NO_INDEX_FOR_TYPE =
             "No ContentIndex found for type [{}]. Skipping.";
     public static final String D_LOG_SNAPSHOT_PARSE_LINE_FAILED =
@@ -611,6 +644,22 @@ public class Constants {
     public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
 
+    /**
+     * Document id of the single user-overrides registry document, stored in {@link #INDEX_POLICIES}.
+     *
+     * <p>That document deliberately carries no {@code space} field: the pre-snapshot wipe selects by
+     * {@code space.name}, so leaving it out is what keeps the registry from deleting itself, and what
+     * makes the plan-change reindex carry it into the new physical index.
+     */
+    public static final String USER_OVERRIDES_DOC_ID = "wazuh-user-overrides";
+
+    /**
+     * How many times a user-overrides registry write is retried on a version conflict before giving
+     * up. The registry is one shared document, so concurrent writers are serialized optimistically:
+     * each conflict re-reads and re-applies, and this bounds the loop.
+     */
+    public static final int MAX_USER_OVERRIDES_UPDATE_ATTEMPTS = 3;
+
     // Consumer types
     public static final String CONSUMER_TYPE_VULNERABILITIES = "cti:catalog:consumer:vulnerabilities";
     public static final String CONSUMER_TYPE_IOCS = "cti:catalog:consumer:iocs";
@@ -646,6 +695,15 @@ public class Constants {
     public static final String KEY_MODIFIED = "modified";
     public static final String KEY_OFFSET = "offset";
     public static final String KEY_ENABLED = "enabled";
+    public static final String KEY_INDEX_UNCLASSIFIED_EVENTS = "index_unclassified_events";
+    public static final String KEY_INDEX_DISCARDED_EVENTS = "index_discarded_events";
+
+    // User overrides registry keys
+    public static final String KEY_USER_OVERRIDES = "user_overrides";
+    public static final String KEY_POLICY_SETTINGS = "policy";
+    public static final String KEY_STORED_FILTERS = "filters";
+    public static final String KEY_INTEGRATION_OVERRIDES = "integrations";
+    public static final String KEY_DETECTOR_ENABLED = "detector_enabled";
     public static final String KEY_MODE = "mode";
     public static final String KEY_DETECTOR = "detector";
     public static final String KEY_SOURCE = "source";

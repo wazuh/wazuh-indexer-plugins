@@ -344,7 +344,13 @@ public abstract class AbstractTransportUpdateActionSpaces
                                                             this.engineContentLoader,
                                                             this.client);
                                                     log.info(Constants.I_LOG_SUCCESS, "Updated", this.getResourceType(), id);
-                                                    respond(listener, new RestResponse(id, RestStatus.OK.getStatus()));
+                                                    this.afterResourceCommitted(
+                                                            id,
+                                                            spaceName,
+                                                            ctiWrapper,
+                                                            () ->
+                                                                    respond(
+                                                                            listener, new RestResponse(id, RestStatus.OK.getStatus())));
                                                 },
                                                 e -> respondWithError(listener, id, e))),
                         e -> respondWithError(listener, id, e)));
@@ -451,6 +457,23 @@ public abstract class AbstractTransportUpdateActionSpaces
 
     protected boolean supportsYamlField() {
         return false;
+    }
+
+    /**
+     * Called once the resource has been reindexed and the space hash recalculated -- that is, once
+     * the update is committed and the request is about to be answered.
+     *
+     * <p>Exists so a subclass can persist something derived from the updated resource without failing
+     * the request if that persistence fails. The default does nothing.
+     *
+     * @param id the updated resource's document id.
+     * @param spaceName the space it lives in.
+     * @param ctiWrapper the document exactly as it was indexed.
+     * @param onDone must be run once, whatever the outcome, to answer the request.
+     */
+    protected void afterResourceCommitted(
+            String id, String spaceName, ObjectNode ctiWrapper, Runnable onDone) {
+        onDone.run();
     }
 
     protected abstract String getIndexName();
