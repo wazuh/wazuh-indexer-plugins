@@ -2,11 +2,16 @@ name: (5.x) Run Wazuh Indexer Plugins component tests
 
 # Builds the Wazuh Indexer plugins, starts the full Wazuh Indexer Docker image
 # (which already bundles the Wazuh Engine and every plugin), swaps in the freshly
-# built package, lets it sync content from the public CTI API, and
-# runs the Python component test suite under tests/content-manager/.
+# built content-manager and setup packages, lets it sync content from the public
+# CTI API, and runs the Python component test suite under tests/content-manager/.
+#
+# The setup plugin owns creation of the threat-intel content indices (ContentIndex),
+# and the content-manager defers to it, so both plugins under test must be swapped:
+# running the new content-manager against the image's older setup would leave the
+# enrichments and vulnerabilities indices uncreated.
 #
 # See tests/content-manager/README.md and the plan for the rationale. The Wazuh
-# Indexer image is the FULL distribution, so only the plugin under test is swapped.
+# Indexer image is the FULL distribution, so only the plugins under test are swapped.
 
 on:
   pull_request:
@@ -69,8 +74,20 @@ jobs:
       skip-tests: true
     secrets: inherit
 
+  # The setup plugin now provisions the threat-intel content indices, so the tests
+  # need the PR's setup plugin too — not the one baked into the base image. Build it
+  # with the same reusable builder and swap it in alongside content-manager below.
+  build-setup:
+    needs: get-version
+    uses: ./.github/workflows/5_builderpackage_plugins.yml
+    with:
+      plugin: setup
+      revision: "0"
+      skip-tests: true
+    secrets: inherit
+
   component-tests:
-    needs: [get-version, build]
+    needs: [get-version, build, build-setup]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -83,6 +100,12 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: content-manager-${{ needs.get-version.outputs.version }}.0.zip
+          path: ./pkg
+
+      - name: Download Setup package
+        uses: actions/download-artifact@v7
+        with:
+          name: setup-${{ needs.get-version.outputs.version }}.0.zip
           path: ./pkg
 
       - name: Start Wazuh Indexer container
@@ -125,17 +148,24 @@ jobs:
             --version "$version" \
             --output-dir ./snapshots
 
-      - name: Swap in the freshly built Content Manager plugin
+      - name: Swap in the freshly built Content Manager and Setup plugins
         run: |
           set -euo pipefail
           # Delete all indices via API (keeps cluster state consistent, unlike rm -rf on the data dir).
           curl -s -X DELETE "${BASE_URL}/*?expand_wildcards=open,hidden&allow_no_indices=true" || true
           plugin_bin=/usr/share/wazuh-indexer/bin/opensearch-plugin
           exec_plugin="docker exec -e OPENSEARCH_PATH_CONF=/usr/share/wazuh-indexer/config wazuh-indexer ${plugin_bin}"
-          zip=$(ls pkg/wazuh-indexer-content-manager-*.zip | head -1)
-          echo "Installing ${zip}"
-          docker cp "${zip}" wazuh-indexer:/tmp/content-manager.zip
+          cm_zip=$(ls pkg/wazuh-indexer-content-manager-*.zip | head -1)
+          setup_zip=$(ls pkg/wazuh-indexer-setup-*.zip | head -1)
+          echo "Installing ${setup_zip} and ${cm_zip}"
+          docker cp "${setup_zip}" wazuh-indexer:/tmp/setup.zip
+          docker cp "${cm_zip}" wazuh-indexer:/tmp/content-manager.zip
+          # Remove content-manager before setup, then reinstall setup first, so the
+          # setup plugin (which provisions the threat-intel indices the content-manager
+          # waits on) is in place when the content-manager initializes.
           $exec_plugin remove --purge wazuh-indexer-content-manager
+          $exec_plugin remove --purge wazuh-indexer-setup
+          $exec_plugin install -b file:///tmp/setup.zip
           $exec_plugin install -b file:///tmp/content-manager.zip
           docker cp VERSION.json wazuh-indexer:/usr/share/wazuh-indexer/VERSION.json
           cfg=/usr/share/wazuh-indexer/config/opensearch.yml
