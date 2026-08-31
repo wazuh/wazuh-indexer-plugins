@@ -108,7 +108,7 @@ public class AiAssistantSettingsAdminIT extends OpenSearchRestTestCase {
                         + "\"mappings\":{\"dynamic\":\"strict\",\"properties\":{"
                         + "\"access_token\":{\"type\":\"keyword\",\"index\":false},"
                         + "\"privacy_default_on\":{\"type\":\"boolean\"},"
-                        + "\"privacy_default_per_provider\":{\"type\":\"object\"},"
+                        + "\"privacy_default_per_provider\":{\"type\":\"flat_object\"},"
                         + "\"user_can_override\":{\"type\":\"boolean\"},"
                         + "\"field_policy\":{\"properties\":{"
                         + "\"field\":{\"type\":\"keyword\"},"
@@ -162,6 +162,38 @@ public class AiAssistantSettingsAdminIT extends OpenSearchRestTestCase {
         JsonNode settingsDoc = getDocById(SETTINGS_DOCUMENT_ID);
         org.junit.Assert.assertTrue(
                 "Settings document should exist under the reserved id", settingsDoc != null);
+    }
+
+    /**
+     * Verifies that a {@code privacy_default_per_provider} map keyed by runtime-generated provider
+     * ids is accepted and round-trips. The keys are UUIDs minted by the client, so under this
+     * index's {@code dynamic: strict} mapping the field has to be a {@code flat_object}: as a plain
+     * {@code object} every new key was rejected with a {@code strict_dynamic_mapping_exception}.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testPutSettingsAcceptsUnknownProviderIdKeys() throws IOException, ParseException {
+        String firstProviderId = java.util.UUID.randomUUID().toString();
+        String secondProviderId = java.util.UUID.randomUUID().toString();
+
+        Request put = new Request("PUT", SETTINGS_URI);
+        put.setJsonEntity(
+                "{\"privacy_default_on\":false,\"user_can_override\":true,"
+                        + "\"privacy_default_per_provider\":{\""
+                        + firstProviderId
+                        + "\":true,\""
+                        + secondProviderId
+                        + "\":false}}");
+        Response putResponse = client().performRequest(put);
+        assertEquals(200, putResponse.getStatusLine().getStatusCode());
+
+        Response getResponse = client().performRequest(new Request("GET", SETTINGS_URI));
+        String body = EntityUtils.toString(getResponse.getEntity(), StandardCharsets.UTF_8);
+
+        logger.info("Get settings response: {}", body);
+        assertThat(body, containsString(firstProviderId));
+        assertThat(body, containsString(secondProviderId));
     }
 
     /**
