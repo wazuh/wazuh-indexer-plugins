@@ -1,6 +1,6 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,offset,unsigned_long,custom,,,The CTI offset the document was delivered at.
-9.1.0,false,base,user_overrides,object,custom,,,"The user-authored overrides applied on top of the CTI content. Stored verbatim and deliberately not indexed, so stored filters never pollute the policies mapping."
+9.1.0,false,base,user_overrides,object,custom,,,"User-authored overrides on top of the CTI content, stored verbatim and unindexed."
 9.1.0,true,document,document.enabled,boolean,custom,,,Whether the resource is enabled.
 9.1.0,true,document,document.enrichments,keyword,custom,,,Enrichments the policy applies.
 9.1.0,true,document,document.filters,keyword,custom,,,Filters the policy applies.
