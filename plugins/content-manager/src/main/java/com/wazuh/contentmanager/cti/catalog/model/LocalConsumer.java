@@ -207,7 +207,8 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
         this.status = status;
         this.localOffset = localOffset;
         this.remoteOffset = remoteOffset;
-        this.pendingSyncPhases = pendingSyncPhases != null ? pendingSyncPhases : Collections.emptyList();
+        this.pendingSyncPhases =
+                pendingSyncPhases != null ? pendingSyncPhases : Collections.emptyList();
     }
 
     /**

@@ -142,7 +142,7 @@ public class Constants {
             "Sending delete request for {} to Security Analytics (document.id={}{}).";
     public static final String I_LOG_SAP_SUMMARY =
             "Sent {} of {} {} to Security Analytics for space [{}].";
-    public static final String W_LOG_SAP_PARTIAL =
+    public static final String E_LOG_SAP_PARTIAL =
             "{} {} could not be sent to Security Analytics for space [{}]: {}";
     public static final String I_LOG_ACCESS_TOKEN_REMOVED =
             "Access token removed successfully. Environment is now unregistered.";
@@ -340,6 +340,8 @@ public class Constants {
             "Unexpected error sending {} to the Security Analytics plugin: {}";
     public static final String D_LOG_SAP_DETECTORS_SYNCING =
             "Syncing {} detectors ({} sequentially, {} in parallel)";
+    public static final String D_LOG_SAP_DETECTORS_NO_INTEGRATIONS =
+            "Integration documents could not be read; keeping the detectors phase pending.";
     public static final String E_LOG_DETECTOR_WAIT_INTERRUPTED =
             "Interrupted while waiting for detector sync to complete.";
     public static final String W_LOG_HIT_MISSING_DOCUMENT =

@@ -175,7 +175,9 @@ public class LocalConsumerTests extends OpenSearchTestCase {
         Assert.assertEquals(List.of("detectors"), consumer.getPendingSyncPhases());
     }
 
-    /** Tests that documents without a pending_sync_phases field (legacy) deserialize to an empty list. */
+    /**
+     * Tests that documents without a pending_sync_phases field (legacy) deserialize to an empty list.
+     */
     public void testLegacyDocumentWithoutPendingSyncPhasesDefaultsEmpty() throws Exception {
         String json =
                 "{\"name\":\"name\",\"context\":\"ctx\","

@@ -56,7 +56,15 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
     private static final Logger log = LogManager.getLogger(ConsumerRulesetService.class);
     private static final String[] DOCUMENT_ONLY_SOURCE = new String[] {Constants.KEY_DOCUMENT};
+
+    // Names of the SAP sync sub-phases that can independently fail and be retried on a later pass.
+    // These are a persisted contract: they are stored in the pending_sync_phases field of the
+    // .wazuh-cti-consumers document, so they are kept separate from the identically-spelled
+    // Constants.KEY_* resource keys, which name REST payload fields and may evolve on their own.
+    private static final String PHASE_INTEGRATIONS = "integrations";
+    private static final String PHASE_RULES = "rules";
     private static final String PHASE_DETECTORS = "detectors";
+
     private final ObjectMapper mapper;
 
     private final SecurityAnalyticsService securityAnalyticsService;
@@ -169,12 +177,19 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         List<String> pendingPhases = this.readPendingSyncPhases();
         boolean createDetectors = PluginSettings.getInstance().getCreateDetectors();
 
-        boolean shouldSyncIntegrations = isUpdated || pendingPhases.contains(Constants.KEY_INTEGRATIONS);
-        boolean shouldSyncRules = isUpdated || pendingPhases.contains(Constants.KEY_RULES);
+        boolean shouldSyncIntegrations = isUpdated || pendingPhases.contains(PHASE_INTEGRATIONS);
+        boolean shouldSyncRules = isUpdated || pendingPhases.contains(PHASE_RULES);
         boolean shouldSyncDetectors =
                 createDetectors && (isUpdated || pendingPhases.contains(PHASE_DETECTORS));
 
         if (!shouldSyncIntegrations && !shouldSyncRules && !shouldSyncDetectors) {
+            // Reaching this point with "detectors" still pending means detector creation is disabled,
+            // so the phase can never be retried: drop it rather than re-reading it on every pass
+            // forever. Every other path rebuilds the pending list from scratch below.
+            if (pendingPhases.contains(PHASE_DETECTORS)) {
+                this.setPendingSyncPhases(
+                        pendingPhases.stream().filter(phase -> !PHASE_DETECTORS.equals(phase)).toList());
+            }
             return;
         }
 
@@ -203,50 +218,67 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
         List<String> stillPending = new ArrayList<>();
 
-        // Sync Integrations
+        // Integrations and detectors are both built from the integration documents, so read them
+        // once for whichever of the two phases is due this pass.
         Map<String, JsonNode> integrationDocs = Collections.emptyMap();
+        boolean integrationDocsRead = false;
+        if (shouldSyncIntegrations || shouldSyncDetectors) {
+            IntegrationDocsResult read = this.readIntegrationDocs();
+            integrationDocs = read.docs();
+            integrationDocsRead = read.ok();
+        }
+
+        // Sync Integrations
         if (shouldSyncIntegrations) {
             try {
-                IntegrationsSyncResult result = this.syncIntegrations();
-                integrationDocs = result.docs();
-                if (!result.success()) {
-                    stillPending.add(Constants.KEY_INTEGRATIONS);
+                if (!integrationDocsRead || !this.pushIntegrations(integrationDocs)) {
+                    stillPending.add(PHASE_INTEGRATIONS);
                 }
             } catch (Exception e) {
-                log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_INTEGRATIONS, e.getMessage(), e);
-                stillPending.add(Constants.KEY_INTEGRATIONS);
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, PHASE_INTEGRATIONS, e.getMessage(), e);
+                stillPending.add(PHASE_INTEGRATIONS);
             }
-        } else if (shouldSyncDetectors) {
-            // Detectors need the integration documents even though integrations itself isn't due
-            // for a retry this pass.
-            integrationDocs = this.readIntegrationDocs();
         }
 
         // Sync Rules
         if (shouldSyncRules) {
             try {
                 if (!this.syncRules()) {
-                    stillPending.add(Constants.KEY_RULES);
+                    stillPending.add(PHASE_RULES);
                 }
             } catch (Exception e) {
-                log.error(Constants.E_LOG_SAP_SYNC_FAILED, Constants.KEY_RULES, e.getMessage(), e);
-                stillPending.add(Constants.KEY_RULES);
+                log.error(Constants.E_LOG_SAP_SYNC_FAILED, PHASE_RULES, e.getMessage(), e);
+                stillPending.add(PHASE_RULES);
             }
         }
 
-        // Sync Detectors (reuses integration docs already fetched above)
+        // Sync Detectors (reuses the integration docs already read above)
         if (shouldSyncDetectors) {
-            try {
-                if (!this.syncDetectors(integrationDocs)) {
+            if (!integrationDocsRead) {
+                // syncDetectors() cannot tell an empty map apart from "no detectors to create", so
+                // it would report success and this phase would be cleared without having created
+                // anything. readIntegrationDocs() already logged why the read failed.
+                log.debug(Constants.D_LOG_SAP_DETECTORS_NO_INTEGRATIONS);
+                stillPending.add(PHASE_DETECTORS);
+            } else {
+                try {
+                    if (!this.syncDetectors(integrationDocs)) {
+                        stillPending.add(PHASE_DETECTORS);
+                    }
+                } catch (Exception e) {
+                    log.error(Constants.E_LOG_SAP_SYNC_FAILED, PHASE_DETECTORS, e.getMessage(), e);
                     stillPending.add(PHASE_DETECTORS);
                 }
-            } catch (Exception e) {
-                log.error(Constants.E_LOG_SAP_SYNC_FAILED, PHASE_DETECTORS, e.getMessage(), e);
-                stillPending.add(PHASE_DETECTORS);
             }
         }
 
-        this.setPendingSyncPhases(stillPending);
+        // Only write when the set of pending phases actually changed. Persisting it costs a cluster
+        // health check plus an immediate-refresh index request, and both the healthy case (nothing
+        // pending before or after) and a permanently degraded one (the same phases failing every
+        // pass) would otherwise pay that on every scheduled sync.
+        if (!stillPending.equals(pendingPhases)) {
+            this.setPendingSyncPhases(stillPending);
+        }
         if (!stillPending.isEmpty()) {
             log.error(Constants.E_LOG_SAP_SYNC_DEGRADED, this.getConsumerType(), stillPending);
         }
@@ -308,29 +340,30 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     }
 
     /**
-     * Result of {@link #syncIntegrations()}.
+     * Result of {@link #readIntegrationDocs()}.
      *
-     * @param docs the extracted document nodes keyed by document ID, for reuse by {@link
-     *     #syncDetectors(Map)}.
-     * @param success {@code true} if every integration was sent successfully (or there was nothing
-     *     to sync); {@code false} if the source index is missing or at least one item failed.
+     * @param docs the extracted document nodes keyed by document ID, for use by {@link
+     *     #pushIntegrations(Map)} and {@link #syncDetectors(Map)}.
+     * @param ok {@code true} if the read completed, including when it legitimately found nothing to
+     *     sync; {@code false} if the source index is missing or the read itself failed. Callers must
+     *     not treat an empty {@code docs} as "nothing to sync" without checking this flag, or a
+     *     failed read would mark the phase as done without anything having been sent.
      */
-    private record IntegrationsSyncResult(Map<String, JsonNode> docs, boolean success) {}
+    private record IntegrationDocsResult(Map<String, JsonNode> docs, boolean ok) {}
 
     /**
-     * Reads the Integrations from the internal index, without sending anything to Security
-     * Analytics. Used both by {@link #syncIntegrations()} and, on its own, by {@link
-     * #onSyncComplete(boolean)} when detectors need the integration documents but integrations
-     * itself is not due for a retry this pass.
+     * Reads the Integrations from the internal index, without sending anything to Security Analytics.
+     * Both the integrations phase and the detectors phase are built from these documents, so {@link
+     * #onSyncComplete(boolean)} reads them once per pass.
      *
-     * @return the extracted document nodes keyed by document ID.
+     * @return the extracted document nodes and whether the read completed.
      */
-    private Map<String, JsonNode> readIntegrationDocs() {
+    private IntegrationDocsResult readIntegrationDocs() {
         Map<String, JsonNode> docs = new LinkedHashMap<>();
 
         if (this.indexIsMissing(Constants.INDEX_INTEGRATIONS)) {
             log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Integrations", "integrations");
-            return docs;
+            return new IntegrationDocsResult(docs, false);
         }
 
         try {
@@ -341,7 +374,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                                             Constants.INDEX_INTEGRATIONS, Space.STANDARD, DOCUMENT_ONLY_SOURCE, l));
             if (integrations.isEmpty()) {
                 log.debug(Constants.D_LOG_SAP_NOTHING_TO_SYNC, "integrations");
-                return docs;
+                return new IntegrationDocsResult(docs, true);
             }
 
             integrations.forEach(
@@ -353,22 +386,24 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     });
         } catch (Exception e) {
             log.error(Constants.E_LOG_SAP_SYNC_UNEXPECTED, "integrations", e.getMessage());
+            return new IntegrationDocsResult(docs, false);
         }
-        return docs;
+        return new IntegrationDocsResult(docs, true);
     }
 
     /**
-     * Synchronizes Integrations from the internal index to the Security Analytics Plugin. Uses
-     * parallel execution with a CountDownLatch to ensure all async requests complete.
+     * Sends already-read Integrations to the Security Analytics Plugin. Uses parallel execution with
+     * a CountDownLatch to ensure all async requests complete.
      *
-     * @return the extracted document nodes and whether every one of them was sent successfully.
+     * @param docs the integration document nodes to send, keyed by document ID, as read by {@link
+     *     #readIntegrationDocs()}.
+     * @return {@code true} if every integration was sent successfully, or there was nothing to send;
+     *     {@code false} if at least one item failed, the wait timed out or the thread was
+     *     interrupted.
      */
-    private IntegrationsSyncResult syncIntegrations() {
-        Map<String, JsonNode> docs = this.readIntegrationDocs();
+    private boolean pushIntegrations(Map<String, JsonNode> docs) {
         if (docs.isEmpty()) {
-            // Empty means either "nothing to sync" (success) or "index missing", which
-            // readIntegrationDocs() already logged; distinguish them without a second log line.
-            return new IntegrationsSyncResult(docs, !this.indexIsMissing(Constants.INDEX_INTEGRATIONS));
+            return true;
         }
 
         boolean success = true;
@@ -405,7 +440,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
             if (!failed.isEmpty()) {
                 log.error(
-                        Constants.W_LOG_SAP_PARTIAL, failed.size(), "integrations", Space.STANDARD, failed);
+                        Constants.E_LOG_SAP_PARTIAL, failed.size(), "integrations", Space.STANDARD, failed);
                 success = false;
             }
         } catch (InterruptedException e) {
@@ -416,15 +451,15 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             log.error(Constants.E_LOG_SAP_SYNC_UNEXPECTED, "integrations", e.getMessage());
             success = false;
         }
-        return new IntegrationsSyncResult(docs, success);
+        return success;
     }
 
     /**
      * Synchronizes Rules from the internal index to the Security Analytics Plugin. Supports both
      * Standard and Custom rules.
      *
-     * @return {@code true} if every rule was sent successfully (or there was nothing to sync);
-     *     {@code false} if the source index is missing or at least one item failed.
+     * @return {@code true} if every rule was sent successfully (or there was nothing to sync); {@code
+     *     false} if the source index is missing or at least one item failed.
      */
     private boolean syncRules() {
         if (this.indexIsMissing(Constants.INDEX_RULES)) {
@@ -487,7 +522,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), docs.size(), "rules", Space.STANDARD);
             }
             if (!failed.isEmpty()) {
-                log.error(Constants.W_LOG_SAP_PARTIAL, failed.size(), "rules", Space.STANDARD, failed);
+                log.error(Constants.E_LOG_SAP_PARTIAL, failed.size(), "rules", Space.STANDARD, failed);
                 success = false;
             }
             return success;
@@ -507,7 +542,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * created in parallel.
      *
      * @param integrationDocs the integration document nodes already extracted by {@link
-     *     #syncIntegrations()} (or {@link #readIntegrationDocs()}), keyed by document ID.
+     *     #readIntegrationDocs()}, keyed by document ID. Callers must only pass the documents of a
+     *     read that completed: an empty map is reported as success ("no detectors to create"), so a
+     *     failed read would silently look like a successful sync.
      * @return {@code true} if every detector was sent successfully (or there was nothing to sync);
      *     {@code false} if required source indices are missing or at least one item failed.
      */
@@ -643,7 +680,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             log.info(Constants.I_LOG_SAP_SUMMARY, sent.get(), docs.size(), "detectors", Space.STANDARD);
         }
         if (!failed.isEmpty()) {
-            log.error(Constants.W_LOG_SAP_PARTIAL, failed.size(), "detectors", Space.STANDARD, failed);
+            log.error(Constants.E_LOG_SAP_PARTIAL, failed.size(), "detectors", Space.STANDARD, failed);
         }
         return !timedOut && failed.isEmpty();
     }

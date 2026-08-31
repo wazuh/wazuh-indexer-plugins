@@ -107,7 +107,9 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         // it the same way so isUpdated=true tests don't block either.
         doAnswer(
                         invocation -> {
-                            invocation.<ActionListener<Set<String>>>getArgument(1).onResponse(Collections.emptySet());
+                            invocation
+                                    .<ActionListener<Set<String>>>getArgument(1)
+                                    .onResponse(Collections.emptySet());
                             return null;
                         })
                 .when(this.spaceService)
@@ -140,8 +142,9 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     /**
      * Stubs {@code client.admin().indices().resolveIndex(...)} so {@code indexIsMissing(name)}
      * returns {@code true} only for names accepted by {@code missing}. Same
-     * AdminClient/IndicesAdminClient wiring as {@link #testMissingSourceIndices_dataStreamResolved_returnsOnlyMissingOnes},
-     * generalized to answer for any index name instead of a fixed pair.
+     * AdminClient/IndicesAdminClient wiring as {@link
+     * #testMissingSourceIndices_dataStreamResolved_returnsOnlyMissingOnes}, generalized to answer for
+     * any index name instead of a fixed pair.
      */
     @SuppressWarnings("unchecked")
     private void mockIndexResolution(Predicate<String> missing) throws Exception {
@@ -166,7 +169,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
                             ResolveIndexAction.Response response = mock(ResolveIndexAction.Response.class);
                             boolean isMissing = missing.test(indexName);
                             when(response.getIndices())
-                                    .thenReturn(isMissing ? Collections.emptyList() : Collections.singletonList(null));
+                                    .thenReturn(
+                                            isMissing ? Collections.emptyList() : Collections.singletonList(null));
                             when(response.getAliases()).thenReturn(Collections.emptyList());
                             when(response.getDataStreams()).thenReturn(Collections.emptyList());
                             ActionFuture<ResolveIndexAction.Response> future = mock(ActionFuture.class);
@@ -179,7 +183,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     private void mockResourcesBySpace(String indexName, Map<String, Map<String, Object>> result) {
         doAnswer(
                         invocation -> {
-                            invocation.<ActionListener<Map<String, Map<String, Object>>>>getArgument(3)
+                            invocation
+                                    .<ActionListener<Map<String, Map<String, Object>>>>getArgument(3)
                                     .onResponse(result);
                             return null;
                         })
@@ -187,7 +192,10 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
                 .getResourcesBySpace(eq(indexName), eq(Space.STANDARD), any(), any());
     }
 
-    /** Stubs {@code consumersIndex.getConsumer(...)} to return a ruleset doc with the given pending phases. */
+    /**
+     * Stubs {@code consumersIndex.getConsumer(...)} to return a ruleset doc with the given pending
+     * phases.
+     */
     private void mockExistingConsumerDoc(List<String> pendingPhases) throws Exception {
         GetResponse response = mock(GetResponse.class);
         when(response.isExists()).thenReturn(true);
@@ -575,10 +583,10 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     }
 
     /**
-     * missingSourceIndices() aborting the detector push sets "detectors" as pending and never
-     * reaches upsertDetectorAsync, without affecting integrations/rules. Requires a
-     * SecurityAnalyticsServiceImpl mock (not the plain interface) since syncDetectors() only runs
-     * its real logic for that concrete type.
+     * missingSourceIndices() aborting the detector push sets "detectors" as pending and never reaches
+     * upsertDetectorAsync, without affecting integrations/rules. Requires a
+     * SecurityAnalyticsServiceImpl mock (not the plain interface) since syncDetectors() only runs its
+     * real logic for that concrete type.
      */
     @SuppressWarnings("unchecked")
     public void testOnSyncComplete_missingSourceIndices_setsDetectorsPending() throws Exception {
@@ -631,8 +639,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     /**
      * The core regression test: with isUpdated=false and only "detectors" persisted as pending, the
      * next pass still retries detectors — reading (but not re-pushing) integrations, and never
-     * touching rules at all. This is the fix for the permanent-loss bug: today's code skips the
-     * whole SAP block whenever isUpdated is false, regardless of what failed last time.
+     * touching rules at all. This is the fix for the permanent-loss bug: today's code skips the whole
+     * SAP block whenever isUpdated is false, regardless of what failed last time.
      */
     @SuppressWarnings("unchecked")
     public void testOnSyncComplete_notUpdatedButDetectorsPending_onlyRetriesDetectors()
@@ -747,8 +755,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     }
 
     /**
-     * With nothing new to sync (isUpdated=false) and nothing pending, onSyncComplete is a true
-     * no-op beyond initializeSpaces(): no index reads, no SAP calls, no consumer doc write.
+     * With nothing new to sync (isUpdated=false) and nothing pending, onSyncComplete is a true no-op
+     * beyond initializeSpaces(): no index reads, no SAP calls, no consumer doc write.
      */
     public void testOnSyncComplete_notUpdatedAndNothingPending_isNoOp() throws Exception {
         this.mockExistingConsumerDoc(Collections.emptyList());
@@ -827,5 +835,102 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         LocalConsumer lastWrite = captor.getValue();
         Assert.assertEquals(LocalConsumer.Status.READY, lastWrite.getStatus());
         Assert.assertEquals(List.of("detectors"), lastWrite.getPendingSyncPhases());
+    }
+
+    /**
+     * A failed integrations read must not clear a pending "detectors" phase. syncDetectors() reports
+     * an empty document map as success ("nothing to create"), so mistaking the failed read for an
+     * empty result would drop the retry for good — the very bug the pending-phase list exists to
+     * prevent.
+     */
+    @SuppressWarnings("unchecked")
+    public void testOnSyncComplete_integrationsReadFailure_keepsDetectorsPending() throws Exception {
+        this.mockExistingConsumerDoc(List.of("detectors"));
+        this.mockIndexResolution(name -> false);
+
+        SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
+        ConsumerRulesetService svc =
+                new ConsumerRulesetService(
+                        this.client, this.consumersIndex, this.environment, this.spaceService, sapServiceImpl);
+
+        // The integrations index resolves, but reading it fails, so no document reaches detectors.
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<Map<String, Map<String, Object>>>>getArgument(3)
+                                    .onFailure(new RuntimeException("read failed"));
+                            return null;
+                        })
+                .when(this.spaceService)
+                .getResourcesBySpace(eq(Constants.INDEX_INTEGRATIONS), eq(Space.STANDARD), any(), any());
+
+        svc.onSyncComplete(false);
+
+        verify(sapServiceImpl, never()).upsertDetectorAsync(any(), anyBoolean(), any(), any());
+        // "detectors" must survive as pending. It was already the persisted state and the retry did
+        // not change it, so the correct outcome is no consumer write at all -- in particular not the
+        // write clearing the phase that treating the failed read as "nothing to sync" would produce.
+        verify(this.consumersIndex, never()).setConsumer(any());
+    }
+
+    /**
+     * A "detectors" phase left pending from when detector creation was still enabled is dropped once
+     * the setting is off: it can never be retried, so keeping it would cost a consumer document read
+     * on every sync pass forever.
+     */
+    public void testOnSyncComplete_detectorsDisabled_dropsUnreachableDetectorsPhase()
+            throws Exception {
+        this.mockExistingConsumerDoc(List.of("detectors"));
+
+        PluginSettings.resetForTesting();
+        try {
+            PluginSettings.getInstance(
+                    Settings.builder().put(PluginSettings.CREATE_DETECTORS.getKey(), false).build());
+
+            this.synchronizer.onSyncComplete(false);
+
+            ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+            verify(this.consumersIndex).setConsumer(captor.capture());
+            Assert.assertTrue(captor.getValue().getPendingSyncPhases().isEmpty());
+            verify(this.spaceService, never()).getResourcesBySpace(any(), any(), any(), any());
+            verifyNoInteractions(this.securityAnalyticsService);
+        } finally {
+            PluginSettings.resetForTesting();
+            PluginSettings.getInstance(Settings.EMPTY);
+        }
+    }
+
+    /**
+     * A phase that fails again on retry leaves the persisted list exactly as it was, so the consumer
+     * document is not rewritten: a permanently degraded consumer would otherwise pay a cluster health
+     * check and an immediate-refresh index request on every scheduled pass.
+     */
+    @SuppressWarnings("unchecked")
+    public void testOnSyncComplete_pendingPhasesUnchanged_skipsConsumerWrite() throws Exception {
+        this.mockExistingConsumerDoc(List.of("detectors"));
+        // The detector's source index stays missing, so detectors fails exactly as it did last pass.
+        this.mockIndexResolution("wazuh-events-v5-test"::equals);
+
+        SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
+        ConsumerRulesetService svc =
+                new ConsumerRulesetService(
+                        this.client, this.consumersIndex, this.environment, this.spaceService, sapServiceImpl);
+
+        Map<String, Map<String, Object>> integrations = new LinkedHashMap<>();
+        integrations.put(
+                "int-1",
+                Map.of(
+                        "document",
+                        Map.of(
+                                "id", "int-1",
+                                "metadata", Map.of("title", "Test"),
+                                "detector", Map.of("source", List.of("wazuh-events-v5-test")))));
+        this.mockResourcesBySpace(Constants.INDEX_INTEGRATIONS, integrations);
+        when(sapServiceImpl.buildDetectorRequest(any(), eq(true)))
+                .thenReturn(mock(WIndexDetectorRequest.class));
+
+        svc.onSyncComplete(false);
+
+        verify(this.consumersIndex, never()).setConsumer(any());
     }
 }

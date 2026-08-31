@@ -263,10 +263,10 @@ public abstract class AbstractConsumerService {
     }
 
     /**
-     * Reads the names of SAP sync sub-phases still owed a retry from the {@code
-     * .wazuh-cti-consumers} document, so a caller can re-attempt them on a pass that otherwise has
-     * nothing new to sync. Read failures and an absent document are treated as "nothing pending"
-     * rather than propagated, so a transient read error never permanently wedges a retry.
+     * Reads the names of SAP sync sub-phases still owed a retry from the {@code .wazuh-cti-consumers}
+     * document, so a caller can re-attempt them on a pass that otherwise has nothing new to sync.
+     * Read failures and an absent document are treated as "nothing pending" rather than propagated,
+     * so a transient read error never permanently wedges a retry.
      *
      * @return The pending phase names, or an empty list if none are pending or the document is
      *     absent/unreadable.
