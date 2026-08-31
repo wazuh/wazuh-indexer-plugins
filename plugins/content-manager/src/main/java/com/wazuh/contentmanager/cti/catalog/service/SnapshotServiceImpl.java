@@ -209,7 +209,21 @@ public class SnapshotServiceImpl implements SnapshotService {
                         snapshotZip.getFileName(),
                         System.currentTimeMillis() - startMs);
             }
-            // Promote to stable or clean up temp
+
+            // 3. Refuse to commit a partial load, before touching stable or the offset. A dropped
+            // document means the snapshot did not index in full, so it must neither advance
+            // local_offset (the next sync would skip the gap) nor be promoted to stable: "stable"
+            // means a snapshot indexed in full at least once, and promoting a partial load would
+            // overwrite a good safety net with one the rollback path has just proven unloadable.
+            // Discarding the temp keeps any previously-good stable in place.
+            long dropped = this.getDroppedDocuments();
+            if (dropped > 0) {
+                log.error(Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE, this.consumerType, dropped);
+                this.cleanup(snapshotZip);
+                return false;
+            }
+
+            // 4. Promote to stable or clean up temp
             if (this.stablePath != null) {
                 if (!promoteToStable(snapshotZip, this.stablePath)) {
                     this.cleanup(snapshotZip);
@@ -217,15 +231,8 @@ public class SnapshotServiceImpl implements SnapshotService {
             } else {
                 this.cleanup(snapshotZip);
             }
-            // 3. Refuse to commit progress over a partial load: leaving local_offset where it is
-            // makes the next sync re-run the snapshot instead of silently skipping the gap.
-            long dropped = this.getDroppedDocuments();
-            if (dropped > 0) {
-                log.error(Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE, this.consumerType, dropped);
-                return false;
-            }
 
-            // 4. Partial update of consumer state: bump local_offset to the snapshot offset and
+            // 5. Partial update of consumer state: bump local_offset to the snapshot offset and
             // keep the remote_offset (set at t0 from RemoteConsumer.last_offset) so the
             // incremental update path can close the gap. Identity fields and status are preserved
             // from the t0 write.
@@ -456,24 +463,28 @@ public class SnapshotServiceImpl implements SnapshotService {
             return false;
         }
 
-        // 3. Promote to stable, delete source, or leave in place (rollback re-index)
-        if (this.stablePath != null && !localZip.equals(this.stablePath)) {
-            promoteToStable(localZip, this.stablePath);
-        } else if (this.stablePath == null) {
-            SnapshotServiceImpl.deleteSnapshot(localZip);
-        }
-
         log.debug(
                 Constants.D_LOG_SNAPSHOT_LOCAL_ELAPSED,
                 localZip.getFileName(),
                 System.currentTimeMillis() - startMs);
 
-        // 4. Refuse to commit progress over a partial load: leaving local_offset where it is
-        // makes the next sync re-run the snapshot instead of silently skipping the gap.
+        // 3. Refuse to commit a partial load, before touching stable or the offset. A dropped
+        // document means the snapshot did not index in full, so it must neither advance
+        // local_offset (the next sync would skip the gap) nor be promoted to stable. Returning
+        // here also leaves the source in place: a rollback reload (localZip == stablePath) keeps
+        // the stable untouched, and a packaged snapshot stays available for the next retry
+        // instead of overwriting a good stable with a load proven unable to index in full.
         long dropped = this.getDroppedDocuments();
         if (dropped > 0) {
             log.error(Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE, this.consumerType, dropped);
             return false;
+        }
+
+        // 4. Promote to stable, delete source, or leave in place (rollback re-index)
+        if (this.stablePath != null && !localZip.equals(this.stablePath)) {
+            promoteToStable(localZip, this.stablePath);
+        } else if (this.stablePath == null) {
+            SnapshotServiceImpl.deleteSnapshot(localZip);
         }
 
         // 5. Partial update of consumer state: bump local_offset to the highest offset observed
