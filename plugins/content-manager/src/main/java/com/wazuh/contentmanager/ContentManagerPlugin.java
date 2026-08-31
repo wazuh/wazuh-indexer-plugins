@@ -94,6 +94,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -136,6 +137,7 @@ public class ContentManagerPlugin extends Plugin
     private ClusterStateListener standardSpaceHashListener;
     private final AtomicBoolean standardSpaceHashInFlight = new AtomicBoolean(false);
     private SpaceService spaceService;
+    private UserOverridesService userOverridesService;
     private SecurityAnalyticsService securityAnalyticsService;
     private SetupReadiness setupReadiness;
     private Environment environment;
@@ -218,6 +220,7 @@ public class ContentManagerPlugin extends Plugin
 
         // Initialize services shared by the sync path and the per-node engine loader
         this.spaceService = new SpaceService(this.client);
+        this.userOverridesService = new UserOverridesService(this.client, this.spaceService);
         this.engineContentLoader =
                 new EngineContentLoader(this.engine, this.spaceService, this.threadPool);
 
@@ -236,7 +239,8 @@ public class ContentManagerPlugin extends Plugin
                         this.threadPool,
                         this.engine,
                         this.spaceService,
-                        this.securityAnalyticsService);
+                        this.securityAnalyticsService,
+                        this.userOverridesService);
 
         // Initialize TelemetryPingJob
         this.telemetryPingJob =
@@ -287,6 +291,7 @@ public class ContentManagerPlugin extends Plugin
                 this.engineContentLoader,
                 this.logtestService,
                 this.spaceService,
+                this.userOverridesService,
                 this.securityAnalyticsService);
     }
 

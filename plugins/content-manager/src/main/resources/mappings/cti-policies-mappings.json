@@ -94,6 +94,10 @@
           "type": "keyword"
         }
       }
+    },
+    "user_overrides": {
+      "type": "object",
+      "enabled": false
     }
   }
 }

@@ -177,6 +177,7 @@
 - [BUG] Vulnerability Detection empty for all agents after a transient snapshot bootstrap failure [(#1383)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1383)
 - [BUG] `enabled` flag not evaluated on various resource-related operations [(#1394)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1394)
 - [BUG] Log test does not use manually enabled integrations [(#1410)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1410)
+- [BUG] User's enabled state is lost on CTI updates [(#1403)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1403)
 - [BUG] Undefined state if a node is restarted while the standard space hash is being calculated [(#1773)](https://github.com/wazuh/wazuh-indexer/issues/1773)
 - [BUG] Fix issues in workflows [(#1449)](https://github.com/wazuh/wazuh-indexer/issues/1449)
 - Failed to save/update ManagedIndexMetaData [(#1828)](https://github.com/wazuh/wazuh-indexer/issues/1828)
