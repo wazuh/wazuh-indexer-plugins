@@ -179,15 +179,18 @@ public abstract class AbstractConsumerService {
      *
      * <p>Marks the consumer as {@link LocalConsumer.Status#RUNNING} before sync begins so that
      * external components can detect the in-progress state. The status moves to {@link
-     * LocalConsumer.Status#READY} once synchronization completes normally, or to {@link
+     * LocalConsumer.Status#READY} once synchronization actually completes, or to {@link
      * LocalConsumer.Status#FAILED} if an unexpected exception interrupts the sync; the exception is
      * then rethrown so the caller ({@code CatalogSyncJob}) can log it and continue with the remaining
-     * synchronizers.
+     * synchronizers. If the pass was aborted before touching any content because the Setup plugin has
+     * not yet provisioned this consumer's target indices, the status is left at {@code RUNNING}
+     * rather than {@code READY} — nothing was synced, so nothing completed.
      *
-     * @return {@code true} when a catalog URL was configured but the remote feed could not be reached
-     *     (the pass still completes by falling back to the local snapshot, and the status is still
-     *     moved to {@link LocalConsumer.Status#READY}, but the caller should treat this as a failure
-     *     worth retrying so a transiently-blocked feed recovers immediately). {@code false} when the
+     * @return {@code true} when the caller should retry this consumer immediately instead of waiting
+     *     for the next scheduled run: either a catalog URL was configured but the remote feed could
+     *     not be reached (the pass still completes by falling back to the local snapshot, and the
+     *     status is still moved to {@link LocalConsumer.Status#READY}), or the target indices were not
+     *     yet provisioned (nothing was synced, status stays {@code RUNNING}). {@code false} when the
      *     feed was reached, or when no catalog was configured (nothing to reach).
      */
     public boolean synchronize() {
@@ -195,6 +198,12 @@ public abstract class AbstractConsumerService {
         try {
             SyncResult result = this.syncConsumerServices();
             log.debug(Constants.D_LOG_SYNC_COMPLETED, this.getConsumerType(), result.updated());
+            if (result.indicesMissing()) {
+                // Nothing was synced: do not report a completion that did not happen. Status stays
+                // RUNNING (set above); the caller retries immediately rather than waiting for the next
+                // scheduled sync, since the Setup plugin usually finishes provisioning within seconds.
+                return true;
+            }
             this.onSyncComplete(result.updated());
             this.setConsumerStatus(LocalConsumer.Status.READY);
             return result.feedUnreachable();
@@ -212,8 +221,11 @@ public abstract class AbstractConsumerService {
      * @param feedUnreachable {@code true} if a catalog URL was configured but the remote consumer
      *     could not be fetched, so the pass relied on the local-snapshot fallback (or applied no
      *     remote changes at all).
+     * @param indicesMissing {@code true} if the pass was aborted before touching any content because
+     *     {@link #missingTargetIndices()} found the Setup plugin has not yet provisioned this
+     *     consumer's target indices. Nothing was synced, so the caller must not report completion.
      */
-    private record SyncResult(boolean updated, boolean feedUnreachable) {}
+    private record SyncResult(boolean updated, boolean feedUnreachable, boolean indicesMissing) {}
 
     /**
      * Updates the consumer status in the {@code .wazuh-cti-consumers} index. This is a partial
@@ -604,7 +616,7 @@ public abstract class AbstractConsumerService {
             List<String> missingIndices = this.missingTargetIndices();
             if (!missingIndices.isEmpty()) {
                 log.error(Constants.E_LOG_SYNC_ABORTED_INDICES_MISSING, consumerType, missingIndices);
-                return new SyncResult(false, feedUnreachable);
+                return new SyncResult(false, feedUnreachable, true);
             }
 
             // When a plan change is detected, download into hidden shadow indices and atomically
@@ -617,7 +629,7 @@ public abstract class AbstractConsumerService {
                         indicesMap,
                         remoteConsumer,
                         urlResolver)) {
-                    return new SyncResult(false, feedUnreachable);
+                    return new SyncResult(false, feedUnreachable, false);
                 }
                 // The swapped snapshot only carries data up to its snapshot offset. Close the gap to
                 // the remote head in the same pass; otherwise the consumer would be reported as READY
@@ -633,7 +645,7 @@ public abstract class AbstractConsumerService {
                             remoteConsumer.getSnapshotOffset(),
                             remoteConsumer.getOffset());
                 }
-                return new SyncResult(true, feedUnreachable);
+                return new SyncResult(true, feedUnreachable, false);
             }
 
             boolean updated = false;
@@ -872,7 +884,7 @@ public abstract class AbstractConsumerService {
                                     remoteConsumer.getOffset());
                 }
             }
-            return new SyncResult(updated, feedUnreachable);
+            return new SyncResult(updated, feedUnreachable, false);
         } finally {
             if (tokenExchangeService != null) {
                 tokenExchangeService.close();
