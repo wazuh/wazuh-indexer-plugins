@@ -23,3 +23,11 @@
       level: custom
       type: keyword
       description: "The aggregate SHA-256 hash of the space's content."
+    - name: user_overrides
+      level: custom
+      type: object
+      enabled: false
+      index: false
+      description: >
+        The user-authored overrides applied on top of the CTI content. Stored verbatim and
+        deliberately not indexed, so stored filters never pollute the policies mapping.

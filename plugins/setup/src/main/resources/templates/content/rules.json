@@ -112,7 +112,8 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 }
-              }
+              },
+              "type": "nested"
             },
             "scope": {
               "ignore_above": 1024,

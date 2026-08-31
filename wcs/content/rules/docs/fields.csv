@@ -22,6 +22,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,document,document.metadata.supports,keyword,custom,,,Products or log formats the resource supports.
 9.1.0,true,document,document.metadata.title,keyword,custom,,,Title of the resource.
 9.1.0,true,document,document.name,keyword,custom,,,Name of the resource.
+9.1.0,true,document,document.related,nested,custom,array,,Rules related to this one.
 9.1.0,true,document,document.related.id,keyword,custom,,,Identifier of a related rule.
 9.1.0,true,document,document.related.type,keyword,custom,,,How the related rule relates to this one.
 9.1.0,true,document,document.scope,keyword,custom,,,Scope the rule applies to.

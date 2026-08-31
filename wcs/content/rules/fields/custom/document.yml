@@ -88,6 +88,12 @@
       level: custom
       type: keyword
       description: "Name of the resource."
+    - name: related
+      level: custom
+      type: nested
+      normalize:
+        - "array"
+      description: "Rules related to this one."
     - name: related.id
       level: custom
       type: keyword

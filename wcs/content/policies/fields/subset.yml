@@ -13,5 +13,6 @@ fields:
           hash:
             fields:
               sha256: {}
+      user_overrides: {}
   document:
     fields: "*"

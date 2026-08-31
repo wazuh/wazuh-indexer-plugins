@@ -96,8 +96,8 @@
       }
     },
     "user_overrides": {
-      "type": "object",
-      "enabled": false
+      "enabled": false,
+      "type": "object"
     }
   }
 }
