@@ -851,7 +851,12 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
         ConsumerRulesetService svc =
                 new ConsumerRulesetService(
-                        this.client, this.consumersIndex, this.environment, this.spaceService, sapServiceImpl);
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.spaceService,
+                        sapServiceImpl,
+                        this.userOverridesService);
 
         // The integrations index resolves, but reading it fails, so no document reaches detectors.
         doAnswer(
@@ -866,7 +871,7 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
 
         svc.onSyncComplete(false);
 
-        verify(sapServiceImpl, never()).upsertDetectorAsync(any(), anyBoolean(), any(), any());
+        verify(sapServiceImpl, never()).upsertDetectorAsync(any(), anyBoolean(), any(), any(), any());
         // "detectors" must survive as pending. It was already the persisted state and the retry did
         // not change it, so the correct outcome is no consumer write at all -- in particular not the
         // write clearing the phase that treating the failed read as "nothing to sync" would produce.
@@ -914,7 +919,12 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
         ConsumerRulesetService svc =
                 new ConsumerRulesetService(
-                        this.client, this.consumersIndex, this.environment, this.spaceService, sapServiceImpl);
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.spaceService,
+                        sapServiceImpl,
+                        this.userOverridesService);
 
         Map<String, Map<String, Object>> integrations = new LinkedHashMap<>();
         integrations.put(
@@ -926,7 +936,7 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
                                 "metadata", Map.of("title", "Test"),
                                 "detector", Map.of("source", List.of("wazuh-events-v5-test")))));
         this.mockResourcesBySpace(Constants.INDEX_INTEGRATIONS, integrations);
-        when(sapServiceImpl.buildDetectorRequest(any(), eq(true)))
+        when(sapServiceImpl.buildDetectorRequest(any(), eq(true), any()))
                 .thenReturn(mock(WIndexDetectorRequest.class));
 
         svc.onSyncComplete(false);
