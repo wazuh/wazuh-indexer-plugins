@@ -22,6 +22,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -38,6 +39,7 @@ import java.util.Objects;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
@@ -85,7 +87,7 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
      * space: draft, test, custom), regardless of how many times the workflow runs.
      */
     public void testOnSyncCompleteDoesNotDuplicateSpaces() throws Exception {
-        this.ensureGreen();
+        this.ensureGreen(TimeValue.timeValueMinutes(2));
 
         // Create all content indices required by onSyncComplete
         this.createContentIndices();
@@ -96,13 +98,15 @@ public class SpaceInitializationIT extends OpenSearchIntegTestCase {
 
         // Instantiate the synchronizer with the test cluster's client.
         // Environment and ConsumersIndex are only used by syncConsumerServices(), not onSyncComplete().
+        SpaceService spaceService = new SpaceService(OpenSearchIntegTestCase.client());
         ConsumerRulesetService synchronizer =
                 new ConsumerRulesetService(
                         OpenSearchIntegTestCase.client(),
                         new ConsumersIndex(OpenSearchIntegTestCase.client()),
                         null,
-                        new SpaceService(OpenSearchIntegTestCase.client()),
-                        null);
+                        spaceService,
+                        null,
+                        new UserOverridesService(OpenSearchIntegTestCase.client(), spaceService));
 
         // First call — simulates the cluster manager node completing a sync
         synchronizer.onSyncComplete(true);

@@ -39,12 +39,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.PostPromoteAction;
@@ -52,8 +54,10 @@ import com.wazuh.contentmanager.action.PostPromoteRequest;
 import com.wazuh.contentmanager.action.ReloadEngineContentAction;
 import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.DetectorLookupService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.utils.DetectorRuleGuard;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.SpaceDiff;
 import com.wazuh.contentmanager.utils.Constants;
@@ -91,6 +95,7 @@ public class TransportPostPromoteAction
     private final EngineService engine;
     private final SecurityAnalyticsService securityAnalyticsService;
     private final Client client;
+    private final DetectorLookupService detectorLookupService;
 
     @Inject
     public TransportPostPromoteAction(
@@ -105,6 +110,7 @@ public class TransportPostPromoteAction
         this.engine = engine;
         this.securityAnalyticsService = securityAnalyticsService;
         this.client = client;
+        this.detectorLookupService = new DetectorLookupService(client);
     }
 
     // ── Entry point ──────────────────────────────────────────────────────────
@@ -131,7 +137,18 @@ public class TransportPostPromoteAction
             SpaceDiff spaceDiff = MAPPER.readValue(body, SpaceDiff.class);
             this.validatePromoteRequest(spaceDiff);
 
-            this.gatherPromotionDataAsync(spaceDiff, listener);
+            this.validateNoDetectorLeftEmptyAsync(
+                    spaceDiff,
+                    ActionListener.wrap(
+                            rejection -> {
+                                if (rejection != null) {
+                                    log.warn(Constants.W_LOG_VALIDATION_FAILED, rejection);
+                                    listener.onResponse(new MessageStatusResponse(rejection, RestStatus.BAD_REQUEST));
+                                    return;
+                                }
+                                this.gatherPromotionDataAsync(spaceDiff, listener);
+                            },
+                            e -> respondWithError(listener, e)));
         } catch (IllegalArgumentException e) {
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             listener.onResponse(new MessageStatusResponse(e.getMessage(), RestStatus.BAD_REQUEST));
@@ -1335,6 +1352,157 @@ public class TransportPostPromoteAction
             }
         }
     }
+
+    /**
+     * Rejects a promotion that would leave a running detector with no enabled rules.
+     *
+     * <p>Only applies when promoting into {@code custom}, the space detectors resolve their rules
+     * from. The decision is made on the resulting state, so an update that does not change a rule's
+     * {@code enabled} flag never blocks, and a detector that already had no enabled rules is left
+     * alone.
+     *
+     * @param spaceDiff the requested promotion.
+     * @param listener receives the rejection message, or {@code null} when the promotion may proceed.
+     */
+    private void validateNoDetectorLeftEmptyAsync(
+            SpaceDiff spaceDiff, ActionListener<String> listener) {
+        Space sourceSpace = spaceDiff.getSpace();
+        if (sourceSpace == null || sourceSpace.promote() != Space.CUSTOM) {
+            listener.onResponse(null);
+            return;
+        }
+
+        List<SpaceDiff.OperationItem> ruleChanges =
+                spaceDiff.getChanges() == null ? null : spaceDiff.getChanges().getRules();
+        if (ruleChanges == null || ruleChanges.isEmpty()) {
+            listener.onResponse(null);
+            return;
+        }
+
+        Set<String> changedRuleIds = new HashSet<>();
+        Set<String> removedRuleIds = new HashSet<>();
+        for (SpaceDiff.OperationItem item : ruleChanges) {
+            changedRuleIds.add(item.getId());
+            if (item.getOperation() == SpaceDiff.Operation.REMOVE) {
+                removedRuleIds.add(item.getId());
+            }
+        }
+
+        this.detectorLookupService.findDetectorsUsingRules(
+                changedRuleIds,
+                ActionListener.wrap(
+                        affected -> {
+                            if (affected.isEmpty()) {
+                                listener.onResponse(null);
+                                return;
+                            }
+
+                            Set<String> allRuleIds = new HashSet<>();
+                            affected.forEach(detector -> allRuleIds.addAll(detector.ruleIds()));
+
+                            this.detectorLookupService.fetchRuleEnabledStates(
+                                    allRuleIds,
+                                    Space.CUSTOM,
+                                    ActionListener.wrap(
+                                            currentEnabled ->
+                                                    this.detectorLookupService.fetchRuleEnabledStates(
+                                                            changedRuleIds,
+                                                            sourceSpace,
+                                                            ActionListener.wrap(
+                                                                    incomingEnabled ->
+                                                                            listener.onResponse(
+                                                                                    rejectionMessage(
+                                                                                            affected,
+                                                                                            currentEnabled,
+                                                                                            incomingEnabled,
+                                                                                            removedRuleIds)),
+                                                                    listener::onFailure)),
+                                            listener::onFailure));
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Returns the rejection message naming every detector the promotion would empty, or {@code null}
+     * when none would be.
+     *
+     * <p>A promotion carries the whole space diff, so a single one can empty several detectors, each
+     * through a different rule. All of them are reported together, otherwise the user would fix one
+     * per attempt without knowing how many are left. The listing is ordered by detector name so the
+     * same promotion always produces the same message.
+     *
+     * @param detectors the enabled detectors referencing the promoted rules.
+     * @param currentEnabled enabled state of those detectors' rules in the target space.
+     * @param incomingEnabled enabled state carried by the promotion.
+     * @param removedRuleIds rule ids the promotion deletes.
+     * @return the message to return as {@code 400}, or {@code null} to let the promotion through.
+     */
+    static String rejectionMessage(
+            List<DetectorLookupService.DetectorRules> detectors,
+            Map<String, Boolean> currentEnabled,
+            Map<String, Boolean> incomingEnabled,
+            Set<String> removedRuleIds) {
+
+        List<EmptiedDetector> emptied = new ArrayList<>();
+        for (DetectorLookupService.DetectorRules detector : detectors) {
+            if (DetectorRuleGuard.wouldLeaveDetectorEmpty(
+                    detector.ruleIds(), currentEnabled, incomingEnabled, removedRuleIds)) {
+                emptied.add(
+                        new EmptiedDetector(
+                                detector.name(),
+                                culpritRule(detector, currentEnabled, incomingEnabled, removedRuleIds)));
+            }
+        }
+
+        if (emptied.isEmpty()) {
+            return null;
+        }
+        emptied.sort(Comparator.comparing(EmptiedDetector::detectorName));
+
+        if (emptied.size() == 1) {
+            EmptiedDetector only = emptied.get(0);
+            return String.format(
+                    Locale.ROOT,
+                    Constants.E_400_PROMOTION_EMPTIES_DETECTOR,
+                    only.culpritRule(),
+                    only.detectorName());
+        }
+
+        String listing =
+                emptied.stream()
+                        .map(
+                                item ->
+                                        String.format(
+                                                Locale.ROOT,
+                                                "[%s] by disabling rule [%s]",
+                                                item.detectorName(),
+                                                item.culpritRule()))
+                        .collect(Collectors.joining(", "));
+        return String.format(
+                Locale.ROOT, Constants.E_400_PROMOTION_EMPTIES_DETECTORS, emptied.size(), listing);
+    }
+
+    /**
+     * Returns the first rule of the detector that the promotion takes away, which is the one worth
+     * naming to the user.
+     */
+    private static String culpritRule(
+            DetectorLookupService.DetectorRules detector,
+            Map<String, Boolean> currentEnabled,
+            Map<String, Boolean> incomingEnabled,
+            Set<String> removedRuleIds) {
+        return detector.ruleIds().stream()
+                .filter(
+                        id ->
+                                Boolean.TRUE.equals(currentEnabled.get(id))
+                                        && (removedRuleIds.contains(id)
+                                                || Boolean.FALSE.equals(incomingEnabled.get(id))))
+                .findFirst()
+                .orElse("");
+    }
+
+    /** A detector the promotion would empty, with the rule that empties it. */
+    private record EmptiedDetector(String detectorName, String culpritRule) {}
 
     // ── Inner classes ────────────────────────────────────────────────────────
 

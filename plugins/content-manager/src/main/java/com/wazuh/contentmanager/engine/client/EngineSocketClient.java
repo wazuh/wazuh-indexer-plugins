@@ -51,7 +51,7 @@ import com.wazuh.contentmanager.utils.Constants;
 public class EngineSocketClient {
     private static final Logger logger = LogManager.getLogger(EngineSocketClient.class);
     private static final String DEFAULT_SOCKET_PATH =
-            "/usr/share/wazuh-indexer/engine/sockets/engine-api.sock";
+            "/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock";
     private static final int BUFFER_SIZE = 8192;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 

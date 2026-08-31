@@ -24,6 +24,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.plugins.Plugin;
@@ -94,7 +95,7 @@ public class StandardSpaceHashRecoveryIT extends OpenSearchIntegTestCase {
      * behind — is recovered, and the recovery is idempotent.
      */
     public void testMissingStandardSpaceHashIsRecalculated() throws Exception {
-        this.ensureGreen();
+        this.ensureGreen(TimeValue.timeValueMinutes(2));
         PluginSettings.getInstance(Settings.EMPTY);
 
         this.createPoliciesIndex();

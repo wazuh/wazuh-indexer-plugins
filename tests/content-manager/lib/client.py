@@ -145,6 +145,38 @@ class CMClient:
         """Return the draft policy ``_source`` (or ``None`` if absent)."""
         return self.get_policy(C.SPACE_DRAFT)
 
+    # ── CTI consumers ─────────────────────────────────────────────────────
+
+    def consumer_status(self, consumer_type):
+        """Return a consumer's ``status`` string from ``.wazuh-cti-consumers``.
+
+        Returns ``None`` if the consumer document does not exist yet (the
+        consumer has not started) or carries no status field.
+        """
+        resp = self.get(f"/{C.INDEX_CONSUMERS}/_doc/{consumer_type}", params={"filter_path": "_source.status"})
+        if resp.status_code != 200:
+            return None
+        return resp.json().get("_source", {}).get("status")
+
+    # ── Aggregation helpers ───────────────────────────────────────────────
+
+    def terms_agg(self, index, field, size=10000):
+        """Return ``{value: doc_count}`` for a terms aggregation over ``field``."""
+        self.refresh(index)
+        body = {"size": 0, "aggs": {"values": {"terms": {"field": field, "size": size}}}}
+        resp = self.post(f"/{index}/_search", json=body)
+        assert resp.status_code == 200, f"terms agg {index}.{field} -> {resp.status_code}: {resp.text}"
+        buckets = resp.json()["aggregations"]["values"]["buckets"]
+        return {b["key"]: b["doc_count"] for b in buckets}
+
+    def cardinality_agg(self, index, field):
+        """Return the cardinality (distinct count) of ``field`` in ``index``."""
+        self.refresh(index)
+        body = {"size": 0, "aggs": {"unique_count": {"cardinality": {"field": field}}}}
+        resp = self.post(f"/{index}/_search", json=body)
+        assert resp.status_code == 200, f"cardinality agg {index}.{field} -> {resp.status_code}: {resp.text}"
+        return resp.json()["aggregations"]["unique_count"]["value"]
+
     # ── Findings pipeline (Security Analytics + Alerting) ──────────────────
 
     def create_detector(self, payload):
