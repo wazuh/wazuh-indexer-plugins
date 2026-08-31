@@ -235,16 +235,16 @@ public class CatalogSyncJob implements JobExecutor {
             boolean anyFailure = false;
             for (AbstractConsumerService synchronizer : this.synchronizers) {
                 try {
-                    boolean feedUnreachable = synchronizer.synchronize();
-                    if (feedUnreachable) {
-                        // The synchronizer fell back to its local snapshot because the configured CTI
-                        // feed was unreachable. Treat it as a failure so a single immediate retry fires;
-                        // a transient network block then recovers without waiting for the next scheduled
-                        // run.
+                    // true means the pass did not fully complete for a transient reason — either the
+                    // configured CTI feed was unreachable (fell back to the local snapshot) or the
+                    // Setup plugin had not yet provisioned this consumer's target indices — and should
+                    // be retried immediately rather than waiting for the next scheduled run.
+                    boolean needsRetry = synchronizer.synchronize();
+                    if (needsRetry) {
                         anyFailure = true;
                         log.warn(
-                                "{} could not reach its configured feed; content served from the local"
-                                        + " snapshot.",
+                                "{} did not fully synchronize this pass (unreachable feed or indices not"
+                                        + " yet provisioned); retrying.",
                                 synchronizer.getClass().getSimpleName());
                     } else {
                         log.debug("{} synchronized.", synchronizer.getClass().getSimpleName());

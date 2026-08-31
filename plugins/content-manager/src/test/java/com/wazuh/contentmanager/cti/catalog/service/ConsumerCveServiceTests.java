@@ -362,4 +362,62 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
             assertEquals("cti:catalog:consumer:vulnerabilities", persisted.getType());
         }
     }
+
+    /**
+     * Tests that synchronize() does not report the consumer as ready when its target index has not
+     * been provisioned yet. This is the exact condition that let a CI run observe the vulnerabilities
+     * consumer as "ready" while {@code .wazuh-threatintel-vulnerabilities} still did not exist — a
+     * startup race between the Setup plugin finishing index provisioning and the first catalog sync.
+     * Nothing was synced, so the status must stay at {@link LocalConsumer.Status#RUNNING} (set at the
+     * top of {@code synchronize()}) rather than jump to {@link LocalConsumer.Status#READY}, and the
+     * caller must be told to retry immediately instead of waiting for the next scheduled sync.
+     */
+    public void testSynchronizeDoesNotReportReadyWhenTargetIndexIsMissing() throws Exception {
+        when(this.client.admin().indices().prepareExists(Constants.INDEX_CVES).get().isExists())
+                .thenReturn(false);
+        when(this.consumerService.getLocalConsumer())
+                .thenReturn(
+                        new LocalConsumer(
+                                "manifest-context",
+                                "manifest-name",
+                                "cti:catalog:consumer:vulnerabilities",
+                                "https://manifest.example/resource",
+                                true,
+                                10,
+                                10));
+        when(this.consumerService.getRemoteConsumer()).thenReturn(null);
+
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:vulnerabilities"))
+                .thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString())
+                .thenReturn(
+                        "{\"name\":\"manifest-name\",\"context\":\"manifest-context\","
+                                + "\"type\":\"cti:catalog:consumer:vulnerabilities\","
+                                + "\"resource\":\"https://manifest.example/resource\","
+                                + "\"is_public\":true,\"local_offset\":10,\"remote_offset\":10}");
+
+        TestableConsumerCveService service =
+                new TestableConsumerCveService(this.client, this.consumersIndex, this.environment);
+        service.setConsumerService(this.consumerService);
+        service.setSnapshotService(this.snapshotService);
+
+        boolean needsRetry = service.synchronize();
+
+        assertTrue(
+                "a pass aborted because target indices are missing must be retried immediately rather"
+                        + " than waiting for the next scheduled sync",
+                needsRetry);
+
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex, org.mockito.Mockito.atLeastOnce()).setConsumer(captor.capture());
+        for (LocalConsumer persisted : captor.getAllValues()) {
+            assertEquals(
+                    "status must stay RUNNING, never READY, when nothing was actually synced",
+                    LocalConsumer.Status.RUNNING,
+                    persisted.getStatus());
+        }
+        verify(this.snapshotService, never()).initialize(any(RemoteConsumer.class));
+        verify(this.snapshotService, never()).initialize(any(Path.class), any());
+    }
 }
