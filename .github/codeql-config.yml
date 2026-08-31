@@ -1,0 +1,15 @@
+# Shared CodeQL configuration for the Wazuh Indexer 5.x repositories.
+#
+# - Runs the fuller `security-and-quality` query suite instead of the default
+#   `code-scanning` suite.
+# - Keeps generated output and test sources out of the analysis to cut noise.
+name: "Wazuh Indexer CodeQL config"
+
+queries:
+  - uses: security-and-quality
+
+paths-ignore:
+  - "**/build/**"
+  - "**/src/test/**"
+  - "**/src/integTest/**"
+  - "**/src/yamlRestTest/**"
