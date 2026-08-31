@@ -24,6 +24,7 @@ import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.env.Environment;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.test.OpenSearchTestCase;
@@ -37,6 +38,7 @@ import org.junit.Before;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
@@ -46,7 +48,9 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -62,6 +66,7 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     @Mock private Environment environment;
     @Mock private SpaceService spaceService;
     @Mock private SecurityAnalyticsService securityAnalyticsService;
+    @Mock private UserOverridesService userOverridesService;
 
     @Before
     @Override
@@ -75,7 +80,8 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
                         this.consumersIndex,
                         this.environment,
                         this.spaceService,
-                        this.securityAnalyticsService);
+                        this.securityAnalyticsService,
+                        this.userOverridesService);
     }
 
     @After
@@ -85,6 +91,144 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
             this.closeable.close();
         }
         super.tearDown();
+    }
+
+    // --- User overrides registry -------------------------------------------------------------
+
+    /**
+     * Wires a {@link SpaceService} whose async calls answer immediately, recording the order in which
+     * the interesting ones happen. Without this the real service would sit on {@code awaitResult}'s
+     * 60-second timeout for every call.
+     */
+    private SpaceService stubSpaceServiceRecording(List<String> order) {
+        SpaceService spaceService = mock(SpaceService.class);
+
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Void>>getArgument(0).onResponse(null);
+                            return null;
+                        })
+                .when(spaceService)
+                .initializeDefaultSpaces(any());
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<Map<String, Map<String, Object>>>>getArgument(3)
+                                    .onResponse(Collections.emptyMap());
+                            return null;
+                        })
+                .when(spaceService)
+                .getResourcesBySpace(any(), any(), any(), any());
+        doAnswer(
+                        invocation -> {
+                            order.add("hash");
+                            invocation
+                                    .<ActionListener<Set<String>>>getArgument(1)
+                                    .onResponse(Collections.emptySet());
+                            return null;
+                        })
+                .when(spaceService)
+                .calculateAndUpdate(any(), any());
+        return spaceService;
+    }
+
+    /**
+     * Records the engine reload, which is broadcast to every node with {@code
+     * ReloadEngineContentAction} rather than built through the space service.
+     */
+    private void recordEngineReload(List<String> order) {
+        doAnswer(
+                        invocation -> {
+                            order.add("engine");
+                            return null;
+                        })
+                .when(this.client)
+                .execute(any(), any(), any());
+    }
+
+    /** A {@link UserOverridesService} whose apply succeeds, recording when it ran. */
+    private UserOverridesService stubOverridesServiceRecording(List<String> order) {
+        UserOverridesService overridesService = mock(UserOverridesService.class);
+        doAnswer(
+                        invocation -> {
+                            order.add("apply");
+                            invocation.<ActionListener<Void>>getArgument(1).onResponse(null);
+                            return null;
+                        })
+                .when(overridesService)
+                .apply(any(), any());
+        return overridesService;
+    }
+
+    /** Both collaborators are injected at construction, so a test that stubs them builds its own. */
+    private ConsumerRulesetService synchronizerWith(
+            SpaceService spaceService, UserOverridesService overridesService) {
+        return new ConsumerRulesetService(
+                this.client,
+                this.consumersIndex,
+                this.environment,
+                spaceService,
+                this.securityAnalyticsService,
+                overridesService);
+    }
+
+    /**
+     * The overrides must be re-applied before the space hash is recalculated and before the space is
+     * loaded into the engine, so both see the merged values rather than CTI's raw ones.
+     */
+    public void testUserOverridesAreAppliedBeforeTheHashAndTheEngineLoad() {
+        List<String> order = new java.util.ArrayList<>();
+        recordEngineReload(order);
+        ConsumerRulesetService service =
+                synchronizerWith(stubSpaceServiceRecording(order), stubOverridesServiceRecording(order));
+
+        service.onSyncComplete(true);
+
+        Assert.assertEquals("the overrides must be applied first", "apply", order.get(0));
+        Assert.assertTrue(
+                "the space hash must be recalculated after the merge",
+                order.indexOf("apply") < order.indexOf("hash"));
+        Assert.assertTrue(
+                "the engine must be loaded after the merge",
+                order.indexOf("apply") < order.indexOf("engine"));
+    }
+
+    /**
+     * A failure to apply the overrides is logged and the synchronization continues. The registry is
+     * durable, so the next sync retries; aborting here would leave the space half-built.
+     */
+    public void testSyncContinuesWhenApplyingOverridesFails() {
+        List<String> order = new java.util.ArrayList<>();
+        SpaceService spaceService = stubSpaceServiceRecording(order);
+        UserOverridesService overridesService = mock(UserOverridesService.class);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<Void>>getArgument(1)
+                                    .onFailure(new java.io.IOException("registry unavailable"));
+                            return null;
+                        })
+                .when(overridesService)
+                .apply(any(), any());
+
+        ConsumerRulesetService service = synchronizerWith(spaceService, overridesService);
+
+        service.onSyncComplete(true);
+
+        verify(spaceService).calculateAndUpdate(any(), any());
+        Assert.assertTrue("the sync must still recalculate the hash", order.contains("hash"));
+    }
+
+    /** A sync that changed nothing must not touch the registry. */
+    public void testNothingIsAppliedWhenTheSyncChangedNothing() {
+        List<String> order = new java.util.ArrayList<>();
+        UserOverridesService overridesService = stubOverridesServiceRecording(order);
+        ConsumerRulesetService service =
+                synchronizerWith(stubSpaceServiceRecording(order), overridesService);
+
+        service.onSyncComplete(false);
+
+        verify(overridesService, never()).apply(any(), any());
     }
 
     /** Tests that getMappings returns the expected index mappings. */

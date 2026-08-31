@@ -82,12 +82,16 @@ public interface SecurityAnalyticsService {
      * @param doc The JSON document containing the integration data used to build the detector.
      * @param rawCategory Whether to use the raw category string (true) or formatted/pretty (false).
      * @param method The HTTP method (POST/PUT).
+     * @param detectorOverride The state the user chose for this detector, or {@code null} if they
+     *     never chose. Passed explicitly rather than defaulted so no caller can forget that the user
+     *     may have an opinion about it.
      * @param listener The listener to be notified when the operation completes.
      */
     void upsertDetectorAsync(
             JsonNode doc,
             boolean rawCategory,
             Method method,
+            Boolean detectorOverride,
             ActionListener<? extends ActionResponse> listener);
 
     /**

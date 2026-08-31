@@ -43,6 +43,7 @@ import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -59,6 +60,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
     private final SecurityAnalyticsService securityAnalyticsService;
     private final SpaceService spaceService;
+    private final UserOverridesService userOverridesService;
 
     private Set<String> preSwapIntegrationIds = Collections.emptySet();
     private Set<String> preSwapRuleIds = Collections.emptySet();
@@ -71,16 +73,19 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * @param environment The OpenSearch environment settings.
      * @param spaceService The shared space service.
      * @param securityAnalyticsService The shared SAP service.
+     * @param userOverridesService The shared user overrides registry.
      */
     public ConsumerRulesetService(
             Client client,
             ConsumersIndex consumersIndex,
             Environment environment,
             SpaceService spaceService,
-            SecurityAnalyticsService securityAnalyticsService) {
+            SecurityAnalyticsService securityAnalyticsService,
+            UserOverridesService userOverridesService) {
         super(client, consumersIndex, environment);
         this.securityAnalyticsService = securityAnalyticsService;
         this.spaceService = spaceService;
+        this.userOverridesService = userOverridesService;
 
         this.mapper = new ObjectMapper();
         this.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
@@ -167,6 +172,20 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     Constants.INDEX_KVDBS,
                     Constants.INDEX_INTEGRATIONS,
                     Constants.INDEX_POLICIES);
+
+            // Re-apply the user's overrides before anything reads the rebuilt content. The Security
+            // Analytics sync below, the space hash and the engine payload must all see the merged
+            // values, not the ones CTI just wrote. This one hook covers every path that gets here --
+            // full resync, rollback to a snapshot, incremental patches and a plan change.
+            //
+            // A failure must not abort the sync: the registry is a durable document, so the worst case
+            // is that the overrides are re-applied one synchronization later. Unlike the integrations'
+            // pre-snapshot capture, there is nothing here that is about to be destroyed.
+            try {
+                this.<Void>awaitResult(l -> this.userOverridesService.apply(Space.STANDARD.toString(), l));
+            } catch (IOException e) {
+                log.error(Constants.E_LOG_USER_OVERRIDES_REGISTRY_READ_FAILED, e.getMessage());
+            }
 
             // Sync Integrations
             Map<String, JsonNode> integrationDocs = Collections.emptyMap();
@@ -416,10 +435,30 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         if (!(this.securityAnalyticsService instanceof SecurityAnalyticsServiceImpl sapService)) {
             return;
         }
+        // One read for every detector: the user's decisions live in a single registry document.
+        Map<String, Boolean> detectorOverrides = new HashMap<>();
+        try {
+            UserOverrides overrides =
+                    this.<UserOverrides>awaitResult(
+                            l -> this.userOverridesService.read(Space.STANDARD.toString(), l));
+            overrides
+                    .getIntegrations()
+                    .forEach(
+                            override -> {
+                                if (override.getDetectorEnabled() != null) {
+                                    detectorOverrides.put(override.getId(), override.getDetectorEnabled());
+                                }
+                            });
+        } catch (IOException e) {
+            // Without the overrides every detector falls back to CTI's default, which is the state the
+            // next sync will correct. Aborting here would leave the space without detectors instead.
+            log.error(Constants.E_LOG_USER_OVERRIDES_REGISTRY_READ_FAILED, e.getMessage());
+        }
+
         List<JsonNode> docs = new ArrayList<>();
         integrationDocs.forEach(
                 (id, doc) -> {
-                    if (sapService.buildDetectorRequest(doc, true) != null) {
+                    if (sapService.buildDetectorRequest(doc, true, detectorOverrides.get(id)) != null) {
                         docs.add(doc);
                     }
                 });
@@ -451,6 +490,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 firstDoc,
                 true,
                 RestRequest.Method.POST,
+                detectorOverrides.get(firstDoc.path(Constants.KEY_ID).asText()),
                 ActionListener.wrap(
                         response -> {
                             sent.incrementAndGet();
@@ -487,6 +527,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                         doc,
                         true,
                         RestRequest.Method.POST,
+                        detectorOverrides.get(doc.path(Constants.KEY_ID).asText()),
                         ActionListener.wrap(
                                 response -> {
                                     sent.incrementAndGet();
