@@ -54,6 +54,36 @@ def assert_listed_in_draft_policy(client, field, doc_id):
     assert doc_id in values, f"[{doc_id}] not listed in draft policy [{field}]: {values}"
 
 
+def assert_alias_backed(client, alias):
+    """Assert ``alias`` is a write alias pointing at a physical ``<alias>-a`` or
+    ``<alias>-b`` index, as the setup plugin's ``ContentIndex`` provisions it.
+
+    Guards against issue #1476: if a CTI write reaches the alias name before
+    the setup plugin creates the alias, OpenSearch auto-creates a concrete
+    index called ``<alias>`` itself, with dynamic mappings whose fields
+    cannot be aggregated or sorted on. Resource-lookup tests that only ever
+    address indices by the alias name (``client.get_doc`` and friends) would
+    still pass against such a squatted index, so this check is the one place
+    the suite catches that regression.
+
+    Returns the physical index name.
+    """
+    resolved = client.resolve_alias(alias)
+    assert resolved, f"[{alias}] resolves to neither an alias nor an index"
+    assert alias not in resolved, (
+        f"[{alias}] is a concrete index, not an alias — a write must have reached it "
+        f"before the setup plugin provisioned the alias, so it was auto-created with "
+        f"dynamic mappings"
+    )
+    physical, is_write_index = next(iter(resolved.items()))
+    assert physical.startswith(f"{alias}-"), (
+        f"expected alias [{alias}] to resolve to a [{alias}-a/-b] physical index, "
+        f"got [{physical}]"
+    )
+    assert is_write_index, f"[{physical}] is not the write index for alias [{alias}]"
+    return physical
+
+
 def assert_in_integration_list(client, integration_id, field, doc_id):
     """Assert ``doc_id`` is listed in the integration's ``field`` (rules/decoders/kvdbs)."""
     source = client.get_doc(C.INDEX_INTEGRATIONS, integration_id)
