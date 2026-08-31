@@ -1,0 +1,4 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,false,base,document,object,custom,,,"The CTI payload, stored verbatim and not indexed."
+9.1.0,true,base,offset,unsigned_long,custom,,849527,The CTI offset the document was delivered at.
+9.1.0,true,base,type,keyword,custom,,OSCPE-GLOBAL,"The type of the CTI content, for example a CVE record or one of the global maps the vulnerability scanner requires."

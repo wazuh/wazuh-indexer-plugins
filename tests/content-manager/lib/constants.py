@@ -63,6 +63,22 @@ RESOURCE_INDEX = {
     "policy": INDEX_POLICIES,
 }
 
+# Every wazuh-threatintel-* alias the setup plugin provisions as a <name>-a
+# physical index (see ContentIndex in the setup plugin). Used by the index
+# topology checks that guard against issue #1476 (a CTI write racing index
+# provisioning and auto-creating a dynamically mapped index under the alias
+# name itself).
+CONTENT_INDEX_ALIASES = [
+    INDEX_POLICIES,
+    INDEX_INTEGRATIONS,
+    INDEX_RULES,
+    INDEX_KVDBS,
+    INDEX_DECODERS,
+    INDEX_FILTERS,
+    INDEX_ENRICHMENTS,
+    INDEX_VULNERABILITIES,
+]
+
 # Spaces
 SPACE_DRAFT = "draft"
 SPACE_TEST = "test"

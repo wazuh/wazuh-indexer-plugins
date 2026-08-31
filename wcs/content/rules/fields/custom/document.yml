@@ -1,0 +1,148 @@
+---
+- name: document
+  title: Document
+  group: 1
+  description: >
+    Custom fields at the document level of the rules content documents.
+  type: group
+  fields:
+    - name: id
+      level: custom
+      type: keyword
+      description: "Unique identifier of the resource."
+    - name: metadata.title
+      level: custom
+      type: keyword
+      description: "Title of the resource."
+    - name: metadata.author
+      level: custom
+      type: keyword
+      description: "Author of the resource."
+    - name: metadata.date
+      level: custom
+      type: date
+      description: "Date the resource was created."
+    - name: metadata.modified
+      level: custom
+      type: date
+      description: "Date the resource was last modified."
+    - name: metadata.description
+      level: custom
+      type: text
+      description: "Description of what the resource does."
+    - name: metadata.references
+      level: custom
+      type: keyword
+      description: "External references for the resource."
+    - name: metadata.documentation
+      level: custom
+      type: keyword
+      description: "Documentation for the resource."
+    - name: metadata.supports
+      level: custom
+      type: keyword
+      description: "Products or log formats the resource supports."
+    - name: detection
+      level: custom
+      type: object
+      enabled: false
+      index: false
+      description: "The rule's detection block, stored verbatim and not indexed."
+    - name: enabled
+      level: custom
+      type: boolean
+      description: "Whether the resource is enabled."
+    - name: falsepositives
+      level: custom
+      type: keyword
+      description: "Known false positives for the rule."
+    - name: fields
+      level: custom
+      type: keyword
+      description: "Fields the rule reports when it matches."
+    - name: level
+      level: custom
+      type: keyword
+      description: "Severity level of the rule."
+    - name: license
+      level: custom
+      type: keyword
+      description: "License the rule is distributed under."
+    - name: logsource.category
+      level: custom
+      type: keyword
+      description: "Log source category the rule applies to."
+    - name: logsource.definition
+      level: custom
+      type: text
+      description: "Free-form description of the log source the rule expects."
+    - name: logsource.product
+      level: custom
+      type: keyword
+      description: "Product that produces the log source."
+    - name: logsource.service
+      level: custom
+      type: keyword
+      description: "Service that produces the log source."
+    - name: name
+      level: custom
+      type: keyword
+      description: "Name of the resource."
+    - name: related
+      level: custom
+      type: nested
+      normalize:
+        - "array"
+      description: "Rules related to this one."
+    - name: related.id
+      level: custom
+      type: keyword
+      description: "Identifier of a related rule."
+    - name: related.type
+      level: custom
+      type: keyword
+      description: "How the related rule relates to this one."
+    - name: scope
+      level: custom
+      type: keyword
+      description: "Scope the rule applies to."
+    - name: sigma_id
+      level: custom
+      type: keyword
+      description: "Identifier of the Sigma rule this rule derives from."
+    - name: status
+      level: custom
+      type: keyword
+      description: "Maturity status of the rule."
+    - name: tags
+      level: custom
+      type: keyword
+      description: "Tags describing the rule."
+    - name: taxonomy
+      level: custom
+      type: keyword
+      description: "Taxonomy the rule is classified under."
+    - name: threat.tactic.id
+      level: custom
+      type: keyword
+      description: "MITRE ATT&CK tactic identifier."
+    - name: threat.tactic.name
+      level: custom
+      type: keyword
+      description: "MITRE ATT&CK tactic name."
+    - name: threat.technique.id
+      level: custom
+      type: keyword
+      description: "MITRE ATT&CK technique identifier."
+    - name: threat.technique.name
+      level: custom
+      type: keyword
+      description: "MITRE ATT&CK technique name."
+    - name: threat.subtechnique.id
+      level: custom
+      type: keyword
+      description: "MITRE ATT&CK sub-technique identifier."
+    - name: threat.subtechnique.name
+      level: custom
+      type: keyword
+      description: "MITRE ATT&CK sub-technique name."

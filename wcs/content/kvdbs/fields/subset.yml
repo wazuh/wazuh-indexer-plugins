@@ -1,0 +1,15 @@
+---
+name: kvdbs
+fields:
+  base:
+    fields:
+      hash:
+        fields:
+          sha256: {}
+      offset: {}
+      yaml: {}
+      space:
+        fields:
+          name: {}
+  document:
+    fields: "*"
