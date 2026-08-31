@@ -48,8 +48,10 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
@@ -70,6 +72,7 @@ public class TransportUpdatePolicyAction
     private final EngineContentLoader engineContentLoader;
     private final Client client;
     private final PayloadValidations payloadValidations;
+    private final UserOverridesService userOverridesService;
 
     @Inject
     public TransportUpdatePolicyAction(
@@ -78,13 +81,15 @@ public class TransportUpdatePolicyAction
             SpaceService spaceService,
             EngineService engineService,
             EngineContentLoader engineContentLoader,
-            Client client) {
+            Client client,
+            UserOverridesService userOverridesService) {
         super(UpdatePolicyAction.NAME, transportService, actionFilters, UpdatePolicyRequest::new);
         this.spaceService = spaceService;
         this.engineService = engineService;
         this.engineContentLoader = engineContentLoader;
         this.client = client;
         this.payloadValidations = new PayloadValidations();
+        this.userOverridesService = userOverridesService;
     }
 
     @Override
@@ -304,13 +309,16 @@ public class TransportUpdatePolicyAction
             hashNode.put(Constants.KEY_SHA256, hash);
             document.set(Constants.KEY_HASH, hashNode);
 
+            // Only the standard space is rebuilt from CTI, so only its settings need recording.
+            final Policy pendingOverride = Space.STANDARD.equals(spaceName) ? incomingPolicy : null;
+
             // Find the real document _id (async)
             this.spaceService.findDocumentIdAsync(
                     Constants.INDEX_POLICIES,
                     spaceName,
                     docId,
                     ActionListener.wrap(
-                            realId -> afterFindDocumentId(realId, document, spaceName, listener),
+                            realId -> afterFindDocumentId(realId, document, spaceName, pendingOverride, listener),
                             e -> respondWithError(listener, e)));
 
         } catch (IllegalArgumentException e) {
@@ -327,6 +335,7 @@ public class TransportUpdatePolicyAction
             String documentId,
             ObjectNode document,
             String spaceName,
+            Policy pendingOverride,
             ActionListener<MessageStatusResponse> listener) {
         if (documentId == null) {
             listener.onResponse(
@@ -342,12 +351,16 @@ public class TransportUpdatePolicyAction
                 documentId,
                 document,
                 ActionListener.wrap(
-                        indexResponse -> afterIndex(indexResponse.getId(), spaceName, listener),
+                        indexResponse ->
+                                afterIndex(indexResponse.getId(), spaceName, pendingOverride, listener),
                         e -> respondWithError(listener, e)));
     }
 
     private void afterIndex(
-            String policyId, String spaceName, ActionListener<MessageStatusResponse> listener) {
+            String policyId,
+            String spaceName,
+            Policy pendingOverride,
+            ActionListener<MessageStatusResponse> listener) {
         // Recalculate space hash (async)
         this.spaceService.calculateAndUpdate(
                 List.of(spaceName),
@@ -359,9 +372,63 @@ public class TransportUpdatePolicyAction
                                     changedSpaces,
                                     this.engineContentLoader,
                                     this.client);
-                            listener.onResponse(new MessageStatusResponse(policyId, RestStatus.OK));
+                            this.recordPolicySettings(
+                                    pendingOverride,
+                                    () -> listener.onResponse(new MessageStatusResponse(policyId, RestStatus.OK)));
                         },
                         e -> respondWithError(listener, e)));
+    }
+
+    /**
+     * Records the settings the user can change on the standard policy, so the next rebuild of that
+     * space can put them back.
+     *
+     * <p>Runs after the policy has been indexed, never before: recording a change that failed to
+     * apply would make the next sync apply it anyway, turning a rejected request into a delayed one.
+     *
+     * <p>All four settings are recorded on every save, by design — editing the standard policy makes
+     * its settings the user's from then on.
+     *
+     * <p>A registry failure is logged and swallowed. The policy is already written, so the user's
+     * request succeeded; failing it here would be a lie.
+     *
+     * @param incomingPolicy the policy the client sent, or {@code null} for a space other than {@code
+     *     standard}, which is the only one rebuilt from CTI and so the only one that can lose
+     *     settings.
+     * @param onDone run once recording has finished, successfully or not.
+     */
+    private void recordPolicySettings(Policy incomingPolicy, Runnable onDone) {
+        if (incomingPolicy == null) {
+            onDone.run();
+            return;
+        }
+
+        this.userOverridesService.update(
+                Space.STANDARD.toString(),
+                current -> mergeRecordedSettings(current, incomingPolicy),
+                ActionListener.wrap(
+                        v -> onDone.run(),
+                        e -> {
+                            log.error(Constants.E_LOG_USER_OVERRIDES_REGISTRY_WRITE_FAILED, e.getMessage());
+                            onDone.run();
+                        }));
+    }
+
+    /**
+     * Records this save's settings, replacing whatever the registry held for the policy.
+     *
+     * <p>The stored filters and integration decisions pass through untouched: all three sections
+     * share one registry document, so returning anything else here would delete them.
+     */
+    private static UserOverrides mergeRecordedSettings(UserOverrides current, Policy incomingPolicy) {
+        return new UserOverrides(
+                new UserOverrides.PolicySettings(
+                        incomingPolicy.getEnabled(),
+                        incomingPolicy.getIndexUnclassifiedEvents(),
+                        incomingPolicy.getIndexDiscardedEvents(),
+                        incomingPolicy.getEnrichments()),
+                current.getFilters(),
+                current.getIntegrations());
     }
 
     @SuppressWarnings("unchecked")

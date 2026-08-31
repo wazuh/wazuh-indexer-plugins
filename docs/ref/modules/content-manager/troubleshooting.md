@@ -11,7 +11,7 @@ The Wazuh Engine is not running or the Unix socket is not accessible.
 Resolution:
 1. Check the socket file exists:
    ```bash
-   ls -la /usr/share/wazuh-indexer/engine/sockets/engine-api.sock
+   ls -la /usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock
    ```
 
 2. Ensure the Wazuh Indexer process has permission to access the socket file.
@@ -97,7 +97,7 @@ Fields that are part of WCS (e.g., `event.action`, `source.ip`) never need the u
 
 The Unix socket used for Engine communication does not exist.
 
-**Expected path:** `/usr/share/wazuh-indexer/engine/sockets/engine-api.sock`
+**Expected path:** `/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock`
 
 #### Resolution
 
