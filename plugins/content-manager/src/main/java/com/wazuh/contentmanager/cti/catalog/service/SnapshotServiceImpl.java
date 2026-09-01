@@ -495,9 +495,10 @@ public class SnapshotServiceImpl implements SnapshotService {
 
     /**
      * Reads the existing consumer document and persists it back with only {@code local_offset}
-     * mutated. All other fields (identity, {@code is_public}, {@code status}, {@code remote_offset})
-     * are preserved. Returns {@code false} and logs a warning if no document exists — the t0 write in
-     * {@link AbstractConsumerService} is expected to create it before this method runs.
+     * mutated. All other fields (identity, {@code is_public}, {@code status}, {@code remote_offset},
+     * {@code pending_sync_phases}) are preserved. Returns {@code false} and logs a warning if no
+     * document exists — the t0 write in {@link AbstractConsumerService} is expected to create it
+     * before this method runs.
      */
     private boolean updateLocalOffset(long newLocalOffset) {
         try {
@@ -517,7 +518,8 @@ public class SnapshotServiceImpl implements SnapshotService {
                             current.isPublic(),
                             current.getStatus() != null ? current.getStatus() : LocalConsumer.Status.RUNNING,
                             newLocalOffset,
-                            current.getRemoteOffset());
+                            current.getRemoteOffset(),
+                            current.getPendingSyncPhases());
             this.consumersIndex.setConsumer(updatedConsumer);
             return true;
         } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {

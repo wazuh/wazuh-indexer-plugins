@@ -142,7 +142,7 @@ public class Constants {
             "Sending delete request for {} to Security Analytics (document.id={}{}).";
     public static final String I_LOG_SAP_SUMMARY =
             "Sent {} of {} {} to Security Analytics for space [{}].";
-    public static final String W_LOG_SAP_PARTIAL =
+    public static final String E_LOG_SAP_PARTIAL =
             "{} {} could not be sent to Security Analytics for space [{}]: {}";
     public static final String I_LOG_ACCESS_TOKEN_REMOVED =
             "Access token removed successfully. Environment is now unregistered.";
@@ -159,6 +159,12 @@ public class Constants {
     public static final String D_LOG_CONSUMER_STATUS_SET = "Consumer [{}] status set to [{}]";
     public static final String W_LOG_CONSUMER_STATUS_FAILED =
             "Failed to set consumer [{}] status to [{}]: {}";
+    public static final String D_LOG_CONSUMER_PENDING_PHASES_DOC_ABSENT =
+            "Consumer [{}] doc not present; skipping pending sync phases update to {}";
+    public static final String D_LOG_CONSUMER_PENDING_PHASES_READ_FAILED =
+            "Could not read pending sync phases for [{}]: {}";
+    public static final String W_LOG_CONSUMER_PENDING_PHASES_FAILED =
+            "Failed to persist pending sync phases for [{}]: {}";
     public static final String D_LOG_CONSUMER_RESOURCE_READ_FAILED =
             "Could not read existing consumer resource for [{}]: {}";
     public static final String D_LOG_CONSUMER_T0_WRITTEN =
@@ -334,10 +340,15 @@ public class Constants {
             "Unexpected error sending {} to the Security Analytics plugin: {}";
     public static final String D_LOG_SAP_DETECTORS_SYNCING =
             "Syncing {} detectors ({} sequentially, {} in parallel)";
+    public static final String D_LOG_SAP_DETECTORS_NO_INTEGRATIONS =
+            "Integration documents could not be read; keeping the detectors phase pending.";
     public static final String E_LOG_DETECTOR_WAIT_INTERRUPTED =
             "Interrupted while waiting for detector sync to complete.";
     public static final String W_LOG_HIT_MISSING_DOCUMENT =
             "Hit [{}] missing 'document' field, skipping";
+    public static final String E_LOG_SAP_SYNC_DEGRADED =
+            "Security Analytics content sync degraded for consumer [{}]: phase(s) {} still pending; "
+                    + "will retry on the next scheduled sync pass.";
 
     // Log messages - snapshot / update / IOC (SnapshotServiceImpl, UpdateServiceImpl,
     // ConsumerIocService)
