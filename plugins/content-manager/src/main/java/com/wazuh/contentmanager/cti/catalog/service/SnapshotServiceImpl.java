@@ -175,6 +175,8 @@ public class SnapshotServiceImpl implements SnapshotService {
         boolean success = false;
 
         try {
+            this.resetDroppedDocuments();
+
             // 1. Download Snapshot
             snapshotZip = this.snapshotClient.downloadFile(snapshotUrl);
             if (snapshotZip == null) {
@@ -207,7 +209,21 @@ public class SnapshotServiceImpl implements SnapshotService {
                         snapshotZip.getFileName(),
                         System.currentTimeMillis() - startMs);
             }
-            // Promote to stable or clean up temp
+
+            // 3. Refuse to commit a partial load, before touching stable or the offset. A dropped
+            // document means the snapshot did not index in full, so it must neither advance
+            // local_offset (the next sync would skip the gap) nor be promoted to stable: "stable"
+            // means a snapshot indexed in full at least once, and promoting a partial load would
+            // overwrite a good safety net with one the rollback path has just proven unloadable.
+            // Discarding the temp keeps any previously-good stable in place.
+            long dropped = this.getDroppedDocuments();
+            if (dropped > 0) {
+                log.error(Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE, this.consumerType, dropped);
+                this.cleanup(snapshotZip);
+                return false;
+            }
+
+            // 4. Promote to stable or clean up temp
             if (this.stablePath != null) {
                 if (!promoteToStable(snapshotZip, this.stablePath)) {
                     this.cleanup(snapshotZip);
@@ -215,7 +231,8 @@ public class SnapshotServiceImpl implements SnapshotService {
             } else {
                 this.cleanup(snapshotZip);
             }
-            // 3. Partial update of consumer state: bump local_offset to the snapshot offset and
+
+            // 5. Partial update of consumer state: bump local_offset to the snapshot offset and
             // keep the remote_offset (set at t0 from RemoteConsumer.last_offset) so the
             // incremental update path can close the gap. Identity fields and status are preserved
             // from the t0 write.
@@ -380,6 +397,22 @@ public class SnapshotServiceImpl implements SnapshotService {
         return this.maxOffsetSeen;
     }
 
+    /** Clears the dropped-document counters before a load, so the tally covers this run only. */
+    private void resetDroppedDocuments() {
+        this.indicesMap.values().forEach(ContentIndex::resetDroppedDocuments);
+    }
+
+    /**
+     * Total documents the content indices gave up on during this load. A non-zero value means the
+     * snapshot is only partially indexed, so the consumer offset must not be advanced over the gap:
+     * incremental syncs resume from the offset and would never backfill the missing documents.
+     *
+     * @return the number of dropped documents across all content indices.
+     */
+    private long getDroppedDocuments() {
+        return this.indicesMap.values().stream().mapToLong(ContentIndex::getDroppedDocuments).sum();
+    }
+
     /**
      * Initializes content from a pre-packaged local snapshot zip file using consumer metadata from
      * the external {@code manifest.json} located in the snapshots' directory.
@@ -403,6 +436,8 @@ public class SnapshotServiceImpl implements SnapshotService {
         long startMs = System.currentTimeMillis();
 
         try {
+            this.resetDroppedDocuments();
+
             // 1. Clear indices
             this.indicesMap.values().forEach(ContentIndex::clear);
 
@@ -428,19 +463,31 @@ public class SnapshotServiceImpl implements SnapshotService {
             return false;
         }
 
-        // 3. Promote to stable, delete source, or leave in place (rollback re-index)
+        log.debug(
+                Constants.D_LOG_SNAPSHOT_LOCAL_ELAPSED,
+                localZip.getFileName(),
+                System.currentTimeMillis() - startMs);
+
+        // 3. Refuse to commit a partial load, before touching stable or the offset. A dropped
+        // document means the snapshot did not index in full, so it must neither advance
+        // local_offset (the next sync would skip the gap) nor be promoted to stable. Returning
+        // here also leaves the source in place: a rollback reload (localZip == stablePath) keeps
+        // the stable untouched, and a packaged snapshot stays available for the next retry
+        // instead of overwriting a good stable with a load proven unable to index in full.
+        long dropped = this.getDroppedDocuments();
+        if (dropped > 0) {
+            log.error(Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE, this.consumerType, dropped);
+            return false;
+        }
+
+        // 4. Promote to stable, delete source, or leave in place (rollback re-index)
         if (this.stablePath != null && !localZip.equals(this.stablePath)) {
             promoteToStable(localZip, this.stablePath);
         } else if (this.stablePath == null) {
             SnapshotServiceImpl.deleteSnapshot(localZip);
         }
 
-        log.debug(
-                Constants.D_LOG_SNAPSHOT_LOCAL_ELAPSED,
-                localZip.getFileName(),
-                System.currentTimeMillis() - startMs);
-
-        // 4. Partial update of consumer state: bump local_offset to the highest offset observed
+        // 5. Partial update of consumer state: bump local_offset to the highest offset observed
         // while indexing. Identity fields, is_public, status and remote_offset are owned by the
         // t0 write performed by AbstractConsumerService.writeInitialConsumer.
         return this.updateLocalOffset(this.maxOffsetSeen);

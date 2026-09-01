@@ -353,8 +353,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
 
     /**
      * The rule-fetch query must filter to {@code document.enabled: true} -- a disabled rule must
-     * never be evaluated in Log Test, matching the same gate {@code fetchEnabledRuleIds} applies
-     * when building a Security Analytics detector.
+     * never be evaluated in Log Test, matching the same gate {@code fetchEnabledRuleIds} applies when
+     * building a Security Analytics detector.
      */
     @SuppressWarnings("unchecked")
     public void testFetchRuleBodiesFiltersDisabledRules() throws Exception {
