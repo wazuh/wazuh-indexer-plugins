@@ -6,7 +6,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,model,keyword,custom,,claude-opus-4-6,Model to request from the provider.
 9.1.0,true,base,name,keyword,custom,,test-ai,Name given to the provider configuration.
 9.1.0,true,base,privacy_default_on,boolean,custom,,False,Whether privacy mode is enabled by default for new conversations.
-9.1.0,true,base,privacy_default_per_provider,object,custom,,"{""test-ai"": true}",Per-provider override of the default privacy mode.
+9.1.0,true,base,privacy_default_per_provider,flat_object,custom,,"{""3f6b5f7e-6f2d-4a4f-9c1e-2f6d0a1b2c3d"": true}",Per-provider override of the default privacy mode.
 9.1.0,true,base,type,keyword,custom,,anthropic,Provider implementation to use.
 9.1.0,true,base,updated_at,date,custom,,2026-08-03T09:54:52.193Z,"When this document was last written, stamped by the indexer."
 9.1.0,true,base,user_can_override,boolean,custom,,True,Whether users may override the default privacy setting for their own conversations.

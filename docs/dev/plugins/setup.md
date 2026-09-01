@@ -669,7 +669,7 @@ Sessions are read and written by each user directly against the data stream, und
 The index holds several kinds of documents under one mapping, avoiding a separate index for what would otherwise be a handful of settings fields.
 
 - One document per configured AI provider, id an arbitrary UUID: `name`, `type`, `base_url`, `model`, `api_key`, `is_default`, `updated_at`. `listProviders()` caps the result at `AiAssistantSettingsAdminIndex.MAX_PROVIDERS` = 500.
-- A single reserved-id document (id `"wazuh-ai-assistant-settings"`) holding the assistant-wide settings and the field anonymization policy, under `field_policy`
+- A single reserved-id document (id `"wazuh-ai-assistant-settings"`) holding the assistant-wide settings and the field anonymization policy, under `field_policy`. Its `privacy_default_per_provider` is keyed by provider document id, so it is mapped as `flat_object`: the keys are UUIDs minted at runtime and a plain `object` would reject every one of them under this index's `dynamic: strict` mapping.
 - A single reserved-id document (`"credentials"`), owned entirely by Content Manager. The administrative AI assistant API never reads or returns this document.
 
 Example documents:
@@ -681,7 +681,7 @@ Example documents:
 // Settings + field policy document (reserved id "wazuh-ai-assistant-settings")
 {
   "privacy_default_on": false,
-  "privacy_default_per_provider": {},
+  "privacy_default_per_provider": { "3f6b5f7e-6f2d-4a4f-9c1e-2f6d0a1b2c3d": true },
   "user_can_override": true,
   "field_policy": [
     { "field": "wazuh.agent.name", "action": "anonymize", "kind": "HOST" },
