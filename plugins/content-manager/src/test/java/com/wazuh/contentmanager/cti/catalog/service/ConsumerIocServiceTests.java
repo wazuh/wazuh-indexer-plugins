@@ -40,11 +40,13 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -106,6 +108,26 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         this.service =
                 new ConsumerIocService(
                         this.client, this.consumersIndex, this.environment, this.engineService);
+    }
+
+    /**
+     * The IoC consumer's single target index is reported missing when nothing answers to its name, so
+     * the synchronization pass can defer instead of letting a write auto-create a dynamically mapped
+     * index under the alias name (issues #1476 and #1481).
+     */
+    public void testMissingTargetIndicesReportsTheAbsentIndex() {
+        when(this.client.admin().indices().prepareExists(Constants.INDEX_IOCS).get().isExists())
+                .thenReturn(false);
+
+        Assert.assertEquals(List.of(Constants.INDEX_IOCS), this.service.missingTargetIndices());
+    }
+
+    /** Nothing is reported missing once the Setup plugin has provisioned the index. */
+    public void testMissingTargetIndicesIsEmptyWhenTheIndexExists() {
+        when(this.client.admin().indices().prepareExists(Constants.INDEX_IOCS).get().isExists())
+                .thenReturn(true);
+
+        Assert.assertTrue(this.service.missingTargetIndices().isEmpty());
     }
 
     @After

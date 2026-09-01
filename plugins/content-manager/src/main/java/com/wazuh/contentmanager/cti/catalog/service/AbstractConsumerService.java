@@ -22,6 +22,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
@@ -31,9 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.action.PromoteSnapshotAction;
@@ -179,15 +179,18 @@ public abstract class AbstractConsumerService {
      *
      * <p>Marks the consumer as {@link LocalConsumer.Status#RUNNING} before sync begins so that
      * external components can detect the in-progress state. The status moves to {@link
-     * LocalConsumer.Status#READY} once synchronization completes normally, or to {@link
+     * LocalConsumer.Status#READY} once synchronization actually completes, or to {@link
      * LocalConsumer.Status#FAILED} if an unexpected exception interrupts the sync; the exception is
      * then rethrown so the caller ({@code CatalogSyncJob}) can log it and continue with the remaining
-     * synchronizers.
+     * synchronizers. If the pass was aborted before touching any content because the Setup plugin has
+     * not yet provisioned this consumer's target indices, the status is left at {@code RUNNING}
+     * rather than {@code READY} — nothing was synced, so nothing completed.
      *
-     * @return {@code true} when a catalog URL was configured but the remote feed could not be reached
-     *     (the pass still completes by falling back to the local snapshot, and the status is still
-     *     moved to {@link LocalConsumer.Status#READY}, but the caller should treat this as a failure
-     *     worth retrying so a transiently-blocked feed recovers immediately). {@code false} when the
+     * @return {@code true} when the caller should retry this consumer immediately instead of waiting
+     *     for the next scheduled run: either a catalog URL was configured but the remote feed could
+     *     not be reached (the pass still completes by falling back to the local snapshot, and the
+     *     status is still moved to {@link LocalConsumer.Status#READY}), or the target indices were not
+     *     yet provisioned (nothing was synced, status stays {@code RUNNING}). {@code false} when the
      *     feed was reached, or when no catalog was configured (nothing to reach).
      */
     public boolean synchronize() {
@@ -195,6 +198,12 @@ public abstract class AbstractConsumerService {
         try {
             SyncResult result = this.syncConsumerServices();
             log.debug(Constants.D_LOG_SYNC_COMPLETED, this.getConsumerType(), result.updated());
+            if (result.indicesMissing()) {
+                // Nothing was synced: do not report a completion that did not happen. Status stays
+                // RUNNING (set above); the caller retries immediately rather than waiting for the next
+                // scheduled sync, since the Setup plugin usually finishes provisioning within seconds.
+                return true;
+            }
             this.onSyncComplete(result.updated());
             this.setConsumerStatus(LocalConsumer.Status.READY);
             return result.feedUnreachable();
@@ -212,8 +221,11 @@ public abstract class AbstractConsumerService {
      * @param feedUnreachable {@code true} if a catalog URL was configured but the remote consumer
      *     could not be fetched, so the pass relied on the local-snapshot fallback (or applied no
      *     remote changes at all).
+     * @param indicesMissing {@code true} if the pass was aborted before touching any content because
+     *     {@link #missingTargetIndices()} found the Setup plugin has not yet provisioned this
+     *     consumer's target indices. Nothing was synced, so the caller must not report completion.
      */
-    private record SyncResult(boolean updated, boolean feedUnreachable) {}
+    private record SyncResult(boolean updated, boolean feedUnreachable, boolean indicesMissing) {}
 
     /**
      * Updates the consumer status in the {@code .wazuh-cti-consumers} index. This is a partial
@@ -370,6 +382,49 @@ public abstract class AbstractConsumerService {
             case Constants.KEY_CVES -> Constants.INDEX_CVES;
             default -> throw new IllegalArgumentException("Unknown type: " + type);
         };
+    }
+
+    /**
+     * Returns the target indices of this consumer that do not exist.
+     *
+     * <p>The Setup plugin creates each one as {@code <name>-a} with the public alias {@code <name>}
+     * pointing at it, and marks itself ready only once they are all in place, so on a correctly
+     * configured cluster this is always empty. A name is reported missing when neither an index nor
+     * an alias answers to it.
+     *
+     * @return the absent index names, empty when they all exist.
+     */
+    public List<String> missingTargetIndices() {
+        List<String> missing = new ArrayList<>();
+        for (String type : this.getMappings().keySet()) {
+            String indexName = this.getIndexName(type);
+            if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
+                missing.add(indexName);
+            }
+        }
+        return missing;
+    }
+
+    /**
+     * Returns whether an index holds no documents. A read failure is reported as "not empty" so a
+     * transient error never triggers a full content re-download.
+     *
+     * @param indexName The index (or alias) to count documents on.
+     * @return true when the index is reachable and holds no documents, false otherwise.
+     */
+    private boolean isIndexEmpty(String indexName) {
+        try {
+            SearchResponse response =
+                    this.client
+                            .prepareSearch(indexName)
+                            .setSize(0)
+                            .setTrackTotalHits(true)
+                            .get(TimeValue.timeValueSeconds(PluginSettings.getInstance().getClientTimeout()));
+            return response.getHits().getTotalHits().value() == 0;
+        } catch (Exception e) {
+            log.debug(Constants.D_LOG_INDEX_COUNT_FAILED, indexName, e.getMessage());
+            return false;
+        }
     }
 
     /**
@@ -546,24 +601,22 @@ public abstract class AbstractConsumerService {
             boolean feedUnreachable = catalogConfigured && remoteConsumer == null;
 
             Map<String, ContentIndex> indicesMap = new HashMap<>();
-
             for (Map.Entry<String, String> entry : this.getMappings().entrySet()) {
                 String indexName = this.getIndexName(entry.getKey());
-                ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
-                indicesMap.put(entry.getKey(), index);
+                indicesMap.put(entry.getKey(), new ContentIndex(this.client, indexName, entry.getValue()));
+            }
 
-                // Check if index exists to avoid creation exception
-                boolean indexExists =
-                        this.client.admin().indices().prepareExists(indexName).get().isExists();
-
-                if (!indexExists) {
-                    try {
-                        // ContentIndex.createIndex() already logs the creation; avoid a duplicate here.
-                        index.createIndex();
-                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                        log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
-                    }
-                }
+            // The second of the two preconditions for downloading content: the Setup plugin reported
+            // ready (checked by the caller) and this consumer's target indices exist. Nothing is
+            // created here — the Setup plugin owns the threat-intel index topology. Downloading into a
+            // missing index is what caused the defect this guard exists for: the writes below go
+            // through the alias name, so OpenSearch would auto-create a concrete index there with
+            // dynamic mappings, turning every declared keyword into a text field that can be neither
+            // aggregated nor sorted on, and squatting the name the alias needs.
+            List<String> missingIndices = this.missingTargetIndices();
+            if (!missingIndices.isEmpty()) {
+                log.error(Constants.E_LOG_SYNC_ABORTED_INDICES_MISSING, consumerType, missingIndices);
+                return new SyncResult(false, feedUnreachable, true);
             }
 
             // When a plan change is detected, download into hidden shadow indices and atomically
@@ -576,7 +629,7 @@ public abstract class AbstractConsumerService {
                         indicesMap,
                         remoteConsumer,
                         urlResolver)) {
-                    return new SyncResult(false, feedUnreachable);
+                    return new SyncResult(false, feedUnreachable, false);
                 }
                 // The swapped snapshot only carries data up to its snapshot offset. Close the gap to
                 // the remote head in the same pass; otherwise the consumer would be reported as READY
@@ -592,7 +645,7 @@ public abstract class AbstractConsumerService {
                             remoteConsumer.getSnapshotOffset(),
                             remoteConsumer.getOffset());
                 }
-                return new SyncResult(true, feedUnreachable);
+                return new SyncResult(true, feedUnreachable, false);
             }
 
             boolean updated = false;
@@ -606,6 +659,22 @@ public abstract class AbstractConsumerService {
                             currentOffset,
                             remoteConsumer.getOffset(),
                             consumerType);
+                    currentOffset = 0;
+                }
+            }
+
+            // Empty-index resilience. A non-zero offset says the content was already downloaded, so
+            // only incremental changes would be applied and an empty index would stay empty. Reset the
+            // offset so this pass reinitializes from a snapshot instead. This recovers the index the
+            // Setup plugin had to delete because a dynamically mapped index was squatting its alias
+            // name (see issue #1476), and any other case where the content is gone but the offset is
+            // not. Restricted to single-index consumers (IoCs, CVEs), where an empty index is
+            // unambiguous; the ruleset consumer spans six indices, of which some are legitimately
+            // empty.
+            if (currentOffset > 0 && this.getMappings().size() == 1) {
+                String onlyIndex = indicesMap.values().iterator().next().getIndexName();
+                if (this.isIndexEmpty(onlyIndex)) {
+                    log.warn(Constants.W_LOG_EMPTY_INDEX_OFFSET_RESET, onlyIndex, currentOffset);
                     currentOffset = 0;
                 }
             }
@@ -815,7 +884,7 @@ public abstract class AbstractConsumerService {
                                     remoteConsumer.getOffset());
                 }
             }
-            return new SyncResult(updated, feedUnreachable);
+            return new SyncResult(updated, feedUnreachable, false);
         } finally {
             if (tokenExchangeService != null) {
                 tokenExchangeService.close();

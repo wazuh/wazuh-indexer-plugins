@@ -6,6 +6,7 @@ fields:
       hash:
         fields:
           sha256: {}
+      offset: {}
       type_hashes: {}
   document:
     fields:

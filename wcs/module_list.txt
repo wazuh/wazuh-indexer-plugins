@@ -30,10 +30,15 @@ module_to_file=(
   [stateless/metrics/engine]=templates/streams/metrics-normalization.json
   # Settings module
   [settings]=templates/settings.json
-  # Engine filter module
+  # Content modules
+  [content/decoders]=templates/content/decoders.json
   [content/filters]=templates/content/filters.json
-  # IoC module
+  [content/integrations]=templates/content/integrations.json
   [content/ioc]=templates/content/ioc.json
+  [content/kvdbs]=templates/content/kvdbs.json
+  [content/policies]=templates/content/policies.json
+  [content/rules]=templates/content/rules.json
+  [content/vulnerabilities]=templates/content/vulnerabilities.json
   # CVE module
   [cve]=templates/cve.json
   # AI assistant modules
