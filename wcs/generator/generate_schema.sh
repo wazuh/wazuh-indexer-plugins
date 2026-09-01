@@ -158,6 +158,8 @@ function update_modified_modules() {
 # ====
 # Copy index templates and CSV documentation to their corresponding folders.
 #  - Index templates are copied to plugins/setup/src/main/resources/
+#  - Content Manager mappings are derived from those templates, for the content modules whose
+#    mappings that plugin also needs, at a path derived from the module name
 #  - CSV documentation is copied to wcs/<module>/docs/
 # ====
 function copy_files() {
@@ -199,6 +201,32 @@ function copy_files() {
         echo "  - '$destination_path' converted to dynamic_templates"
       fi
     done
+  done
+
+  echo "---> Content Manager mappings"
+  local cm_mapping
+  local content_name
+  for ecs_module in "${modules_to_update[@]}"; do
+    # Only the content modules have a second consumer. The path is derived rather than mapped: a
+    # second entry per module in module_list.txt breaks the tools that grep it for a module's
+    # index template, count_and_update_total_fields.sh among them.
+    if [[ "$ecs_module" != content/* ]]; then
+      continue
+    fi
+    content_name=${ecs_module#content/}
+    case "$content_name" in
+      # The Content Manager named its CVE mappings after the content, not the module.
+      vulnerabilities) cm_mapping="cti-cve-mappings.json" ;;
+      *) cm_mapping="cti-${content_name}-mappings.json" ;;
+    esac
+    cm_mapping="plugins/content-manager/src/main/resources/mappings/${cm_mapping}"
+    if [[ ! -f "$cm_mapping" ]]; then
+      echo "  - '$ecs_module' skipped (no Content Manager copy at $cm_mapping)"
+      continue
+    fi
+    destination_path="$resources_path/${module_to_file[$ecs_module]}"
+    python3 "$repo_path/wcs/generator/sync_content_mappings.py" "$destination_path" "$cm_mapping"
+    echo "  - '$cm_mapping' derived from '$destination_path'"
   done
 
   echo "---> CSV documentation"

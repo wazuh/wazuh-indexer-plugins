@@ -18,3 +18,7 @@
       level: custom
       type: object
       description: "A dynamic object containing the hash values for each IoC type."
+    - name: offset
+      level: custom
+      type: unsigned_long
+      description: "The CTI offset the IoC document was delivered at."

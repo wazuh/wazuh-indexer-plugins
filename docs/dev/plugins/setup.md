@@ -21,6 +21,7 @@ classDiagram
     <<abstract>> WazuhIndex
     class StateIndex
     class StreamIndex
+    class ContentIndex
 
     %% Relations
     IndexInitializer <|-- Index : implements
@@ -28,6 +29,7 @@ classDiagram
     Index <|-- WazuhIndex
     WazuhIndex <|-- StateIndex
     WazuhIndex <|-- StreamIndex
+    WazuhIndex <|-- ContentIndex
 
     %% Schemas
     class IndexInitializer {
@@ -63,6 +65,15 @@ classDiagram
         +createIndex(String index)
     }
     class StateIndex {
+    }
+    class ContentIndex {
+        +String SUFFIX_A
+        +ContentIndex(String index, String template)
+        +getPhysicalName() String
+        +createIndex(String index)
+        +createTemplate(String template)
+        -deleteSquatterIndex(String alias) void
+        -ensureAlias(String alias, String physicalName) void
     }
 ```
 
@@ -144,10 +155,11 @@ Follow the existing structure and naming convention. Example:
 
 Edit the constructor of the `SetupPlugin` class located at: `/plugins/setup/src/main/java/com/wazuh/setup/SetupPlugin.java`
 
-Add the template and index entry to the `indices` map. There are two kinds of indices:
+Add the template and index entry to the `indices` map. There are three kinds of indices:
 
 - **Stream index**. Stream indices contain time-based events of any kind (alerts, statistics, logs...). These are created as Data Streams.
 - **Stateful index**. Stateful indices represent the most recent information of a subject (active vulnerabilities, installed packages, open ports, ...). These indices are different from Stream indices as they do not contain timestamps. The information is not based on time, as they always represent the most recent state.
+- **Content index**. Content indices hold the CTI catalog content the Content Manager downloads. They are not addressed by their own name: see [Threat intel content indices](#threat-intel-content-indices) below.
 
 ```java
 /**
@@ -162,6 +174,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
   this.indices.add(new StreamIndex("my-stream-index", "templates/streams/my-index-template-1"));
   // State indices
   this.indices.add(new StateIndex("my-state-index", "templates/states/my-index-template-2"));
+  // Content indices
+  this.indices.add(new ContentIndex("my-content-index", "templates/content/my-index-template-3"));
 
   //...
 }
@@ -511,6 +525,112 @@ The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh
 2. **Delete State**
    - Actions: Deletes the index
    - Retry Policy: 3 attempts with exponential backoff (1-minute initial delay)
+
+---
+
+## Threat intel content indices
+
+### Overview
+
+The `wazuh-threatintel-*` indices hold the CTI catalog content the Content Manager downloads:
+IoCs, CVEs and the Engine ruleset. The setup plugin provisions all of them.
+
+| Alias | Concrete index | Template |
+| --- | --- | --- |
+| `wazuh-threatintel-enrichments` | `wazuh-threatintel-enrichments-a` | `templates/content/ioc.json` |
+| `wazuh-threatintel-filters` | `wazuh-threatintel-filters-a` | `templates/content/filters.json` |
+| `wazuh-threatintel-decoders` | `wazuh-threatintel-decoders-a` | `templates/content/decoders.json` |
+| `wazuh-threatintel-rules` | `wazuh-threatintel-rules-a` | `templates/content/rules.json` |
+| `wazuh-threatintel-kvdbs` | `wazuh-threatintel-kvdbs-a` | `templates/content/kvdbs.json` |
+| `wazuh-threatintel-integrations` | `wazuh-threatintel-integrations-a` | `templates/content/integrations.json` |
+| `wazuh-threatintel-policies` | `wazuh-threatintel-policies-a` | `templates/content/policies.json` |
+| `.wazuh-threatintel-vulnerabilities` | `.wazuh-threatintel-vulnerabilities-a` | `templates/content/vulnerabilities.json` |
+
+### Why the alias
+
+A content index is never addressed by its own name. `ContentIndex` creates the concrete index as
+`<name>-a` and points a write alias named `<name>` at it. The Content Manager needs that
+indirection: when the content source changes (a plan upgrade or downgrade), it rebuilds the whole
+catalog into a hidden `<name>-b` shadow index and swaps the alias in a single atomic action, so
+readers never see a partially populated index. The two slots alternate on each swap.
+
+`ContentIndex.createTemplate()` therefore rewrites the template's `index_patterns` to `<name>*`,
+whatever the shipped JSON declares. That covers the live slot, the shadow slot and — as a last line
+of defence — the alias name itself.
+
+### Who creates them
+
+This plugin does, and only this plugin. The Content Manager no longer provisions these indices: it
+waits for the `.wazuh-setup-status` readiness marker, and if setup has not marked itself ready it
+aborts its own initialization instead of creating anything. On a deployment without this plugin the
+threat-intel indices are therefore never created and the custom-ruleset endpoints do not work.
+Previously the Content Manager created them from its own copies, and without that wait it won the
+race by a wide margin — it created six of the eight about 16 seconds before this plugin reached its
+threat-intel block, so they were created before their index templates were installed and did not
+pick them up. That race is the bug this change removes.
+
+Downloading CTI content requires two things to be true, and the Content Manager checks both before
+any write reaches these indices:
+
+1. `.wazuh-setup-status` reports `status: ready`, which this plugin writes only after every index it
+   owns exists.
+2. The target indices of that consumer exist.
+
+If either check fails the consumer skips its pass and logs at ERROR; it creates nothing. That is
+what keeps a mis-provisioned index from becoming a squatted one: a write through the alias name
+would otherwise auto-create a concrete index there with dynamic mappings. See issues #1476 and
+#1481, where the second of those took out vulnerability detection and package inventory because the
+global-map documents could not be indexed into an inferred mapping.
+
+To confirm on a running cluster, read the `templates` field of the creation entries in the log:
+
+```bash
+grep 'creating index' /var/log/wazuh-indexer/wazuh-cluster.log | grep threatintel
+```
+
+Every `wazuh-threatintel-*-a` line must name its own `<name>-template`. An empty `templates []`
+means something created the index before the template existed.
+
+### Recovering an index that squats the alias name
+
+If a write reaches the alias name before anything creates the alias, OpenSearch auto-creates a
+concrete index called `<name>` with dynamic mappings. Every keyword the schema declares becomes a
+`text` field, which has no doc_values and so cannot be aggregated or sorted on, and the index
+occupies the name the alias needs. `ContentIndex.createIndex()` deletes such an index before
+creating `<name>-a`. The Content Manager then finds the index empty with a non-zero local offset and
+resets the offset, so the content is downloaded again on the same synchronization pass.
+
+### Where the mappings live
+
+The mappings exist in two places on purpose. This plugin ships them as index templates under
+`plugins/setup/src/main/resources/templates/content/`, and the Content Manager keeps its own copies
+under `plugins/content-manager/src/main/resources/mappings/cti-*-mappings.json`, which it needs to
+create the `<name>-b` shadow indices during a blue/green content swap, without setup intervention.
+The `verifyContentTemplates` Gradle task, wired into `check`, fails the build if the two sets diverge.
+
+All eight `templates/content/*.json` are generated by the WCS generator from the modules under
+`wcs/content/`, and the Content Manager copies are derived from them by `sync_content_mappings.py`;
+editing either set by hand is overwritten on the next generator run.
+`templates/cve.json` is **not** the CVE content template: it is a WCS artifact for the unrelated
+`wazuh-cve*` pattern and is intentionally not registered.
+
+### Testing
+
+```bash
+./gradlew :wazuh-indexer-setup:integTest --tests '*ThreatIntelIndicesIT*'
+```
+
+Against a deployed cluster, the alias must resolve to the `-a` index and its fields must be
+aggregatable:
+
+```bash
+curl -sk -u admin:admin 'https://localhost:9200/_alias/wazuh-threatintel-*'
+curl -sk -u admin:admin \
+  'https://localhost:9200/wazuh-threatintel-enrichments/_field_caps?fields=document.type'
+```
+
+The `indices` array in the `_field_caps` response names what the alias resolved to. It must read
+`["wazuh-threatintel-enrichments-a"]` with `"aggregatable": true`.
 
 ---
 

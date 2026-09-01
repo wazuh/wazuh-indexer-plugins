@@ -3,65 +3,75 @@
   "properties": {
     "document": {
       "properties": {
-        "id": {
-          "type": "keyword"
+        "enabled": {
+          "type": "boolean"
         },
-        "root_decoder": {
-          "type": "keyword"
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "title": {
-              "type": "keyword"
-            },
-            "author": {
-              "type": "keyword"
-            },
-            "date": {
-              "type": "date"
-            },
-            "modified": {
-              "type": "date"
-            },
-            "description": {
-              "type": "text"
-            },
-            "references": {
-              "type": "keyword"
-            },
-            "documentation": {
-              "type": "keyword"
-            },
-            "compatibility": {
-              "type": "keyword"
-            }
-          }
-        },
-        "integrations": {
+        "enrichments": {
+          "ignore_above": 1024,
           "type": "keyword"
         },
         "filters": {
+          "ignore_above": 1024,
           "type": "keyword"
         },
-        "enrichments": {
+        "id": {
+          "ignore_above": 1024,
           "type": "keyword"
         },
-        "enabled": {
+        "index_discarded_events": {
           "type": "boolean"
         },
         "index_unclassified_events": {
           "type": "boolean"
         },
-        "index_discarded_events": {
-          "type": "boolean"
+        "integrations": {
+          "ignore_above": 1024,
+          "type": "keyword"
+        },
+        "metadata": {
+          "properties": {
+            "author": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "compatibility": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "date": {
+              "type": "date"
+            },
+            "description": {
+              "norms": false,
+              "type": "text"
+            },
+            "documentation": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "modified": {
+              "type": "date"
+            },
+            "references": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "title": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
+          }
+        },
+        "root_decoder": {
+          "ignore_above": 1024,
+          "type": "keyword"
         }
       }
     },
     "hash": {
-      "type": "object",
       "properties": {
         "sha256": {
+          "ignore_above": 1024,
           "type": "keyword"
         }
       }
@@ -70,24 +80,24 @@
       "type": "unsigned_long"
     },
     "space": {
-      "type": "object",
       "properties": {
-        "name": {
-          "type": "keyword"
-        },
         "hash": {
-          "type": "object",
           "properties": {
             "sha256": {
+              "ignore_above": 1024,
               "type": "keyword"
             }
           }
+        },
+        "name": {
+          "ignore_above": 1024,
+          "type": "keyword"
         }
       }
     },
     "user_overrides": {
-      "type": "object",
-      "enabled": false
+      "enabled": false,
+      "type": "object"
     }
   }
 }
