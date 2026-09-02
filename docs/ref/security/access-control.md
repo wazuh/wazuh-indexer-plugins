@@ -41,7 +41,7 @@ Internal service account used by the Wazuh Dashboard to read notification config
 
 Service account used by the Wazuh Manager for data ingestion and content reads.
 
-- **Cluster permissions:** `cluster_composite_ops`, `cluster_monitor`.
+- **Cluster permissions:** `cluster_composite_ops`, `indices:data/read/scroll/clear`, `cluster_monitor`.
 - **Index permissions:**
   - `read` on `.wazuh-settings`.
   - `read` on `.wazuh-cti-consumers`, `wazuh-active-responses*`, `wazuh-threatintel-*`.
@@ -55,7 +55,7 @@ Service account used by the Wazuh Manager for data ingestion and content reads.
 Full access to all Wazuh features, excluding super-admin features such as the security configuration.
 
 - **Cluster permissions:**
-  - Base: `cluster_composite_ops`, `cluster_monitor`.
+  - Base: `cluster_composite_ops`, `indices:data/read/scroll/clear`, `cluster_monitor`.
   - Wazuh settings (setup plugin): `plugin:wazuh/settings/write`.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`, `plugin:wazuh/ai_assistant/settings/write` — see [AI assistant administrative API](#ai-assistant-administrative-api) below.
   - Content Manager: full.
@@ -77,7 +77,7 @@ Full access to all Wazuh features, excluding super-admin features such as the se
 Default interactive user: can visualize data and manage threat intelligence / Content Manager content.
 
 - **Cluster permissions:**
-  - Base: `cluster_composite_ops`, `cluster_monitor`.
+  - Base: `cluster_composite_ops`, `indices:data/read/scroll/clear`, `cluster_monitor`.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`.
   - Content Manager: full content operations (no subscription create/delete, no policy update).
   - Security Analytics: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
@@ -92,7 +92,7 @@ Default interactive user: can visualize data and manage threat intelligence / Co
 Read-only access across the platform.
 
 - **Cluster permissions:**
-  - Base: `cluster_composite_ops`, `cluster_monitor`.
+  - Base: `cluster_composite_ops_ro`, `indices:data/read/scroll/clear`, `cluster_monitor`.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`.
   - Content Manager: `subscription/get`, `logtest*`, `version/check`.
   - Security Analytics: read-only (upstream `cluster:admin/opensearch/securityanalytics/*` get/search/list actions) plus the Wazuh custom `rules/evaluate`.
