@@ -15,7 +15,7 @@ These default users and roles definitions are stored in the `internal_users.yml`
 
 Each default user is mapped 1:1 to the role of the matching name in `roles_mapping.yml`. The `wazuh-admin` user is additionally reachable through the `admin` backend role.
 
-- **`wazuh-manager`** → `wazuh_manager` — service account for the Wazuh Manager: read/write on stateless (events, metrics) indices, read/write/delete on stateful (states) indices, read/write on the agent statistics and configuration indexes, and read on consumers, threat intelligence and active-responses.
+- **`wazuh-manager`** → `wazuh_manager` — service account for the Wazuh Manager: read/write on stateless (events, metrics) indices, read/write/delete/refresh on stateful (states) indices, read/write/delete/refresh on the agent statistics and configuration indexes, and read on consumers, threat intelligence, findings and active-responses.
 - **`wazuh-admin`** → `wazuh_admin` — administrator: read access to all Wazuh indices, write access to Wazuh settings, full Content Manager and Security Analytics access, and management of alerting, notifications, reporting and index management. Excludes super-admin (security configuration).
 - **`wazuh-demo`** → `wazuh_demo` — default interactive user: read data, manage threat intelligence content, full Content Manager content operations and Security Analytics, and read-only alerting, notifications, reporting and index management.
 - **`wazuh-readonly`** → `wazuh_readonly` — read-only access to indices, settings, subscriptions and Security Analytics (detectors, findings, alerts).
@@ -44,11 +44,20 @@ Service account used by the Wazuh Manager for data ingestion and content reads.
 - **Cluster permissions:** `cluster_composite_ops`, `cluster_monitor`.
 - **Index permissions:**
   - `read` on `.wazuh-settings`.
-  - `read` on `.wazuh-cti-consumers`, `wazuh-active-responses*`, `wazuh-threatintel-*`.
-  - `read`, `index` on `wazuh-events-v5-*`, `wazuh-metrics-*`.
-  - `read`, `index`, `delete` on `wazuh-states-*`.
-  - `read`, `index` and `delete` on `wazuh-agent-*`.
+  - `read` on `.wazuh-cti-consumers`, `wazuh-active-responses*`, `wazuh-threatintel-*`, `wazuh-findings-v5-*`.
+  - `read`, `index` on `wazuh-events-v5-*`, `wazuh-events-raw-v5*`, `wazuh-metrics-*`.
+  - `read`, `index`, `delete`, `indices:admin/refresh` on `wazuh-states-*`.
+  - `read`, `index`, `delete`, `indices:admin/refresh` on `wazuh-agent-*`.
   - `manage_point_in_time` on `.wazuh-threatintel-vulnerabilities*`, `wazuh-threatintel-*`.
+
+Removing an agent opens a point in time (PIT) over the indices holding that
+agent's documents and runs a `_delete_by_query` against it. A PIT pins the
+searcher as it is at creation time and never picks up later refreshes, so any
+document written inside the index refresh interval (2s on the `wazuh-states-*`
+indices, 5s on `wazuh-agent-config` and `wazuh-agent-stats`) would be invisible
+to the query and survive the deletion. The manager therefore refreshes each
+target index before opening the PIT, which needs `indices:admin/refresh` — an
+action none of the `read`, `index` or `delete` action groups imply.
 
 #### `wazuh_admin`
 
