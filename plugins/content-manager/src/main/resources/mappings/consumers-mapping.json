@@ -23,6 +23,9 @@
     },
     "remote_offset": {
       "type": "long"
+    },
+    "pending_sync_phases": {
+      "type": "keyword"
     }
   }
 }

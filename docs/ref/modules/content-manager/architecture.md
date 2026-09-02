@@ -255,7 +255,8 @@ The `.wazuh-cti-consumers` index stores one document per consumer type:
     "is_public": true,
     "status": "ready",
     "local_offset": 3932,
-    "remote_offset": 3932
+    "remote_offset": 3932,
+    "pending_sync_phases": []
   }
 }
 ```
@@ -269,3 +270,5 @@ The `status` field reflects the consumer's synchronization lifecycle:
 | `failed` | The previous sync cycle was interrupted by an unexpected exception. |
 
 The status is set to `running` at the very start of a sync cycle and transitions to `ready` after all post-sync work finishes — including hash recalculation, Security Analytics Plugin synchronization, and Engine IoC notification — or to `failed` if an unexpected exception interrupts the cycle. The job scheduler logs the failure and retries on the next scheduled run regardless of the consumer's status.
+
+For the ruleset consumer, `pending_sync_phases` lists which of `integrations`, `rules`, and `detectors` failed to sync to Security Analytics on the last pass and are retried on the next scheduled sync, even without new CTI content; an empty array means all sub-phases are in sync.
