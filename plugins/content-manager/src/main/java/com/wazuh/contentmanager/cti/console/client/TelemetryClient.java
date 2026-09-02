@@ -52,6 +52,7 @@ public class TelemetryClient extends ApiClient {
                             .addHeader("wazuh-uid", uuid)
                             .addHeader("wazuh-tag", "v" + version)
                             .addHeader("Accept", "application/json")
+                            .addHeader("Accept-Encoding", "gzip, br")
                             .build();
 
             log.debug("Sending telemetry ping to: {}", pingUrl);

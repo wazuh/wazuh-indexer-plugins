@@ -84,6 +84,7 @@ public class SnapshotClient {
             // Setup
             final URI uri = new URI(this.urlResolver.resolve(snapshotURI));
             final HttpGet request = new HttpGet(uri);
+            request.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip, br");
             final String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
             final Path path = this.env.tmpDir().resolve(filename);
 
