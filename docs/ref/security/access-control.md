@@ -20,7 +20,7 @@ Each default user is mapped 1:1 to the role of the matching name in `roles_mappi
 - **`wazuh-demo`** → `wazuh_demo` — default interactive user: read data, manage threat intelligence content, full Content Manager content operations and Security Analytics, and read-only alerting, notifications, reporting and index management.
 - **`wazuh-readonly`** → `wazuh_readonly` — read-only access to indices, settings, subscriptions and Security Analytics (detectors, findings, alerts).
 
-> **Security note:** The bundled password hashes decode to the username. Change every default password immediately after installation.
+> **Security note:** The bundled password hashes decode to the username, and nothing rotates them during installation. Change every default password immediately after installation, as described in [Changing the default passwords](../getting-started/installation.md#4-changing-the-default-passwords).
 
 There is no dedicated internal user for the `dashboard_server` role below — it is mapped to the built-in OpenSearch `kibanaserver` user, which the Wazuh Dashboard authenticates as internally.
 
