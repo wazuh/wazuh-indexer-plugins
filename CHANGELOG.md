@@ -134,6 +134,9 @@
 - Allow dates on Content Manager's REST API [(#1349)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1349)
 - Update the Content Manager OpenAPI (`openapi.yml`) to match the current API [(#1353)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1353)
 - Rename the `metrics-comms` stream to `wazuh-metrics-comms-v4` [(#1458)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1458)
+- Reduce the IoCs and ruleset memory footprint [(#1740)](https://github.com/wazuh/wazuh-indexer/issues/1740)
+- Reduce snapshot ingestion overhead with partial JSON parsing [(#1351)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1351)
+- Remove maximum values from Content Manager settings [(#1420)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1420)
 
 ### Removed
 - Remove plugins not planned for 5.x [(#440)](https://github.com/wazuh/wazuh-indexer-plugins/issues/440)
@@ -182,6 +185,8 @@
 - [BUG] Fix issues in workflows [(#1449)](https://github.com/wazuh/wazuh-indexer/issues/1449)
 - Failed to save/update ManagedIndexMetaData [(#1828)](https://github.com/wazuh/wazuh-indexer/issues/1828)
 - [BUG] `wazuh-threatintel-enrichments-a` is never created, so the CTI writer auto-creates a dynamically mapped index under the alias name and the home overview's Threat catalog fails [(#1476)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1476)
+- [BUG] Retry sending resources to SAP after failure [(#1487)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1487)
+- [BUG] `privacy_default_per_provider` mapped as object under `dynamic:strict` rejects new provider overrides [(#1498)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1498)
 
 ## Prior versions
 - []()

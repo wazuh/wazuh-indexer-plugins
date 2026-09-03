@@ -81,13 +81,15 @@
         present on the settings document.
       example: false
     - name: privacy_default_per_provider
-      type: object
+      type: flat_object
       level: custom
       short: Per-provider override of the default privacy mode.
       description: >
         Per-provider override of the default privacy mode, keyed by provider
-        name. Only present on the settings document.
-      example: '{"test-ai": true}'
+        document id. Only present on the settings document. Mapped as
+        flat_object: the keys are runtime-generated provider ids, so they cannot
+        be declared up front under this index's strict mapping.
+      example: '{"3f6b5f7e-6f2d-4a4f-9c1e-2f6d0a1b2c3d": true}'
     - name: user_can_override
       type: boolean
       level: custom

@@ -146,7 +146,7 @@ public class Constants {
             "Sending delete request for {} to Security Analytics (document.id={}{}).";
     public static final String I_LOG_SAP_SUMMARY =
             "Sent {} of {} {} to Security Analytics for space [{}].";
-    public static final String W_LOG_SAP_PARTIAL =
+    public static final String E_LOG_SAP_PARTIAL =
             "{} {} could not be sent to Security Analytics for space [{}]: {}";
     public static final String I_LOG_ACCESS_TOKEN_REMOVED =
             "Access token removed successfully. Environment is now unregistered.";
@@ -163,6 +163,12 @@ public class Constants {
     public static final String D_LOG_CONSUMER_STATUS_SET = "Consumer [{}] status set to [{}]";
     public static final String W_LOG_CONSUMER_STATUS_FAILED =
             "Failed to set consumer [{}] status to [{}]: {}";
+    public static final String D_LOG_CONSUMER_PENDING_PHASES_DOC_ABSENT =
+            "Consumer [{}] doc not present; skipping pending sync phases update to {}";
+    public static final String D_LOG_CONSUMER_PENDING_PHASES_READ_FAILED =
+            "Could not read pending sync phases for [{}]: {}";
+    public static final String W_LOG_CONSUMER_PENDING_PHASES_FAILED =
+            "Failed to persist pending sync phases for [{}]: {}";
     public static final String D_LOG_CONSUMER_RESOURCE_READ_FAILED =
             "Could not read existing consumer resource for [{}]: {}";
     public static final String D_LOG_CONSUMER_T0_WRITTEN =
@@ -338,10 +344,15 @@ public class Constants {
             "Unexpected error sending {} to the Security Analytics plugin: {}";
     public static final String D_LOG_SAP_DETECTORS_SYNCING =
             "Syncing {} detectors ({} sequentially, {} in parallel)";
+    public static final String D_LOG_SAP_DETECTORS_NO_INTEGRATIONS =
+            "Integration documents could not be read; keeping the detectors phase pending.";
     public static final String E_LOG_DETECTOR_WAIT_INTERRUPTED =
             "Interrupted while waiting for detector sync to complete.";
     public static final String W_LOG_HIT_MISSING_DOCUMENT =
             "Hit [{}] missing 'document' field, skipping";
+    public static final String E_LOG_SAP_SYNC_DEGRADED =
+            "Security Analytics content sync degraded for consumer [{}]: phase(s) {} still pending; "
+                    + "will retry on the next scheduled sync pass.";
 
     // Log messages - snapshot / update / IOC (SnapshotServiceImpl, UpdateServiceImpl,
     // ConsumerIocService)
@@ -384,6 +395,8 @@ public class Constants {
             "Skipped {} snapshot entries (missing payload: {}, unknown type: {}, unmapped type: {}, parse errors: {}).";
     public static final String E_LOG_SNAPSHOT_READ_FILE_FAILED =
             "Error reading snapshot file [{}]: {}";
+    public static final String E_LOG_SNAPSHOT_INDEXING_INCOMPLETE =
+            "Snapshot indexing for consumer [{}] dropped {} document(s); local_offset was not advanced so the next sync retries the snapshot.";
     public static final String D_LOG_SNAPSHOT_LOCAL_INIT_START =
             "Starting local snapshot initialization for [{}] from [{}]";
     public static final String E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED =
@@ -505,9 +518,15 @@ public class Constants {
     public static final String D_LOG_NO_DOCUMENT_FOUND_QUERY =
             "No document found in [{}] with query {}";
     public static final String E_LOG_SEARCH_BY_QUERY_FAILED = "Search by query failed in [{}]: {}";
-    public static final String W_LOG_BULK_INDEXING_FAILURES =
-            "Bulk indexing finished with failures: {}";
     public static final String E_LOG_BULK_INDEX_OPERATION_FAILED = "Bulk index operation failed: {}";
+    public static final String W_LOG_BULK_RETRY_SCHEDULED =
+            "Bulk indexing shed {} document(s) under load; retry {}/{} in {}ms.";
+    public static final String E_LOG_BULK_RETRIES_EXHAUSTED =
+            "Bulk indexing dropped {} document(s) after {} retries. Last failure: {}";
+    public static final String E_LOG_BULK_ITEMS_NOT_RETRYABLE =
+            "Bulk indexing dropped {} document(s) with non-retryable failures. Last failure: {}";
+    public static final String E_LOG_BULK_RETRY_SCHEDULE_FAILED =
+            "Bulk indexing dropped {} document(s): retry could not be scheduled: {}";
     public static final String E_LOG_SEMAPHORE_INTERRUPTED =
             "Interrupted while waiting for semaphore: {}";
     public static final String E_LOG_CLEAR_INDEX_NO_MAPPINGS =
