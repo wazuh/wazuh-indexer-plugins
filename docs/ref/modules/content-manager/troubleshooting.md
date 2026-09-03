@@ -121,6 +121,55 @@ This means the CTI API rate-limited the request (HTTP 429). The client now honor
 2. If 429s persist across passes, the instance is being rate-limited by CTI for longer than the retry budget. Increase `plugins.content_manager.client.max_retries` and/or `plugins.content_manager.client.retry_backoff_base_seconds`.
 3. Look for the warning `CTI API rate-limited request [...] (HTTP 429); retrying in {}s` in the logs to confirm the retry path is engaging.
 
+### Resource creation fails with a missing `indices:admin/create` permission
+
+A `POST` to `/rules`, `/decoders`, `/integrations`, `/kvdbs` or `/filters` returns HTTP 429 with
+`Too many concurrent requests creating this resource. Please retry.` even though there is no
+concurrency, and the indexer log shows the security plugin denying `indices:admin/create` on the lock
+index for the requesting user:
+
+```
+[INFO ][o.o.s.p.PrivilegesEvaluatorImpl] No index-level perm match for User [name=wazuh-demo, ...]
+  Resolved [... allIndices=[.wazuh-content-manager-resource-locks] ...]:
+  Insufficient permissions for the referenced index [Action [indices:admin/create]]
+[WARN ][c.w.c.t.AbstractTransportCreateAction] Failed to acquire resource-creation lock for [integration]:
+  no permissions for [indices:admin/create] and User [name=wazuh-demo, ...]
+```
+
+The `.wazuh-content-manager-resource-locks` index is created at node startup and every operation on
+it runs as the plugin, so this can only happen on a node that never completed that startup step
+(check the log for `Failed to create .wazuh-content-manager-resource-locks index, due to: ...`).
+
+Note that the index is hidden and has no alias, so its absence cannot be confirmed with
+`_cat/aliases` or a plain `_cat/indices`.
+
+#### Resolution
+
+1. Confirm whether the index exists:
+
+   ```bash
+   curl -k -u user:pass "https://localhost:9200/_cat/indices/.wazuh-content-manager-resource-locks?expand_wildcards=all&v"
+   ```
+
+2. If it is missing, restart the node — the plugin recreates it during initialization — and check the
+   startup log for the reason it failed the first time (a red cluster or a node still joining are the
+   usual causes).
+3. If a restart is not an option, create it manually with an account that holds
+   `indices:admin/create` (for example via the admin certificate). Only the `acquired_at` field is
+   needed:
+
+   ```bash
+   curl -k -u admin:pass -X PUT "https://localhost:9200/.wazuh-content-manager-resource-locks" \
+     -H 'Content-Type: application/json' -d '{
+       "settings": { "index": { "number_of_replicas": 0, "auto_expand_replicas": "0-1", "hidden": true, "refresh_interval": "-1" } },
+       "mappings": { "dynamic": "strict", "properties": { "acquired_at": { "type": "long" } } }
+     }'
+   ```
+
+4. Do **not** add `indices:admin/create` to the user's role to work around this. No role needs
+   index-level privileges on the lock index — see
+   [Access control — Plugin-internal indices](../../security/access-control.md#plugin-internal-indices).
+
 ## Diagnostic commands
 
 ### Check consumer state

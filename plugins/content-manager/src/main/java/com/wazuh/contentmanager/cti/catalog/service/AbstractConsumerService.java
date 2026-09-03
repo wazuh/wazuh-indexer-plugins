@@ -189,9 +189,9 @@ public abstract class AbstractConsumerService {
      * @return {@code true} when the caller should retry this consumer immediately instead of waiting
      *     for the next scheduled run: either a catalog URL was configured but the remote feed could
      *     not be reached (the pass still completes by falling back to the local snapshot, and the
-     *     status is still moved to {@link LocalConsumer.Status#READY}), or the target indices were not
-     *     yet provisioned (nothing was synced, status stays {@code RUNNING}). {@code false} when the
-     *     feed was reached, or when no catalog was configured (nothing to reach).
+     *     status is still moved to {@link LocalConsumer.Status#READY}), or the target indices were
+     *     not yet provisioned (nothing was synced, status stays {@code RUNNING}). {@code false} when
+     *     the feed was reached, or when no catalog was configured (nothing to reach).
      */
     public boolean synchronize() {
         this.setConsumerStatus(LocalConsumer.Status.RUNNING);

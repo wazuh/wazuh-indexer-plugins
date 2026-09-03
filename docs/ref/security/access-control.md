@@ -115,6 +115,31 @@ Grants every authenticated user access to their own AI assistant conversations, 
 
 The per-owner DLS applies to every user, including `wazuh-admin` and `admin`
 
+## Plugin-internal indices
+
+Some indices are bookkeeping owned by a plugin rather than data a user queries. They are created by
+the plugin at node startup and are only ever read or written by the plugin itself, never on behalf of
+a REST caller, so **custom roles must not be given index-level privileges on them** — a role that
+omits them behaves exactly the same:
+
+| Index | Owner | Purpose |
+| --- | --- | --- |
+| `.wazuh-content-manager-resource-locks` | Content Manager | Short-lived mutex documents that serialize the resource-limit check when creating rules, decoders, integrations, KVDBs and filters. See [Content Manager — Resource creation lock](../modules/content-manager/architecture.md#resource-creation-lock). |
+| `.wazuh-cti-consumers` | Content Manager | CTI synchronization state (status, offsets, source URL) per consumer. |
+| `.wazuh-content-manager-jobs` | Content Manager | Job Scheduler metadata for the catalog sync and telemetry ping jobs. |
+
+Where such an index has to be touched while serving a user request — the resource-creation lock is
+taken and released inside a create request — the plugin stashes the caller's identity for the
+duration of that operation, so it is authorized as the plugin and not as the user. This is what keeps
+these indices out of every role, including custom roles that hold only `plugin:content_manager/*`
+permissions. The stash is scoped to the internal index: the content operation the request came for is
+still authorized against the user's own index permissions on `wazuh-threatintel-*`.
+
+`.wazuh-internal-state` is deliberately not in this list. It is also written by the plugin in its own
+context, but it is additionally declared as a security-plugin system index
+(`plugins.security.system_indices.indices`), and the roles above grant it explicitly because the
+Setup plugin's AI assistant endpoints read and write it on behalf of users.
+
 ## AI assistant administrative API
 
 The AI assistant's providers configuration, assistant-wide settings and field policy live together in the hidden `.wazuh-internal-state` index.

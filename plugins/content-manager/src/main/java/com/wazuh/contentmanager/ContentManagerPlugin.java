@@ -88,6 +88,7 @@ import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
+import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
@@ -126,6 +127,7 @@ public class ContentManagerPlugin extends Plugin
 
     private ConsumersIndex consumersIndex;
     private CredentialsIndex credentialsIndex;
+    private ResourceLockService resourceLockService;
     private boolean isCredentialsIndexProtected;
     private ThreadPool threadPool;
     private Client client;
@@ -202,6 +204,7 @@ public class ContentManagerPlugin extends Plugin
 
         this.consumersIndex = new ConsumersIndex(client);
         this.credentialsIndex = new CredentialsIndex(client, threadPool);
+        this.resourceLockService = new ResourceLockService(client, threadPool);
         this.setupReadiness = new SetupReadiness(client);
         this.plansService = new PlansServiceImpl();
         this.subscriptionService =
@@ -506,6 +509,26 @@ public class ContentManagerPlugin extends Plugin
                                         log.error(
                                                 Constants.E_LOG_PLUGIN_INDEX_CREATE_FAILED,
                                                 CredentialsIndex.INDEX_NAME,
+                                                e.getMessage(),
+                                                e);
+                                    }
+
+                                    // Provision the resource-creation lock index up front. It is
+                                    // plugin-internal bookkeeping, so creating it here (as the plugin)
+                                    // keeps it off the REST request path, where the create would
+                                    // otherwise be evaluated against the calling user's privileges.
+                                    try {
+                                        CreateIndexResponse locksResponse = this.resourceLockService.createIndex();
+                                        if (locksResponse != null && locksResponse.isAcknowledged()) {
+                                            log.info(
+                                                    Constants.I_LOG_PLUGIN_INDEX_CREATED,
+                                                    locksResponse.index(),
+                                                    locksResponse.isAcknowledged());
+                                        }
+                                    } catch (Exception e) {
+                                        log.error(
+                                                Constants.E_LOG_PLUGIN_INDEX_CREATE_FAILED,
+                                                Constants.INDEX_RESOURCE_LOCKS,
                                                 e.getMessage(),
                                                 e);
                                     }
