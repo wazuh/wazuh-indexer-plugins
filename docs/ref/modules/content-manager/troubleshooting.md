@@ -212,7 +212,7 @@ Example output:
 - `local_offset == remote_offset`: Content is up-to-date.
 - `local_offset < remote_offset`: Content needs updating.
 - `local_offset == 0`: Content has never been synced (snapshot required).
-- `pending_sync_phases`: for the ruleset consumer, lists which of `integrations`, `rules`, and `detectors` failed to sync to Security Analytics and are retried on the next scheduled sync; empty means all sub-phases are in sync.
+- `pending_sync_phases`: for the ruleset consumer, lists which of `integrations`, `rules`, and `detectors` failed to sync to Ruleset Management and are retried on the next scheduled sync; empty means all sub-phases are in sync.
 
 ### Check sync job
 

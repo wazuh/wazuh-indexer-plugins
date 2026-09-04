@@ -48,15 +48,15 @@ Handles initial content loading. Initializes from either a remote CTI snapshot (
 
 Handles incremental updates. Fetches change batches from the CTI API based on offset differences and applies create, update, and delete operations to content indices.
 
-### Security Analytics service
+### Ruleset Management service
 
-Interfaces with the Security Analytics plugin. Creates, updates, and deletes Security Analytics rules, integrations, and detectors to keep them in sync with CTI content.
+Interfaces with the Ruleset Management plugin. Creates, updates, and deletes Ruleset Management rules, integrations, and detectors to keep them in sync with CTI content.
 
 **Dynamic configuration**: instead of using hardcoded defaults, the service extracts the enabled state, interval, and source index patterns directly from the CTI integration payload. This allows CTI to control detector behavior dynamically.
 
-**Document ID model**: Security Analytics documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each Security Analytics document stores the UUID of the original CTI document and the space it belongs to (draft, test, custom, or standard), so the same CTI resource can exist across multiple spaces without ID collisions.
+**Document ID model**: Ruleset Management documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each Ruleset Management document stores the UUID of the original CTI document and the space it belongs to (draft, test, custom, or standard), so the same CTI resource can exist across multiple spaces without ID collisions.
 
-> **Note:** Security Analytics enforces a configurable maximum number of rules per detector (`plugins.security_analytics.max_rules_per_detector`, default `50`). If an integration has more enabled rules than the configured limit, the detector creation or update request will be rejected. See [Security Analytics — Detector constraints](../security-analytics/index.md#detector-constraints) for details.
+> **Note:** Ruleset Management enforces a configurable maximum number of rules per detector (`plugins.security_analytics.max_rules_per_detector`, default `50`). If an integration has more enabled rules than the configured limit, the detector creation or update request will be rejected. See [Ruleset Management — Detector constraints](../ruleset-management/index.md#detector-constraints) for details.
 
 ### Space service
 
@@ -97,7 +97,7 @@ Job scheduler triggers
   → If no custom catalog URL: initialize from local packaged snapshot
   → Extracts and bulk-indexes into wazuh-threatintel-rules, wazuh-threatintel-decoders, etc.
   → Updates .wazuh-cti-consumers with new offset
-  → Security Analytics service creates detectors using dynamic CTI configuration (max rules per detector configurable, default 50)
+  → Ruleset Management service creates detectors using dynamic CTI configuration (max rules per detector configurable, default 50)
 ```
 
 ### CTI sync (incremental)
@@ -108,7 +108,7 @@ Job scheduler triggers
   → Update service fetches change batches from CTI API
   → Applies create/update/delete operations to content indices
   → Updates .wazuh-cti-consumers offset
-  → Security Analytics service syncs changes
+  → Ruleset Management service syncs changes
 ```
 
 ### Update check heartbeat
@@ -165,10 +165,10 @@ POST /promote
   → Consolidate changes to Content Manager indices (tracked for rollback)
       → Apply adds/updates: policy, integrations, kvdbs, decoders, filters, rules
       → Apply deletes: integrations, kvdbs, decoders, filters, rules
-  → Sync integrations and rules to Security Analytics:
+  → Sync integrations and rules to Ruleset Management:
       → Adds use POST (new document)
       → Updates use PUT (existing document)
-  → Delete removed integrations/rules from Security Analytics
+  → Delete removed integrations/rules from Ruleset Management
 ```
 
 A space can be promoted regardless of its policy's `enabled` value. Promoting a space whose policy has `enabled: false` is expected behavior, not an error condition.
@@ -195,16 +195,16 @@ Each successful index mutation is recorded as a rollback step. On failure, steps
 
 Individual rollback step failures are logged and skipped so remaining steps can proceed.
 
-#### Security Analytics reconciliation
+#### Ruleset Management reconciliation
 
-After the Content Manager rollback completes, a best-effort Security Analytics reconciliation runs in dependency order:
+After the Content Manager rollback completes, a best-effort Ruleset Management reconciliation runs in dependency order:
 
-1. **Revert applied rules** — adds are deleted from Security Analytics; updates are restored to the old version.
+1. **Revert applied rules** — adds are deleted from Ruleset Management; updates are restored to the old version.
 2. **Revert applied integrations** — same as above.
 3. **Restore deleted integrations** — re-created from pre-deletion snapshots via POST.
 4. **Restore deleted rules** — same as above.
 
-Security Analytics reconciliation failures are logged as warnings but do not cause the overall rollback to fail, since the sync is considered best-effort.
+Ruleset Management reconciliation failures are logged as warnings but do not cause the overall rollback to fail, since the sync is considered best-effort.
 
 ```
 Consolidation fails at step N
@@ -212,7 +212,7 @@ Consolidation fails at step N
       → Add + no old version → delete from target index
       → Add/update + old version → restore old version to target index
       → Delete → re-index snapshot to target index
-  → Security Analytics reconciliation (best-effort):
+  → Ruleset Management reconciliation (best-effort):
       → Delete rules that were added
       → Restore rules that were updated
       → Restore integrations that were added/updated
@@ -310,6 +310,6 @@ The `status` field reflects the consumer's synchronization lifecycle:
 | `running` | Sync is in progress; content may be partially written or inconsistent. |
 | `failed` | The previous sync cycle was interrupted by an unexpected exception. |
 
-The status is set to `running` at the very start of a sync cycle and transitions to `ready` after all post-sync work finishes — including hash recalculation, Security Analytics Plugin synchronization, and Engine IoC notification — or to `failed` if an unexpected exception interrupts the cycle. The job scheduler logs the failure and retries on the next scheduled run regardless of the consumer's status.
+The status is set to `running` at the very start of a sync cycle and transitions to `ready` after all post-sync work finishes — including hash recalculation, Ruleset Management synchronization, and Engine IoC notification — or to `failed` if an unexpected exception interrupts the cycle. The job scheduler logs the failure and retries on the next scheduled run regardless of the consumer's status.
 
-For the ruleset consumer, `pending_sync_phases` lists which of `integrations`, `rules`, and `detectors` failed to sync to Security Analytics on the last pass and are retried on the next scheduled sync, even without new CTI content; an empty array means all sub-phases are in sync.
+For the ruleset consumer, `pending_sync_phases` lists which of `integrations`, `rules`, and `detectors` failed to sync to Ruleset Management on the last pass and are retried on the next scheduled sync, even without new CTI content; an empty array means all sub-phases are in sync.

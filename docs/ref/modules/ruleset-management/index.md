@@ -1,8 +1,10 @@
-# Security Analytics
+# Ruleset Management
 
-The Security Analytics plugin is a fork of the [OpenSearch Security Analytics plugin](https://opensearch.org/docs/3.6/security-analytics/) adapted for Wazuh. It evaluates incoming events against Sigma detection rules, creates findings when rules match, and correlates related findings across detectors.
+The Ruleset Management plugin is a fork of the [OpenSearch Security Analytics plugin](https://opensearch.org/docs/3.6/security-analytics/) adapted for Wazuh. It evaluates incoming events against Sigma detection rules, creates findings when rules match, and correlates related findings across detectors.
 
-The Security Analytics plugin runs inside the Wazuh Indexer and operates as an OpenSearch plugin, using the standard OpenSearch transport layer for all internal communication.
+The Ruleset Management plugin runs inside the Wazuh Indexer and operates as an OpenSearch plugin, using the standard OpenSearch transport layer for all internal communication.
+
+> **A note on naming:** Ruleset Management is the user-facing name of the plugin. Internally the plugin is still called Security Analytics, and that name remains visible in the identifiers it exposes — the `plugins.security_analytics.*` settings prefix, the `/_plugins/_security_analytics/` API base path, the `.opensearch-sap-*` index patterns, and the `cluster:admin/*/securityanalytics/*` action namespaces. The [Development Guide](../../../dev/plugins/security-analytics.md) also refers to it as Security Analytics throughout. Both names describe the same plugin.
 
 ## Detector rule space restriction
 
@@ -21,7 +23,7 @@ Both limits are dynamic and enforced at the transport layer, applying to all det
 
 ### What is a finding?
 
-A **finding** is a record that a monitored event matched a Sigma detection rule. Security Analytics creates one finding per matching event and stores it in the `.opensearch-sap-{category}-findings-*` data stream. Each finding contains:
+A **finding** is a record that a monitored event matched a Sigma detection rule. Ruleset Management creates one finding per matching event and stores it in the `.opensearch-sap-{category}-findings-*` data stream. Each finding contains:
 
 - **`id`** — unique finding identifier.
 - **`detector_id`** — the detector that produced the finding.
@@ -34,7 +36,7 @@ Raw findings contain only identifiers — they do not embed the triggering event
 
 ### What is an enriched finding?
 
-An **enriched finding** is an augmented version of a raw Security Analytics finding. Because the Wazuh Dashboard needs the full event payload and rule context to render alert details, each finding is enriched with:
+An **enriched finding** is an augmented version of a raw Ruleset Management finding. Because the Wazuh Dashboard needs the full event payload and rule context to render alert details, each finding is enriched with:
 
 - The **full triggering event source** (fetched from the source index by document ID)
 - **Rule metadata** under `wazuh.rule`: name, severity level, compliance mappings, MITRE ATT&CK tags
@@ -48,11 +50,11 @@ Enriched findings are written to `wazuh-findings-v5-{category}*`, where `{catego
 The following steps happen for every event that matches a detection rule:
 
 1. A Wazuh Manager sends an event to the Wazuh Indexer. The event is indexed in the monitored data stream.
-2. The Security Analytics plugin's Alerting monitor evaluates the event against all active Sigma rules for the configured log category.
-3. On a match, Security Analytics creates a raw finding and queues it for enrichment.
+2. The Ruleset Management plugin's Alerting monitor evaluates the event against all active Sigma rules for the configured log category.
+3. On a match, Ruleset Management creates a raw finding and queues it for enrichment.
 4. The enrichment step asynchronously fetches the triggering event source and the matching rule's metadata, assembles the enriched document, and bulk-indexes it into `wazuh-findings-v5-{category}*`.
 
-Enrichment is **fire-and-forget**: it never blocks the Security Analytics write path and failures are logged without propagating to the caller.
+Enrichment is **fire-and-forget**: it never blocks the Ruleset Management write path and failures are logged without propagating to the caller.
 
 See [Architecture](architecture.md) for the data flow, and the development guide for implementation details.
 

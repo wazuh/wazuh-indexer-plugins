@@ -21,7 +21,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.catalog.ruleset`** (String, default `""`) — full CTI consumer URL for ruleset content.
 - **`plugins.content_manager.catalog.iocs`** (String, default `""`) — full CTI consumer URL for IoC content.
 - **`plugins.content_manager.catalog.vulnerabilities`** (String, default `""`) — full CTI consumer URL for vulnerabilities content.
-- **`plugins.content_manager.catalog.create_detectors`** (Boolean, default `true`) — automatically create Security Analytics detectors from CTI content.
+- **`plugins.content_manager.catalog.create_detectors`** (Boolean, default `true`) — automatically create Ruleset Management detectors from CTI content.
 - **`plugins.content_manager.telemetry.enabled`** (Boolean, default `true`, dynamic) — enable or disable the daily Update check service ping.
 - **`plugins.content_manager.catalog.update_on_demand`** (Boolean, default `true`) — when `false`, on-demand content updates (`POST /update`) return `403 Forbidden` for every caller, regardless of role.
 - **`plugins.content_manager.catalog.policy_update.enabled`** (Boolean, default `true`) — when `false`, policy updates (`PUT /policy/{space}`) return `403 Forbidden` for every caller, regardless of role.
@@ -126,9 +126,9 @@ plugins.content_manager.max_concurrent_bulks: 2
 plugins.content_manager.client.timeout: 30
 ```
 
-#### Disable Security Analytics detector creation
+#### Disable Ruleset Management detector creation
 
-If you do not use the OpenSearch Security Analytics plugin:
+If you do not use the Ruleset Management plugin:
 
 ```yaml
 # opensearch.yml
@@ -223,4 +223,4 @@ Setting a limit to `0` blocks all new creation of that resource type.
 - The catalog URL settings (`plugins.content_manager.catalog.ruleset`, `plugins.content_manager.catalog.iocs`, and `plugins.content_manager.catalog.vulnerabilities`) should only be changed if instructed by Wazuh support or documentation, and must point to valid absolute HTTP(S) CTI consumer endpoints.
 - The sync interval is enforced by the OpenSearch Job Scheduler. The actual sync timing may vary slightly depending on cluster load.
 - The update check service runs with a fixed interval of 1 day when enabled. The first ping is sent immediately after the job is registered (on node start or when the setting is dynamically enabled); subsequent pings follow the 1-day interval.
-- **Detector configuration:** the settings for Security Analytics detectors (interval, enabled status, and source indices) are managed directly via CTI integration files. If an integration's `detector` object is missing in the CTI source, the system will use built-in safety defaults.
+- **Detector configuration:** the settings for Ruleset Management detectors (interval, enabled status, and source indices) are managed directly via CTI integration files. If an integration's `detector` object is missing in the CTI source, the system will use built-in safety defaults.

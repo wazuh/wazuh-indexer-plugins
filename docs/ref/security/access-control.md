@@ -16,9 +16,9 @@ These default users and roles definitions are stored in the `internal_users.yml`
 Each default user is mapped 1:1 to the role of the matching name in `roles_mapping.yml`. The `wazuh-admin` user is additionally reachable through the `admin` backend role.
 
 - **`wazuh-manager`** → `wazuh_manager` — service account for the Wazuh Manager: read/write on stateless (events, metrics) indices, read/write/delete on stateful (states) indices, read/write on the agent statistics and configuration indexes, and read on consumers, threat intelligence and active-responses.
-- **`wazuh-admin`** → `wazuh_admin` — administrator: read access to all Wazuh indices, write access to Wazuh settings, full Content Manager and Security Analytics access, and management of alerting, notifications, reporting and index management. Excludes super-admin (security configuration).
-- **`wazuh-demo`** → `wazuh_demo` — default interactive user: read data, manage threat intelligence content, full Content Manager content operations and Security Analytics, and read-only alerting, notifications, reporting and index management.
-- **`wazuh-readonly`** → `wazuh_readonly` — read-only access to indices, settings, subscriptions and Security Analytics (detectors, findings, alerts).
+- **`wazuh-admin`** → `wazuh_admin` — administrator: read access to all Wazuh indices, write access to Wazuh settings, full Content Manager and Ruleset Management access, and management of alerting, notifications, reporting and index management. Excludes super-admin (security configuration).
+- **`wazuh-demo`** → `wazuh_demo` — default interactive user: read data, manage threat intelligence content, full Content Manager content operations and Ruleset Management, and read-only alerting, notifications, reporting and index management.
+- **`wazuh-readonly`** → `wazuh_readonly` — read-only access to indices, settings, subscriptions and Ruleset Management (detectors, findings, alerts).
 
 > **Security note:** The bundled password hashes decode to the username. Change every default password immediately after installation.
 
@@ -59,7 +59,7 @@ Full access to all Wazuh features, excluding super-admin features such as the se
   - Wazuh settings (setup plugin): `plugin:wazuh/settings/write`.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`, `plugin:wazuh/ai_assistant/settings/write` — see [AI assistant administrative API](#ai-assistant-administrative-api) below.
   - Content Manager: full.
-  - Security Analytics: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
+  - Ruleset Management: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
   - Alerting: full.
   - Anomaly detection: detector operations.
   - Notifications: full.
@@ -80,7 +80,7 @@ Default interactive user: can visualize data and manage threat intelligence / Co
   - Base: `cluster_composite_ops`, `indices:data/read/scroll/clear`, `cluster_monitor`.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`.
   - Content Manager: full content operations (no subscription create/delete, no policy update).
-  - Security Analytics: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
+  - Ruleset Management: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
   - Alerting, Anomaly detection, Notifications, Reporting, Index management: **read-only**.
 - **Index permissions:**
   - `get`, `read`, `indices:admin/aliases/get`, `indices:monitor/*` on `*`, `.kibana*`.
@@ -95,7 +95,7 @@ Read-only access across the platform.
   - Base: `cluster_composite_ops_ro`, `indices:data/read/scroll/clear`, `cluster_monitor`.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`.
   - Content Manager: `subscription/get`, `logtest*`, `version/check`.
-  - Security Analytics: read-only (upstream `cluster:admin/opensearch/securityanalytics/*` get/search/list actions) plus the Wazuh custom `rules/evaluate`.
+  - Ruleset Management: read-only (upstream `cluster:admin/opensearch/securityanalytics/*` get/search/list actions) plus the Wazuh custom `rules/evaluate`.
   - Alerting, Anomaly detection, Notifications, Reporting, Index management: **read-only**.
 - **Index permissions:**
   - `get`, `read`, `indices:admin/aliases/get`, `indices:monitor/*` on `*`, `.kibana*`.

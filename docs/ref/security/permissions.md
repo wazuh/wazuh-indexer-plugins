@@ -1,6 +1,6 @@
 # Permissions
 
-This page lists the permissions registered by the Wazuh Indexer plugins that are referenced by the [default roles](./access-control.md). Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual `cluster:admin/content_manager/*` transport actions registered by the plugin; the Setup and Security Analytics entries are raw cluster actions.
+This page lists the permissions registered by the Wazuh Indexer plugins that are referenced by the [default roles](./access-control.md). Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual `cluster:admin/content_manager/*` transport actions registered by the plugin; the Setup and Ruleset Management entries are raw cluster actions.
 
 ### Setup plugin permissions
 
@@ -29,7 +29,7 @@ Other Content Manager permissions:
 - `plugin:content_manager/space/delete` — delete a space
 - `plugin:content_manager/version/check` — check the catalog version
 
-### Security Analytics plugin permissions
+### Ruleset Management plugin permissions
 
 Wazuh custom actions:
 
