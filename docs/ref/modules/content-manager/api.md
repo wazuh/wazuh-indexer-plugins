@@ -464,6 +464,7 @@ curl -sk -u admin:admin -X POST \
 
 - **200** — logtest executed (check inner status fields).
 - **400** — missing/invalid fields or integration not found.
+- **413** — request body exceeds `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB); rejected before processing.
 - **500** — Engine socket communication error or internal error.
 
 ---
@@ -560,6 +561,7 @@ curl -sk -u admin:admin -X POST \
 
 - **200** — normalization executed successfully.
 - **400** — missing/invalid fields.
+- **413** — request body exceeds `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB); rejected before processing.
 - **500** — Engine socket communication error or internal error.
 
 ---
@@ -679,6 +681,7 @@ curl -sk -u admin:admin -X POST \
 
 - **200** — detection executed (check `message.status`).
 - **400** — missing/invalid fields or integration not found.
+- **413** — request body exceeds `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB); rejected before processing.
 - **500** — internal error.
 
 ---

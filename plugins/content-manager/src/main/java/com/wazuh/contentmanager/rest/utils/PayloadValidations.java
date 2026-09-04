@@ -18,10 +18,13 @@ package com.wazuh.contentmanager.rest.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
 import org.opensearch.core.rest.RestStatus;
@@ -40,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.wazuh.contentmanager.action.LogtestResponse;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -48,10 +52,53 @@ import com.wazuh.contentmanager.utils.Constants;
 /** Utility class providing common validation methods for REST handlers. */
 public class PayloadValidations {
 
+    private static final Logger log = LogManager.getLogger(PayloadValidations.class);
+
     private static final Pattern ID_PATTERN = Pattern.compile("^[a-zA-Z0-9-_]+$");
+
+    /**
+     * Transient thread-context key under which the OpenSearch security plugin stores the
+     * authenticated user. Read reflectively (via {@code toString()}) so the plugin does not take a
+     * hard compile dependency on the optional security plugin.
+     */
+    private static final String SECURITY_USER_TRANSIENT = "_opendistro_security_user";
 
     /** Public constructor to allow instantiation. */
     public PayloadValidations() {}
+
+    /**
+     * Enforces the configured maximum logtest request-body size, before the body is parsed or
+     * dispatched to the transport layer. The raw byte length of the request content is checked (the
+     * envelope around the {@code event} is negligible, so this bounds the event too). When the limit
+     * is exceeded the offending call is logged with the responsible account so operators can
+     * attribute abuse, and a {@code 413 REQUEST_ENTITY_TOO_LARGE} response is returned.
+     *
+     * @param request the incoming REST request.
+     * @param maxBytes the maximum allowed body size in bytes.
+     * @param threadContext the current thread context, used to resolve the authenticated user for the
+     *     abuse log (may be null).
+     * @return a {@link LogtestResponse} carrying the 413 error when the body is too large, or {@code
+     *     null} when the body is within the limit.
+     */
+    public static LogtestResponse validateLogtestBodySize(
+            RestRequest request, long maxBytes, ThreadContext threadContext) {
+        int length = request.content().length();
+        if (length > maxBytes) {
+            Object userObj =
+                    threadContext == null ? null : threadContext.getTransient(SECURITY_USER_TRANSIENT);
+            String user = userObj == null ? "unknown" : userObj.toString();
+            log.warn(
+                    "Rejected oversized logtest request: {} bytes exceeds limit of {} bytes, path [{}], user [{}].",
+                    length,
+                    maxBytes,
+                    request.path(),
+                    user);
+            return new LogtestResponse(
+                    String.format(Locale.ROOT, Constants.E_413_LOGTEST_EVENT_TOO_LARGE, maxBytes),
+                    RestStatus.REQUEST_ENTITY_TOO_LARGE);
+        }
+        return null;
+    }
 
     /**
      * Validates that a document exists and is in the draft space.

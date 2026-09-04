@@ -62,6 +62,25 @@ Interfaces with the Security Analytics plugin. Creates, updates, and deletes Sec
 
 Manages the four content spaces (standard, draft, test, custom). Routes CUD operations to the correct space partitions within system indices. Handles promotion by computing diffs between spaces in the promotion chain (draft → test → custom).
 
+### Resource creation lock
+
+Serializes the "count existing resources, then create if under the configured maximum" sequence so
+concurrent create requests cannot all observe a stale count and overshoot the limit. The mutex is a
+short-lived document with a deterministic ID per (resource type, space) in the hidden
+`.wazuh-content-manager-resource-locks` index, written with `op_type=create` so only one request can
+hold it at a time. It is released when the creation chain finishes, and a lock older than 30 seconds
+is stolen by the next caller so a crashed node cannot block creations permanently.
+
+The lock index is plugin-internal bookkeeping and is never addressed by API consumers:
+
+- It is created once per node at plugin startup, not on the request path.
+- Every operation on it (existence check, create, index, get, delete) runs with the caller's security
+  context stashed, so it is evaluated as the plugin rather than as the REST user. **No role needs
+  index-level privileges on `.wazuh-content-manager-resource-locks`** — see
+  [Access control — Plugin-internal indices](../../security/access-control.md#plugin-internal-indices).
+- The stash covers the lock index only. The resource creation that follows runs with the caller's
+  context restored, so the user's own index-level privileges on the content indices still apply.
+
 ### Engine client
 
 Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock`. Used for logtest execution, content validation, and configuration reload.
@@ -110,8 +129,11 @@ Job scheduler triggers (every 24h thereafter)
 
 ```
 REST request (POST/PUT/DELETE)
+  → (create only) Acquires the per-(resource type, space) resource creation lock
+  → (create only) Checks the configured resource limit for the space
   → Space service routes to draft space
   → Writes to wazuh-threatintel-rules / wazuh-threatintel-decoders / wazuh-threatintel-integrations / wazuh-threatintel-kvdbs
+  → (create only) Releases the lock
   → Returns created/updated/deleted resource
 ```
 
@@ -260,6 +282,25 @@ The `.wazuh-cti-consumers` index stores one document per consumer type:
   }
 }
 ```
+
+The hidden `.wazuh-content-manager-resource-locks` index holds the short-lived mutex documents
+described in [Resource creation lock](#resource-creation-lock). It is created at node startup, is not
+alias-backed, and is not part of the blue/green swap. Each document is keyed by a UUID derived from
+the resource type and space, and only records when the lock was taken:
+
+```json
+{
+  "_index": ".wazuh-content-manager-resource-locks",
+  "_id": "0f3c9a1e-6f0e-3a4c-9a5a-1b8d4f7c2e11",
+  "_source": {
+    "acquired_at": 1773078119040
+  }
+}
+```
+
+Documents are deleted as soon as the creation that took the lock finishes, so the index is normally
+empty. Being hidden and unaliased, it shows up in neither `_cat/aliases` nor a plain `_cat/indices`;
+list it with `GET _cat/indices/.wazuh-content-manager-resource-locks?expand_wildcards=all&v`.
 
 The `status` field reflects the consumer's synchronization lifecycle:
 

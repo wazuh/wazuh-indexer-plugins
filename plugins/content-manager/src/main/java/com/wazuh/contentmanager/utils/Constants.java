@@ -72,6 +72,10 @@ public class Constants {
             "This request would create more than the allowed kvdbs [%d].";
     public static final String E_400_TOO_MANY_FILTERS =
             "This request would create more than the allowed filters [%d].";
+    public static final String E_413_LOGTEST_EVENT_TOO_LARGE =
+            "logtest payload exceeds the maximum allowed size of %d bytes.";
+    public static final String E_429_LOGTEST_BUSY =
+            "logtest is busy: too many concurrent requests. Please retry later.";
     public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
             "ID should not be provided in the payload.";
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine validation failed.";

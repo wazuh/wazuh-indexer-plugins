@@ -187,6 +187,7 @@
 - [BUG] `wazuh-threatintel-enrichments-a` is never created, so the CTI writer auto-creates a dynamically mapped index under the alias name and the home overview's Threat catalog fails [(#1476)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1476)
 - [BUG] Retry sending resources to SAP after failure [(#1487)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1487)
 - [BUG] `privacy_default_per_provider` mapped as object under `dynamic:strict` rejects new provider overrides [(#1498)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1498)
+- [BUG] Resource creation requires `indices:admin/create` on `.wazuh-content-manager-resource-locks` for the calling user [(#1520)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1520)
 
 ## Prior versions
 - []()

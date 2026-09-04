@@ -30,6 +30,7 @@ import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestRequest;
@@ -83,6 +84,8 @@ public class TransportCreateRuleActionTests extends OpenSearchTestCase {
         stubResourceLock(this.client);
         TransportService transportService = mock(TransportService.class);
         ThreadPool threadPool = mock(ThreadPool.class);
+        // ResourceLockService stashes the caller's context around every lock operation.
+        when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
         doAnswer(
                         invocation -> {
                             ((Runnable) invocation.getArgument(0)).run();
