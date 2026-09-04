@@ -17,7 +17,7 @@ REST handlers no longer validate requests or contain any business logic — that
 
 **Path**: `rest/service/RestPostLogtestAction.java`
 
-The REST handler for `POST /_plugins/_content_manager/logtest`. It reads the raw request body into a `LogtestRequest` and calls `client.execute(LogtestAction.INSTANCE, logtestRequest, listener)`. It performs no validation and does not interact with indices or external services directly.
+The REST handler for `POST /_plugins/_content_manager/logtest`. Before dispatch it enforces the request-body size cap via `PayloadValidations.validateLogtestBodySize(...)` — a body larger than `plugins.content_manager.logtest.max_body_bytes` is rejected with **413** at the REST layer, before parsing (see [Request size limit and concurrency](#request-size-limit-and-concurrency)). Otherwise it reads the raw request body into a `LogtestRequest` and calls `client.execute(LogtestAction.INSTANCE, logtestRequest, listener)`. It performs no field-level validation and does not interact with indices or external services directly.
 
 ### TransportLogtestAction
 
@@ -36,7 +36,7 @@ The validation and dispatch layer for the combined endpoint. Responsibilities:
 
 **Path**: `rest/service/RestPostLogtestNormalizationAction.java`
 
-The REST handler for `POST /_plugins/_content_manager/logtest/normalization`. Reads the request body and calls `client.execute(LogtestNormalizationAction.INSTANCE, ...)`. No validation.
+The REST handler for `POST /_plugins/_content_manager/logtest/normalization`. Enforces the body-size cap (413) the same way as the combined handler, then reads the request body and calls `client.execute(LogtestNormalizationAction.INSTANCE, ...)`. No field-level validation.
 
 ### TransportLogtestNormalizationAction
 
@@ -54,7 +54,7 @@ Responsibilities:
 
 **Path**: `rest/service/RestPostLogtestDetectionAction.java`
 
-The REST handler for `POST /_plugins/_content_manager/logtest/detection`. Reads the request body and calls `client.execute(LogtestDetectionAction.INSTANCE, ...)`. No validation.
+The REST handler for `POST /_plugins/_content_manager/logtest/detection`. Enforces the body-size cap (413) the same way as the combined handler, then reads the request body and calls `client.execute(LogtestDetectionAction.INSTANCE, ...)`. No field-level validation.
 
 ### TransportLogtestDetectionAction
 
@@ -67,6 +67,15 @@ Responsibilities:
 3. Validates that `space` is not `"draft"`.
 4. Validates that `input` is a JSON object (not a string or array).
 5. Delegates to `LogtestService.executeDetection(integrationId, space, inputEvent)`.
+
+All three transport actions run this work on the dedicated `content_manager_logtest` thread pool rather than the transport thread (see [Request size limit and concurrency](#request-size-limit-and-concurrency)).
+
+### Request size limit and concurrency
+
+The logtest endpoints are deliberately reachable by low-privilege accounts. To keep that surface from being used to exhaust the indexer's heap, two independent controls bound the work each request can cause:
+
+- **Body-size cap (413).** Every logtest REST handler checks the raw request-body length against `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB; dynamic; range 1 KiB–16 MiB) before parsing or dispatching, via the shared `PayloadValidations.validateLogtestBodySize(...)` helper. An oversized body is rejected with **413 `REQUEST_ENTITY_TOO_LARGE`** and the message `logtest payload exceeds the maximum allowed size of <N> bytes.`, and the offending account and size are logged at `WARN`. This removes the input-to-response amplification the endpoint would otherwise permit, since the input is bounded before any work happens.
+- **Bounded thread pool (429).** The three transport actions offload execution onto a dedicated `FixedExecutorBuilder` pool named `content_manager_logtest` (size `max(1, allocatedProcessors / 2)`, queue 100), registered in `ContentManagerPlugin.getExecutorBuilders(...)`. This keeps the blocking Engine-socket call off the transport threads, and when the bounded queue is full excess requests are shed with **429 `TOO_MANY_REQUESTS`** (`logtest is busy: too many concurrent requests. Please retry later.`) instead of accumulating on the heap. Worst-case in-flight payload is bounded to roughly `(pool size + queue) * max_body_bytes`.
 
 ### LogtestService
 

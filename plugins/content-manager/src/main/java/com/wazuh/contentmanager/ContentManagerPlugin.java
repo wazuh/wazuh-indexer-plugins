@@ -39,6 +39,7 @@ import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Module;
 import org.opensearch.common.settings.*;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
@@ -60,6 +61,8 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.secure_sm.AccessController;
+import org.opensearch.threadpool.ExecutorBuilder;
+import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -283,6 +286,11 @@ public class ContentManagerPlugin extends Plugin
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
                         PluginSettings.WAZUH_UID, v -> PluginSettings.getInstance().setWazuhUid(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.LOGTEST_MAX_BODY_BYTES,
+                        v -> PluginSettings.getInstance().setLogtestMaxBodyBytes(v));
 
         return List.of(
                 this.subscriptionService,
@@ -958,6 +966,7 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_CONCURRENT_BULKS,
                 PluginSettings.MAX_ITEMS_PER_BULK,
                 PluginSettings.MAX_BULK_BYTES,
+                PluginSettings.LOGTEST_MAX_BODY_BYTES,
                 PluginSettings.CATALOG_SYNC_INTERVAL,
                 PluginSettings.UPDATE_ON_START,
                 PluginSettings.UPDATE_ON_SCHEDULE,
@@ -980,6 +989,21 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.SETUP_WAIT_BACKOFF_BASE_SECONDS,
                 PluginSettings.CLIENT_MAX_RETRIES,
                 PluginSettings.CLIENT_RETRY_BACKOFF_BASE_SECONDS);
+    }
+
+    @Override
+    public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
+        // Dedicated, bounded pool for logtest execution. Sized to half the allocated processors (at
+        // least one) with a small bounded queue: excess concurrency is rejected with 429 rather than
+        // piling blocking engine-socket calls onto the transport threads and converting into heap.
+        int size = Math.max(1, OpenSearchExecutors.allocatedProcessors(settings) / 2);
+        return List.of(
+                new FixedExecutorBuilder(
+                        settings,
+                        PluginSettings.LOGTEST_THREAD_POOL,
+                        size,
+                        100,
+                        "plugins.content_manager.thread_pool.logtest"));
     }
 
     @Override

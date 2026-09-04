@@ -19,10 +19,12 @@ package com.wazuh.contentmanager.transport;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
 import org.junit.Assert;
 import org.junit.Before;
@@ -36,6 +38,7 @@ import static org.mockito.Mockito.*;
 
 public class TransportLogtestNormalizationActionTests extends OpenSearchTestCase {
     private LogtestService logtestService;
+    private ThreadPool threadPool;
     private TransportLogtestNormalizationAction action;
 
     @Before
@@ -43,9 +46,16 @@ public class TransportLogtestNormalizationActionTests extends OpenSearchTestCase
     public void setUp() throws Exception {
         super.setUp();
         this.logtestService = mock(LogtestService.class);
+        this.threadPool = mock(ThreadPool.class);
+        // Execute submitted work synchronously so the existing assertions still observe the result.
+        when(this.threadPool.executor(anyString()))
+                .thenReturn(OpenSearchExecutors.newDirectExecutorService());
         this.action =
                 new TransportLogtestNormalizationAction(
-                        mock(TransportService.class), mock(ActionFilters.class), this.logtestService);
+                        mock(TransportService.class),
+                        mock(ActionFilters.class),
+                        this.threadPool,
+                        this.logtestService);
     }
 
     public void testDoExecute_Success() {
