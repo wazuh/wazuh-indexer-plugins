@@ -320,7 +320,7 @@ IPv6 addresses are supported in the following formats:
     E.g., `2001:db8:85a3::8a2e:370:7334`.
 
 - CIDR: Subnet notation with a prefix length.
-  
+
     E.g., `2001:db8::/32`.
 
 #### `exists`
@@ -591,22 +591,6 @@ mitre:
     - id: T1059
       name: Command and Scripting Interpreter
 ```
-
-#### Deprecated shorthand
-
-A category given as a plain array of ID strings is still accepted for backwards compatibility with rules written against the previous format:
-
-```yaml
-mitre:
-  tactic:
-    - TA0002
-  technique:
-    - T1059
-```
-
-This shorthand cannot carry ATT&CK names, so `mitre.tactic.name`, `mitre.technique.name` and `mitre.subtechnique.name` are left empty for the categories that use it, and a warning is logged. Write new rules in one of the two named forms above.
-
-A `mitre` block that matches none of these forms, or that uses a category key other than `tactic`, `technique` and `subtechnique`, is rejected with a validation error rather than silently ignored.
 
 ---
 
