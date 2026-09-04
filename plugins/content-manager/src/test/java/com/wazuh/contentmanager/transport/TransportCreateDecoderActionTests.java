@@ -345,7 +345,7 @@ public class TransportCreateDecoderActionTests extends OpenSearchTestCase {
                 .onResponse(
                         argThat(
                                 response -> {
-                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+                                    Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
                                     return true;
                                 }));
     }

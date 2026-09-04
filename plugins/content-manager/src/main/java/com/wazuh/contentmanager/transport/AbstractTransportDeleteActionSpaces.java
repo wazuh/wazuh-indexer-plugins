@@ -18,7 +18,6 @@ package com.wazuh.contentmanager.transport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -207,19 +206,30 @@ public abstract class AbstractTransportDeleteActionSpaces
                             if (this.isNotFoundException(e)) {
                                 log.warn(Constants.W_LOG_EXTERNAL_NOT_FOUND, this.getResourceType(), id);
                                 unlinkStep(client, id, index, spaceService, spaceName, listener);
-                            } else {
-                                log.error(
+                                return;
+                            }
+                            RestResponse classified = TransportActionHelper.classifyException(e);
+                            if (classified != null) {
+                                log.warn(
                                         Constants.E_LOG_FAILED_TO,
                                         "delete",
                                         this.getResourceType(),
                                         id,
-                                        "from external service: " + e.getMessage());
-                                respond(
-                                        listener,
-                                        new RestResponse(
-                                                "Failed to delete from external service: " + e.getMessage(),
-                                                RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
+                                        "from external service: " + classified.getMessage());
+                                respond(listener, classified);
+                                return;
                             }
+                            log.error(
+                                    Constants.E_LOG_FAILED_TO,
+                                    "delete",
+                                    this.getResourceType(),
+                                    id,
+                                    "from external service: " + e.getMessage());
+                            respond(
+                                    listener,
+                                    new RestResponse(
+                                            Constants.E_500_INTERNAL_SERVER_ERROR,
+                                            RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
                         }));
     }
 
@@ -261,6 +271,17 @@ public abstract class AbstractTransportDeleteActionSpaces
                                             e -> respondWithError(listener, id, e)));
                         },
                         e -> {
+                            RestResponse classified = TransportActionHelper.classifyException(e);
+                            if (classified != null) {
+                                log.warn(
+                                        Constants.E_LOG_FAILED_TO,
+                                        "unlink",
+                                        this.getResourceType(),
+                                        id,
+                                        "from parent: " + classified.getMessage());
+                                respond(listener, classified);
+                                return;
+                            }
                             log.error(
                                     Constants.E_LOG_FAILED_TO,
                                     "unlink",
@@ -270,7 +291,7 @@ public abstract class AbstractTransportDeleteActionSpaces
                             respond(
                                     listener,
                                     new RestResponse(
-                                            "Failed to unlink from parent: " + e.getMessage(),
+                                            Constants.E_500_INTERNAL_SERVER_ERROR,
                                             RestStatus.INTERNAL_SERVER_ERROR.getStatus()));
                         }));
     }
@@ -281,15 +302,22 @@ public abstract class AbstractTransportDeleteActionSpaces
     }
 
     private void respondWithError(ActionListener<ContentResponse> listener, String id, Exception e) {
-        OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-        if (secEx != null) {
-            listener.onResponse(new ContentResponse(secEx.getMessage(), secEx.status()));
+        RestResponse classified = TransportActionHelper.classifyException(e);
+        if (classified != null) {
+            log.warn(
+                    Constants.W_LOG_OPERATION_FAILED,
+                    "Deleting",
+                    this.getResourceType(),
+                    classified.getMessage());
+            listener.onResponse(
+                    new ContentResponse(
+                            classified.getMessage(), RestStatus.fromCode(classified.getStatus())));
             return;
         }
         log.error(Constants.E_LOG_UNEXPECTED, "deleting", this.getResourceType(), id, e.getMessage());
         listener.onResponse(
                 new ContentResponse(
-                        "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
     }
 
     private String resolvedSpaceName;

@@ -128,11 +128,13 @@ public class Constants {
     public static final String E_LOG_INDEX_NOT_FOUND = "Index [{}] not found.";
     public static final String E_LOG_SAP_SYNC_FAILED = "Failed to sync {} in Security Analytics: {}";
     public static final String E_LOG_OPERATION_FAILED = "Error {} {}: {}";
-    public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
+    public static final String E_LOG_FAILED_TO =
+            "Failed to {} {} (id={}): {}"; // Used for both WARN (4xx) and ERROR (5xx)
     public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
     public static final String E_LOG_MISSING_FIELD = "Missing '{}' field.";
     public static final String E_LOG_MISSING_OBJECT = "Missing '{}' object.";
-    public static final String W_LOG_VALIDATION_FAILED = "Validation failed: {}";
+    public static final String W_LOG_VALIDATION_FAILED =
+            "Validation failed: {}"; // Used for both WARN (4xx) and ERROR (5xx)
     public static final String W_LOG_OPERATION_FAILED = "{} failed for {}: {}";
     public static final String W_LOG_OPERATION_FAILED_ID = "{} failed for {} [{}]: {}";
     public static final String W_LOG_RESOURCE_NOT_FOUND = "{} [{}] not found.";
@@ -900,6 +902,6 @@ public class Constants {
     public static final int MAX_LOCK_ACQUIRE_RETRIES = 20;
     public static final long LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS = 100;
     public static final long LOCK_STALE_THRESHOLD_MILLIS = 30_000;
-    public static final String E_503_RESOURCE_LOCK_TIMEOUT =
+    public static final String E_429_RESOURCE_LOCK_TIMEOUT =
             "Too many concurrent requests creating this resource. Please retry.";
 }

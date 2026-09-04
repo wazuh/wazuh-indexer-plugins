@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.transport;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -28,10 +30,13 @@ import com.wazuh.contentmanager.action.IndexSubscriptionAction;
 import com.wazuh.contentmanager.action.IndexSubscriptionRequest;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 
 public class TransportIndexSubscriptionAction
         extends HandledTransportAction<IndexSubscriptionRequest, MessageStatusResponse> {
+
+    private static final Logger log = LogManager.getLogger(TransportIndexSubscriptionAction.class);
 
     private final SubscriptionServiceImpl subscriptionService;
 
@@ -60,21 +65,24 @@ public class TransportIndexSubscriptionAction
                                         new MessageStatusResponse(
                                                 Constants.S_201_ACCESS_TOKEN_RECEIVED, RestStatus.CREATED)),
                         e -> {
-                            if (e instanceof IllegalStateException) {
-                                if (Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX.equals(e.getMessage())) {
-                                    listener.onResponse(
-                                            new MessageStatusResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED));
-                                    return;
-                                }
-                                listener.onFailure(e);
+                            if (e instanceof IllegalStateException
+                                    && Constants.E_412_UNPROTECTED_CREDENTIALS_INDEX.equals(e.getMessage())) {
+                                listener.onResponse(
+                                        new MessageStatusResponse(e.getMessage(), RestStatus.PRECONDITION_FAILED));
                                 return;
                             }
+                            RestResponse classified = TransportActionHelper.classifyException(e);
+                            if (classified != null) {
+                                log.warn("Access token registration rejected: {}", classified.getMessage());
+                                listener.onResponse(
+                                        new MessageStatusResponse(
+                                                classified.getMessage(), RestStatus.fromCode(classified.getStatus())));
+                                return;
+                            }
+                            log.error("Access token registration failed: {}", e.getMessage(), e);
                             listener.onResponse(
                                     new MessageStatusResponse(
-                                            e.getMessage() != null
-                                                    ? e.getMessage()
-                                                    : "An unexpected error occurred while processing your request.",
-                                            RestStatus.INTERNAL_SERVER_ERROR));
+                                            Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
                         }));
     }
 }

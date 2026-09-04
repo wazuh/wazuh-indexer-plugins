@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.transport;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -28,9 +30,13 @@ import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.TriggerUpdateAction;
 import com.wazuh.contentmanager.action.TriggerUpdateRequest;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 
 public class TransportTriggerUpdateAction
         extends HandledTransportAction<TriggerUpdateRequest, MessageStatusResponse> {
+
+    private static final Logger log = LogManager.getLogger(TransportTriggerUpdateAction.class);
 
     private final CatalogSyncJob catalogSyncJob;
 
@@ -58,12 +64,18 @@ public class TransportTriggerUpdateAction
                     new MessageStatusResponse(
                             "The update request has been accepted for processing.", RestStatus.ACCEPTED));
         } catch (Exception e) {
+            RestResponse classified = TransportActionHelper.classifyException(e);
+            if (classified != null) {
+                log.warn("Failed to trigger content update: {}", classified.getMessage());
+                listener.onResponse(
+                        new MessageStatusResponse(
+                                classified.getMessage(), RestStatus.fromCode(classified.getStatus())));
+                return;
+            }
+            log.error("Failed to trigger content update: {}", e.getMessage(), e);
             listener.onResponse(
                     new MessageStatusResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR));
+                            Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
         }
     }
 }

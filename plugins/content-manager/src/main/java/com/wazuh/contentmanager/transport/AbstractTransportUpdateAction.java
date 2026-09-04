@@ -22,8 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchException;
-import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.core.action.ActionListener;
@@ -285,12 +283,21 @@ public abstract class AbstractTransportUpdateAction
                     ActionListener.wrap(
                             syncError -> {
                                 if (syncError != null) {
-                                    log.error(
-                                            Constants.E_LOG_FAILED_TO,
-                                            "sync updated",
-                                            this.getResourceType(),
-                                            id,
-                                            "with external services. Reason: " + syncError.getMessage());
+                                    if (syncError.getStatus() < 500) {
+                                        log.warn(
+                                                Constants.E_LOG_FAILED_TO,
+                                                "sync updated",
+                                                this.getResourceType(),
+                                                id,
+                                                "with external services. Reason: " + syncError.getMessage());
+                                    } else {
+                                        log.error(
+                                                Constants.E_LOG_FAILED_TO,
+                                                "sync updated",
+                                                this.getResourceType(),
+                                                id,
+                                                "with external services. Reason: " + syncError.getMessage());
+                                    }
                                     respond(listener, syncError);
                                     return;
                                 }
@@ -345,20 +352,22 @@ public abstract class AbstractTransportUpdateAction
     }
 
     private void respondWithError(ActionListener<ContentResponse> listener, String id, Exception e) {
-        OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-        if (secEx != null) {
-            listener.onResponse(new ContentResponse(secEx.getMessage(), secEx.status()));
-            return;
-        }
-        OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
-        if (osEx != null) {
-            listener.onResponse(new ContentResponse(osEx.getMessage(), osEx.status()));
+        RestResponse classified = TransportActionHelper.classifyException(e);
+        if (classified != null) {
+            log.warn(
+                    Constants.W_LOG_OPERATION_FAILED,
+                    "Updating",
+                    this.getResourceType(),
+                    classified.getMessage());
+            listener.onResponse(
+                    new ContentResponse(
+                            classified.getMessage(), RestStatus.fromCode(classified.getStatus())));
             return;
         }
         log.error(Constants.E_LOG_UNEXPECTED, "updating", this.getResourceType(), id, e.getMessage());
         listener.onResponse(
                 new ContentResponse(
-                        "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
     }
 
     /** Preserves creation date and other immutable fields from the existing document. */

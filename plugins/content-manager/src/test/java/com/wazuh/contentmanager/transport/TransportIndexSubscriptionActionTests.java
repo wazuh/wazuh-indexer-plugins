@@ -116,8 +116,15 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
-        verify(listener).onFailure(cause);
-        verify(listener, never()).onResponse(any());
+        verify(listener, never()).onFailure(any());
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
+                                    Assert.assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
+                                    return true;
+                                }));
     }
 
     @SuppressWarnings("unchecked")
@@ -140,7 +147,7 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
                         argThat(
                                 response -> {
                                     Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
-                                    Assert.assertEquals("Unexpected failure", response.getMessage());
+                                    Assert.assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
                                     return true;
                                 }));
     }
