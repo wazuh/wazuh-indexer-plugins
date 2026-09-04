@@ -9,7 +9,7 @@ The Wazuh Indexer can be deployed as a single-node instance for development and 
 Wazuh 5.0 consolidates most of the platform's data plane and detection logic inside the Indexer:
 
 - The **Wazuh Engine** is bundled into the Wazuh Indexer packages and Docker images (x86_64 and aarch64). Plugins communicate with the Engine over a local Unix socket.
-- **Threat detection** has been migrated from the Wazuh Manager to the Indexer through the Security Analytics plugin (a Wazuh fork of the OpenSearch Security Analytics plugin), with extended Sigma rules syntax and per-space rules, log types and detectors.
+- **Threat detection** has been migrated from the Wazuh Manager to the Indexer through the Ruleset Management plugin (a Wazuh fork of the OpenSearch Security Analytics plugin), with extended Sigma rules syntax and per-space rules, log types and detectors.
 - **Active Response** has been migrated to the Indexer, driven by a dedicated Alerting monitor and persisted in the `wazuh-active-responses` data stream.
 - **Filebeat is no longer used** to forward events between the Wazuh Manager and the Indexer. Events now reach the Indexer through a built-in indexer connector.
 - Time-series data (events, findings, metrics, raw events, active responses) is stored in **data streams** with **ISM policies** for automatic rollover and retention.
@@ -56,7 +56,7 @@ A snapshot of the ruleset, vulnerabilities feed and IoC feed is bundled with the
 
 See [Content Manager](modules/content-manager/index.md) for details.
 
-### Security Analytics plugin
+### Ruleset Management plugin
 
 A Wazuh fork of the OpenSearch Security Analytics plugin. It is the home of **threat detection** in 5.0:
 
@@ -66,7 +66,7 @@ A Wazuh fork of the OpenSearch Security Analytics plugin. It is the home of **th
 
 ### Alerting plugin
 
-A Wazuh fork of the OpenSearch Alerting plugin. It provides real-time alerting based on predefined monitors. Monitors are the core component used by the Security Analytics plugin for threat detection, and a dedicated monitor drives Active Response.
+A Wazuh fork of the OpenSearch Alerting plugin. It provides real-time alerting based on predefined monitors. Monitors are the core component used by the Ruleset Management plugin for threat detection, and a dedicated monitor drives Active Response.
 
 ### Notifications plugin
 
@@ -78,11 +78,11 @@ A Wazuh fork of the OpenSearch Reporting plugin, bundled by default in Wazuh Ind
 
 ### Common Utils library
 
-A Wazuh fork of the OpenSearch Common Utils library. It provides the shared models and transport actions used across the Wazuh forks of Alerting, Notifications, Security Analytics and the Content Manager — including the Active Response channel definition.
+A Wazuh fork of the OpenSearch Common Utils library. It provides the shared models and transport actions used across the Wazuh forks of Alerting, Notifications, Ruleset Management and the Content Manager — including the Active Response channel definition.
 
 ### Security plugin
 
-The Security plugin provides role-based access control (RBAC), user authentication, and TLS encryption for both the REST API and inter-node transport layers. Wazuh 5.0 ships with a new set of reserved users and roles aligned with the new plugins (Content Manager, Alerting, Notifications, Reporting, Security Analytics). See [Access Control](security/access-control.md) for details.
+The Security plugin provides role-based access control (RBAC), user authentication, and TLS encryption for both the REST API and inter-node transport layers. Wazuh 5.0 ships with a new set of reserved users and roles aligned with the new plugins (Content Manager, Alerting, Notifications, Reporting, Ruleset Management). See [Access Control](security/access-control.md) for details.
 
 ## Bundled Wazuh Engine
 
@@ -103,7 +103,7 @@ The Wazuh Indexer organizes data into purpose-specific indices and data streams.
 | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `wazuh-events-v5-{cat}`    | Decoded and normalized security events from monitored endpoints, per category.                               |
 | `wazuh-events-raw-v5`      | Raw incoming events, retained briefly under an aggressive ISM purge policy (gated by an Engine setting).     |
-| `wazuh-findings-v5-{cat}`  | Enriched findings produced by Security Analytics, embedding the triggering event and rule metadata.          |
+| `wazuh-findings-v5-{cat}`  | Enriched findings produced by Ruleset Management, embedding the triggering event and rule metadata.          |
 | `wazuh-states-v5-*`        | Stateful inventory data (vulnerabilities, packages, ports, FIM, services, browser extensions, SCA, etc.).    |
 | `wazuh-active-responses`   | Active Response execution requests, driven by a dedicated Alerting monitor.                                  |
 | `wazuh-metrics-*`          | Agent and communications telemetry metrics.                                                                  |
@@ -121,6 +121,6 @@ In 5.0 the Wazuh Indexer is the central processing and storage tier of the platf
 - **Wazuh Agents** collect endpoint data and send it to the Wazuh Manager.
 - **Wazuh Manager** acts as the ingestion gateway. It no longer runs analysis, threat detection, content management or active response — these have moved into the Indexer. Events are normalized and forwarded to the Indexer through the built-in indexer connector (Filebeat is no longer required).
 - **Wazuh Indexer**, through the bundled Wazuh Engine and its plugins, analyzes events, runs threat detection, manages detection content, dispatches notifications and active responses, and stores all resulting data.
-- **Wazuh Dashboard** (an OpenSearch Dashboards fork) provides the web UI for searching, visualizing and managing Wazuh data, and interacts with the Setup, Content Manager, Security Analytics, Alerting, Notifications and Reporting plugin APIs.
+- **Wazuh Dashboard** (an OpenSearch Dashboards fork) provides the web UI for searching, visualizing and managing Wazuh data, and interacts with the Setup, Content Manager, Ruleset Management, Alerting, Notifications and Reporting plugin APIs.
 
 The Indexer exposes a standard REST API compatible with the OpenSearch API, so existing OpenSearch tools, clients and integrations work with the Wazuh Indexer out of the box.

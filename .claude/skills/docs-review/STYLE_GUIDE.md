@@ -26,7 +26,8 @@ in light of that split.
 - **Decided — sentence case.** Only the first word and proper nouns/glossary
   entries are capitalized. "Update check service", not "Update Check Service".
 - **Decided — capitalization exceptions.** Plugin/product names (Content
-  Manager, Security Analytics, Wazuh Engine, Wazuh Dashboard, Wazuh CTI) and
+  Manager, Ruleset Management, Security Analytics, Wazuh Engine, Wazuh
+  Dashboard, Wazuh CTI) and
   glossary-entry acronyms (IoC, KVDB, CVE, RBAC, WCS, ISM) keep their
   natural casing wherever they appear, including mid-heading.
 - **Decided — "Actions" and "Workflows" are capitalized when referring to
@@ -96,14 +97,39 @@ in light of that split.
   the stray link fragment in `ref/modules/setup/index.md` (`wazuh-server.html`)
   that pointed at upstream docs using the other name — either find/link the
   correct upstream page or drop the link if none exists under the right name.
-- **Decided — "Security Analytics" (or "the Security Analytics plugin" when a
-  plugin-vs-concept distinction matters) over "SAP".** "SAP" is an internal
-  shorthand that reads as an unrelated acronym (the enterprise software) to
-  anyone landing on a page without prior context. Spell it out every time,
-  choosing "Security Analytics" for prose flow and "the Security Analytics
-  plugin" when the sentence needs to make clear it's the plugin/component
-  specifically, not the general capability. Do not add "SAP" to the glossary —
-  the point is to stop using the abbreviation, not to define it.
+- **Decided — never "SAP".** "SAP" is an internal shorthand that reads as an
+  unrelated acronym (the enterprise software) to anyone landing on a page
+  without prior context. Spell the plugin's name out every time, in both
+  tracks and inside Mermaid participant labels. Do not add "SAP" to the
+  glossary — the point is to stop using the abbreviation, not to define it.
+  Which name to spell out is track-dependent; see the next rule.
+- **Decided — the Security Analytics plugin is named per track: "Ruleset
+  Management" in the Reference Manual, "Security Analytics" in the
+  Development Guide.** The plugin was renamed to Ruleset Management in the
+  Wazuh Dashboard; the rename is presentational only, and the code, repository
+  (`wazuh-indexer-security-analytics`), settings prefix
+  (`plugins.security_analytics.*`), API base path
+  (`/_plugins/_security_analytics/`), index patterns (`.opensearch-sap-*`) and
+  action namespaces (`cluster:admin/*/securityanalytics/*`) all keep the old
+  name. That split follows the §3 register rule: the Reference Manual uses the
+  name a user sees in the product, the Development Guide uses the name a
+  contributor sees in the source. Concretely:
+  - **Reference Manual** (`ref/`): "Ruleset Management", or "the Ruleset
+    Management plugin" when a plugin-vs-concept distinction matters. The
+    module lives at `ref/modules/ruleset-management/`.
+  - **Development Guide** (`dev/`): "Security Analytics", matching the code.
+  - **The upstream OpenSearch product keeps its own name** — "the OpenSearch
+    Security Analytics plugin" — everywhere, including in the Reference
+    Manual, since renaming it would misname a third-party product. Watch for
+    this when doing a bulk find-and-replace.
+  - **Literal identifiers are never renamed** in either track: settings keys,
+    API paths, index/alias names, role and action names, and repository names
+    keep `security_analytics` / `securityanalytics` / `sap` as they appear in
+    the product.
+  - **Both entry pages carry a naming note** — `ref/modules/ruleset-management/index.md`
+    and `dev/plugins/security-analytics.md` each open with a short blockquote
+    explaining that the two names describe the same plugin, and cross-link to
+    each other. Keep those notes in sync if either name changes again.
 - **Decided — plugins refer to themselves by title-cased product
   name in prose** ("the Content Manager plugin", "the Notifications plugin"),
   reserving the literal package name (`wazuh-indexer-reporting`) for
@@ -116,7 +142,7 @@ in light of that split.
   Reference Manual is strictly a user guide, and the Development Guide is
   strictly for people working on the code. Anything at implementation-detail
   level belongs in the Development Guide, cross-linked from the Reference page
-  if useful. Concretely: `ref/modules/security-analytics/index.md` naming
+  if useful. Concretely: `ref/modules/ruleset-management/index.md` naming
   `WazuhEnrichedFindingService` / `TransportCorrelateFindingAction` /
   `SUBSCRIBE_FINDINGS_ACTION`, and `ref/modules/content-manager/index.md` giving
   the literal Unix socket path, both move to their respective `dev/` pages.
@@ -146,7 +172,7 @@ in light of that split.
 - **Decided — every module gets the same page skeleton unless there's
   a stated reason not to**: `index.md`, `architecture.md`, `configuration.md`,
   `api.md` (only if the module has a REST API), `troubleshooting.md`. Today
-  Reporting has only `index.md` and Security Analytics has no `api.md` despite
+  Reporting has only `index.md` and Ruleset Management has no `api.md` despite
   having a REST-driven API — both should be brought to the common skeleton
   during the rewrite rather than treated as acceptable variation.
 - **Decided — one page's content stays owned by one module**, even
@@ -173,7 +199,7 @@ in light of that split.
   description text well, so wide tables (many columns, or a description column
   with full sentences) read poorly. Settings documentation in particular
   should use a list, one bullet per setting, in this shape (see the Modifiers
-  section of `ref/modules/security-analytics/rules.md` for the pattern this is
+  section of `ref/modules/ruleset-management/rules.md` for the pattern this is
   based on):
   ```
   - **`plugins.content_manager.max_bulk_bytes`** (Long, default `5242880` /
@@ -195,7 +221,7 @@ in light of that split.
     during table→list conversion.** Some settings tables are wrapped in
     `<!-- // ANCHOR: settings-table -->` / `<!-- // ANCHOR_END: settings-table
     -->` markers (e.g. `content-manager/configuration.md`,
-    `security-analytics/configuration.md`) and transcluded elsewhere via
+    `ruleset-management/configuration.md`) and transcluded elsewhere via
     `{{#include path:anchor-name}}` (see `ref/configuration/plugin-settings.md`
     and `ref/getting-started/installation.md`). Converting the table to a list
     is fine — mdBook includes the anchor's content verbatim regardless of
@@ -268,12 +294,12 @@ in light of that split.
   to disambiguate against, so "Introduced in 5.0" / "as of 5.0" notes are
   unnecessary noise for anything actually merged. Write everything in the
   present tense as current behavior. (This resolves the earlier ambiguity
-  around whether Security Analytics enriched findings was shipped or planned —
+  around whether Ruleset Management enriched findings was shipped or planned —
   it's shipped, and the docs should just say so plainly with no version
   caveat.)
 - **Decided — exception: an explicit status caveat is required when a page
   documents a change that has not yet merged into the stable branch.**
-  `security-analytics/case-management.md` and the case-management section of
+  `ruleset-management/case-management.md` and the case-management section of
   `dev/plugins/security-analytics.md` document a schema revision (`comment` →
   `comments` array, plus `title`/`description`/`severity`/`priority`/`tlp`)
   that exists only as a design doc at the time of writing, not in shipped
