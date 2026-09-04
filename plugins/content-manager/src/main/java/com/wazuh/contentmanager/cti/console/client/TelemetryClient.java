@@ -20,10 +20,12 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.client5.http.async.methods.SimpleRequestBuilder;
 import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Client for handling telemetry-related requests to the Wazuh CTI API. This class extends the base
@@ -52,7 +54,7 @@ public class TelemetryClient extends ApiClient {
                             .addHeader("wazuh-uid", uuid)
                             .addHeader("wazuh-tag", "v" + version)
                             .addHeader("Accept", "application/json")
-                            .addHeader("Accept-Encoding", "gzip, br")
+                            .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                             .build();
 
             log.debug("Sending telemetry ping to: {}", pingUrl);

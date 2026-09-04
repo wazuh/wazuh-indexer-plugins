@@ -189,7 +189,7 @@ The update check flow is split into two classes:
   - Headers sent:
     - `wazuh-uid`: cluster UUID
     - `wazuh-tag`: `v<version>`
-    - `Accept-Encoding`: `gzip, br`
+    - `Accept-Encoding`: `gzip`
   - Fire-and-forget behavior: callback logs success/failure without blocking scheduler threads.
 
 ### CTI HTTP client User-Agent and Accept-Encoding
@@ -202,7 +202,7 @@ User-Agent: Wazuh Indexer <version>
 
 The version is read from `VERSION.json` at plugin startup and stored in `PluginSettings`. The user-agent string is built by `PluginSettings.getUserAgent()` using the `Constants.USER_AGENT_PREFIX` constant. If the version is unavailable, the fallback value `unknown` is used.
 
-They also send `Accept-Encoding: gzip, br` so CTI responses are transferred compressed. Unlike `User-Agent`, this header is added **per request** (via each request builder) rather than as a client default header: HttpClient5's built-in content-compression handling silently overwrites an `Accept-Encoding` default header with its own value, so setting it on the request itself is required for it to reach the wire unchanged.
+They also send `Accept-Encoding: gzip` (via `Constants.ACCEPT_ENCODING_GZIP`) so CTI responses are transferred compressed. Unlike `User-Agent`, this header is added **per request** (via each request builder) rather than as a client default header: HttpClient5's `ChainElement.COMPRESS` step runs before `ChainElement.PROTOCOL`, where default headers (`RequestDefaultHeaders`) are applied. If no `Accept-Encoding` header is present yet when `COMPRESS` runs, it adds its own — HttpClient5's built-in default (`gzip, x-gzip, deflate`), not ours — and `RequestDefaultHeaders` then skips a header whose name is already present. So a default header would never actually be inserted; it isn't overwritten, it's preempted. Setting it directly on each request is what makes it reach the wire as `gzip`.
 
 Affected clients:
 - **Console `ApiClient`** (`cti/console/client/ApiClient.java`) — async HTTP client for CTI Console authentication and plans.

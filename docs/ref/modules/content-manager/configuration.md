@@ -140,7 +140,7 @@ All HTTP clients that communicate with Wazuh CTI services send a custom `User-Ag
 
 ```
 User-Agent: Wazuh Indexer <version>
-Accept-Encoding: gzip, br
+Accept-Encoding: gzip
 ```
 
 For example: `Wazuh Indexer 5.0.0`. This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client. The version is read from `VERSION.json` at plugin startup.
@@ -155,7 +155,7 @@ The update check service is enabled by default and runs once per day, with an im
   - Deployment identifier (`wazuh-uid`: cluster UUID)
   - Running version (`wazuh-tag`: `v<version>`)
   - User agent (`Wazuh Indexer <version>`)
-  - Accept-Encoding (`gzip, br`)
+  - Accept-Encoding (`gzip`)
 
 This data allows Wazuh to determine if a newer version is available and notify users in the update check UI.
 

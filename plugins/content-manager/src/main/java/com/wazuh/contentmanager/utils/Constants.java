@@ -840,6 +840,7 @@ public class Constants {
 
     // HTTP headers
     public static final String USER_AGENT_PREFIX = "Wazuh Indexer ";
+    public static final String ACCEPT_ENCODING_GZIP = "gzip";
 
     // IOC type hashes
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
