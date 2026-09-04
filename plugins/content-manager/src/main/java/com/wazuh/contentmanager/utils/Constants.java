@@ -449,6 +449,8 @@ public class Constants {
     public static final String E_LOG_IOC_TYPE_HASHES_FAILED =
             "Failed to compute and store IOC type hashes: {}";
     public static final String D_LOG_IOC_ENGINE_REPLY = "Engine reply to IOC load request: {}";
+    public static final String D_LOG_IOC_PIT_RELEASE_FAILED =
+            "Failed to release the IOC point-in-time context [{}]: {}";
 
     // Log messages - space / index / index swap (SpaceService, ContentIndex, IndexSwapHelper)
     public static final String E_LOG_DELETE_SPACE_RESOURCES_FAILED =
