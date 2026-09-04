@@ -20,7 +20,7 @@ Exposes HTTP endpoints under `/_plugins/_content_manager/` for:
 
 Manages the CTI access token used for all CTI API requests. The token is submitted via `POST /subscription`, persisted in the `.wazuh-internal-state` hidden index, and cached in memory. On node startup, the token is loaded from the index into memory. Without a registered token, sync and update operations are rejected.
 
-All HTTP clients that communicate with CTI services send a custom `User-Agent` header in the format `Wazuh Indexer <version>` (e.g., `Wazuh Indexer 5.0.0`). This applies to the Catalog API client, Snapshot client, and Telemetry client.
+All HTTP clients that communicate with CTI services send a custom `User-Agent` header in the format `Wazuh Indexer <version>` (e.g., `Wazuh Indexer 5.0.0`), and an `Accept-Encoding: gzip` header so responses are transferred compressed. This applies to the Catalog API client, Snapshot client, and Telemetry client.
 
 ### Job scheduler
 
