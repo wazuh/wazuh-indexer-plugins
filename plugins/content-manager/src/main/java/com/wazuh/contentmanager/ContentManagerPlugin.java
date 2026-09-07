@@ -230,7 +230,7 @@ public class ContentManagerPlugin extends Plugin
         this.engineContentLoader =
                 new EngineContentLoader(this.engine, this.spaceService, this.threadPool);
 
-        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+        if (PluginSettings.getInstance().isSecurityAnalyticsMockEnabled()) {
             this.securityAnalyticsService = new MockSecurityAnalyticsService();
         } else {
             this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
@@ -999,6 +999,7 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.TELEMETRY_ENABLED,
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
+                PluginSettings.SECURITY_ANALYTICS_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS,
                 PluginSettings.UPDATE_ON_DEMAND,
                 PluginSettings.POLICY_UPDATE_ENABLED,

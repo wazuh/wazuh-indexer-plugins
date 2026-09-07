@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.rest.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.hc.core5.http.ParseException;
 import org.opensearch.client.Response;
@@ -25,6 +26,7 @@ import org.opensearch.core.rest.RestStatus;
 
 import java.io.IOException;
 import java.util.Locale;
+import java.util.UUID;
 
 import com.wazuh.contentmanager.ContentManagerRestTestCase;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -45,6 +47,9 @@ import com.wazuh.contentmanager.utils.Constants;
  * response structure rather than successful engine processing.
  */
 public class LogtestIT extends ContentManagerRestTestCase {
+
+    /** Rules this test created, so the promotion can be scoped to them. */
+    private final java.util.List<String> ownRuleIds = new java.util.ArrayList<>();
 
     // ========================
     // Payload Helpers
@@ -297,8 +302,282 @@ public class LogtestIT extends ContentManagerRestTestCase {
     }
 
     // ========================
+    // Detection (percolate) Tests
+    // ========================
+
+    /**
+     * The reported bug, plus the cases that keep the fix honest, in one test.
+     *
+     * <p>One test rather than four because the setup ends in a draft-to-test promotion, and promotion
+     * is global: every promotion sweeps up whatever other test classes happen to have in draft, so
+     * each one is a chance for this class to break an unrelated one. The four assertions below are
+     * independent, and each carries the response in its failure message.
+     *
+     * <p>What this exercises is the real thing: the rules are compiled by Security Analytics and
+     * percolated against the event by alerting's percolator, in a cluster where both plugins are
+     * installed and rule evaluation is not mocked.
+     *
+     * @throws IOException on communication error
+     */
+    public void testDetectionPercolatesRulesLikeADetector() throws IOException {
+        String integrationTitle = "logtest-percolate";
+        this.createEventsSourceIndex();
+        String integrationId = this.createIntegration(integrationTitle);
+        // The reported SQL-injection rule, trimmed to the branch under test.
+        this.createRuleWithDetection(
+                integrationId,
+                integrationTitle,
+                "sqli",
+                """
+                {"condition": "selection and selection_1",
+                 "selection": {"http.request.method": "GET"},
+                 "selection_1": {"url.original|contains": ["UNION SELECT", "UNION ALL SELECT"]}}
+                """);
+        // process.name is a real WCS field, so the rule is valid, but the source index this
+        // integration's detector reads does not map it — so no detector could ever match it.
+        this.createRuleWithDetection(
+                integrationId,
+                integrationTitle,
+                "unmapped",
+                """
+                {"condition": "selection",
+                 "selection": {"process.name|contains": "anything"}}
+                """);
+        this.copyOwnResourcesToTestSpace(integrationId);
+
+        // 1. The rule against the case it was written in: this is the branch that does produce a
+        // finding in production, so it must match here too.
+        JsonNode exactCase =
+                this.detect(
+                        integrationId,
+                        """
+                        {"http": {"request": {"method": "GET"}},
+                         "url": {"original": "/item.php?id=-1 UNION SELECT username,password FROM users--"}}
+                        """);
+        assertEquals(exactCase.toString(), "success", exactCase.path("status").asText());
+        assertEquals(
+                "the rule must match its own case: " + exactCase, 1, exactCase.path("rules_matched").asInt());
+        assertFalse(
+                "matched_conditions must carry the query that matched: " + exactCase,
+                exactCase.path("matches").path(0).path("matched_conditions").isEmpty());
+
+        // 2. The reported case: the rule says UNION SELECT, the event says UNION sElect. String
+        // comparison is case-sensitive, so a deployed detector produces no finding for this event —
+        // and this is the assertion that pins logtest to that answer. Before this change logtest
+        // reported a match here, which is what made it untrustworthy. Making `contains`
+        // case-insensitive is tracked separately; if that lands, this expectation flips to 1 in the
+        // same commit that changes the analyzer, and the detector flips with it.
+        JsonNode differentCase =
+                this.detect(
+                        integrationId,
+                        """
+                        {"http": {"request": {"method": "GET"}},
+                         "url": {"original": "/item.php?id=-1 UNION sElect username,password FROM users--"}}
+                        """);
+        assertEquals(
+                "logtest must not claim a match a detector would not produce: " + differentCase,
+                0,
+                differentCase.path("rules_matched").asInt());
+
+        // 3. An event without the pattern at all, so the comparison has not become match-nothing
+        // for the wrong reason.
+        JsonNode noMatch =
+                this.detect(
+                        integrationId,
+                        """
+                        {"http": {"request": {"method": "GET"}}, "url": {"original": "/index.php?id=1"}}
+                        """);
+        assertEquals(
+                "an unrelated event must not match: " + noMatch, 0, noMatch.path("rules_matched").asInt());
+
+        // 4. The rule over the unmapped field is reported, not quietly dropped: the percolator refuses
+        // to store a query over a field the source index does not map, which is exactly why a detector
+        // would never match it either.
+        assertEquals(
+                "the rule that cannot be evaluated must be reported: " + noMatch,
+                1,
+                noMatch.path("rules_skipped").asInt());
+        assertFalse(
+                "the skip must say why: " + noMatch,
+                noMatch.path("skipped").path(0).path("reason").asText().isEmpty());
+        assertEquals(
+                "both rules are in scope: " + noMatch, 2, noMatch.path("rules_evaluated").asInt());
+    }
+
+    // ========================
+    // Detection Helpers
+    // ========================
+
+    /**
+     * Creates the WCS event index a threat detector for this integration would read, so the compiled
+     * rule queries have real field mappings to resolve against.
+     *
+     * <p>{@code cloud-services} is the category {@link #createIntegration(String)} uses, and a
+     * detector with no explicit source falls back to {@code wazuh-events-v5-<category>}.
+     *
+     * @throws IOException on communication error
+     */
+    private void createEventsSourceIndex() throws IOException {
+        String dataStream = "wazuh-events-v5-cloud-services";
+
+        // The setup plugin declares wazuh-events-v5* as a data stream, so this name cannot be a
+        // plain index. Create the stream, tolerating the case where a previous test already did.
+        try {
+            Response created = this.makeRequest("PUT", "/_data_stream/" + dataStream);
+            assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(created));
+        } catch (ResponseException e) {
+            assertEquals(
+                    "creating the events data stream must not fail for any other reason",
+                    RestStatus.BAD_REQUEST.getStatus(),
+                    e.getResponse().getStatusLine().getStatusCode());
+        }
+
+        // Ingest one event so the fields the rules reference get mapped. The events template is
+        // `dynamic: strict_allow_templates`, so a field is mapped only once a document carries it —
+        // which is exactly the production precondition: until events have been ingested, a compiled
+        // rule query has nothing to resolve against and no detector can match it either.
+        //
+        // `process.name` is deliberately absent. The second rule of the detection test references
+        // it, and its whole point is to be a rule the percolator must refuse.
+        // spotless:off
+        String event = """
+                {"@timestamp": "2026-09-04T10:16:00.000Z",
+                 "http": {"request": {"method": "GET"}},
+                 "url": {"original": "/seed"}}
+                """;
+        // spotless:on
+        Response indexed = this.makeRequest("POST", "/" + dataStream + "/_doc?refresh=true", event);
+        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(indexed));
+    }
+
+    /**
+     * Creates a rule with a caller-supplied detection block, which the shared helper does not allow.
+     *
+     * @param integrationId the parent integration ID
+     * @param integrationTitle the integration title, used as log source
+     * @param name distinguishes this rule from the others of the same integration
+     * @param detectionJson the Sigma detection block
+     * @return the generated rule ID
+     * @throws IOException on communication error
+     */
+    private String createRuleWithDetection(
+            String integrationId, String integrationTitle, String name, String detectionJson)
+            throws IOException {
+        // spotless:off
+        String payload = String.format(Locale.ROOT, """
+                {
+                    "integration": "%s",
+                    "resource": {
+                        "metadata": {
+                            "title": "Rule %s for %s",
+                            "description": "A rule for integration tests.",
+                            "author": "Tester",
+                            "references": ["https://wazuh.com"]
+                        },
+                        "sigma_id": "%s-%s",
+                        "enabled": true,
+                        "status": "experimental",
+                        "logsource": {"product": "%s", "category": "%s"},
+                        "detection": %s,
+                        "level": "high"
+                    }
+                }
+                """, integrationId, name, integrationTitle, integrationTitle, name, integrationTitle,
+                integrationTitle, detectionJson);
+        // spotless:on
+
+        Response response = this.makeRequest("POST", PluginSettings.RULES_URI, payload);
+        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
+        String id = (String) this.parseResponseAsMap(response).get("message");
+        assertNotNull("Rule ID should not be null", id);
+        this.ownRuleIds.add(id);
+        return id;
+    }
+
+    /**
+     * Runs the detection-only endpoint against a pre-normalized event, which needs no Engine.
+     *
+     * @param integrationId the integration whose rules to evaluate
+     * @param inputJson the normalized event
+     * @return the detection result
+     * @throws IOException on communication error
+     */
+    private JsonNode detect(String integrationId, String inputJson) throws IOException {
+        // spotless:off
+        String payload = String.format(Locale.ROOT, """
+                {"integration": "%s", "space": "test", "input": %s}
+                """, integrationId, inputJson);
+        // spotless:on
+
+        Response response = this.makeRequest("POST", PluginSettings.LOGTEST_DETECTION_URI, payload);
+        assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
+        return this.responseAsJson(response).path("message");
+    }
+
+    // ========================
     // Promote Helper
     // ========================
+
+    /**
+     * Moves this test's integration and its rules into the {@code test} space, and leaves draft as it
+     * found it.
+     *
+     * <p>Not via {@link #promoteDraftToTest()}: promotion applies to the whole space, so in a suite
+     * that shares one cluster it promotes whatever another test class happens to have in draft, which
+     * is enough to make that class fail — and it does, intermittently, depending on the order the
+     * classes run in. Detection reads these two indices and nothing else, so copying the documents
+     * the plugin just wrote, then deleting the draft originals, exercises the same path while leaving
+     * no trace for anyone else. Promotion itself is covered by
+     * {@link #testLogtestWithPromotedIntegration()}.
+     *
+     * @param integrationId the integration to move, with its rules
+     * @throws IOException on communication error
+     */
+    private void copyOwnResourcesToTestSpace(String integrationId) throws IOException {
+        for (String ruleId : this.ownRuleIds) {
+            this.copyDocumentToTestSpace(Constants.INDEX_RULES, ruleId);
+        }
+        this.copyDocumentToTestSpace(Constants.INDEX_INTEGRATIONS, integrationId);
+
+        // Remove the draft originals so no other class sees them, in particular so a promotion
+        // elsewhere does not pick them up.
+        for (String ruleId : this.ownRuleIds) {
+            this.deleteResource(PluginSettings.RULES_URI, ruleId);
+        }
+        this.deleteResource(PluginSettings.INTEGRATIONS_URI, integrationId);
+
+        this.refreshIndex(Constants.INDEX_INTEGRATIONS);
+        this.refreshIndex(Constants.INDEX_RULES);
+        // Deleting the draft originals rewrites the draft policy; refresh it too so the next test's
+        // draft policy check reads a searchable index.
+        this.refreshIndex(Constants.INDEX_POLICIES);
+    }
+
+    /**
+     * Copies one content document from the draft space into the test space.
+     *
+     * <p>The copy is the document the plugin itself wrote, with only {@code space.name} changed, so
+     * the test does not depend on a hand-written document shape.
+     *
+     * @param index the content index
+     * @param documentId the resource id
+     * @throws IOException on communication error
+     */
+    private void copyDocumentToTestSpace(String index, String documentId) throws IOException {
+        JsonNode draft = this.getResourceByDocumentId(index, documentId, "draft");
+        assertNotNull("draft document must exist before copying: " + documentId, draft);
+
+        ObjectNode copy = draft.deepCopy();
+        ObjectNode space = copy.with(Constants.KEY_SPACE);
+        space.put(Constants.KEY_NAME, "test");
+
+        Response response =
+                this.makeRequest(
+                        "PUT",
+                        "/" + index + "/_doc/" + UUID.randomUUID() + "?refresh=true",
+                        MAPPER.writeValueAsString(copy));
+        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
+    }
 
     /**
      * Promotes all resources from draft to test space.

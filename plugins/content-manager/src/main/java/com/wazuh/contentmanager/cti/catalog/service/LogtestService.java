@@ -134,6 +134,7 @@ public class LogtestService {
                                     Map<String, Object> integrationSource =
                                             integrationSearchResponse.getHits().getAt(0).getSourceAsMap();
                                     List<String> ruleIds = extractRuleIds(integrationSource);
+                                    DetectorTarget target = extractDetectorTarget(integrationId, integrationSource);
                                     String normalizedEventJson = (String) engineResult.remove("_normalized_event");
 
                                     if (ruleIds.isEmpty()) {
@@ -149,7 +150,7 @@ public class LogtestService {
                                             ActionListener.wrap(
                                                     ruleBodies ->
                                                             evaluateAndRespond(
-                                                                    engineResult, normalizedEventJson, ruleBodies, listener),
+                                                                    engineResult, normalizedEventJson, ruleBodies, target, listener),
                                                     e -> {
                                                         log.warn(
                                                                 "Failed to fetch rules for" + " integration [{}]: {}",
@@ -241,7 +242,12 @@ public class LogtestService {
                                             ruleIds,
                                             space,
                                             ActionListener.wrap(
-                                                    ruleBodies -> evaluateDetectionRules(eventJson, ruleBodies, listener),
+                                                    ruleBodies ->
+                                                            evaluateDetectionRules(
+                                                                    eventJson,
+                                                                    ruleBodies,
+                                                                    extractDetectorTarget(integrationId, integrationSource),
+                                                                    listener),
                                                     e -> {
                                                         log.warn(
                                                                 "Failed to fetch rules for" + " integration [{}]: {}",
@@ -371,6 +377,72 @@ public class LogtestService {
      * @param integrationSource the integration document source map
      * @return list of rule document IDs (may be empty if the integration has no rules)
      */
+    /**
+     * What Security Analytics needs to percolate an integration's rules the way its detector would:
+     * the integration itself, its log type, and the source indices whose field mappings the compiled
+     * queries must resolve against.
+     *
+     * @param integrationId the integration document id.
+     * @param logType the integration's log type, taken from its title as the detector does.
+     * @param sourceIndices the detector's source indices.
+     */
+    record DetectorTarget(String integrationId, String logType, List<String> sourceIndices) {}
+
+    /**
+     * Reads the detector coordinates off an integration document.
+     *
+     * <p>Deliberately mirrors how a detector is built from the same document ({@code
+     * SecurityAnalyticsServiceImpl.buildDetectorRequest}): the log type is the integration title, the
+     * source indices are {@code document.detector.source}, and when CTI names none the category
+     * yields {@code wazuh-events-v5-<category>}. Reading them from the same place is what keeps
+     * logtest evaluating against the same mappings as the detector.
+     *
+     * @param integrationId the integration document id.
+     * @param integrationSource the integration document source map.
+     * @return the detector coordinates for this integration.
+     */
+    @SuppressWarnings("unchecked")
+    private DetectorTarget extractDetectorTarget(
+            String integrationId, Map<String, Object> integrationSource) {
+        String logType = integrationId;
+        List<String> sourceIndices = new ArrayList<>();
+        String category = null;
+
+        Object documentObj = integrationSource.get(Constants.KEY_DOCUMENT);
+        if (documentObj instanceof Map) {
+            Map<String, Object> document = (Map<String, Object>) documentObj;
+
+            Object metadataObj = document.get(Constants.KEY_METADATA);
+            if (metadataObj instanceof Map) {
+                Object title = ((Map<String, Object>) metadataObj).get(Constants.KEY_TITLE);
+                if (title != null && !title.toString().isEmpty()) {
+                    logType = title.toString();
+                }
+            }
+
+            Object categoryObj = document.get(Constants.KEY_CATEGORY);
+            if (categoryObj != null) {
+                category = categoryObj.toString();
+            }
+
+            Object detectorObj = document.get(Constants.KEY_DETECTOR);
+            if (detectorObj instanceof Map) {
+                Object sourcesObj = ((Map<String, Object>) detectorObj).get(Constants.KEY_SOURCE);
+                if (sourcesObj instanceof List) {
+                    for (Object source : (List<?>) sourcesObj) {
+                        sourceIndices.add(source.toString());
+                    }
+                }
+            }
+        }
+
+        if (sourceIndices.isEmpty() && category != null && !category.isEmpty()) {
+            sourceIndices.add(Constants.INDEX_EVENTS_PREFIX + category.toLowerCase(Locale.ROOT));
+        }
+
+        return new DetectorTarget(integrationId, logType, sourceIndices);
+    }
+
     private List<String> extractRuleIds(Map<String, Object> integrationSource) {
         List<String> ruleIds = new ArrayList<>();
         Object documentObj = integrationSource.get(Constants.KEY_DOCUMENT);
@@ -428,15 +500,25 @@ public class LogtestService {
             Map<String, Object> engineResult,
             String normalizedEventJson,
             List<String> ruleBodies,
+            DetectorTarget target,
             ActionListener<RestResponse> listener) {
         if (ruleBodies.isEmpty()) {
             listener.onResponse(buildCombinedResponse(engineResult, createEmptySapResult()));
+            return;
+        }
+        if (target.sourceIndices().isEmpty()) {
+            listener.onResponse(
+                    buildCombinedResponse(
+                            engineResult, createSkippedSapResult(noSourceIndexReason(target.integrationId()))));
             return;
         }
 
         this.securityAnalytics.evaluateRulesAsync(
                 normalizedEventJson,
                 ruleBodies,
+                target.integrationId(),
+                target.logType(),
+                target.sourceIndices(),
                 ActionListener.wrap(
                         saResultJson -> {
                             ObjectMapper mapper = new ObjectMapper();
@@ -450,21 +532,34 @@ public class LogtestService {
                         },
                         e -> {
                             log.error("Failed to evaluate rules: {}", e.getMessage());
-                            listener.onResponse(buildCombinedResponse(engineResult, createErrorSapResult()));
+                            listener.onResponse(
+                                    buildCombinedResponse(engineResult, createSkippedSapResult(e.getMessage())));
                         }));
     }
 
     @SuppressWarnings("unchecked")
     private void evaluateDetectionRules(
-            String eventJson, List<String> ruleBodies, ActionListener<RestResponse> listener) {
+            String eventJson,
+            List<String> ruleBodies,
+            DetectorTarget target,
+            ActionListener<RestResponse> listener) {
         if (ruleBodies.isEmpty()) {
             listener.onResponse(buildDetectionResponse(createEmptySapResult()));
+            return;
+        }
+        if (target.sourceIndices().isEmpty()) {
+            listener.onResponse(
+                    buildDetectionResponse(
+                            createSkippedSapResult(noSourceIndexReason(target.integrationId()))));
             return;
         }
 
         this.securityAnalytics.evaluateRulesAsync(
                 eventJson,
                 ruleBodies,
+                target.integrationId(),
+                target.logType(),
+                target.sourceIndices(),
                 ActionListener.wrap(
                         saResultJson -> {
                             ObjectMapper mapper = new ObjectMapper();
@@ -478,7 +573,7 @@ public class LogtestService {
                         },
                         e -> {
                             log.error("Failed to evaluate rules: {}", e.getMessage());
-                            listener.onResponse(buildDetectionResponse(createErrorSapResult()));
+                            listener.onResponse(buildDetectionResponse(createSkippedSapResult(e.getMessage())));
                         }));
     }
 
@@ -519,6 +614,41 @@ public class LogtestService {
         response.put("rules_matched", 0);
         response.put("matches", List.of());
         return response;
+    }
+
+    /**
+     * Creates a skipped SAP result carrying why nothing was evaluated.
+     *
+     * <p>Skipped rather than zero matches: "the rules could not be evaluated" is not the same answer
+     * as "the rules do not match this event", and conflating the two is what made logtest misleading
+     * in the first place.
+     *
+     * @param reason why the rules could not be evaluated.
+     * @return the skipped result.
+     */
+    private Map<String, Object> createSkippedSapResult(String reason) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put(Constants.KEY_STATUS, "skipped");
+        response.put("reason", reason);
+        response.put("rules_evaluated", 0);
+        response.put("rules_matched", 0);
+        response.put("matches", List.of());
+        return response;
+    }
+
+    /**
+     * Reason used when an integration names no source index, so there are no field mappings to
+     * resolve its rules' compiled queries against.
+     *
+     * @param integrationId the integration being tested.
+     * @return the reason message.
+     */
+    private String noSourceIndexReason(String integrationId) {
+        return String.format(
+                Locale.ROOT,
+                "Integration [%s] declares no detector source index, so its rules cannot be evaluated "
+                        + "the way a detector would evaluate them",
+                integrationId);
     }
 
     /** Creates an error SAP result. */

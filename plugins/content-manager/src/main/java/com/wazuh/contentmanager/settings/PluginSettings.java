@@ -317,6 +317,22 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /**
+     * Setting to enable the mock Security Analytics service for testing environments.
+     *
+     * <p>Separate from {@link #ENGINE_MOCK_ENABLED} because the two are not available under the same
+     * conditions: the Engine talks over a Unix socket that a test cluster does not have, while
+     * Security Analytics is a plugin this one extends and is therefore always installed. Defaults to
+     * whatever the engine mock is set to, so an environment that mocked both keeps doing so, but a
+     * test cluster can now mock only the Engine and exercise real rule evaluation.
+     */
+    public static final Setting<Boolean> SECURITY_ANALYTICS_MOCK_ENABLED =
+            Setting.boolSetting(
+                    "plugins.content_manager.security_analytics.mock",
+                    ENGINE_MOCK_ENABLED,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     /** Configuration setting to enable or disable the telemetry ping. Defaults to true. */
     public static final Setting<Boolean> TELEMETRY_ENABLED =
             Setting.boolSetting(
@@ -436,6 +452,7 @@ public class PluginSettings {
     private final String catalogVulnerabilities;
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
+    private final boolean securityAnalyticsMockEnabled;
     private final int setupWaitMaxRetries;
     private final int setupWaitBackoffBaseSeconds;
     private final int clientMaxRetries;
@@ -473,6 +490,7 @@ public class PluginSettings {
         this.catalogVulnerabilities = CATALOG_VULNERABILITIES.get(settings);
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
+        this.securityAnalyticsMockEnabled = SECURITY_ANALYTICS_MOCK_ENABLED.get(settings);
         this.setupWaitMaxRetries = SETUP_WAIT_MAX_RETRIES.get(settings);
         this.setupWaitBackoffBaseSeconds = SETUP_WAIT_BACKOFF_BASE_SECONDS.get(settings);
         this.clientMaxRetries = CLIENT_MAX_RETRIES.get(settings);
@@ -839,6 +857,15 @@ public class PluginSettings {
      */
     public Boolean isEngineMockEnabled() {
         return this.engineMockEnabled;
+    }
+
+    /**
+     * Retrieves the value for the Security Analytics mock enabled setting.
+     *
+     * @return a Boolean indicating if the mock Security Analytics service is enabled.
+     */
+    public Boolean isSecurityAnalyticsMockEnabled() {
+        return this.securityAnalyticsMockEnabled;
     }
 
     /**

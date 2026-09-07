@@ -694,6 +694,13 @@ public class Constants {
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
 
     /**
+     * Prefix of the WCS event data streams a threat detector reads. Completed with the integration's
+     * category when the integration document names no explicit detector source, the same fallback
+     * Security Analytics applies when it builds the detector.
+     */
+    public static final String INDEX_EVENTS_PREFIX = "wazuh-events-v5-";
+
+    /**
      * Document id of the single user-overrides registry document, stored in {@link #INDEX_POLICIES}.
      *
      * <p>That document deliberately carries no {@code space} field: the pre-snapshot wipe selects by
