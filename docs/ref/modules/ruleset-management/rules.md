@@ -1,6 +1,6 @@
 # Rules
 
-Wazuh uses the [Sigma](https://sigmahq.io/) rule format as the standard for Security Analytics detection rules. The Content Manager plugin accepts rules that follow the Sigma specification, extended with Wazuh-specific blocks for metadata, threat intelligence mapping, and compliance coverage.
+Wazuh uses the [Sigma](https://sigmahq.io/) rule format as the standard for Ruleset Management detection rules. The Content Manager plugin accepts rules that follow the Sigma specification, extended with Wazuh-specific blocks for metadata, threat intelligence mapping, and compliance coverage.
 
 This page describes the supported rule format, including field requirements, detection logic, supported modifiers, and Wazuh extensions.
 
@@ -44,10 +44,15 @@ falsepositives:
 
 mitre:
   tactic:
-    - TA0001
+    id:
+      - TA0001
+    name:
+      - Initial Access
   technique:
-    - T1190
-  subtechnique: []
+    id:
+      - T1190
+    name:
+      - Exploit Public-Facing Application
 
 compliance:
   pci_dss:
@@ -315,7 +320,7 @@ IPv6 addresses are supported in the following formats:
     E.g., `2001:db8:85a3::8a2e:370:7334`.
 
 - CIDR: Subnet notation with a prefix length.
-  
+
     E.g., `2001:db8::/32`.
 
 #### `exists`
@@ -534,24 +539,57 @@ metadata:
 
 Optional
 
-The `mitre` block maps a rule to MITRE ATT&CK tactics, techniques, and subtechniques. Each field is an array of ID strings:
+The `mitre` block maps a rule to MITRE ATT&CK tactics, techniques, and subtechniques. It accepts three category keys, each an object holding an `id` array and a `name` array:
 
-- **`tactic`**<br />_MITRE tactic IDs (e.g., `TA0002`, `TA0005`)._
-- **`technique`**<br />_MITRE technique IDs (e.g., `T1059`, `T1562`)._
-- **`subtechnique`**<br />_MITRE subtechnique IDs (e.g., `T1059.001`)._
+- **`tactic`**<br />_ATT&CK tactics. `id` holds tactic IDs (e.g., `TA0002`, `TA0005`); `name` holds the matching tactic names (e.g., `Execution`, `Defense Evasion`)._
+- **`technique`**<br />_ATT&CK techniques. `id` holds technique IDs (e.g., `T1059`, `T1562`); `name` holds the matching technique names (e.g., `Command and Scripting Interpreter`, `Impair Defenses`)._
+- **`subtechnique`**<br />_ATT&CK subtechniques. `id` holds subtechnique IDs (e.g., `T1059.001`); `name` holds the matching subtechnique names (e.g., `Command and Scripting Interpreter: PowerShell`)._
+
+The `id` and `name` arrays of a category are parallel: the *n*-th name describes the *n*-th ID. Supply `name` for every entry of a category or for none of them. Categories that do not apply to the rule can be omitted entirely.
+
+The block is stored on the rule as `mitre.tactic.id`, `mitre.tactic.name`, `mitre.technique.id`, `mitre.technique.name`, `mitre.subtechnique.id` and `mitre.subtechnique.name`, and is copied onto every finding the rule produces under `wazuh.rule.mitre.*`.
+
+Subtechniques are indexed twice: on top of their own `mitre.subtechnique.*` arrays, their IDs and names are appended to `mitre.technique.id` and `mitre.technique.name`. A query on `mitre.technique.id` therefore matches a rule mapped only to a subtechnique of that technique.
 
 #### Example
 
 ```yaml
 mitre:
   tactic:
-    - TA0002
-    - TA0005
+    id:
+      - TA0002
+      - TA0005
+    name:
+      - Execution
+      - Defense Evasion
   technique:
-    - T1059
-    - T1562
+    id:
+      - T1059
+      - T1562
+    name:
+      - Command and Scripting Interpreter
+      - Impair Defenses
   subtechnique:
-    - T1059.001
+    id:
+      - T1059.001
+    name:
+      - "Command and Scripting Interpreter: PowerShell"
+```
+
+#### Per-entry form
+
+A category may equivalently be written as an array of objects, one per ATT&CK entry, which pairs each ID with its name directly. The two forms are interchangeable and produce identical indexed fields:
+
+```yaml
+mitre:
+  tactic:
+    - id: TA0002
+      name: Execution
+    - id: TA0005
+      name: Defense Evasion
+  technique:
+    - id: T1059
+      name: Command and Scripting Interpreter
 ```
 
 ---
@@ -606,11 +644,11 @@ A placeholder takes the form `{{ field.path }}`, where `field.path` is a dot-sep
 
 ### Supported fields
 
-Interpolation is applied only to the following fields of the enriched finding's `rule` object:
+Interpolation is applied only to the following fields of the enriched finding's `wazuh.rule` object:
 
 - `title`
 - `tags`
-- `mitre.tactic`, `mitre.technique`, `mitre.subtechnique`
+- `mitre.tactic.id`, `mitre.tactic.name`, `mitre.technique.id`, `mitre.technique.name`, `mitre.subtechnique.id`, `mitre.subtechnique.name`
 - `compliance.*` (every framework sub-array)
 
 The `detection` block — both `selection` and `condition` — is **never** interpolated.
@@ -639,27 +677,45 @@ metadata:
   description: Segmentation faults raised by an Apache worker process.
 mitre:
   tactic:
-    - TA0040
+    id:
+      - TA0040
+    name:
+      - Impact
   technique:
-    - T1499
+    id:
+      - T1499
+    name:
+      - Endpoint Denial of Service
   subtechnique:
-    - T1499.004
+    id:
+      - T1499.004
+    name:
+      - "Endpoint Denial of Service: Application or System Exploitation"
 compliance:
   pci_dss:
     - "6.2"
     - "11.4"
 ```
 
-When this rule matches an event where `wazuh.agent.id = "001"` and `wazuh.agent.host.name = "web-prod-01"`, the resulting enriched finding contains:
+When this rule matches an event where `wazuh.agent.id = "001"` and `wazuh.agent.host.name = "web-prod-01"`, the `wazuh.rule` object of the resulting enriched finding contains:
 
 ```json
 {
   "title": "Apache segmentation fault in agent 001",
   "tags": ["attack.impact", "attack.t1499.004", "web-prod-01"],
   "mitre": {
-    "tactic": ["TA0040"],
-    "technique": ["T1499"],
-    "subtechnique": ["T1499.004"]
+    "tactic": {
+      "id": ["TA0040"],
+      "name": ["Impact"]
+    },
+    "technique": {
+      "id": ["T1499", "T1499.004"],
+      "name": ["Endpoint Denial of Service", "Endpoint Denial of Service: Application or System Exploitation"]
+    },
+    "subtechnique": {
+      "id": ["T1499.004"],
+      "name": ["Endpoint Denial of Service: Application or System Exploitation"]
+    }
   },
   "compliance": {
     "pci_dss": ["6.2", "11.4"]
@@ -670,9 +726,10 @@ When this rule matches an event where `wazuh.agent.id = "001"` and `wazuh.agent.
 ### Resolution rules
 
 - **Scalars** (string, number, boolean) are coerced to their string representation and substituted in place of the placeholder.
-- **Scalar arrays** are expanded — each array element is coerced to a string and contributed as an additional element of the surrounding array. Supported for `tags`, `mitre.*`, and `compliance.*`.
+- **Scalar arrays** are expanded — each array element is coerced to a string and contributed as an additional element of the surrounding array. Supported for `tags`, the `id` and `name` arrays of every `mitre` category, and `compliance.*`.
 - **Missing, null, or non-scalar** (object) values resolve to the empty string. Finding generation never fails because of an unresolved placeholder.
-- A field whose value consists solely of a placeholder that resolves to the empty string is **dropped** from the surrounding array or map. For instance, a tag of `"{{ missing.field }}"` will not appear in `rule.tags`.
+- A field whose value consists solely of a placeholder that resolves to the empty string is **dropped** from the surrounding array or map. For instance, a tag of `"{{ missing.field }}"` will not appear in `wazuh.rule.tags`.
+- A `mitre` category whose `id` and `name` arrays both end up empty after interpolation is **removed** from `wazuh.rule.mitre` entirely.
 
 ### Scope
 

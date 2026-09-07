@@ -17,7 +17,7 @@
   - Implements a REST API for content management, log testing, manual updates, promotion, subscription management, and version checks.
   - Daily version-check ping to Wazuh CTI to surface content updates and deployment telemetry.
 - Fork of OpenSearch's Security Analytics plugin. [[1][fork-security-analytics]]
-  - Threat Detection migrated from the Wazuh Manager to the Wazuh Indexer Security Analytics plugin.
+  - Threat Detection migrated from the Wazuh Manager to the Wazuh Indexer Ruleset Management plugin.
   - Extended Sigma rules syntax [#47](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/47).
   - Per-space support for Log Types and Rules [#37](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/37).
   - Per-space threat detectors [#117](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/117).
@@ -36,7 +36,7 @@
 - Fork of OpenSearch's Alerting plugin. [[4][fork-alerting]]
   - Dedicated monitor for Active Response [#8](https://github.com/wazuh/wazuh-indexer-alerting/issues/8).
 - Fork of OpenSearch's Common Utils repository. [[5][fork-common-utils]]
-  - Shared models and actions used across the Wazuh forks of Alerting, Notifications, Security Analytics and the Content Manager.
+  - Shared models and actions used across the Wazuh forks of Alerting, Notifications, Ruleset Management and the Content Manager.
 - Built-in Wazuh Engine.
   - Bundled in Wazuh Indexer packages and Docker images (x86_64 and aarch64).
   - Communicates with the Content Manager over a local Unix socket.
@@ -50,7 +50,7 @@
   - Wazuh Indexer packages now work for Systemd, SysV and initd service managers [#602](https://github.com/wazuh/wazuh-indexer/issues/602).
   - Snapshots for ruleset, vulnerabilities feed and IoC feed are now included in Wazuh Indexer packages so a freshly installed cluster has content available offline.
 - New set of default users and roles [#1538](https://github.com/wazuh/wazuh-indexer/issues/1538).
-  - Reserved Wazuh roles aligned with the new plugins (Content Manager, Alerting, Notifications, Reporting, Security Analytics).
+  - Reserved Wazuh roles aligned with the new plugins (Content Manager, Alerting, Notifications, Reporting, Ruleset Management).
 - Reworked and extended Wazuh Common Schema.
   - Bump to ECS v9.1.0.
   - Per-category event and finding data streams (`wazuh-events-v5-{category}`, `wazuh-findings-v5-{category}`) covering access management, applications, cloud services, network activity, security, system activity, and unclassified events.

@@ -1,0 +1,14 @@
+---
+name: integrations
+fields:
+  base:
+    fields:
+      hash:
+        fields:
+          sha256: {}
+      offset: {}
+      space:
+        fields:
+          name: {}
+  document:
+    fields: "*"

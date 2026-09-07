@@ -19,10 +19,13 @@ package com.wazuh.contentmanager.transport;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,6 +40,7 @@ import static org.mockito.Mockito.*;
 
 public class TransportLogtestActionTests extends OpenSearchTestCase {
     private LogtestService logtestService;
+    private ThreadPool threadPool;
     private TransportLogtestAction action;
 
     @Before
@@ -44,9 +48,35 @@ public class TransportLogtestActionTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.logtestService = mock(LogtestService.class);
+        this.threadPool = mock(ThreadPool.class);
+        // Execute submitted work synchronously so the existing assertions still observe the result.
+        when(this.threadPool.executor(anyString()))
+                .thenReturn(OpenSearchExecutors.newDirectExecutorService());
         this.action =
                 new TransportLogtestAction(
-                        mock(TransportService.class), mock(ActionFilters.class), this.logtestService);
+                        mock(TransportService.class),
+                        mock(ActionFilters.class),
+                        this.threadPool,
+                        this.logtestService);
+    }
+
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_PoolRejectionReturns429() {
+        when(this.threadPool.executor(anyString()))
+                .thenThrow(new OpenSearchRejectedExecutionException("queue full"));
+
+        LogtestRequest request = new LogtestRequest("{\"space\":\"test\"}");
+        ActionListener<LogtestResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), request, listener);
+
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.TOO_MANY_REQUESTS, response.getStatus());
+                                    return true;
+                                }));
+        verifyNoInteractions(this.logtestService);
     }
 
     @SuppressWarnings("unchecked")

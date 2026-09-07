@@ -22,12 +22,15 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.ContextPreservingActionListener;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.threadpool.ThreadPool;
@@ -39,7 +42,11 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -52,6 +59,18 @@ import com.wazuh.contentmanager.utils.Constants;
  * and space -- the same atomic-guard technique used by {@link SpaceService#initializeSpace}. The
  * resource count itself remains a live search against the resource index; the lock only prevents
  * two requests from evaluating that count concurrently.
+ *
+ * <p>{@link Constants#INDEX_RESOURCE_LOCKS} is plugin-internal bookkeeping and is never addressed
+ * by API consumers, so every operation on it runs with the caller's security context stashed and is
+ * therefore evaluated as the plugin itself. No role needs index-level privileges (in particular
+ * {@code indices:admin/create}) on the lock index for its holder to create content resources. The
+ * index is provisioned at node startup by {@code ContentManagerPlugin.start()}; {@link
+ * #acquire(String, String, ActionListener)} still recreates it on demand in case it is deleted
+ * while the node is running.
+ *
+ * <p>The stash covers the lock index only: the listener passed to {@link #acquire(String, String,
+ * ActionListener)} is invoked with the caller's context restored, so the resource creation it goes
+ * on to perform is still authorized as the REST user.
  */
 public class ResourceLockService {
     private static final Logger log = LogManager.getLogger(ResourceLockService.class);
@@ -65,11 +84,71 @@ public class ResourceLockService {
      * Constructor.
      *
      * @param client OpenSearch client used for index operations.
-     * @param threadPool Thread pool used for scheduling retry backoff.
+     * @param threadPool Thread pool used for scheduling retry backoff and for stashing the caller's
+     *     security context.
      */
     public ResourceLockService(Client client, ThreadPool threadPool) {
         this.client = client;
         this.threadPool = threadPool;
+    }
+
+    /**
+     * Stashes the current thread context (removing the caller's security identity) so that subsequent
+     * client operations run as the plugin itself, which owns the lock index.
+     *
+     * @return a {@link ThreadContext.StoredContext} that must be closed to restore the original
+     *     context (use in try-with-resources).
+     */
+    private ThreadContext.StoredContext stashContext() {
+        return this.threadPool.getThreadContext().stashContext();
+    }
+
+    /**
+     * Creates the lock index if it does not exist yet. Called once per node at plugin startup so the
+     * index is provisioned before any REST request needs it, instead of being created on the request
+     * path.
+     *
+     * @return the CreateIndexResponse, or null if the index already exists or its mapping could not
+     *     be read.
+     * @throws ExecutionException if the client failed to execute the request.
+     * @throws InterruptedException if the current thread was interrupted while waiting for the
+     *     response.
+     * @throws TimeoutException if the operation exceeded the configured client timeout.
+     */
+    public CreateIndexResponse createIndex()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        // Stash the caller's security context so the client runs as the plugin, which owns this index.
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            CreateIndexRequest request;
+            try {
+                request = buildCreateIndexRequest();
+            } catch (IOException e) {
+                log.error(
+                        "Could not read mappings for index [{}]: {}",
+                        Constants.INDEX_RESOURCE_LOCKS,
+                        e.getMessage());
+                return null;
+            }
+
+            try {
+                return this.client
+                        .admin()
+                        .indices()
+                        .create(request)
+                        .get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+            } catch (ExecutionException | TimeoutException e) {
+                boolean alreadyExists =
+                        e instanceof ExecutionException
+                                ? ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null
+                                : ClusterInfo.indexExists(this.client, Constants.INDEX_RESOURCE_LOCKS);
+                if (alreadyExists) {
+                    log.debug(
+                            "Index [{}] already exists, skipping creation.", Constants.INDEX_RESOURCE_LOCKS);
+                    return null;
+                }
+                throw e;
+            }
+        }
     }
 
     /**
@@ -82,13 +161,20 @@ public class ResourceLockService {
      *     lock could not be acquired after {@link Constants#MAX_LOCK_ACQUIRE_RETRIES} attempts.
      */
     public void acquire(String resourceType, String space, ActionListener<String> listener) {
+        // Only the lock index is touched as the plugin. The caller's continuation creates the actual
+        // content resource, so it must keep running as the REST user for its index-level privileges to
+        // be enforced: capture the caller's context before the first stash and restore it around the
+        // callback.
+        ActionListener<String> callerContextListener =
+                ContextPreservingActionListener.wrapPreservingContext(
+                        listener, this.threadPool.getThreadContext());
         this.ensureIndexExists(
                 ActionListener.wrap(
                         v -> {
                             String lockId = lockId(resourceType, space);
-                            this.tryAcquire(lockId, resourceType, space, 1, listener);
+                            this.tryAcquire(lockId, resourceType, space, 1, callerContextListener);
                         },
-                        listener::onFailure));
+                        callerContextListener::onFailure));
     }
 
     private void tryAcquire(
@@ -115,40 +201,42 @@ public class ResourceLockService {
                         .opType(DocWriteRequest.OpType.CREATE)
                         .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
-        this.client.index(
-                request,
-                ActionListener.wrap(
-                        response -> listener.onResponse(lockId),
-                        e -> {
-                            if (ExceptionsHelper.unwrap(e, VersionConflictEngineException.class) == null) {
-                                listener.onFailure(e);
-                                return;
-                            }
-                            this.stealIfStale(
-                                    lockId,
-                                    ActionListener.wrap(
-                                            stolen -> {
-                                                if (stolen) {
-                                                    this.tryAcquire(lockId, resourceType, space, attempt + 1, listener);
-                                                } else {
-                                                    this.threadPool.schedule(
-                                                            () ->
-                                                                    this.tryAcquire(
-                                                                            lockId, resourceType, space, attempt + 1, listener),
-                                                            TimeValue.timeValueMillis(
-                                                                    Constants.LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS),
-                                                            ThreadPool.Names.GENERIC);
-                                                }
-                                            },
-                                            ex ->
-                                                    this.threadPool.schedule(
-                                                            () ->
-                                                                    this.tryAcquire(
-                                                                            lockId, resourceType, space, attempt + 1, listener),
-                                                            TimeValue.timeValueMillis(
-                                                                    Constants.LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS),
-                                                            ThreadPool.Names.GENERIC)));
-                        }));
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            this.client.index(
+                    request,
+                    ActionListener.wrap(
+                            response -> listener.onResponse(lockId),
+                            e -> {
+                                if (ExceptionsHelper.unwrap(e, VersionConflictEngineException.class) == null) {
+                                    listener.onFailure(e);
+                                    return;
+                                }
+                                this.stealIfStale(
+                                        lockId,
+                                        ActionListener.wrap(
+                                                stolen -> {
+                                                    if (stolen) {
+                                                        this.tryAcquire(lockId, resourceType, space, attempt + 1, listener);
+                                                    } else {
+                                                        this.threadPool.schedule(
+                                                                () ->
+                                                                        this.tryAcquire(
+                                                                                lockId, resourceType, space, attempt + 1, listener),
+                                                                TimeValue.timeValueMillis(
+                                                                        Constants.LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS),
+                                                                ThreadPool.Names.GENERIC);
+                                                    }
+                                                },
+                                                ex ->
+                                                        this.threadPool.schedule(
+                                                                () ->
+                                                                        this.tryAcquire(
+                                                                                lockId, resourceType, space, attempt + 1, listener),
+                                                                TimeValue.timeValueMillis(
+                                                                        Constants.LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS),
+                                                                ThreadPool.Names.GENERIC)));
+                            }));
+        }
     }
 
     /**
@@ -160,14 +248,18 @@ public class ResourceLockService {
      *     ActionListener)}.
      */
     public void release(String lockId) {
-        this.client.delete(
-                new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
-                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
-                ActionListener.wrap(
-                        response -> {},
-                        e ->
-                                log.warn(
-                                        "Failed to release resource-creation lock [{}]: {}", lockId, e.getMessage())));
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            this.client.delete(
+                    new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
+                    ActionListener.wrap(
+                            response -> {},
+                            e ->
+                                    log.warn(
+                                            "Failed to release resource-creation lock [{}]: {}",
+                                            lockId,
+                                            e.getMessage())));
+        }
     }
 
     /**
@@ -180,44 +272,52 @@ public class ResourceLockService {
      *     caller should retry immediately.
      */
     private void stealIfStale(String lockId, ActionListener<Boolean> listener) {
-        this.client.get(
-                new GetRequest(Constants.INDEX_RESOURCE_LOCKS, lockId),
-                ActionListener.wrap(
-                        response -> {
-                            if (!response.isExists()) {
-                                listener.onResponse(true);
-                                return;
-                            }
-                            Map<String, Object> source = response.getSourceAsMap();
-                            Object acquiredAt = source != null ? source.get(ACQUIRED_AT_FIELD) : null;
-                            long acquiredAtMillis =
-                                    acquiredAt instanceof Number ? ((Number) acquiredAt).longValue() : 0L;
-                            if (Instant.now().toEpochMilli() - acquiredAtMillis
-                                    <= Constants.LOCK_STALE_THRESHOLD_MILLIS) {
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            this.client.get(
+                    new GetRequest(Constants.INDEX_RESOURCE_LOCKS, lockId),
+                    ActionListener.wrap(
+                            response -> {
+                                if (!response.isExists()) {
+                                    listener.onResponse(true);
+                                    return;
+                                }
+                                Map<String, Object> source = response.getSourceAsMap();
+                                Object acquiredAt = source != null ? source.get(ACQUIRED_AT_FIELD) : null;
+                                long acquiredAtMillis =
+                                        acquiredAt instanceof Number ? ((Number) acquiredAt).longValue() : 0L;
+                                if (Instant.now().toEpochMilli() - acquiredAtMillis
+                                        <= Constants.LOCK_STALE_THRESHOLD_MILLIS) {
+                                    listener.onResponse(false);
+                                    return;
+                                }
+                                log.warn("Stealing stale resource-creation lock [{}].", lockId);
+                                this.deleteStaleLock(lockId, listener);
+                            },
+                            e -> {
+                                log.warn(
+                                        "Failed to check staleness of resource-creation lock [{}]: {}",
+                                        lockId,
+                                        e.getMessage());
                                 listener.onResponse(false);
-                                return;
-                            }
-                            log.warn("Stealing stale resource-creation lock [{}].", lockId);
-                            this.client.delete(
-                                    new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
-                                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
-                                    ActionListener.wrap(
-                                            deleteResponse -> listener.onResponse(true),
-                                            e -> {
-                                                log.warn(
-                                                        "Failed to steal stale resource-creation lock" + " [{}]: {}",
-                                                        lockId,
-                                                        e.getMessage());
-                                                listener.onResponse(false);
-                                            }));
-                        },
-                        e -> {
-                            log.warn(
-                                    "Failed to check staleness of resource-creation lock [{}]: {}",
-                                    lockId,
-                                    e.getMessage());
-                            listener.onResponse(false);
-                        }));
+                            }));
+        }
+    }
+
+    private void deleteStaleLock(String lockId, ActionListener<Boolean> listener) {
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            this.client.delete(
+                    new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
+                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
+                    ActionListener.wrap(
+                            deleteResponse -> listener.onResponse(true),
+                            e -> {
+                                log.warn(
+                                        "Failed to steal stale resource-creation lock" + " [{}]: {}",
+                                        lockId,
+                                        e.getMessage());
+                                listener.onResponse(false);
+                            }));
+        }
     }
 
     private static String lockId(String resourceType, String space) {
@@ -227,21 +327,57 @@ public class ResourceLockService {
     }
 
     private void ensureIndexExists(ActionListener<Void> listener) {
-        ClusterInfo.indexExists(
-                this.client,
-                Constants.INDEX_RESOURCE_LOCKS,
-                ActionListener.wrap(
-                        exists -> {
-                            if (exists) {
-                                listener.onResponse(null);
-                                return;
-                            }
-                            this.createIndex(listener);
-                        },
-                        listener::onFailure));
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            ClusterInfo.indexExists(
+                    this.client,
+                    Constants.INDEX_RESOURCE_LOCKS,
+                    ActionListener.wrap(
+                            exists -> {
+                                if (exists) {
+                                    listener.onResponse(null);
+                                    return;
+                                }
+                                this.createIndexAsync(listener);
+                            },
+                            listener::onFailure));
+        }
     }
 
-    private void createIndex(ActionListener<Void> listener) {
+    private void createIndexAsync(ActionListener<Void> listener) {
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            CreateIndexRequest request;
+            try {
+                request = buildCreateIndexRequest();
+            } catch (IOException e) {
+                log.error(
+                        "Could not read mappings for index [{}]: {}",
+                        Constants.INDEX_RESOURCE_LOCKS,
+                        e.getMessage());
+                listener.onResponse(null);
+                return;
+            }
+
+            this.client
+                    .admin()
+                    .indices()
+                    .create(
+                            request,
+                            ActionListener.wrap(
+                                    response -> listener.onResponse(null),
+                                    e -> {
+                                        if (ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null) {
+                                            log.debug(
+                                                    "Index [{}] already exists, skipping creation.",
+                                                    Constants.INDEX_RESOURCE_LOCKS);
+                                            listener.onResponse(null);
+                                        } else {
+                                            listener.onFailure(e);
+                                        }
+                                    }));
+        }
+    }
+
+    private static CreateIndexRequest buildCreateIndexRequest() throws IOException {
         Settings settings =
                 Settings.builder()
                         .put("index.number_of_replicas", 0)
@@ -251,40 +387,10 @@ public class ResourceLockService {
                         .put(Constants.KEY_INDEX_REFRESH_INTERVAL, Constants.REFRESH_INTERVAL_DISABLED)
                         .build();
 
-        String mappings;
-        try {
-            mappings = loadMappingFromResources();
-        } catch (IOException e) {
-            log.error(
-                    "Could not read mappings for index [{}]: {}",
-                    Constants.INDEX_RESOURCE_LOCKS,
-                    e.getMessage());
-            listener.onResponse(null);
-            return;
-        }
-
-        CreateIndexRequest request =
-                new CreateIndexRequest()
-                        .index(Constants.INDEX_RESOURCE_LOCKS)
-                        .mapping(mappings)
-                        .settings(settings);
-        this.client
-                .admin()
-                .indices()
-                .create(
-                        request,
-                        ActionListener.wrap(
-                                response -> listener.onResponse(null),
-                                e -> {
-                                    if (ExceptionsHelper.unwrap(e, ResourceAlreadyExistsException.class) != null) {
-                                        log.debug(
-                                                "Index [{}] already exists, skipping creation.",
-                                                Constants.INDEX_RESOURCE_LOCKS);
-                                        listener.onResponse(null);
-                                    } else {
-                                        listener.onFailure(e);
-                                    }
-                                }));
+        return new CreateIndexRequest()
+                .index(Constants.INDEX_RESOURCE_LOCKS)
+                .mapping(loadMappingFromResources())
+                .settings(settings);
     }
 
     private static String loadMappingFromResources() throws IOException {

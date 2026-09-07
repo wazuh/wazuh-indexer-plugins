@@ -18,7 +18,7 @@ GET /_index_template/wazuh-events-*
 
 #### Categories
 
-The **Key** column is the canonical identifier used throughout the system — in data stream names, integrations, rules, decoders, and the Security Analytics plugin. Use it exactly as shown when creating or referencing any of these resources.
+The **Key** column is the canonical identifier used throughout the system — in data stream names, integrations, rules, decoders, and the Ruleset Management plugin. Use it exactly as shown when creating or referencing any of these resources.
 
 | Name              | Key                 | Example log types                                |
 | ----------------- | ------------------- | ------------------------------------------------ |

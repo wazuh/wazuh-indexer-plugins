@@ -19,6 +19,8 @@ package com.wazuh.contentmanager.cti.catalog.index;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -31,9 +33,12 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.breaker.CircuitBreaker;
 import org.opensearch.core.common.breaker.CircuitBreakingException;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -43,6 +48,7 @@ import org.junit.Before;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -53,6 +59,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -639,5 +647,148 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         verify(this.client, times(2)).get(any(GetRequest.class));
         verify(this.client).index(any(IndexRequest.class));
+    }
+
+    // ---------------------------------------------------------------------
+    // executeBulk: load shedding must be retried, never silently dropped.
+    // ---------------------------------------------------------------------
+
+    /** Makes the scheduler run the retry inline, so backoff does not slow the tests down. */
+    private void runScheduledTasksInline() {
+        when(this.client.threadPool().schedule(any(Runnable.class), any(TimeValue.class), anyString()))
+                .thenAnswer(
+                        invocation -> {
+                            invocation.getArgument(0, Runnable.class).run();
+                            return null;
+                        });
+    }
+
+    private static BulkResponse bulkResponseWith(BulkItemResponse... items) {
+        return new BulkResponse(items, 1L);
+    }
+
+    private static BulkItemResponse successItem(int id) {
+        return new BulkItemResponse(id, DocWriteRequest.OpType.INDEX, mock(IndexResponse.class));
+    }
+
+    private static BulkItemResponse shedItem(int id, String docId) {
+        return new BulkItemResponse(
+                id,
+                DocWriteRequest.OpType.INDEX,
+                new BulkItemResponse.Failure(
+                        INDEX_NAME,
+                        docId,
+                        new CircuitBreakingException(
+                                "Data too large", 100, 50, CircuitBreaker.Durability.TRANSIENT)));
+    }
+
+    private static BulkItemResponse rejectedItem(int id, String docId) {
+        return new BulkItemResponse(
+                id,
+                DocWriteRequest.OpType.INDEX,
+                new BulkItemResponse.Failure(
+                        INDEX_NAME,
+                        docId,
+                        new IllegalArgumentException("mapper error"),
+                        RestStatus.BAD_REQUEST));
+    }
+
+    private static BulkRequest bulkOf(String... ids) {
+        BulkRequest request = new BulkRequest();
+        for (String id : ids) {
+            request.add(new IndexRequest(INDEX_NAME).id(id).source("{}", XContentType.JSON));
+        }
+        return request;
+    }
+
+    /** Answers client.bulk() with the given responses in order, capturing each request. */
+    private List<BulkRequest> stubBulkResponses(BulkResponse... responses) {
+        List<BulkRequest> captured = new ArrayList<>();
+        AtomicInteger call = new AtomicInteger();
+        doAnswer(
+                        invocation -> {
+                            captured.add(invocation.getArgument(0, BulkRequest.class));
+                            int index = Math.min(call.getAndIncrement(), responses.length - 1);
+                            invocation.getArgument(1, ActionListener.class).onResponse(responses[index]);
+                            return null;
+                        })
+                .when(this.client)
+                .bulk(any(BulkRequest.class), any(ActionListener.class));
+        return captured;
+    }
+
+    /**
+     * A circuit breaker trip is the cluster shedding load, not a bad document: only the shed item is
+     * re-submitted, and nothing is reported as dropped once the retry lands.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_RetriesShedItemsAndKeepsThem() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent =
+                this.stubBulkResponses(
+                        bulkResponseWith(successItem(0), shedItem(1, "CVE-2024-7295")),
+                        bulkResponseWith(successItem(0)));
+
+        this.contentIndex.executeBulk(bulkOf("CVE-2024-0001", "CVE-2024-7295"));
+
+        Assert.assertEquals(2, sent.size());
+        // Only the shed document is retried, not the whole batch.
+        Assert.assertEquals(1, sent.get(1).numberOfActions());
+        Assert.assertEquals("CVE-2024-7295", sent.get(1).requests().get(0).id());
+        Assert.assertEquals(0L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /** Once the retry budget is spent the documents are counted, so callers can refuse to commit. */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_CountsDroppedDocumentsWhenRetriesExhausted() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent = this.stubBulkResponses(bulkResponseWith(shedItem(0, "CVE-2024-7295")));
+
+        this.contentIndex.executeBulk(bulkOf("CVE-2024-7295"));
+
+        // Initial attempt plus MAX_BULK_RETRIES.
+        Assert.assertEquals(4, sent.size());
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /** A rejected document is not load shedding: retrying cannot help, so it is dropped at once. */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_DoesNotRetryNonRetryableFailures() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent =
+                this.stubBulkResponses(bulkResponseWith(rejectedItem(0, "CVE-2024-7295")));
+
+        this.contentIndex.executeBulk(bulkOf("CVE-2024-7295"));
+
+        Assert.assertEquals(1, sent.size());
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /**
+     * The concurrency permit must be released on every terminal path, otherwise {@code
+     * waitForPendingUpdates} deadlocks and the snapshot load never finishes.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_ReleasesPermitAfterRetriesExhausted() throws Exception {
+        this.runScheduledTasksInline();
+        this.stubBulkResponses(bulkResponseWith(shedItem(0, "CVE-2024-7295")));
+
+        this.contentIndex.executeBulk(bulkOf("CVE-2024-7295"));
+        this.contentIndex.waitForPendingUpdates();
+
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /** The counter is per-load, so a fresh snapshot run starts from a clean tally. */
+    @SuppressWarnings("unchecked")
+    public void testResetDroppedDocuments() throws Exception {
+        this.runScheduledTasksInline();
+        this.stubBulkResponses(bulkResponseWith(rejectedItem(0, "CVE-2024-7295")));
+
+        this.contentIndex.executeBulk(bulkOf("CVE-2024-7295"));
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
+
+        this.contentIndex.resetDroppedDocuments();
+        Assert.assertEquals(0L, this.contentIndex.getDroppedDocuments());
     }
 }

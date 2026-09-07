@@ -39,6 +39,7 @@ import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Module;
 import org.opensearch.common.settings.*;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
@@ -60,6 +61,8 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.secure_sm.AccessController;
+import org.opensearch.threadpool.ExecutorBuilder;
+import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -73,8 +76,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -86,11 +87,11 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
+import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
@@ -114,6 +115,7 @@ import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
 import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
+import com.wazuh.contentmanager.utils.SetupReadiness;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
@@ -128,6 +130,7 @@ public class ContentManagerPlugin extends Plugin
 
     private ConsumersIndex consumersIndex;
     private CredentialsIndex credentialsIndex;
+    private ResourceLockService resourceLockService;
     private boolean isCredentialsIndexProtected;
     private ThreadPool threadPool;
     private Client client;
@@ -141,6 +144,7 @@ public class ContentManagerPlugin extends Plugin
     private SpaceService spaceService;
     private UserOverridesService userOverridesService;
     private SecurityAnalyticsService securityAnalyticsService;
+    private SetupReadiness setupReadiness;
     private Environment environment;
     private ClusterService clusterService;
     private LogtestService logtestService;
@@ -203,6 +207,8 @@ public class ContentManagerPlugin extends Plugin
 
         this.consumersIndex = new ConsumersIndex(client);
         this.credentialsIndex = new CredentialsIndex(client, threadPool);
+        this.resourceLockService = new ResourceLockService(client, threadPool);
+        this.setupReadiness = new SetupReadiness(client);
         this.plansService = new PlansServiceImpl();
         this.subscriptionService =
                 new SubscriptionServiceImpl(
@@ -283,6 +289,11 @@ public class ContentManagerPlugin extends Plugin
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
                         PluginSettings.WAZUH_UID, v -> PluginSettings.getInstance().setWazuhUid(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.LOGTEST_MAX_BODY_BYTES,
+                        v -> PluginSettings.getInstance().setLogtestMaxBodyBytes(v));
 
         return List.of(
                 this.subscriptionService,
@@ -510,25 +521,48 @@ public class ContentManagerPlugin extends Plugin
                                                 e);
                                     }
 
-                                    // Create the threat-intel ruleset resource indices up front so
-                                    // custom-ruleset REST endpoints work even when catalog
-                                    // synchronization is disabled. When sync is enabled it will
-                                    // find these already present and skip re-creating them.
-                                    this.ensureResourceIndicesExist();
+                                    // Provision the resource-creation lock index up front. It is
+                                    // plugin-internal bookkeeping, so creating it here (as the plugin)
+                                    // keeps it off the REST request path, where the create would
+                                    // otherwise be evaluated against the calling user's privileges.
+                                    try {
+                                        CreateIndexResponse locksResponse = this.resourceLockService.createIndex();
+                                        if (locksResponse != null && locksResponse.isAcknowledged()) {
+                                            log.info(
+                                                    Constants.I_LOG_PLUGIN_INDEX_CREATED,
+                                                    locksResponse.index(),
+                                                    locksResponse.isAcknowledged());
+                                        }
+                                    } catch (Exception e) {
+                                        log.error(
+                                                Constants.E_LOG_PLUGIN_INDEX_CREATE_FAILED,
+                                                Constants.INDEX_RESOURCE_LOCKS,
+                                                e.getMessage(),
+                                                e);
+                                    }
+
+                                    this.tryLoadAccessToken();
+
+                                    // Everything below writes into the threat-intel indices, which the
+                                    // Setup plugin owns. This plugin no longer creates any of them: it
+                                    // only ever created the six ruleset indices, never the IoC or CVE
+                                    // ones, so a deployment without the Setup plugin was broken either
+                                    // way. Stop here instead of half-provisioning it.
+                                    if (!this.setupReadiness.awaitReady()) {
+                                        log.error(Constants.E_LOG_SETUP_NOT_READY_INIT_ABORTED);
+                                        return;
+                                    }
 
                                     // Seed the default space policies (draft, test, custom) so
                                     // custom-ruleset operations that require a draft policy work even
-                                    // when catalog synchronization is disabled. Must run after the
-                                    // indices exist. Idempotent (opType=CREATE), so a later sync or
-                                    // another node finds them already present.
+                                    // when catalog synchronization is disabled. Idempotent
+                                    // (opType=CREATE), so a later sync or another node finds them
+                                    // already present.
                                     this.ensureDefaultSpacesExist();
 
                                     // Recover the standard space's aggregate hash if a previous hash
-                                    // calculation was interrupted (e.g. by a node restart). Must run
-                                    // after the indices exist.
+                                    // calculation was interrupted (e.g. by a restart).
                                     this.ensureStandardSpaceHash();
-
-                                    this.tryLoadAccessToken();
                                 } finally {
                                     onComplete.run();
                                 }
@@ -576,34 +610,6 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Creates the space-aware threat-intel ruleset resource indices (policies, integrations, rules,
-     * kvdbs, decoders, filters) if they do not already exist.
-     *
-     * <p>These indices are otherwise created lazily during catalog synchronization. When both {@code
-     * plugins.content_manager.catalog.update_on_start} and {@code
-     * plugins.content_manager.catalog.update_on_schedule} are disabled no synchronization runs, so
-     * without this step the indices never get created and the custom-ruleset REST endpoints fail with
-     * "no such index". Each missing index is created with its configured mappings and public alias,
-     * matching what a normal first sync would produce.
-     */
-    private void ensureResourceIndicesExist() {
-        for (Map.Entry<String, String> entry : Constants.RESOURCE_INDEX_MAPPINGS.entrySet()) {
-            String indexName = entry.getKey();
-            try {
-                boolean exists =
-                        this.awaitResult(listener -> ClusterInfo.indexExists(this.client, indexName, listener));
-                if (!exists) {
-                    // ContentIndex.createIndex() creates the physical index and its alias, and logs
-                    // the creation itself.
-                    new ContentIndex(this.client, indexName, entry.getValue()).createIndex();
-                }
-            } catch (Exception e) {
-                log.error(Constants.E_LOG_INDEX_CREATE_FAILED, indexName, e.getMessage());
-            }
-        }
-    }
-
-    /**
      * Seeds the default space policy documents (draft, test, custom) if they do not already exist.
      *
      * <p>These are otherwise created only during catalog synchronization (in {@code
@@ -611,7 +617,7 @@ public class ContentManagerPlugin extends Plugin
      * custom-ruleset operations that first check for it (e.g. creating an integration) fail with
      * "Draft policy not found" even though the resource indices are present. This seeds them at
      * startup via the same idempotent {@code opType=CREATE} logic, so a later sync or another node
-     * finds them already present. Must run after {@link #ensureResourceIndicesExist()}.
+     * finds them already present. Requires the Setup plugin to have provisioned the indices.
      */
     private void ensureDefaultSpacesExist() {
         try {
@@ -983,6 +989,7 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_CONCURRENT_BULKS,
                 PluginSettings.MAX_ITEMS_PER_BULK,
                 PluginSettings.MAX_BULK_BYTES,
+                PluginSettings.LOGTEST_MAX_BODY_BYTES,
                 PluginSettings.CATALOG_SYNC_INTERVAL,
                 PluginSettings.UPDATE_ON_START,
                 PluginSettings.UPDATE_ON_SCHEDULE,
@@ -1005,6 +1012,21 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.SETUP_WAIT_BACKOFF_BASE_SECONDS,
                 PluginSettings.CLIENT_MAX_RETRIES,
                 PluginSettings.CLIENT_RETRY_BACKOFF_BASE_SECONDS);
+    }
+
+    @Override
+    public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
+        // Dedicated, bounded pool for logtest execution. Sized to half the allocated processors (at
+        // least one) with a small bounded queue: excess concurrency is rejected with 429 rather than
+        // piling blocking engine-socket calls onto the transport threads and converting into heap.
+        int size = Math.max(1, OpenSearchExecutors.allocatedProcessors(settings) / 2);
+        return List.of(
+                new FixedExecutorBuilder(
+                        settings,
+                        PluginSettings.LOGTEST_THREAD_POOL,
+                        size,
+                        100,
+                        "plugins.content_manager.thread_pool.logtest"));
     }
 
     @Override

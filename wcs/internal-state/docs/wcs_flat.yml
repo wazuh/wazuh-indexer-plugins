@@ -118,15 +118,17 @@ privacy_default_on:
   type: boolean
 privacy_default_per_provider:
   dashed_name: privacy-default-per-provider
-  description: Per-provider override of the default privacy mode, keyed by provider
-    name. Only present on the settings document.
-  example: '{"test-ai": true}'
+  description: 'Per-provider override of the default privacy mode, keyed by provider
+    document id. Only present on the settings document. Mapped as flat_object: the
+    keys are runtime-generated provider ids, so they cannot be declared up front under
+    this index''s strict mapping.'
+  example: '{"3f6b5f7e-6f2d-4a4f-9c1e-2f6d0a1b2c3d": true}'
   flat_name: privacy_default_per_provider
   level: custom
   name: privacy_default_per_provider
   normalize: []
   short: Per-provider override of the default privacy mode.
-  type: object
+  type: flat_object
 type:
   dashed_name: type
   description: Provider implementation to use. Only present on provider documents.

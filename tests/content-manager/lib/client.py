@@ -145,6 +145,25 @@ class CMClient:
         """Return the draft policy ``_source`` (or ``None`` if absent)."""
         return self.get_policy(C.SPACE_DRAFT)
 
+    def resolve_alias(self, alias):
+        """Return ``{physical_index: is_write_index}`` for the concrete index(es)
+        behind ``alias``, via ``GET /_alias/<alias>``.
+
+        Empty if ``alias`` names neither an alias nor an index. If ``alias`` is
+        itself a concrete index (not an alias — e.g. auto-created by a write
+        that reached it before anything created the alias), the result is
+        ``{alias: False}``.
+        """
+        resp = self.get(f"/_alias/{alias}")
+        if resp.status_code == 404:
+            return {}
+        assert resp.status_code == 200, f"GET _alias/{alias} -> {resp.status_code}: {resp.text}"
+        body = resp.json()
+        return {
+            physical: data.get("aliases", {}).get(alias, {}).get("is_write_index", False)
+            for physical, data in body.items()
+        }
+
     # ── CTI consumers ─────────────────────────────────────────────────────
 
     def consumer_status(self, consumer_type):

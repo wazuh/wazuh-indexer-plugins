@@ -1,0 +1,21 @@
+---
+- name: base
+  root: true
+  title: Base
+  group: 1
+  description: >
+    Custom fields at the root level of the integrations content documents.
+  type: group
+  fields:
+    - name: hash.sha256
+      level: custom
+      type: keyword
+      description: "The SHA-256 hash of the resource document."
+    - name: offset
+      level: custom
+      type: unsigned_long
+      description: "The CTI offset the document was delivered at."
+    - name: space.name
+      level: custom
+      type: keyword
+      description: "Name of the space the resource belongs to."
