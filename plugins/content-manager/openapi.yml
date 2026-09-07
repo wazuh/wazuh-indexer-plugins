@@ -2899,8 +2899,12 @@ components:
                 properties:
                   status:
                     type: string
-                    enum: [success, error]
+                    enum: [success, error, skipped]
                     example: "success"
+                  reason:
+                    type: string
+                    description: >-
+                      Why no rule could be evaluated. Present when `status` is `skipped`.
                   rules_evaluated:
                     type: integer
                     example: 12
@@ -2929,8 +2933,38 @@ components:
                                 type: string
                         matched_conditions:
                           type: array
+                          description: >-
+                            The compiled queries that matched. These are the exact queries a deployed
+                            detector runs, since detection evaluates rules through the same percolator.
                           items:
                             type: string
+                  rules_skipped:
+                    type: integer
+                    description: Number of rules that could not be evaluated.
+                  skipped:
+                    type: array
+                    description: >-
+                      One entry per rule that could not be evaluated. A skipped rule cannot produce
+                      a finding in production either, so it is reported rather than counted as
+                      "did not match".
+                    items:
+                      type: object
+                      properties:
+                        rule:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            title:
+                              type: string
+                            level:
+                              type: string
+                            tags:
+                              type: array
+                              items:
+                                type: string
+                        reason:
+                          type: string
           examples:
             with_matches:
               summary: Detection with matched rules
@@ -2947,15 +2981,14 @@ components:
                         level: "high"
                         tags: ["attack.execution", "attack.t1059"]
                       matched_conditions:
-                        - "event.duration matched '>= 5000'"
-                        - "event.severity matched '< 10'"
+                        - "(event.duration >= 5000) AND (event.severity < 10)"
                     - rule:
                         id: "1d489ded-7523-4329-8cd0-ebb21865a318"
                         title: "Exact match event.kind=event"
                         level: "low"
                         tags: ["attack.execution", "attack.t1059"]
                       matched_conditions:
-                        - "event.kind matched 'event'"
+                        - 'event.kind: "event"'
             no_matches:
               summary: No rules matched
               value:
@@ -3049,8 +3082,40 @@ components:
                                     type: string
                             matched_conditions:
                               type: array
+                              description: >-
+                                The compiled queries that matched. These are the exact queries a
+                                deployed detector runs, since detection evaluates rules through the
+                                same percolator.
                               items:
                                 type: string
+                      rules_skipped:
+                        type: integer
+                        description: Number of rules that could not be evaluated.
+                        example: 0
+                      skipped:
+                        type: array
+                        description: >-
+                          One entry per rule that could not be evaluated. A skipped rule cannot
+                          produce a finding in production either, so it is reported rather than
+                          counted as "did not match".
+                        items:
+                          type: object
+                          properties:
+                            rule:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                title:
+                                  type: string
+                                level:
+                                  type: string
+                                tags:
+                                  type: array
+                                  items:
+                                    type: string
+                            reason:
+                              type: string
           examples:
             with_matches:
               summary: Response with matching rules
@@ -3077,9 +3142,7 @@ components:
                             - "aws"
                             - "cloudtrail"
                         matched_conditions:
-                          - "event.category == 'authentication'"
-                          - "event.outcome == 'failure'"
-                          - "cloud.provider == 'aws'"
+                          - 'event.category: "authentication" AND event.outcome: "failure" AND cloud.provider: "aws"'
                       - rule:
                           id: "uuid-rule-2"
                           title: "rule/suspicious-console-login/0"
