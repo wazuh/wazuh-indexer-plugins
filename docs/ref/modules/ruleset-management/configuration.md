@@ -1,7 +1,7 @@
 <!-- // ANCHOR: settings-table -->
-## Security Analytics settings
+## Ruleset Management settings
 
-The Security Analytics plugin is configured through settings in `opensearch.yml`. All node-scope settings use the `plugins.security_analytics` prefix. Almost every setting is dynamic and can be changed at runtime via the Cluster Settings API.
+The Ruleset Management plugin is configured through settings in `opensearch.yml`. All node-scope settings use the `plugins.security_analytics` prefix. Almost every setting is dynamic and can be changed at runtime via the Cluster Settings API.
 
 - **`plugins.security_analytics.alert_finding_enabled`** (Boolean, default `false`) — enable rollover and retention management for the finding history indices.
 - **`plugins.security_analytics.alert_finding_max_docs`** (Long, default `1000`, minimum `0`) — **Deprecated.** Maximum document count for a finding history index before rollover.
@@ -35,7 +35,7 @@ The Security Analytics plugin is configured through settings in `opensearch.yml`
 - **`plugins.security_analytics.filter_by_backend_roles`** (Boolean, default `false`) — restrict access to detectors, rules, and findings based on the requester's backend roles.
 - **`plugins.security_analytics.finding_history_max_age`** (Time, default `30d`) — maximum age of a finding history index before rollover.
 - **`plugins.security_analytics.finding_history_retention_period`** (Time, default `60d`) — retention period after which finding history indices are deleted.
-- **`plugins.security_analytics.index_timeout`** (Time, default `60s`) — timeout for Security Analytics index operations.
+- **`plugins.security_analytics.index_timeout`** (Time, default `60s`) — timeout for Ruleset Management index operations.
 - **`plugins.security_analytics.max_case_management_bulk_size`** (Integer, default `10`, range 0–100, dynamic) — maximum number of findings that can be updated in a single request to the [update findings](case-management.md#updating-findings) endpoint. Setting it to `0` disables the endpoint entirely.
 - **`plugins.security_analytics.max_detectors`** (Integer, default `10`, minimum `0`, no upper bound, dynamic) — maximum number of user-created detectors (Content Manager detectors do not count).
 - **`plugins.security_analytics.max_rules_per_detector`** (Integer, default `50`, minimum `0`, no upper bound, dynamic) — maximum number of rules (custom or pre-packaged) allowed in a single detector input. Requests that would exceed this limit are rejected with HTTP 400.
@@ -87,7 +87,7 @@ plugins.security_analytics.enable_workflow_usage: true
 plugins.security_analytics.filter_by_backend_roles: false
 ```
 
-Setting `enriched_findings_index_enabled` to `false` disables the Wazuh enriched findings pipeline described in [Architecture](architecture.md); raw Security Analytics findings continue to be written to `.opensearch-sap-{category}-findings-*`, but no `wazuh-findings-v5-{category}*` documents are produced.
+Setting `enriched_findings_index_enabled` to `false` disables the Wazuh enriched findings pipeline described in [Architecture](architecture.md); raw Ruleset Management findings continue to be written to `.opensearch-sap-{category}-findings-*`, but no `wazuh-findings-v5-{category}*` documents are produced.
 
 ### Resource creation limits
 
@@ -154,7 +154,7 @@ The enrichment throughput settings shape the load the pipeline puts on the clust
 
 ### Updating a setting at runtime
 
-Almost every Security Analytics setting is dynamic. To change one without restarting the node, use the Cluster Settings API:
+Almost every Ruleset Management setting is dynamic. To change one without restarting the node, use the Cluster Settings API:
 
 ```bash
 curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'

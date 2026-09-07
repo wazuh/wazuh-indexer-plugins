@@ -52,6 +52,7 @@ import com.wazuh.setup.action.GetAiAssistantSettingsAction;
 import com.wazuh.setup.action.PutAiAssistantSettingsAction;
 import com.wazuh.setup.action.PutSettingsAction;
 import com.wazuh.setup.index.AiAssistantSettingsAdminIndex;
+import com.wazuh.setup.index.ContentIndex;
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.SettingsIndex;
@@ -177,6 +178,20 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         this.indices.add(new StateIndex("wazuh-states-inventory-system", "templates/states/inventory-system"));
         this.indices.add(new StateIndex("wazuh-states-inventory-users", "templates/states/inventory-users"));
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "templates/states/vulnerabilities"));
+
+        // Threat intel content indices - Hold the catalog content the Content Manager downloads
+        // from CTI. Created as <name>-a with the public alias <name> pointing at it, so the Content
+        // Manager can rebuild content into the <name>-b slot and swap the alias atomically. The
+        // Content Manager defers all its work until the setup status index is marked ready, so these
+        // are always in place before the first write reaches them.
+        this.indices.add(new ContentIndex("wazuh-threatintel-enrichments", "templates/content/ioc"));
+        this.indices.add(new ContentIndex("wazuh-threatintel-filters", "templates/content/filters"));
+        this.indices.add(new ContentIndex("wazuh-threatintel-decoders", "templates/content/decoders"));
+        this.indices.add(new ContentIndex("wazuh-threatintel-rules", "templates/content/rules"));
+        this.indices.add(new ContentIndex("wazuh-threatintel-kvdbs", "templates/content/kvdbs"));
+        this.indices.add(new ContentIndex("wazuh-threatintel-integrations", "templates/content/integrations"));
+        this.indices.add(new ContentIndex("wazuh-threatintel-policies", "templates/content/policies"));
+        this.indices.add(new ContentIndex(".wazuh-threatintel-vulnerabilities", "templates/content/vulnerabilities"));
 
         // Wazuh settings index - Instantiated as it is required by the RestPutSettingsAction.
         this.settingsIndex = new SettingsIndex(".wazuh-settings", "templates/settings");

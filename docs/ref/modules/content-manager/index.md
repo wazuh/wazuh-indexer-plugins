@@ -105,7 +105,7 @@ The Content Manager uses the following system indices:
 
 | Index                                | Description                                                                                          |
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `.wazuh-cti-consumers`                | Synchronization state for each CTI consumer type (`type`, `resource`, `is_public`, offsets, status)   |
+| `.wazuh-cti-consumers`                | Synchronization state for each CTI consumer type (`type`, `resource`, `is_public`, offsets, status, pending sync phases) |
 | `.wazuh-internal-state`               | Persisted CTI access token (hidden, single document)                                                  |
 | `wazuh-threatintel-rules`             | Detection rules (both CTI-synced and user-generated, across all spaces)                               |
 | `wazuh-threatintel-decoders`          | Log decoders                                                                                           |

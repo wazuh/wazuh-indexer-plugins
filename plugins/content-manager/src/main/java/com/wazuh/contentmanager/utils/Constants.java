@@ -72,6 +72,10 @@ public class Constants {
             "This request would create more than the allowed kvdbs [%d].";
     public static final String E_400_TOO_MANY_FILTERS =
             "This request would create more than the allowed filters [%d].";
+    public static final String E_413_LOGTEST_EVENT_TOO_LARGE =
+            "logtest payload exceeds the maximum allowed size of %d bytes.";
+    public static final String E_429_LOGTEST_BUSY =
+            "logtest is busy: too many concurrent requests. Please retry later.";
     public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
             "ID should not be provided in the payload.";
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine validation failed.";
@@ -142,7 +146,7 @@ public class Constants {
             "Sending delete request for {} to Security Analytics (document.id={}{}).";
     public static final String I_LOG_SAP_SUMMARY =
             "Sent {} of {} {} to Security Analytics for space [{}].";
-    public static final String W_LOG_SAP_PARTIAL =
+    public static final String E_LOG_SAP_PARTIAL =
             "{} {} could not be sent to Security Analytics for space [{}]: {}";
     public static final String I_LOG_ACCESS_TOKEN_REMOVED =
             "Access token removed successfully. Environment is now unregistered.";
@@ -159,6 +163,12 @@ public class Constants {
     public static final String D_LOG_CONSUMER_STATUS_SET = "Consumer [{}] status set to [{}]";
     public static final String W_LOG_CONSUMER_STATUS_FAILED =
             "Failed to set consumer [{}] status to [{}]: {}";
+    public static final String D_LOG_CONSUMER_PENDING_PHASES_DOC_ABSENT =
+            "Consumer [{}] doc not present; skipping pending sync phases update to {}";
+    public static final String D_LOG_CONSUMER_PENDING_PHASES_READ_FAILED =
+            "Could not read pending sync phases for [{}]: {}";
+    public static final String W_LOG_CONSUMER_PENDING_PHASES_FAILED =
+            "Failed to persist pending sync phases for [{}]: {}";
     public static final String D_LOG_CONSUMER_RESOURCE_READ_FAILED =
             "Could not read existing consumer resource for [{}]: {}";
     public static final String D_LOG_CONSUMER_T0_WRITTEN =
@@ -179,6 +189,30 @@ public class Constants {
     public static final String D_LOG_REGULAR_URL_RESOLVER =
             "Consumer [{}] is not registered; using public download URLs.";
     public static final String E_LOG_INDEX_CREATE_FAILED = "Failed to create index [{}]: {}";
+    public static final String E_LOG_SYNC_ABORTED_INDICES_MISSING =
+            "Skipping [{}] synchronization: the Setup plugin reported ready but these indices are "
+                    + "missing: {}. No content is downloaded until they exist. Restart to let the Setup "
+                    + "plugin create them.";
+    public static final String W_LOG_EMPTY_INDEX_OFFSET_RESET =
+            "Index [{}] is empty but the local offset is [{}]. Resetting the offset to download the "
+                    + "content again.";
+    public static final String D_LOG_INDEX_COUNT_FAILED = "Could not count the documents in [{}]: {}";
+    public static final String E_LOG_SETUP_PLUGIN_ABSENT =
+            "The Setup plugin is not installed. It owns the indices this plugin reads and writes, so "
+                    + "install it and restart.";
+    public static final String D_LOG_SETUP_PLUGIN_LOOKUP_FAILED =
+            "Could not read the installed plugin list, assuming the Setup plugin is present: {}";
+    public static final String E_LOG_SETUP_INIT_FAILED =
+            "Setup plugin initialization failed. Skipping catalog synchronization until Setup succeeds "
+                    + "(typically after a node restart).";
+    public static final String I_LOG_SETUP_NOT_READY_RETRYING =
+            "Setup plugin initialization not complete yet. Retrying in {}s (attempt {}/{}).";
+    public static final String D_LOG_SETUP_STATUS_READ_FAILED =
+            "Could not read setup status marker: {}";
+    public static final String E_LOG_SETUP_NOT_READY_INIT_ABORTED =
+            "The Setup plugin has not configured the indexer, so initialization cannot continue. The "
+                    + "threat intel indices are created by the Setup plugin; without them no content is "
+                    + "downloaded and the custom ruleset endpoints will not work.";
     public static final String W_LOG_LOCAL_OFFSET_EXCEEDS_REMOTE =
             "Local offset [{}] exceeds remote offset [{}] for consumer [{}]. Resetting.";
     public static final String W_LOG_LOCAL_SNAPSHOT_CHECK_FAILED =
@@ -310,10 +344,15 @@ public class Constants {
             "Unexpected error sending {} to the Security Analytics plugin: {}";
     public static final String D_LOG_SAP_DETECTORS_SYNCING =
             "Syncing {} detectors ({} sequentially, {} in parallel)";
+    public static final String D_LOG_SAP_DETECTORS_NO_INTEGRATIONS =
+            "Integration documents could not be read; keeping the detectors phase pending.";
     public static final String E_LOG_DETECTOR_WAIT_INTERRUPTED =
             "Interrupted while waiting for detector sync to complete.";
     public static final String W_LOG_HIT_MISSING_DOCUMENT =
             "Hit [{}] missing 'document' field, skipping";
+    public static final String E_LOG_SAP_SYNC_DEGRADED =
+            "Security Analytics content sync degraded for consumer [{}]: phase(s) {} still pending; "
+                    + "will retry on the next scheduled sync pass.";
 
     // Log messages - snapshot / update / IOC (SnapshotServiceImpl, UpdateServiceImpl,
     // ConsumerIocService)
@@ -356,6 +395,8 @@ public class Constants {
             "Skipped {} snapshot entries (missing payload: {}, unknown type: {}, unmapped type: {}, parse errors: {}).";
     public static final String E_LOG_SNAPSHOT_READ_FILE_FAILED =
             "Error reading snapshot file [{}]: {}";
+    public static final String E_LOG_SNAPSHOT_INDEXING_INCOMPLETE =
+            "Snapshot indexing for consumer [{}] dropped {} document(s); local_offset was not advanced so the next sync retries the snapshot.";
     public static final String D_LOG_SNAPSHOT_LOCAL_INIT_START =
             "Starting local snapshot initialization for [{}] from [{}]";
     public static final String E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED =
@@ -408,6 +449,8 @@ public class Constants {
     public static final String E_LOG_IOC_TYPE_HASHES_FAILED =
             "Failed to compute and store IOC type hashes: {}";
     public static final String D_LOG_IOC_ENGINE_REPLY = "Engine reply to IOC load request: {}";
+    public static final String D_LOG_IOC_PIT_RELEASE_FAILED =
+            "Failed to release the IOC point-in-time context [{}]: {}";
 
     // Log messages - space / index / index swap (SpaceService, ContentIndex, IndexSwapHelper)
     public static final String E_LOG_DELETE_SPACE_RESOURCES_FAILED =
@@ -477,9 +520,15 @@ public class Constants {
     public static final String D_LOG_NO_DOCUMENT_FOUND_QUERY =
             "No document found in [{}] with query {}";
     public static final String E_LOG_SEARCH_BY_QUERY_FAILED = "Search by query failed in [{}]: {}";
-    public static final String W_LOG_BULK_INDEXING_FAILURES =
-            "Bulk indexing finished with failures: {}";
     public static final String E_LOG_BULK_INDEX_OPERATION_FAILED = "Bulk index operation failed: {}";
+    public static final String W_LOG_BULK_RETRY_SCHEDULED =
+            "Bulk indexing shed {} document(s) under load; retry {}/{} in {}ms.";
+    public static final String E_LOG_BULK_RETRIES_EXHAUSTED =
+            "Bulk indexing dropped {} document(s) after {} retries. Last failure: {}";
+    public static final String E_LOG_BULK_ITEMS_NOT_RETRYABLE =
+            "Bulk indexing dropped {} document(s) with non-retryable failures. Last failure: {}";
+    public static final String E_LOG_BULK_RETRY_SCHEDULE_FAILED =
+            "Bulk indexing dropped {} document(s): retry could not be scheduled: {}";
     public static final String E_LOG_SEMAPHORE_INTERRUPTED =
             "Interrupted while waiting for semaphore: {}";
     public static final String E_LOG_CLEAR_INDEX_NO_MAPPINGS =
@@ -769,18 +818,6 @@ public class Constants {
     public static final String MAPPING_DECODERS = "/mappings/cti-decoders-mappings.json";
     public static final String MAPPING_FILTERS = "/mappings/cti-filters-mappings.json";
 
-    // Index name -> mapping file for the space-aware ruleset resource indices. These are created
-    // unconditionally at startup so the custom-ruleset REST endpoints work even when catalog
-    // synchronization is disabled (update_on_start=false and update_on_schedule=false).
-    public static final Map<String, String> RESOURCE_INDEX_MAPPINGS =
-            Map.of(
-                    INDEX_POLICIES, MAPPING_POLICIES,
-                    INDEX_INTEGRATIONS, MAPPING_INTEGRATIONS,
-                    INDEX_RULES, MAPPING_RULES,
-                    INDEX_KVDBS, MAPPING_KVDBS,
-                    INDEX_DECODERS, MAPPING_DECODERS,
-                    INDEX_FILTERS, MAPPING_FILTERS);
-
     // Resources Indices Mapping for space-aware resources (used by SpaceService for promotion).
     // Note: IoCs and CVEs are NOT included here because they use flat storage without spaces.
     public static final Map<String, String> RESOURCE_INDICES =
@@ -809,6 +846,7 @@ public class Constants {
 
     // HTTP headers
     public static final String USER_AGENT_PREFIX = "Wazuh Indexer ";
+    public static final String ACCEPT_ENCODING_GZIP = "gzip";
 
     // IOC type hashes
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";

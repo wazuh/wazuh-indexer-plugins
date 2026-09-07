@@ -1,10 +1,10 @@
 # Case management
 
-Case management allows analysts to track and manage the lifecycle of findings produced by Security Analytics detectors. Each finding can be annotated with case metadata enabling triage workflows directly on the indexed data.
+Case management allows analysts to track and manage the lifecycle of findings produced by Ruleset Management detectors. Each finding can be annotated with case metadata enabling triage workflows directly on the indexed data.
 
 ## Overview
 
-When a detection rule matches an event, Security Analytics creates a **finding**. By default, findings contain only detection fields. Case management extends findings with a `wazuh.case` object that supports:
+When a detection rule matches an event, Ruleset Management creates a **finding**. By default, findings contain only detection fields. Case management extends findings with a `wazuh.case` object that supports:
 
 - **Classification** — a `title`, `description`, `severity`, `priority`, and TLP (Traffic Light Protocol) label to support prioritization and triage.
 - **Status tracking** — move findings through a workflow (e.g., `active` → `acknowledged` → `completed`).

@@ -62,7 +62,7 @@
           "type": "boolean"
         },
         "privacy_default_per_provider": {
-          "type": "object"
+          "type": "flat_object"
         },
         "type": {
           "ignore_above": 1024,

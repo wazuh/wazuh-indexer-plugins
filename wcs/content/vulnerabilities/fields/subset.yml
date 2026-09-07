@@ -1,0 +1,8 @@
+---
+name: vulnerabilities
+fields:
+  base:
+    fields:
+      offset: {}
+      type: {}
+      document: {}
