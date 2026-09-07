@@ -1,0 +1,54 @@
+---
+- name: document
+  title: Document
+  group: 1
+  description: >
+    Custom fields at the document level of the kvdbs content documents.
+  type: group
+  fields:
+    - name: id
+      level: custom
+      type: keyword
+      description: "Unique identifier of the resource."
+    - name: metadata.title
+      level: custom
+      type: keyword
+      description: "Title of the resource."
+    - name: metadata.author
+      level: custom
+      type: keyword
+      description: "Author of the resource."
+    - name: metadata.date
+      level: custom
+      type: date
+      description: "Date the resource was created."
+    - name: metadata.modified
+      level: custom
+      type: date
+      description: "Date the resource was last modified."
+    - name: metadata.description
+      level: custom
+      type: text
+      description: "Description of what the resource does."
+    - name: metadata.references
+      level: custom
+      type: keyword
+      description: "External references for the resource."
+    - name: metadata.documentation
+      level: custom
+      type: keyword
+      description: "Documentation for the resource."
+    - name: metadata.supports
+      level: custom
+      type: keyword
+      description: "Products or log formats the resource supports."
+    - name: enabled
+      level: custom
+      type: boolean
+      description: "Whether the resource is enabled."
+    - name: content
+      level: custom
+      type: object
+      enabled: false
+      index: false
+      description: "The key-value database content, stored verbatim and not indexed."

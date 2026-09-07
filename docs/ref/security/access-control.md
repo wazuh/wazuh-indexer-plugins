@@ -16,9 +16,9 @@ These default users and roles definitions are stored in the `internal_users.yml`
 Each default user is mapped 1:1 to the role of the matching name in `roles_mapping.yml`. The `wazuh-admin` user is additionally reachable through the `admin` backend role.
 
 - **`wazuh-manager`** → `wazuh_manager` — service account for the Wazuh Manager: read/write on stateless (events, metrics) indices, read/write/delete on stateful (states) indices, read/write on the agent statistics and configuration indexes, and read on consumers, threat intelligence and active-responses.
-- **`wazuh-admin`** → `wazuh_admin` — administrator: read access to all Wazuh indices, write access to Wazuh settings, full Content Manager and Security Analytics access, and management of alerting, notifications, reporting and index management. Excludes super-admin (security configuration).
-- **`wazuh-demo`** → `wazuh_demo` — default interactive user: read data, manage threat intelligence content, full Content Manager content operations and Security Analytics, and read-only alerting, notifications, reporting and index management.
-- **`wazuh-readonly`** → `wazuh_readonly` — read-only access to indices, settings, subscriptions and Security Analytics (detectors, findings, alerts).
+- **`wazuh-admin`** → `wazuh_admin` — administrator: read access to all Wazuh indices, write access to Wazuh settings, full Content Manager and Ruleset Management access, and management of alerting, notifications, reporting and index management. Excludes super-admin (security configuration).
+- **`wazuh-demo`** → `wazuh_demo` — default interactive user: read data, manage threat intelligence content, full Content Manager content operations and Ruleset Management, and read-only alerting, notifications, reporting and index management.
+- **`wazuh-readonly`** → `wazuh_readonly` — read-only access to indices, settings, subscriptions and Ruleset Management (detectors, findings, alerts).
 
 > **Security note:** The bundled password hashes decode to the username. Change every default password immediately after installation.
 
@@ -41,7 +41,7 @@ Internal service account used by the Wazuh Dashboard to read notification config
 
 Service account used by the Wazuh Manager for data ingestion and content reads.
 
-- **Cluster permissions:** `cluster_composite_ops`, `cluster_monitor`.
+- **Cluster permissions:** `cluster_composite_ops`, `indices:data/read/scroll/clear`, `cluster_monitor`.
 - **Index permissions:**
   - `read` on `.wazuh-settings`.
   - `read` on `.wazuh-cti-consumers`, `wazuh-active-responses*`, `wazuh-threatintel-*`.
@@ -55,11 +55,11 @@ Service account used by the Wazuh Manager for data ingestion and content reads.
 Full access to all Wazuh features, excluding super-admin features such as the security configuration.
 
 - **Cluster permissions:**
-  - Base: `cluster_composite_ops`, `cluster_monitor`.
+  - Base: `cluster_composite_ops`, `indices:data/read/scroll/clear`, `cluster_monitor`.
   - Wazuh settings (setup plugin): `plugin:wazuh/settings/write`.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`, `plugin:wazuh/ai_assistant/settings/write` — see [AI assistant administrative API](#ai-assistant-administrative-api) below.
   - Content Manager: full.
-  - Security Analytics: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
+  - Ruleset Management: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
   - Alerting: full.
   - Anomaly detection: detector operations.
   - Notifications: full.
@@ -77,10 +77,10 @@ Full access to all Wazuh features, excluding super-admin features such as the se
 Default interactive user: can visualize data and manage threat intelligence / Content Manager content.
 
 - **Cluster permissions:**
-  - Base: `cluster_composite_ops`, `cluster_monitor`.
+  - Base: `cluster_composite_ops`, `indices:data/read/scroll/clear`, `cluster_monitor`.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`.
   - Content Manager: full content operations (no subscription create/delete, no policy update).
-  - Security Analytics: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
+  - Ruleset Management: full (both the Wazuh custom actions and the upstream OpenSearch Security Analytics actions).
   - Alerting, Anomaly detection, Notifications, Reporting, Index management: **read-only**.
 - **Index permissions:**
   - `get`, `read`, `indices:admin/aliases/get`, `indices:monitor/*` on `*`, `.kibana*`.
@@ -92,10 +92,10 @@ Default interactive user: can visualize data and manage threat intelligence / Co
 Read-only access across the platform.
 
 - **Cluster permissions:**
-  - Base: `cluster_composite_ops`, `cluster_monitor`.
+  - Base: `cluster_composite_ops_ro`, `indices:data/read/scroll/clear`, `cluster_monitor`.
   - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`.
   - Content Manager: `subscription/get`, `logtest*`, `version/check`.
-  - Security Analytics: read-only (upstream `cluster:admin/opensearch/securityanalytics/*` get/search/list actions) plus the Wazuh custom `rules/evaluate`.
+  - Ruleset Management: read-only (upstream `cluster:admin/opensearch/securityanalytics/*` get/search/list actions) plus the Wazuh custom `rules/evaluate`.
   - Alerting, Anomaly detection, Notifications, Reporting, Index management: **read-only**.
 - **Index permissions:**
   - `get`, `read`, `indices:admin/aliases/get`, `indices:monitor/*` on `*`, `.kibana*`.
@@ -114,6 +114,31 @@ Grants every authenticated user access to their own AI assistant conversations, 
 `${user.name}` is substituted at query time with the name of the authenticated user, so each user retrieves only the conversations whose `user` field holds their own username.
 
 The per-owner DLS applies to every user, including `wazuh-admin` and `admin`
+
+## Plugin-internal indices
+
+Some indices are bookkeeping owned by a plugin rather than data a user queries. They are created by
+the plugin at node startup and are only ever read or written by the plugin itself, never on behalf of
+a REST caller, so **custom roles must not be given index-level privileges on them** — a role that
+omits them behaves exactly the same:
+
+| Index | Owner | Purpose |
+| --- | --- | --- |
+| `.wazuh-content-manager-resource-locks` | Content Manager | Short-lived mutex documents that serialize the resource-limit check when creating rules, decoders, integrations, KVDBs and filters. See [Content Manager — Resource creation lock](../modules/content-manager/architecture.md#resource-creation-lock). |
+| `.wazuh-cti-consumers` | Content Manager | CTI synchronization state (status, offsets, source URL) per consumer. |
+| `.wazuh-content-manager-jobs` | Content Manager | Job Scheduler metadata for the catalog sync and telemetry ping jobs. |
+
+Where such an index has to be touched while serving a user request — the resource-creation lock is
+taken and released inside a create request — the plugin stashes the caller's identity for the
+duration of that operation, so it is authorized as the plugin and not as the user. This is what keeps
+these indices out of every role, including custom roles that hold only `plugin:content_manager/*`
+permissions. The stash is scoped to the internal index: the content operation the request came for is
+still authorized against the user's own index permissions on `wazuh-threatintel-*`.
+
+`.wazuh-internal-state` is deliberately not in this list. It is also written by the plugin in its own
+context, but it is additionally declared as a security-plugin system index
+(`plugins.security.system_indices.indices`), and the roles above grant it explicitly because the
+Setup plugin's AI assistant endpoints read and write it on behalf of users.
 
 ## AI assistant administrative API
 

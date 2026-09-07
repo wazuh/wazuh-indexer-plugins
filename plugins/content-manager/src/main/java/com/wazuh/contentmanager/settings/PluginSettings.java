@@ -48,6 +48,13 @@ public class PluginSettings {
     public static final String SPACE_URI = PLUGINS_BASE_URI + "/space";
     public static final String VERSION_CHECK_URI = PLUGINS_BASE_URI + "/version/check";
 
+    /**
+     * Name of the dedicated, bounded thread pool that executes logtest requests. Offloading logtest
+     * off the transport thread and onto a fixed pool with a bounded queue prevents request
+     * concurrency from being converted directly into heap pressure (overflow is rejected with 429).
+     */
+    public static final String LOGTEST_THREAD_POOL = "content_manager_logtest";
+
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
 
@@ -67,6 +74,7 @@ public class PluginSettings {
     private static final int MINIMUM_MAX_FILTERS = 0;
 
     private static final long DEFAULT_MAX_BULK_BYTES = 5L * 1024 * 1024;
+    private static final long DEFAULT_LOGTEST_MAX_BODY_BYTES = 1L * 1024 * 1024;
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
     private static final int DEFAULT_CATALOG_SYNC_INTERVAL = 60;
@@ -139,6 +147,24 @@ public class PluginSettings {
                     100L * 1024 * 1024,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
+
+    /**
+     * Maximum size, in bytes, of a logtest request body ({@code POST
+     * /_plugins/_content_manager/logtest} and its {@code /normalization} and {@code /detection}
+     * siblings). A log line is at most a few kilobytes; the endpoint amplifies its input into the
+     * response (~2 bytes out per byte in) and, being available to read-only accounts, is otherwise a
+     * cheap way to exhaust the indexer's heap. Requests whose raw body exceeds this limit are
+     * rejected with {@code 413 REQUEST_ENTITY_TOO_LARGE} at the REST layer, before parsing or
+     * dispatch, so the amplification never happens. Default 1 MiB; bounded 1 KiB–16 MiB.
+     */
+    public static final Setting<Long> LOGTEST_MAX_BODY_BYTES =
+            Setting.longSetting(
+                    "plugins.content_manager.logtest.max_body_bytes",
+                    DEFAULT_LOGTEST_MAX_BODY_BYTES,
+                    1L * 1024,
+                    16L * 1024 * 1024,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
 
     /**
      * The maximum number of co-existing bulk operations during the initialization from a snapshot.
@@ -399,6 +425,7 @@ public class PluginSettings {
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
+    private volatile long logtestMaxBodyBytes;
     private final int maximumConcurrentBulks;
     private final long clientTimeout;
     private final int catalogSyncInterval;
@@ -435,6 +462,7 @@ public class PluginSettings {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
         this.maximumItemsPerBulk = MAX_ITEMS_PER_BULK.get(settings);
         this.maximumBulkBytes = MAX_BULK_BYTES.get(settings);
+        this.logtestMaxBodyBytes = LOGTEST_MAX_BODY_BYTES.get(settings);
         this.maximumConcurrentBulks = MAX_CONCURRENT_BULKS.get(settings);
         this.clientTimeout = CLIENT_TIMEOUT.get(settings);
         this.catalogSyncInterval = CATALOG_SYNC_INTERVAL.get(settings);
@@ -645,6 +673,25 @@ public class PluginSettings {
      */
     public long getMaxBulkBytes() {
         return this.maximumBulkBytes;
+    }
+
+    /**
+     * Retrieves the maximum allowed size, in bytes, of a logtest request body.
+     *
+     * @return the maximum logtest request body size in bytes.
+     */
+    public long getLogtestMaxBodyBytes() {
+        return this.logtestMaxBodyBytes;
+    }
+
+    /**
+     * Updates the maximum allowed logtest request body size. Invoked by the cluster-settings update
+     * consumer when {@code plugins.content_manager.logtest.max_body_bytes} changes.
+     *
+     * @param logtestMaxBodyBytes the new maximum size in bytes.
+     */
+    public void setLogtestMaxBodyBytes(long logtestMaxBodyBytes) {
+        this.logtestMaxBodyBytes = logtestMaxBodyBytes;
     }
 
     /**

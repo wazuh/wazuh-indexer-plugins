@@ -243,6 +243,49 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
+     * When the content indices report dropped documents, the snapshot is only partially indexed. The
+     * consumer offset must stay where it is: incremental syncs resume from it, so advancing it over
+     * the gap would strand the missing documents permanently.
+     */
+    public void testInitialize_DoesNotAdvanceOffsetWhenDocumentsWereDropped() throws Exception {
+        // Mock
+        String url = "http://example.com/snapshot.zip";
+        long offset = 100L;
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getOffset()).thenReturn(offset);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(offset);
+
+        // A t0 consumer doc must exist, otherwise updateLocalOffset would bail out on its own and
+        // the test would pass without exercising the drop gate at all.
+        String existingConsumerJson =
+                "{\"name\":\"test-consumer\",\"context\":\"test-context\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\","
+                        + "\"resource\":\"https://cti.example/catalog/contexts/test-context/consumers/test-consumer\","
+                        + "\"is_public\":true,\"status\":\"running\",\"local_offset\":0,\"remote_offset\":100}";
+        org.opensearch.action.get.GetResponse t0Response =
+                mock(org.opensearch.action.get.GetResponse.class);
+        when(t0Response.isExists()).thenReturn(true);
+        when(t0Response.getSourceAsString()).thenReturn(existingConsumerJson);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset")).thenReturn(t0Response);
+
+        // The cluster shed documents that never made it back, exactly as on DTT node-9.
+        when(this.contentIndexMock.getDroppedDocuments()).thenReturn(9332L);
+
+        Path zipPath =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"12345678\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"12345678\", \"title\": \"Test Kvdb\"}}}");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        // Act
+        boolean result = this.snapshotService.initialize(this.remoteConsumer);
+
+        // Assert
+        Assert.assertFalse("a partial load must not report success", result);
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
+    }
+
+    /**
      * Tests that documents with type "policy" are indexed correctly.
      *
      * @throws URISyntaxException
@@ -1234,6 +1277,87 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         Assert.assertFalse("Local init should fail on corrupt zip", result);
         Assert.assertTrue("Source file should be preserved for retry", Files.exists(localZip));
+    }
+
+    /**
+     * A remote load that dropped documents did not index in full, so its downloaded zip must not be
+     * promoted to stable: "stable" means a snapshot indexed in full at least once. Promoting a
+     * partial load would overwrite a previously-good stable with one that fails identically on every
+     * rollback, turning the safety net into a file the system has just proven it cannot load. The
+     * temp must be discarded and any existing stable left byte-for-byte untouched.
+     */
+    public void testRemoteInit_DroppedDocuments_DoesNotPromoteToStable() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+
+        // A previously-good stable that must survive a partial load untouched.
+        Path existingStable = snapshotsDir.resolve("ruleset.stable.zip");
+        Path existingStableSrc =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"old\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"old\"}}}");
+        Files.copy(existingStableSrc, existingStable);
+        long stableSize = Files.size(existingStable);
+
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(100L);
+        mockT0ConsumerDoc();
+
+        // The snapshot streams and indexes, but the cluster shed part of the bulk.
+        when(this.contentIndexMock.getDroppedDocuments()).thenReturn(37L);
+
+        Path zipPath =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\": \"1\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"1\"}}}");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
+
+        boolean result = service.initialize(this.remoteConsumer);
+
+        Assert.assertFalse("A partial load must not report success", result);
+        Assert.assertFalse(
+                "The downloaded temp must be discarded, not promoted", Files.exists(zipPath));
+        Assert.assertTrue("The previously-good stable must survive", Files.exists(existingStable));
+        Assert.assertEquals(
+                "The stable must be byte-for-byte untouched", stableSize, Files.size(existingStable));
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
+    }
+
+    /**
+     * A local packaged load that dropped documents must not be promoted to stable either. The
+     * packaged source is left in place so the next sync can retry it, and no stable is manufactured
+     * from an incomplete load.
+     */
+    public void testLocalInit_DroppedDocuments_DoesNotPromoteToStable() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+        mockT0ConsumerDoc();
+
+        // The cluster shed part of the packaged load.
+        when(this.contentIndexMock.getDroppedDocuments()).thenReturn(37L);
+
+        Path localZip = snapshotsDir.resolve("ruleset.zip");
+        try (java.util.zip.ZipOutputStream zos =
+                new java.util.zip.ZipOutputStream(Files.newOutputStream(localZip))) {
+            java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry("data.json");
+            zos.putNextEntry(entry);
+            zos.write(
+                    "{\"name\": \"1\", \"offset\": 50, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"1\"}}}"
+                            .getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+
+        boolean result = service.initialize(localZip, null);
+
+        Assert.assertFalse("A partial load must not report success", result);
+        Path stableFile = snapshotsDir.resolve("ruleset.stable.zip");
+        Assert.assertFalse(
+                "A partial packaged load must not manufacture a stable", Files.exists(stableFile));
+        Assert.assertTrue("The packaged source must stay for the next retry", Files.exists(localZip));
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
     }
 
     public void testDeleteSnapshots_PreservesStableFiles() throws Exception {

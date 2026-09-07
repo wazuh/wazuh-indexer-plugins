@@ -33,6 +33,7 @@ import java.util.List;
 import com.wazuh.contentmanager.action.LogtestDetectionAction;
 import com.wazuh.contentmanager.action.LogtestDetectionRequest;
 import com.wazuh.contentmanager.action.LogtestResponse;
+import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -74,6 +75,17 @@ public class RestPostLogtestDetectionAction extends BaseRestHandler {
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         log.debug("{} {}", request.method(), PluginSettings.LOGTEST_DETECTION_URI);
 
+        // Reject oversized bodies at the REST layer, before parsing or dispatch, so the endpoint's
+        // input-to-response amplification can never be turned into heap pressure.
+        LogtestResponse tooLarge =
+                PayloadValidations.validateLogtestBodySize(
+                        request,
+                        PluginSettings.getInstance().getLogtestMaxBodyBytes(),
+                        client.threadPool().getThreadContext());
+        if (tooLarge != null) {
+            return channel -> channel.sendResponse(buildResponse(tooLarge));
+        }
+
         String body = request.content().utf8ToString();
         LogtestDetectionRequest detectionRequest = new LogtestDetectionRequest(body);
 
@@ -86,10 +98,14 @@ public class RestPostLogtestDetectionAction extends BaseRestHandler {
         return new RestResponseListener<>(channel) {
             @Override
             public RestResponse buildResponse(LogtestResponse response) throws Exception {
-                return new BytesRestResponse(
-                        response.getStatus(),
-                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
+                return RestPostLogtestDetectionAction.buildResponse(response);
             }
         };
+    }
+
+    private static BytesRestResponse buildResponse(LogtestResponse response) throws Exception {
+        return new BytesRestResponse(
+                response.getStatus(),
+                response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
     }
 }

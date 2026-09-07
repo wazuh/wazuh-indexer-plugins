@@ -52,6 +52,13 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
     public void completed(SimpleHttpResponse response) {
         log.debug("{}->{}", this.httpRequest, new StatusLine(response));
         log.debug("Got response: {} {}", response.getCode(), response.getBodyText());
+        log.debug(
+                "CTI compression check: request Accept-Encoding=[{}] response Content-Encoding=[{}]"
+                        + " wireContentLength=[{}] decodedBodyBytes=[{}]",
+                this.httpRequest.getFirstHeader("Accept-Encoding"),
+                response.getFirstHeader("Content-Encoding"),
+                response.getFirstHeader("Content-Length"),
+                response.getBodyBytes() != null ? response.getBodyBytes().length : -1);
     }
 
     @Override

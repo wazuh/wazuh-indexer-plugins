@@ -133,19 +133,23 @@ function map_settings_modules() {
 }
 
 # ====
-# Map IoC module
+# Map content modules. These describe the wazuh-threatintel-* indices the setup plugin creates
+# and the Content Manager fills from CTI. Every directory under wcs/content/ is picked up, so a
+# new content module needs no change here.
+#
+# Their mappings are consumed twice: the setup plugin creates the index from the generated index
+# template, and the Content Manager keeps a bare mappings document so it can create the
+# blue/green shadow index during a content swap without setup intervention. generate_schema.sh
+# derives that second destination from the module name; nothing extra is recorded here, because a
+# second entry per module would break the tools that grep module_list.txt for a module's template.
 # ====
-function map_ioc_module() {
-  local module_name="content/ioc"
-  all_modules["$module_name"]="templates/${module_name}.json"
-}
-
-# ====
-# Map Engine Filter module
-# ====
-function map_engine_filter_module() {
-  local module_name="content/filters"
-  all_modules["$module_name"]="templates/${module_name}.json"
+function map_content_modules() {
+  local module_name
+  for dir in wcs/content/*/; do
+    [[ -d "$dir" ]] || continue
+    module_name=$(basename "$dir")
+    all_modules["content/$module_name"]="templates/content/${module_name}.json"
+  done
 }
 
 # ====
@@ -187,14 +191,13 @@ function sort_and_output_modules() {
     echo "  [settings]=${all_modules[settings]}" >>"$output_file"
   fi
 
-  if [[ -n "${all_modules[content/filters]}" ]]; then
-    echo "  # Engine filter module" >>"$output_file"
-    echo "  [content/filters]=${all_modules[content/filters]}" >>"$output_file"
-  fi
-
-  if [[ -n "${all_modules[content/ioc]}" ]]; then
-    echo "  # IoC module" >>"$output_file"
-    echo "  [content/ioc]=${all_modules[content/ioc]}" >>"$output_file"
+  local content_keys
+  content_keys=$(printf '%s\n' "${!all_modules[@]}" | grep "^content/" | sort)
+  if [[ -n "$content_keys" ]]; then
+    echo "  # Content modules" >>"$output_file"
+    for key in $content_keys; do
+      echo "  [$key]=${all_modules[$key]}" >>"$output_file"
+    done
   fi
 
   if [[ -n "${all_modules[cve]}" ]]; then
@@ -218,6 +221,7 @@ function sort_and_output_modules() {
   fi
 
   echo ")" >>"$output_file"
+
 }
 
 # ====
@@ -238,9 +242,7 @@ function main() {
 
   map_settings_modules
 
-  map_ioc_module
-
-  map_engine_filter_module
+  map_content_modules
 
   map_cve_module
 
