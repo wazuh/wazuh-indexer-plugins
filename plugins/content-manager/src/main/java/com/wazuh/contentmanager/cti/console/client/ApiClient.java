@@ -48,6 +48,7 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /** CTI Console API client. */
 public class ApiClient {
@@ -129,6 +130,7 @@ public class ApiClient {
         SimpleHttpRequest request =
                 SimpleRequestBuilder.post(TOKEN_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
                         .build();
 
@@ -171,6 +173,7 @@ public class ApiClient {
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
                         .build();
 
@@ -209,6 +212,7 @@ public class ApiClient {
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
 
         final Future<SimpleHttpResponse> future =
@@ -241,6 +245,7 @@ public class ApiClient {
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
 
         final Future<SimpleHttpResponse> future =
@@ -269,6 +274,7 @@ public class ApiClient {
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
 
         this.client.execute(
@@ -312,6 +318,7 @@ public class ApiClient {
                 SimpleRequestBuilder.get(url)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
 
         final Future<SimpleHttpResponse> future =
@@ -335,6 +342,7 @@ public class ApiClient {
                 SimpleRequestBuilder.get(url)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
 
         this.client.execute(

@@ -22,9 +22,9 @@ The plugin is a fork of the [OpenSearch Alerting plugin](https://docs.opensearch
 
 ## Wazuh integration points
 
-### Security Analytics
+### Ruleset Management
 
-The [Security Analytics](../security-analytics/index.md) plugin uses alerting monitors to evaluate incoming events against Sigma detection rules. When an event matches a rule, Security Analytics creates a finding and can trigger an alert. The alerting monitor drives the detection loop — periodically querying new events and running them through the configured detectors.
+The [Ruleset Management](../ruleset-management/index.md) plugin uses alerting monitors to evaluate incoming events against Sigma detection rules. When an event matches a rule, Ruleset Management creates a finding and can trigger an alert. The alerting monitor drives the detection loop — periodically querying new events and running them through the configured detectors.
 
 ### Notifications
 

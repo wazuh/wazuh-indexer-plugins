@@ -14,7 +14,7 @@ Draft → Test → Custom
 2. **Test**: Promote to the test space and validate with logtest.
 3. **Custom**: Once validated, promote to custom for production use.
 
-Logtest sends a raw log event through the full detection pipeline — the Wazuh Engine normalizes the event, and the Security Analytics plugin evaluates your Sigma rules against the normalized output. The combined result shows exactly what was decoded and which rules matched.
+Logtest sends a raw log event through the full detection pipeline — the Wazuh Engine normalizes the event, and the Ruleset Management plugin evaluates your Sigma rules against the normalized output. The combined result shows exactly what was decoded and which rules matched.
 
 Logtest supports the `test`, `standard`, and `custom` spaces. Use `test` for validating draft content, `standard` for testing against production rules, and `custom` for validating content promoted to production
 
@@ -92,7 +92,7 @@ curl -sk -u admin:admin -X POST \
 
 ## Step 3: create a rule
 
-Rules use the [Sigma format](../security-analytics/rules.md) to define detection logic. Link a rule to the same integration:
+Rules use the [Sigma format](../ruleset-management/rules.md) to define detection logic. Link a rule to the same integration:
 
 ```bash
 curl -sk -u admin:admin -X POST \
@@ -124,9 +124,18 @@ curl -sk -u admin:admin -X POST \
       "level": "medium",
       "tags": ["attack.credential-access", "attack.t1110.001"],
       "mitre": {
-        "tactic": ["TA0006"],
-        "technique": ["T1110"],
-        "subtechnique": ["T1110.001"]
+        "tactic": {
+          "id": ["TA0006"],
+          "name": ["Credential Access"]
+        },
+        "technique": {
+          "id": ["T1110"],
+          "name": ["Brute Force"]
+        },
+        "subtechnique": {
+          "id": ["T1110.001"],
+          "name": ["Brute Force: Password Guessing"]
+        }
       }
     }
   }'
@@ -398,4 +407,4 @@ The response contains only the detection result:
 | Normalization only | `/_plugins/_content_manager/logtest/normalization` | POST |
 | Detection only | `/_plugins/_content_manager/logtest/detection` | POST |
 
-For full endpoint details, see the [API Reference](api.md). For Sigma rule format details, see [Sigma Rules](../security-analytics/rules.md).
+For full endpoint details, see the [API Reference](api.md). For Sigma rule format details, see [Sigma Rules](../ruleset-management/rules.md).

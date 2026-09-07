@@ -39,6 +39,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /** Client responsible for downloading CTI snapshots from a remote source. */
 public class SnapshotClient {
@@ -84,6 +85,7 @@ public class SnapshotClient {
             // Setup
             final URI uri = new URI(this.urlResolver.resolve(snapshotURI));
             final HttpGet request = new HttpGet(uri);
+            request.addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP);
             final String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
             final Path path = this.env.tmpDir().resolve(filename);
 

@@ -3,9 +3,9 @@
 # =========================
 # Repository Bumper Script
 # =========================
-# Updates VERSION.json for a new version release, then (depending on flags)
-# reinitializes CHANGELOG.md and pins workflow references to the right
-# branch/tag.
+# Updates VERSION.json for a new version release, syncs the hardcoded version
+# fallback in each plugin's build.gradle to match, then (depending on flags)
+# reinitializes CHANGELOG.md and pins workflow references to the right branch/tag.
 #
 # Usage: repository_bumper.sh --version VERSION --stage STAGE [--tag] [--set-as-main]
 
@@ -132,6 +132,35 @@ function update_version_file() {
 }
 
 # ====
+# Sync the hardcoded version fallback in each plugin's build.gradle to the release
+# version. build.gradle resolves the build version from the `version` system
+# property and falls back to a hardcoded default when it is not passed (e.g. a bare
+# `./gradlew` with no -Dversion). Keeping that default equal to VERSION.json stops
+# it drifting behind the real version. This repo has one build.gradle per plugin
+# (plugins/setup, plugins/content-manager), each with its own fallback.
+# Arguments:
+#   $1 - version
+# ====
+function update_build_gradle_version() {
+    local version="$1"
+    local files=("plugins/setup/build.gradle" "plugins/content-manager/build.gradle")
+    local file
+
+    for file in "${files[@]}"; do
+        if [[ ! -f "$file" ]]; then
+            log "Warning: $file not found; skipping build.gradle version sync."
+            continue
+        fi
+        if ! grep -qE 'System\.getProperty\("version", "[0-9]+\.[0-9]+\.[0-9]+"\)' "$file"; then
+            log "Warning: hardcoded 'version' fallback not found in $file; skipping sync."
+            continue
+        fi
+        sed -i -E "s/(System\.getProperty\(\"version\", \")[0-9]+\.[0-9]+\.[0-9]+(\"\))/\1${version}\2/" "$file"
+        log "Synced $file hardcoded version fallback to $version"
+    done
+}
+
+# ====
 # Parse command-line arguments
 # Globals:
 #   arg_version, arg_stage, arg_tag, arg_set_as_main
@@ -197,6 +226,7 @@ function main() {
     old_version="$(current_version)"
 
     update_version_file "$arg_version" "$arg_stage"
+    update_build_gradle_version "$arg_version"
 
     if [[ "$arg_version" != "$old_version" ]]; then
         log "Version changed: $old_version -> $arg_version"

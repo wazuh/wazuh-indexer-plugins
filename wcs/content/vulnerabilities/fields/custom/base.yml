@@ -1,0 +1,33 @@
+---
+- name: base
+  root: true
+  title: Base
+  group: 1
+  short: All fields defined directly at the root of the documents.
+  description: >
+    The `base` field set contains all fields which are at the root of the vulnerability content
+    documents downloaded from CTI.
+  type: group
+  fields:
+    - name: offset
+      level: custom
+      type: unsigned_long
+      description: "The CTI offset the document was delivered at."
+      example: 849527
+    - name: type
+      level: custom
+      type: keyword
+      description: >
+        The type of the CTI content, for example a CVE record or one of the global maps the
+        vulnerability scanner requires.
+      example: "OSCPE-GLOBAL"
+    - name: document
+      level: custom
+      type: object
+      enabled: false
+      index: false
+      short: The CTI payload, stored verbatim and not indexed.
+      description: >
+        The CTI payload, stored verbatim. It is deliberately unmapped: inferring mappings from the
+        payload makes the global maps unindexable, either by conflicting with a key already mapped
+        as a different type or by exceeding the total field limit.
