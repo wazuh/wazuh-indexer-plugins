@@ -59,9 +59,38 @@ paths:
       description: |
         Stores the provided CTI access token used to authenticate against the CTI API.
         The token is persisted in a hidden internal index and loaded into memory.
+
+        With `perform_permission_check=true` the endpoint instead answers *"may the current
+        user register a subscription?"* without registering anything: no request body is
+        read, no access token is required and the operation has no side effects. The
+        permission evaluated is the same one a real registration needs,
+        `cluster:admin/content_manager/subscription/create` (action group
+        `plugin:content_manager/subscription/post`, granted to `wazuh_admin` in the stock
+        role set).
+
+        In that mode the response is **always `200`** — permitted and denied differ only in
+        the body — so clients must branch on `accessAllowed`, never on the HTTP status.
+        `missingPrivileges` carries raw transport action names, useful for logs and support;
+        do not render it to end users.
       operationId: storeCredentials
       tags:
         - Subscription Management
+      parameters:
+        - name: perform_permission_check
+          in: query
+          required: false
+          description: |
+            Answer whether the caller holds the permission this endpoint requires, instead of
+            executing it. Implemented generically by the OpenSearch security plugin for any
+            REST endpoint (available since OpenSearch 3.2), not by the Content Manager. An
+            empty value means `true`.
+          schema:
+            type: boolean
+            default: false
+          examples:
+            check:
+              summary: Ask for the authorization decision only
+              value: true
       requestBody:
         required: true
         content:
@@ -74,6 +103,8 @@ paths:
                 value:
                   access_token: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
       responses:
+        "200":
+          $ref: "#/components/responses/SubscriptionPermissionCheck"
         "201":
           $ref: "#/components/responses/SubscriptionCreated"
         "400":
@@ -1362,6 +1393,28 @@ components:
           description: The CTI access token used to authenticate against the CTI API.
           example: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
 
+    PermissionCheckResponse:
+      type: object
+      description: |
+        Authorization decision returned when `perform_permission_check=true`. Produced by the
+        OpenSearch security plugin (`PermissionCheckResponse`), so the field names are
+        camelCase and identical on every endpoint of the cluster that supports the parameter.
+      required:
+        - accessAllowed
+        - missingPrivileges
+      properties:
+        accessAllowed:
+          type: boolean
+          description: Whether the caller holds every permission the operation requires.
+          example: true
+        missingPrivileges:
+          type: array
+          description: |
+            Transport action names the caller lacks. Empty when `accessAllowed` is `true`.
+          items:
+            type: string
+          example: ["cluster:admin/content_manager/subscription/create"]
+
     # Version check response models
     VersionCheckData:
       type: object
@@ -2458,6 +2511,27 @@ components:
               value:
                 message: "Access token received successfully."
                 status: 201
+
+    SubscriptionPermissionCheck:
+      description: |
+        OK - Authorization decision for `perform_permission_check=true`. Returned for both the
+        permitted and the denied case; branch on `accessAllowed`, not on the status code.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PermissionCheckResponse"
+          examples:
+            allowed:
+              summary: Caller holds the permission (e.g. wazuh_admin)
+              value:
+                accessAllowed: true
+                missingPrivileges: []
+            denied:
+              summary: Caller lacks the permission (e.g. wazuh_readonly)
+              value:
+                accessAllowed: false
+                missingPrivileges:
+                  - "cluster:admin/content_manager/subscription/create"
 
     SubscriptionStatus:
       description: OK - Subscription status and active plan details.
