@@ -46,6 +46,30 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
                         mock(TransportService.class), mock(ActionFilters.class), this.subscriptionService);
     }
 
+    /**
+     * Security-disabled fallback. With the security plugin enabled this branch is unreachable —
+     * SecurityFilter answers before the action runs — so reaching it means no filter intercepted and
+     * every caller may register. Either way the registration work must not happen.
+     */
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_PermissionCheckOnly_shortCircuitsWithoutRegistering() {
+        IndexSubscriptionRequest request = IndexSubscriptionRequest.permissionCheck();
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), request, listener);
+
+        verify(this.subscriptionService, never()).register(any(), any(ActionListener.class));
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.OK, response.getStatus());
+                                    Assert.assertEquals(
+                                            Constants.S_200_PERMISSION_CHECK_ALLOWED, response.getMessage());
+                                    return true;
+                                }));
+        verify(listener, never()).onFailure(any());
+    }
+
     @SuppressWarnings("unchecked")
     public void testDoExecute_Created() {
         doAnswer(

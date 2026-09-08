@@ -42,6 +42,8 @@ public class Constants {
     // success.
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
     public static final String S_201_ACCESS_TOKEN_RECEIVED = "Access token received successfully.";
+    public static final String S_200_PERMISSION_CHECK_ALLOWED =
+            "Permission check passed: security plugin disabled.";
     public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body.";
     public static final String E_400_MISSING_FIELD = "Missing [%s] field.";
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format.";
@@ -772,6 +774,10 @@ public class Constants {
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
     public static final String KEY_MESSAGE = "message";
+    // Owned by the security plugin: field names of
+    // org.opensearch.security.action.simulate.PermissionCheckResponse.
+    public static final String KEY_ACCESS_ALLOWED = "accessAllowed";
+    public static final String KEY_MISSING_PRIVILEGES = "missingPrivileges";
     public static final String KEY_STATUS = "status";
     public static final String KEY_INPUT = "input";
     public static final String KEY_YAML = "yaml";
