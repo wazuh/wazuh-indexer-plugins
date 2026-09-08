@@ -5,6 +5,8 @@
 Stateless index recording the active responses triggered by matched alerts. Each document links back to the alert that fired it (`event.index`, `event.doc_id`), the active-response channel configuration (`wazuh.active_response.*`) and the full agent/cluster metadata carried under `wazuh.*` (mirrored from the base stateless template).
 
 > **Note:** This index is part of the active response feature and is shared by two components: the notifications plugin writes the active response execution requests into it, and the Wazuh manager reads them to dispatch the orders to the agents. Documents must therefore satisfy the requirements listed below for the manager to be able to process them.
+> - https://github.com/wazuh/wazuh/tree/main/docs/ref/modules/active-response
+> - https://github.com/wazuh/wazuh-dashboard-plugins/tree/main/docs/ref/modules/active-response
 
 The detail of the fields can be found in the csv file [Fields](fields.csv).
 
