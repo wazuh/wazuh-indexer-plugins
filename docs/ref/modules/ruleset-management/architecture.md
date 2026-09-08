@@ -46,8 +46,9 @@ Threat detectors for Wazuh integrations are created dynamically based on CTI con
 - **Enabled status**: controlled by CTI to activate or deactivate detectors globally.
 - **Scan interval**: customizable per integration (e.g., critical integrations can have shorter intervals).
 - **Source indices**: defines the target indices or index patterns the detector monitors. If no source indices are provided, the detector falls back to the legacy per-category events pattern.
+- **Triggers and threat intelligence matching**: not used. Detectors are created with no triggers and with `threat_intel_enabled` set to `false`, because a finding is the record of a detection — see [Findings, not alerts](index.md#findings-not-alerts).
 
-Any change in the CTI catalog is reflected in detector configuration without requiring code changes or restarts.
+Any change in the CTI catalog is reflected in detector configuration without requiring code changes or restarts. The catalog owns the detectors it creates: each content update rebuilds them, which is why a provisioned detector accepts no user change other than enabling or disabling it.
 
 ## Behavior notes
 
@@ -70,6 +71,7 @@ See [Configuration](configuration.md) for the settings that control batch size, 
 | `.opensearch-sap-log-types-config`          | Integrations                                                 |
 | `.opensearch-sap-detectors-config`          | Threat detector configurations                               |
 | `wazuh-findings-v5-{category}*`             | Enriched findings                                             |
+| `.opensearch-sap-{category}-alerts*`        | Upstream alert indices; unused, since detectors carry no triggers |
 
 ## Access control
 

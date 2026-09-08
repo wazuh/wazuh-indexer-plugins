@@ -58,9 +58,16 @@ Enrichment is **fire-and-forget**: it never blocks the Ruleset Management write 
 
 See [Architecture](architecture.md) for the data flow, and the development guide for implementation details.
 
+### Findings, not alerts
+
+An enriched finding carries the triggering event in full together with the metadata of the rule that matched it, and [case management](case-management.md) tracks status, severity, priority and comments on that same document. A finding is the complete record of a detection, and the Wazuh Dashboard works from it.
+
+Wazuh 5.0 does not put the Security Analytics alerting layer on top of that: detectors carry no triggers, `threat_intel_enabled` is `false`, and the `.opensearch-sap-{category}-alerts*` indices go unused. An alert would restate what the finding already holds and split a detection's triage state across two documents.
+
 ## API
 
 Most endpoints (detectors, alerts, findings, correlations, log types) are inherited from the upstream OpenSearch Security Analytics plugin — see the [OpenSearch API reference](https://opensearch.org/docs/3.6/security-analytics/api-tools/) for those. Wazuh-specific additions and modifications:
 
 - **Case management update** (`PUT /_plugins/_security_analytics/findings/_update`) — see [Case management](case-management.md).
-- **Detector rule-space restriction** and the **100-rule-per-detector limit** — see [Detector rule space restriction](#detector-rule-space-restriction) and [Detector constraints](#detector-constraints) above.
+- **Detector rule-space restriction** and the **per-detector rule and detector-count limits** — see [Detector rule space restriction](#detector-rule-space-restriction) and [Detector constraints](#detector-constraints) above.
+- **Detector updates** (`PUT /_plugins/_security_analytics/detectors/{detector_id}`) — a detector provisioned from the CTI catalog accepts a change to `enabled` and nothing else, since each content update rebuilds it from the catalog.

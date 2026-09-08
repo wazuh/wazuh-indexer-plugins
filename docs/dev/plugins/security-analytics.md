@@ -133,6 +133,15 @@ To ensure system stability, `DetectorFactory` implements a fallback mechanism fo
 
 `WTransportIndexDetectorAction` serves as the entry point for detector creation. It extracts the `enabled`, `interval`, and `sources` fields from the `WIndexDetectorRequest` and injects them into the factory method. This ensures that any change in the CTI catalog is reflected in the Security Analytics engine without requiring code changes or restarts.
 
+### Alerts are out of scope for 5.0.0
+
+Detectors are provisioned without triggers and without threat intel matching: `DetectorFactory.createDetector()` passes an empty trigger list and `threatIntelEnabled = false`, and no CTI field feeds either one. That is the scope of 5.0.0 rather than a gap — a detection is delivered as an enriched finding in `wazuh-findings-v5-{category}*`, and the Security Analytics alerting layer is left out of the product.
+
+Three things follow from it:
+
+- **Findings do not need triggers.** A document-level monitor writes a finding for every matching document whether or not it has a trigger; the trigger only decides which of those findings also become alerts. A provisioned detector runs on schedule and keeps writing findings with none.
+- **A detector's alert indices are created and stay unused.** With no condition to evaluate, nothing is alerted on and no action is called. The only documents that reach them are the error alerts Alerting writes when a monitor execution fails.
+
 ## Case management
 
 Case management adds triage capabilities to Security Analytics findings, allowing analysts to track status, classification, a multi-comment discussion thread, tags, and user attribution on individual findings.
