@@ -319,6 +319,77 @@ curl -k -X GET https://localhost:8443/api/v1/instances/me \
 }
 ```
 
+## Testing Against a Real wazuh-indexer Node
+
+The examples above call Imposter directly with `curl`, which is enough to check the mock
+responses themselves but doesn't exercise the actual Content Manager plugin. To verify the
+plugin's CTI clients end-to-end, point a real `wazuh-indexer` node (running anywhere — bare
+metal, a container, a VM) at Imposter instead of the real CTI endpoint.
+
+### 1. Start Imposter
+
+```bash
+./imposter.sh up
+```
+
+### 2. Trust Imposter's certificate on the indexer's JVM
+
+Imposter serves HTTPS with a self-signed certificate. The Content Manager's CTI clients validate
+certificates against the JVM truststore, so an unmodified indexer will reject Imposter's
+certificate with something like `unable to find valid certification path to requested target` /
+`PKIXCertPathValidatorException`. To let the indexer trust Imposter for local testing, import
+`images/nginx/certs/cert.pem` into the truststore of **the JVM that runs `wazuh-indexer`** (not
+necessarily the machine you ran `./imposter.sh up` from, if the indexer runs elsewhere):
+
+```bash
+keytool -importcert -trustcacerts -noprompt \
+  -alias imposter -file images/nginx/certs/cert.pem \
+  -keystore <path-to-that-jdk>/lib/security/cacerts -storepass changeit
+```
+
+The indexer bundles its own JDK; find its `cacerts` file with something like
+`find <wazuh-indexer-install-dir> -iname cacerts` on the host/container/VM where the indexer
+actually runs. The default `cacerts` password is `changeit` unless it has been changed.
+
+### 3. Confirm the indexer can reach Imposter over the network
+
+If the indexer and Imposter run on the same host, `https://localhost:8443` (or the container's
+host-network address) is reachable directly. If the indexer runs elsewhere (a separate VM,
+container, or remote host), confirm connectivity first from that environment, e.g.:
+
+```bash
+curl -k https://<host-running-imposter>:8443/system/status
+```
+
+and adjust Docker/VM network settings (port publishing, firewall rules) until this succeeds
+before moving on — TLS trust and sync configuration won't matter if the endpoint isn't reachable
+at all.
+
+### 4. Point the indexer at Imposter
+
+Setting `plugins.content_manager.cti.api` alone is not enough: the actual per-consumer resource
+URLs used to fetch content are separate settings —
+`plugins.content_manager.catalog.ruleset`, `plugins.content_manager.catalog.iocs`, and
+`plugins.content_manager.catalog.vulnerabilities`. Redirect all four settings to Imposter,
+**changing only the scheme/host/port; keep the rest of each URL (context and consumer path
+segments) exactly as it is configured today** — Imposter matches context/consumer as path
+parameters, so it accepts whatever value you already use, no need to know it in advance:
+
+```yaml
+plugins.content_manager.cti.api: "https://<host-running-imposter>:8443/api/v1"
+plugins.content_manager.catalog.ruleset: "https://<host-running-imposter>:8443/api/v1/catalog/contexts/<same-context-as-before>/consumers/<same-consumer-as-before>"
+plugins.content_manager.catalog.iocs: "https://<host-running-imposter>:8443/api/v1/catalog/contexts/<same-context-as-before>/consumers/<same-consumer-as-before>"
+plugins.content_manager.catalog.vulnerabilities: "https://<host-running-imposter>:8443/api/v1/catalog/contexts/<same-context-as-before>/consumers/<same-consumer-as-before>"
+```
+
+Restart the node after changing these.
+
+> [!NOTE]
+> This mock is not actively maintained against the current plugin behavior, and the settings
+> above are not sufficient on their own for a full end-to-end sync — some requests the plugin
+> makes may not have a matching mock response configured. Treat this as a starting point for
+> checking TLS/connectivity, not a guarantee that a full sync will complete against it.
+
 ## Stopping the Server
 
 To stop the server, use the helper script:
