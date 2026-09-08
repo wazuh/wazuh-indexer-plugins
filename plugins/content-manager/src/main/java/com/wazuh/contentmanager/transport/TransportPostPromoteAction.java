@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -59,6 +59,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.utils.DetectorRuleGuard;
 import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.model.SpaceDiff;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -434,12 +435,13 @@ public class TransportPostPromoteAction
                                                     String targetDocSpaceName = targetDocSpace.get(Constants.KEY_NAME);
                                                     if (targetSpace.equals(targetDocSpaceName)) {
                                                         listener.onFailure(
-                                                                new IllegalArgumentException(
+                                                                new OpenSearchStatusException(
                                                                         "Resource '"
                                                                                 + resourceId
                                                                                 + "' already exists in target space '"
                                                                                 + targetSpace
-                                                                                + "', use UPDATE operation instead"));
+                                                                                + "', use UPDATE operation instead",
+                                                                        RestStatus.CONFLICT));
                                                         return;
                                                     }
                                                 }
@@ -702,7 +704,13 @@ public class TransportPostPromoteAction
                         engineResponse -> {
                             if (engineResponse.getStatus() != RestStatus.OK.getStatus()
                                     && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
-                                log.warn(Constants.W_LOG_VALIDATION_FAILED, engineResponse.getMessage());
+                                RestResponse shaped =
+                                        TransportActionHelper.fromDownstreamValidation(engineResponse);
+                                if (shaped.getStatus() < 500) {
+                                    log.warn(Constants.W_LOG_VALIDATION_FAILED, shaped.getMessage());
+                                } else {
+                                    log.error(Constants.W_LOG_VALIDATION_FAILED, shaped.getMessage());
+                                }
                                 try {
                                     log.debug(
                                             Constants.D_LOG_ENGINE_REJECTED_PAYLOAD,
@@ -711,8 +719,7 @@ public class TransportPostPromoteAction
                                 }
                                 listener.onResponse(
                                         new MessageStatusResponse(
-                                                engineResponse.getMessage(),
-                                                RestStatus.fromCode(engineResponse.getStatus())));
+                                                shaped.getMessage(), RestStatus.fromCode(shaped.getStatus())));
                                 return;
                             }
                             log.debug(Constants.D_LOG_ENGINE_VALIDATION_COMPLETE, targetSpace);
@@ -1277,9 +1284,15 @@ public class TransportPostPromoteAction
     // ── Error handling ───────────────────────────────────────────────────────
 
     private void respondWithError(ActionListener<MessageStatusResponse> listener, Exception e) {
-        OpenSearchSecurityException secEx = extractSecurityException(e);
-        if (secEx != null) {
-            listener.onResponse(new MessageStatusResponse(secEx.getMessage(), secEx.status()));
+        RestResponse classified = TransportActionHelper.classifyException(e);
+        if (classified != null) {
+            RestStatus status = RestStatus.fromCode(classified.getStatus());
+            if (status.getStatus() < 500) {
+                log.warn(Constants.W_LOG_OPERATION_FAILED, "Promoting", "space", classified.getMessage());
+            } else {
+                log.error(Constants.E_LOG_OPERATION_FAILED, "promoting", "space", classified.getMessage());
+            }
+            listener.onResponse(new MessageStatusResponse(classified.getMessage(), status));
             return;
         }
         if (e instanceof IndexNotFoundException) {
@@ -1292,17 +1305,6 @@ public class TransportPostPromoteAction
         listener.onResponse(
                 new MessageStatusResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
-    }
-
-    private static OpenSearchSecurityException extractSecurityException(Throwable throwable) {
-        Throwable cause = throwable;
-        while (cause != null) {
-            if (cause instanceof OpenSearchSecurityException) {
-                return (OpenSearchSecurityException) cause;
-            }
-            cause = cause.getCause();
-        }
-        return null;
     }
 
     private static IOException wrapAsIOException(Exception e) {

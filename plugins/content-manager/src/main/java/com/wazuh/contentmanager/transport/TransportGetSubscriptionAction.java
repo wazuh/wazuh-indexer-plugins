@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.transport;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -28,10 +30,14 @@ import com.wazuh.contentmanager.action.GetSubscriptionAction;
 import com.wazuh.contentmanager.action.GetSubscriptionRequest;
 import com.wazuh.contentmanager.action.GetSubscriptionResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 public class TransportGetSubscriptionAction
         extends HandledTransportAction<GetSubscriptionRequest, GetSubscriptionResponse> {
+
+    private static final Logger log = LogManager.getLogger(TransportGetSubscriptionAction.class);
 
     private final SubscriptionServiceImpl subscriptionService;
 
@@ -57,12 +63,19 @@ public class TransportGetSubscriptionAction
                                             plan != null && plan.isPublic(),
                                             isRegistered));
                         },
-                        e ->
+                        e -> {
+                            RestResponse classified = TransportActionHelper.classifyException(e);
+                            if (classified != null) {
+                                log.warn("Failed to retrieve subscription plan: {}", classified.getMessage());
                                 listener.onResponse(
                                         new GetSubscriptionResponse(
-                                                e.getMessage() != null
-                                                        ? e.getMessage()
-                                                        : "An unexpected error occurred while" + " processing your request.",
-                                                RestStatus.INTERNAL_SERVER_ERROR))));
+                                                classified.getMessage(), RestStatus.fromCode(classified.getStatus())));
+                                return;
+                            }
+                            log.error("Failed to retrieve subscription plan: {}", e.getMessage(), e);
+                            listener.onResponse(
+                                    new GetSubscriptionResponse(
+                                            Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
+                        }));
     }
 }

@@ -71,10 +71,13 @@ public class TransportUpdateDecoderAction extends AbstractTransportUpdateAction 
             ActionListener<RestResponse> listener) {
         RestResponse engineValidation = this.engine.validateResource(Constants.KEY_DECODER, resource);
         if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
+            RestResponse response = TransportActionHelper.fromDownstreamValidation(engineValidation);
             listener.onResponse(
                     new RestResponse(
-                            Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineValidation.getMessage(),
-                            RestStatus.BAD_REQUEST.getStatus()));
+                            response.getStatus() < 500
+                                    ? Constants.E_400_ENGINE_VALIDATION_FAILED + " " + response.getMessage()
+                                    : response.getMessage(),
+                            response.getStatus()));
             return;
         }
         listener.onResponse(null);

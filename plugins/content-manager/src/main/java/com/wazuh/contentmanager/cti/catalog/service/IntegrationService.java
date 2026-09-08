@@ -256,12 +256,14 @@ public class IntegrationService {
                                 attempt,
                                 MAX_RETRIES);
                         if (attempt == MAX_RETRIES) {
-                            log.error(
+                            // Rethrown as-is (not wrapped) so it keeps resolving to 409 Conflict at the
+                            // response layer instead of a generic 500 — this is an expected outcome under
+                            // concurrency, not a server fault.
+                            log.warn(
                                     "Failed to unlink resource from integration [{}] after {} concurrent modification retries.",
                                     integrationId,
                                     MAX_RETRIES);
-                            throw new IOException(
-                                    "Failed to unlink resource due to high concurrency on integration updates.", e);
+                            throw e;
                         }
                     }
                 }
@@ -272,6 +274,8 @@ public class IntegrationService {
                 }
             }
         } catch (IOException e) {
+            throw e;
+        } catch (VersionConflictEngineException e) {
             throw e;
         } catch (Exception e) {
             log.error("Error unlinking resource [{}] from integrations: {}", resourceId, e.getMessage());

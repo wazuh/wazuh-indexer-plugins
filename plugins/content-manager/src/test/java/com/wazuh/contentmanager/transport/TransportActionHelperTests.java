@@ -20,12 +20,18 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.OpenSearchStatusException;
+import org.opensearch.cluster.block.ClusterBlockException;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
+import java.util.Map;
 import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -219,5 +225,80 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
                 this.client);
 
         verify(this.engine, never()).promoteAsync(any(JsonNode.class), any(ActionListener.class));
+    }
+
+    public void testClassifyExceptionReturnsSecurityExceptionStatus() {
+        OpenSearchSecurityException securityException =
+                new OpenSearchSecurityException("not authorized", RestStatus.FORBIDDEN);
+
+        RestResponse classified = TransportActionHelper.classifyException(securityException);
+
+        assertNotNull(classified);
+        assertEquals(RestStatus.FORBIDDEN.getStatus(), classified.getStatus());
+    }
+
+    /**
+     * A cluster block's own {@code status()} often resolves below 500 (e.g. 403 for a write block),
+     * but by convention it is a server fault, so it must be left unclassified rather than passed
+     * through as a client error.
+     */
+    public void testClassifyExceptionLeavesClusterBlockUnclassified() {
+        ClusterBlockException clusterBlockException =
+                new ClusterBlockException(Map.of("my-index", Set.of(IndexMetadata.INDEX_WRITE_BLOCK)));
+        assertEquals(RestStatus.FORBIDDEN, clusterBlockException.status());
+
+        RestResponse classified = TransportActionHelper.classifyException(clusterBlockException);
+
+        assertNull(classified);
+    }
+
+    /**
+     * {@link IndexNotFoundException} carries a 404 status (below 500), but a missing internal plugin
+     * index is a server fault, not a client not-found. It must be left unclassified so the caller
+     * returns a generic 500 and does not leak the internal index name in the response body.
+     */
+    public void testClassifyExceptionLeavesIndexNotFoundUnclassified() {
+        IndexNotFoundException indexNotFoundException =
+                new IndexNotFoundException("wazuh-threatintel-policies");
+        assertEquals(RestStatus.NOT_FOUND, indexNotFoundException.status());
+
+        RestResponse classified = TransportActionHelper.classifyException(indexNotFoundException);
+
+        assertNull(classified);
+    }
+
+    public void testClassifyExceptionReturnsOpenSearchExceptionStatusBelow500() {
+        OpenSearchStatusException conflict =
+                new OpenSearchStatusException(
+                        "resource already exists in target space", RestStatus.CONFLICT);
+
+        RestResponse classified = TransportActionHelper.classifyException(conflict);
+
+        assertNotNull(classified);
+        assertEquals(RestStatus.CONFLICT.getStatus(), classified.getStatus());
+    }
+
+    public void testClassifyExceptionLeavesServerFaultOpenSearchExceptionUnclassified() {
+        OpenSearchStatusException serverFault =
+                new OpenSearchStatusException("downstream unavailable", RestStatus.INTERNAL_SERVER_ERROR);
+
+        RestResponse classified = TransportActionHelper.classifyException(serverFault);
+
+        assertNull(classified);
+    }
+
+    public void testClassifyExceptionReturnsBadRequestForIllegalArgument() {
+        RestResponse classified =
+                TransportActionHelper.classifyException(new IllegalArgumentException("invalid input"));
+
+        assertNotNull(classified);
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), classified.getStatus());
+    }
+
+    public void testClassifyExceptionReturnsNullForUnclassifiedException() {
+        RestResponse classified =
+                TransportActionHelper.classifyException(new RuntimeException("unexpected"));
+
+        assertNull(classified);
     }
 }

@@ -278,6 +278,7 @@ public class LogtestService {
         try {
             engineResponse = this.engine.logtest(enginePayload);
         } catch (Exception e) {
+            log.error("Engine logtest call failed: {}", e.getMessage(), e);
             return buildEngineErrorResult("ENGINE_ERROR", e.getMessage(), engineResult);
         }
 
@@ -289,6 +290,10 @@ public class LogtestService {
                         engineJson.has("message")
                                 ? engineJson.get("message").asText()
                                 : engineResponse.getMessage();
+                log.warn(
+                        "Engine rejected logtest payload (status {}): {}",
+                        engineResponse.getStatus(),
+                        errorMsg);
                 return buildEngineErrorResult("ENGINE_ERROR", errorMsg, engineResult);
             }
 
@@ -299,6 +304,7 @@ public class LogtestService {
                     "_normalized_event", extractNormalizedEvent(engineJson, engineResponse.getMessage()));
 
         } catch (Exception e) {
+            log.error("Failed to parse engine logtest response: {}", engineResponse.getMessage(), e);
             return buildEngineErrorResult("PARSE_ERROR", engineResponse.getMessage(), engineResult);
         }
 
