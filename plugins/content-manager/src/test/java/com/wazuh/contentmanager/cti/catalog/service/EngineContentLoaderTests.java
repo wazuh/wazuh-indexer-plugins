@@ -19,7 +19,17 @@ package com.wazuh.contentmanager.cti.catalog.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
+import org.opensearch.action.search.SearchPhaseExecutionException;
+import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.cluster.block.ClusterBlockException;
+import org.opensearch.common.logging.Loggers;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -30,8 +40,11 @@ import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -382,6 +395,87 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
     }
 
     /**
+     * Same for shards that are not allocated yet: the search reaches the coordinating node before any
+     * shard copy is active and fails with {@code all shards failed}. This is the condition seen on a
+     * clean boot (issue #38793) — it used to be logged as an ERROR once per tracked space on every
+     * cluster-state update, because only the two conditions above were recognised as startup noise.
+     */
+    public void testAllShardsFailedEndsTheRunQuietly() {
+        this.stubPolicyFailure(
+                new SearchPhaseExecutionException(
+                        "query", "all shards failed", ShardSearchFailure.EMPTY_ARRAY));
+        this.assertRunDeferredThenRecovers();
+    }
+
+    /**
+     * A genuine search failure — a bad query, reported as 400 — is still a per-space error: it is
+     * logged and the run carries on to the remaining spaces rather than being treated as a
+     * not-ready-yet precondition.
+     */
+    public void testRealSearchFailureIsPerSpaceAndDoesNotEndTheRun() {
+        this.stubPolicyFailure(
+                new SearchPhaseExecutionException(
+                        "query",
+                        "parse error",
+                        new IllegalArgumentException("bad query"),
+                        ShardSearchFailure.EMPTY_ARRAY));
+
+        AtomicReference<Boolean> completed = new AtomicReference<>();
+        this.loader.reloadIfChanged(
+                ActionListener.wrap(v -> completed.set(true), e -> completed.set(false)));
+
+        assertEquals(Boolean.TRUE, completed.get());
+        // Every tracked space was attempted, unlike a startup condition which stops after the first.
+        verify(this.spaceService, times(3)).getPolicy(anyString(), any());
+        verify(this.engine, never()).promoteAsync(any(), any());
+    }
+
+    /**
+     * A not-ready condition that never clears is escalated from debug to a single warning. Silencing
+     * the startup burst must not also silence a node whose Engine never receives any content — that
+     * is a functional outage (no findings in the shared spaces), not boot noise.
+     */
+    public void testPersistentNotReadyIsEscalatedToASingleWarning() throws Exception {
+        AtomicLong clock = new AtomicLong(0L);
+        when(this.threadPool.relativeTimeInMillis()).thenAnswer(inv -> clock.get());
+        this.stubPolicyFailure(
+                new SearchPhaseExecutionException(
+                        "query", "all shards failed", ShardSearchFailure.EMPTY_ARRAY));
+
+        try (CapturingAppender appender = CapturingAppender.attach(EngineContentLoader.class)) {
+            // Inside the grace period every trigger stays at debug, however many arrive.
+            this.loader.reloadIfChanged();
+            clock.set(TimeValue.timeValueMinutes(4).millis());
+            this.loader.reloadIfChanged();
+            assertEquals(
+                    "no warning while the condition may still be a boot state",
+                    0,
+                    appender.count(Level.WARN));
+
+            // Past it, exactly one warning — the escalation must not become a new log flood.
+            clock.set(TimeValue.timeValueMinutes(6).millis());
+            this.loader.reloadIfChanged();
+            this.loader.reloadIfChanged();
+            assertEquals("the escalation is logged once per streak", 1, appender.count(Level.WARN));
+
+            // A run whose reads are served clears the streak, so a later outage warns again.
+            this.stubPolicy(STANDARD, null);
+            this.stubPolicy(TEST, null);
+            this.stubPolicy(CUSTOM, null);
+            this.loader.reloadIfChanged();
+
+            this.stubPolicyFailure(
+                    new SearchPhaseExecutionException(
+                            "query", "all shards failed", ShardSearchFailure.EMPTY_ARRAY));
+            this.loader.reloadIfChanged();
+            assertEquals("a fresh streak starts at debug again", 1, appender.count(Level.WARN));
+            clock.set(TimeValue.timeValueMinutes(12).millis());
+            this.loader.reloadIfChanged();
+            assertEquals("the new streak escalates on its own clock", 2, appender.count(Level.WARN));
+        }
+    }
+
+    /**
      * Stubs every space's policy read to fail with {@code cause}, wrapped as {@code getPolicy} does.
      */
     private void stubPolicyFailure(Exception cause) {
@@ -433,5 +527,47 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
         AtomicReference<Exception> secondFailure = new AtomicReference<>();
         nullEngineLoader.reloadIfChanged(ActionListener.wrap(v -> {}, secondFailure::set));
         assertNotNull(secondFailure.get());
+    }
+
+    /**
+     * Collects the events a logger emits so a test can assert on the level a message was logged at.
+     * {@code MockLogAppender} from the test framework is not usable here: it rewrites expected logger
+     * names with an {@code org.opensearch.} prefix, so it cannot match this plugin's loggers.
+     */
+    private static final class CapturingAppender extends AbstractAppender implements AutoCloseable {
+
+        private final List<LogEvent> events = new CopyOnWriteArrayList<>();
+        private final Logger logger;
+
+        private CapturingAppender(Logger logger) {
+            super("capturing-" + logger.getName(), null, null, true, Property.EMPTY_ARRAY);
+            this.logger = logger;
+        }
+
+        /**
+         * Attaches a new appender to {@code clazz}'s logger. Close it (try-with-resources) to detach:
+         * Log4j configuration is global to the JVM, so a leaked appender would follow later tests.
+         */
+        static CapturingAppender attach(Class<?> clazz) {
+            CapturingAppender appender = new CapturingAppender(LogManager.getLogger(clazz));
+            appender.start();
+            Loggers.addAppender(appender.logger, appender);
+            return appender;
+        }
+
+        @Override
+        public void append(LogEvent event) {
+            this.events.add(event.toImmutable());
+        }
+
+        long count(Level level) {
+            return this.events.stream().filter(event -> event.getLevel() == level).count();
+        }
+
+        @Override
+        public void close() {
+            Loggers.removeAppender(this.logger, this);
+            super.stop();
+        }
     }
 }
