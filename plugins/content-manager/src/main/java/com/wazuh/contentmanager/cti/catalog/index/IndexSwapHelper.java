@@ -166,6 +166,9 @@ public final class IndexSwapHelper {
             new ReindexRequestBuilder(client, ReindexAction.INSTANCE)
                     .source(livePhysical)
                     .destination(shadowPhysical)
+                    // This also carries the user-overrides registry document across the swap: it has no
+                    // space.name, so it satisfies this must_not and lands in the new physical index
+                    // alongside the user's own spaces.
                     .filter(
                             QueryBuilders.boolQuery()
                                     .mustNot(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, "standard")))

@@ -540,13 +540,17 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     }
 
     /**
-     * Gets all documents from an index.
+     * Gets every policy document. Requiring {@code space.name} keeps documents that merely live in
+     * this index from being treated as policies: the user overrides registry is one of them, and it
+     * deliberately carries no space. This is the same filter the production scan uses.
      *
      * @return search response as JsonNode
      * @throws IOException on communication error
      */
-    protected JsonNode getAllDocuments() throws IOException {
-        return this.searchIndex(Constants.INDEX_POLICIES, "{\"query\":{\"match_all\":{}}}");
+    protected JsonNode getAllPolicies() throws IOException {
+        return this.searchIndex(
+                Constants.INDEX_POLICIES,
+                "{\"query\":{\"bool\":{\"filter\":{\"exists\":{\"field\":\"space.name\"}}}}}");
     }
 
     // ========================

@@ -10,6 +10,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.max_items_per_bulk`** (Integer, default `999`, range 10–999) — maximum documents per bulk indexing request.
 - **`plugins.content_manager.max_concurrent_bulks`** (Integer, default `5`, range 1–5) — maximum concurrent bulk operations.
 - **`plugins.content_manager.max_bulk_bytes`** (Long, default `5242880` / 5 MB, range 1048576–104857600 / 1–100 MB) — maximum request body size, in bytes, for a single bulk indexing request.
+- **`plugins.content_manager.logtest.max_body_bytes`** (Long, default `1048576` / 1 MiB, range 1024–16777216 / 1 KiB–16 MiB, dynamic) — maximum size, in bytes, of a logtest request body (`POST /logtest`, `/logtest/normalization`, `/logtest/detection`). Requests whose body exceeds this are rejected with HTTP 413 at the REST layer, before parsing or dispatch, so an oversized event cannot be amplified into the response and exhaust the indexer's heap.
 - **`plugins.content_manager.client.timeout`** (Long, default `10`, range 10–50) — HTTP client timeout in seconds for CTI API requests.
 - **`plugins.content_manager.client.max_retries`** (Integer, default `3`, range 0–10) — number of times a CTI API request is retried after an HTTP 429 (Too Many Requests) response, before the 429 is returned to the caller.
 - **`plugins.content_manager.client.retry_backoff_base_seconds`** (Integer, default `30`, range 1–300) — base delay, in seconds, for the exponential backoff used between 429 retries when the response carries no usable `Retry-After` header (delay for retry `n` is `base * 2^n`).
@@ -20,7 +21,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.catalog.ruleset`** (String, default `""`) — full CTI consumer URL for ruleset content.
 - **`plugins.content_manager.catalog.iocs`** (String, default `""`) — full CTI consumer URL for IoC content.
 - **`plugins.content_manager.catalog.vulnerabilities`** (String, default `""`) — full CTI consumer URL for vulnerabilities content.
-- **`plugins.content_manager.catalog.create_detectors`** (Boolean, default `true`) — automatically create Security Analytics detectors from CTI content.
+- **`plugins.content_manager.catalog.create_detectors`** (Boolean, default `true`) — automatically create Ruleset Management detectors from CTI content.
 - **`plugins.content_manager.telemetry.enabled`** (Boolean, default `true`, dynamic) — enable or disable the daily Update check service ping.
 - **`plugins.content_manager.catalog.update_on_demand`** (Boolean, default `true`) — when `false`, on-demand content updates (`POST /update`) return `403 Forbidden` for every caller, regardless of role.
 - **`plugins.content_manager.catalog.policy_update.enabled`** (Boolean, default `true`) — when `false`, policy updates (`PUT /policy/{space}`) return `403 Forbidden` for every caller, regardless of role.
@@ -125,9 +126,9 @@ plugins.content_manager.max_concurrent_bulks: 2
 plugins.content_manager.client.timeout: 30
 ```
 
-#### Disable Security Analytics detector creation
+#### Disable Ruleset Management detector creation
 
-If you do not use the OpenSearch Security Analytics plugin:
+If you do not use the Ruleset Management plugin:
 
 ```yaml
 # opensearch.yml
@@ -136,10 +137,11 @@ plugins.content_manager.catalog.create_detectors: false
 
 #### CTI communication headers
 
-All HTTP clients that communicate with Wazuh CTI services send a custom `User-Agent` header:
+All HTTP clients that communicate with Wazuh CTI services send a custom `User-Agent` header, and an `Accept-Encoding` header so responses are transferred compressed:
 
 ```
 User-Agent: Wazuh Indexer <version>
+Accept-Encoding: gzip
 ```
 
 For example: `Wazuh Indexer 5.0.0`. This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client. The version is read from `VERSION.json` at plugin startup.
@@ -154,6 +156,7 @@ The update check service is enabled by default and runs once per day, with an im
   - Deployment identifier (`wazuh-uid`: cluster UUID)
   - Running version (`wazuh-tag`: `v<version>`)
   - User agent (`Wazuh Indexer <version>`)
+  - Accept-Encoding (`gzip`)
 
 This data allows Wazuh to determine if a newer version is available and notify users in the update check UI.
 
@@ -218,8 +221,8 @@ Setting a limit to `0` blocks all new creation of that resource type.
 
 ### Notes
 
-- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings, which can be updated at runtime via the OpenSearch API. Dynamic settings include `plugins.content_manager.telemetry.enabled` and all five resource creation limits (`max_integrations`, `max_decoders`, `max_rules`, `max_kvdbs`, `max_filters`).
+- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings, which can be updated at runtime via the OpenSearch API. Dynamic settings include `plugins.content_manager.telemetry.enabled`, `plugins.content_manager.logtest.max_body_bytes`, and all five resource creation limits (`max_integrations`, `max_decoders`, `max_rules`, `max_kvdbs`, `max_filters`).
 - The catalog URL settings (`plugins.content_manager.catalog.ruleset`, `plugins.content_manager.catalog.iocs`, and `plugins.content_manager.catalog.vulnerabilities`) should only be changed if instructed by Wazuh support or documentation, and must point to valid absolute HTTP(S) CTI consumer endpoints.
 - The sync interval is enforced by the OpenSearch Job Scheduler. The actual sync timing may vary slightly depending on cluster load.
 - The update check service runs with a fixed interval of 1 day when enabled. The first ping is sent immediately after the job is registered (on node start or when the setting is dynamically enabled); subsequent pings follow the 1-day interval.
-- **Detector configuration:** the settings for Security Analytics detectors (interval, enabled status, and source indices) are managed directly via CTI integration files. If an integration's `detector` object is missing in the CTI source, the system will use built-in safety defaults.
+- **Detector configuration:** the settings for Ruleset Management detectors (interval, enabled status, and source indices) are managed directly via CTI integration files. If an integration's `detector` object is missing in the CTI source, the system will use built-in safety defaults.

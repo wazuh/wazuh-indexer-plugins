@@ -26,6 +26,7 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -130,7 +131,11 @@ public class StandardSpaceHashRecoveryIT extends OpenSearchIntegTestCase {
     /** The cluster is shared by the whole suite, so each test starts from a clean policies index. */
     @After
     public void deletePoliciesIndex() {
-        OpenSearchIntegTestCase.client().admin().indices().prepareDelete(INDEX_POLICIES + "*").get();
+        try {
+            OpenSearchIntegTestCase.client().admin().indices().prepareDelete(INDEX_POLICIES + "*").get();
+        } catch (IndexNotFoundException e) {
+            // Nothing to clean up.
+        }
     }
 
     /** Reads {@code space.hash.sha256} of the standard policy, or null when absent. */
@@ -173,8 +178,13 @@ public class StandardSpaceHashRecoveryIT extends OpenSearchIntegTestCase {
      * Creates the physical policies index and its public alias through {@link ContentIndex}, so the
      * layout matches a real deployment ({@code wazuh-threatintel-policies-a} behind the {@code
      * wazuh-threatintel-policies} alias).
+     *
+     * <p>The index is dropped first. The cluster this test connects to runs the Setup plugin, which
+     * provisions the index at node start, and the test needs an empty one: it asserts the policy it
+     * writes is the only document and that it starts without an aggregate hash.
      */
     private void createPoliciesIndex() throws Exception {
+        this.deletePoliciesIndex();
         ContentIndex policies =
                 new ContentIndex(OpenSearchIntegTestCase.client(), INDEX_POLICIES, POLICIES_MAPPING);
         assertTrue("Failed to create index " + INDEX_POLICIES, policies.createIndex().isAcknowledged());

@@ -22,6 +22,8 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Assert;
 
+import java.util.List;
+
 /** Unit tests for the {@link LocalConsumer} class. */
 public class LocalConsumerTests extends OpenSearchTestCase {
 
@@ -121,5 +123,70 @@ public class LocalConsumerTests extends OpenSearchTestCase {
                         + "\"local_offset\":0,\"remote_offset\":0}";
         LocalConsumer consumer = this.mapper.readValue(json, LocalConsumer.class);
         Assert.assertEquals(LocalConsumer.Status.FAILED, consumer.getStatus());
+    }
+
+    /** Tests that pendingSyncPhases defaults to an empty list on the offsets/status constructor. */
+    public void testPendingSyncPhasesDefaultsEmpty() {
+        LocalConsumer consumer =
+                new LocalConsumer(
+                        "ctx",
+                        "name",
+                        "cti:catalog:consumer:ruleset",
+                        "https://cti/rules",
+                        true,
+                        LocalConsumer.Status.RUNNING,
+                        10L,
+                        20L);
+        Assert.assertTrue(consumer.getPendingSyncPhases().isEmpty());
+    }
+
+    /** Tests that toXContent serializes the pending_sync_phases field. */
+    public void testToXContentIncludesPendingSyncPhases() throws Exception {
+        LocalConsumer consumer =
+                new LocalConsumer(
+                        "ctx",
+                        "name",
+                        "cti:catalog:consumer:ruleset",
+                        "https://cti/rules",
+                        true,
+                        LocalConsumer.Status.RUNNING,
+                        5L,
+                        10L,
+                        List.of("integrations", "detectors"));
+        XContentBuilder builder = consumer.toXContent();
+        String json = builder.toString();
+
+        Assert.assertTrue(
+                "pending_sync_phases field must be present in serialized output",
+                json.contains("\"pending_sync_phases\""));
+        Assert.assertTrue(json.contains("\"integrations\""));
+        Assert.assertTrue(json.contains("\"detectors\""));
+    }
+
+    /** Tests that the pending_sync_phases field round-trips through JSON deserialization. */
+    public void testPendingSyncPhasesDeserializesFromJson() throws Exception {
+        String json =
+                "{\"name\":\"name\",\"context\":\"ctx\",\"status\":\"ready\","
+                        + "\"type\":\"cti:catalog:consumer:ruleset\","
+                        + "\"resource\":\"https://cti/rules\",\"is_public\":true,"
+                        + "\"local_offset\":0,\"remote_offset\":0,"
+                        + "\"pending_sync_phases\":[\"detectors\"]}";
+        LocalConsumer consumer = this.mapper.readValue(json, LocalConsumer.class);
+        Assert.assertEquals(List.of("detectors"), consumer.getPendingSyncPhases());
+    }
+
+    /**
+     * Tests that documents without a pending_sync_phases field (legacy) deserialize to an empty list.
+     */
+    public void testLegacyDocumentWithoutPendingSyncPhasesDefaultsEmpty() throws Exception {
+        String json =
+                "{\"name\":\"name\",\"context\":\"ctx\","
+                        + "\"type\":\"cti:catalog:consumer:iocs\","
+                        + "\"resource\":\"https://cti/iocs\",\"is_public\":true,"
+                        + "\"local_offset\":5,\"remote_offset\":10}";
+        LocalConsumer consumer = this.mapper.readValue(json, LocalConsumer.class);
+        Assert.assertTrue(
+                "pending_sync_phases should default to empty for legacy documents",
+                consumer.getPendingSyncPhases().isEmpty());
     }
 }

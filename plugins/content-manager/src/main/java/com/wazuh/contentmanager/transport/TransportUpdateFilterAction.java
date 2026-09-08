@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.transport;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
@@ -31,6 +32,7 @@ import java.util.Set;
 import com.wazuh.contentmanager.action.UpdateFilterAction;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
+import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
@@ -40,13 +42,16 @@ public class TransportUpdateFilterAction extends AbstractTransportUpdateActionSp
 
     private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
 
+    private final UserOverridesService userOverridesService;
+
     @Inject
     public TransportUpdateFilterAction(
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
             EngineService engine,
-            EngineContentLoader engineContentLoader) {
+            EngineContentLoader engineContentLoader,
+            UserOverridesService userOverridesService) {
         super(
                 UpdateFilterAction.NAME,
                 transportService,
@@ -54,6 +59,19 @@ public class TransportUpdateFilterAction extends AbstractTransportUpdateActionSp
                 client,
                 engine,
                 engineContentLoader);
+        this.userOverridesService = userOverridesService;
+    }
+
+    @Override
+    protected void afterResourceCommitted(
+            String id, String spaceName, ObjectNode ctiWrapper, Runnable onDone) {
+        OverrideRecorder.record(
+                this.userOverridesService,
+                spaceName,
+                UserOverridesService.storeFilter(id, ctiWrapper.toString()),
+                id,
+                Constants.KEY_FILTER,
+                onDone);
     }
 
     @Override

@@ -19,10 +19,12 @@ package com.wazuh.contentmanager.transport;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,6 +40,7 @@ import static org.mockito.Mockito.*;
 
 public class TransportLogtestDetectionActionTests extends OpenSearchTestCase {
     private LogtestService logtestService;
+    private ThreadPool threadPool;
     private TransportLogtestDetectionAction action;
 
     @Before
@@ -45,9 +48,16 @@ public class TransportLogtestDetectionActionTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.logtestService = mock(LogtestService.class);
+        this.threadPool = mock(ThreadPool.class);
+        // Execute submitted work synchronously so the existing assertions still observe the result.
+        when(this.threadPool.executor(anyString()))
+                .thenReturn(OpenSearchExecutors.newDirectExecutorService());
         this.action =
                 new TransportLogtestDetectionAction(
-                        mock(TransportService.class), mock(ActionFilters.class), this.logtestService);
+                        mock(TransportService.class),
+                        mock(ActionFilters.class),
+                        this.threadPool,
+                        this.logtestService);
     }
 
     @SuppressWarnings("unchecked")

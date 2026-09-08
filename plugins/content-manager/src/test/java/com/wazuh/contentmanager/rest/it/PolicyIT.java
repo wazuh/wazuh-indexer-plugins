@@ -71,7 +71,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
      * @throws IOException On parsing or request error.
      */
     public void testPoliciesExactlyFour() throws IOException {
-        JsonNode result = this.getAllDocuments();
+        JsonNode result = this.getAllPolicies();
         long totalHits = result.path("hits").path("total").path("value").asLong(0);
         assertEquals("There should be exactly 4 policy documents", 4, totalHits);
 
@@ -176,7 +176,7 @@ public class PolicyIT extends ContentManagerRestTestCase {
      * @throws IOException On parsing or request error.
      */
     public void testPoliciesHaveValidHashes() throws IOException {
-        JsonNode result = this.getAllDocuments();
+        JsonNode result = this.getAllPolicies();
         JsonNode hits = result.path("hits").path("hits");
 
         for (JsonNode hit : hits) {

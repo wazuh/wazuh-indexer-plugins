@@ -27,19 +27,18 @@ Your workstation must meet the minimum hardware requirements (the more resources
 
 The tools and source code to generate a package of Wazuh Indexer are hosted in the [wazuh-indexer](https://github.com/wazuh/wazuh-indexer) repository, so clone it if you haven't done already.
 
-## Building `wazuh-indexer` Docker images
+## Building wazuh-indexer Docker images
 
-The `wazuh-indexer/build-scripts/docker` folder contains the code to build Docker images. Below there is an example of the command needed to build the image. Set the build arguments and the image tag accordingly.
+The docker folder (`wazuh-indexer/build-scripts/docker`) contains the code to build Docker images. Below there is an example of the command needed to build the image. Set the build arguments and the image tag accordingly.
 
-The Docker image is built from a wazuh-indexer tarball (tar.gz), which must be present in the same folder as the Dockerfile in `wazuh-indexer/build-scripts/docker`.
+The Docker image is built from a wazuh-indexer tarball (tar.gz), which must be placed in `wazuh-indexer/build-scripts/docker` and named following the convention `wazuh-indexer-<arch>.tar.gz`, where `<arch>` matches Docker's architecture naming (`amd64` or `arm64`).
 
 ```bash
-docker build \
-   --build-arg="VERSION=<version>" \
-   --build-arg="INDEXER_TAR_NAME=wazuh-indexer_<version>-<revision>_linux-x64.tar.gz" \
-   --tag=wazuh-indexer:<version>-<revision> \
-   --progress=plain \
-   --no-cache .
+# Copy and rename the tarball to the expected name (from wazuh-indexer/build-scripts/docker)
+cp wazuh-indexer_<version>-<revision>_linux-x64.tar.gz wazuh-indexer-amd64.tar.gz
+
+# Build the image
+docker build --build-arg="VERSION=<version>" --tag=wazuh-indexer:<version>-<revision> --progress=plain --no-cache .
 ```
 
 Then, start a container with:
@@ -59,11 +58,13 @@ To push images, credentials must be set at environment level:
 Usage: build-scripts/build-and-push-docker-image.sh [args]
 
 Arguments:
--n NAME         [required] Tarball name.
+-a ARCHITECTURE [Optional] Target architecture (amd64 or arm64), default is host arch.
 -r REVISION     [Optional] Revision qualifier, default is 0.
 -h help
 ```
 
-The script will stop if the credentials are not set, or if any of the required parameters are not provided.
+The script will stop if the credentials are not set, or if the expected tarball is not found.
 
 This script is used in the `5_builderpackage_docker.yml` **GitHub Workflow**, which is used to automate the process even more. When possible, **prefer this method**.
+
+**Note**: all the scripts under the `ci` folder are used in the GitHub workflows and are not intended to be used manually..

@@ -85,6 +85,7 @@ public class MockSecurityAnalyticsService implements SecurityAnalyticsService {
             JsonNode doc,
             boolean rawCategory,
             Method method,
+            Boolean detectorOverride,
             ActionListener<? extends ActionResponse> listener) {
         log.debug("MockSecurityAnalyticsService.upsertDetectorAsync called");
         listener.onResponse(null);

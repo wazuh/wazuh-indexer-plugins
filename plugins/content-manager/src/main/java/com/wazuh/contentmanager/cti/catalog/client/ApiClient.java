@@ -189,7 +189,10 @@ public class ApiClient implements AutoCloseable {
     public SimpleHttpResponse getConsumer(String consumerUri)
             throws ExecutionException, InterruptedException, TimeoutException {
         String uri = this.urlResolver.resolve(this.buildConsumerURI(consumerUri));
-        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(uri)
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
+                        .build();
         return this.executeWithRetry(request);
     }
 
@@ -214,7 +217,10 @@ public class ApiClient implements AutoCloseable {
                                 + "&to_offset="
                                 + toOffset);
 
-        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(uri)
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
+                        .build();
         return this.executeWithRetry(request);
     }
 
@@ -240,7 +246,10 @@ public class ApiClient implements AutoCloseable {
     public SimpleHttpResponse getReleaseUpdates(String tag)
             throws ExecutionException, InterruptedException, TimeoutException {
         String uri = this.urlResolver.resolve(this.buildReleasesUpdatesURI(tag));
-        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(uri)
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
+                        .build();
         return this.executeWithRetry(request);
     }
 

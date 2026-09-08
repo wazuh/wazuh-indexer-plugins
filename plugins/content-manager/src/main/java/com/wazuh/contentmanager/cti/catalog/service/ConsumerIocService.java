@@ -176,10 +176,35 @@ public class ConsumerIocService extends AbstractConsumerService {
         } catch (Exception e) {
             log.error(Constants.E_LOG_IOC_TYPE_HASHES_FAILED, e.getMessage(), e);
         } finally {
-            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
-            this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();
+            this.releasePit(pitId);
         }
         return typeHashes;
+    }
+
+    /**
+     * Releases a point-in-time context on a best-effort basis.
+     *
+     * <p>Both PIT users call this from a {@code finally} block, so it must never throw: a failure to
+     * release is not a failure of the work the PIT was opened for. Letting it propagate would either
+     * mask the exception that is already unwinding (in {@link #export()}, whose {@code try} has no
+     * {@code catch}) or turn a completed pass into a failed one (in {@link
+     * #computeAndStoreTypeHashes()}, where the {@code finally} is the only thing that can throw out
+     * of the method, which would mark the consumer FAILED and skip the Engine IOC update).
+     *
+     * <p>Nothing is leaked by giving up: the context expires on its own after {@code
+     * plugins.content_manager.pit_keepalive}, and contexts held by a node that has left the cluster
+     * died with it. The most likely cause is exactly that — a node stopping or restarting while the
+     * IOC sync runs — so this is logged at debug.
+     *
+     * @param pitId The identifier of the PIT to release.
+     */
+    private void releasePit(String pitId) {
+        try {
+            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
+            this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();
+        } catch (Exception e) {
+            log.debug(Constants.D_LOG_IOC_PIT_RELEASE_FAILED, pitId, e.getMessage());
+        }
     }
 
     /**
@@ -335,8 +360,7 @@ public class ConsumerIocService extends AbstractConsumerService {
                         }
                     });
         } finally {
-            DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
-            this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();
+            this.releasePit(pitId);
         }
 
         log.debug(Constants.D_LOG_IOC_EXPORT_COMPLETE, outputPath);

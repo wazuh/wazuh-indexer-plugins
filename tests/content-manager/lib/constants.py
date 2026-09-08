@@ -34,6 +34,24 @@ INDEX_KVDBS = "wazuh-threatintel-kvdbs"
 INDEX_DECODERS = "wazuh-threatintel-decoders"
 INDEX_FILTERS = "wazuh-threatintel-filters"
 INDEX_ENRICHMENTS = "wazuh-threatintel-enrichments"
+INDEX_VULNERABILITIES = ".wazuh-threatintel-vulnerabilities"
+
+# CTI consumers index.
+INDEX_CONSUMERS = ".wazuh-cti-consumers"
+CONSUMER_VULNERABILITIES = "cti:catalog:consumer:vulnerabilities"
+CONSUMER_RULESET = "cti:catalog:consumer:ruleset"
+CONSUMER_STATUS_READY = "ready"
+
+# Document types the vulnerabilities consumer must load.
+VULNERABILITY_REQUIRED_TYPES = [
+    "OSCPE-GLOBAL",
+    "FEED-GLOBAL",
+    "CNA-MAPPING-GLOBAL",
+    "TID",
+    "CVE",
+]
+# Minimum number of distinct ``type`` values expected in the index.
+VULNERABILITY_MIN_DISTINCT_TYPES = 7
 
 # Convenience map: resource type -> its index alias.
 RESOURCE_INDEX = {
@@ -44,6 +62,22 @@ RESOURCE_INDEX = {
     "filter": INDEX_FILTERS,
     "policy": INDEX_POLICIES,
 }
+
+# Every wazuh-threatintel-* alias the setup plugin provisions as a <name>-a
+# physical index (see ContentIndex in the setup plugin). Used by the index
+# topology checks that guard against issue #1476 (a CTI write racing index
+# provisioning and auto-creating a dynamically mapped index under the alias
+# name itself).
+CONTENT_INDEX_ALIASES = [
+    INDEX_POLICIES,
+    INDEX_INTEGRATIONS,
+    INDEX_RULES,
+    INDEX_KVDBS,
+    INDEX_DECODERS,
+    INDEX_FILTERS,
+    INDEX_ENRICHMENTS,
+    INDEX_VULNERABILITIES,
+]
 
 # Spaces
 SPACE_DRAFT = "draft"

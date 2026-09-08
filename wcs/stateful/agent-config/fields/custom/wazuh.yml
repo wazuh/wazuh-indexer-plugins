@@ -175,12 +175,12 @@
       level: custom
       description: >
         Agent module configuration: agent.agent.ip_update_interval.
-    - name: agent.configuration.content.agent.agent.manager.address
+    - name: agent.configuration.content.agent.agent.manager.endpoint
       type: keyword
       level: custom
       ignore_above: 1024
       description: >
-        Agent module configuration: agent.agent.manager.address.
+        Agent module configuration: agent.agent.manager.endpoint.
     - name: agent.configuration.content.agent.agent.manager.interface_index
       type: long
       level: custom
@@ -191,11 +191,6 @@
       level: custom
       description: >
         Agent module configuration: agent.agent.manager.max_retries.
-    - name: agent.configuration.content.agent.agent.manager.port
-      type: long
-      level: custom
-      description: >
-        Agent module configuration: agent.agent.manager.port.
     - name: agent.configuration.content.agent.agent.manager.retry_interval
       type: long
       level: custom
