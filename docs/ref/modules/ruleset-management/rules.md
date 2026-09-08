@@ -549,7 +549,7 @@ The `id` and `name` arrays of a category are parallel: the *n*-th name describes
 
 The block is stored on the rule as `mitre.tactic.id`, `mitre.tactic.name`, `mitre.technique.id`, `mitre.technique.name`, `mitre.subtechnique.id` and `mitre.subtechnique.name`, and is copied onto every finding the rule produces under `wazuh.rule.mitre.*`.
 
-Subtechniques are indexed twice: on top of their own `mitre.subtechnique.*` arrays, their IDs and names are appended to `mitre.technique.id` and `mitre.technique.name`. A query on `mitre.technique.id` therefore matches a rule mapped only to a subtechnique of that technique.
+Query `mitre.subtechnique.id` to match rules by subtechnique, or both `mitre.technique.id` and `mitre.subtechnique.id` to cover a technique together with its subtechniques.
 
 #### Example
 
