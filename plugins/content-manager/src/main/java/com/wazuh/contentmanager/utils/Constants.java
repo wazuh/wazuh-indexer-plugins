@@ -336,6 +336,16 @@ public class Constants {
             "No {} to synchronize with the Security Analytics plugin.";
     public static final String D_LOG_SAP_ITEM_FAILED =
             "{} [{}] could not be sent to Security Analytics: {}";
+    public static final String E_LOG_RULE_MISSING_PRODUCT =
+            "Rule [{}] declares no 'logsource.product'. It is not sent to Security Analytics, because "
+                    + "the field is the log type the compiled query is filed under.";
+    public static final String E_LOG_RULE_PRODUCT_MISMATCH =
+            "Rule [{}] declares 'logsource.product' [{}] but belongs to integration [{}]. It is not "
+                    + "sent to Security Analytics, because it would be filed under a log type that "
+                    + "integration's detector does not read.";
+    public static final String E_RULE_MISSING_PRODUCT =
+            "Rule [%s] declares no 'logsource.product', so its Security Analytics log type cannot be "
+                    + "resolved.";
     public static final String W_LOG_SAP_SYNC_TIMEOUT =
             "Timed out sending {} to Security Analytics; some may be unavailable until the next sync.";
     public static final String E_LOG_SAP_SYNC_INTERRUPTED =

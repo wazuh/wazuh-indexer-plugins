@@ -67,7 +67,7 @@ See [Configuration](configuration.md) for the settings that control batch size, 
 | `.opensearch-sap-{category}-findings-*`     | Raw findings written by the Ruleset Management plugin        |
 | `.opensearch-sap-pre-packaged-rules-config` | Wazuh-provided Sigma rules; source for rule metadata         |
 | `.opensearch-sap-custom-rules-config`       | User-created custom rules; fallback source for rule metadata |
-| `.opensearch-sap-log-types-config`          | Integrations                                                 |
+| `.opensearch-sap-log-types-config`          | Log types. Every integration is registered as one, which is why a rule's `logsource.product` names its integration — see [Rules](rules.md#product) |
 | `.opensearch-sap-detectors-config`          | Threat detector configurations                               |
 | `wazuh-findings-v5-{category}*`             | Enriched findings                                             |
 
