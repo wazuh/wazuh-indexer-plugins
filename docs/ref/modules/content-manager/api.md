@@ -96,6 +96,8 @@ YAML parsing preserves numeric type fidelity. Floating-point values like `5.0` a
 
 Stores the provided CTI access token in the `.wazuh-internal-state` hidden index and loads it into memory. If the index does not exist it is recreated automatically before writing.
 
+> To find out whether the current user is allowed to register, without registering, see [Check registration permission](#check-registration-permission).
+
 #### Request
 
 - Method: `POST`
@@ -131,6 +133,63 @@ curl -sk -u admin:admin -X POST \
 - **400** — missing or empty `access_token` field.
 - **412** — a required precondition is not met (for example, the credentials index is not declared as a system index — see `plugins.security.system_indices.indices` in `opensearch.yml`).
 - **500** — internal error.
+
+---
+
+### Check registration permission
+
+Answers whether the current user is allowed to register a CTI subscription, without registering one. Intended for callers that need to decide before starting the CTI OAuth device flow, since approving that flow creates the environment on the CTI side and an authorization failure afterwards leaves it orphaned.
+
+The check is performed with the `perform_permission_check` query parameter, which is provided natively by the OpenSearch security plugin for any REST endpoint. The permission evaluated is the same one a real registration requires: `plugin:content_manager/subscription/post`, mapped to the `cluster:admin/content_manager/subscription/create` action. Under the default role set, only `wazuh_admin` holds it.
+
+> The request has **no side effects**: the security plugin answers before the action executes, so no CTI API call is made and no credentials are written. It is idempotent and safe to call repeatedly.
+
+#### Request
+
+- Method: `POST`
+- Path: `/_plugins/_content_manager/subscription`
+
+#### Query parameters
+
+- **`perform_permission_check`** (Boolean, optional, default `false`) — when `true`, return the authorization decision instead of registering a subscription. An empty value is treated as `true`.
+
+#### Request body
+
+None. The body is not read in this mode, and `access_token` is not required.
+
+#### Example request
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/subscription?perform_permission_check=true"
+```
+
+#### Example response (allowed)
+
+```json
+{
+  "accessAllowed": true,
+  "missingPrivileges": []
+}
+```
+
+#### Example response (denied)
+
+```json
+{
+  "accessAllowed": false,
+  "missingPrivileges": ["cluster:admin/content_manager/subscription/create"]
+}
+```
+
+#### Status codes
+
+- **200** — decision returned. Both the allowed and the denied case use this status.
+- **401** — missing or invalid credentials.
+
+> **Note**: This mode always responds with `200`; the outcome is carried by the `accessAllowed` field. Branch on that field, not on the status code. The `missingPrivileges` array contains raw action names intended for logs and support, not for display to end users.
+
+The response fields are produced by the security plugin and are therefore camelCase, identical on every endpoint that supports this parameter.
 
 ---
 
