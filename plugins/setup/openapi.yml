@@ -31,6 +31,20 @@ tags:
       These are stored, along with the CTI access token, in the hidden system index
       `.wazuh-internal-state`, which is unreachable through ordinary index permissions; these
       endpoints are the only way to read or write that data.
+  - name: AI Assistant Sessions
+    description: |
+      Operations over the caller's own AI assistant conversations, stored in the
+      `wazuh-ai-assistant-sessions` data stream.
+
+      Every operation is scoped to the authenticated user by the server. The owning `user` field
+      is derived from the authenticated principal and stamped on write, overwriting anything the
+      caller sends; reads and listings are filtered by that same principal. There is no
+      impersonation and no administrative override — `all_access` and `wazuh-admin` see only
+      their own sessions, which is the behaviour the previous Document Level Security query
+      already had on the read path.
+
+      Sessions the caller does not own are reported as `404`, never `403`, so that the response
+      does not confirm the existence of another user's session id.
 
 security:
   - bearerAuth: []
@@ -374,6 +388,321 @@ paths:
         "404":
           description: Not Found - No provider exists with the given id.
 
+  /ai_assistant/sessions:
+    get:
+      summary: List the caller's AI assistant sessions
+      description: |
+        Returns the authenticated user's own conversations, most recently updated first.
+
+        The query is built server-side as `{"term": {"user": "<authenticated principal>"}}`; there
+        is no way for a caller to widen it. Sessions belonging to other users are never returned,
+        for any role.
+
+        `messages` is omitted by default: it is an unindexed, unbounded blob, and a sidebar
+        listing needs only the titles. Request it with `include_messages=true`, or read a single
+        session with `GET /ai_assistant/sessions/{id}`.
+      operationId: listAiAssistantSessions
+      tags:
+        - AI Assistant Sessions
+      parameters:
+        - name: from
+          in: query
+          required: false
+          description: Zero-based offset of the first session to return.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          description: Maximum number of sessions to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: include_messages
+          in: query
+          required: false
+          description: |
+            Include each session's `messages` array. Off by default, since the array is unbounded.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAssistantSessionListResponse"
+              examples:
+                default:
+                  summary: Two sessions, messages omitted
+                  value:
+                    total: 2
+                    sessions:
+                      - _id: JgwpPaABOTRG6utcvltb
+                        user: wazuh-admin
+                        title: Why did agent 003 stop reporting?
+                        "@timestamp": "2026-09-08T09:14:02.113Z"
+                        created_at: "2026-09-08T09:14:02.113Z"
+                        updated_at: "2026-09-08T09:31:47.902Z"
+                      - _id: KwwpPaABOTRG6utcxmQc
+                        user: wazuh-admin
+                        title: Explain this FIM alert
+                        "@timestamp": "2026-09-07T16:02:55.480Z"
+                        created_at: "2026-09-07T16:02:55.480Z"
+                        updated_at: "2026-09-07T16:08:12.006Z"
+                empty:
+                  summary: No sessions yet
+                  value:
+                    total: 0
+                    sessions: []
+        "400":
+          description: Bad Request - `from` is negative, or `size` is outside 1-100.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                bad_size:
+                  summary: Size out of range
+                  value:
+                    message: "Size must be between 1 and 100."
+                    status: 400
+        "403":
+          description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/session/read` cluster permission.
+    post:
+      summary: Create an AI assistant session
+      description: |
+        Creates a conversation owned by the authenticated user.
+
+        Only `title` and `messages` are read from the body. `user`, `@timestamp`, `created_at` and
+        `updated_at` are stamped by the server; a value sent for any of them is **discarded, not
+        rejected**, so a client may POST back a document it previously read without a `400`. Keys
+        outside the allowlist are discarded the same way and never reach the index.
+
+        The document id is generated by the server and returned as `id`. Client-chosen ids are not
+        supported: the backing store is a data stream.
+      operationId: createAiAssistantSession
+      tags:
+        - AI Assistant Sessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiAssistantSessionCreateRequest"
+            examples:
+              title_only:
+                summary: Open an empty conversation
+                value:
+                  title: Why did agent 003 stop reporting?
+              with_messages:
+                summary: First turn included
+                value:
+                  title: Why did agent 003 stop reporting?
+                  messages:
+                    - role: user
+                      content: Why did agent 003 stop reporting?
+                      created_at: "2026-09-08T09:14:02.113Z"
+      responses:
+        "200":
+          description: |
+            OK - Session created. Returns `200`, not `201`, matching
+            `POST /ai_assistant/providers`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAssistantSessionWriteResponse"
+              examples:
+                success:
+                  summary: Session created
+                  value:
+                    message: "Session created."
+                    status: 200
+                    id: JgwpPaABOTRG6utcvltb
+        "400":
+          description: Bad Request - Empty or malformed body, or a missing/blank `title`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                missing_title:
+                  summary: Missing title
+                  value:
+                    message: "Session title is required."
+                    status: 400
+                malformed:
+                  summary: Malformed body
+                  value:
+                    message: "Invalid request body."
+                    status: 400
+        "403":
+          description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/session/write` cluster permission.
+
+  /ai_assistant/sessions/{id}:
+    get:
+      summary: Read one AI assistant session
+      description: |
+        Returns the full session document, `messages` included.
+
+        Returns `404` when the id is unknown **or** when the session belongs to another user. The
+        two cases are deliberately indistinguishable: a `403` would confirm that somebody else's
+        session id exists.
+      operationId: getAiAssistantSession
+      tags:
+        - AI Assistant Sessions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAssistantSession"
+              examples:
+                default:
+                  summary: A two-turn conversation
+                  value:
+                    _id: JgwpPaABOTRG6utcvltb
+                    user: wazuh-admin
+                    title: Why did agent 003 stop reporting?
+                    "@timestamp": "2026-09-08T09:14:02.113Z"
+                    created_at: "2026-09-08T09:14:02.113Z"
+                    updated_at: "2026-09-08T09:31:47.902Z"
+                    messages:
+                      - role: user
+                        content: Why did agent 003 stop reporting?
+                        created_at: "2026-09-08T09:14:02.113Z"
+                      - role: assistant
+                        content: Agent 003 last checked in at 08:52 UTC.
+                        created_at: "2026-09-08T09:14:09.660Z"
+        "403":
+          description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/session/read` cluster permission.
+        "404":
+          description: |
+            Not Found - No session exists with the given id, or it belongs to another user.
+    put:
+      summary: Update an AI assistant session
+      description: |
+        Replaces the session's `title` and `messages`.
+
+        Ownership is checked against the stored document before anything is written. `user`,
+        `@timestamp` and `created_at` are preserved from the stored document; `updated_at` is
+        re-stamped. Fields outside the allowlist are discarded.
+
+        Writes are guarded with the sequence number and primary term read alongside the document,
+        so a concurrent update from another browser tab is detected rather than silently lost.
+      operationId: updateAiAssistantSession
+      tags:
+        - AI Assistant Sessions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiAssistantSessionRequest"
+            examples:
+              append_turn:
+                summary: Rename and store the conversation so far
+                value:
+                  title: Agent 003 connectivity
+                  messages:
+                    - role: user
+                      content: Why did agent 003 stop reporting?
+                      created_at: "2026-09-08T09:14:02.113Z"
+                    - role: assistant
+                      content: Agent 003 last checked in at 08:52 UTC.
+                      created_at: "2026-09-08T09:14:09.660Z"
+      responses:
+        "200":
+          description: OK - Session updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAssistantSessionWriteResponse"
+              examples:
+                success:
+                  summary: Session updated
+                  value:
+                    message: "Session updated."
+                    status: 200
+                    id: JgwpPaABOTRG6utcvltb
+        "400":
+          description: Bad Request - Empty or malformed request body.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+        "403":
+          description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/session/write` cluster permission.
+        "404":
+          description: |
+            Not Found - No session exists with the given id, or it belongs to another user.
+        "409":
+          description: |
+            Conflict - The session was modified concurrently and the write was still rejected
+            after one retry. Re-read the session and reapply the change.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                conflict:
+                  summary: Concurrent modification
+                  value:
+                    message: "Session was modified concurrently."
+                    status: 409
+    delete:
+      summary: Delete an AI assistant session
+      description: |
+        Deletes the session. Ownership is checked against the stored document first; a session
+        belonging to another user is reported as `404` and left untouched.
+      operationId: deleteAiAssistantSession
+      tags:
+        - AI Assistant Sessions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK - Session deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAssistantSessionWriteResponse"
+              examples:
+                success:
+                  summary: Session deleted
+                  value:
+                    message: "Session deleted."
+                    status: 200
+                    id: JgwpPaABOTRG6utcvltb
+        "403":
+          description: Forbidden - The caller lacks the `plugin:wazuh/ai_assistant/session/write` cluster permission.
+        "404":
+          description: |
+            Not Found - No session exists with the given id, or it belongs to another user.
+            A repeated delete also returns `404`.
+
 components:
   schemas:
     WazuhSettingsRequest:
@@ -559,6 +888,189 @@ components:
         id:
           type: string
           description: Id of the affected provider document.
+      required:
+        - message
+        - status
+
+    AiAssistantSessionMessage:
+      type: object
+      description: |
+        One turn of a conversation. Mapped as `{"type": "object", "enabled": false}`, so it is
+        stored in `_source` and returned verbatim but never indexed and never schema-checked.
+        The shape varies by AI provider; the properties below are the ones the Dashboard writes,
+        and any others a provider returns are preserved as sent.
+      additionalProperties: true
+      properties:
+        role:
+          type: string
+          example: assistant
+        content:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    AiAssistantSessionSummary:
+      type: object
+      description: |
+        A session as returned by `GET /ai_assistant/sessions`. Identical to `AiAssistantSession`
+        except that `messages` is present only when `include_messages=true` was requested.
+      properties:
+        _id:
+          type: string
+          readOnly: true
+          description: Server-generated document id.
+        user:
+          type: string
+          readOnly: true
+          description: |
+            Owning username. Always the authenticated principal, derived server-side; never
+            client input.
+        title:
+          type: string
+          maxLength: 1024
+        "@timestamp":
+          type: string
+          format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        messages:
+          type: array
+          description: Only present when the request set `include_messages=true`.
+          items:
+            $ref: "#/components/schemas/AiAssistantSessionMessage"
+
+    AiAssistantSession:
+      type: object
+      description: A full session document, as returned by `GET /ai_assistant/sessions/{id}`.
+      properties:
+        _id:
+          type: string
+          readOnly: true
+          description: Server-generated document id.
+        user:
+          type: string
+          readOnly: true
+          description: |
+            Owning username. Always the authenticated principal, derived server-side; never
+            client input.
+        title:
+          type: string
+          maxLength: 1024
+        "@timestamp":
+          type: string
+          format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiAssistantSessionMessage"
+
+    AiAssistantSessionListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total sessions owned by the caller, ignoring `from` and `size`.
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiAssistantSessionSummary"
+
+    AiAssistantSessionCreateRequest:
+      type: object
+      description: |
+        Body for `POST /ai_assistant/sessions`. Only `title` and `messages` are persisted;
+        every other key, including the server-owned ones below, is discarded rather than
+        rejected.
+      additionalProperties: false
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          maxLength: 1024
+          description: Conversation title. Must be present and non-blank.
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiAssistantSessionMessage"
+        user:
+          type: string
+          description: |
+            Ignored if sent — always overwritten with the authenticated principal. Present here
+            only to document that supplying it has no effect; it is the field whose forgeability
+            this API exists to remove.
+        "@timestamp":
+          type: string
+          format: date-time
+          description: Ignored if sent — always server-stamped.
+        created_at:
+          type: string
+          format: date-time
+          description: Ignored if sent — always server-stamped.
+        updated_at:
+          type: string
+          format: date-time
+          description: Ignored if sent — always server-stamped.
+
+    AiAssistantSessionRequest:
+      type: object
+      description: |
+        Body for `PUT /ai_assistant/sessions/{id}` — the path segment is the id. Only `title` and
+        `messages` are persisted; every other key is discarded rather than rejected. `user`,
+        `@timestamp` and `created_at` are preserved from the stored document.
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          maxLength: 1024
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiAssistantSessionMessage"
+        user:
+          type: string
+          description: Ignored if sent — preserved from the stored document.
+        "@timestamp":
+          type: string
+          format: date-time
+          description: Ignored if sent — preserved from the stored document.
+        created_at:
+          type: string
+          format: date-time
+          description: Ignored if sent — preserved from the stored document.
+        updated_at:
+          type: string
+          format: date-time
+          description: Ignored if sent — always re-stamped by the server.
+
+    AiAssistantSessionWriteResponse:
+      type: object
+      description: Response for a session create, update or delete.
+      properties:
+        message:
+          type: string
+        status:
+          type: integer
+        id:
+          type: string
+          description: Id of the affected session document.
       required:
         - message
         - status
