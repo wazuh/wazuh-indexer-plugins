@@ -46,8 +46,9 @@ Threat detectors for Wazuh integrations are created dynamically based on CTI con
 - **Enabled status**: controlled by CTI to activate or deactivate detectors globally.
 - **Scan interval**: customizable per integration (e.g., critical integrations can have shorter intervals).
 - **Source indices**: defines the target indices or index patterns the detector monitors. If no source indices are provided, the detector falls back to the legacy per-category events pattern.
+- **Triggers and threat intelligence matching**: not used. Detectors are created with no triggers, so a detection is recorded as a finding instead of raising an alert, and with `threat_intel_enabled` set to `false`, because Indicators of Compromise (IoCs) are matched by the Wazuh Engine as it processes events.
 
-Any change in the CTI catalog is reflected in detector configuration without requiring code changes or restarts.
+Any change in the CTI catalog is reflected in detector configuration without requiring code changes or restarts. The catalog owns the detectors it creates: each content update rebuilds them, which is why a provisioned detector accepts no user change other than enabling or disabling it.
 
 ## Behavior notes
 
@@ -75,7 +76,7 @@ See [Configuration](configuration.md) for the settings that control batch size, 
 
 Access to Ruleset Management is governed by the [default Wazuh roles](../../security/access-control.md). The plugin authorizes requests against two action namespaces: the Wazuh custom actions `cluster:admin/wazuh/securityanalytics/*` and the upstream OpenSearch actions `cluster:admin/opensearch/securityanalytics/*` (see [Permissions](../../security/permissions.md)).
 
-- **`wazuh_admin`** — full access: create/update/delete detectors, rules, log types, and correlations; read findings and alerts.
+- **`wazuh_admin`** — full access: create/update/delete detectors, rules, integrations, and correlations; read findings and alerts.
 - **`wazuh_demo`** — full access, same endpoints as `wazuh_admin`.
 - **`wazuh_readonly`** — read-only: get/search detectors, rules, findings, alerts, mappings, correlations, and threat intel; `rules/evaluate`.
 - **`wazuh_manager`** — no access.
