@@ -167,7 +167,7 @@ public class ApiClient {
                 SimpleRequestBuilder.post(RESOURCE_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
-                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
                         .build();
@@ -205,7 +205,7 @@ public class ApiClient {
                 SimpleRequestBuilder.get(PRODUCTS_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
-                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
@@ -238,7 +238,7 @@ public class ApiClient {
                 SimpleRequestBuilder.get(ENVIRONMENTS_ME_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
-                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
@@ -267,7 +267,7 @@ public class ApiClient {
                 SimpleRequestBuilder.get(ENVIRONMENTS_ME_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
-                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();

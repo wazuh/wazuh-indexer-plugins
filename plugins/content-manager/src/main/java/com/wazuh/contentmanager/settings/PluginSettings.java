@@ -411,17 +411,6 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
-    /**
-     * Dynamic setting to override the wazuh-uid header value sent with CTI API requests. When empty
-     * (the default), the cluster UUID is used.
-     */
-    public static final Setting<String> WAZUH_UID =
-            Setting.simpleString(
-                    "plugins.content_manager.wazuh_uid",
-                    "",
-                    Setting.Property.NodeScope,
-                    Setting.Property.Dynamic);
-
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
@@ -450,7 +439,7 @@ public class PluginSettings {
     private volatile int maxKvdbs;
     private volatile int maxFilters;
     private volatile String accessToken;
-    private volatile String wazuhUid;
+    private volatile String clusterUUID;
     private String version;
 
     /**
@@ -486,11 +475,7 @@ public class PluginSettings {
         this.maxRules = MAX_RULES.get(settings);
         this.maxKvdbs = MAX_KVDBS.get(settings);
         this.maxFilters = MAX_FILTERS.get(settings);
-        String uid = WAZUH_UID.get(settings);
-        if (!uid.isEmpty()) {
-            this.wazuhUid = uid;
-        }
-        log.debug("Settings.loaded: {}", this.toString());
+        log.debug("Settings loaded: {}", this.toString());
     }
 
     /**
@@ -604,10 +589,10 @@ public class PluginSettings {
     /**
      * Sets the cluster UUID used as the wazuh-uid header in CTI API requests.
      *
-     * @param wazuhUid the cluster UUID string, or null to clear it.
+     * @param clusterUUID the cluster UUID string, or null to clear it.
      */
-    public void setWazuhUid(String wazuhUid) {
-        this.wazuhUid = wazuhUid;
+    public void setClusterUUID(String clusterUUID) {
+        this.clusterUUID = clusterUUID;
     }
 
     /**
@@ -615,8 +600,8 @@ public class PluginSettings {
      *
      * @return the cluster UUID string, or null if not yet set.
      */
-    public String getWazuhUid() {
-        return this.wazuhUid;
+    public String getClusterUUID() {
+        return this.clusterUUID;
     }
 
     /**
