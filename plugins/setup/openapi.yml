@@ -925,8 +925,10 @@ components:
     AiAssistantSession:
       type: object
       description: |
-        A full session document, as returned by `GET /ai_assistant/sessions/{id}` and by the
-        `POST`/`PUT` writes.
+        A full session document, as returned by the `POST` and `PUT` writes. There is no read
+        endpoint: listing sessions and reading a transcript stay direct queries against the
+        `wazuh-ai-assistant-sessions` data stream, scoped by the `wazuh_ai_assistant` role's
+        document-level security filter.
       properties:
         id:
           type: string
