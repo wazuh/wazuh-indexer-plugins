@@ -25,10 +25,26 @@ SEARCH_PATTERNS = [
 ]
 
 # Type mappings from ECS types to WCS-compatible types
+#
+# The two entries left are not gaps in OpenSearch's type list. They are
+# incompatibilities that break the generated templates:
+#
+#   constant_keyword -> keyword
+#     OpenSearch requires the `value` parameter at mapping time
+#     (ConstantKeywordFieldMapper.TypeParser rejects a mapping without it) and
+#     ECS declares the type with no value, because Elasticsearch infers it from
+#     the first document. In an explicit `properties` block that fails template
+#     creation outright; inside a dynamic_template it is accepted and then
+#     fails at ingest with mapper_parsing_exception, dropping every document
+#     that carries the field. data_stream.{type,dataset,namespace} are the only
+#     constant_keyword fields in ECS and both the events and the findings
+#     subsets include them, so this entry is load-bearing.
+#
+#   flattened -> flat_object
+#     OpenSearch has no `flattened` type ("No handler for type [flattened]");
+#     flat_object is its equivalent.
 TYPES_TO_REMAP = {
     'constant_keyword': 'keyword',
-    'wildcard': 'keyword',
-    'match_only_text': 'keyword',
     'flattened': 'flat_object',
 }
 
