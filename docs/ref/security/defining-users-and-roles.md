@@ -30,6 +30,18 @@ Follow these steps:
     * Optionally, configure [**Document-level security (DLS)**](https://docs.opensearch.org/3.6/security/access-control/index/) or [**Field-level security (FLS)**](https://docs.opensearch.org/3.6/security/access-control/field-level-security/).
 6. Click **Create** to save the role.
 
+<div class="warning">
+
+**Do not map users to the built-in `kibana_user` role.**
+
+Its name suggests it is what a dashboard user needs, and the upstream OpenSearch documentation recommends it for that purpose. It grants `delete`, `index` and `manage` over the `.kibana*` indices, which is where the Wazuh Dashboard stores its saved objects: the index patterns, visualizations and dashboards Wazuh ships.
+
+Wazuh Indexer disables Dashboard multi-tenancy, so there is no per-user space for those writes to land in. A user holding the role can delete any shipped index pattern — immediately, permanently, and with no undo — or edit its title so that every visualization built on it silently reads from different indices, with nothing in the interface indicating that it changed or who changed it.
+
+No default Wazuh user holds this role: the interactive ones have read-only access to `.kibana*`, and saved objects are managed by `admin`. Custom roles should follow the same rule — grant the permissions the user needs on the Wazuh index patterns and leave `.kibana*` alone.
+
+</div>
+
 ### 2. Create a user
 
 1. In the Wazuh Dashboard, go to **Index Management** -> **Security** -> **Internal users**.

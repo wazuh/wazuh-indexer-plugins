@@ -92,6 +92,8 @@ The following 4.x settings have changed in 5.x and must be reviewed before reuse
 
 Authentication and authorization are managed by the OpenSearch Security plugin in both versions, but 5.x ships a new set of default internal users, roles, and role mappings tailored to the Wazuh stack — the 4.x defaults are not carried over. For the full, up-to-date list of 5.x default users, roles, and permissions, see [Access Control](../../ref/security/access-control.md).
 
+5.x also stops shipping the demo entries that the OpenSearch Security plugin installs with itself. Of its demo accounts only `admin` and `kibanaserver` remain, and the `own_index`, `kibana_user`, `readall`, `logstash` and `manage_snapshots` role mappings are removed from `roles_mapping.yml`.
+
 In 5.x, all security plugin configuration lives under `/etc/wazuh-indexer/opensearch-security/`:
 
 | File | Purpose |
@@ -116,6 +118,9 @@ Perform these steps on the new 5.x host.
     - Custom roles → add to `roles.yml`, keeping the 5.x index patterns and permission names.
     - Role mappings → add to `roles_mapping.yml`, referencing the new role names.
     - External authentication backends (LDAP, Active Directory, SAML, OIDC, JWT, Kerberos, client-certificate) → re-create the corresponding `authc` / `authz` blocks in `config.yml` against the 5.x schema.
+
+    > **Warning — backend roles named after the upstream defaults**
+    > The OpenSearch Security demo role mappings are not shipped in 5.x. Those mappings turned the backend roles `kibanauser`, `readall`, `logstash` and `snapshotrestore` into the `kibana_user`, `readall`, `logstash` and `manage_snapshots` roles, keyed on the name alone. If an LDAP or Active Directory group, a JWT claim or a certificate attribute in your deployment is named after one of them and relied on that mapping, it no longer grants anything: its users authenticate exactly as before but lose the privileges, and nothing in the cluster reports why. Map those groups to the role they actually need under `roles_mapping.yml`, choosing from the 5.x roles in [Access Control](../../ref/security/access-control.md).
 
     > **Tip — bulk copy alternative**
     > Reviewing every entry individually is the safest option, but it is tedious and risks silently dropping a custom user or role you set up long ago and no longer remember. As an alternative, copy **all** custom entries from the 4.x files into the corresponding 5.x files at once, then prune afterwards. This guarantees nothing is lost, at the cost of dragging along stale entries. Copied entries may reference 4.x index patterns or permission names that changed in 5.x, and may collide with the new 5.x default users and roles — so still validate the result against [Access Control](../../ref/security/access-control.md) before applying.
