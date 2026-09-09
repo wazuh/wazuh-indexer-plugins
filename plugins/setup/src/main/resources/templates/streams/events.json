@@ -2236,8 +2236,7 @@
           "wcs_email_message_id": {
             "path_match": "email.message_id",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -2316,8 +2315,7 @@
           "wcs_error_message": {
             "path_match": "error.message",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "match_only_text"
             }
           }
         },
@@ -2325,8 +2323,7 @@
           "wcs_error_stack_trace": {
             "path_match": "error.stack_trace",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -4590,8 +4587,7 @@
           "wcs_http_request_body_content": {
             "path_match": "http.request.body.content",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -4651,8 +4647,7 @@
           "wcs_http_response_body_content": {
             "path_match": "http.response.body.content",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -6008,8 +6003,7 @@
           "wcs_process_command_line": {
             "path_match": "process.command_line",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -6386,8 +6380,7 @@
           "wcs_process_entry_leader_command_line": {
             "path_match": "process.entry_leader.command_line",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -6748,8 +6741,7 @@
           "wcs_process_group_leader_command_line": {
             "path_match": "process.group_leader.command_line",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -7088,8 +7080,7 @@
           "wcs_process_io_text": {
             "path_match": "process.io.text",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -7367,8 +7358,7 @@
           "wcs_process_parent_command_line": {
             "path_match": "process.parent.command_line",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -8590,8 +8580,7 @@
           "wcs_process_previous_command_line": {
             "path_match": "process.previous.command_line",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -8731,8 +8720,7 @@
           "wcs_process_session_leader_command_line": {
             "path_match": "process.session_leader.command_line",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -9187,8 +9175,7 @@
           "wcs_registry_data_strings": {
             "path_match": "registry.data.strings",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -11843,8 +11830,7 @@
           "wcs_threat_enrichments_indicator_registry_data_strings": {
             "path_match": "threat.enrichments.indicator.registry.data.strings",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -11985,8 +11971,7 @@
           "wcs_threat_enrichments_indicator_url_full": {
             "path_match": "threat.enrichments.indicator.url.full",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -11994,8 +11979,7 @@
           "wcs_threat_enrichments_indicator_url_original": {
             "path_match": "threat.enrichments.indicator.url.original",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -12012,8 +11996,7 @@
           "wcs_threat_enrichments_indicator_url_path": {
             "path_match": "threat.enrichments.indicator.url.path",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -13762,8 +13745,7 @@
           "wcs_threat_indicator_registry_data_strings": {
             "path_match": "threat.indicator.registry.data.strings",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -13868,8 +13850,7 @@
           "wcs_threat_indicator_url_full": {
             "path_match": "threat.indicator.url.full",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -13877,8 +13858,7 @@
           "wcs_threat_indicator_url_original": {
             "path_match": "threat.indicator.url.original",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -13895,8 +13875,7 @@
           "wcs_threat_indicator_url_path": {
             "path_match": "threat.indicator.url.path",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -15043,8 +15022,7 @@
           "wcs_url_full": {
             "path_match": "url.full",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -15052,8 +15030,7 @@
           "wcs_url_original": {
             "path_match": "url.original",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -15070,8 +15047,7 @@
           "wcs_url_path": {
             "path_match": "url.path",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -17919,8 +17895,7 @@
           "wcs_wazuh_threat_enrichments_indicator_registry_data_strings": {
             "path_match": "wazuh.threat.enrichments.indicator.registry.data.strings",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -19713,8 +19688,7 @@
           "wcs_wazuh_threat_indicator_registry_data_strings": {
             "path_match": "wazuh.threat.indicator.registry.data.strings",
             "mapping": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "type": "wildcard"
             }
           }
         },
@@ -21634,8 +21608,7 @@
           "type": "object"
         },
         "message": {
-          "ignore_above": 1024,
-          "type": "keyword"
+          "type": "match_only_text"
         },
         "tags": {
           "ignore_above": 1024,
