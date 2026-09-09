@@ -509,7 +509,7 @@ public class LogtestService {
         if (target.sourceIndices().isEmpty()) {
             listener.onResponse(
                     buildCombinedResponse(
-                            engineResult, createSkippedSapResult(noSourceIndexReason(target.integrationId()))));
+                            engineResult, createErrorSapResult()));
             return;
         }
 
@@ -533,7 +533,7 @@ public class LogtestService {
                         e -> {
                             log.error("Failed to evaluate rules: {}", e.getMessage());
                             listener.onResponse(
-                                    buildCombinedResponse(engineResult, createSkippedSapResult(e.getMessage())));
+                                    buildCombinedResponse(engineResult, createErrorSapResult()));
                         }));
     }
 
@@ -550,7 +550,7 @@ public class LogtestService {
         if (target.sourceIndices().isEmpty()) {
             listener.onResponse(
                     buildDetectionResponse(
-                            createSkippedSapResult(noSourceIndexReason(target.integrationId()))));
+                            createErrorSapResult()));
             return;
         }
 
@@ -573,7 +573,7 @@ public class LogtestService {
                         },
                         e -> {
                             log.error("Failed to evaluate rules: {}", e.getMessage());
-                            listener.onResponse(buildDetectionResponse(createSkippedSapResult(e.getMessage())));
+                            listener.onResponse(buildDetectionResponse(createErrorSapResult()));
                         }));
     }
 
@@ -614,41 +614,6 @@ public class LogtestService {
         response.put("rules_matched", 0);
         response.put("matches", List.of());
         return response;
-    }
-
-    /**
-     * Creates a skipped SAP result carrying why nothing was evaluated.
-     *
-     * <p>Skipped rather than zero matches: "the rules could not be evaluated" is not the same answer
-     * as "the rules do not match this event", and conflating the two is what made logtest misleading
-     * in the first place.
-     *
-     * @param reason why the rules could not be evaluated.
-     * @return the skipped result.
-     */
-    private Map<String, Object> createSkippedSapResult(String reason) {
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put(Constants.KEY_STATUS, "skipped");
-        response.put("reason", reason);
-        response.put("rules_evaluated", 0);
-        response.put("rules_matched", 0);
-        response.put("matches", List.of());
-        return response;
-    }
-
-    /**
-     * Reason used when an integration names no source index, so there are no field mappings to
-     * resolve its rules' compiled queries against.
-     *
-     * @param integrationId the integration being tested.
-     * @return the reason message.
-     */
-    private String noSourceIndexReason(String integrationId) {
-        return String.format(
-                Locale.ROOT,
-                "Integration [%s] declares no detector source index, so its rules cannot be evaluated "
-                        + "the way a detector would evaluate them",
-                integrationId);
     }
 
     /** Creates an error SAP result. */

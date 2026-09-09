@@ -517,15 +517,7 @@ curl -sk -u admin:admin -X POST \
 - **`detection.rules_matched`** (Integer) — number of rules that matched.
 - **`detection.matches`** (Array) — list of matched rules with details.
 - **`detection.matches[].rule`** (Object) — rule metadata: `id`, `title`, `level`, `tags`.
-- **`detection.matches[].matched_conditions`** (Array) — the compiled queries that matched. These are
-  the exact queries a deployed detector runs, since detection evaluates rules through the same
-  percolator.
-- **`detection.rules_skipped`** (Integer) — number of rules that could not be evaluated.
-- **`detection.skipped`** (Array) — one entry per skipped rule, with its `rule` metadata and a
-  `reason`. A rule is skipped when it cannot be compiled, when it aggregates over several events, or
-  when the query index rejects its compiled query — most often because the rule names a field the
-  integration's source index does not map yet. A skipped rule cannot produce a finding in production
-  either, which is why it is reported instead of being counted as "did not match".
+- **`detection.matches[].matched_conditions`** (Array) — human-readable descriptions of conditions that matched.
 
 #### Status codes
 
@@ -701,7 +693,8 @@ curl -sk -u admin:admin -X POST \
           "tags": ["attack.execution", "attack.t1059"]
         },
         "matched_conditions": [
-          "(event.duration >= 5000) AND (event.severity < 10)"
+          "event.duration matched '>= 5000'",
+          "event.severity matched '< 10'"
         ]
       },
       {
@@ -712,7 +705,7 @@ curl -sk -u admin:admin -X POST \
           "tags": ["attack.execution", "attack.t1059"]
         },
         "matched_conditions": [
-          "event.kind: \"event\""
+          "event.kind matched 'event'"
         ]
       }
     ]
@@ -730,24 +723,18 @@ curl -sk -u admin:admin -X POST \
     "rules_evaluated": 0,
     "rules_matched": 0,
     "matches": [],
-    "rules_skipped": 0,
-    "skipped": []
   }
 }
 ```
 
 #### Response fields
 
-- **`message.status`** (String) — `"success"`, `"error"`, or `"skipped"`.
+- **`message.status`** (String) — `"success"` or `"error"`.
 - **`message.rules_evaluated`** (Integer) — number of Sigma rules evaluated.
 - **`message.rules_matched`** (Integer) — number of rules that matched.
 - **`message.matches`** (Array) — list of matched rules with details.
 - **`message.matches[].rule`** (Object) — rule metadata: `id`, `title`, `level`, `tags`.
-- **`message.matches[].matched_conditions`** (Array) — the compiled queries that matched.
-- **`message.rules_skipped`** (Integer) — number of rules that could not be evaluated.
-- **`message.skipped`** (Array) — one entry per skipped rule, with its `rule` metadata and a `reason`.
-- **`message.reason`** (String) — present when `status` is `"skipped"`, i.e. when no rule could be
-  evaluated at all.
+- **`message.matches[].matched_conditions`** (Array) — human-readable descriptions of matched conditions.
 
 #### Status codes
 

@@ -18,8 +18,7 @@ Logtest sends a raw log event through the full detection pipeline — the Wazuh 
 
 Rules are evaluated the way a deployed threat detector evaluates them: compiled into the same
 queries, analyzed by the same analyzers, and matched by the same percolator. A logtest result is
-therefore a prediction of the finding, not an approximation of it — including when a rule *cannot*
-match, which logtest reports under `skipped` rather than as a silent non-match.
+therefore a prediction of the finding, not an approximation of it.
 
 Logtest supports the `test`, `standard`, and `custom` spaces. Use `test` for validating draft content, `standard` for testing against production rules, and `custom` for validating content promoted to production
 
@@ -224,7 +223,8 @@ The response has two sections:
           "tags": ["attack.credential-access", "attack.t1110.001"]
         },
         "matched_conditions": [
-          "event.category: \"authentication\" AND event.outcome: \"failure\""
+          "event.category matched 'authentication'",
+          "event.outcome matched 'failure'"
         ]
       }
     ]
@@ -246,8 +246,7 @@ If the results aren't what you expect:
 
 1. **Decoder not matching?** Check `asset_traces` — if your decoder isn't listed, review the `check` conditions. Use `trace_level: ALL` to see which decoders were attempted.
 2. **Rule not matching?** Compare the normalized event fields with your rule's `detection` block. Field names and string values must both match exactly — string comparison is case-sensitive.
-3. **Rule listed under `skipped`?** It could not be evaluated, and a deployed detector cannot match it either. Read the `reason`: the usual cause is a field the integration's source index does not map yet, which resolves itself once events carrying that field have been ingested.
-4. **Unexpected matches?** Review `matched_conditions`, which shows the compiled query that matched — the same query the detector runs.
+3. **Unexpected matches?** Review `matched_conditions` to understand why a rule triggered.
 
 After making changes:
 - Update the rule or decoder via `PUT` on the respective endpoint.
@@ -387,7 +386,8 @@ The response contains only the detection result:
           "tags": ["attack.credential-access", "attack.t1110.001"]
         },
         "matched_conditions": [
-          "event.category: \"authentication\" AND event.outcome: \"failure\""
+          "event.category matched 'authentication'",
+          "event.outcome matched 'failure'"
         ]
       }
     ]

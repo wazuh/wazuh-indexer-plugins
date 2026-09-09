@@ -139,26 +139,14 @@ redefining them. The index is created on demand and query documents are upserted
 ids, so it holds at most one document per rule condition and repeated calls overwrite rather than
 accumulate.
 
-Match results use a nested `rule` object per match entry, where `matched_conditions` carries the
-compiled queries that matched:
+Match results use a nested `rule` object per match entry, where `matched_conditions` describes the
+conditions of the rule that matched, one entry per condition:
 ```json
 {
   "rule": { "id": "...", "title": "...", "level": "...", "tags": [...] },
-  "matched_conditions": ["url.original: *union select*"]
+  "matched_conditions": ["http.request.method matched 'GET'", "url.original matched '*UNION SELECT*'"]
 }
 ```
-
-Rules that could not be evaluated are reported instead of being left out of the results:
-```json
-{
-  "rules_skipped": 1,
-  "skipped": [{ "rule": {...}, "reason": "the compiled query was rejected by the percolator, ..." }]
-}
-```
-A rule is skipped when it cannot be compiled, when it aggregates over several events (a percolator
-sees one document), or when the percolator rejects its compiled query — most often because the rule
-names a field the source index does not map yet, in which case a deployed detector cannot match it
-either.
 
 ## Data flow
 

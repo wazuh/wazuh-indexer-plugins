@@ -358,8 +358,18 @@ public class LogtestIT extends ContentManagerRestTestCase {
         assertEquals(
                 "the rule must match its own case: " + exactCase, 1, exactCase.path("rules_matched").asInt());
         assertFalse(
-                "matched_conditions must carry the query that matched: " + exactCase,
+                "matched_conditions must describe the rule's conditions: " + exactCase,
                 exactCase.path("matches").path(0).path("matched_conditions").isEmpty());
+        exactCase
+                .path("matches")
+                .path(0)
+                .path("matched_conditions")
+                .forEach(
+                        condition ->
+                                assertFalse(
+                                        "a condition must be described on its own, not as one composed "
+                                                + "expression: " + condition.asText(),
+                                        condition.asText().contains(" AND ")));
 
         // 2. The reported case: the rule says UNION SELECT, the event says UNION sElect. String
         // comparison is case-sensitive, so a deployed detector produces no finding for this event —
@@ -390,16 +400,15 @@ public class LogtestIT extends ContentManagerRestTestCase {
         assertEquals(
                 "an unrelated event must not match: " + noMatch, 0, noMatch.path("rules_matched").asInt());
 
-        // 4. The rule over the unmapped field is reported, not quietly dropped: the percolator refuses
-        // to store a query over a field the source index does not map, which is exactly why a detector
-        // would never match it either.
-        assertEquals(
-                "the rule that cannot be evaluated must be reported: " + noMatch,
-                1,
-                noMatch.path("rules_skipped").asInt());
-        assertFalse(
-                "the skip must say why: " + noMatch,
-                noMatch.path("skipped").path(0).path("reason").asText().isEmpty());
+        // 4. The response carries only the fields the logtest contract defines. A rule that cannot be
+        // evaluated — here, one over a field the source index does not map — is simply not a match,
+        // and the reason goes to the log.
+        assertTrue(
+                "rules_skipped is not part of the response contract: " + noMatch,
+                noMatch.path("rules_skipped").isMissingNode());
+        assertTrue(
+                "skipped is not part of the response contract: " + noMatch,
+                noMatch.path("skipped").isMissingNode());
         assertEquals(
                 "both rules are in scope: " + noMatch, 2, noMatch.path("rules_evaluated").asInt());
     }
