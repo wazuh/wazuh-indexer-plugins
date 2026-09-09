@@ -25,19 +25,15 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.ssl.TLS;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
-import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.opensearch.core.action.ActionListener;
 
-import javax.net.ssl.SSLContext;
-
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
@@ -77,14 +73,6 @@ public class ApiClient {
         IOReactorConfig ioReactorConfig =
                 IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(this.TIMEOUT)).build();
 
-        SSLContext sslContext;
-        try {
-            sslContext =
-                    SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build();
-        } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
-            throw new RuntimeException("Failed to initialize HttpClient", e);
-        }
-
         List<Header> defaultHeaders =
                 List.of(
                         new BasicHeader(HttpHeaders.USER_AGENT, PluginSettings.getInstance().getUserAgent()));
@@ -96,7 +84,14 @@ public class ApiClient {
                         .setConnectionManager(
                                 PoolingAsyncClientConnectionManagerBuilder.create()
                                         .setTlsStrategy(
-                                                ClientTlsStrategyBuilder.create().setSslContext(sslContext).build())
+                                                ClientTlsStrategyBuilder.create()
+                                                        // JDK truststore + DefaultHostnameVerifier. Honours
+                                                        // javax.net.ssl.trustStore* so an operator behind a
+                                                        // TLS-terminating proxy adds a CA instead of disabling
+                                                        // checks.
+                                                        .setSslContext(SSLContexts.createSystemDefault())
+                                                        .setTlsVersions(TLS.V_1_2, TLS.V_1_3)
+                                                        .build())
                                         .build())
                         .build();
 
