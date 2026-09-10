@@ -231,6 +231,16 @@ field_name|modifier: value
 
 Multiple modifiers can be chained: `field|modifier1|modifier2: value`.
 
+> **Case sensitivity**: string comparison is **case-sensitive**. This applies to plain equality and
+> to `contains`, `startswith`, `endswith` and wildcard values alike: a rule matching `UNION SELECT`
+> does not match `union select` or `UNION sElect`. To catch several spellings of a keyword, list them
+> as separate values.
+> 
+> Both evaluation paths agree: a deployed detector and
+> [logtest](../content-manager/rule-testing.md) compile a rule with the same backend and match it
+> with the same percolator, so a logtest result predicts what the detector will do rather than
+> approximating it.
+
 #### `contains`
 
 Matches when the field value contains the specified substring. Wildcards are inserted around the value.

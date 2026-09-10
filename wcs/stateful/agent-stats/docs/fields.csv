@@ -1,5 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
+9.1.0,true,base,message,match_only_text,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,state,state.document_version,integer,custom,,,Version of the document.
 9.1.0,true,state,state.modified_at,date,custom,,,Date/time when the state was last modified.
 9.1.0,true,wazuh,wazuh.agent.id,keyword,custom,,001,Unique identifier of the agent. Used as the document id.

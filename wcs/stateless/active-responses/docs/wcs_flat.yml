@@ -3518,14 +3518,13 @@ wazuh.threat.enrichments.indicator.registry.data.strings:
     the decimal representation (e.g `"1"`).'
   example: '["C:\rta\red_ttp\bin\myapp.exe"]'
   flat_name: wazuh.threat.enrichments.indicator.registry.data.strings
-  ignore_above: 1024
   level: core
   name: data.strings
   normalize:
   - array
   original_fieldset: registry
   short: List of strings representing what was written to the registry.
-  type: keyword
+  type: wildcard
 wazuh.threat.enrichments.indicator.registry.data.type:
   dashed_name: wazuh-threat-enrichments-indicator-registry-data-type
   description: Standard registry type for encoding contents
@@ -6174,14 +6173,13 @@ wazuh.threat.indicator.registry.data.strings:
     the decimal representation (e.g `"1"`).'
   example: '["C:\rta\red_ttp\bin\myapp.exe"]'
   flat_name: wazuh.threat.indicator.registry.data.strings
-  ignore_above: 1024
   level: core
   name: data.strings
   normalize:
   - array
   original_fieldset: registry
   short: List of strings representing what was written to the registry.
-  type: keyword
+  type: wildcard
 wazuh.threat.indicator.registry.data.type:
   dashed_name: wazuh-threat-indicator-registry-data-type
   description: Standard registry type for encoding contents

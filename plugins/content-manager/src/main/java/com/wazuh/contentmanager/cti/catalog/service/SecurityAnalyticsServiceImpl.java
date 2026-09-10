@@ -470,8 +470,14 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
     @Override
     public void evaluateRulesAsync(
-            String eventJson, java.util.List<String> ruleBodies, ActionListener<String> listener) {
-        WEvaluateRulesRequest request = new WEvaluateRulesRequest(eventJson, ruleBodies);
+            String eventJson,
+            java.util.List<String> ruleBodies,
+            String integrationId,
+            String logType,
+            java.util.List<String> sourceIndices,
+            ActionListener<String> listener) {
+        WEvaluateRulesRequest request =
+                new WEvaluateRulesRequest(eventJson, ruleBodies, integrationId, logType, sourceIndices);
         this.client.execute(
                 WEvaluateRulesAction.INSTANCE,
                 request,
