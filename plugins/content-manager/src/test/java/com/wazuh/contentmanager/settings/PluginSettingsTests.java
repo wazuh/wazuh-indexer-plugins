@@ -384,32 +384,32 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         Assert.assertFalse(pluginSettings.isRegistered());
     }
 
-    /** Tests that wazuhUid is null by default. */
-    public void testWazuhUidIsNullByDefault() {
+    /** Tests that clusterUUID is null by default. */
+    public void testClusterUUIDIsNullByDefault() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        Assert.assertNull(pluginSettings.getWazuhUid());
+        Assert.assertNull(pluginSettings.getClusterUUID());
     }
 
-    /** Tests that setWazuhUid persists the value and getWazuhUid returns it. */
-    public void testSetAndGetWazuhUid() {
+    /** Tests that setClusterUUID persists the value and getClusterUUID returns it. */
+    public void testSetAndGetClusterUUID() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        pluginSettings.setWazuhUid("test-cluster-uuid");
-        Assert.assertEquals("test-cluster-uuid", pluginSettings.getWazuhUid());
+        pluginSettings.setClusterUUID("test-cluster-uuid");
+        Assert.assertEquals("test-cluster-uuid", pluginSettings.getClusterUUID());
     }
 
-    /** Tests that setWazuhUid can be updated and the latest value is returned. */
-    public void testWazuhUidUpdates() {
+    /** Tests that setClusterUUID can be updated and the latest value is returned. */
+    public void testClusterUUIDUpdates() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        pluginSettings.setWazuhUid("first-uuid");
-        pluginSettings.setWazuhUid("second-uuid");
-        Assert.assertEquals("second-uuid", pluginSettings.getWazuhUid());
+        pluginSettings.setClusterUUID("first-uuid");
+        pluginSettings.setClusterUUID("second-uuid");
+        Assert.assertEquals("second-uuid", pluginSettings.getClusterUUID());
     }
 
-    /** Tests that setWazuhUid(null) clears the value. */
-    public void testWazuhUidCanBeCleared() {
+    /** Tests that setClusterUUID(null) clears the value. */
+    public void testClusterUUIDCanBeCleared() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        pluginSettings.setWazuhUid("a-uuid");
-        pluginSettings.setWazuhUid(null);
-        Assert.assertNull(pluginSettings.getWazuhUid());
+        pluginSettings.setClusterUUID("a-uuid");
+        pluginSettings.setClusterUUID(null);
+        Assert.assertNull(pluginSettings.getClusterUUID());
     }
 }

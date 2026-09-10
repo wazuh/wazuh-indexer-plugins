@@ -2,7 +2,7 @@
 
 ## Enrichment pipeline
 
-When a Sigma rule matches an event, Security Analytics writes a raw finding, and an asynchronous enrichment step fetches the triggering event and the matching rule's metadata, assembles an enriched document, and bulk-indexes it into `wazuh-findings-v5-{category}*`.
+When a Sigma rule matches an event, Ruleset Management writes a raw finding, and an asynchronous enrichment step fetches the triggering event and the matching rule's metadata, assembles an enriched document, and bulk-indexes it into `wazuh-findings-v5-{category}*`.
 
 The complete flow is shown in the sequence diagram below:
 
@@ -10,30 +10,30 @@ The complete flow is shown in the sequence diagram below:
 sequenceDiagram
     participant A as Wazuh Manager
     participant I as Wazuh Indexer
-    participant SA as Security Analytics
+    participant RM as Ruleset Management
     participant SI as Source index
     participant RI as Rules index
     participant WF as wazuh-findings-v5-{category}*
 
     A->>I: Ingest event
-    I->>SA: Monitor evaluates event against Sigma rules
-    SA->>SA: Rule matches → create raw finding
-    SA->>SA: Queue finding for enrichment
-    SA->>SI: Fetch triggering event by document ID
-    SI-->>SA: Event source
-    SA->>SA: Resolve log category from the event
+    I->>RM: Monitor evaluates event against Sigma rules
+    RM->>RM: Rule matches → create raw finding
+    RM->>RM: Queue finding for enrichment
+    RM->>SI: Fetch triggering event by document ID
+    SI-->>RM: Event source
+    RM->>RM: Resolve log category from the event
     alt Rule metadata cached
-        SA->>SA: Read from in-memory cache
+        RM->>RM: Read from in-memory cache
     else Cache miss
-        SA->>RI: Fetch rule metadata (pre-packaged + custom rules indices)
-        RI-->>SA: Rule metadata
-        SA->>SA: Cache the result
+        RM->>RI: Fetch rule metadata (pre-packaged + custom rules indices)
+        RI-->>RM: Rule metadata
+        RM->>RM: Cache the result
     end
-    SA->>SA: Assemble enriched document
+    RM->>RM: Assemble enriched document
     alt Batch full
-        SA->>WF: Bulk-index accumulated findings
+        RM->>WF: Bulk-index accumulated findings
     else Periodic flush
-        SA->>WF: Bulk-index accumulated findings
+        RM->>WF: Bulk-index accumulated findings
     end
 ```
 
@@ -46,8 +46,9 @@ Threat detectors for Wazuh integrations are created dynamically based on CTI con
 - **Enabled status**: controlled by CTI to activate or deactivate detectors globally.
 - **Scan interval**: customizable per integration (e.g., critical integrations can have shorter intervals).
 - **Source indices**: defines the target indices or index patterns the detector monitors. If no source indices are provided, the detector falls back to the legacy per-category events pattern.
+- **Triggers and threat intelligence matching**: not used. Detectors are created with no triggers, so a detection is recorded as a finding instead of raising an alert, and with `threat_intel_enabled` set to `false`, because Indicators of Compromise (IoCs) are matched by the Wazuh Engine as it processes events.
 
-Any change in the CTI catalog is reflected in detector configuration without requiring code changes or restarts.
+Any change in the CTI catalog is reflected in detector configuration without requiring code changes or restarts. The catalog owns the detectors it creates: each content update rebuilds them, which is why a provisioned detector accepts no user change other than enabling or disabling it.
 
 ## Behavior notes
 
@@ -64,7 +65,7 @@ See [Configuration](configuration.md) for the settings that control batch size, 
 
 | Index                                       | Description                                                  |
 | -------------------------------------------- | ------------------------------------------------------------ |
-| `.opensearch-sap-{category}-findings-*`     | Raw findings written by the Security Analytics plugin        |
+| `.opensearch-sap-{category}-findings-*`     | Raw findings written by the Ruleset Management plugin        |
 | `.opensearch-sap-pre-packaged-rules-config` | Wazuh-provided Sigma rules; source for rule metadata         |
 | `.opensearch-sap-custom-rules-config`       | User-created custom rules; fallback source for rule metadata |
 | `.opensearch-sap-log-types-config`          | Integrations                                                 |
@@ -73,9 +74,9 @@ See [Configuration](configuration.md) for the settings that control batch size, 
 
 ## Access control
 
-Access to Security Analytics is governed by the [default Wazuh roles](../../security/access-control.md). The plugin authorizes requests against two action namespaces: the Wazuh custom actions `cluster:admin/wazuh/securityanalytics/*` and the upstream OpenSearch actions `cluster:admin/opensearch/securityanalytics/*` (see [Permissions](../../security/permissions.md)).
+Access to Ruleset Management is governed by the [default Wazuh roles](../../security/access-control.md). The plugin authorizes requests against two action namespaces: the Wazuh custom actions `cluster:admin/wazuh/securityanalytics/*` and the upstream OpenSearch actions `cluster:admin/opensearch/securityanalytics/*` (see [Permissions](../../security/permissions.md)).
 
-- **`wazuh_admin`** — full access: create/update/delete detectors, rules, log types, and correlations; read findings and alerts.
+- **`wazuh_admin`** — full access: create/update/delete detectors, rules, integrations, and correlations; read findings and alerts.
 - **`wazuh_demo`** — full access, same endpoints as `wazuh_admin`.
 - **`wazuh_readonly`** — read-only: get/search detectors, rules, findings, alerts, mappings, correlations, and threat intel; `rules/evaluate`.
 - **`wazuh_manager`** — no access.

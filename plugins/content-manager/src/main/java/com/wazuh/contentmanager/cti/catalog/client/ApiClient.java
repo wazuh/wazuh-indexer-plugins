@@ -26,19 +26,15 @@ import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.ssl.TLS;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
-import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.net.ssl.SSLContext;
-
 import java.net.URI;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -81,24 +77,12 @@ public class ApiClient implements AutoCloseable {
         this(new RegularUrlResolver());
     }
 
-    /**
-     * Builds and starts the asynchronous HTTP client.
-     *
-     * @throws RuntimeException if the SSL context cannot be initialized.
-     */
+    /** Builds and starts the asynchronous HTTP client. */
     private void buildClient() {
         IOReactorConfig ioReactorConfig =
                 IOReactorConfig.custom()
                         .setSoTimeout(Timeout.ofSeconds(PluginSettings.getInstance().getClientTimeout()))
                         .build();
-
-        SSLContext sslContext;
-        try {
-            sslContext =
-                    SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build();
-        } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
-            throw new RuntimeException("Failed to initialize HttpClient", e);
-        }
 
         List<Header> defaultHeaders =
                 List.of(
@@ -115,7 +99,14 @@ public class ApiClient implements AutoCloseable {
                         .setConnectionManager(
                                 PoolingAsyncClientConnectionManagerBuilder.create()
                                         .setTlsStrategy(
-                                                ClientTlsStrategyBuilder.create().setSslContext(sslContext).build())
+                                                ClientTlsStrategyBuilder.create()
+                                                        // JDK truststore + DefaultHostnameVerifier. Honours
+                                                        // javax.net.ssl.trustStore* so an operator behind a
+                                                        // TLS-terminating proxy adds a CA instead of disabling
+                                                        // checks.
+                                                        .setSslContext(SSLContexts.createSystemDefault())
+                                                        .setTlsVersions(TLS.V_1_2, TLS.V_1_3)
+                                                        .build())
                                         .build())
                         .build();
 
@@ -189,7 +180,10 @@ public class ApiClient implements AutoCloseable {
     public SimpleHttpResponse getConsumer(String consumerUri)
             throws ExecutionException, InterruptedException, TimeoutException {
         String uri = this.urlResolver.resolve(this.buildConsumerURI(consumerUri));
-        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(uri)
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
+                        .build();
         return this.executeWithRetry(request);
     }
 
@@ -214,7 +208,10 @@ public class ApiClient implements AutoCloseable {
                                 + "&to_offset="
                                 + toOffset);
 
-        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(uri)
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
+                        .build();
         return this.executeWithRetry(request);
     }
 
@@ -240,7 +237,10 @@ public class ApiClient implements AutoCloseable {
     public SimpleHttpResponse getReleaseUpdates(String tag)
             throws ExecutionException, InterruptedException, TimeoutException {
         String uri = this.urlResolver.resolve(this.buildReleasesUpdatesURI(tag));
-        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(uri)
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
+                        .build();
         return this.executeWithRetry(request);
     }
 

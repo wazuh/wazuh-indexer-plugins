@@ -25,19 +25,15 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.hc.core5.http.ssl.TLS;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
-import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.opensearch.core.action.ActionListener;
 
-import javax.net.ssl.SSLContext;
-
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
@@ -48,6 +44,7 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /** CTI Console API client. */
 public class ApiClient {
@@ -76,14 +73,6 @@ public class ApiClient {
         IOReactorConfig ioReactorConfig =
                 IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(this.TIMEOUT)).build();
 
-        SSLContext sslContext;
-        try {
-            sslContext =
-                    SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build();
-        } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
-            throw new RuntimeException("Failed to initialize HttpClient", e);
-        }
-
         List<Header> defaultHeaders =
                 List.of(
                         new BasicHeader(HttpHeaders.USER_AGENT, PluginSettings.getInstance().getUserAgent()));
@@ -95,7 +84,14 @@ public class ApiClient {
                         .setConnectionManager(
                                 PoolingAsyncClientConnectionManagerBuilder.create()
                                         .setTlsStrategy(
-                                                ClientTlsStrategyBuilder.create().setSslContext(sslContext).build())
+                                                ClientTlsStrategyBuilder.create()
+                                                        // JDK truststore + DefaultHostnameVerifier. Honours
+                                                        // javax.net.ssl.trustStore* so an operator behind a
+                                                        // TLS-terminating proxy adds a CA instead of disabling
+                                                        // checks.
+                                                        .setSslContext(SSLContexts.createSystemDefault())
+                                                        .setTlsVersions(TLS.V_1_2, TLS.V_1_3)
+                                                        .build())
                                         .build())
                         .build();
 
@@ -129,6 +125,7 @@ public class ApiClient {
         SimpleHttpRequest request =
                 SimpleRequestBuilder.post(TOKEN_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
                         .build();
 
@@ -170,7 +167,8 @@ public class ApiClient {
                 SimpleRequestBuilder.post(RESOURCE_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
-                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
                         .build();
 
@@ -207,8 +205,9 @@ public class ApiClient {
                 SimpleRequestBuilder.get(PRODUCTS_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
-                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
 
         final Future<SimpleHttpResponse> future =
@@ -239,8 +238,9 @@ public class ApiClient {
                 SimpleRequestBuilder.get(ENVIRONMENTS_ME_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
-                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
 
         final Future<SimpleHttpResponse> future =
@@ -267,8 +267,9 @@ public class ApiClient {
                 SimpleRequestBuilder.get(ENVIRONMENTS_ME_URI)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
-                        .addHeader("wazuh-uid", PluginSettings.getInstance().getWazuhUid())
+                        .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
 
         this.client.execute(
@@ -312,6 +313,7 @@ public class ApiClient {
                 SimpleRequestBuilder.get(url)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
 
         final Future<SimpleHttpResponse> future =
@@ -335,6 +337,7 @@ public class ApiClient {
                 SimpleRequestBuilder.get(url)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader("wazuh-tag", "v" + PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
 
         this.client.execute(

@@ -59,9 +59,38 @@ paths:
       description: |
         Stores the provided CTI access token used to authenticate against the CTI API.
         The token is persisted in a hidden internal index and loaded into memory.
+
+        With `perform_permission_check=true` the endpoint instead answers *"may the current
+        user register a subscription?"* without registering anything: no request body is
+        read, no access token is required and the operation has no side effects. The
+        permission evaluated is the same one a real registration needs,
+        `cluster:admin/content_manager/subscription/create` (action group
+        `plugin:content_manager/subscription/post`, granted to `wazuh_admin` in the stock
+        role set).
+
+        In that mode the response is **always `200`** — permitted and denied differ only in
+        the body — so clients must branch on `accessAllowed`, never on the HTTP status.
+        `missingPrivileges` carries raw transport action names, useful for logs and support;
+        do not render it to end users.
       operationId: storeCredentials
       tags:
         - Subscription Management
+      parameters:
+        - name: perform_permission_check
+          in: query
+          required: false
+          description: |
+            Answer whether the caller holds the permission this endpoint requires, instead of
+            executing it. Implemented generically by the OpenSearch security plugin for any
+            REST endpoint (available since OpenSearch 3.2), not by the Content Manager. An
+            empty value means `true`.
+          schema:
+            type: boolean
+            default: false
+          examples:
+            check:
+              summary: Ask for the authorization decision only
+              value: true
       requestBody:
         required: true
         content:
@@ -74,6 +103,8 @@ paths:
                 value:
                   access_token: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
       responses:
+        "200":
+          $ref: "#/components/responses/SubscriptionPermissionCheck"
         "201":
           $ref: "#/components/responses/SubscriptionCreated"
         "400":
@@ -1075,6 +1106,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1113,6 +1146,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1167,6 +1202,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "413":
+          $ref: "#/components/responses/PayloadTooLarge"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1355,6 +1392,28 @@ components:
           type: string
           description: The CTI access token used to authenticate against the CTI API.
           example: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
+
+    PermissionCheckResponse:
+      type: object
+      description: |
+        Authorization decision returned when `perform_permission_check=true`. Produced by the
+        OpenSearch security plugin (`PermissionCheckResponse`), so the field names are
+        camelCase and identical on every endpoint of the cluster that supports the parameter.
+      required:
+        - accessAllowed
+        - missingPrivileges
+      properties:
+        accessAllowed:
+          type: boolean
+          description: Whether the caller holds every permission the operation requires.
+          example: true
+        missingPrivileges:
+          type: array
+          description: |
+            Transport action names the caller lacks. Empty when `accessAllowed` is `true`.
+          items:
+            type: string
+          example: ["cluster:admin/content_manager/subscription/create"]
 
     # Version check response models
     VersionCheckData:
@@ -2244,24 +2303,51 @@ components:
       type: object
       additionalProperties: false
       description: |
-        MITRE ATT&CK mapping. During indexing, the ID arrays are extracted into
-        the flat WCS mitre format (mitre.tactic, mitre.technique, mitre.subtechnique).
+        MITRE ATT&CK mapping. Each category is stored on the rule as parallel id and
+        name arrays (mitre.tactic.id, mitre.tactic.name, mitre.technique.id,
+        mitre.technique.name, mitre.subtechnique.id, mitre.subtechnique.name), and is
+        copied onto every finding the rule produces under wazuh.rule.mitre.*.
       properties:
         tactic:
-          type: array
-          items:
-            type: string
-          description: MITRE tactic IDs (e.g., TA0002, TA0005)
+          allOf:
+            - $ref: "#/components/schemas/MitreCategory"
+          description: |
+            ATT&CK tactics. `id` holds tactic IDs (e.g., TA0002, TA0005); `name` holds
+            the matching tactic names (e.g., Execution, Defense Evasion).
         technique:
-          type: array
-          items:
-            type: string
-          description: MITRE technique IDs (e.g., T1059, T1562)
+          allOf:
+            - $ref: "#/components/schemas/MitreCategory"
+          description: |
+            ATT&CK techniques. `id` holds technique IDs (e.g., T1059, T1562); `name`
+            holds the matching technique names (e.g., Command and Scripting
+            Interpreter, Impair Defenses).
         subtechnique:
+          allOf:
+            - $ref: "#/components/schemas/MitreCategory"
+          description: |
+            ATT&CK sub-techniques. `id` holds sub-technique IDs (e.g., T1059.001);
+            `name` holds the matching sub-technique names (e.g., Command and Scripting
+            Interpreter: PowerShell).
+
+    # A single MITRE ATT&CK category (tactic, technique or subtechnique)
+    MitreCategory:
+      type: object
+      additionalProperties: false
+      description: |
+        One ATT&CK category, holding parallel id and name arrays. The arrays are
+        positional — the n-th name describes the n-th ID — so name must be supplied for
+        every entry of a category or for none of them.
+      properties:
+        id:
           type: array
           items:
             type: string
-          description: MITRE subtechnique IDs (e.g., T1059.001)
+          description: ATT&CK IDs (e.g., TA0002, T1059, T1059.001)
+        name:
+          type: array
+          items:
+            type: string
+          description: ATT&CK names, positionally matching `id`
 
     # Compliance framework mapping block for rules
     ComplianceMapping:
@@ -2425,6 +2511,27 @@ components:
               value:
                 message: "Access token received successfully."
                 status: 201
+
+    SubscriptionPermissionCheck:
+      description: |
+        OK - Authorization decision for `perform_permission_check=true`. Returned for both the
+        permitted and the denied case; branch on `accessAllowed`, not on the status code.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PermissionCheckResponse"
+          examples:
+            allowed:
+              summary: Caller holds the permission (e.g. wazuh_admin)
+              value:
+                accessAllowed: true
+                missingPrivileges: []
+            denied:
+              summary: Caller lacks the permission (e.g. wazuh_readonly)
+              value:
+                accessAllowed: false
+                missingPrivileges:
+                  - "cluster:admin/content_manager/subscription/create"
 
     SubscriptionStatus:
       description: OK - Subscription status and active plan details.
@@ -2692,6 +2799,26 @@ components:
               value:
                 message: "Registration is disabled because the credentials index is not configured as a system index. Add it to plugins.security.system_indices.indices in opensearch.yml and restart."
                 status: 412
+
+    PayloadTooLarge:
+      description: |
+        Payload Too Large - The logtest request body exceeds the maximum allowed
+        size and is rejected at the REST layer before it is parsed or dispatched.
+
+        The limit is controlled by the `plugins.content_manager.logtest.max_body_bytes`
+        setting (default 1 MiB). A log line is at most a few kilobytes; this bound
+        prevents an oversized event from being amplified into the response and
+        exhausting the indexer's heap.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            event_too_large:
+              summary: logtest body over the size limit
+              value:
+                message: "logtest payload exceeds the maximum allowed size of 1048576 bytes."
+                status: 413
 
     InternalServerError:
       description: |
@@ -3051,9 +3178,9 @@ components:
                             - "aws"
                             - "cloudtrail"
                         matched_conditions:
-                          - "event.category == 'authentication'"
-                          - "event.outcome == 'failure'"
-                          - "cloud.provider == 'aws'"
+                          - "event.category matched 'authentication'"
+                          - "event.outcome matched 'failure'"
+                          - "cloud.provider matched 'aws'"
                       - rule:
                           id: "uuid-rule-2"
                           title: "rule/suspicious-console-login/0"

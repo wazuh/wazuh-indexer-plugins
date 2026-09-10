@@ -42,6 +42,8 @@ public class Constants {
     // success.
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
     public static final String S_201_ACCESS_TOKEN_RECEIVED = "Access token received successfully.";
+    public static final String S_200_PERMISSION_CHECK_ALLOWED =
+            "Permission check passed: security plugin disabled.";
     public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body.";
     public static final String E_400_MISSING_FIELD = "Missing [%s] field.";
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format.";
@@ -72,6 +74,10 @@ public class Constants {
             "This request would create more than the allowed kvdbs [%d].";
     public static final String E_400_TOO_MANY_FILTERS =
             "This request would create more than the allowed filters [%d].";
+    public static final String E_413_LOGTEST_EVENT_TOO_LARGE =
+            "logtest payload exceeds the maximum allowed size of %d bytes.";
+    public static final String E_429_LOGTEST_BUSY =
+            "logtest is busy: too many concurrent requests. Please retry later.";
     public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
             "ID should not be provided in the payload.";
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine validation failed.";
@@ -445,6 +451,8 @@ public class Constants {
     public static final String E_LOG_IOC_TYPE_HASHES_FAILED =
             "Failed to compute and store IOC type hashes: {}";
     public static final String D_LOG_IOC_ENGINE_REPLY = "Engine reply to IOC load request: {}";
+    public static final String D_LOG_IOC_PIT_RELEASE_FAILED =
+            "Failed to release the IOC point-in-time context [{}]: {}";
 
     // Log messages - space / index / index swap (SpaceService, ContentIndex, IndexSwapHelper)
     public static final String E_LOG_DELETE_SPACE_RESOURCES_FAILED =
@@ -688,6 +696,13 @@ public class Constants {
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
 
     /**
+     * Prefix of the WCS event data streams a threat detector reads. Completed with the integration's
+     * category when the integration document names no explicit detector source, the same fallback
+     * Security Analytics applies when it builds the detector.
+     */
+    public static final String INDEX_EVENTS_PREFIX = "wazuh-events-v5-";
+
+    /**
      * Document id of the single user-overrides registry document, stored in {@link #INDEX_POLICIES}.
      *
      * <p>That document deliberately carries no {@code space} field: the pre-snapshot wipe selects by
@@ -756,6 +771,10 @@ public class Constants {
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
     public static final String KEY_MESSAGE = "message";
+    // Owned by the security plugin: field names of
+    // org.opensearch.security.action.simulate.PermissionCheckResponse.
+    public static final String KEY_ACCESS_ALLOWED = "accessAllowed";
+    public static final String KEY_MISSING_PRIVILEGES = "missingPrivileges";
     public static final String KEY_STATUS = "status";
     public static final String KEY_INPUT = "input";
     public static final String KEY_YAML = "yaml";
@@ -840,6 +859,7 @@ public class Constants {
 
     // HTTP headers
     public static final String USER_AGENT_PREFIX = "Wazuh Indexer ";
+    public static final String ACCEPT_ENCODING_GZIP = "gzip";
 
     // IOC type hashes
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";

@@ -1,6 +1,8 @@
 # Security Analytics
 
-The Security Analytics plugin is a fork of the [OpenSearch Security Analytics plugin](https://opensearch.org/docs/3.6/security-analytics/) adapted for Wazuh. This page documents Wazuh-specific implementation details and extensions. See [Architecture](../../ref/modules/security-analytics/architecture.md) for the conceptual overview.
+The Security Analytics plugin is a fork of the [OpenSearch Security Analytics plugin](https://opensearch.org/docs/3.6/security-analytics/) adapted for Wazuh. This page documents Wazuh-specific implementation details and extensions. See [Architecture](../../ref/modules/ruleset-management/architecture.md) for the conceptual overview.
+
+> **A note on naming:** the Reference Manual documents this plugin as **Ruleset Management**, the name it is presented under in the Wazuh Dashboard. The Development Guide keeps the name Security Analytics, which is what the code, the `plugins.security_analytics.*` settings, the `/_plugins/_security_analytics/` API paths, the `.opensearch-sap-*` indices and the `wazuh-indexer-security-analytics` repository all use. Both names describe the same plugin — see [Ruleset Management](../../ref/modules/ruleset-management/index.md) for the user-facing reference.
 
 ## Enriched findings pipeline
 
@@ -107,7 +109,7 @@ sequenceDiagram
 - **`plugins.security_analytics.enriched_findings_rule_cache_max_size`** (default `10000`, minimum `0`, **static — requires a node restart**) — maximum number of rule-metadata entries cached in memory.
 - **Index operation type** (`CREATE`, not configurable) — prevents overwriting existing enriched findings.
 
-See the [Configuration reference](../../ref/modules/security-analytics/configuration.md) for the full settings list.
+See the [Configuration reference](../../ref/modules/ruleset-management/configuration.md) for the full settings list.
 
 ## Detector provisioning
 

@@ -14,7 +14,11 @@ Draft → Test → Custom
 2. **Test**: Promote to the test space and validate with logtest.
 3. **Custom**: Once validated, promote to custom for production use.
 
-Logtest sends a raw log event through the full detection pipeline — the Wazuh Engine normalizes the event, and the Security Analytics plugin evaluates your Sigma rules against the normalized output. The combined result shows exactly what was decoded and which rules matched.
+Logtest sends a raw log event through the full detection pipeline — the Wazuh Engine normalizes the event, and the Ruleset Management plugin evaluates your Sigma rules against the normalized output. The combined result shows exactly what was decoded and which rules matched.
+
+Rules are evaluated the way a deployed threat detector evaluates them: compiled into the same
+queries, analyzed by the same analyzers, and matched by the same percolator. A logtest result is
+therefore a prediction of the finding, not an approximation of it.
 
 Logtest supports the `test`, `standard`, and `custom` spaces. Use `test` for validating draft content, `standard` for testing against production rules, and `custom` for validating content promoted to production
 
@@ -92,7 +96,7 @@ curl -sk -u admin:admin -X POST \
 
 ## Step 3: create a rule
 
-Rules use the [Sigma format](../security-analytics/rules.md) to define detection logic. Link a rule to the same integration:
+Rules use the [Sigma format](../ruleset-management/rules.md) to define detection logic. Link a rule to the same integration:
 
 ```bash
 curl -sk -u admin:admin -X POST \
@@ -124,9 +128,18 @@ curl -sk -u admin:admin -X POST \
       "level": "medium",
       "tags": ["attack.credential-access", "attack.t1110.001"],
       "mitre": {
-        "tactic": ["TA0006"],
-        "technique": ["T1110"],
-        "subtechnique": ["T1110.001"]
+        "tactic": {
+          "id": ["TA0006"],
+          "name": ["Credential Access"]
+        },
+        "technique": {
+          "id": ["T1110"],
+          "name": ["Brute Force"]
+        },
+        "subtechnique": {
+          "id": ["T1110.001"],
+          "name": ["Brute Force: Password Guessing"]
+        }
       }
     }
   }'
@@ -232,8 +245,9 @@ The `trace_level` field controls how much detail the Engine returns:
 If the results aren't what you expect:
 
 1. **Decoder not matching?** Check `asset_traces` — if your decoder isn't listed, review the `check` conditions. Use `trace_level: ALL` to see which decoders were attempted.
-2. **Rule not matching?** Compare the normalized event fields with your rule's `detection` block. Field names and values must match exactly (case-insensitive for strings).
-3. **Unexpected matches?** Review `matched_conditions` to understand why a rule triggered.
+2. **Rule not matching?** Compare the normalized event fields with your rule's `detection` block. Field names and string values must both match exactly — string comparison is case-sensitive.
+3. **Unexpected matches?** Review `matched_conditions`: it lists the conditions this event
+   satisfies, so it shows what in the event triggered the rule rather than restating the rule.
 
 After making changes:
 - Update the rule or decoder via `PUT` on the respective endpoint.
@@ -398,4 +412,4 @@ The response contains only the detection result:
 | Normalization only | `/_plugins/_content_manager/logtest/normalization` | POST |
 | Detection only | `/_plugins/_content_manager/logtest/detection` | POST |
 
-For full endpoint details, see the [API Reference](api.md). For Sigma rule format details, see [Sigma Rules](../security-analytics/rules.md).
+For full endpoint details, see the [API Reference](api.md). For Sigma rule format details, see [Sigma Rules](../ruleset-management/rules.md).

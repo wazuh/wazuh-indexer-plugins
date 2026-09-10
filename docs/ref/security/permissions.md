@@ -1,6 +1,6 @@
 # Permissions
 
-This page lists the permissions registered by the Wazuh Indexer plugins that are referenced by the [default roles](./access-control.md). Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual `cluster:admin/content_manager/*` transport actions registered by the plugin; the Setup and Security Analytics entries are raw cluster actions.
+This page lists the permissions registered by the Wazuh Indexer plugins that are referenced by the [default roles](./access-control.md). Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual `cluster:admin/content_manager/*` transport actions registered by the plugin; the Setup and Ruleset Management entries are raw cluster actions.
 
 ### Setup plugin permissions
 
@@ -21,7 +21,7 @@ Other Content Manager permissions:
 - `plugin:content_manager/policy/update` — create/update a policy (`PUT /_plugins/_content_manager/policy/{space}`)
 - `plugin:content_manager/update` — trigger an on-demand CTI catalog sync (`POST /_plugins/_content_manager/update`)
 - `plugin:content_manager/subscription/get` — read the CTI subscription
-- `plugin:content_manager/subscription/post` — create/update the CTI subscription
+- `plugin:content_manager/subscription/post` — create/update the CTI subscription. Also the permission evaluated by `POST /_plugins/_content_manager/subscription?perform_permission_check=true`, which reports whether the caller holds it instead of registering.
 - `plugin:content_manager/subscription/delete` — delete the CTI subscription
 - `plugin:content_manager/promote/get` — preview a promotion diff
 - `plugin:content_manager/promote/post` — execute a space promotion (and `plugin:content_manager/promote/*`)
@@ -29,7 +29,7 @@ Other Content Manager permissions:
 - `plugin:content_manager/space/delete` — delete a space
 - `plugin:content_manager/version/check` — check the catalog version
 
-### Security Analytics plugin permissions
+### Ruleset Management plugin permissions
 
 Wazuh custom actions:
 

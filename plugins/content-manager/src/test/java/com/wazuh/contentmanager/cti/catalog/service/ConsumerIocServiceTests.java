@@ -176,6 +176,41 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
     }
 
+    /** Mocks a search that returns no documents, so the single pass terminates immediately. */
+    @SuppressWarnings("unchecked")
+    private void mockEmptySearch() {
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> emptyFuture = mock(ActionFuture.class);
+        when(emptyFuture.actionGet()).thenReturn(emptySearchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(emptyFuture);
+    }
+
+    /**
+     * Mocks PIT creation, and PIT release such that the release identified by {@code failingRelease}
+     * (1-based: 1 is the hash pass, 2 is the export) fails the way a node leaving the cluster
+     * mid-sync makes it fail.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void mockPitLifecycleWithFailingRelease(int failingRelease) {
+        CreatePitResponse pitResponse = mock(CreatePitResponse.class);
+        when(pitResponse.getId()).thenReturn("test-pit-id");
+        ActionFuture<CreatePitResponse> pitFuture = mock(ActionFuture.class);
+        when(pitFuture.actionGet()).thenReturn(pitResponse);
+        when(this.client.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
+                .thenReturn(pitFuture);
+
+        ActionFuture<Object> okFuture = mock(ActionFuture.class);
+        ActionFuture<Object> failingFuture = mock(ActionFuture.class);
+        when(failingFuture.actionGet())
+                .thenThrow(new RuntimeException("[node-8][172.31.33.24:9300] Node not connected"));
+
+        when(this.client.execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class)))
+                .thenReturn(
+                        (ActionFuture) (failingRelease == 1 ? failingFuture : okFuture),
+                        (ActionFuture) (failingRelease == 2 ? failingFuture : okFuture));
+    }
+
     /** Tests that onSyncComplete does nothing when isUpdated is false. */
     public void testOnSyncCompleteSkipsWhenNotUpdated() {
         this.service.onSyncComplete(false);
@@ -325,6 +360,47 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
 
         // Index should NOT have been called since the exception happened before indexing
         verify(this.client, never()).index(any(IndexRequest.class));
+    }
+
+    /**
+     * A failing PIT release during the hash pass must not abort the rest of the post-sync cascade.
+     * The release sits in a {@code finally} whose {@code try} already catches everything, so before
+     * this was guarded it was the only statement that could throw out of {@code
+     * computeAndStoreTypeHashes()}: the failure propagated through {@code onSyncComplete()} into
+     * {@code AbstractConsumerService.synchronize()}, which marks the consumer FAILED, and the export
+     * and Engine notification that follow it never ran. Releasing a PIT is best-effort — the context
+     * expires on its own keepalive, and one held by a departed node died with it.
+     */
+    @SuppressWarnings("unchecked")
+    public void testHashPassPitReleaseFailureStillExportsAndNotifiesEngine() {
+        this.mockPitLifecycleWithFailingRelease(1);
+        this.mockEmptySearch();
+        this.mockIndexResponse();
+
+        this.service.onSyncComplete(true);
+
+        verify(this.client).index(any(IndexRequest.class));
+        verify(this.client, times(2))
+                .execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
+        verify(this.engineService).updateIoc(anyString(), anyString());
+    }
+
+    /**
+     * The same for the export's PIT, which is released after the NDJSON file has been written but
+     * before {@code export()} returns its path. A failing release used to discard a completed export
+     * and, with it, the Engine notification.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExportPitReleaseFailureStillNotifiesEngine() {
+        this.mockPitLifecycleWithFailingRelease(2);
+        this.mockEmptySearch();
+        this.mockIndexResponse();
+
+        this.service.onSyncComplete(true);
+
+        verify(this.client, times(2))
+                .execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
+        verify(this.engineService).updateIoc(anyString(), anyString());
     }
 
     /** Tests that getMappings returns the IOC mappings. */

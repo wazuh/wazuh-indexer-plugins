@@ -10,7 +10,7 @@ The alerting pipeline follows a linear flow:
 2. The query results are evaluated against one or more **Triggers** — boolean conditions that determine whether an alert should fire.
 3. When a trigger condition is met, the monitor executes its configured **Actions** — typically sending a notification through the Notifications plugin.
 4. An **Alert** record is created to track the triggered condition through its lifecycle.
-5. For document-level monitors, **Findings** record which specific documents matched the trigger.
+5. For document-level monitors, **Findings** record which specific documents matched the monitor's queries. Findings are written whether or not the monitor defines a trigger, so a monitor with an empty trigger list still produces them.
 
 ## Monitor types
 
@@ -37,7 +37,7 @@ Each monitor type uses a corresponding trigger type:
 
 - **QueryLevelTrigger**: Evaluates a script condition against the full query response. The script has access to the query results, aggregations, and monitor metadata.
 - **BucketLevelTrigger**: Evaluates a condition per aggregation bucket. Supports composite aggregations for paginating through large result sets.
-- **DocumentLevelTrigger**: Defines per-document matching conditions using query DSL. Documents that match the trigger's queries generate findings.
+- **DocumentLevelTrigger**: Defines per-document matching conditions using query DSL. Documents that match the trigger's queries generate alerts.
 - **ChainedAlertTrigger**: Evaluates a condition over the alerts produced by the delegate monitors of a composite (workflow) monitor, allowing alerts to fire based on combinations of upstream monitor results.
 
 Cluster metrics monitors reuse `QueryLevelTrigger`, evaluating a script condition against the cluster API response.
@@ -73,7 +73,7 @@ Document-level monitors produce **findings** — records of individual documents
 
 Findings are stored in rolling indices (`.opensearch-alerting-finding-history-*`) with a default retention of 30 days.
 
-These raw alerting findings are not the same as the findings surfaced in the Wazuh context. Detectors managed by the [Security Analytics](../security-analytics/index.md) plugin run on document-level monitors internally, but produce their own enriched findings — augmented with the full event payload and rule metadata — which are written to `wazuh-findings-v5-*` indices. A plain document-level monitor only produces the raw findings described above; it does not perform this enrichment.
+These raw alerting findings are not the same as the findings surfaced in the Wazuh context. Detectors managed by the [Ruleset Management](../ruleset-management/index.md) plugin run on document-level monitors internally, but produce their own enriched findings — augmented with the full event payload and rule metadata — which are written to `wazuh-findings-v5-*` indices. A plain document-level monitor only produces the raw findings described above; it does not perform this enrichment.
 
 ## Workflows
 

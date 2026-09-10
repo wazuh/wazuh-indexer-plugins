@@ -179,8 +179,7 @@
           }
         },
         "message": {
-          "ignore_above": 1024,
-          "type": "keyword"
+          "type": "match_only_text"
         },
         "policy": {
           "properties": {

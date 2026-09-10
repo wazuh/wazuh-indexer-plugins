@@ -48,6 +48,13 @@ public class PluginSettings {
     public static final String SPACE_URI = PLUGINS_BASE_URI + "/space";
     public static final String VERSION_CHECK_URI = PLUGINS_BASE_URI + "/version/check";
 
+    /**
+     * Name of the dedicated, bounded thread pool that executes logtest requests. Offloading logtest
+     * off the transport thread and onto a fixed pool with a bounded queue prevents request
+     * concurrency from being converted directly into heap pressure (overflow is rejected with 429).
+     */
+    public static final String LOGTEST_THREAD_POOL = "content_manager_logtest";
+
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
 
@@ -67,6 +74,7 @@ public class PluginSettings {
     private static final int MINIMUM_MAX_FILTERS = 0;
 
     private static final long DEFAULT_MAX_BULK_BYTES = 5L * 1024 * 1024;
+    private static final long DEFAULT_LOGTEST_MAX_BODY_BYTES = 1L * 1024 * 1024;
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
     private static final int DEFAULT_CATALOG_SYNC_INTERVAL = 60;
@@ -139,6 +147,24 @@ public class PluginSettings {
                     100L * 1024 * 1024,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
+
+    /**
+     * Maximum size, in bytes, of a logtest request body ({@code POST
+     * /_plugins/_content_manager/logtest} and its {@code /normalization} and {@code /detection}
+     * siblings). A log line is at most a few kilobytes; the endpoint amplifies its input into the
+     * response (~2 bytes out per byte in) and, being available to read-only accounts, is otherwise a
+     * cheap way to exhaust the indexer's heap. Requests whose raw body exceeds this limit are
+     * rejected with {@code 413 REQUEST_ENTITY_TOO_LARGE} at the REST layer, before parsing or
+     * dispatch, so the amplification never happens. Default 1 MiB; bounded 1 KiB–16 MiB.
+     */
+    public static final Setting<Long> LOGTEST_MAX_BODY_BYTES =
+            Setting.longSetting(
+                    "plugins.content_manager.logtest.max_body_bytes",
+                    DEFAULT_LOGTEST_MAX_BODY_BYTES,
+                    1L * 1024,
+                    16L * 1024 * 1024,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
 
     /**
      * The maximum number of co-existing bulk operations during the initialization from a snapshot.
@@ -291,6 +317,22 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /**
+     * Setting to enable the mock Security Analytics service for testing environments.
+     *
+     * <p>Separate from {@link #ENGINE_MOCK_ENABLED} because the two are not available under the same
+     * conditions: the Engine talks over a Unix socket that a test cluster does not have, while
+     * Security Analytics is a plugin this one extends and is therefore always installed. Defaults to
+     * whatever the engine mock is set to, so an environment that mocked both keeps doing so, but a
+     * test cluster can now mock only the Engine and exercise real rule evaluation.
+     */
+    public static final Setting<Boolean> SECURITY_ANALYTICS_MOCK_ENABLED =
+            Setting.boolSetting(
+                    "plugins.content_manager.security_analytics.mock",
+                    ENGINE_MOCK_ENABLED,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     /** Configuration setting to enable or disable the telemetry ping. Defaults to true. */
     public static final Setting<Boolean> TELEMETRY_ENABLED =
             Setting.boolSetting(
@@ -385,20 +427,10 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
-    /**
-     * Dynamic setting to override the wazuh-uid header value sent with CTI API requests. When empty
-     * (the default), the cluster UUID is used.
-     */
-    public static final Setting<String> WAZUH_UID =
-            Setting.simpleString(
-                    "plugins.content_manager.wazuh_uid",
-                    "",
-                    Setting.Property.NodeScope,
-                    Setting.Property.Dynamic);
-
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
+    private volatile long logtestMaxBodyBytes;
     private final int maximumConcurrentBulks;
     private final long clientTimeout;
     private final int catalogSyncInterval;
@@ -409,6 +441,7 @@ public class PluginSettings {
     private final String catalogVulnerabilities;
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
+    private final boolean securityAnalyticsMockEnabled;
     private final int setupWaitMaxRetries;
     private final int setupWaitBackoffBaseSeconds;
     private final int clientMaxRetries;
@@ -423,7 +456,7 @@ public class PluginSettings {
     private volatile int maxKvdbs;
     private volatile int maxFilters;
     private volatile String accessToken;
-    private volatile String wazuhUid;
+    private volatile String clusterUUID;
     private String version;
 
     /**
@@ -435,6 +468,7 @@ public class PluginSettings {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
         this.maximumItemsPerBulk = MAX_ITEMS_PER_BULK.get(settings);
         this.maximumBulkBytes = MAX_BULK_BYTES.get(settings);
+        this.logtestMaxBodyBytes = LOGTEST_MAX_BODY_BYTES.get(settings);
         this.maximumConcurrentBulks = MAX_CONCURRENT_BULKS.get(settings);
         this.clientTimeout = CLIENT_TIMEOUT.get(settings);
         this.catalogSyncInterval = CATALOG_SYNC_INTERVAL.get(settings);
@@ -445,6 +479,7 @@ public class PluginSettings {
         this.catalogVulnerabilities = CATALOG_VULNERABILITIES.get(settings);
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
+        this.securityAnalyticsMockEnabled = SECURITY_ANALYTICS_MOCK_ENABLED.get(settings);
         this.setupWaitMaxRetries = SETUP_WAIT_MAX_RETRIES.get(settings);
         this.setupWaitBackoffBaseSeconds = SETUP_WAIT_BACKOFF_BASE_SECONDS.get(settings);
         this.clientMaxRetries = CLIENT_MAX_RETRIES.get(settings);
@@ -458,11 +493,7 @@ public class PluginSettings {
         this.maxRules = MAX_RULES.get(settings);
         this.maxKvdbs = MAX_KVDBS.get(settings);
         this.maxFilters = MAX_FILTERS.get(settings);
-        String uid = WAZUH_UID.get(settings);
-        if (!uid.isEmpty()) {
-            this.wazuhUid = uid;
-        }
-        log.debug("Settings.loaded: {}", this.toString());
+        log.debug("Settings loaded: {}", this.toString());
     }
 
     /**
@@ -576,10 +607,10 @@ public class PluginSettings {
     /**
      * Sets the cluster UUID used as the wazuh-uid header in CTI API requests.
      *
-     * @param wazuhUid the cluster UUID string, or null to clear it.
+     * @param clusterUUID the cluster UUID string, or null to clear it.
      */
-    public void setWazuhUid(String wazuhUid) {
-        this.wazuhUid = wazuhUid;
+    public void setClusterUUID(String clusterUUID) {
+        this.clusterUUID = clusterUUID;
     }
 
     /**
@@ -587,8 +618,8 @@ public class PluginSettings {
      *
      * @return the cluster UUID string, or null if not yet set.
      */
-    public String getWazuhUid() {
-        return this.wazuhUid;
+    public String getClusterUUID() {
+        return this.clusterUUID;
     }
 
     /**
@@ -645,6 +676,25 @@ public class PluginSettings {
      */
     public long getMaxBulkBytes() {
         return this.maximumBulkBytes;
+    }
+
+    /**
+     * Retrieves the maximum allowed size, in bytes, of a logtest request body.
+     *
+     * @return the maximum logtest request body size in bytes.
+     */
+    public long getLogtestMaxBodyBytes() {
+        return this.logtestMaxBodyBytes;
+    }
+
+    /**
+     * Updates the maximum allowed logtest request body size. Invoked by the cluster-settings update
+     * consumer when {@code plugins.content_manager.logtest.max_body_bytes} changes.
+     *
+     * @param logtestMaxBodyBytes the new maximum size in bytes.
+     */
+    public void setLogtestMaxBodyBytes(long logtestMaxBodyBytes) {
+        this.logtestMaxBodyBytes = logtestMaxBodyBytes;
     }
 
     /**
@@ -792,6 +842,15 @@ public class PluginSettings {
      */
     public Boolean isEngineMockEnabled() {
         return this.engineMockEnabled;
+    }
+
+    /**
+     * Retrieves the value for the Security Analytics mock enabled setting.
+     *
+     * @return a Boolean indicating if the mock Security Analytics service is enabled.
+     */
+    public Boolean isSecurityAnalyticsMockEnabled() {
+        return this.securityAnalyticsMockEnabled;
     }
 
     /**

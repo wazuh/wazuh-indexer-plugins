@@ -96,6 +96,8 @@ YAML parsing preserves numeric type fidelity. Floating-point values like `5.0` a
 
 Stores the provided CTI access token in the `.wazuh-internal-state` hidden index and loads it into memory. If the index does not exist it is recreated automatically before writing.
 
+> To find out whether the current user is allowed to register, without registering, see [Check registration permission](#check-registration-permission).
+
 #### Request
 
 - Method: `POST`
@@ -131,6 +133,63 @@ curl -sk -u admin:admin -X POST \
 - **400** — missing or empty `access_token` field.
 - **412** — a required precondition is not met (for example, the credentials index is not declared as a system index — see `plugins.security.system_indices.indices` in `opensearch.yml`).
 - **500** — internal error.
+
+---
+
+### Check registration permission
+
+Answers whether the current user is allowed to register a CTI subscription, without registering one. Intended for callers that need to decide before starting the CTI OAuth device flow, since approving that flow creates the environment on the CTI side and an authorization failure afterwards leaves it orphaned.
+
+The check is performed with the `perform_permission_check` query parameter, which is provided natively by the OpenSearch security plugin for any REST endpoint. The permission evaluated is the same one a real registration requires: `plugin:content_manager/subscription/post`, mapped to the `cluster:admin/content_manager/subscription/create` action. Under the default role set, only `wazuh_admin` holds it.
+
+> The request has **no side effects**: the security plugin answers before the action executes, so no CTI API call is made and no credentials are written. It is idempotent and safe to call repeatedly.
+
+#### Request
+
+- Method: `POST`
+- Path: `/_plugins/_content_manager/subscription`
+
+#### Query parameters
+
+- **`perform_permission_check`** (Boolean, optional, default `false`) — when `true`, return the authorization decision instead of registering a subscription. An empty value is treated as `true`.
+
+#### Request body
+
+None. The body is not read in this mode, and `access_token` is not required.
+
+#### Example request
+
+```bash
+curl -sk -u admin:admin -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/subscription?perform_permission_check=true"
+```
+
+#### Example response (allowed)
+
+```json
+{
+  "accessAllowed": true,
+  "missingPrivileges": []
+}
+```
+
+#### Example response (denied)
+
+```json
+{
+  "accessAllowed": false,
+  "missingPrivileges": ["cluster:admin/content_manager/subscription/create"]
+}
+```
+
+#### Status codes
+
+- **200** — decision returned. Both the allowed and the denied case use this status.
+- **401** — missing or invalid credentials.
+
+> **Note**: This mode always responds with `200`; the outcome is carried by the `accessAllowed` field. Branch on that field, not on the status code. The `missingPrivileges` array contains raw action names intended for logs and support, not for display to end users.
+
+The response fields are produced by the security plugin and are therefore camelCase, identical on every endpoint that supports this parameter.
 
 ---
 
@@ -279,7 +338,7 @@ curl -sk -u admin:admin -X POST \
 
 ### Execute logtest
 
-Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is provided, the integration's Sigma rules are also evaluated against the normalized event via the Security Analytics plugin. If `integration` is omitted, only the normalization step is performed and the `detection` section is returned with `status: "skipped"`.
+Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is provided, the integration's Sigma rules are also evaluated against the normalized event via the Ruleset Management plugin. If `integration` is omitted, only the normalization step is performed and the `detection` section is returned with `status: "skipped"`.
 
 > **Note**: A testing policy must be loaded in the Engine for logtest to execute successfully. Load a policy via the policy promotion endpoint. When an integration is specified, it must exist in the specified space.
 
@@ -458,12 +517,15 @@ curl -sk -u admin:admin -X POST \
 - **`detection.rules_matched`** (Integer) — number of rules that matched.
 - **`detection.matches`** (Array) — list of matched rules with details.
 - **`detection.matches[].rule`** (Object) — rule metadata: `id`, `title`, `level`, `tags`.
-- **`detection.matches[].matched_conditions`** (Array) — human-readable descriptions of conditions that matched.
+- **`detection.matches[].matched_conditions`** (Array) — human-readable descriptions of the rule's
+  conditions **that this event satisfies**. A condition offering several values contributes only the
+  ones present in the event, so two events caught by the same rule describe their own match.
 
 #### Status codes
 
 - **200** — logtest executed (check inner status fields).
 - **400** — missing/invalid fields or integration not found.
+- **413** — request body exceeds `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB); rejected before processing.
 - **500** — Engine socket communication error or internal error.
 
 ---
@@ -560,13 +622,14 @@ curl -sk -u admin:admin -X POST \
 
 - **200** — normalization executed successfully.
 - **400** — missing/invalid fields.
+- **413** — request body exceeds `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB); rejected before processing.
 - **500** — Engine socket communication error or internal error.
 
 ---
 
 ### Detection only
 
-Evaluates an already-normalized event against the Sigma rules of a given integration via the Security Analytics plugin. This endpoint does **not** call the Wazuh Engine — the normalized event must be provided directly in the `input` field.
+Evaluates an already-normalized event against the Sigma rules of a given integration via the Ruleset Management plugin. This endpoint does **not** call the Wazuh Engine — the normalized event must be provided directly in the `input` field.
 
 Use this after obtaining a normalized event from the `/logtest/normalization` endpoint, or when you already have a normalized event and want to test different integrations' rules against it.
 
@@ -661,7 +724,7 @@ curl -sk -u admin:admin -X POST \
     "status": "success",
     "rules_evaluated": 0,
     "rules_matched": 0,
-    "matches": []
+    "matches": [],
   }
 }
 ```
@@ -673,12 +736,15 @@ curl -sk -u admin:admin -X POST \
 - **`message.rules_matched`** (Integer) — number of rules that matched.
 - **`message.matches`** (Array) — list of matched rules with details.
 - **`message.matches[].rule`** (Object) — rule metadata: `id`, `title`, `level`, `tags`.
-- **`message.matches[].matched_conditions`** (Array) — human-readable descriptions of matched conditions.
+- **`message.matches[].matched_conditions`** (Array) — human-readable descriptions of the rule's
+  conditions **that this event satisfies**. A condition offering several values contributes only the
+  ones present in the event, so two events caught by the same rule describe their own match.
 
 #### Status codes
 
 - **200** — detection executed (check `message.status`).
 - **400** — missing/invalid fields or integration not found.
+- **413** — request body exceeds `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB); rejected before processing.
 - **500** — internal error.
 
 ---
@@ -797,7 +863,7 @@ The `message` field contains the OpenSearch document ID of the updated policy.
 
 ## Rules
 
-Rules follow the Sigma format with Wazuh extensions. See [Sigma Rules](../security-analytics/rules.md) for the full format reference, including the `mitre`, `compliance`, and `metadata` blocks.
+Rules follow the Sigma format with Wazuh extensions. See [Sigma Rules](../ruleset-management/rules.md) for the full format reference, including the `mitre`, `compliance`, and `metadata` blocks.
 
 > **Validation notes**:
 > - The `logsource.product` field must exactly match the `metadata.title` of the parent integration.
@@ -806,9 +872,9 @@ Rules follow the Sigma format with Wazuh extensions. See [Sigma Rules](../securi
 
 ### Create rule
 
-Creates a new detection rule in the draft space. The rule is linked to the specified parent integration and validated by the Security Analytics plugin.
+Creates a new detection rule in the draft space. The rule is linked to the specified parent integration and validated by the Ruleset Management plugin.
 
-The rule is also synchronized to Security Analytics, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
+The rule is also synchronized to Ruleset Management, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
 
 #### Request
 
@@ -829,8 +895,8 @@ Fields within `resource`:
 - **`level`** (String, optional) — alert level (e.g., `low`, `medium`, `high`, `critical`).
 - **`logsource`** (Object, optional) — log source definition (`product`, `category`).
 - **`detection`** (Object, optional) — Sigma detection logic with `condition` and selection fields.
-- **`mitre`** (Object, optional) — MITRE ATT&CK mapping (see [Sigma Rules](../security-analytics/rules.md#mitre-attck)).
-- **`compliance`** (Object, optional) — compliance framework mapping (see [Sigma Rules](../security-analytics/rules.md#compliance)).
+- **`mitre`** (Object, optional) — MITRE ATT&CK mapping. Each of `tactic`, `technique` and `subtechnique` is an object holding parallel `id` and `name` arrays (see [Sigma Rules](../ruleset-management/rules.md#mitre-attck)).
+- **`compliance`** (Object, optional) — compliance framework mapping (see [Sigma Rules](../ruleset-management/rules.md#compliance)).
 
 Fields within `resource.metadata`:
 
@@ -875,9 +941,14 @@ curl -sk -u admin:admin -X POST \
       },
       "level": "low",
       "mitre": {
-        "tactic": ["TA0001"],
-        "technique": ["T1190"],
-        "subtechnique": []
+        "tactic": {
+          "id": ["TA0001"],
+          "name": ["Initial Access"]
+        },
+        "technique": {
+          "id": ["T1190"],
+          "name": ["Exploit Public-Facing Application"]
+        }
       },
       "compliance": {
         "pci_dss": ["6.5.1"]
@@ -901,7 +972,7 @@ The `message` field contains the UUID of the created rule.
 
 - **201** — rule created.
 - **400** — missing fields, duplicate title, integration not in draft space, validation failure, or `max_rules` limit reached (default: 100).
-- **500** — internal error or Security Analytics unavailable.
+- **500** — internal error or Ruleset Management unavailable.
 
 ---
 
@@ -1430,9 +1501,9 @@ curl -sk -u admin:admin -X DELETE \
 
 ### Create integration
 
-Creates a new integration in the draft space. An integration is a logical grouping of related rules, decoders, and KVDBs. The integration is validated against the Engine and registered with the Security Analytics plugin.
+Creates a new integration in the draft space. An integration is a logical grouping of related rules, decoders, and KVDBs. The integration is validated against the Engine and registered with the Ruleset Management plugin.
 
-The integration is also synchronized to Security Analytics, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
+The integration is also synchronized to Ruleset Management, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
 
 #### Request
 
@@ -1498,7 +1569,7 @@ The `message` field contains the UUID of the created integration.
 
 - **201** — integration created.
 - **400** — missing required fields (`title`, `author`, `category`), duplicate title, validation failure, or `max_integrations` limit reached (default: 100).
-- **500** — internal error or Security Analytics/Engine unavailable.
+- **500** — internal error or Ruleset Management/Engine unavailable.
 
 ---
 
@@ -1945,14 +2016,14 @@ Promotes content from the source space to the next space in the promotion chain 
 
 For Draft → Test promotions, the changeset is forwarded to the local Wazuh Engine for validation only when it includes decoders, kvdbs, or filters. Promotions limited to integrations, rules, or the policy skip the engine call entirely. Test → Custom promotions never invoke the engine.
 
-In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Security Analytics plugin. For each promoted resource, a new document is created in the target space with:
+In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Ruleset Management plugin. For each promoted resource, a new document is created in the target space with:
 - A newly generated UUID as the primary ID.
 - A `document.id` field storing the original CTI document UUID for cross-reference.
 - A `source` field indicating the target space (e.g., "Test", "Custom").
 
 New resources (add operations) use `POST` to create these documents; existing resources (update operations) use `PUT` to update them in-place.
 
-This ensures that the same CTI resource can exist in multiple spaces with independent Security Analytics documents.
+This ensures that the same CTI resource can exist in multiple spaces with independent Ruleset Management documents.
 
 #### Rollback on failure
 
@@ -1960,7 +2031,7 @@ If any Content Manager index mutation fails during the consolidation phase, the 
 
 1. **Pre-promotion snapshots** are captured before any writes — old versions for adds/updates, full documents for deletes.
 2. **Content Manager rollback**: each completed mutation is undone in reverse order. Adds are deleted, updates are restored to their previous version, deletes are re-indexed from the snapshot.
-3. **Security Analytics reconciliation** (best-effort): rules and integrations synced during the forward pass are reverted — new documents are deleted, updated ones are restored, and deleted ones are re-created from snapshots.
+3. **Ruleset Management reconciliation** (best-effort): rules and integrations synced during the forward pass are reverted — new documents are deleted, updated ones are restored, and deleted ones are re-created from snapshots.
 
 Individual rollback or reconciliation step failures are logged but do not prevent remaining steps from executing. On rollback, the endpoint returns a `500` status.
 

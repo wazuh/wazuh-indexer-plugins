@@ -39,6 +39,7 @@ import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Module;
 import org.opensearch.common.settings.*;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
@@ -60,6 +61,8 @@ import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.secure_sm.AccessController;
+import org.opensearch.threadpool.ExecutorBuilder;
+import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -88,6 +91,7 @@ import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
+import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
@@ -126,6 +130,7 @@ public class ContentManagerPlugin extends Plugin
 
     private ConsumersIndex consumersIndex;
     private CredentialsIndex credentialsIndex;
+    private ResourceLockService resourceLockService;
     private boolean isCredentialsIndexProtected;
     private ThreadPool threadPool;
     private Client client;
@@ -202,6 +207,7 @@ public class ContentManagerPlugin extends Plugin
 
         this.consumersIndex = new ConsumersIndex(client);
         this.credentialsIndex = new CredentialsIndex(client, threadPool);
+        this.resourceLockService = new ResourceLockService(client, threadPool);
         this.setupReadiness = new SetupReadiness(client);
         this.plansService = new PlansServiceImpl();
         this.subscriptionService =
@@ -224,7 +230,7 @@ public class ContentManagerPlugin extends Plugin
         this.engineContentLoader =
                 new EngineContentLoader(this.engine, this.spaceService, this.threadPool);
 
-        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+        if (PluginSettings.getInstance().isSecurityAnalyticsMockEnabled()) {
             this.securityAnalyticsService = new MockSecurityAnalyticsService();
         } else {
             this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
@@ -282,7 +288,8 @@ public class ContentManagerPlugin extends Plugin
         clusterService
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
-                        PluginSettings.WAZUH_UID, v -> PluginSettings.getInstance().setWazuhUid(v));
+                        PluginSettings.LOGTEST_MAX_BODY_BYTES,
+                        v -> PluginSettings.getInstance().setLogtestMaxBodyBytes(v));
 
         return List.of(
                 this.subscriptionService,
@@ -307,10 +314,11 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        if (PluginSettings.getInstance().getWazuhUid() == null) {
-            PluginSettings.getInstance()
-                    .setWazuhUid(this.clusterService.state().metadata().clusterUUID());
-        }
+        // Resolved here rather than in createComponents(): createComponents() runs in the Node
+        // constructor, before Node.start() installs the initial cluster state on the applier
+        // service, so clusterService.state() is not available yet at that point.
+        PluginSettings.getInstance()
+                .setClusterUUID(this.clusterService.state().metadata().clusterUUID());
         this.threadPool.generic().execute(this::tryLoadAccessToken);
 
         // Load the STANDARD space into this node's local Engine on every node, not just the elected
@@ -506,6 +514,26 @@ public class ContentManagerPlugin extends Plugin
                                         log.error(
                                                 Constants.E_LOG_PLUGIN_INDEX_CREATE_FAILED,
                                                 CredentialsIndex.INDEX_NAME,
+                                                e.getMessage(),
+                                                e);
+                                    }
+
+                                    // Provision the resource-creation lock index up front. It is
+                                    // plugin-internal bookkeeping, so creating it here (as the plugin)
+                                    // keeps it off the REST request path, where the create would
+                                    // otherwise be evaluated against the calling user's privileges.
+                                    try {
+                                        CreateIndexResponse locksResponse = this.resourceLockService.createIndex();
+                                        if (locksResponse != null && locksResponse.isAcknowledged()) {
+                                            log.info(
+                                                    Constants.I_LOG_PLUGIN_INDEX_CREATED,
+                                                    locksResponse.index(),
+                                                    locksResponse.isAcknowledged());
+                                        }
+                                    } catch (Exception e) {
+                                        log.error(
+                                                Constants.E_LOG_PLUGIN_INDEX_CREATE_FAILED,
+                                                Constants.INDEX_RESOURCE_LOCKS,
                                                 e.getMessage(),
                                                 e);
                                     }
@@ -958,6 +986,7 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_CONCURRENT_BULKS,
                 PluginSettings.MAX_ITEMS_PER_BULK,
                 PluginSettings.MAX_BULK_BYTES,
+                PluginSettings.LOGTEST_MAX_BODY_BYTES,
                 PluginSettings.CATALOG_SYNC_INTERVAL,
                 PluginSettings.UPDATE_ON_START,
                 PluginSettings.UPDATE_ON_SCHEDULE,
@@ -967,6 +996,7 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.TELEMETRY_ENABLED,
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
+                PluginSettings.SECURITY_ANALYTICS_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS,
                 PluginSettings.UPDATE_ON_DEMAND,
                 PluginSettings.POLICY_UPDATE_ENABLED,
@@ -975,11 +1005,25 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_RULES,
                 PluginSettings.MAX_KVDBS,
                 PluginSettings.MAX_FILTERS,
-                PluginSettings.WAZUH_UID,
                 PluginSettings.SETUP_WAIT_MAX_RETRIES,
                 PluginSettings.SETUP_WAIT_BACKOFF_BASE_SECONDS,
                 PluginSettings.CLIENT_MAX_RETRIES,
                 PluginSettings.CLIENT_RETRY_BACKOFF_BASE_SECONDS);
+    }
+
+    @Override
+    public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
+        // Dedicated, bounded pool for logtest execution. Sized to half the allocated processors (at
+        // least one) with a small bounded queue: excess concurrency is rejected with 429 rather than
+        // piling blocking engine-socket calls onto the transport threads and converting into heap.
+        int size = Math.max(1, OpenSearchExecutors.allocatedProcessors(settings) / 2);
+        return List.of(
+                new FixedExecutorBuilder(
+                        settings,
+                        PluginSettings.LOGTEST_THREAD_POOL,
+                        size,
+                        100,
+                        "plugins.content_manager.thread_pool.logtest"));
     }
 
     @Override
