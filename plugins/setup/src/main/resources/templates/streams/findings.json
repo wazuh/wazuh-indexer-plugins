@@ -13,11 +13,10 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
-          "agent.host.architecture",
-          "agent.host.ip",
-          "agent.id",
-          "agent.name",
-          "agent.version",
+          "wazuh.agent.host.architecture",
+          "wazuh.agent.id",
+          "wazuh.agent.name",
+          "wazuh.agent.version",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
           "wazuh.schema.version"

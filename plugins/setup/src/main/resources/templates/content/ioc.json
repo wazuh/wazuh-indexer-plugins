@@ -12,11 +12,8 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
-          "document.confidence",
           "document.feed.name",
-          "document.first_seen",
           "document.id",
-          "document.last_seen",
           "document.name",
           "document.provider",
           "document.reference",
@@ -24,8 +21,7 @@
           "document.software.name",
           "document.software.type",
           "document.tags",
-          "document.type",
-          "type"
+          "document.type"
         ],
         "refresh_interval": "2s"
       },

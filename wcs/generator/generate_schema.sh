@@ -203,6 +203,16 @@ function copy_files() {
     done
   done
 
+  # Runs after the dynamic_templates conversion, so the events and findings lists are resolved
+  # against the same dynamic templates that end up shipping.
+  echo "---> Default query fields"
+  for ecs_module in "${modules_to_update[@]}"; do
+    if [[ -z "${module_to_file[$ecs_module]}" ]]; then
+      continue
+    fi
+    python3 "$repo_path/wcs/generator/generate_default_query_fields.py" "$ecs_module"
+  done
+
   echo "---> Content Manager mappings"
   local cm_mapping
   local content_name
