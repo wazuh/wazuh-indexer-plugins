@@ -13,11 +13,8 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
-          "wazuh.agent.config.group.hash.md5",
-          "wazuh.agent.config.hash.md5",
           "wazuh.agent.groups",
           "wazuh.agent.host.architecture",
-          "wazuh.agent.host.os.full",
           "wazuh.agent.host.os.name",
           "wazuh.agent.host.os.platform",
           "wazuh.agent.host.os.version",
