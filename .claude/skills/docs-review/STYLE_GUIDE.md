@@ -287,6 +287,19 @@ in light of that split.
   remains the primary content; the spec is a supplementary link, not a
   replacement.
 
+- **Decided — a claim about a group of fields is scoped to the fields it
+  holds for.** A section intro that generalizes ("these fields are
+  descriptive", "this block does not affect behavior") must be checked
+  against every subsection beneath it, because one constrained field in the
+  group makes the generalization false while every individual sentence on the
+  page still reads as correct. The Log source section of
+  `ref/modules/ruleset-management/rules.md` is the case this rule comes from:
+  it described the whole `logsource` block as organizational and then
+  required `logsource.product` to match the owning integration's title, and
+  readers reasonably concluded the shipped rule catalogue was wrong rather
+  than the page. Name the exception in the intro, or scope the claim to the
+  fields it covers. The docs-review skill's pass 4 greps for this pattern.
+
 ## 6. Versioning
 
 - **Decided — no version markers for shipped, stable-branch behavior.** All

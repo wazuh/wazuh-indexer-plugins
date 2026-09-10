@@ -163,18 +163,38 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     @Override
     public void upsertRule(
             JsonNode doc, Space space, Method method, ActionListener<? extends ActionResponse> listener) {
+        // Every rejection below must notify the listener. Callers count these requests down against a
+        // latch, so returning silently leaves the caller waiting out its whole timeout and reporting
+        // that instead of the rule that is malformed.
         if (!doc.has(Constants.KEY_ID)) {
             log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
+            listener.onFailure(
+                    new IllegalArgumentException(
+                            String.format(Locale.ROOT, "Rule is missing the '%s' field.", Constants.KEY_ID)));
             return;
         }
-        if (!doc.has(Constants.KEY_METADATA) && !doc.get(Constants.KEY_METADATA).isObject()) {
+        if (!doc.has(Constants.KEY_METADATA) || !doc.get(Constants.KEY_METADATA).isObject()) {
             log.error(Constants.E_LOG_MISSING_OBJECT, Constants.KEY_METADATA);
+            listener.onFailure(
+                    new IllegalArgumentException(
+                            String.format(
+                                    Locale.ROOT, "Rule is missing the '%s' object.", Constants.KEY_METADATA)));
             return;
         }
 
         String id = doc.get(Constants.KEY_ID).asText();
-        String title = doc.get(Constants.KEY_METADATA).get(Constants.KEY_TITLE).asText("");
+        String title = doc.get(Constants.KEY_METADATA).path(Constants.KEY_TITLE).asText("");
+        // A rule with no product has no log type to be filed under. Sending it anyway would either
+        // throw inside the request or, before this check existed, file it under a substituted default
+        // where no detector reads it.
         String product = ContentIndex.extractProduct(doc);
+        if (product == null) {
+            log.error(Constants.E_LOG_RULE_MISSING_PRODUCT, id);
+            listener.onFailure(
+                    new IllegalArgumentException(
+                            String.format(Locale.ROOT, Constants.E_RULE_MISSING_PRODUCT, id)));
+            return;
+        }
         String body = doc.toString();
         String sourceName = space.toString();
 
