@@ -15,11 +15,8 @@
         "auto_expand_replicas": "0-1",
         "refresh_interval": "2s",
         "query.default_field": [
-          "document.confidence",
           "document.feed.name",
-          "document.first_seen",
           "document.id",
-          "document.last_seen",
           "document.name",
           "document.provider",
           "document.reference",
@@ -27,8 +24,7 @@
           "document.software.name",
           "document.software.type",
           "document.tags",
-          "document.type",
-          "type"
+          "document.type"
         ],
         "max_docvalue_fields_search": 200
       }
