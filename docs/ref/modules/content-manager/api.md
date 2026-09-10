@@ -866,7 +866,7 @@ The `message` field contains the OpenSearch document ID of the updated policy.
 Rules follow the Sigma format with Wazuh extensions. See [Sigma Rules](../ruleset-management/rules.md) for the full format reference, including the `mitre`, `compliance`, and `metadata` blocks.
 
 > **Validation notes**:
-> - The `logsource.product` field must exactly match the `metadata.title` of the parent integration.
+> - The `logsource.product` field must exactly match the `metadata.title` of the parent integration. The examples below use `system`, so they apply as written to an integration titled `system`; replace it with your own integration's title.
 > - Detection fields are validated against the Wazuh Common Schema (WCS); rules referencing unknown fields are rejected. A field used in a check or detection expression that is *not* part of WCS must be prefixed with an underscore to mark it as temporary (see [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field)) — otherwise the Engine rejects the resource.
 > - IPv6 addresses are supported in detection conditions (standard, compressed, and CIDR notation).
 
@@ -889,12 +889,13 @@ The rule is also synchronized to Ruleset Management, where a separate document i
 Fields within `resource`:
 
 - **`metadata`** (Object, required) — rule metadata (see below).
+- **`status`** (String, required) — rule status: `stable`, `experimental`, `test`, `deprecated` or `unsupported`. A rule with no `status`, or with a value outside that list, is rejected.
+- **`level`** (String, required) — alert level: `informational`, `low`, `medium`, `high` or `critical`. A rule with no `level`, or with a value outside that list, is rejected.
+- **`logsource`** (Object, required) — log source definition. Only **`product`** is required within it, and it must exactly match the parent integration's `metadata.title`; `category`, `service` and `definition` are optional.
+- **`detection`** (Object, required) — Sigma detection logic: a `condition` plus the selection blocks it names.
 - **`sigma_id`** (String, optional) — Sigma rule ID.
-- **`enabled`** (Boolean, optional) — whether the rule is enabled.
-- **`status`** (String, optional) — rule status (e.g., `experimental`, `stable`).
-- **`level`** (String, optional) — alert level (e.g., `low`, `medium`, `high`, `critical`).
-- **`logsource`** (Object, optional) — log source definition (`product`, `category`).
-- **`detection`** (Object, optional) — Sigma detection logic with `condition` and selection fields.
+- **`enabled`** (Boolean, optional) — whether the rule is enabled. Defaults to `true`.
+- **`tags`** (Array, optional) — Sigma tags, each a dotted `namespace.name` pair (e.g., `attack.credential-access`).
 - **`mitre`** (Object, optional) — MITRE ATT&CK mapping. Each of `tactic`, `technique` and `subtechnique` is an object holding parallel `id` and `name` arrays (see [Sigma Rules](../ruleset-management/rules.md#mitre-attck)).
 - **`compliance`** (Object, optional) — compliance framework mapping (see [Sigma Rules](../ruleset-management/rules.md#compliance)).
 
@@ -1100,11 +1101,11 @@ Creates a new log decoder in the draft space. The decoder is validated against t
 
 Fields within `resource`:
 
-- **`name`** (String) — decoder name identifier (e.g., `decoder/core-wazuh-message/0`).
-- **`enabled`** (Boolean) — whether the decoder is enabled.
-- **`check`** (Array) — decoder check logic — array of condition objects. Fields referenced here that aren't part of WCS must be prefixed with an underscore (see the validation note under [Rules](#rules)).
-- **`normalize`** (Array) — normalization rules — array of mapping objects.
-- **`metadata`** (Object) — decoder metadata (see below).
+- **`name`** (String, required) — decoder name, given as the three-part Engine asset name `decoder/<name>/<version>` (e.g., `decoder/core-wazuh-message/0`). The first part must be `decoder`; any other shape is rejected by the Engine.
+- **`enabled`** (Boolean, optional) — whether the decoder is enabled. Defaults to `true`.
+- **`check`** (Array, optional) — decoder check logic — array of condition objects. Fields referenced here that aren't part of WCS must be prefixed with an underscore (see the validation note under [Rules](#rules)).
+- **`normalize`** (Array, optional) — normalization rules — array of mapping objects.
+- **`metadata`** (Object, optional) — decoder metadata (see below).
 
 Fields within `metadata`:
 
@@ -1204,7 +1205,7 @@ resource:
 #### Status codes
 
 - **201** — decoder created.
-- **400** — issing `integration` field, integration not in draft space, Engine validation failure, or `max_decoders` limit reached (see [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field) if the failure mentions an unrecognized WCS field).
+- **400** — missing `integration` field, integration not in draft space, Engine validation failure, or `max_decoders` limit reached (see [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field) if the failure mentions an unrecognized WCS field).
 - **500** — Engine unavailable or internal error.
 
 ---
@@ -1239,10 +1240,22 @@ curl -sk -u admin:admin -X PUT \
       "metadata": {
         "title": "Test Decoder UPDATED",
         "description": "Updated description",
-        "author": "Hello there"
+        "author": "Wazuh, Inc."
       },
-      "check": [],
-      "normalize": []
+      "check": [
+        {
+          "event.action": "string_equal(\"netflow_flow\")"
+        }
+      ],
+      "normalize": [
+        {
+          "map": [
+            {
+              "@timestamp": "get_date()"
+            }
+          ]
+        }
+      ]
     }
   }'
 ```
@@ -1330,16 +1343,17 @@ Creates a new filter in the draft or standard space. The filter is validated aga
 
 Fields within `resource`:
 
-- **`name`** (String) — filter name identifier (e.g., `filter/prefilter/0`).
-- **`enabled`** (Boolean) — whether the filter is enabled.
-- **`check`** (String) — filter check expression.
-- **`type`** (String) — filter type (e.g., `pre-filter`).
-- **`metadata`** (Object) — filter metadata (see below).
+- **`name`** (String, required) — filter name, given as the three-part Engine asset name `filter/<name>/<version>` (e.g., `filter/prefilter/0`). The first part must be `filter`; any other shape is rejected by the Engine.
+- **`type`** (String, required) — stage at which the filter is evaluated: `pre-filter` (before decoding) or `post-filter` (before output). No other value is accepted, and a filter with no `type` is rejected by the Engine.
+- **`metadata`** (Object, required) — filter metadata (see below).
+- **`enabled`** (Boolean, optional) — whether the filter is enabled. Defaults to `true`.
+- **`check`** (String, optional) — filter check expression.
 
 Fields within `metadata`:
 
-- **`description`** (String) — filter description.
-- **`author`** (String) — author name, stored as a keyword.
+- **`title`** (String, required) — human-readable filter title.
+- **`author`** (String, required) — author name, stored as a keyword.
+- **`description`** (String, optional) — filter description.
 - **`date`**, **`modified`** (String, optional) — see [Timestamps on create and update](#timestamps-on-create-and-update).
 
 #### Example request
@@ -1354,6 +1368,7 @@ curl -sk -u admin:admin -X POST \
       "name": "filter/prefilter/0",
       "enabled": true,
       "metadata": {
+        "title": "Default Prefilter",
         "description": "Default filter to allow all events (for default ruleset)",
         "author": "Wazuh, Inc."
       },
@@ -1386,6 +1401,7 @@ resource:
   name: filter/prefilter/0
   enabled: true
   metadata:
+    title: "Default Prefilter"
     description: "Default filter to allow all events (for default ruleset)"
     author: "Wazuh, Inc."
   check: "$host.os.platform == '\''ubuntu'\''"
@@ -1419,7 +1435,7 @@ Updates an existing filter in the draft or standard space. The filter is re-vali
 #### Request body
 
 - **`space`** (String, required) — target space: `draft` or `standard`.
-- **`resource`** (Object, required) — updated filter definition (same fields as create, except `metadata.date`, which is read-only on update; see [Timestamps on create and update](#timestamps-on-create-and-update)).
+- **`resource`** (Object, required) — updated filter definition (same fields as create, except `metadata.date`, which is read-only on update; see [Timestamps on create and update](#timestamps-on-create-and-update)). `enabled` is required here: unlike on create it is not defaulted.
 
 #### Example request
 
@@ -1433,6 +1449,7 @@ curl -sk -u admin:admin -X PUT \
       "name": "filter/prefilter/0",
       "enabled": true,
       "metadata": {
+        "title": "Default Prefilter",
         "description": "Updated filter description",
         "author": "Wazuh, Inc."
       },
@@ -1517,12 +1534,12 @@ The integration is also synchronized to Ruleset Management, where a separate doc
 Fields within `resource`:
 
 - **`metadata`** (Object, required) — integration metadata (see below).
-- **`category`** (String, required) — category (e.g., `cloud-services`, `network-activity`, `security`, `system-activity`).
+- **`category`** (String, required) — integration category. The Engine accepts only `access-management`, `applications`, `cloud-services`, `network-activity`, `other`, `security`, `system-activity` and `unclassified`. The match is case-sensitive, so `Security` is rejected while `security` is accepted; any other value fails with `Integration category is not valid: <value>`.
 - **`enabled`** (Boolean, optional) — whether the integration is enabled.
 
 Fields within `resource.metadata`:
 
-- **`title`** (String, required) — integration title (must be unique in draft space).
+- **`title`** (String, required) — integration title. Must be unique in the draft space. It is also the name the Engine gives the integration, so it cannot contain a space or any of `\ / : * ? " < > |` (e.g., `azure-functions`, not `Azure Functions (test)`), and every rule in this integration must repeat it in `logsource.product`.
 - **`author`** (String, required) — author of the integration.
 - **`description`** (String, optional) — description.
 - **`documentation`** (String, optional) — documentation text or URL.
@@ -1599,13 +1616,13 @@ Fields within `resource` (all required for update):
 - **`decoders`** (Array) — ordered list of decoder IDs.
 - **`kvdbs`** (Array) — ordered list of KVDB IDs.
 
-Fields within `resource.metadata` (all required for update):
+Fields within `resource.metadata`:
 
-- **`title`** (String) — integration title.
-- **`author`** (String) — author.
-- **`description`** (String) — description.
-- **`documentation`** (String) — documentation text or URL.
-- **`references`** (Array) — reference URLs.
+- **`title`** (String, required) — integration title (see [Create integration](#create-integration) for the constraints on its value).
+- **`author`** (String, required) — author.
+- **`description`** (String, optional) — description.
+- **`documentation`** (String, optional) — documentation text or URL.
+- **`references`** (Array, optional) — reference URLs.
 - **`modified`** (String, optional) — see [Timestamps on create and update](#timestamps-on-create-and-update). `date` cannot be modified on update; any caller-supplied value is ignored.
 
 #### Example request
@@ -1717,12 +1734,11 @@ Fields within `resource`:
 
 - **`metadata`** (Object, required) — KVDB metadata (see below).
 - **`content`** (Object, required) — key-value data (at least one entry required).
-- **`name`** (String, optional) — KVDB identifier name.
-- **`enabled`** (Boolean, optional) — whether the KVDB is enabled.
+- **`enabled`** (Boolean, optional) — whether the KVDB is enabled. Defaults to `true`.
 
 Fields within `resource.metadata`:
 
-- **`title`** (String, required) — KVDB title.
+- **`title`** (String, required) — KVDB title. This is also the name the Engine gives the KVDB, so a request without it fails with `Failed to validate resource of type 'kvdb': KVDB JSON must have a valid name` — that message refers to this field, and a KVDB resource has no top-level `name`. It cannot contain a space or any of `\ / : * ? " < > |` (e.g., `non_standard_timezones`, not `Non standard timezones (test)`).
 - **`author`** (String, required) — author.
 - **`description`** (String, optional) — description.
 - **`documentation`** (String, optional) — documentation.
@@ -1747,7 +1763,6 @@ curl -sk -u admin:admin -X POST \
           "https://wazuh.com"
         ]
       },
-      "name": "non_standard_timezones",
       "enabled": true,
       "content": {
         "non_standard_timezones": {
@@ -1794,7 +1809,6 @@ resource:
     documentation: ""
     references:
       - "https://wazuh.com"
-  name: non_standard_timezones
   enabled: true
   content:
     non_standard_timezones:
@@ -1823,7 +1837,7 @@ resource:
 
 ### Update KVDB
 
-Updates an existing KVDB in the draft space. All fields within `resource` are required on update.
+Updates an existing KVDB in the draft space. `content`, `enabled`, `metadata.title` and `metadata.author` are all required on update; the rest of `metadata` is optional.
 
 #### Request
 
@@ -1838,20 +1852,19 @@ Updates an existing KVDB in the draft space. All fields within `resource` are re
 
 - **`resource`** (Object, required) — updated KVDB definition.
 
-Fields within `resource` (all required for update):
+Fields within `resource`:
 
-- **`metadata`** (Object) — KVDB metadata (see below).
-- **`content`** (Object) — key-value data.
-- **`name`** (String) — KVDB identifier name.
-- **`enabled`** (Boolean) — whether the KVDB is enabled.
+- **`metadata`** (Object, required) — KVDB metadata (see below).
+- **`content`** (Object, required) — key-value data.
+- **`enabled`** (Boolean, required) — whether the KVDB is enabled. Unlike on create it is not defaulted.
 
-Fields within `resource.metadata` (all required for update):
+Fields within `resource.metadata`:
 
-- **`title`** (String) — KVDB title.
-- **`author`** (String) — author.
-- **`description`** (String) — description.
-- **`documentation`** (String) — documentation.
-- **`references`** (Array) — reference URLs.
+- **`title`** (String, required) — KVDB title, and the name the Engine gives the KVDB (see [Create KVDB](#create-kvdb)).
+- **`author`** (String, required) — author.
+- **`description`** (String, optional) — description.
+- **`documentation`** (String, optional) — documentation.
+- **`references`** (Array, optional) — reference URLs.
 - **`modified`** (String, optional) — see [Timestamps on create and update](#timestamps-on-create-and-update). `date` cannot be modified on update; any caller-supplied value is ignored.
 
 #### Example request
@@ -1871,7 +1884,6 @@ curl -sk -u admin:admin -X PUT \
           "https://wazuh.com"
         ]
       },
-      "name": "test-UPDATED",
       "enabled": true,
       "content": {
         "non_standard_timezones": {

@@ -713,6 +713,7 @@ paths:
                     name: filter/prefilter/0
                     enabled: true
                     metadata:
+                      title: Default Prefilter
                       description: Updated filter description
                       author: Wazuh, Inc.
                     check: "$host.os.platform == 'ubuntu'"
@@ -807,9 +808,12 @@ paths:
                         event.action:
                           - "hash_test_event"
                     mitre:
-                      tactic: ["TA0001"]
-                      technique: ["T1190"]
-                      subtechnique: []
+                      tactic:
+                        id: ["TA0001"]
+                        name: ["Initial Access"]
+                      technique:
+                        id: ["T1190"]
+                        name: ["Exploit Public-Facing Application"]
                     compliance:
                       pci_dss: ["6.5.1"]
       responses:
@@ -866,9 +870,12 @@ paths:
                         event.action:
                           - "hash_test_event"
                     mitre:
-                      tactic: ["TA0001"]
-                      technique: ["T1190"]
-                      subtechnique: []
+                      tactic:
+                        id: ["TA0001"]
+                        name: ["Initial Access"]
+                      technique:
+                        id: ["T1190"]
+                        name: ["Exploit Public-Facing Application"]
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
@@ -1442,11 +1449,28 @@ components:
           description: The currently installed Wazuh version tag.
           example: "v5.0.0"
         last_available_major:
-          $ref: "#/components/schemas/Release"
+          allOf:
+            - $ref: "#/components/schemas/ReleaseSlot"
+          description: Latest available major release, or `{}` when none is available.
         last_available_minor:
-          $ref: "#/components/schemas/Release"
+          allOf:
+            - $ref: "#/components/schemas/ReleaseSlot"
+          description: Latest available minor release, or `{}` when none is available.
         last_available_patch:
-          $ref: "#/components/schemas/Release"
+          allOf:
+            - $ref: "#/components/schemas/ReleaseSlot"
+          description: Latest available patch release, or `{}` when none is available.
+
+    ReleaseSlot:
+      description: |
+        One release slot of the version-check response: either a full `Release` entry, or
+        an empty object when the CTI API reports no release for that slot. The endpoint
+        always emits all three slots, using `{}` for the empty ones.
+      oneOf:
+        - $ref: "#/components/schemas/Release"
+        - type: object
+          title: No release available
+          maxProperties: 0
 
     Release:
       type: object
@@ -1825,12 +1849,27 @@ components:
                 - author
           description: |
             `metadata.title` is passed to the Wazuh Engine as this integration's resource
-            name and must not contain spaces or special characters (e.g. `azure-functions`,
-            not `Azure Functions (test)`) — otherwise the request fails with `400 Bad Request`.
+            name, so it cannot contain a space or any of `\ / : * ? " < > |`
+            (e.g. `azure-functions`, not `Azure Functions (test)`). It is also the value
+            every rule in this integration must repeat in `logsource.product`.
 
         category:
           type: string
-          description: Integration category (e.g., cloud-services)
+          enum:
+            - access-management
+            - applications
+            - cloud-services
+            - network-activity
+            - other
+            - security
+            - system-activity
+            - unclassified
+          description: |
+            Integration category. The Wazuh Engine accepts only the values listed above
+            and the match is case-sensitive, so `Security` is rejected while `security`
+            is accepted. Any other value fails with
+            `400 Bad Request` — `Integration category is not valid: <value>`.
+          example: "cloud-services"
 
         enabled:
           type: boolean
@@ -1856,12 +1895,27 @@ components:
                 - author
           description: |
             `metadata.title` is passed to the Wazuh Engine as this integration's resource
-            name and must not contain spaces or special characters (e.g. `azure-functions`,
-            not `Azure Functions (test)`) — otherwise the request fails with `400 Bad Request`.
+            name, so it cannot contain a space or any of `\ / : * ? " < > |`
+            (e.g. `azure-functions`, not `Azure Functions (test)`). It is also the value
+            every rule in this integration must repeat in `logsource.product`.
 
         category:
           type: string
-          description: Integration category
+          enum:
+            - access-management
+            - applications
+            - cloud-services
+            - network-activity
+            - other
+            - security
+            - system-activity
+            - unclassified
+          description: |
+            Integration category. The Wazuh Engine accepts only the values listed above
+            and the match is case-sensitive, so `Security` is rejected while `security`
+            is accepted. Any other value fails with
+            `400 Bad Request` — `Integration category is not valid: <value>`.
+          example: "cloud-services"
 
         enabled:
           type: boolean
@@ -1892,15 +1946,23 @@ components:
       # Decoders also carry engine "parse|<field>" keys (e.g. parse|event.original),
       # so additional properties beyond those listed below are permitted.
       additionalProperties: true
-      # No required fields (None is mandatory)
+      required:
+        - name
       properties:
         enabled:
           type: boolean
-          description: Whether the decoder is enabled
+          description: |
+            Whether the decoder is enabled. Optional on create: defaults to `true` when
+            omitted.
 
         name:
           type: string
-          description: Decoder name identifier
+          pattern: "^decoder/[^/]+/[^/]+$"
+          description: |
+            Decoder name, given as the three-part Wazuh Engine asset name
+            `decoder/<name>/<version>` (e.g. `decoder/netflow-default/0`). The first part
+            must be `decoder`; any other shape is rejected with `400 Bad Request`.
+          example: "decoder/netflow-default/0"
 
         check:
           type: array
@@ -1960,14 +2022,23 @@ components:
       # Decoders also carry engine "parse|<field>" keys (e.g. parse|event.original),
       # so additional properties beyond those listed below are permitted.
       additionalProperties: true
+      required:
+        - name
       properties:
         enabled:
           type: boolean
-          description: Whether the decoder is enabled
+          description: |
+            Whether the decoder is enabled. Optional on update: the stored value is kept
+            when omitted.
 
         name:
           type: string
-          description: Decoder name identifier
+          pattern: "^decoder/[^/]+/[^/]+$"
+          description: |
+            Decoder name, given as the three-part Wazuh Engine asset name
+            `decoder/<name>/<version>` (e.g. `decoder/netflow-default/0`). The first part
+            must be `decoder`; any other shape is rejected with `400 Bad Request`.
+          example: "decoder/netflow-default/0"
 
         check:
           type: array
@@ -2027,14 +2098,23 @@ components:
       additionalProperties: false
       required:
         - name
+        - type
+        - metadata
       properties:
         name:
           type: string
-          description: Filter name identifier (e.g., filter/prefilter/0)
+          pattern: "^filter/[^/]+/[^/]+$"
+          description: |
+            Filter name, given as the three-part Wazuh Engine asset name
+            `filter/<name>/<version>` (e.g. `filter/prefilter/0`). The first part must be
+            `filter`; any other shape is rejected with `400 Bad Request`.
+          example: "filter/prefilter/0"
 
         enabled:
           type: boolean
-          description: Whether the filter is enabled
+          description: |
+            Whether the filter is enabled. Optional on create: defaults to `true` when
+            omitted.
 
         check:
           type: string
@@ -2042,7 +2122,14 @@ components:
 
         type:
           type: string
-          description: Filter type (e.g., pre-filter)
+          enum:
+            - pre-filter
+            - post-filter
+          description: |
+            Stage at which the filter is evaluated: `pre-filter` runs before decoding,
+            `post-filter` before output. Required — the Engine rejects a filter with no
+            `type` (`Filter document /type is not a string or does not exist`).
+          example: "pre-filter"
 
         metadata:
           type: object
@@ -2070,10 +2157,17 @@ components:
       required:
         - name
         - enabled
+        - type
+        - metadata
       properties:
         name:
           type: string
-          description: Filter name identifier (e.g., filter/prefilter/0)
+          pattern: "^filter/[^/]+/[^/]+$"
+          description: |
+            Filter name, given as the three-part Wazuh Engine asset name
+            `filter/<name>/<version>` (e.g. `filter/prefilter/0`). The first part must be
+            `filter`; any other shape is rejected with `400 Bad Request`.
+          example: "filter/prefilter/0"
 
         enabled:
           type: boolean
@@ -2085,7 +2179,14 @@ components:
 
         type:
           type: string
-          description: Filter type (e.g., pre-filter)
+          enum:
+            - pre-filter
+            - post-filter
+          description: |
+            Stage at which the filter is evaluated: `pre-filter` runs before decoding,
+            `post-filter` before output. Required — the Engine rejects a filter with no
+            `type` (`Filter document /type is not a string or does not exist`).
+          example: "pre-filter"
 
         metadata:
           type: object
@@ -2133,9 +2234,12 @@ components:
                     - title
                     - author
               description: |
-                `metadata.title` is passed to the Wazuh Engine as this KVDB's resource name
-                and must not contain spaces or special characters (e.g. `azure-functions`,
-                not `Azure Functions (test)`) — otherwise the request fails with `400 Bad Request`.
+                `metadata.title` is passed to the Wazuh Engine as this KVDB's resource name,
+                so it cannot contain a space or any of `\ / : * ? " < > |`
+                (e.g. `non_standard_timezones`, not `Non standard timezones (test)`).
+                A request that omits it fails with `Failed to validate resource of type
+                'kvdb': KVDB JSON must have a valid name` — that message names this field;
+                a KVDB resource has no top-level `name`.
 
             enabled:
               type: boolean
@@ -2157,6 +2261,7 @@ components:
           required:
             - metadata
             - content
+            - enabled
           properties:
             metadata:
               allOf:
@@ -2165,9 +2270,12 @@ components:
                     - title
                     - author
               description: |
-                `metadata.title` is passed to the Wazuh Engine as this KVDB's resource name
-                and must not contain spaces or special characters (e.g. `azure-functions`,
-                not `Azure Functions (test)`) — otherwise the request fails with `400 Bad Request`.
+                `metadata.title` is passed to the Wazuh Engine as this KVDB's resource name,
+                so it cannot contain a space or any of `\ / : * ? " < > |`
+                (e.g. `non_standard_timezones`, not `Non standard timezones (test)`).
+                A request that omits it fails with `Failed to validate resource of type
+                'kvdb': KVDB JSON must have a valid name` — that message names this field;
+                a KVDB resource has no top-level `name`.
 
             enabled:
               type: boolean
@@ -2183,6 +2291,10 @@ components:
       additionalProperties: false
       required:
         - metadata
+        - status
+        - level
+        - logsource
+        - detection
       properties:
         metadata:
           allOf:
@@ -2196,25 +2308,60 @@ components:
 
         enabled:
           type: boolean
-          description: Whether the rule is enabled
+          description: |
+            Whether the rule is enabled. Optional on create: defaults to `true` when
+            omitted.
 
         status:
           type: string
-          description: Rule status (e.g., experimental, stable)
+          enum:
+            - stable
+            - experimental
+            - test
+            - deprecated
+            - unsupported
+          description: |
+            Rule status. Required — Ruleset Management rejects a rule with no `status`
+            (`Sigma rule status cannot be null`), and any value outside the list above
+            with `Value of status not correct`. Matched case-insensitively.
+          example: "experimental"
 
         level:
           type: string
-          description: Alert level (e.g., low, medium, high)
+          enum:
+            - informational
+            - low
+            - medium
+            - high
+            - critical
+          description: |
+            Alert level. Required — Ruleset Management rejects a rule with no `level`
+            (`Sigma rule level cannot be null`), and any value outside the list above
+            with `Value of level not correct`. Matched case-insensitively.
+          example: "medium"
 
         logsource:
           type: object
           additionalProperties: false
+          required:
+            - product
+          description: |
+            Log source definition. Required — Ruleset Management rejects a rule with no
+            `logsource` (`Sigma rule must have a log source`).
           properties:
             product:
               type: string
-              description: Must exactly match the metadata.title of the associated integration.
+              description: |
+                Must exactly match the `metadata.title` of the integration named in the
+                request's `integration` field; otherwise the request fails with
+                `400 Bad Request`.
             category:
               type: string
+            service:
+              type: string
+            definition:
+              type: string
+              description: Free-form description of the log source and how to collect it.
 
         detection:
           type: object
@@ -2230,6 +2377,23 @@ components:
             Detection fields are validated against the Wazuh Common Schema (WCS).
             IPv6 addresses are supported in standard, compressed, and CIDR notation.
 
+        tags:
+          type: array
+          items:
+            type: string
+          description: |
+            Sigma tags. Each tag must be a dotted `namespace.name` pair
+            (e.g. `attack.credential-access`, `attack.t1110.001`); a tag with no dot is
+            not a valid Sigma tag.
+          example: ["attack.credential-access", "attack.t1110.001"]
+
+        falsepositives:
+          type: array
+          items:
+            type: string
+          description: Known sources of false positives.
+          example: ["Application bugs"]
+
         mitre:
           $ref: "#/components/schemas/MitreMapping"
 
@@ -2244,6 +2408,8 @@ components:
         - detection
         - logsource
         - enabled
+        - status
+        - level
       properties:
         metadata:
           allOf:
@@ -2262,21 +2428,49 @@ components:
 
         status:
           type: string
-          description: Rule status (e.g., experimental, stable)
+          enum:
+            - stable
+            - experimental
+            - test
+            - deprecated
+            - unsupported
+          description: |
+            Rule status. Required — Ruleset Management rejects a rule with no `status`
+            (`Sigma rule status cannot be null`), and any value outside the list above
+            with `Value of status not correct`. Matched case-insensitively.
+          example: "experimental"
 
         level:
           type: string
-          description: Alert level (e.g., low, medium, high)
+          enum:
+            - informational
+            - low
+            - medium
+            - high
+            - critical
+          description: |
+            Alert level. Required — Ruleset Management rejects a rule with no `level`
+            (`Sigma rule level cannot be null`), and any value outside the list above
+            with `Value of level not correct`. Matched case-insensitively.
+          example: "medium"
 
         logsource:
           type: object
           additionalProperties: false
+          description: |
+            Log source definition. Required — Ruleset Management rejects a rule with no
+            `logsource` (`Sigma rule must have a log source`).
           properties:
             product:
               type: string
               description: Must exactly match the metadata.title of the associated integration.
             category:
               type: string
+            service:
+              type: string
+            definition:
+              type: string
+              description: Free-form description of the log source and how to collect it.
 
         detection:
           type: object
@@ -2291,6 +2485,23 @@ components:
             Sigma detection logic (contains condition and selection fields).
             Detection fields are validated against the Wazuh Common Schema (WCS).
             IPv6 addresses are supported in standard, compressed, and CIDR notation.
+
+        tags:
+          type: array
+          items:
+            type: string
+          description: |
+            Sigma tags. Each tag must be a dotted `namespace.name` pair
+            (e.g. `attack.credential-access`, `attack.t1110.001`); a tag with no dot is
+            not a valid Sigma tag.
+          example: ["attack.credential-access", "attack.t1110.001"]
+
+        falsepositives:
+          type: array
+          items:
+            type: string
+          description: Known sources of false positives.
+          example: ["Application bugs"]
 
         mitre:
           $ref: "#/components/schemas/MitreMapping"
@@ -2331,23 +2542,54 @@ components:
 
     # A single MITRE ATT&CK category (tactic, technique or subtechnique)
     MitreCategory:
-      type: object
-      additionalProperties: false
       description: |
-        One ATT&CK category, holding parallel id and name arrays. The arrays are
-        positional — the n-th name describes the n-th ID — so name must be supplied for
-        every entry of a category or for none of them.
-      properties:
-        id:
+        One ATT&CK category. Three shapes are accepted and produce identical indexed
+        fields; anything else is rejected with `400 Bad Request`.
+
+        1. Parallel `id` and `name` arrays (recommended). The arrays are positional —
+           the n-th name describes the n-th ID — so `name` must be supplied for every
+           entry of a category or for none of them.
+        2. An array holding one `{ id, name }` object per ATT&CK entry. The two element
+           kinds may not be mixed in one array, and `name` must again be given for every
+           entry or for none.
+        3. A plain array of ID strings. Deprecated: it cannot carry ATT&CK names, so the
+           `name` arrays are left empty. Accepted only for rules authored against the
+           older documentation.
+      oneOf:
+        - title: Parallel id/name arrays
+          type: object
+          additionalProperties: false
+          properties:
+            id:
+              type: array
+              items:
+                type: string
+              description: ATT&CK IDs (e.g., TA0002, T1059, T1059.001)
+            name:
+              type: array
+              items:
+                type: string
+              description: ATT&CK names, positionally matching `id`
+        - title: One object per ATT&CK entry
           type: array
           items:
-            type: string
-          description: ATT&CK IDs (e.g., TA0002, T1059, T1059.001)
-        name:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+            properties:
+              id:
+                type: string
+                description: ATT&CK ID (e.g., TA0002, T1059, T1059.001)
+              name:
+                type: string
+                description: ATT&CK name for this ID
+        - title: Plain ID array (deprecated)
           type: array
+          deprecated: true
           items:
             type: string
-          description: ATT&CK names, positionally matching `id`
+          description: ATT&CK IDs only; carries no names.
 
     # Compliance framework mapping block for rules
     ComplianceMapping:
