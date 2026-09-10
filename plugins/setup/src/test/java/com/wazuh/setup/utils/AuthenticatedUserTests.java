@@ -28,13 +28,35 @@ import org.opensearch.test.OpenSearchTestCase;
  */
 public class AuthenticatedUserTests extends OpenSearchTestCase {
 
-    public void testParseTakesTheNameBeforeTheFirstSeparator() {
+    public void testParseTakesTheNameBeforeTheFirstUnescapedSeparator() {
         assertEquals("qadls-probe", AuthenticatedUser.parse("qadls-probe|||"));
         assertEquals(
                 "wazuh-readonly",
                 AuthenticatedUser.parse("wazuh-readonly|backend1,backend2|wazuh_readonly,own_index|"));
         assertEquals(
                 "admin", AuthenticatedUser.parse("admin|admin|all_access,own_index|global_tenant"));
+    }
+
+    public void testParseHandlesAnEscapedPipeInTheName() {
+        // The security plugin escapes a '|' inside the name before joining the fields
+        // (PrivilegesEvaluatorImpl -> SecurityUtils.escapePipe), so the escaped one is part of the
+        // name and not a separator. Cutting at the first '|' returned "ad\" here, which never
+        // matches the ${user.name} the read-side DLS filter substitutes: the user would write
+        // sessions and never be able to read them back.
+        assertEquals("ad|min", AuthenticatedUser.parse("ad\\|min|backend|own_index|"));
+        assertEquals("a|b|c", AuthenticatedUser.parse("a\\|b\\|c|backend|own_index|"));
+        assertEquals("|leading", AuthenticatedUser.parse("\\|leading|backend||"));
+        assertEquals("trailing|", AuthenticatedUser.parse("trailing\\||backend||"));
+    }
+
+    public void testParseKeepsFederatedSubjectsDistinct() {
+        // An OIDC subject carries a '|' routinely. Truncating at the first one collapsed every
+        // auth0 subject onto the single owner "auth0\", handing them each other's sessions.
+        String first = AuthenticatedUser.parse("auth0\\|68f3c1a9d2|backend|own_index|");
+        String second = AuthenticatedUser.parse("auth0\\|1d9a1c3f86|backend|own_index|");
+        assertEquals("auth0|68f3c1a9d2", first);
+        assertEquals("auth0|1d9a1c3f86", second);
+        assertNotEquals(first, second);
     }
 
     public void testParseAcceptsAValueCarryingNoSeparator() {
@@ -60,6 +82,13 @@ public class AuthenticatedUserTests extends OpenSearchTestCase {
         threadContext.putTransient(
                 AuthenticatedUser.USER_INFO_TRANSIENT, "qadls-probe|backend|own_index|");
         assertEquals("qadls-probe", AuthenticatedUser.resolve(threadContext));
+    }
+
+    public void testResolveUnescapesAPipeInTheName() {
+        ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
+        threadContext.putTransient(
+                AuthenticatedUser.USER_INFO_TRANSIENT, "ad\\|min|backend|own_index|");
+        assertEquals("ad|min", AuthenticatedUser.resolve(threadContext));
     }
 
     public void testResolveWithoutTheTransientYieldsTheSharedOwner() {

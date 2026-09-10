@@ -25,9 +25,8 @@ import org.opensearch.common.util.concurrent.ThreadContext;
  *
  * <p>The transient is read directly rather than through {@code
  * org.opensearch.commons.authuser.User}, which would pull {@code common-utils} into a plugin that
- * deliberately carries almost no dependencies. Its value is {@code
- * name|backend_roles|roles|requested_tenant} and the name is everything before the first {@code
- * '|'}.
+ * deliberately carries almost no dependencies. Reading it by hand means matching that canonical
+ * reader exactly, escaping included — see {@link #parse(String)}.
  */
 public final class AuthenticatedUser {
 
@@ -37,6 +36,12 @@ public final class AuthenticatedUser {
      * dependency reason given in the class Javadoc.
      */
     public static final String USER_INFO_TRANSIENT = "_opendistro_security_user_info";
+
+    /**
+     * Matches a {@code '|'} that is not preceded by a backslash, so an escaped {@code "\|"} inside a
+     * field is not mistaken for a field separator. Same expression the canonical reader uses.
+     */
+    private static final String UNESCAPED_SEPARATOR = "(?<!\\\\)\\|";
 
     /**
      * Owner stamped on a session when no principal can be resolved — that is, when the security
@@ -72,16 +77,37 @@ public final class AuthenticatedUser {
     /**
      * Extracts the user name from a raw {@value #USER_INFO_TRANSIENT} value.
      *
+     * <p>The transient is {@code name|backend_roles|roles|requested_tenant}, and the security plugin
+     * escapes any {@code '|'} occurring inside a field as {@code "\|"} before joining them — {@code
+     * PrivilegesEvaluatorImpl} runs the name through {@code SecurityUtils.escapePipe}. So the name is
+     * everything up to the first <em>unescaped</em> separator, unescaped in turn. Cutting at the
+     * first {@code '|'} instead would truncate any name that contains one.
+     *
+     * <p>That truncation is not cosmetic. The value stamped on a session has to equal the {@code
+     * ${user.name}} the read-side DLS filter substitutes; if it does not, the owner writes sessions
+     * they can never read back — the same asymmetry this whole endpoint exists to remove. Names
+     * carrying a pipe are ordinary: a federated subject such as an OIDC {@code auth0|68f3c1a9} or an
+     * LDAP DN, and OpenSearch accepts an internal user named {@code ad|min}. Truncating would also
+     * collapse every {@code auth0|*} subject onto one shared owner.
+     *
+     * <p>Mirrors {@code org.opensearch.commons.authuser.User#parse} field for field, deliberately,
+     * including its blind spot: the writer escapes {@code '|'} but not the backslash itself, so a
+     * name ending in a backslash stays ambiguous on the wire. Agreeing with the canonical reader
+     * matters more than being cleverer than it.
+     *
      * @param userInfo the transient's value, or {@code null} when absent.
-     * @return the name before the first {@code '|'}, or {@link #SHARED_OWNER} when the value is null,
-     *     blank, or carries no name.
+     * @return the caller's name, or {@link #SHARED_OWNER} when the value is null, blank, or carries
+     *     no name.
      */
     public static String parse(String userInfo) {
         if (userInfo == null || userInfo.isBlank()) {
             return SHARED_OWNER;
         }
-        int separator = userInfo.indexOf('|');
-        String name = separator < 0 ? userInfo : userInfo.substring(0, separator);
+        String[] fields = userInfo.split(UNESCAPED_SEPARATOR);
+        if (fields.length == 0) {
+            return SHARED_OWNER;
+        }
+        String name = fields[0].trim().replace("\\|", "|");
         return name.isBlank() ? SHARED_OWNER : name;
     }
 }
