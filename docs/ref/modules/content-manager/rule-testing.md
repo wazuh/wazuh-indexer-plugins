@@ -246,7 +246,8 @@ If the results aren't what you expect:
 
 1. **Decoder not matching?** Check `asset_traces` — if your decoder isn't listed, review the `check` conditions. Use `trace_level: ALL` to see which decoders were attempted.
 2. **Rule not matching?** Compare the normalized event fields with your rule's `detection` block. Field names and string values must both match exactly — string comparison is case-sensitive.
-3. **Unexpected matches?** Review `matched_conditions` to understand why a rule triggered.
+3. **Unexpected matches?** Review `matched_conditions`: it lists the conditions this event
+   satisfies, so it shows what in the event triggered the rule rather than restating the rule.
 
 After making changes:
 - Update the rule or decoder via `PUT` on the respective endpoint.

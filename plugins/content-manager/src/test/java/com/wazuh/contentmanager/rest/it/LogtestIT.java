@@ -25,6 +25,8 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.core.rest.RestStatus;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -357,19 +359,27 @@ public class LogtestIT extends ContentManagerRestTestCase {
         assertEquals(exactCase.toString(), "success", exactCase.path("status").asText());
         assertEquals(
                 "the rule must match its own case: " + exactCase, 1, exactCase.path("rules_matched").asInt());
-        assertFalse(
-                "matched_conditions must describe the rule's conditions: " + exactCase,
-                exactCase.path("matches").path(0).path("matched_conditions").isEmpty());
+        // The rule offers two alternatives and the event carries one of them. Only that one may be
+        // listed: reporting both would describe the rule rather than the event, and two different
+        // injection attempts caught by this rule would read identically.
+        List<String> conditions = new ArrayList<>();
         exactCase
                 .path("matches")
                 .path(0)
                 .path("matched_conditions")
-                .forEach(
-                        condition ->
-                                assertFalse(
-                                        "a condition must be described on its own, not as one composed "
-                                                + "expression: " + condition.asText(),
-                                        condition.asText().contains(" AND ")));
+                .forEach(condition -> conditions.add(condition.asText()));
+        assertEquals(
+                "only the conditions the event satisfies may be listed: " + conditions, 2, conditions.size());
+        assertTrue(conditions.toString(), conditions.contains("http.request.method matched 'GET'"));
+        assertTrue(conditions.toString(), conditions.contains("url.original matched '*UNION SELECT*'"));
+        assertFalse(
+                "an alternative the event does not satisfy must not be listed: " + conditions,
+                conditions.contains("url.original matched '*UNION ALL SELECT*'"));
+        for (String condition : conditions) {
+            assertFalse(
+                    "a condition must be described on its own, not as one composed expression: " + condition,
+                    condition.contains(" AND "));
+        }
 
         // 2. The reported case: the rule says UNION SELECT, the event says UNION sElect. String
         // comparison is case-sensitive, so a deployed detector produces no finding for this event —

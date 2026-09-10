@@ -517,7 +517,9 @@ curl -sk -u admin:admin -X POST \
 - **`detection.rules_matched`** (Integer) — number of rules that matched.
 - **`detection.matches`** (Array) — list of matched rules with details.
 - **`detection.matches[].rule`** (Object) — rule metadata: `id`, `title`, `level`, `tags`.
-- **`detection.matches[].matched_conditions`** (Array) — human-readable descriptions of conditions that matched.
+- **`detection.matches[].matched_conditions`** (Array) — human-readable descriptions of the rule's
+  conditions **that this event satisfies**. A condition offering several values contributes only the
+  ones present in the event, so two events caught by the same rule describe their own match.
 
 #### Status codes
 
@@ -734,7 +736,9 @@ curl -sk -u admin:admin -X POST \
 - **`message.rules_matched`** (Integer) — number of rules that matched.
 - **`message.matches`** (Array) — list of matched rules with details.
 - **`message.matches[].rule`** (Object) — rule metadata: `id`, `title`, `level`, `tags`.
-- **`message.matches[].matched_conditions`** (Array) — human-readable descriptions of matched conditions.
+- **`message.matches[].matched_conditions`** (Array) — human-readable descriptions of the rule's
+  conditions **that this event satisfies**. A condition offering several values contributes only the
+  ones present in the event, so two events caught by the same rule describe their own match.
 
 #### Status codes
 

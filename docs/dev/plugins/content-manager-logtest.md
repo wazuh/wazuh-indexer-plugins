@@ -135,12 +135,12 @@ Everything the evaluator relies on is the same artifact production uses:
 **`LogtestQueryIndex`** owns the percolator index, one per log type
 (`.opensearch-sap-<logtype>-detectors-queries-logtest`). The name is deliberately inside the
 detector query index template's pattern, so the index inherits the analysis settings rather than
-redefining them. The index is created on demand and query documents are upserted under deterministic
-ids, so it holds at most one document per rule condition and repeated calls overwrite rather than
-accumulate.
+redefining them. The index is created on demand and document ids are content-addressed, so a rule
+whose text has not changed reuses its document and repeated calls neither overwrite nor accumulate;
+documents left by an earlier revision of a rule are pruned once past a short grace period.
 
-Match results use a nested `rule` object per match entry, where `matched_conditions` describes the
-conditions of the rule that matched, one entry per condition:
+Match results use a nested `rule` object per match entry, where `matched_conditions` lists the
+conditions the event satisfies, one entry per condition:
 ```json
 {
   "rule": { "id": "...", "title": "...", "level": "...", "tags": [...] },
