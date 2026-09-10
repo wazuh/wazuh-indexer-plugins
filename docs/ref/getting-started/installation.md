@@ -272,7 +272,6 @@ Four users are defined by Wazuh, and the rest come from the bundled OpenSearch S
 | `wazuh-demo` | Default interactive user |
 | `wazuh-readonly` | Read-only access |
 | `kibanaserver` | Wazuh dashboard, to authenticate against the Wazuh indexer |
-| `anomalyadmin`, `kibanaro`, `logstash`, `readall`, `snapshotrestore` | Not used by Wazuh |
 
 See [Access control](../security/access-control.md) for the permissions each Wazuh user holds.
 
@@ -280,7 +279,9 @@ See [Access control](../security/access-control.md) for the permissions each Waz
 
 Use `wazuh-passwords-tool.sh`, shipped with the Wazuh indexer package. It requires root privileges and a running Wazuh indexer, so run it after the cluster initialization stage.
 
-Pass the user with `-u`, and the new password with `-p`. The password must be between 8 and 64 characters long and contain at least one uppercase letter, one lowercase letter, one number and one of the symbols `.`, `*`, `+`, `?` or `-`. The tool rejects a password that does not meet these requirements, which means it cannot be used to restore a default username-equals-password value.
+The tool runs in two modes: `-u` changes one user, and `-a` changes every user in one run. Each invocation requires one or the other.
+
+To change a single user, pass the user with `-u` and the new password with `-p`. The password must be between 8 and 64 characters long and contain at least one uppercase letter, one lowercase letter, one number and one of the symbols `.`, `*`, `+`, `?` or `-`. The tool rejects a password that does not meet these requirements, which means it cannot be used to restore a default username-equals-password value.
 
 ```bash
 /usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-tool.sh -u wazuh-admin -p <NEW_PASSWORD>
@@ -307,7 +308,7 @@ Omit `-p` to have the tool generate a random password and print it:
 03/09/2026 12:25:15 INFO: The password for user wazuh-admin is Qk7Rm2wZpL9xTvNb.4sHdY*eA6cJgW3u
 ```
 
-The tool changes one user per run, so repeat it for every user you keep. Each run:
+Each run:
 
 - Writes a timestamped copy of the previous user definitions to `/etc/wazuh-indexer/internalusers-backup/`.
 - Applies the new password to the running cluster and persists it to `/etc/wazuh-indexer/opensearch-security/internal_users.yml`, so the change survives a later run of `indexer-security-init.sh`.
@@ -315,18 +316,43 @@ The tool changes one user per run, so repeat it for every user you keep. Each ru
 
 The tool authenticates with the admin certificate at `/etc/wazuh-indexer/certs/admin.pem` and its key at `/etc/wazuh-indexer/certs/admin-key.pem`. If you deployed the certificates elsewhere, pass `-c` and `-k` with the correct paths.
 
+#### Changing every password in one run
+
+Pass `-a` to replace the password of every user in `internal_users.yml` in a single run. The tool generates a random password for each one and prints them all:
+
+```bash
+/usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-tool.sh -a
+```
+
+**Output**
+
+```
+The password for user admin is Qk7Rm2wZpL9xTvNb.4sHdY*eA6cJgW3u
+The password for user kibanaserver is Hs3Nd8kVxQ2mRfTy.7bJcW*pL5gZaE4n
+The password for user wazuh-admin is Bt6Yc1qMwX9nKvGp.3rDhS*fA8jUzL2e
+The password for user wazuh-demo is Zx4Pk9tRbN7wLmQd.5vFgH*yC2sJeT6a
+The password for user wazuh-manager is Nw8Jf2sVdT5xBhKr.9mQpZ*eG3cYuA7l
+The password for user wazuh-readonly is Cr5Lz7hWnP3kFyXm.2tBdJ*qS9vNgE4o
+```
+
+Record the output before it scrolls away — the generated passwords are not stored anywhere in plain text. Only `-h` and the Wazuh API options can accompany `-a`; it cannot be combined with `-u`, `-p` or `-A`, and it always generates random values rather than accepting one you choose.
+
+If the Wazuh Manager is installed on the same host, add `-au` and `-ap` with the credentials of a Wazuh API administrator to rotate the Wazuh API user passwords in the same run:
+
+```bash
+/usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-tool.sh -a -au <API_ADMIN_USER> -ap <API_ADMIN_PASSWORD>
+```
+
 #### Updating the other central components
 
-The Wazuh Manager and the Wazuh dashboard authenticate against the Wazuh indexer with two of the users above. Changing those passwords in the Wazuh indexer alone breaks their connection, so update each component with the new value.
+The Wazuh Manager and the Wazuh dashboard authenticate against the Wazuh indexer as `wazuh-manager` and `kibanaserver` respectively. When either of those two users is rotated, the tool writes the new password into the corresponding keystore and restarts the service, in both the single-user and the `-a` modes. No manual step is needed.
 
-- **`kibanaserver`** — the tool updates the Wazuh dashboard keystore itself. No further action is needed.
+This applies only to components installed on the same host as the tool. In a distributed deployment, run the keystore update on the Wazuh Manager node yourself and restart the service:
 
-- **`wazuh-manager`** — update the Wazuh Manager keystore manually, then restart the service:
-
-  ```bash
-  echo '<NEW_PASSWORD>' | /var/wazuh-manager/bin/wazuh-manager-keystore -f indexer -k password
-  systemctl restart wazuh-manager
-  ```
+```bash
+echo '<NEW_PASSWORD>' | /var/wazuh-manager/bin/wazuh-manager-keystore -f indexer -k password
+systemctl restart wazuh-manager
+```
 
 #### Verifying the change
 
