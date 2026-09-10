@@ -13,7 +13,7 @@
       "auto_expand_replicas": "0-1",
       "refresh_interval": "5s",
       "query.default_field": [
-        "events.module",
+        "event.module",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

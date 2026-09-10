@@ -62,9 +62,14 @@ function push_changes() {
   echo
   echo "---> Pushing changes to the repository..."
   git add "plugins/setup/src/main/resources/*.json"
+  git add "plugins/content-manager/src/main/resources/mappings/*.json"
+  git add "wcs/**/fields/template-settings*.json"
   git add "wcs/**/docs/*"
   git add wcs/module_list.txt
-  if [[ $(git status --porcelain --untracked-files=no | wc -l) -gt 0 ]]; then
+  # Test the index, not the working tree: an unstageable leftover must report
+  # "nothing to commit" instead of reaching a `git commit` that exits 1 and,
+  # under `set -e`, aborts the script before the pull request is created.
+  if ! git diff --cached --quiet; then
     git status --short --untracked-files=no
     git commit -m "Update the Wazuh Common Schema"
     git push

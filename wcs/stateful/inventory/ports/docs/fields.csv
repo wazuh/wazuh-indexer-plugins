@@ -1,5 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
+9.1.0,true,base,message,match_only_text,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash used as checksum of the data collected by the agent.
 9.1.0,true,destination,destination.ip,ip,core,,,IP address of the destination.
 9.1.0,true,destination,destination.port,long,core,,,Port of the destination.

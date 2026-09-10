@@ -66,7 +66,7 @@ Responsibilities:
 2. Validates the required fields `space`, `integration`, and `input`.
 3. Validates that `space` is not `"draft"`.
 4. Validates that `input` is a JSON object (not a string or array).
-5. Delegates to `LogtestService.executeDetection(integrationId, space, inputEvent)`.
+5. Delegates to `LogtestService.executeDetectionAsync(integrationId, space, inputEvent)`.
 
 All three transport actions run this work on the dedicated `content_manager_logtest` thread pool rather than the transport thread (see [Request size limit and concurrency](#request-size-limit-and-concurrency)).
 
@@ -85,15 +85,15 @@ The orchestrator. Provides three public entry points:
 
 - **`executeLogtest()`** — Full combined flow (normalization + detection)
 - **`executeNormalization()`** — Engine-only: forwards payload to `EngineService.logtest()` and returns the response directly with `parseMessageAsJson()`
-- **`executeDetection()`** — Security Analytics-only: looks up integration, fetches rule IDs/bodies, evaluates via `SecurityAnalyticsService.evaluateRules()`, and returns the result
+- **`executeDetectionAsync()`** — Security Analytics-only: looks up integration, fetches rule IDs/bodies, evaluates via `SecurityAnalyticsService.evaluateRulesAsync()`, and returns the result
 
 The full logtest flow:
 
-1. **No-integration shortcut** — If `integrationId` is `null`, delegates to `executeEngineOnly()`: runs the Engine normalization and returns the result with `detection.status: "skipped"` and `reason: "No integration provided"`. Steps 2–5 below are skipped.
+1. **No-integration shortcut** — If `integrationId` is `null`, delegates to `executeEngineOnly()`: runs the Engine normalization and returns the result with `detection.status: "skipped"` and `reason: "'integration' field not provided"`. Steps 2–5 below are skipped.
 2. **Integration lookup** — Queries `wazuh-threatintel-integrations` for a document matching `document.id == integrationId` and `space.name == space`. Returns 400 if not found.
 3. **Engine processing** — Sends the event payload to the Wazuh Engine via `EngineService.logtest()`. Extracts the normalized event from the `output` field. The engine result fields (`output`, `asset_traces`, `validation`) are included directly in the response (no wrapper).
 4. **Rule fetching** — Extracts rule IDs from the integration's `document.rules` array, then fetches rule bodies from `wazuh-threatintel-rules` by `document.id`, filtered by the same space.
-5. **Security Analytics evaluation** — Passes the normalized event JSON and rule bodies to `SecurityAnalyticsService.evaluateRules()`.
+5. **Security Analytics evaluation** — Passes the normalized event JSON, the rule bodies and the integration's detector coordinates to `SecurityAnalyticsService.evaluateRulesAsync()`.
 6. **Response building** — Combines engine and Security Analytics results into a single JSON response under the keys `normalization` and `detection`.
 
 **Error handling**:
@@ -102,29 +102,49 @@ The full logtest flow:
 - If the integration has no rules, Security Analytics returns `rules_evaluated: 0, rules_matched: 0` with success status.
 - If Security Analytics evaluation returns unparseable JSON, the result is `status: "error"`.
 
-### SecurityAnalyticsService / EventMatcher
+### SecurityAnalyticsService / PercolateRuleEvaluator
 
 The Security Analytics evaluation happens in the `security-analytics` repository:
 
-- **`SecurityAnalyticsServiceImpl.evaluateRules()`** — Parses Sigma rule YAML strings into `SigmaRule` objects, then delegates to `EventMatcher`.
-- **`EventMatcher.evaluate()`** — Flattens the normalized event JSON into dot-notation keys, then evaluates each rule's detection conditions against the flat map. Returns a JSON result string.
+- **`SecurityAnalyticsServiceImpl.evaluateRulesAsync()`** — Sends the event, the rule bodies and the
+  integration's detector coordinates (id, log type, source indices) to the `WEvaluateRulesAction`
+  transport action.
+- **`WTransportEvaluateRulesAction`** — Parses the rule bodies into `SigmaRule` objects and delegates
+  to `PercolateRuleEvaluator`.
+- **`PercolateRuleEvaluator.evaluate()`** — Compiles each rule with `OSQueryBackend`, stores the
+  compiled queries in the logtest percolator index, and percolates the normalized event against
+  them. Returns a JSON result string.
 
-The `EventMatcher` handles:
-- Field-equals-value conditions (exact match, case-insensitive)
-- Keyword (value-only) conditions (searches all event fields)
-- Wildcards (`*` for multi-char, `?` for single-char) via cached compiled regex patterns
-- String modifiers: `contains`, `startswith`, `endswith`
-- Explicit regex (`re` modifier)
-- CIDR subnet matching (IPv4 and IPv6)
-- Boolean, numeric (gt, gte, lt, lte), null, and string comparisons
-- Composite conditions: AND, OR, NOT
-- List values (any element matching counts as a match)
+**Why percolation.** Detection has to answer one question: would the deployed detector fire on this
+event? A detector answers it by percolating compiled `query_string` queries against its query index,
+so logtest answers it the same way. Evaluating the Sigma condition directly in the JVM would answer a
+subtly different question — it cannot reproduce `query_string` parsing, the query index's analyzers,
+or the percolator's own field-mapping requirements — which makes its answer an approximation rather
+than a prediction. Sharing the compiler, the analyzers and the percolator makes the two answers the
+same by construction, and keeps them that way as any of the three changes.
 
-Match results use a nested `rule` object per match entry:
+Everything the evaluator relies on is the same artifact production uses:
+
+| Concern | Shared mechanism |
+| --- | --- |
+| Sigma → query | `OSQueryBackend.convertRule()`, as rule upload does |
+| Analysis | the `.opensearch-sap-*-detectors-queries*` index template (`rule_analyzer`, `rule_ws_normalizer`) |
+| Field mappings | copied from the integration's source indices, with the same per-type overrides a detector's query index gets |
+| Matching | alerting's `percolate_ext` query over a `percolator_ext` field |
+
+**`LogtestQueryIndex`** owns the percolator index, one per log type
+(`.opensearch-sap-<logtype>-detectors-queries-logtest`). The name is deliberately inside the
+detector query index template's pattern, so the index inherits the analysis settings rather than
+redefining them. The index is created on demand and document ids are content-addressed, so a rule
+whose text has not changed reuses its document and repeated calls neither overwrite nor accumulate;
+documents left by an earlier revision of a rule are pruned once past a short grace period.
+
+Match results use a nested `rule` object per match entry, where `matched_conditions` lists the
+conditions the event satisfies, one entry per condition:
 ```json
 {
   "rule": { "id": "...", "title": "...", "level": "...", "tags": [...] },
-  "matched_conditions": [...]
+  "matched_conditions": ["http.request.method matched 'GET'", "url.original matched '*UNION SELECT*'"]
 }
 ```
 
@@ -160,9 +180,12 @@ LogtestService.executeLogtest(integrationId, space, payload)
     ├──► client.prepareSearch("wazuh-threatintel-rules")
     │       → fetches rule bodies by document.id + space filter
     │
-    ├──► securityAnalytics.evaluateRules(normalizedEventJson, ruleBodies)
+    ├──► securityAnalytics.evaluateRulesAsync(normalizedEventJson, ruleBodies,
+    │                                          integrationId, logType, sourceIndices)
     │       → parses YAML → SigmaRule objects
-    │       → EventMatcher flattens event + evaluates conditions
+    │       → OSQueryBackend compiles each rule to a query_string query
+    │       → queries are upserted into the logtest percolator index
+    │       → the event is percolated against them
     │       → returns JSON result
     │
     └──► builds combined response
@@ -187,7 +210,7 @@ LogtestService.executeNormalization(payload)  LogtestService.executeDetection(id
          → returns engine response directly      │       → finds integration
                                                  ├──► extractRuleIds() + fetchRuleBodies()
                                                  │       → fetches rule content from .cti-rules
-                                                 └──► securityAnalytics.evaluateRules(inputJson, ruleBodies)
+                                                 └──► securityAnalytics.evaluateRulesAsync(inputJson, ruleBodies, ...)
                                                          → returns Security Analytics result directly
 ```
 
@@ -204,6 +227,10 @@ LogtestService.executeNormalization(payload)  LogtestService.executeDetection(id
 
 Both indices must exist and have `document.id` mapped as `keyword` for term queries to work.
 
+Security Analytics additionally reads the integration's detector source indices
+(`document.detector.source`, or `wazuh-events-v5-<category>` when it names none) to build the
+percolator index mappings, and owns `.opensearch-sap-<logtype>-detectors-queries-logtest`.
+
 ## Testing
 
 ### Unit tests
@@ -214,15 +241,22 @@ Both indices must exist and have `document.id` mapped as `keyword` for term quer
 | `TransportLogtestNormalizationActionTests` | Request validation for normalization endpoint (empty body, invalid JSON, missing space, invalid space, delegation, integration stripping) |
 | `TransportLogtestDetectionActionTests` | Request validation for detection endpoint (empty body, invalid JSON, missing fields, invalid space, non-object input, delegation) |
 | `LogtestServiceTests` | Orchestration logic (integration lookup, engine errors, rule fetching, Security Analytics evaluation, response structure) |
-| `EventMatcherTests` | Sigma rule evaluation (field matching, wildcards, numerics, booleans, nulls, AND/OR/NOT conditions) |
+| `LogtestQueryIndexTests` | Percolator index naming and the source-mapping copy (analysis overrides, merges, conflicts) |
+| `RuleTopicIndicesTests` | The query index analysis settings both a detector and logtest depend on |
 
 ### Integration tests
 
 | Test class | Covers |
 | --- | --- |
-| `LogtestIT` | End-to-end REST workflow against a live test cluster (request validation, integration lookup, promote + logtest, response structure) |
+| `LogtestIT` | End-to-end REST workflow against a live test cluster (request validation, integration lookup, promote + logtest, response structure) and real percolation through the detection endpoint: exact-case matching, case-sensitivity, non-matching events, and rules reported as skipped |
 
-Integration tests extend `ContentManagerRestTestCase` and run against a real OpenSearch cluster. Since the Wazuh Engine is not available in the test environment, engine-dependent tests validate graceful error handling (engine error → Security Analytics skipped).
+Integration tests extend `ContentManagerRestTestCase` and run against a real OpenSearch cluster.
+Since the Wazuh Engine is not available in the test environment, engine-dependent tests validate
+graceful error handling (engine error → Security Analytics skipped). Detection is *not* mocked: the
+test cluster installs Security Analytics and alerting, and
+`plugins.content_manager.security_analytics.mock` is set to `false` there so rule evaluation
+percolates for real. `plugins.content_manager.engine.mock` stays `true` because the Engine's Unix
+socket genuinely is absent; the two settings are separate for exactly this reason.
 
 
 ## Adding new logtest features
@@ -243,7 +277,13 @@ Integration tests extend `ContentManagerRestTestCase` and run against a real Ope
 
 ### Extending Security Analytics evaluation
 
-1. Modify `EventMatcher.matchValue()` to handle new `SigmaType` subclasses.
-2. Add test cases in `EventMatcherTests`.
-3. Update the Sigma rules doc ([Sigma Rules](../../ref/modules/ruleset-management/rules.md)) if new detection modifiers are supported.
+Detection semantics live in the Sigma compiler, not in logtest: a new modifier is implemented in
+`rules/modifiers/` and rendered by `OSQueryBackend`, and logtest picks it up for free because it
+compiles rules with the same backend.
+
+1. Add the modifier under `rules/modifiers/` and register it in `SigmaModifierFacade`.
+2. Render it in `OSQueryBackend`, and pin the generated query in `QueryBackendTests`.
+3. Cover it end to end in `LogtestIT` (detection endpoint) so the percolate path is exercised.
+4. Update the Sigma rules doc ([Sigma Rules](../../ref/modules/ruleset-management/rules.md)),
+   including the case-sensitivity behaviour.
 

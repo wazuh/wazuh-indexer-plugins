@@ -117,12 +117,24 @@ public interface SecurityAnalyticsService {
     /**
      * Asynchronously evaluates a list of Sigma rules against a normalized event.
      *
+     * <p>Security Analytics compiles the rules and percolates the event against them exactly as a
+     * deployed detector would, so it needs to know which integration the rules belong to and which
+     * source indices their fields must resolve against.
+     *
      * @param eventJson The normalized event as a JSON string.
      * @param ruleBodies The list of Sigma rule bodies to evaluate.
+     * @param integrationId The identifier of the integration owning the rules.
+     * @param logType The integration's log type.
+     * @param sourceIndices The source indices the integration's detector reads.
      * @param listener The listener to be notified with the evaluation result JSON string.
      */
     void evaluateRulesAsync(
-            String eventJson, List<String> ruleBodies, ActionListener<String> listener);
+            String eventJson,
+            List<String> ruleBodies,
+            String integrationId,
+            String logType,
+            List<String> sourceIndices,
+            ActionListener<String> listener);
 
     /**
      * Asynchronously deletes all Security Analytics resources belonging to the given space.
