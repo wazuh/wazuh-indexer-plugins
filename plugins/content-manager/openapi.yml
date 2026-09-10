@@ -3178,9 +3178,9 @@ components:
                             - "aws"
                             - "cloudtrail"
                         matched_conditions:
-                          - "event.category == 'authentication'"
-                          - "event.outcome == 'failure'"
-                          - "cloud.provider == 'aws'"
+                          - "event.category matched 'authentication'"
+                          - "event.outcome matched 'failure'"
+                          - "cloud.provider matched 'aws'"
                       - rule:
                           id: "uuid-rule-2"
                           title: "rule/suspicious-console-login/0"
