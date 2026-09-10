@@ -10,7 +10,7 @@ This page describes the supported rule format, including field requirements, det
 
 ## Starting example
 
-The following example demonstrates a complete Sigma rule using all supported blocks:
+The following example demonstrates a complete Sigma rule using all supported blocks. Its `logsource.product` names the integration the rule belongs to, which is a requirement rather than a description of the platform; see [Log source](#log-source).
 
 ```yaml
 metadata:
@@ -29,7 +29,7 @@ tags:
 
 logsource:
   category: application
-  product: python
+  product: wazuh-generic-1
 
 detection:
   keywords:
@@ -87,7 +87,7 @@ The following fields are the supported top-level fields in a Wazuh Sigma rule. F
 - **`tags`** (Array, optional) — categorization tags (e.g., `attack.initial-access`).
 - **`falsepositives`** (Array, optional) — known sources of false positives.
 - **`detection`** (Object, required) — detection logic: selections, keywords, and conditions.
-- **`logsource`** (Object, required) — classifies the type of log data the rule targets.
+- **`logsource`** (Object, required) — classifies the type of log data the rule targets. Its `product` field names the integration the rule belongs to and selects the detector that evaluates it.
 - **`mitre`** (Object, optional) — MITRE ATT&CK threat intelligence mapping.
 - **`compliance`** (Object, optional) — compliance framework mapping.
 - **`metadata`** (Object, required) — other information.
@@ -391,24 +391,34 @@ event.duration|gte: 5000
 
 Required
 
-The `logsource` section classifies the type of log data the rule targets. It helps organize rules by their applicable data source but does not affect detection matching directly.
+The `logsource` section classifies the type of log data the rule targets. Its `category`, `service` and `definition` fields are descriptive: they help organize rules by their applicable data source, and do not affect detection matching. Its `product` field is not descriptive — it selects which detector evaluates the rule, as described below.
 
 ### `product`
 
 Required
 
-The product or platform generating the log (e.g., `linux`, `windows`, `python`). Must hold the same value as `metadata.title` from the integration it belongs to.
+The name of the integration the rule belongs to: it must hold the same value as that integration's `metadata.title`.
 
 ```yaml
 logsource:
-  product: linux
+  product: wazuh-generic-1
 ```
+
+Unlike the rest of the `logsource` block, `product` is a routing key rather than a description, because an integration is also a Ruleset Management log type:
+
+- Each integration is registered as a log type.
+- A rule's compiled query is stored in the rule index of the log type its `product` names.
+- Each integration has a detector, which evaluates the rules stored under its own log type.
+
+So a rule whose `product` does not name the integration that lists it is stored where that integration's detector never reads it, and it matches nothing. Rules created through the API are rejected if the two disagree; see [Create rule](../content-manager/api.md#create-rule).
+
+Some integrations are named after the platform they collect from, so `windows`, `linux` and `apache-http` are valid `product` values on a deployment that ships those integrations. That is a consequence of how those integrations are named, not a second, platform-based meaning for the field: `wazuh-generic-1`, `wazuh-fim` and `wazuh-rootcheck` are equally valid, and no platform name is accepted unless an integration carries it. Use `category` and `service` to record the telemetry a rule needs.
 
 ### `category`
 
 Optional
 
-A broad classification of the log type within the product (e.g., `authentication`, `process_creation`, `application`, `webserver`, `firewall`). Useful for grouping related rules across products.
+A broad classification of the telemetry the rule targets (e.g., `authentication`, `process_creation`, `application`, `webserver`, `firewall`). Useful for grouping related rules across integrations. Unlike `product`, this field is descriptive and is not constrained to any list.
 
 ```yaml
 logsource:
@@ -419,7 +429,7 @@ logsource:
 
 Optional
 
-The specific service, daemon, or log channel within the product (e.g., `sshd`, `security`, `syslog`, `kerberos`). Use this when the log can be attributed to a particular subsystem or event channel.
+The specific service, daemon, or log channel the log comes from (e.g., `sshd`, `security`, `syslog`, `kerberos`). Use this when the log can be attributed to a particular subsystem or event channel.
 
 ```yaml
 logsource:
@@ -437,7 +447,7 @@ logsource:
   definition: Script Block Logging must be enabled
 ```
 
-> **Reference**: See [Sigma Log Sources](https://sigmahq.io/docs/basics/log-sources.html) for general guidance on log source classification, including the standard combinations of `product`, `category`, and `service`.
+> **Reference**: See [Sigma Log Sources](https://sigmahq.io/docs/basics/log-sources.html) for general guidance on log source classification, including the standard combinations of `product`, `category`, and `service`. Note that `product` diverges from that guidance here, as described above: it names an integration rather than a platform. A rule taken from an upstream Sigma ruleset needs its `product` changed to the integration it is being added to, and a rule exported from Wazuh carries an integration name that other Sigma tooling does not recognize.
 
 ---
 

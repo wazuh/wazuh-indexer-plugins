@@ -26,8 +26,8 @@ SEARCH_PATTERNS = [
 
 # Type mappings from ECS types to WCS-compatible types
 #
-# The two entries left are not gaps in OpenSearch's type list. They are
-# incompatibilities that break the generated templates:
+# The entries here handle incompatibilities that break generated templates
+# or detection querying in OpenSearch:
 #
 #   constant_keyword -> keyword
 #     OpenSearch requires the `value` parameter at mapping time
@@ -43,9 +43,19 @@ SEARCH_PATTERNS = [
 #   flattened -> flat_object
 #     OpenSearch has no `flattened` type ("No handler for type [flattened]");
 #     flat_object is its equivalent.
+#
+#   wildcard -> match_only_text
+#     Security Analytics compiles Sigma rules to `query_string` queries, which
+#     cannot query OpenSearch `wildcard` fields (upstream WildcardFieldMapper
+#     overrides only the 4-arg wildcardQuery method; StringFieldType delegates
+#     the 5-arg normalizedWildcardQuery from query_string to base Lucene over
+#     n-grams, producing zero hits without error). Remapping to `match_only_text`
+#     keeps fields (e.g. process.command_line, url.*) reachable from the
+#     detection query path without the 1024-char ceiling of `keyword`.
 TYPES_TO_REMAP = {
     'constant_keyword': 'keyword',
     'flattened': 'flat_object',
+    'wildcard': 'match_only_text',
 }
 
 # Specific field type remappings

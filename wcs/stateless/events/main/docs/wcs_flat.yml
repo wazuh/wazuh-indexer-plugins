@@ -3365,7 +3365,7 @@ email.message_id:
   name: message_id
   normalize: []
   short: Value from the Message-ID header.
-  type: wildcard
+  type: match_only_text
 email.origination_timestamp:
   dashed_name: email-origination-timestamp
   description: The date and time the email message was composed. Many email clients
@@ -3481,7 +3481,7 @@ error.stack_trace:
     relation: equivalent
     stability: stable
   short: The stack trace of this error in plain text.
-  type: wildcard
+  type: match_only_text
 error.type:
   dashed_name: error-type
   description: The type of the error, for example the class name of the exception.
@@ -7490,7 +7490,7 @@ http.request.body.content:
   name: request.body.content
   normalize: []
   short: The full HTTP request body.
-  type: wildcard
+  type: match_only_text
 http.request.bytes:
   dashed_name: http-request-bytes
   description: Total size in bytes of the request (body and headers).
@@ -7597,7 +7597,7 @@ http.response.body.content:
   name: response.body.content
   normalize: []
   short: The full HTTP response body.
-  type: wildcard
+  type: match_only_text
 http.response.bytes:
   dashed_name: http-response-bytes
   description: Total size in bytes of the response (body and headers).
@@ -9668,7 +9668,7 @@ process.command_line:
   - relation: match
     stability: development
   short: Full command line that started the process.
-  type: wildcard
+  type: match_only_text
 process.elf.architecture:
   dashed_name: process-elf-architecture
   description: Machine architecture of the ELF file.
@@ -10219,7 +10219,7 @@ process.entry_leader.command_line:
   normalize: []
   original_fieldset: process
   short: Full command line that started the process.
-  type: wildcard
+  type: match_only_text
 process.entry_leader.entity_id:
   dashed_name: process-entry-leader-entity-id
   description: 'Unique identifier for the process.
@@ -10818,7 +10818,7 @@ process.group_leader.command_line:
   normalize: []
   original_fieldset: process
   short: Full command line that started the process.
-  type: wildcard
+  type: match_only_text
 process.group_leader.entity_id:
   dashed_name: process-group-leader-entity-id
   description: 'Unique identifier for the process.
@@ -11350,7 +11350,7 @@ process.io.text:
   name: io.text
   normalize: []
   short: A chunk of output or input sanitized to UTF-8.
-  type: wildcard
+  type: match_only_text
 process.io.total_bytes_captured:
   dashed_name: process-io-total-bytes-captured
   description: The total number of bytes captured in this event.
@@ -11791,7 +11791,7 @@ process.parent.command_line:
   normalize: []
   original_fieldset: process
   short: Full command line that started the process.
-  type: wildcard
+  type: match_only_text
 process.parent.elf.architecture:
   dashed_name: process-parent-elf-architecture
   description: Machine architecture of the ELF file.
@@ -13633,7 +13633,7 @@ process.previous.command_line:
   normalize: []
   original_fieldset: process
   short: Full command line that started the process.
-  type: wildcard
+  type: match_only_text
 process.previous.executable:
   dashed_name: process-previous-executable
   description: Absolute path to the process executable.
@@ -13843,7 +13843,7 @@ process.session_leader.command_line:
   normalize: []
   original_fieldset: process
   short: Full command line that started the process.
-  type: wildcard
+  type: match_only_text
 process.session_leader.entity_id:
   dashed_name: process-session-leader-entity-id
   description: 'Unique identifier for the process.
@@ -14590,7 +14590,7 @@ registry.data.strings:
   normalize:
   - array
   short: List of strings representing what was written to the registry.
-  type: wildcard
+  type: match_only_text
 registry.data.type:
   dashed_name: registry-data-type
   description: Standard registry type for encoding contents
@@ -18683,7 +18683,7 @@ threat.enrichments.indicator.registry.data.strings:
   - array
   original_fieldset: registry
   short: List of strings representing what was written to the registry.
-  type: wildcard
+  type: match_only_text
 threat.enrichments.indicator.registry.data.type:
   dashed_name: threat-enrichments-indicator-registry-data-type
   description: Standard registry type for encoding contents
@@ -18913,7 +18913,7 @@ threat.enrichments.indicator.url.full:
   normalize: []
   original_fieldset: url
   short: Full unparsed URL.
-  type: wildcard
+  type: match_only_text
 threat.enrichments.indicator.url.original:
   dashed_name: threat-enrichments-indicator-url-original
   description: 'Unmodified original url as seen in the event source.
@@ -18929,7 +18929,7 @@ threat.enrichments.indicator.url.original:
   normalize: []
   original_fieldset: url
   short: Unmodified original url as seen in the event source.
-  type: wildcard
+  type: match_only_text
 threat.enrichments.indicator.url.password:
   dashed_name: threat-enrichments-indicator-url-password
   description: Password of the request.
@@ -18950,7 +18950,7 @@ threat.enrichments.indicator.url.path:
   normalize: []
   original_fieldset: url
   short: Path of the request, such as "/search".
-  type: wildcard
+  type: match_only_text
 threat.enrichments.indicator.url.port:
   dashed_name: threat-enrichments-indicator-url-port
   description: Port of the request, such as 443.
@@ -21511,7 +21511,7 @@ threat.indicator.registry.data.strings:
   - array
   original_fieldset: registry
   short: List of strings representing what was written to the registry.
-  type: wildcard
+  type: match_only_text
 threat.indicator.registry.data.type:
   dashed_name: threat-indicator-registry-data-type
   description: Standard registry type for encoding contents
@@ -21686,7 +21686,7 @@ threat.indicator.url.full:
   normalize: []
   original_fieldset: url
   short: Full unparsed URL.
-  type: wildcard
+  type: match_only_text
 threat.indicator.url.original:
   dashed_name: threat-indicator-url-original
   description: 'Unmodified original url as seen in the event source.
@@ -21702,7 +21702,7 @@ threat.indicator.url.original:
   normalize: []
   original_fieldset: url
   short: Unmodified original url as seen in the event source.
-  type: wildcard
+  type: match_only_text
 threat.indicator.url.password:
   dashed_name: threat-indicator-url-password
   description: Password of the request.
@@ -21723,7 +21723,7 @@ threat.indicator.url.path:
   normalize: []
   original_fieldset: url
   short: Path of the request, such as "/search".
-  type: wildcard
+  type: match_only_text
 threat.indicator.url.port:
   dashed_name: threat-indicator-url-port
   description: Port of the request, such as 443.
@@ -23506,7 +23506,7 @@ url.full:
   - relation: match
     stability: stable
   short: Full unparsed URL.
-  type: wildcard
+  type: match_only_text
 url.original:
   dashed_name: url-original
   description: 'Unmodified original url as seen in the event source.
@@ -23524,7 +23524,7 @@ url.original:
   - relation: match
     stability: development
   short: Unmodified original url as seen in the event source.
-  type: wildcard
+  type: match_only_text
 url.password:
   dashed_name: url-password
   description: Password of the request.
@@ -23546,7 +23546,7 @@ url.path:
   - relation: match
     stability: stable
   short: Path of the request, such as "/search".
-  type: wildcard
+  type: match_only_text
 url.port:
   dashed_name: url-port
   description: Port of the request, such as 443.
@@ -27765,7 +27765,7 @@ wazuh.threat.enrichments.indicator.registry.data.strings:
   - array
   original_fieldset: registry
   short: List of strings representing what was written to the registry.
-  type: wildcard
+  type: match_only_text
 wazuh.threat.enrichments.indicator.registry.data.type:
   dashed_name: wazuh-threat-enrichments-indicator-registry-data-type
   description: Standard registry type for encoding contents
@@ -30420,7 +30420,7 @@ wazuh.threat.indicator.registry.data.strings:
   - array
   original_fieldset: registry
   short: List of strings representing what was written to the registry.
-  type: wildcard
+  type: match_only_text
 wazuh.threat.indicator.registry.data.type:
   dashed_name: wazuh-threat-indicator-registry-data-type
   description: Standard registry type for encoding contents

@@ -104,6 +104,21 @@ the actual plugin surface:
   per-finding; it's now per-batch). A stale mechanism description is worse
   than a stale setting value — it misleads a contributor about where to
   make a change, not just what a number is.
+- Check what a documented **field actually does**, not only that its stated
+  constraint is right. A field can be documented accurately and still be
+  described in the wrong role, which no per-claim source check catches.
+  `logsource.product` is the worked example: its "must match the
+  integration's `metadata.title`" constraint was stated correctly in
+  `ref/modules/content-manager/api.md` and `openapi.yml`, while
+  `ref/modules/ruleset-management/rules.md` introduced the `logsource` block
+  as organizational metadata that "does not affect detection matching
+  directly". `product` is in fact the log type key a rule's compiled query
+  is filed under, so a wrong value means no detector ever evaluates the
+  rule. Every individual sentence checked out; only asking "what breaks if
+  this value is wrong?" surfaced it. Ask that of any field whose value is
+  constrained to match something else — a constraint usually exists because
+  the value is load-bearing, and a field that is load-bearing and documented
+  as descriptive is a functional bug in the docs, not a style question.
 - Flag version-sensitive claims that may be stale for 5.0 (e.g. mentions of
   Filebeat, Wazuh Manager doing analysis/detection — these moved to the
   Indexer in 5.0 per `ref/description.md`).
@@ -172,6 +187,18 @@ creeps back in with new edits:
   fully documented in prose elsewhere on the same page). Check that every
   `alt`/`opt` branch named in surrounding prose actually appears in the
   diagram, and vice versa.
+- **Blanket claims in a section intro that its own subsections contradict**:
+  a section that generalizes about a block of fields, while one of those
+  fields carries a hard constraint stated a few lines below, is a
+  contradiction that survives every per-claim check because each sentence is
+  separately defensible. `ruleset-management/rules.md` opened its Log source
+  section with "does not affect detection matching directly" and then
+  required `logsource.product` to match the owning integration's title — and
+  that reading cost a QA bug report against the shipped rule catalogue before
+  anyone noticed the docs were the problem. Whenever a section intro makes a
+  claim about a group of fields, read it against every subsection beneath it
+  and scope the claim to the fields it actually holds for. Same check for an
+  intro paragraph that characterizes a whole page.
 - Heading case (Title Case vs sentence case) — should now be consistently
   sentence case; flag any remaining Title Case as a miss, not as neutral
   variation to weigh.

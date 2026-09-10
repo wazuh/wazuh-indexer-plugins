@@ -278,7 +278,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.provider,keyword,extended,,lrz_urlhaus,Indicator provider
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.reference,keyword,extended,,https://system.example.com/indicator/0001234,Indicator reference URL
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.data.bytes,keyword,extended,,ZQBuAC0AVQBTAAAAZQBuAAAAAAA=,Original bytes written with base64 encoding.
-9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.data.strings,wildcard,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
+9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.data.strings,match_only_text,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.data.type,keyword,core,,REG_SZ,Standard registry type for encoding contents
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.hive,keyword,core,,HKLM,Abbreviated name for the hive.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.key,keyword,core,,SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe,Hive-relative path of keys.
@@ -487,7 +487,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.threat.indicator.provider,keyword,extended,,lrz_urlhaus,Indicator provider
 9.1.0,true,wazuh,wazuh.threat.indicator.reference,keyword,extended,,https://system.example.com/indicator/0001234,Indicator reference URL
 9.1.0,true,wazuh,wazuh.threat.indicator.registry.data.bytes,keyword,extended,,ZQBuAC0AVQBTAAAAZQBuAAAAAAA=,Original bytes written with base64 encoding.
-9.1.0,true,wazuh,wazuh.threat.indicator.registry.data.strings,wildcard,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
+9.1.0,true,wazuh,wazuh.threat.indicator.registry.data.strings,match_only_text,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
 9.1.0,true,wazuh,wazuh.threat.indicator.registry.data.type,keyword,core,,REG_SZ,Standard registry type for encoding contents
 9.1.0,true,wazuh,wazuh.threat.indicator.registry.hive,keyword,core,,HKLM,Abbreviated name for the hive.
 9.1.0,true,wazuh,wazuh.threat.indicator.registry.key,keyword,core,,SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe,Hive-relative path of keys.
