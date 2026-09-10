@@ -230,7 +230,7 @@ public class ContentManagerPlugin extends Plugin
         this.engineContentLoader =
                 new EngineContentLoader(this.engine, this.spaceService, this.threadPool);
 
-        if (PluginSettings.getInstance().isEngineMockEnabled()) {
+        if (PluginSettings.getInstance().isSecurityAnalyticsMockEnabled()) {
             this.securityAnalyticsService = new MockSecurityAnalyticsService();
         } else {
             this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(client);
@@ -288,10 +288,6 @@ public class ContentManagerPlugin extends Plugin
         clusterService
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
-                        PluginSettings.WAZUH_UID, v -> PluginSettings.getInstance().setWazuhUid(v));
-        clusterService
-                .getClusterSettings()
-                .addSettingsUpdateConsumer(
                         PluginSettings.LOGTEST_MAX_BODY_BYTES,
                         v -> PluginSettings.getInstance().setLogtestMaxBodyBytes(v));
 
@@ -318,10 +314,11 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        if (PluginSettings.getInstance().getWazuhUid() == null) {
-            PluginSettings.getInstance()
-                    .setWazuhUid(this.clusterService.state().metadata().clusterUUID());
-        }
+        // Resolved here rather than in createComponents(): createComponents() runs in the Node
+        // constructor, before Node.start() installs the initial cluster state on the applier
+        // service, so clusterService.state() is not available yet at that point.
+        PluginSettings.getInstance()
+                .setClusterUUID(this.clusterService.state().metadata().clusterUUID());
         this.threadPool.generic().execute(this::tryLoadAccessToken);
 
         // Load the STANDARD space into this node's local Engine on every node, not just the elected
@@ -999,6 +996,7 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.TELEMETRY_ENABLED,
                 PluginSettings.PIT_KEEPALIVE,
                 PluginSettings.ENGINE_MOCK_ENABLED,
+                PluginSettings.SECURITY_ANALYTICS_MOCK_ENABLED,
                 PluginSettings.CREATE_DETECTORS,
                 PluginSettings.UPDATE_ON_DEMAND,
                 PluginSettings.POLICY_UPDATE_ENABLED,
@@ -1007,7 +1005,6 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_RULES,
                 PluginSettings.MAX_KVDBS,
                 PluginSettings.MAX_FILTERS,
-                PluginSettings.WAZUH_UID,
                 PluginSettings.SETUP_WAIT_MAX_RETRIES,
                 PluginSettings.SETUP_WAIT_BACKOFF_BASE_SECONDS,
                 PluginSettings.CLIENT_MAX_RETRIES,

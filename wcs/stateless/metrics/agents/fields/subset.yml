@@ -20,17 +20,6 @@ fields:
           registered_at: {}
           last_seen: {}
           disconnected_at: {}
-          config:
-            fields:
-              hash:
-                fields:
-                  md5: {}
-              group:
-                fields:
-                  synced: {}
-                  hash:
-                    fields:
-                      md5: {}
           host:
             fields:
               ip: {}
@@ -40,7 +29,6 @@ fields:
                   name: {}
                   version: {}
                   platform: {}
-                  full: {}
       cluster:
         fields: "*"
       schema:

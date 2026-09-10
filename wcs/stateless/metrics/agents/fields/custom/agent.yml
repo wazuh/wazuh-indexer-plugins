@@ -53,25 +53,6 @@
       level: custom
       description: >
         Date/time when the agent was considered disconnected.
-    - name: config.hash.md5
-      type: keyword
-      level: custom
-      description: >
-        MD5 hash of the agent configuration used for integrity verification and
-        change detection.
-      example: "7fdd9b4cf9a06dbe937f7de73dcbe9e4"
-    - name: config.group.synced
-      type: boolean
-      level: custom
-      description: >
-        Status of the group configuration assigned to the agent.
-      example: true
-    - name: config.group.hash.md5
-      type: keyword
-      level: custom
-      description: >
-        MD5 hash of the merged group configuration currently applied to the agent.
-      example: "16728192a0e2b5ca79e3d1385c32096e"
 
 - name: host
   reusable:

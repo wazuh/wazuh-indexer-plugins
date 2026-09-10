@@ -1,7 +1,7 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
 9.1.0,true,base,labels,object,core,,"{""application"": ""foo-bar"", ""env"": ""production""}",Custom key/value pairs.
-9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
+9.1.0,true,base,message,match_only_text,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
 9.1.0,true,agent,agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,agent,agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
@@ -258,7 +258,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,email,email.direction,keyword,extended,,inbound,Direction of the message.
 9.1.0,true,email,email.from.address,keyword,extended,array,sender@example.com,The sender's email address.
 9.1.0,true,email,email.local_id,keyword,extended,,c26dbea0-80d5-463b-b93c-4e8b708219ce,Unique identifier given by the source.
-9.1.0,true,email,email.message_id,keyword,extended,,81ce15$8r2j59@mail01.example.com,Value from the Message-ID header.
+9.1.0,true,email,email.message_id,wildcard,extended,,81ce15$8r2j59@mail01.example.com,Value from the Message-ID header.
 9.1.0,true,email,email.origination_timestamp,date,extended,,2020-11-10T22:12:34.8196921Z,Date and time the email was composed.
 9.1.0,true,email,email.reply_to.address,keyword,extended,array,reply.here@example.com,Address replies should be delivered to.
 9.1.0,true,email,email.sender.address,keyword,extended,,,Address of the message sender.
@@ -267,8 +267,8 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,email,email.x_mailer,keyword,extended,,Spambot v2.5,Application that drafted email.
 9.1.0,true,error,error.code,keyword,core,,,Error code describing the error.
 9.1.0,true,error,error.id,keyword,core,,,Unique identifier for the error.
-9.1.0,true,error,error.message,keyword,core,,,Error message.
-9.1.0,true,error,error.stack_trace,keyword,extended,,,The stack trace of this error in plain text.
+9.1.0,true,error,error.message,match_only_text,core,,,Error message.
+9.1.0,true,error,error.stack_trace,wildcard,extended,,,The stack trace of this error in plain text.
 9.1.0,true,error,error.type,keyword,extended,,java.lang.NullPointerException,"The type of the error, for example the class name of the exception."
 9.1.0,true,event,event.action,keyword,core,,user-password-change,The action captured by the event.
 9.1.0,true,event,event.agent_id_status,keyword,extended,,verified,Validation status of the event's agent.id field.
@@ -537,14 +537,14 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,host,host.type,keyword,core,,,Type of host.
 9.1.0,true,host,host.uptime,long,extended,,1325,Seconds the host has been up.
 9.1.0,true,http,http.request.body.bytes,long,extended,,887,Size in bytes of the request body.
-9.1.0,true,http,http.request.body.content,keyword,extended,,Hello world,The full HTTP request body.
+9.1.0,true,http,http.request.body.content,wildcard,extended,,Hello world,The full HTTP request body.
 9.1.0,true,http,http.request.bytes,long,extended,,1437,Total size in bytes of the request (body and headers).
 9.1.0,true,http,http.request.id,keyword,extended,,123e4567-e89b-12d3-a456-426614174000,HTTP request ID.
 9.1.0,true,http,http.request.method,keyword,extended,,POST,HTTP request method.
 9.1.0,true,http,http.request.mime_type,keyword,extended,,image/gif,Mime type of the body of the request.
 9.1.0,true,http,http.request.referrer,keyword,extended,,https://blog.example.com/,Referrer for this HTTP request.
 9.1.0,true,http,http.response.body.bytes,long,extended,,887,Size in bytes of the response body.
-9.1.0,true,http,http.response.body.content,keyword,extended,,Hello world,The full HTTP response body.
+9.1.0,true,http,http.response.body.content,wildcard,extended,,Hello world,The full HTTP response body.
 9.1.0,true,http,http.response.bytes,long,extended,,1437,Total size in bytes of the response (body and headers).
 9.1.0,true,http,http.response.mime_type,keyword,extended,,image/gif,Mime type of the body of the response.
 9.1.0,true,http,http.response.status_code,long,extended,,404,HTTP response status code.
@@ -705,7 +705,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.code_signature.timestamp,date,extended,,2021-01-01T12:10:30Z,When the signature was generated and signed.
 9.1.0,true,process,process.code_signature.trusted,boolean,extended,,true,Stores the trust status of the certificate chain.
 9.1.0,true,process,process.code_signature.valid,boolean,extended,,true,Boolean to capture if the digital signature is verified against the binary content.
-9.1.0,true,process,process.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
+9.1.0,true,process,process.command_line,wildcard,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.elf.architecture,keyword,extended,,x86-64,Machine architecture of the ELF file.
 9.1.0,true,process,process.elf.byte_order,keyword,extended,,Little Endian,Byte sequence of ELF file.
 9.1.0,true,process,process.elf.cpu_type,keyword,extended,,Intel,CPU type of the ELF file.
@@ -751,7 +751,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.entry_leader.attested_groups.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.entry_leader.attested_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.entry_leader.attested_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.entry_leader.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
+9.1.0,true,process,process.entry_leader.command_line,wildcard,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.entry_leader.entity_id,keyword,extended,,c2c455d9f99375d,Unique identifier for the process.
 9.1.0,true,process,process.entry_leader.entry_meta.source.ip,ip,core,,,IP address of the source.
 9.1.0,true,process,process.entry_leader.entry_meta.type,keyword,extended,,,The entry type for the entry session leader.
@@ -795,7 +795,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.group_leader.args,keyword,extended,array,"[""/usr/bin/ssh"", ""-l"", ""user"", ""10.0.0.16""]",Array of process arguments.
 9.1.0,true,process,process.group_leader.args_count,long,extended,,4,Length of the process.args array.
-9.1.0,true,process,process.group_leader.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
+9.1.0,true,process,process.group_leader.command_line,wildcard,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.group_leader.entity_id,keyword,extended,,c2c455d9f99375d,Unique identifier for the process.
 9.1.0,true,process,process.group_leader.executable,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
 9.1.0,true,process,process.group_leader.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
@@ -836,7 +836,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.io.bytes_skipped.length,long,extended,,,The length of bytes skipped.
 9.1.0,true,process,process.io.bytes_skipped.offset,long,extended,,,The byte offset into this event's io.text (or io.bytes in the future) where length bytes were skipped.
 9.1.0,true,process,process.io.max_bytes_per_process_exceeded,boolean,extended,,,"If true, the process producing the output has exceeded the max_kilobytes_per_process configuration setting."
-9.1.0,true,process,process.io.text,keyword,extended,,,A chunk of output or input sanitized to UTF-8.
+9.1.0,true,process,process.io.text,wildcard,extended,,,A chunk of output or input sanitized to UTF-8.
 9.1.0,true,process,process.io.total_bytes_captured,long,extended,,,The total number of bytes captured in this event.
 9.1.0,true,process,process.io.total_bytes_skipped,long,extended,,,The total number of bytes that were not captured due to implementation restrictions such as buffer size limits.
 9.1.0,true,process,process.io.type,keyword,extended,,,The type of object on which the IO action (read or write) was taken.
@@ -870,7 +870,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.parent.code_signature.timestamp,date,extended,,2021-01-01T12:10:30Z,When the signature was generated and signed.
 9.1.0,true,process,process.parent.code_signature.trusted,boolean,extended,,true,Stores the trust status of the certificate chain.
 9.1.0,true,process,process.parent.code_signature.valid,boolean,extended,,true,Boolean to capture if the digital signature is verified against the binary content.
-9.1.0,true,process,process.parent.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
+9.1.0,true,process,process.parent.command_line,wildcard,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.parent.elf.architecture,keyword,extended,,x86-64,Machine architecture of the ELF file.
 9.1.0,true,process,process.parent.elf.byte_order,keyword,extended,,Little Endian,Byte sequence of ELF file.
 9.1.0,true,process,process.parent.elf.cpu_type,keyword,extended,,Intel,CPU type of the ELF file.
@@ -1019,7 +1019,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.pid,long,core,,4242,Process id.
 9.1.0,true,process,process.previous.args,keyword,extended,array,"[""/usr/bin/ssh"", ""-l"", ""user"", ""10.0.0.16""]",Array of process arguments.
 9.1.0,true,process,process.previous.args_count,long,extended,,4,Length of the process.args array.
-9.1.0,true,process,process.previous.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
+9.1.0,true,process,process.previous.command_line,wildcard,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.previous.executable,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
 9.1.0,true,process,process.previous.name,keyword,extended,,ssh,Process name.
 9.1.0,true,process,process.previous.parent.pid,long,custom,,1,PID of the parent process.
@@ -1035,7 +1035,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.saved_user.name,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.session_leader.args,keyword,extended,array,"[""/usr/bin/ssh"", ""-l"", ""user"", ""10.0.0.16""]",Array of process arguments.
 9.1.0,true,process,process.session_leader.args_count,long,extended,,4,Length of the process.args array.
-9.1.0,true,process,process.session_leader.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
+9.1.0,true,process,process.session_leader.command_line,wildcard,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.session_leader.entity_id,keyword,extended,,c2c455d9f99375d,Unique identifier for the process.
 9.1.0,true,process,process.session_leader.executable,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
 9.1.0,true,process,process.session_leader.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
@@ -1090,7 +1090,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.vpid,long,core,,4242,Virtual process id.
 9.1.0,true,process,process.working_directory,keyword,extended,,/home/alice,The working directory of the process.
 9.1.0,true,registry,registry.data.bytes,keyword,extended,,ZQBuAC0AVQBTAAAAZQBuAAAAAAA=,Original bytes written with base64 encoding.
-9.1.0,true,registry,registry.data.strings,keyword,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
+9.1.0,true,registry,registry.data.strings,wildcard,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
 9.1.0,true,registry,registry.data.type,keyword,core,,REG_SZ,Standard registry type for encoding contents
 9.1.0,true,registry,registry.hive,keyword,core,,HKLM,Abbreviated name for the hive.
 9.1.0,true,registry,registry.key,keyword,core,,SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe,Hive-relative path of keys.
@@ -1400,7 +1400,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.enrichments.indicator.provider,keyword,extended,,lrz_urlhaus,Indicator provider
 9.1.0,true,threat,threat.enrichments.indicator.reference,keyword,extended,,https://system.example.com/indicator/0001234,Indicator reference URL
 9.1.0,true,threat,threat.enrichments.indicator.registry.data.bytes,keyword,extended,,ZQBuAC0AVQBTAAAAZQBuAAAAAAA=,Original bytes written with base64 encoding.
-9.1.0,true,threat,threat.enrichments.indicator.registry.data.strings,keyword,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
+9.1.0,true,threat,threat.enrichments.indicator.registry.data.strings,wildcard,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
 9.1.0,true,threat,threat.enrichments.indicator.registry.data.type,keyword,core,,REG_SZ,Standard registry type for encoding contents
 9.1.0,true,threat,threat.enrichments.indicator.registry.hive,keyword,core,,HKLM,Abbreviated name for the hive.
 9.1.0,true,threat,threat.enrichments.indicator.registry.key,keyword,core,,SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe,Hive-relative path of keys.
@@ -1417,10 +1417,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.enrichments.indicator.url.domain,keyword,extended,,www.elastic.co,Domain of the url.
 9.1.0,true,threat,threat.enrichments.indicator.url.extension,keyword,extended,,png,"File extension from the request url, excluding the leading dot."
 9.1.0,true,threat,threat.enrichments.indicator.url.fragment,keyword,extended,,,Portion of the url after the `#`.
-9.1.0,true,threat,threat.enrichments.indicator.url.full,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
-9.1.0,true,threat,threat.enrichments.indicator.url.original,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
+9.1.0,true,threat,threat.enrichments.indicator.url.full,wildcard,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
+9.1.0,true,threat,threat.enrichments.indicator.url.original,wildcard,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
 9.1.0,true,threat,threat.enrichments.indicator.url.password,keyword,extended,,,Password of the request.
-9.1.0,true,threat,threat.enrichments.indicator.url.path,keyword,extended,,,"Path of the request, such as ""/search""."
+9.1.0,true,threat,threat.enrichments.indicator.url.path,wildcard,extended,,,"Path of the request, such as ""/search""."
 9.1.0,true,threat,threat.enrichments.indicator.url.port,long,extended,,443,"Port of the request, such as 443."
 9.1.0,true,threat,threat.enrichments.indicator.url.query,keyword,extended,,,Query string of the request.
 9.1.0,true,threat,threat.enrichments.indicator.url.registered_domain,keyword,extended,,example.com,"The highest registered url domain, stripped of the subdomain."
@@ -1623,7 +1623,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.indicator.provider,keyword,extended,,lrz_urlhaus,Indicator provider
 9.1.0,true,threat,threat.indicator.reference,keyword,extended,,https://system.example.com/indicator/0001234,Indicator reference URL
 9.1.0,true,threat,threat.indicator.registry.data.bytes,keyword,extended,,ZQBuAC0AVQBTAAAAZQBuAAAAAAA=,Original bytes written with base64 encoding.
-9.1.0,true,threat,threat.indicator.registry.data.strings,keyword,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
+9.1.0,true,threat,threat.indicator.registry.data.strings,wildcard,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
 9.1.0,true,threat,threat.indicator.registry.data.type,keyword,core,,REG_SZ,Standard registry type for encoding contents
 9.1.0,true,threat,threat.indicator.registry.hive,keyword,core,,HKLM,Abbreviated name for the hive.
 9.1.0,true,threat,threat.indicator.registry.key,keyword,core,,SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe,Hive-relative path of keys.
@@ -1635,10 +1635,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.indicator.url.domain,keyword,extended,,www.elastic.co,Domain of the url.
 9.1.0,true,threat,threat.indicator.url.extension,keyword,extended,,png,"File extension from the request url, excluding the leading dot."
 9.1.0,true,threat,threat.indicator.url.fragment,keyword,extended,,,Portion of the url after the `#`.
-9.1.0,true,threat,threat.indicator.url.full,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
-9.1.0,true,threat,threat.indicator.url.original,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
+9.1.0,true,threat,threat.indicator.url.full,wildcard,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
+9.1.0,true,threat,threat.indicator.url.original,wildcard,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
 9.1.0,true,threat,threat.indicator.url.password,keyword,extended,,,Password of the request.
-9.1.0,true,threat,threat.indicator.url.path,keyword,extended,,,"Path of the request, such as ""/search""."
+9.1.0,true,threat,threat.indicator.url.path,wildcard,extended,,,"Path of the request, such as ""/search""."
 9.1.0,true,threat,threat.indicator.url.port,long,extended,,443,"Port of the request, such as 443."
 9.1.0,true,threat,threat.indicator.url.query,keyword,extended,,,Query string of the request.
 9.1.0,true,threat,threat.indicator.url.registered_domain,keyword,extended,,example.com,"The highest registered url domain, stripped of the subdomain."
@@ -1767,10 +1767,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,url,url.domain,keyword,extended,,www.elastic.co,Domain of the url.
 9.1.0,true,url,url.extension,keyword,extended,,png,"File extension from the request url, excluding the leading dot."
 9.1.0,true,url,url.fragment,keyword,extended,,,Portion of the url after the `#`.
-9.1.0,true,url,url.full,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
-9.1.0,true,url,url.original,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
+9.1.0,true,url,url.full,wildcard,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
+9.1.0,true,url,url.original,wildcard,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
 9.1.0,true,url,url.password,keyword,extended,,,Password of the request.
-9.1.0,true,url,url.path,keyword,extended,,,"Path of the request, such as ""/search""."
+9.1.0,true,url,url.path,wildcard,extended,,,"Path of the request, such as ""/search""."
 9.1.0,true,url,url.port,long,extended,,443,"Port of the request, such as 443."
 9.1.0,true,url,url.query,keyword,extended,,,Query string of the request.
 9.1.0,true,url,url.registered_domain,keyword,extended,,example.com,"The highest registered url domain, stripped of the subdomain."
@@ -2104,7 +2104,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.provider,keyword,extended,,lrz_urlhaus,Indicator provider
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.reference,keyword,extended,,https://system.example.com/indicator/0001234,Indicator reference URL
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.data.bytes,keyword,extended,,ZQBuAC0AVQBTAAAAZQBuAAAAAAA=,Original bytes written with base64 encoding.
-9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.data.strings,keyword,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
+9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.data.strings,wildcard,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.data.type,keyword,core,,REG_SZ,Standard registry type for encoding contents
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.hive,keyword,core,,HKLM,Abbreviated name for the hive.
 9.1.0,true,wazuh,wazuh.threat.enrichments.indicator.registry.key,keyword,core,,SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe,Hive-relative path of keys.
@@ -2313,7 +2313,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.threat.indicator.provider,keyword,extended,,lrz_urlhaus,Indicator provider
 9.1.0,true,wazuh,wazuh.threat.indicator.reference,keyword,extended,,https://system.example.com/indicator/0001234,Indicator reference URL
 9.1.0,true,wazuh,wazuh.threat.indicator.registry.data.bytes,keyword,extended,,ZQBuAC0AVQBTAAAAZQBuAAAAAAA=,Original bytes written with base64 encoding.
-9.1.0,true,wazuh,wazuh.threat.indicator.registry.data.strings,keyword,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
+9.1.0,true,wazuh,wazuh.threat.indicator.registry.data.strings,wildcard,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
 9.1.0,true,wazuh,wazuh.threat.indicator.registry.data.type,keyword,core,,REG_SZ,Standard registry type for encoding contents
 9.1.0,true,wazuh,wazuh.threat.indicator.registry.hive,keyword,core,,HKLM,Abbreviated name for the hive.
 9.1.0,true,wazuh,wazuh.threat.indicator.registry.key,keyword,core,,SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe,Hive-relative path of keys.
