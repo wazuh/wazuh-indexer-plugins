@@ -3,7 +3,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash used as checksum of the data collected by the agent.
 9.1.0,true,process,process.args,keyword,extended,array,"[""/usr/bin/ssh"", ""-l"", ""user"", ""10.0.0.16""]",Array of process arguments.
 9.1.0,true,process,process.args_count,long,extended,,4,Length of the process.args array.
-9.1.0,true,process,process.command_line,wildcard,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
+9.1.0,true,process,process.command_line,match_only_text,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.name,keyword,extended,,ssh,Process name.
 9.1.0,true,process,process.parent.pid,long,core,,4242,Process id.
 9.1.0,true,process,process.pid,long,core,,4242,Process id.
