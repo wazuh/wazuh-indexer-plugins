@@ -22,7 +22,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchTimeoutException;
-import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -39,6 +38,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.TransientFailures;
 
 /**
  * Loads the shared, cluster-persisted content spaces into the <em>local</em> node's Engine, keyed
@@ -80,6 +80,16 @@ public class EngineContentLoader {
     private static final TimeValue RELOAD_TIMEOUT = TimeValue.timeValueMinutes(10);
 
     /**
+     * How long the content indices may stay unable to serve reads before the deferral is escalated
+     * from a debug line to a single warning. Startup deferrals clear within seconds; anything past
+     * this is no longer a boot condition, and the node is running with no content in its Engine.
+     */
+    private static final TimeValue NOT_READY_GRACE = TimeValue.timeValueMinutes(5);
+
+    /** {@link #deferringSince} value meaning "the last run got its reads served". */
+    private static final long NOT_DEFERRING = Long.MIN_VALUE;
+
+    /**
      * The shared, cluster-persisted spaces whose Engine representation must be consistent across the
      * cluster. Each node loads all of them into its own Engine.
      */
@@ -97,6 +107,17 @@ public class EngineContentLoader {
      * next trigger.
      */
     private final Map<String, String> loadedHashes = new ConcurrentHashMap<>();
+
+    /**
+     * Relative time of the first deferral of the current not-ready streak, or {@link #NOT_DEFERRING}
+     * when the last run got its reads served. A dedicated sentinel rather than {@code 0}, which is a
+     * legitimate reading of the relative clock early in a node's life. Only ever touched from inside
+     * a run, and runs are single-flighted, so no synchronization beyond visibility is needed.
+     */
+    private volatile long deferringSince = NOT_DEFERRING;
+
+    /** Whether the current not-ready streak has already been escalated to a warning. */
+    private volatile boolean deferralWarned;
 
     /** Guards {@link #current} and each run's waiter list and completion flag. */
     private final Object mutex = new Object();
@@ -247,17 +268,22 @@ public class EngineContentLoader {
      * others from loading. Package-private so tests can drive the chain directly.
      *
      * <p>A node that cannot read the content yet is the one exception: every space reads its hash
-     * from the same {@link Constants#INDEX_POLICIES} index, so a missing index or a cluster block
-     * (usually {@code state not recovered / initialized}) is a precondition of the whole run rather
-     * than a per-space failure. Both are normal while a node starts up and both clear on their own,
-     * so the run ends after a single debug line instead of logging the same error once per tracked
-     * space on every cluster-state update. The next cluster-state event retries.
+     * from the same {@link Constants#INDEX_POLICIES} index, so any failure {@link
+     * TransientFailures#isTransientReadFailure classified as a startup condition} — a missing index,
+     * a cluster block ({@code state not recovered / initialized}), or shards that are not allocated
+     * yet ({@code all shards failed}) — is a precondition of the whole run rather than a per-space
+     * failure. They are all normal while a node starts up and all clear on their own, so the run ends
+     * after a single debug line instead of logging the same error once per tracked space on every
+     * cluster-state update. The next cluster-state event retries.
      *
      * @param index index into {@link #TRACKED_SPACES} of the space to reload next.
      * @param onComplete invoked once, after the last space finishes (successfully or not).
      */
     void reloadFrom(int index, Runnable onComplete) {
         if (index >= TRACKED_SPACES.size()) {
+            // Reaching the end means no space deferred, so the indices are serving reads again.
+            this.deferringSince = NOT_DEFERRING;
+            this.deferralWarned = false;
             onComplete.run();
             return;
         }
@@ -267,14 +293,14 @@ public class EngineContentLoader {
                         v -> this.reloadFrom(index + 1, onComplete),
                         e -> {
                             if (ExceptionsHelper.unwrap(e, IndexNotFoundException.class) != null) {
-                                log.debug(
-                                        Constants.D_LOG_ENGINE_POLICIES_INDEX_NOT_READY, Constants.INDEX_POLICIES);
-                                onComplete.run();
+                                this.deferRun(
+                                        Constants.D_LOG_ENGINE_POLICIES_INDEX_NOT_READY,
+                                        Constants.INDEX_POLICIES,
+                                        onComplete);
                                 return;
                             }
-                            if (ExceptionsHelper.unwrap(e, ClusterBlockException.class) != null) {
-                                log.debug(Constants.D_LOG_ENGINE_CLUSTER_NOT_READY, e.getMessage());
-                                onComplete.run();
+                            if (TransientFailures.isTransientReadFailure(e)) {
+                                this.deferRun(Constants.D_LOG_ENGINE_CLUSTER_NOT_READY, e.getMessage(), onComplete);
                                 return;
                             }
                             log.error(Constants.E_LOG_ENGINE_SPACE_LOAD_FAILED, space, e.getMessage());
@@ -329,6 +355,37 @@ public class EngineContentLoader {
                                             listener::onFailure));
                         },
                         listener::onFailure));
+    }
+
+    /**
+     * Ends the run because the content indices cannot serve reads yet, logging the reason.
+     *
+     * <p>Every tracked space reads from the same {@link Constants#INDEX_POLICIES} index, so the first
+     * such failure decides the whole run: the remaining spaces would fail identically, and the
+     * cluster-state listener retries the run on the next update. This is what keeps a clean boot from
+     * logging one error per tracked space per cluster-state update (issue #38793).
+     *
+     * <p>Because these deferrals are silent, a condition that never clears would otherwise leave the
+     * node running with no content in its Engine and nothing in the log to say so. The first deferral
+     * of a streak starts a clock, and once the streak outlives {@link #NOT_READY_GRACE} it is
+     * escalated to a single warning; the streak resets as soon as a run gets its reads served.
+     *
+     * @param debugMessage the parameterized debug message describing the condition.
+     * @param detail the message's single argument (an index name or a failure message).
+     * @param onComplete the run's completion callback, invoked before returning.
+     */
+    private void deferRun(String debugMessage, String detail, Runnable onComplete) {
+        long now = this.threadPool.relativeTimeInMillis();
+        if (this.deferringSince == NOT_DEFERRING) {
+            this.deferringSince = now;
+        }
+        if (!this.deferralWarned && now - this.deferringSince >= NOT_READY_GRACE.millis()) {
+            this.deferralWarned = true;
+            log.warn(Constants.W_LOG_ENGINE_CONTENT_LOAD_STILL_DEFERRED, NOT_READY_GRACE, detail);
+        } else {
+            log.debug(debugMessage, detail);
+        }
+        onComplete.run();
     }
 
     /**
