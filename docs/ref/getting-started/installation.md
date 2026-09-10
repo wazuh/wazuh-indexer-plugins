@@ -314,7 +314,7 @@ Each run:
 - Applies the new password to the running cluster and persists it to `/etc/wazuh-indexer/opensearch-security/internal_users.yml`, so the change survives a later run of `indexer-security-init.sh`.
 - Logs to `/var/log/wazuh-passwords-tool.log`.
 
-The tool authenticates with the admin certificate at `/etc/wazuh-indexer/certs/admin.pem` and its key at `/etc/wazuh-indexer/certs/admin-key.pem`. If you deployed the certificates elsewhere, pass `-c` and `-k` with the correct paths.
+The tool authenticates with the admin certificate at `/etc/wazuh-indexer/certs/admin.pem` and its key at `/etc/wazuh-indexer/certs/admin-key.pem`. These paths are fixed and cannot be overridden, so the admin certificate and its key must be deployed there before running the tool.
 
 #### Changing every password in one run
 
