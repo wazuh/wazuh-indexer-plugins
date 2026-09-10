@@ -800,7 +800,7 @@ paths:
                     status: "experimental"
                     level: "low"
                     logsource:
-                      product: "system"
+                      product: "azure-functions"
                       category: "system"
                     detection:
                       condition: "selection"
@@ -862,7 +862,7 @@ paths:
                     status: "stable"
                     level: "medium"
                     logsource:
-                      product: "system"
+                      product: "azure-functions"
                       category: "system"
                     detection:
                       condition: "selection"
@@ -1021,9 +1021,6 @@ paths:
                         - "https://azure.microsoft.com"
                     category: "cloud-services"
                     enabled: true
-                    rules: []
-                    decoders: []
-                    kvdbs: []
       responses:
         "200":
           $ref: "#/components/responses/OkResponse"
@@ -2346,8 +2343,8 @@ components:
           required:
             - product
           description: |
-            Log source definition. Required — Ruleset Management rejects a rule with no
-            `logsource` (`Sigma rule must have a log source`).
+            Log source definition. Required. A rule with no `logsource` is rejected with
+            `Rule logsource.product ('null') must match the integration's metadata.title`.
           properties:
             product:
               type: string
@@ -2458,8 +2455,8 @@ components:
           type: object
           additionalProperties: false
           description: |
-            Log source definition. Required — Ruleset Management rejects a rule with no
-            `logsource` (`Sigma rule must have a log source`).
+            Log source definition. Required. A rule with no `logsource` is rejected with
+            `Rule logsource.product ('null') must match the integration's metadata.title`.           
           properties:
             product:
               type: string

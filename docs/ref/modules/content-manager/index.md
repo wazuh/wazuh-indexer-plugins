@@ -74,7 +74,9 @@ curl -sk -u admin:admin -X PUT \
       },
       "enabled": true,
       "index_unclassified_events": false,
-      "index_discarded_events": false
+      "index_discarded_events": false,
+      "integrations": ["<ids currently in the policy>"],
+      "filters": ["<ids currently in the policy>"]
     }
   }'
 ```
