@@ -3361,12 +3361,11 @@ email.message_id:
     to a particular email message.
   example: 81ce15$8r2j59@mail01.example.com
   flat_name: email.message_id
-  ignore_above: 1024
   level: extended
   name: message_id
   normalize: []
   short: Value from the Message-ID header.
-  type: keyword
+  type: wildcard
 email.origination_timestamp:
   dashed_name: email-origination-timestamp
   description: The date and time the email message was composed. Many email clients
@@ -3461,7 +3460,6 @@ error.message:
   dashed_name: error-message
   description: Error message.
   flat_name: error.message
-  ignore_above: 1024
   level: core
   name: message
   normalize: []
@@ -3470,12 +3468,11 @@ error.message:
     relation: equivalent
     stability: stable
   short: Error message.
-  type: keyword
+  type: match_only_text
 error.stack_trace:
   dashed_name: error-stack-trace
   description: The stack trace of this error in plain text.
   flat_name: error.stack_trace
-  ignore_above: 1024
   level: extended
   name: stack_trace
   normalize: []
@@ -3484,7 +3481,7 @@ error.stack_trace:
     relation: equivalent
     stability: stable
   short: The stack trace of this error in plain text.
-  type: keyword
+  type: wildcard
 error.type:
   dashed_name: error-type
   description: The type of the error, for example the class name of the exception.
@@ -7494,12 +7491,11 @@ http.request.body.content:
   description: The full HTTP request body.
   example: Hello world
   flat_name: http.request.body.content
-  ignore_above: 1024
   level: extended
   name: request.body.content
   normalize: []
   short: The full HTTP request body.
-  type: keyword
+  type: wildcard
 http.request.bytes:
   dashed_name: http-request-bytes
   description: Total size in bytes of the request (body and headers).
@@ -7602,12 +7598,11 @@ http.response.body.content:
   description: The full HTTP response body.
   example: Hello world
   flat_name: http.response.body.content
-  ignore_above: 1024
   level: extended
   name: response.body.content
   normalize: []
   short: The full HTTP response body.
-  type: keyword
+  type: wildcard
 http.response.bytes:
   dashed_name: http-response-bytes
   description: Total size in bytes of the response (body and headers).
@@ -8012,7 +8007,6 @@ message:
     If multiple messages exist, they can be combined into one message.'
   example: Hello World
   flat_name: message
-  ignore_above: 1024
   level: core
   name: message
   normalize: []
@@ -8023,7 +8017,7 @@ message:
     relation: otlp
     stability: stable
   short: Log message optimized for viewing in a log viewer.
-  type: keyword
+  type: match_only_text
 mitre.subtechnique:
   dashed_name: mitre-subtechnique
   description: MITRE ATT&CK subtechniques.
@@ -9672,7 +9666,6 @@ process.command_line:
     Some arguments may be filtered to protect sensitive information.'
   example: /usr/bin/ssh -l user 10.0.0.16
   flat_name: process.command_line
-  ignore_above: 1024
   level: extended
   name: command_line
   normalize: []
@@ -9680,7 +9673,7 @@ process.command_line:
   - relation: match
     stability: development
   short: Full command line that started the process.
-  type: keyword
+  type: wildcard
 process.elf.architecture:
   dashed_name: process-elf-architecture
   description: Machine architecture of the ELF file.
@@ -10226,13 +10219,12 @@ process.entry_leader.command_line:
     Some arguments may be filtered to protect sensitive information.'
   example: /usr/bin/ssh -l user 10.0.0.16
   flat_name: process.entry_leader.command_line
-  ignore_above: 1024
   level: extended
   name: command_line
   normalize: []
   original_fieldset: process
   short: Full command line that started the process.
-  type: keyword
+  type: wildcard
 process.entry_leader.entity_id:
   dashed_name: process-entry-leader-entity-id
   description: 'Unique identifier for the process.
@@ -10826,13 +10818,12 @@ process.group_leader.command_line:
     Some arguments may be filtered to protect sensitive information.'
   example: /usr/bin/ssh -l user 10.0.0.16
   flat_name: process.group_leader.command_line
-  ignore_above: 1024
   level: extended
   name: command_line
   normalize: []
   original_fieldset: process
   short: Full command line that started the process.
-  type: keyword
+  type: wildcard
 process.group_leader.entity_id:
   dashed_name: process-group-leader-entity-id
   description: 'Unique identifier for the process.
@@ -11360,12 +11351,11 @@ process.io.text:
     may contain terminal control codes such as for cursor movement, so some string
     queries may not match due to terminal codes inserted between characters of a word.'
   flat_name: process.io.text
-  ignore_above: 1024
   level: extended
   name: io.text
   normalize: []
   short: A chunk of output or input sanitized to UTF-8.
-  type: keyword
+  type: wildcard
 process.io.total_bytes_captured:
   dashed_name: process-io-total-bytes-captured
   description: The total number of bytes captured in this event.
@@ -11801,13 +11791,12 @@ process.parent.command_line:
     Some arguments may be filtered to protect sensitive information.'
   example: /usr/bin/ssh -l user 10.0.0.16
   flat_name: process.parent.command_line
-  ignore_above: 1024
   level: extended
   name: command_line
   normalize: []
   original_fieldset: process
   short: Full command line that started the process.
-  type: keyword
+  type: wildcard
 process.parent.elf.architecture:
   dashed_name: process-parent-elf-architecture
   description: Machine architecture of the ELF file.
@@ -13644,13 +13633,12 @@ process.previous.command_line:
     Some arguments may be filtered to protect sensitive information.'
   example: /usr/bin/ssh -l user 10.0.0.16
   flat_name: process.previous.command_line
-  ignore_above: 1024
   level: extended
   name: command_line
   normalize: []
   original_fieldset: process
   short: Full command line that started the process.
-  type: keyword
+  type: wildcard
 process.previous.executable:
   dashed_name: process-previous-executable
   description: Absolute path to the process executable.
@@ -13855,13 +13843,12 @@ process.session_leader.command_line:
     Some arguments may be filtered to protect sensitive information.'
   example: /usr/bin/ssh -l user 10.0.0.16
   flat_name: process.session_leader.command_line
-  ignore_above: 1024
   level: extended
   name: command_line
   normalize: []
   original_fieldset: process
   short: Full command line that started the process.
-  type: keyword
+  type: wildcard
 process.session_leader.entity_id:
   dashed_name: process-session-leader-entity-id
   description: 'Unique identifier for the process.
@@ -14603,13 +14590,12 @@ registry.data.strings:
     the decimal representation (e.g `"1"`).'
   example: '["C:\rta\red_ttp\bin\myapp.exe"]'
   flat_name: registry.data.strings
-  ignore_above: 1024
   level: core
   name: data.strings
   normalize:
   - array
   short: List of strings representing what was written to the registry.
-  type: keyword
+  type: wildcard
 registry.data.type:
   dashed_name: registry-data-type
   description: Standard registry type for encoding contents
@@ -18696,14 +18682,13 @@ threat.enrichments.indicator.registry.data.strings:
     the decimal representation (e.g `"1"`).'
   example: '["C:\rta\red_ttp\bin\myapp.exe"]'
   flat_name: threat.enrichments.indicator.registry.data.strings
-  ignore_above: 1024
   level: core
   name: data.strings
   normalize:
   - array
   original_fieldset: registry
   short: List of strings representing what was written to the registry.
-  type: keyword
+  type: wildcard
 threat.enrichments.indicator.registry.data.type:
   dashed_name: threat-enrichments-indicator-registry-data-type
   description: Standard registry type for encoding contents
@@ -18928,13 +18913,12 @@ threat.enrichments.indicator.url.full:
     in `url.full`, whether this field is reconstructed or present in the event source.
   example: https://www.elastic.co:443/search?q=elasticsearch#top
   flat_name: threat.enrichments.indicator.url.full
-  ignore_above: 1024
   level: extended
   name: full
   normalize: []
   original_fieldset: url
   short: Full unparsed URL.
-  type: keyword
+  type: wildcard
 threat.enrichments.indicator.url.original:
   dashed_name: threat-enrichments-indicator-url-original
   description: 'Unmodified original url as seen in the event source.
@@ -18945,13 +18929,12 @@ threat.enrichments.indicator.url.original:
     This field is meant to represent the URL as it was observed, complete or not.'
   example: https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch
   flat_name: threat.enrichments.indicator.url.original
-  ignore_above: 1024
   level: extended
   name: original
   normalize: []
   original_fieldset: url
   short: Unmodified original url as seen in the event source.
-  type: keyword
+  type: wildcard
 threat.enrichments.indicator.url.password:
   dashed_name: threat-enrichments-indicator-url-password
   description: Password of the request.
@@ -18967,13 +18950,12 @@ threat.enrichments.indicator.url.path:
   dashed_name: threat-enrichments-indicator-url-path
   description: Path of the request, such as "/search".
   flat_name: threat.enrichments.indicator.url.path
-  ignore_above: 1024
   level: extended
   name: path
   normalize: []
   original_fieldset: url
   short: Path of the request, such as "/search".
-  type: keyword
+  type: wildcard
 threat.enrichments.indicator.url.port:
   dashed_name: threat-enrichments-indicator-url-port
   description: Port of the request, such as 443.
@@ -21528,14 +21510,13 @@ threat.indicator.registry.data.strings:
     the decimal representation (e.g `"1"`).'
   example: '["C:\rta\red_ttp\bin\myapp.exe"]'
   flat_name: threat.indicator.registry.data.strings
-  ignore_above: 1024
   level: core
   name: data.strings
   normalize:
   - array
   original_fieldset: registry
   short: List of strings representing what was written to the registry.
-  type: keyword
+  type: wildcard
 threat.indicator.registry.data.type:
   dashed_name: threat-indicator-registry-data-type
   description: Standard registry type for encoding contents
@@ -21705,13 +21686,12 @@ threat.indicator.url.full:
     in `url.full`, whether this field is reconstructed or present in the event source.
   example: https://www.elastic.co:443/search?q=elasticsearch#top
   flat_name: threat.indicator.url.full
-  ignore_above: 1024
   level: extended
   name: full
   normalize: []
   original_fieldset: url
   short: Full unparsed URL.
-  type: keyword
+  type: wildcard
 threat.indicator.url.original:
   dashed_name: threat-indicator-url-original
   description: 'Unmodified original url as seen in the event source.
@@ -21722,13 +21702,12 @@ threat.indicator.url.original:
     This field is meant to represent the URL as it was observed, complete or not.'
   example: https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch
   flat_name: threat.indicator.url.original
-  ignore_above: 1024
   level: extended
   name: original
   normalize: []
   original_fieldset: url
   short: Unmodified original url as seen in the event source.
-  type: keyword
+  type: wildcard
 threat.indicator.url.password:
   dashed_name: threat-indicator-url-password
   description: Password of the request.
@@ -21744,13 +21723,12 @@ threat.indicator.url.path:
   dashed_name: threat-indicator-url-path
   description: Path of the request, such as "/search".
   flat_name: threat.indicator.url.path
-  ignore_above: 1024
   level: extended
   name: path
   normalize: []
   original_fieldset: url
   short: Path of the request, such as "/search".
-  type: keyword
+  type: wildcard
 threat.indicator.url.port:
   dashed_name: threat-indicator-url-port
   description: Port of the request, such as 443.
@@ -23526,7 +23504,6 @@ url.full:
     in `url.full`, whether this field is reconstructed or present in the event source.
   example: https://www.elastic.co:443/search?q=elasticsearch#top
   flat_name: url.full
-  ignore_above: 1024
   level: extended
   name: full
   normalize: []
@@ -23534,7 +23511,7 @@ url.full:
   - relation: match
     stability: stable
   short: Full unparsed URL.
-  type: keyword
+  type: wildcard
 url.original:
   dashed_name: url-original
   description: 'Unmodified original url as seen in the event source.
@@ -23545,7 +23522,6 @@ url.original:
     This field is meant to represent the URL as it was observed, complete or not.'
   example: https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch
   flat_name: url.original
-  ignore_above: 1024
   level: extended
   name: original
   normalize: []
@@ -23553,7 +23529,7 @@ url.original:
   - relation: match
     stability: development
   short: Unmodified original url as seen in the event source.
-  type: keyword
+  type: wildcard
 url.password:
   dashed_name: url-password
   description: Password of the request.
@@ -23568,7 +23544,6 @@ url.path:
   dashed_name: url-path
   description: Path of the request, such as "/search".
   flat_name: url.path
-  ignore_above: 1024
   level: extended
   name: path
   normalize: []
@@ -23576,7 +23551,7 @@ url.path:
   - relation: match
     stability: stable
   short: Path of the request, such as "/search".
-  type: keyword
+  type: wildcard
 url.port:
   dashed_name: url-port
   description: Port of the request, such as 443.
@@ -28384,14 +28359,13 @@ wazuh.threat.enrichments.indicator.registry.data.strings:
     the decimal representation (e.g `"1"`).'
   example: '["C:\rta\red_ttp\bin\myapp.exe"]'
   flat_name: wazuh.threat.enrichments.indicator.registry.data.strings
-  ignore_above: 1024
   level: core
   name: data.strings
   normalize:
   - array
   original_fieldset: registry
   short: List of strings representing what was written to the registry.
-  type: keyword
+  type: wildcard
 wazuh.threat.enrichments.indicator.registry.data.type:
   dashed_name: wazuh-threat-enrichments-indicator-registry-data-type
   description: Standard registry type for encoding contents
@@ -31040,14 +31014,13 @@ wazuh.threat.indicator.registry.data.strings:
     the decimal representation (e.g `"1"`).'
   example: '["C:\rta\red_ttp\bin\myapp.exe"]'
   flat_name: wazuh.threat.indicator.registry.data.strings
-  ignore_above: 1024
   level: core
   name: data.strings
   normalize:
   - array
   original_fieldset: registry
   short: List of strings representing what was written to the registry.
-  type: keyword
+  type: wildcard
 wazuh.threat.indicator.registry.data.type:
   dashed_name: wazuh-threat-indicator-registry-data-type
   description: Standard registry type for encoding contents
