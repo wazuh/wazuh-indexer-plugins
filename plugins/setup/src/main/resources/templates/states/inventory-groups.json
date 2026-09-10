@@ -12,12 +12,25 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
-          "group.name",
+          "checksum.hash.sha1",
           "group.description",
-          "group.id_signed",
-          "group.uuid",
+          "group.name",
           "group.users",
-          "state.modified_at"
+          "group.uuid",
+          "message",
+          "wazuh.agent.groups",
+          "wazuh.agent.host.architecture",
+          "wazuh.agent.host.hostname",
+          "wazuh.agent.host.os.name",
+          "wazuh.agent.host.os.platform",
+          "wazuh.agent.host.os.type",
+          "wazuh.agent.host.os.version",
+          "wazuh.agent.id",
+          "wazuh.agent.name",
+          "wazuh.agent.version",
+          "wazuh.cluster.name",
+          "wazuh.cluster.node",
+          "wazuh.schema.version"
         ],
         "refresh_interval": "2s"
       }
