@@ -38,6 +38,8 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.SetupReadiness;
 
 /**
@@ -113,6 +115,13 @@ public class CatalogSyncJob implements JobExecutor {
      */
     @Override
     public void execute(JobExecutionContext context) {
+        // The job document is reconciled with the settings on start and on every dynamic change,
+        // but a stale `enabled: true` document (written by an older version, restored from a
+        // snapshot, or edited by hand) must never reach CTI while the setting says otherwise.
+        if (!PluginSettings.getInstance().isUpdateOnSchedule()) {
+            log.info(Constants.I_LOG_CATALOG_SYNC_SKIPPED_DISABLED, context.getJobId());
+            return;
+        }
         if (!this.semaphore.tryAcquire()) {
             log.warn(
                     "CatalogSyncJob (ID: {}) skipped because synchronization is already running.",

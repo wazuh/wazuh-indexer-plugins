@@ -629,6 +629,14 @@ public class Constants {
             "Catalog Sync Job scheduled successfully.";
     public static final String W_LOG_CATALOG_SYNC_JOB_FAILED =
             "Failed to schedule Catalog Sync Job: {}, retrying";
+    public static final String I_LOG_CATALOG_SYNC_JOB_RECONCILED =
+            "Catalog Sync Job reconciled with the current settings (enabled: {} -> {}, interval: {} -> {} minutes).";
+    public static final String D_LOG_CATALOG_SYNC_JOB_IN_SYNC =
+            "Catalog Sync Job already matches the current settings (enabled: {}, interval: {} minutes). Nothing to do.";
+    public static final String W_LOG_CATALOG_SYNC_JOB_UNREADABLE =
+            "Could not parse the existing Catalog Sync Job document; rewriting it from the current settings: {}";
+    public static final String I_LOG_CATALOG_SYNC_SKIPPED_DISABLED =
+            "Scheduled catalog synchronization (ID: {}) skipped: plugins.content_manager.catalog.update_on_schedule is false.";
     public static final String E_LOG_JOB_SCHEDULE_GIVE_UP = "Giving up {} after {} attempts.";
     public static final String I_LOG_JOB_SCHEDULE_RETRY = "Retrying {} (attempt {}/{}) in {}s.";
     public static final String D_LOG_TELEMETRY_JOB_DISABLED =

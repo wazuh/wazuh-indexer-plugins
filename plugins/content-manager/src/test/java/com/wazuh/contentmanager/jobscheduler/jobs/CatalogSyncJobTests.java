@@ -337,4 +337,61 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
         verify(job, times(2)).performSynchronization();
         Assert.assertFalse("Semaphore must end released", job.isRunning());
     }
+
+    /**
+     * With {@code update_on_schedule} disabled, a scheduled fire must not synchronize anything,
+     * even if the job document that produced it still says {@code enabled: true}. This is the guard
+     * that makes an air-gapped deployment safe against a stale document.
+     */
+    public void testExecute_updateOnScheduleDisabled_doesNotSynchronize() {
+        PluginSettings.getInstance().setUpdateOnSchedule(false);
+        try {
+            this.useSameThreadExecutor();
+            CatalogSyncJob job = spy(this.catalogSyncJob);
+            JobExecutionContext context = mock(JobExecutionContext.class);
+
+            job.execute(context);
+
+            verify(job, times(0)).performSynchronization();
+            verifyNoInteractions(this.consumersIndex);
+            Assert.assertFalse(
+                    "A skipped scheduled fire must not acquire the semaphore", job.isRunning());
+        } finally {
+            PluginSettings.getInstance().setUpdateOnSchedule(true);
+        }
+    }
+
+    /**
+     * The guard applies only to the scheduled path. {@code trigger()} backs the on-demand update
+     * API, which is gated separately by {@code update_on_demand}, so it must still run.
+     */
+    public void testTrigger_updateOnScheduleDisabled_stillSynchronizes() {
+        PluginSettings.getInstance().setUpdateOnSchedule(false);
+        try {
+            this.useSameThreadExecutor();
+            CatalogSyncJob job = spy(this.catalogSyncJob);
+            doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+            job.trigger();
+
+            verify(job, times(1)).performSynchronization();
+            Assert.assertFalse("Semaphore must end released", job.isRunning());
+        } finally {
+            PluginSettings.getInstance().setUpdateOnSchedule(true);
+        }
+    }
+
+    /** With the setting enabled, a scheduled fire runs a synchronization pass as before. */
+    public void testExecute_updateOnScheduleEnabled_synchronizes() {
+        PluginSettings.getInstance().setUpdateOnSchedule(true);
+        this.useSameThreadExecutor();
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+        JobExecutionContext context = mock(JobExecutionContext.class);
+
+        job.execute(context);
+
+        verify(job, times(1)).performSynchronization();
+        Assert.assertFalse("Semaphore must end released", job.isRunning());
+    }
 }

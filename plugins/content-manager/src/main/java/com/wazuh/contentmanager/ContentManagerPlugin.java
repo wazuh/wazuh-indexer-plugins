@@ -25,6 +25,7 @@ import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.delete.DeleteResponse;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilter;
 import org.opensearch.action.support.WriteRequest;
@@ -67,6 +68,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -76,6 +78,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -125,6 +128,11 @@ public class ContentManagerPlugin extends Plugin
     private static final String CONTENT_MANAGER_JOBS_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String CATALOG_SYNC_JOB_ID = "wazuh-catalog-sync-job";
     private static final String TELEMETRY_JOB_ID = "wazuh-telemetry-ping-job";
+
+    /** Keys of the {@link IntervalSchedule} serialization, read back when reconciling the job. */
+    private static final String SCHEDULE_INTERVAL_FIELD = "interval";
+
+    private static final String SCHEDULE_PERIOD_FIELD = "period";
     private static final String VERSION_FILE_NAME = "VERSION.json";
     private static final String VERSION_SYSTEM_PROPERTY = "wazuh.version";
 
@@ -264,6 +272,15 @@ public class ContentManagerPlugin extends Plugin
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
                         PluginSettings.TELEMETRY_ENABLED, this::onTelemetrySettingChanged);
+        // Both catalog scheduling settings share one consumer: they are written to the same job
+        // document, and the offline recipe changes them together. Two independent consumers would
+        // dispatch two concurrent reconciles for a single API call, racing over that document.
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.UPDATE_ON_SCHEDULE,
+                        PluginSettings.CATALOG_SYNC_INTERVAL,
+                        this::onCatalogScheduleSettingsChanged);
         clusterService
                 .getClusterSettings()
                 .addSettingsUpdateConsumer(
@@ -759,13 +776,11 @@ public class ContentManagerPlugin extends Plugin
     /**
      * Schedules the Catalog Sync Job within the OpenSearch Job Scheduler.
      *
-     * <p>This method performs two main checks asynchronously:
+     * <p>This method performs two main steps asynchronously:
      *
-     * <p>- Ensures the job index ({@value #CONTENT_MANAGER_JOBS_INDEX_NAME}) exists. - Ensures the
-     * specific job document ({@value #CATALOG_SYNC_JOB_ID}) exists.
-     *
-     * <p>If either is missing, it creates them. The job is configured to run based on the interval
-     * defined in PluginSettings.
+     * <p>- Ensures the job index ({@value #CONTENT_MANAGER_JOBS_INDEX_NAME}) exists. - Reconciles
+     * the job document ({@value #CATALOG_SYNC_JOB_ID}) with the current settings, creating it if it
+     * does not exist.
      *
      * <p>On startup the jobs index may not be ready yet; this method retries with a linear backoff up
      * to {@link Constants#MAX_JOB_SCHEDULE_RETRIES} times before giving up.
@@ -781,40 +796,121 @@ public class ContentManagerPlugin extends Plugin
                         () -> {
                             try {
                                 this.ensureJobsIndexExists();
-
-                                // 2. Check if the job document exists; if not, index it.
-                                boolean jobExists =
-                                        this.client
-                                                .prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, CATALOG_SYNC_JOB_ID)
-                                                .setFetchSource(false)
-                                                .get()
-                                                .isExists();
-
-                                if (!jobExists) {
-                                    ContentJobParameter job =
-                                            new ContentJobParameter(
-                                                    "Catalog Sync Periodic Task",
-                                                    CatalogSyncJob.JOB_TYPE,
-                                                    new IntervalSchedule(
-                                                            Instant.now(),
-                                                            PluginSettings.getInstance().getCatalogSyncInterval(),
-                                                            ChronoUnit.MINUTES),
-                                                    PluginSettings.getInstance().isUpdateOnSchedule(),
-                                                    Instant.now(),
-                                                    Instant.now());
-                                    IndexRequest request =
-                                            new IndexRequest(CONTENT_MANAGER_JOBS_INDEX_NAME)
-                                                    .id(CATALOG_SYNC_JOB_ID)
-                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null))
-                                                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-                                    this.client.index(request).actionGet();
-                                    log.info(Constants.I_LOG_CATALOG_SYNC_JOB_SCHEDULED);
-                                }
+                                this.reconcileCatalogSyncJob();
                             } catch (Exception e) {
                                 log.warn(Constants.W_LOG_CATALOG_SYNC_JOB_FAILED, e.getMessage());
                                 this.retryWithBackoff("Catalog Sync Job", attempt, this::scheduleCatalogSyncJob);
                             }
                         });
+    }
+
+    /**
+     * Brings the {@value #CATALOG_SYNC_JOB_ID} document in line with the current values of {@link
+     * PluginSettings#UPDATE_ON_SCHEDULE} and {@link PluginSettings#CATALOG_SYNC_INTERVAL}, creating
+     * it if it does not exist yet.
+     *
+     * <p>The Job Scheduler owns the job from that document alone, so a document written on a
+     * previous boot would otherwise keep the job running (or running at the wrong interval) no
+     * matter what the settings say. Rewriting it is enough to apply a change at runtime: the Job
+     * Scheduler's sweeper watches {@value #CONTENT_MANAGER_JOBS_INDEX_NAME} and reschedules the job
+     * as soon as the refreshed document is visible.
+     *
+     * <p>The document is only rewritten when it actually diverges, so a node restart with unchanged
+     * settings leaves the existing schedule (and its next fire time) untouched.
+     *
+     * @throws IOException if the job document cannot be serialized.
+     */
+    private void reconcileCatalogSyncJob() throws IOException {
+        final boolean enabled = PluginSettings.getInstance().isUpdateOnSchedule();
+        final int interval = PluginSettings.getInstance().getCatalogSyncInterval();
+
+        GetResponse response =
+                this.client.prepareGet(CONTENT_MANAGER_JOBS_INDEX_NAME, CATALOG_SYNC_JOB_ID).get();
+
+        if (!response.isExists()) {
+            this.writeCatalogSyncJob(enabled, interval);
+            log.info(Constants.I_LOG_CATALOG_SYNC_JOB_SCHEDULED);
+            return;
+        }
+
+        // A document that cannot be read is treated as divergent, so it gets rewritten from the
+        // current settings rather than left in place unparsed.
+        Boolean currentEnabled = null;
+        Integer currentInterval = null;
+        try {
+            Map<String, Object> source = response.getSourceAsMap();
+            currentEnabled = (Boolean) source.get(ContentJobParameter.ENABLED_FIELD);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> schedule =
+                    (Map<String, Object>) source.get(ContentJobParameter.SCHEDULE_FIELD);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> intervalNode =
+                    (Map<String, Object>) schedule.get(SCHEDULE_INTERVAL_FIELD);
+            currentInterval = ((Number) intervalNode.get(SCHEDULE_PERIOD_FIELD)).intValue();
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_CATALOG_SYNC_JOB_UNREADABLE, e.getMessage());
+        }
+
+        if (Boolean.valueOf(enabled).equals(currentEnabled)
+                && Integer.valueOf(interval).equals(currentInterval)) {
+            log.debug(Constants.D_LOG_CATALOG_SYNC_JOB_IN_SYNC, enabled, interval);
+            return;
+        }
+
+        this.writeCatalogSyncJob(enabled, interval);
+        log.info(
+                Constants.I_LOG_CATALOG_SYNC_JOB_RECONCILED,
+                currentEnabled,
+                enabled,
+                currentInterval,
+                interval);
+    }
+
+    /**
+     * Writes the catalog sync job document with the given state, overwriting any existing one. Uses
+     * an immediate refresh so the Job Scheduler's sweeper picks the change up right away.
+     *
+     * @param enabled whether the Job Scheduler should run the job.
+     * @param intervalMinutes the interval between runs, in minutes.
+     * @throws IOException if the job document cannot be serialized.
+     */
+    private void writeCatalogSyncJob(boolean enabled, int intervalMinutes) throws IOException {
+        ContentJobParameter job =
+                new ContentJobParameter(
+                        "Catalog Sync Periodic Task",
+                        CatalogSyncJob.JOB_TYPE,
+                        new IntervalSchedule(Instant.now(), intervalMinutes, ChronoUnit.MINUTES),
+                        enabled,
+                        Instant.now(),
+                        Instant.now());
+        IndexRequest request =
+                new IndexRequest(CONTENT_MANAGER_JOBS_INDEX_NAME)
+                        .id(CATALOG_SYNC_JOB_ID)
+                        .source(job.toXContent(XContentFactory.jsonBuilder(), null))
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        this.client.index(request).actionGet();
+    }
+
+    /**
+     * Handles a runtime change of {@link PluginSettings#UPDATE_ON_SCHEDULE} and/or {@link
+     * PluginSettings#CATALOG_SYNC_INTERVAL}. Fired once per settings update with the current value
+     * of both, so changing them together reconciles the job document a single time.
+     *
+     * <p>Every node updates its own in-memory copy — {@link CatalogSyncJob} reads {@code
+     * update_on_schedule} on each run — while only the elected cluster manager rewrites the
+     * shared job document. A dynamic setting update is delivered to every node; letting each one
+     * rewrite the same document would produce a burst of redundant writes and reschedules.
+     *
+     * @param enabled the new value of {@code update_on_schedule}.
+     * @param intervalMinutes the new value of {@code sync_interval}, in minutes.
+     */
+    private void onCatalogScheduleSettingsChanged(boolean enabled, int intervalMinutes) {
+        PluginSettings.getInstance().setUpdateOnSchedule(enabled);
+        PluginSettings.getInstance().setCatalogSyncInterval(intervalMinutes);
+        if (!this.clusterService.state().nodes().isLocalNodeElectedClusterManager()) {
+            return;
+        }
+        this.scheduleCatalogSyncJob();
     }
 
     /**
