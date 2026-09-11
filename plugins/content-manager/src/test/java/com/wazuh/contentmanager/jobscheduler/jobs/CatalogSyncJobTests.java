@@ -339,9 +339,9 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
     }
 
     /**
-     * With {@code update_on_schedule} disabled, a scheduled fire must not synchronize anything,
-     * even if the job document that produced it still says {@code enabled: true}. This is the guard
-     * that makes an air-gapped deployment safe against a stale document.
+     * With {@code update_on_schedule} disabled, a scheduled fire must not synchronize anything, even
+     * if the job document that produced it still says {@code enabled: true}. This is the guard that
+     * makes an air-gapped deployment safe against a stale document.
      */
     public void testExecute_updateOnScheduleDisabled_doesNotSynchronize() {
         PluginSettings.getInstance().setUpdateOnSchedule(false);
@@ -362,8 +362,8 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
     }
 
     /**
-     * The guard applies only to the scheduled path. {@code trigger()} backs the on-demand update
-     * API, which is gated separately by {@code update_on_demand}, so it must still run.
+     * The guard applies only to the scheduled path. {@code trigger()} backs the on-demand update API,
+     * which is gated separately by {@code update_on_demand}, so it must still run.
      */
     public void testTrigger_updateOnScheduleDisabled_stillSynchronizes() {
         PluginSettings.getInstance().setUpdateOnSchedule(false);

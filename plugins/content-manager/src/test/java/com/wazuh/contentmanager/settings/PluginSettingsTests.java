@@ -414,13 +414,12 @@ public class PluginSettingsTests extends OpenSearchTestCase {
     }
 
     /**
-     * Both catalog scheduling settings must be dynamic, otherwise the cluster settings API rejects
-     * an update to them and the operator is back to editing opensearch.yml and restarting.
+     * Both catalog scheduling settings must be dynamic, otherwise the cluster settings API rejects an
+     * update to them and the operator is back to editing opensearch.yml and restarting.
      */
     public void testCatalogSchedulingSettingsAreDynamic() {
         Assert.assertTrue(
-                "update_on_schedule must be dynamic",
-                PluginSettings.UPDATE_ON_SCHEDULE.isDynamic());
+                "update_on_schedule must be dynamic", PluginSettings.UPDATE_ON_SCHEDULE.isDynamic());
         Assert.assertTrue(
                 "sync_interval must be dynamic", PluginSettings.CATALOG_SYNC_INTERVAL.isDynamic());
     }

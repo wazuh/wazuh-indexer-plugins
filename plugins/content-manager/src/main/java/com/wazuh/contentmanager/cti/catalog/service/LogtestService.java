@@ -507,9 +507,7 @@ public class LogtestService {
             return;
         }
         if (target.sourceIndices().isEmpty()) {
-            listener.onResponse(
-                    buildCombinedResponse(
-                            engineResult, createErrorSapResult()));
+            listener.onResponse(buildCombinedResponse(engineResult, createErrorSapResult()));
             return;
         }
 
@@ -532,8 +530,7 @@ public class LogtestService {
                         },
                         e -> {
                             log.error("Failed to evaluate rules: {}", e.getMessage());
-                            listener.onResponse(
-                                    buildCombinedResponse(engineResult, createErrorSapResult()));
+                            listener.onResponse(buildCombinedResponse(engineResult, createErrorSapResult()));
                         }));
     }
 
@@ -548,9 +545,7 @@ public class LogtestService {
             return;
         }
         if (target.sourceIndices().isEmpty()) {
-            listener.onResponse(
-                    buildDetectionResponse(
-                            createErrorSapResult()));
+            listener.onResponse(buildDetectionResponse(createErrorSapResult()));
             return;
         }
 

@@ -778,9 +778,9 @@ public class ContentManagerPlugin extends Plugin
      *
      * <p>This method performs two main steps asynchronously:
      *
-     * <p>- Ensures the job index ({@value #CONTENT_MANAGER_JOBS_INDEX_NAME}) exists. - Reconciles
-     * the job document ({@value #CATALOG_SYNC_JOB_ID}) with the current settings, creating it if it
-     * does not exist.
+     * <p>- Ensures the job index ({@value #CONTENT_MANAGER_JOBS_INDEX_NAME}) exists. - Reconciles the
+     * job document ({@value #CATALOG_SYNC_JOB_ID}) with the current settings, creating it if it does
+     * not exist.
      *
      * <p>On startup the jobs index may not be ready yet; this method retries with a linear backoff up
      * to {@link Constants#MAX_JOB_SCHEDULE_RETRIES} times before giving up.
@@ -809,11 +809,11 @@ public class ContentManagerPlugin extends Plugin
      * PluginSettings#UPDATE_ON_SCHEDULE} and {@link PluginSettings#CATALOG_SYNC_INTERVAL}, creating
      * it if it does not exist yet.
      *
-     * <p>The Job Scheduler owns the job from that document alone, so a document written on a
-     * previous boot would otherwise keep the job running (or running at the wrong interval) no
-     * matter what the settings say. Rewriting it is enough to apply a change at runtime: the Job
-     * Scheduler's sweeper watches {@value #CONTENT_MANAGER_JOBS_INDEX_NAME} and reschedules the job
-     * as soon as the refreshed document is visible.
+     * <p>The Job Scheduler owns the job from that document alone, so a document written on a previous
+     * boot would otherwise keep the job running (or running at the wrong interval) no matter what the
+     * settings say. Rewriting it is enough to apply a change at runtime: the Job Scheduler's sweeper
+     * watches {@value #CONTENT_MANAGER_JOBS_INDEX_NAME} and reschedules the job as soon as the
+     * refreshed document is visible.
      *
      * <p>The document is only rewritten when it actually diverges, so a node restart with unchanged
      * settings leaves the existing schedule (and its next fire time) untouched.
@@ -893,13 +893,13 @@ public class ContentManagerPlugin extends Plugin
 
     /**
      * Handles a runtime change of {@link PluginSettings#UPDATE_ON_SCHEDULE} and/or {@link
-     * PluginSettings#CATALOG_SYNC_INTERVAL}. Fired once per settings update with the current value
-     * of both, so changing them together reconciles the job document a single time.
+     * PluginSettings#CATALOG_SYNC_INTERVAL}. Fired once per settings update with the current value of
+     * both, so changing them together reconciles the job document a single time.
      *
      * <p>Every node updates its own in-memory copy — {@link CatalogSyncJob} reads {@code
-     * update_on_schedule} on each run — while only the elected cluster manager rewrites the
-     * shared job document. A dynamic setting update is delivered to every node; letting each one
-     * rewrite the same document would produce a burst of redundant writes and reschedules.
+     * update_on_schedule} on each run — while only the elected cluster manager rewrites the shared
+     * job document. A dynamic setting update is delivered to every node; letting each one rewrite the
+     * same document would produce a burst of redundant writes and reschedules.
      *
      * @param enabled the new value of {@code update_on_schedule}.
      * @param intervalMinutes the new value of {@code sync_interval}, in minutes.

@@ -189,8 +189,8 @@ public class PluginSettings {
                     Setting.Property.Filtered);
 
     /**
-     * The interval in minutes for the catalog synchronization job. Dynamic: a change is reflected
-     * in the {@code wazuh-catalog-sync-job} document without restarting the node.
+     * The interval in minutes for the catalog synchronization job. Dynamic: a change is reflected in
+     * the {@code wazuh-catalog-sync-job} document without restarting the node.
      */
     public static final Setting<Integer> CATALOG_SYNC_INTERVAL =
             Setting.intSetting(
