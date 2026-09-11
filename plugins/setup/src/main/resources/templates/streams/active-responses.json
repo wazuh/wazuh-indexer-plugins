@@ -1621,7 +1621,7 @@
                                   "type": "keyword"
                                 },
                                 "strings": {
-                                  "type": "wildcard"
+                                  "type": "match_only_text"
                                 },
                                 "type": {
                                   "ignore_above": 1024,
@@ -2505,7 +2505,7 @@
                               "type": "keyword"
                             },
                             "strings": {
-                              "type": "wildcard"
+                              "type": "match_only_text"
                             },
                             "type": {
                               "ignore_above": 1024,
