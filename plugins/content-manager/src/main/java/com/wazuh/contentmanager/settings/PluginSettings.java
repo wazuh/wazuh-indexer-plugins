@@ -188,7 +188,10 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** The interval in minutes for the catalog synchronization job. */
+    /**
+     * The interval in minutes for the catalog synchronization job. Dynamic: a change is reflected in
+     * the {@code wazuh-catalog-sync-job} document without restarting the node.
+     */
     public static final Setting<Integer> CATALOG_SYNC_INTERVAL =
             Setting.intSetting(
                     "plugins.content_manager.catalog.sync_interval",
@@ -196,7 +199,7 @@ public class PluginSettings {
                     10,
                     1440,
                     Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
+                    Setting.Property.Dynamic);
 
     /** Setting to trigger content update on start. */
     public static final Setting<Boolean> UPDATE_ON_START =
@@ -206,13 +209,16 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Setting to enable/disable the content update job. */
+    /**
+     * Setting to enable/disable the periodic catalog synchronization job. Dynamic: a change is
+     * reflected in the {@code wazuh-catalog-sync-job} document without restarting the node.
+     */
     public static final Setting<Boolean> UPDATE_ON_SCHEDULE =
             Setting.boolSetting(
                     "plugins.content_manager.catalog.update_on_schedule",
                     DEFAULT_UPDATE_ON_SCHEDULE,
                     Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
+                    Setting.Property.Dynamic);
 
     /** Setting to enable/disable the content update job. */
     public static final Setting<Boolean> CREATE_DETECTORS =
@@ -433,9 +439,9 @@ public class PluginSettings {
     private volatile long logtestMaxBodyBytes;
     private final int maximumConcurrentBulks;
     private final long clientTimeout;
-    private final int catalogSyncInterval;
+    private volatile int catalogSyncInterval;
     private final boolean updateOnStart;
-    private final boolean updateOnSchedule;
+    private volatile boolean updateOnSchedule;
     private final String catalogRuleset;
     private final String catalogIocs;
     private final String catalogVulnerabilities;
@@ -725,6 +731,16 @@ public class PluginSettings {
     }
 
     /**
+     * Updates the catalog synchronization interval. Invoked by the cluster settings update consumer
+     * registered for {@link #CATALOG_SYNC_INTERVAL}.
+     *
+     * @param catalogSyncInterval the new interval, in minutes.
+     */
+    public void setCatalogSyncInterval(int catalogSyncInterval) {
+        this.catalogSyncInterval = catalogSyncInterval;
+    }
+
+    /**
      * Retrieves the value for the update on start setting.
      *
      * @return a Boolean indicating if the update on start is enabled.
@@ -740,6 +756,16 @@ public class PluginSettings {
      */
     public Boolean isUpdateOnSchedule() {
         return this.updateOnSchedule;
+    }
+
+    /**
+     * Enables or disables the periodic catalog synchronization job. Invoked by the cluster settings
+     * update consumer registered for {@link #UPDATE_ON_SCHEDULE}.
+     *
+     * @param updateOnSchedule true to enable the scheduled synchronization, false to disable it.
+     */
+    public void setUpdateOnSchedule(boolean updateOnSchedule) {
+        this.updateOnSchedule = updateOnSchedule;
     }
 
     /**
