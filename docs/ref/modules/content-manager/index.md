@@ -64,10 +64,27 @@ The routing **policy** defines how the Wazuh Engine processes incoming events â€
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://127.0.0.1:9200/_plugins/_content_manager/policy" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/policy/draft" \
   -H 'Content-Type: application/json' \
-  -d '{"resource": { ... }}'
+  -d '{
+    "resource": {
+      "metadata": {
+        "title": "Draft policy",
+        "author": "Wazuh Inc.",
+        "description": "Custom policy",
+        "documentation": "",
+        "references": ["https://wazuh.com"]
+      },
+      "enabled": true,
+      "index_unclassified_events": false,
+      "index_discarded_events": false,
+      "integrations": ["<ids currently in the policy>"],
+      "filters": ["<ids currently in the policy>"]
+    }
+  }'
 ```
+
+The space is part of the path, and the `metadata` block above is required in the `draft` space. See [Update policy](api.md#update-policy) for the full field list.
 
 Policy changes are applied to the draft space and take effect after promotion.
 
