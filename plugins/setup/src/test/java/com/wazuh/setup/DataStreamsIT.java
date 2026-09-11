@@ -30,6 +30,7 @@ import org.junit.Before;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.containsString;
@@ -460,14 +461,16 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
     public void testMessageIsIndexedPastTheOldKeywordLengthCeiling() throws IOException, ParseException {
         String padding = "padding ".repeat(200); // ~1600 characters before the word that matters
         indexEvent(
-                """
-                {
-                  "@timestamp": "2026-08-05T10:00:00.000Z",
-                  "message": "sshd authentication failure %s wcstestneedle",
-                  "process": {"name": "wcs-test-message-long"}
-                }
-                """
-                        .formatted(padding));
+                String.format(
+                        Locale.ROOT,
+                        """
+                        {
+                          "@timestamp": "2026-08-05T10:00:00.000Z",
+                          "message": "sshd authentication failure %s wcstestneedle",
+                          "process": {"name": "wcs-test-message-long"}
+                        }
+                        """,
+                        padding));
 
         String body =
                 searchEvents(
@@ -529,7 +532,9 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
                 List.of("process.command_line: *urlcache*", "url.original: *passwd*")) {
             String body =
                     searchEvents(
-                            """
+                            String.format(
+                                    Locale.ROOT,
+                                    """
                             {
                               "size": 0,
                               "query": {
@@ -541,8 +546,8 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
                                 }
                               }
                             }
-                            """
-                                    .formatted(selection));
+                            """,
+                                    selection));
 
             logger.info("detection query shape [{}] response: {}", selection, body);
             assertThat(
