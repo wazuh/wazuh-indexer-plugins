@@ -658,9 +658,39 @@ The AI assistant stores its conversation history in the **`wazuh-ai-assistant-se
 
 #### Access control
 
-Access is granted by the `wazuh_ai_assistant` role, defined in the `wazuh-indexer` repository and mapped to every authenticated user. Reads are filtered with DLS parameter substitution (`{"term": {"user": "${user.name}"}}`), so a user only retrieves their own conversations; writes carry no DLS query. The restriction also applies to users holding a role that grants `read` on the `*` index pattern.
+Access is granted by the `wazuh_ai_assistant` role, defined in the `wazuh-indexer` repository and mapped to every authenticated user. Reads are filtered with DLS parameter substitution (`{"term": {"user": "${user.name}"}}`), so a user only retrieves their own conversations. The restriction also applies to users holding a role that grants `read` on the `*` index pattern.
 
-Sessions are read and written by each user directly against the data stream, under that per-owner DLS; the setup plugin exposes no administrative API over them.
+**Reads and writes are scoped differently on purpose.** DLS is a read-path filter and cannot scope a write, so an index-level `write` grant on this data stream — which is what the role carried before internal-devel-requests#6111 — let any account holding it append a document naming somebody else in `user`, which the victim then saw as their own conversation and the author could not see at all. No role syntax can express "this document's `user` must equal your name", so the fix is to stop `user` being client input.
+
+The role therefore grants **no index-level `write`**. Sessions are still *read* directly against the data stream, under the per-owner DLS, but every write goes through the session API below, gated by the `plugin:wazuh/ai_assistant/session/write` cluster permission. Fixing the writes is also what makes the read filter sound: `user` is only safe to filter on once the server, not the client, decides it.
+
+#### Session write API
+
+| Endpoint | Method | Cluster permission | Backed by |
+| --- | --- | --- | --- |
+| `/_plugins/_setup/ai_assistant/sessions` | `POST` | `plugin:wazuh/ai_assistant/session/write` | `PutAiAssistantSessionAction` / `TransportPutAiAssistantSessionAction`, `Operation.CREATE` |
+| `/_plugins/_setup/ai_assistant/sessions/{id}` | `PUT` | same | same action, `Operation.UPDATE` |
+| `/_plugins/_setup/ai_assistant/sessions/{id}` | `PATCH` | same | same action, `Operation.RENAME` |
+| `/_plugins/_setup/ai_assistant/sessions/{id}` | `DELETE` | same | same action, `Operation.DELETE` |
+
+There is deliberately **no read endpoint and no `session/read` permission**. Listing sessions and reading a transcript are plain DLS-scoped searches, and OpenSearch already provides search, sorting, pagination, `track_total_hits` and source filtering; putting an endpoint in front of that would be reimplementing the search API for nothing. The consequence to accept is that the index mapping stays part of the Dashboard's contract.
+
+`TransportPutAiAssistantSessionAction` resolves the caller from the `_opendistro_security_user_info` thread-context transient (`com.wazuh.setup.utils.AuthenticatedUser`) **before** stashing the context, stamps it onto `user`, and only then calls `AiAssistantSessionsIndex` with the plugin's own privileges. Every lookup behind `PUT`/`PATCH`/`DELETE` filters on that same resolved owner, so a session belonging to somebody else simply is not found — reported as `404`, never `403`, since a `403` would confirm that another user's session id exists. There is no impersonation and no administrative override, not for `all_access` and not for `wazuh-admin`, which preserves the DLS behaviour that already applied to `admin`.
+
+Three data-stream mechanics shape the implementation, all of them platform constraints rather than choices:
+
+- **A get-by-id is unusable.** The backing index rolls over daily and the get API targets exactly one concrete index. `findHit` searches the stream instead, which fans out across every backing index and reports the one holding the document (`hit.getIndex()`), together with the `seq_no`/`primary_term` pair the following write needs — one round trip for all three facts.
+- **Update and delete must target the backing index**, never the stream name, which accepts appends only. And they must be a full `index` replace: the partial `_update` API is refused outright wherever DLS applies to the role (`security_exception: Update is not supported when FLS or DLS or Fieldmasking is activated`).
+- **Optimistic concurrency is mandatory.** A backing index rejects an unconditional write (`illegal_argument_exception: index request with op_type=index and no if_primary_term and if_seq_no set targeting backing indices is disallowed`), so every write carries a pair — the caller's `expected_version` when it sent a decodable one, otherwise the pair the request just read. The `version` the API returns is that pair encoded as `"<seq_no>:<primary_term>"`, opaque to clients. A genuine mismatch is a `409`, never retried: retrying with a freshly read pair is exactly the silent overwrite `expected_version` exists to prevent.
+
+Request bodies are capped at **5 MiB** on every write route, checked against the raw payload before
+parsing so an oversized body never becomes a map in heap. `MAX_MESSAGES` (1000) bounds the number of
+turns but not their size, and the fallback ceiling would otherwise be `http.max_content_length`
+(100MB), which would leave the 500-session per-owner cap meaningless as a storage bound.
+
+Two smaller rules worth knowing: `PATCH` deliberately does **not** re-stamp `updated_at` (a rename is not session activity, and bumping it would reorder a list sorted by last activity), and `PUT`'s `title` is optional (a chat client auto-saves every turn, and resending a recomputed title would silently revert a rename the user had just made). Every write uses `RefreshPolicy.WAIT_UNTIL`, because every read here is a search and a search only sees a write after the shard refreshes.
+
+With the security plugin absent — the `integTest` cluster — there is no transient and the owner resolves to the `_shared` sentinel, treated as a real owner rather than as a bypass, so the tests exercise the whole stamp-and-scope path. See `AiAssistantSessionsIT` and `TransportPutAiAssistantSessionActionTests`.
 
 ### Settings, field policy and providers (`.wazuh-internal-state`)
 

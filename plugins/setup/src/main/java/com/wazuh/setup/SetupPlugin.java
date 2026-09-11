@@ -49,8 +49,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import com.wazuh.setup.action.GetAiAssistantSettingsAction;
+import com.wazuh.setup.action.PutAiAssistantSessionAction;
 import com.wazuh.setup.action.PutAiAssistantSettingsAction;
 import com.wazuh.setup.action.PutSettingsAction;
+import com.wazuh.setup.index.AiAssistantSessionsIndex;
 import com.wazuh.setup.index.AiAssistantSettingsAdminIndex;
 import com.wazuh.setup.index.ContentIndex;
 import com.wazuh.setup.index.Index;
@@ -60,14 +62,19 @@ import com.wazuh.setup.index.SetupStatusIndex;
 import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
 import com.wazuh.setup.rest.RestDeleteAiAssistantProviderAction;
+import com.wazuh.setup.rest.RestDeleteAiAssistantSessionAction;
 import com.wazuh.setup.rest.RestGetAiAssistantSettingsAction;
 import com.wazuh.setup.rest.RestListAiAssistantProvidersAction;
+import com.wazuh.setup.rest.RestPatchAiAssistantSessionAction;
 import com.wazuh.setup.rest.RestPostAiAssistantProviderAction;
+import com.wazuh.setup.rest.RestPostAiAssistantSessionAction;
 import com.wazuh.setup.rest.RestPutAiAssistantProviderAction;
+import com.wazuh.setup.rest.RestPutAiAssistantSessionAction;
 import com.wazuh.setup.rest.RestPutAiAssistantSettingsAction;
 import com.wazuh.setup.rest.RestPutSettingsAction;
 import com.wazuh.setup.settings.PluginSettings;
 import com.wazuh.setup.transport.TransportGetAiAssistantSettingsAction;
+import com.wazuh.setup.transport.TransportPutAiAssistantSessionAction;
 import com.wazuh.setup.transport.TransportPutAiAssistantSettingsAction;
 import com.wazuh.setup.transport.TransportPutSettingsAction;
 import com.wazuh.setup.utils.JsonUtils;
@@ -88,6 +95,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private SettingsIndex settingsIndex;
     private SetupStatusIndex setupStatusIndex;
     private AiAssistantSettingsAdminIndex settingsAdminIndex;
+    private AiAssistantSessionsIndex sessionsIndex;
     // spotless:off
     private final String[] categories = {
         "access-management",
@@ -211,9 +219,14 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         // Privileged access to the AI assistant's providers
         this.settingsAdminIndex = new AiAssistantSettingsAdminIndex(client, threadPool);
 
-        // Expose the settings index and the admin index so they can be injected into their
-        // respective transport actions.
-        return List.of(this.settingsIndex, this.settingsAdminIndex);
+        // Privileged access to the AI assistant's chat sessions. Mediates every write to the
+        // wazuh-ai-assistant-sessions data stream so that the document's `user` field is stamped
+        // from the authenticated caller instead of being taken from the request body.
+        this.sessionsIndex = new AiAssistantSessionsIndex(client, threadPool);
+
+        // Expose the settings index and the two privileged accessors so they can be injected into
+        // their respective transport actions.
+        return List.of(this.settingsIndex, this.settingsAdminIndex, this.sessionsIndex);
     }
 
     @Override
@@ -301,7 +314,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                 new RestPutAiAssistantSettingsAction(),
                 new RestPostAiAssistantProviderAction(),
                 new RestPutAiAssistantProviderAction(),
-                new RestDeleteAiAssistantProviderAction());
+                new RestDeleteAiAssistantProviderAction(),
+                new RestPostAiAssistantSessionAction(),
+                new RestPutAiAssistantSessionAction(),
+                new RestPatchAiAssistantSessionAction(),
+                new RestDeleteAiAssistantSessionAction());
     }
 
     @Override
@@ -312,7 +329,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                 new ActionPlugin.ActionHandler<>(
                         GetAiAssistantSettingsAction.INSTANCE, TransportGetAiAssistantSettingsAction.class),
                 new ActionPlugin.ActionHandler<>(
-                        PutAiAssistantSettingsAction.INSTANCE, TransportPutAiAssistantSettingsAction.class));
+                        PutAiAssistantSettingsAction.INSTANCE, TransportPutAiAssistantSettingsAction.class),
+                new ActionPlugin.ActionHandler<>(
+                        PutAiAssistantSessionAction.INSTANCE, TransportPutAiAssistantSessionAction.class));
     }
 
     @Override
