@@ -54,11 +54,22 @@ Content is not being updated despite having a valid subscription.
      "https://127.0.0.1:9200/.wazuh-content-manager-jobs/_search?pretty"
    ```
 
-   Verify the job has `"enabled": true` and the schedule interval matches your configuration.
+   Verify the `wazuh-catalog-sync-job` document has `"enabled": true` and that its schedule interval matches your configuration. The plugin keeps this document in step with the settings automatically, so a mismatch means reconciliation has not run — check the log for a `Catalog Sync Job reconciled` entry rather than editing the document by hand.
 
-3. Check if scheduled sync is enabled in `opensearch.yml`:
+3. Check the effective value of the scheduled sync setting. It can be set in `opensearch.yml`:
    ```yaml
    plugins.content_manager.catalog.update_on_schedule: true
+   ```
+
+   It is also dynamic, and a value set through the Cluster Settings API overrides `opensearch.yml`, so check there too:
+   ```bash
+   curl -sk -u admin:admin \
+     "https://127.0.0.1:9200/_cluster/settings?pretty"
+   ```
+
+   When the setting is disabled, every scheduled run is refused and logged:
+   ```
+   INFO   ... Scheduled catalog synchronization (ID: wazuh-catalog-sync-job) skipped: plugins.content_manager.catalog.update_on_schedule is false.
    ```
 
 4. Trigger a manual sync to test:
@@ -246,7 +257,7 @@ curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-enrichments/_c
 
 ## Job scheduling on startup
 
-During node startup, `scheduleCatalogSyncJob` and `scheduleTelemetryPingJob` both require the `.wazuh-content-manager-jobs` index to reach yellow status with at least one active shard before they can register their job documents. On a freshly initialized or resource-constrained cluster this can time out, producing entries like:
+During node startup, the catalog sync job and the update check job both require the `.wazuh-content-manager-jobs` index to reach yellow status with at least one active shard before they can register their job documents. On a freshly initialized or resource-constrained cluster this can time out, producing entries like:
 
 ```
 INFO   ... Failed to schedule Telemetry Ping Job: Index .wazuh-content-manager-jobs not ready

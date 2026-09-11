@@ -412,4 +412,41 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         pluginSettings.setClusterUUID(null);
         Assert.assertNull(pluginSettings.getClusterUUID());
     }
+
+    /**
+     * Both catalog scheduling settings must be dynamic, otherwise the cluster settings API rejects an
+     * update to them and the operator is back to editing opensearch.yml and restarting.
+     */
+    public void testCatalogSchedulingSettingsAreDynamic() {
+        Assert.assertTrue(
+                "update_on_schedule must be dynamic", PluginSettings.UPDATE_ON_SCHEDULE.isDynamic());
+        Assert.assertTrue(
+                "sync_interval must be dynamic", PluginSettings.CATALOG_SYNC_INTERVAL.isDynamic());
+    }
+
+    /** The scheduled-update setter must be readable back through its getter. */
+    public void testSetAndIsUpdateOnSchedule() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        boolean original = pluginSettings.isUpdateOnSchedule();
+        try {
+            pluginSettings.setUpdateOnSchedule(false);
+            Assert.assertFalse(pluginSettings.isUpdateOnSchedule());
+            pluginSettings.setUpdateOnSchedule(true);
+            Assert.assertTrue(pluginSettings.isUpdateOnSchedule());
+        } finally {
+            pluginSettings.setUpdateOnSchedule(original);
+        }
+    }
+
+    /** The sync interval setter must be readable back through its getter. */
+    public void testSetAndGetCatalogSyncInterval() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        int original = pluginSettings.getCatalogSyncInterval();
+        try {
+            pluginSettings.setCatalogSyncInterval(120);
+            Assert.assertEquals(Integer.valueOf(120), pluginSettings.getCatalogSyncInterval());
+        } finally {
+            pluginSettings.setCatalogSyncInterval(original);
+        }
+    }
 }

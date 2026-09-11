@@ -338,6 +338,16 @@ public class Constants {
             "No {} to synchronize with the Security Analytics plugin.";
     public static final String D_LOG_SAP_ITEM_FAILED =
             "{} [{}] could not be sent to Security Analytics: {}";
+    public static final String E_LOG_RULE_MISSING_PRODUCT =
+            "Rule [{}] declares no 'logsource.product'. It is not sent to Security Analytics, because "
+                    + "the field is the log type the compiled query is filed under.";
+    public static final String E_LOG_RULE_PRODUCT_MISMATCH =
+            "Rule [{}] declares 'logsource.product' [{}] but belongs to integration [{}]. It is not "
+                    + "sent to Security Analytics, because it would be filed under a log type that "
+                    + "integration's detector does not read.";
+    public static final String E_RULE_MISSING_PRODUCT =
+            "Rule [%s] declares no 'logsource.product', so its Security Analytics log type cannot be "
+                    + "resolved.";
     public static final String W_LOG_SAP_SYNC_TIMEOUT =
             "Timed out sending {} to Security Analytics; some may be unavailable until the next sync.";
     public static final String E_LOG_SAP_SYNC_INTERRUPTED =
@@ -629,6 +639,14 @@ public class Constants {
             "Catalog Sync Job scheduled successfully.";
     public static final String W_LOG_CATALOG_SYNC_JOB_FAILED =
             "Failed to schedule Catalog Sync Job: {}, retrying";
+    public static final String I_LOG_CATALOG_SYNC_JOB_RECONCILED =
+            "Catalog Sync Job reconciled with the current settings (enabled: {} -> {}, interval: {} -> {} minutes).";
+    public static final String D_LOG_CATALOG_SYNC_JOB_IN_SYNC =
+            "Catalog Sync Job already matches the current settings (enabled: {}, interval: {} minutes). Nothing to do.";
+    public static final String W_LOG_CATALOG_SYNC_JOB_UNREADABLE =
+            "Could not parse the existing Catalog Sync Job document; rewriting it from the current settings: {}";
+    public static final String I_LOG_CATALOG_SYNC_SKIPPED_DISABLED =
+            "Scheduled catalog synchronization (ID: {}) skipped: plugins.content_manager.catalog.update_on_schedule is false.";
     public static final String E_LOG_JOB_SCHEDULE_GIVE_UP = "Giving up {} after {} attempts.";
     public static final String I_LOG_JOB_SCHEDULE_RETRY = "Retrying {} (attempt {}/{}) in {}s.";
     public static final String D_LOG_TELEMETRY_JOB_DISABLED =

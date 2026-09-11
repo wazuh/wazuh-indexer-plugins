@@ -4,7 +4,7 @@
 The Content Manager plugin is configured through settings in `opensearch.yml`. All settings use the `plugins.content_manager` prefix.
 
 - **`plugins.content_manager.cti.api`** (String, default `https://api.pre.cloud.wazuh.com/api/v1`) — base URL for the Wazuh CTI API.
-- **`plugins.content_manager.catalog.sync_interval`** (Integer, default `60`, range 10–1440) — sync interval in minutes.
+- **`plugins.content_manager.catalog.sync_interval`** (Integer, default `60`, range 10–1440, dynamic) — interval, in minutes, between scheduled synchronizations.
 - **`plugins.content_manager.setup_wait.max_retries`** (Integer, default `4`, range 0–10) — number of retries the catalog sync job performs while waiting for the Setup plugin to report readiness on startup, before giving up until the next scheduled sync.
 - **`plugins.content_manager.setup_wait.backoff_base_seconds`** (Integer, default `20`, range 1–120) — base delay, in seconds, for the exponential backoff between those retries (delay for retry `n` is `base * 2^n`; with the defaults, 20s/40s/80s/160s = 300s / 5 min worst case).
 - **`plugins.content_manager.max_items_per_bulk`** (Integer, default `999`, range 10–999) — maximum documents per bulk indexing request.
@@ -17,7 +17,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.pit_keepalive`** (Long, default `120`, range 60–600) — point-in-time keepalive in seconds used during paginated index scans.
 - **`plugins.content_manager.engine.mock`** (Boolean, default `false`) — bypasses real Engine socket calls, returning mocked responses instead. Intended for testing only.
 - **`plugins.content_manager.catalog.update_on_start`** (Boolean, default `true`) — trigger content sync when the plugin starts.
-- **`plugins.content_manager.catalog.update_on_schedule`** (Boolean, default `true`) — enable the periodic sync job.
+- **`plugins.content_manager.catalog.update_on_schedule`** (Boolean, default `true`, dynamic) — enable the periodic sync job. When `false` the job is disabled and any scheduled run is refused, so no content is fetched from Wazuh CTI on a schedule. On-demand updates (`POST /update`) are unaffected — they are controlled by `plugins.content_manager.catalog.update_on_demand`.
 - **`plugins.content_manager.catalog.ruleset`** (String, default `""`) — full CTI consumer URL for ruleset content.
 - **`plugins.content_manager.catalog.iocs`** (String, default `""`) — full CTI consumer URL for IoC content.
 - **`plugins.content_manager.catalog.vulnerabilities`** (String, default `""`) — full CTI consumer URL for vulnerabilities content.
@@ -44,6 +44,24 @@ plugins.content_manager.catalog.update_on_start: false
 plugins.content_manager.catalog.update_on_schedule: false
 plugins.content_manager.telemetry.enabled: false
 ```
+
+`plugins.content_manager.catalog.update_on_schedule` and `plugins.content_manager.telemetry.enabled` are dynamic, so on a running deployment they can be applied without a restart:
+
+```bash
+curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+{
+  "persistent": {
+    "plugins.content_manager.catalog.update_on_schedule": false,
+    "plugins.content_manager.telemetry.enabled": false
+  }
+}'
+```
+
+Disabling scheduled synchronization takes effect immediately and applies to an already-initialized node as well as a fresh one: the plugin updates the periodic job accordingly, and a run that is already scheduled is refused rather than reaching Wazuh CTI. See [Job scheduler](architecture.md#job-scheduler).
+
+Disabling scheduled synchronization does not remove content that has already been downloaded. It only stops further updates from Wazuh CTI.
+
+`plugins.content_manager.catalog.update_on_start` is not dynamic — it only governs the synchronization triggered as the plugin starts, so it takes effect on the next node start.
 <!-- // ANCHOR_END: offline-config -->
 
 On online installations, manual synchronization can be performed on demand using the Content Manager API:
@@ -60,6 +78,19 @@ The plugin checks for new content every 60 minutes by default, but this can be c
 # opensearch.yml
 plugins.content_manager.catalog.sync_interval: 1440
 ```
+
+The setting is dynamic, so the interval can also be changed on a running deployment:
+
+```bash
+curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+{
+  "persistent": {
+    "plugins.content_manager.catalog.sync_interval": 1440
+  }
+}'
+```
+
+The new interval is applied to the periodic job immediately; the next synchronization is scheduled from the moment of the change.
 
 ### Setup readiness wait (startup race)
 
@@ -221,8 +252,9 @@ Setting a limit to `0` blocks all new creation of that resource type.
 
 ### Notes
 
-- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings, which can be updated at runtime via the OpenSearch API. Dynamic settings include `plugins.content_manager.telemetry.enabled`, `plugins.content_manager.logtest.max_body_bytes`, and all five resource creation limits (`max_integrations`, `max_decoders`, `max_rules`, `max_kvdbs`, `max_filters`).
+- Changes to `opensearch.yml` require a restart of the Wazuh Indexer to take effect, except for dynamic settings, which can be updated at runtime via the OpenSearch API. Dynamic settings include `plugins.content_manager.catalog.update_on_schedule`, `plugins.content_manager.catalog.sync_interval`, `plugins.content_manager.telemetry.enabled`, `plugins.content_manager.logtest.max_body_bytes`, and all five resource creation limits (`max_integrations`, `max_decoders`, `max_rules`, `max_kvdbs`, `max_filters`).
 - The catalog URL settings (`plugins.content_manager.catalog.ruleset`, `plugins.content_manager.catalog.iocs`, and `plugins.content_manager.catalog.vulnerabilities`) should only be changed if instructed by Wazuh support or documentation, and must point to valid absolute HTTP(S) CTI consumer endpoints.
 - The sync interval is enforced by the OpenSearch Job Scheduler. The actual sync timing may vary slightly depending on cluster load.
+- `plugins.content_manager.catalog.update_on_schedule` and `plugins.content_manager.catalog.sync_interval` are reconciled with the periodic job on every node start and whenever either setting changes, so a value set in `opensearch.yml` applies to an existing deployment and not only to a fresh install.
 - The update check service runs with a fixed interval of 1 day when enabled. The first ping is sent immediately after the job is registered (on node start or when the setting is dynamically enabled); subsequent pings follow the 1-day interval.
 - **Detector configuration:** the settings for Ruleset Management detectors (interval, enabled status, and source indices) are managed directly via CTI integration files. If an integration's `detector` object is missing in the CTI source, the system will use built-in safety defaults.

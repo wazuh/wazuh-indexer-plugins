@@ -22,10 +22,13 @@ On first start, the plugin initializes from a snapshot. If a custom CTI catalog 
 
 Once initialized, the plugin keeps content current automatically. A sync check runs at startup and again on a regular schedule — every 60 minutes by default. Each check fetches only the changes since the last sync: new or updated resources are added, removed resources are deleted. If the local content cannot be reconciled with the remote state, the plugin recovers by re-downloading the latest snapshot.
 
-Both behaviors are configurable in `opensearch.yml`:
+These behaviors are configurable in `opensearch.yml`:
 
 - **`plugins.content_manager.catalog.update_on_start`** (Boolean, default `true`) — whether to check for updates when the plugin starts.
-- **`plugins.content_manager.catalog.sync_interval`** (Integer, default `60`) — how often periodic sync runs, in minutes.
+- **`plugins.content_manager.catalog.update_on_schedule`** (Boolean, default `true`, dynamic) — whether the periodic sync runs at all.
+- **`plugins.content_manager.catalog.sync_interval`** (Integer, default `60`, dynamic) — how often periodic sync runs, in minutes.
+
+The last two are dynamic: they can be changed on a running deployment through the Cluster Settings API, and take effect without a restart. See [Configuration](configuration.md#offline-configuration--disabling-automatic-updates) for turning scheduled updates off.
 
 When telemetry is enabled (the default), the plugin also sends a daily heartbeat to the Wazuh CTI service with the cluster UUID and the deployed Wazuh version. This powers the update notification shown in the Wazuh Dashboard when a newer release is available. To opt out, set `plugins.content_manager.telemetry.enabled` to `false`.
 
@@ -61,10 +64,27 @@ The routing **policy** defines how the Wazuh Engine processes incoming events �
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  "https://127.0.0.1:9200/_plugins/_content_manager/policy" \
+  "https://127.0.0.1:9200/_plugins/_content_manager/policy/draft" \
   -H 'Content-Type: application/json' \
-  -d '{"resource": { ... }}'
+  -d '{
+    "resource": {
+      "metadata": {
+        "title": "Draft policy",
+        "author": "Wazuh Inc.",
+        "description": "Custom policy",
+        "documentation": "",
+        "references": ["https://wazuh.com"]
+      },
+      "enabled": true,
+      "index_unclassified_events": false,
+      "index_discarded_events": false,
+      "integrations": ["<ids currently in the policy>"],
+      "filters": ["<ids currently in the policy>"]
+    }
+  }'
 ```
+
+The space is part of the path, and the `metadata` block above is required in the `draft` space. See [Update policy](api.md#update-policy) for the full field list.
 
 Policy changes are applied to the draft space and take effect after promotion.
 

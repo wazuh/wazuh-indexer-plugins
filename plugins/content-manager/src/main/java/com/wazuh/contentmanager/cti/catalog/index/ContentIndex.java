@@ -665,24 +665,26 @@ public class ContentIndex {
     }
 
     /**
-     * Determines the product from the document (logsource.product or logsource.category). Defaults to
-     * "linux".
+     * Reads the Security Analytics log type a rule belongs to from its {@code logsource.product}.
+     *
+     * <p>The value is a routing key, not a description: it selects the {@code
+     * .opensearch-sap-{product}-detectors-queries} index the compiled Sigma query is filed under, and
+     * therefore which integration's detector evaluates the rule. It must equal the owning
+     * integration's {@code metadata.title}, which {@code TransportCreateRuleAction} enforces for
+     * user-created rules.
+     *
+     * <p>No value is substituted when the field is absent. Any substitute -- a fallback to {@code
+     * logsource.category}, or a default such as "linux" -- files the rule under a log type that is
+     * not its integration's, where no detector reads it, while the sync still reports success.
+     * Callers must treat {@code null} as a rule that cannot be routed.
      *
      * @param ruleNode The rule Jackson JsonNode.
-     * @return The determined product string.
+     * @return The declared product, or {@code null} if the rule declares none.
      */
     public static String extractProduct(JsonNode ruleNode) {
         // TODO: Move this method to a dedicated CTI Resource logic class.
-        String product = "linux";
-        if (ruleNode.has(Constants.KEY_LOGSOURCE)) {
-            JsonNode logsource = ruleNode.get(Constants.KEY_LOGSOURCE);
-            if (logsource.has(Constants.KEY_PRODUCT)) {
-                product = logsource.get(Constants.KEY_PRODUCT).asText();
-            } else if (logsource.has(Constants.KEY_CATEGORY)) {
-                product = logsource.get(Constants.KEY_CATEGORY).asText();
-            }
-        }
-        return product;
+        String product = ruleNode.path(Constants.KEY_LOGSOURCE).path(Constants.KEY_PRODUCT).asText("");
+        return product.isBlank() ? null : product;
     }
 
     /**
