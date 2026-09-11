@@ -117,6 +117,12 @@ server: the data stream mints it, and client-chosen ids are not supported.
   `{"type": "object", "enabled": false}`, so entries are stored and returned verbatim but never
   indexed or schema-checked, and a provider returning unanticipated fields cannot break saving.
 
+The whole request body must be **5 MiB or smaller**, on every write route. The entry count bounds
+how many turns a session holds but not how large each one is; without a byte ceiling the only limit
+would be the cluster's `http.max_content_length` (100MB by default), which would make the
+500-session per-owner cap meaningless as a storage bound. Oversized bodies are rejected with `400`
+before being parsed.
+
 #### Example request
 
 ```bash
@@ -149,7 +155,7 @@ curl -sk -u admin:admin -X POST \
 #### Status codes
 
 - **200** — session created. `200`, not `201`, matching `POST /_plugins/_setup/ai_assistant/providers`.
-- **400** — empty or malformed body; a missing, blank or over-long `title`; a missing `messages`; more than 1000 messages.
+- **400** — empty or malformed body; a missing, blank or over-long `title`; a missing `messages`; more than 1000 messages; a body over 5 MiB.
 - **403** — the caller lacks the `plugin:wazuh/ai_assistant/session/write` cluster permission.
 - **409** — the caller already owns the maximum of 500 sessions. `409` rather than `400`: the request is well formed, it is the stored state that blocks it. Deleting a session frees a slot; updating an existing session is never blocked by the cap.
 
@@ -201,7 +207,7 @@ curl -sk -u admin:admin -X PUT \
 #### Status codes
 
 - **200** — session updated. Returns the full session with the write's own fresh `version`.
-- **400** — empty or malformed body; a `title` that is present but blank or over-long; a missing `messages`; more than 1000 messages.
+- **400** — empty or malformed body; a `title` that is present but blank or over-long; a missing `messages`; more than 1000 messages; a body over 5 MiB.
 - **403** — the caller lacks the cluster permission.
 - **404** — no session exists with the given id, **or it belongs to another user**.
 - **409** — the session changed since the version being checked against. The write was not applied.
@@ -251,7 +257,7 @@ open one does not conflict on its next auto-save.
 #### Status codes
 
 - **200** — session renamed.
-- **400** — empty or malformed body, or a `title` that is blank, whitespace-only or over-long.
+- **400** — empty or malformed body; a `title` that is blank, whitespace-only or over-long; a body over 5 MiB.
 - **403** — the caller lacks the cluster permission.
 - **404** — no session exists with the given id, or it belongs to another user.
 - **409** — the session was written or deleted between this request's read and its write.

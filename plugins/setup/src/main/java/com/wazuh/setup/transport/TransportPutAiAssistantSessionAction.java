@@ -32,6 +32,7 @@ import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,6 +72,21 @@ public class TransportPutAiAssistantSessionAction
      */
     private static final int MAX_MESSAGES = 1000;
 
+    /**
+     * Largest request body accepted, in bytes of UTF-8.
+     *
+     * <p>{@link #MAX_MESSAGES} bounds how many turns a session holds but says nothing about how large
+     * each one is, so without this the only ceiling is the cluster's {@code http.max_content_length}
+     * — 100MB by default. That would let one caller store 500 sessions of 100MB each, which makes the
+     * per-owner session cap meaningless as a storage bound, and it lands in {@code _source} on a data
+     * stream whose transcripts are never queried into.
+     *
+     * <p>5 MiB is roughly two orders of magnitude above a realistic chat transcript and two below the
+     * platform default. Checked against the raw payload before parsing, so an oversized body is
+     * rejected without being materialised into a map first.
+     */
+    private static final int MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
+
     private static final String TITLE_KEY = "title";
     private static final String MESSAGES_KEY = "messages";
     private static final String EXPECTED_VERSION_KEY = "expected_version";
@@ -84,6 +100,8 @@ public class TransportPutAiAssistantSessionAction
     private static final String MESSAGES_REQUIRED = "Session messages are required.";
     private static final String TOO_MANY_MESSAGES =
             "A session cannot hold more than " + MAX_MESSAGES + " messages.";
+    private static final String PAYLOAD_TOO_LARGE =
+            "Session payload must be " + (MAX_PAYLOAD_BYTES / (1024 * 1024)) + " MiB or smaller.";
     private static final String CAP_REACHED =
             "You have reached the maximum of "
                     + AiAssistantSessionsIndex.MAX_SESSIONS_PER_USER
@@ -152,11 +170,8 @@ public class TransportPutAiAssistantSessionAction
             String user,
             PutAiAssistantSessionRequest request,
             ActionListener<PutAiAssistantSessionResponse> listener) {
-        Map<String, Object> body;
-        try {
-            body = parseBody(request.getPayload());
-        } catch (Exception e) {
-            listener.onResponse(badRequest(INVALID_BODY));
+        Map<String, Object> body = parseBodyOrReject(request.getPayload(), listener);
+        if (body == null) {
             return;
         }
 
@@ -228,11 +243,8 @@ public class TransportPutAiAssistantSessionAction
             String user,
             PutAiAssistantSessionRequest request,
             ActionListener<PutAiAssistantSessionResponse> listener) {
-        Map<String, Object> body;
-        try {
-            body = parseBody(request.getPayload());
-        } catch (Exception e) {
-            listener.onResponse(badRequest(INVALID_BODY));
+        Map<String, Object> body = parseBodyOrReject(request.getPayload(), listener);
+        if (body == null) {
             return;
         }
 
@@ -326,11 +338,8 @@ public class TransportPutAiAssistantSessionAction
             String user,
             PutAiAssistantSessionRequest request,
             ActionListener<PutAiAssistantSessionResponse> listener) {
-        Map<String, Object> body;
-        try {
-            body = parseBody(request.getPayload());
-        } catch (Exception e) {
-            listener.onResponse(badRequest(INVALID_BODY));
+        Map<String, Object> body = parseBodyOrReject(request.getPayload(), listener);
+        if (body == null) {
             return;
         }
 
@@ -515,6 +524,33 @@ public class TransportPutAiAssistantSessionAction
     private static String readString(Map<String, Object> body, String key) {
         Object value = body.get(key);
         return value instanceof String ? (String) value : null;
+    }
+
+    /**
+     * Size-checks and parses a request body, answering the listener itself when either step fails.
+     *
+     * <p>The size check runs on the raw payload, before parsing, so an oversized body never becomes a
+     * {@code Map} in heap. Both failures are a {@code 400} carrying the {@code {message, status}}
+     * envelope, sent through {@code onResponse} rather than {@code onFailure} — the convention the
+     * rest of this plugin's endpoints follow.
+     *
+     * @param payload the raw JSON request body.
+     * @param listener the listener to answer on rejection.
+     * @return the parsed body, or {@code null} when the request has already been answered and the
+     *     caller must return immediately.
+     */
+    private static Map<String, Object> parseBodyOrReject(
+            String payload, ActionListener<PutAiAssistantSessionResponse> listener) {
+        if (payload != null && payload.getBytes(StandardCharsets.UTF_8).length > MAX_PAYLOAD_BYTES) {
+            listener.onResponse(badRequest(PAYLOAD_TOO_LARGE));
+            return null;
+        }
+        try {
+            return parseBody(payload);
+        } catch (Exception e) {
+            listener.onResponse(badRequest(INVALID_BODY));
+            return null;
+        }
     }
 
     @SuppressWarnings("unchecked")

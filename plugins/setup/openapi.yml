@@ -471,7 +471,7 @@ paths:
         "400":
           description: |
             Bad Request - Empty or malformed body, a missing/blank `title`, a `title` over 200
-            characters, or more than 1000 messages.
+            characters, more than 1000 messages, or a request body over 5 MiB.
           content:
             application/json:
               schema:
@@ -559,8 +559,8 @@ paths:
                 $ref: "#/components/schemas/AiAssistantSession"
         "400":
           description: |
-            Bad Request - Empty or malformed body, a blank or over-long `title`, or more than
-            1000 messages.
+            Bad Request - Empty or malformed body, a blank or over-long `title`, more than
+            1000 messages, or a request body over 5 MiB.
           content:
             application/json:
               schema:
@@ -638,8 +638,8 @@ paths:
                     version: "10:1"
         "400":
           description: |
-            Bad Request - Empty or malformed body, or a `title` that is blank, whitespace-only or
-            over 200 characters.
+            Bad Request - Empty or malformed body, a `title` that is blank, whitespace-only or
+            over 200 characters, or a request body over 5 MiB.
           content:
             application/json:
               schema:
@@ -889,7 +889,8 @@ components:
         **Informative only — this is not a validated contract.** The index maps `messages` as
         `{"type": "object", "enabled": false}`: the array is stored in `_source` and returned
         verbatim, but never indexed and never schema-checked. This API treats each entry as an
-        opaque object and validates only the array's length and the document's overall size, so a
+        opaque object and validates only the array's length (1000) and the request body's total
+        size (5 MiB), so a
         provider that returns fields nobody anticipated cannot break saving a session. The
         properties below are what the Wazuh Dashboard writes today, recorded so a reader knows
         what to expect; anything else a client sends is preserved as sent.

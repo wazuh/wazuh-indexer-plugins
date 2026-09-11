@@ -246,6 +246,25 @@ public class AiAssistantSessionsIT extends OpenSearchRestTestCase {
     }
 
     /**
+     * A request body over 5 MiB is rejected with {@code 400} and writes nothing.
+     *
+     * <p>The message cap bounds how many turns a session holds, not how large each one is. Without
+     * this ceiling the only limit would be the cluster's {@code http.max_content_length} (100MB by
+     * default), which would leave the 500-session per-owner cap meaningless as a storage bound.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testCreateRejectsAnOversizedBody() throws IOException, ParseException {
+        String oversized =
+                "{\"title\":\"t\",\"messages\":[{\"role\":\"user\",\"content\":\""
+                        + "x".repeat(5 * 1024 * 1024)
+                        + "\"}]}";
+        assertBadRequest(oversized, "Session payload must be 5 MiB or smaller.");
+        assertEquals(0, storedCount());
+    }
+
+    /**
      * A 200-character title is accepted; only 201 is not. Guards the boundary against an off-by-one.
      *
      * @throws IOException if there is an issue with the HTTP request

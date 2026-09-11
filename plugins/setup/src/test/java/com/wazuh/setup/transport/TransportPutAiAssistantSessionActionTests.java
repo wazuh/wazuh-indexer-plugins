@@ -184,6 +184,60 @@ public class TransportPutAiAssistantSessionActionTests extends OpenSearchTestCas
         verify(this.sessionsIndex, never()).create(any(), any());
     }
 
+    public void testRejectsAnOversizedPayloadBeforeParsingIt() {
+        // MAX_MESSAGES bounds how many turns a session holds, not how large each one is. Without a
+        // byte ceiling the only limit is http.max_content_length (100MB by default), which would
+        // make the 500-session per-owner cap meaningless as a storage bound.
+        String oversized =
+                "{\"title\":\"t\",\"messages\":[{\"role\":\"user\",\"content\":\""
+                        + "x".repeat(5 * 1024 * 1024)
+                        + "\"}]}";
+
+        for (Operation operation : List.of(Operation.CREATE, Operation.UPDATE, Operation.RENAME)) {
+            assertBadRequest(
+                    execute(operation, SESSION_ID, oversized), "Session payload must be 5 MiB or smaller.");
+        }
+
+        // Rejected before the body is parsed, so nothing reaches the index — not even the lookup
+        // the update and rename paths would otherwise do first.
+        verify(this.sessionsIndex, never()).create(any(), any());
+        verify(this.sessionsIndex, never()).findHit(any(), any(), any());
+        verify(this.sessionsIndex, never()).countForUser(any(), any());
+    }
+
+    public void testAcceptsAPayloadJustUnderTheLimit() {
+        mockCount(0);
+        mockCreate("newid", "3:1");
+
+        // Padded to land a few hundred bytes short of the 5 MiB ceiling.
+        String content = "x".repeat(5 * 1024 * 1024 - 512);
+        String body =
+                "{\"title\":\"t\",\"messages\":[{\"role\":\"user\",\"content\":\"" + content + "\"}]}";
+        assertTrue(
+                "the fixture must stay under the limit",
+                body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 5 * 1024 * 1024);
+
+        assertEquals(RestStatus.OK, execute(Operation.CREATE, null, body).getStatus());
+    }
+
+    public void testPayloadSizeIsMeasuredInBytesNotCharacters() {
+        // A multi-byte character must count for its encoded width, or the ceiling is bypassed by
+        // sending non-ASCII: "€" is 3 bytes of UTF-8 but one char.
+        String body =
+                "{\"title\":\"t\",\"messages\":[{\"role\":\"user\",\"content\":\""
+                        + "\u20ac".repeat(2 * 1024 * 1024)
+                        + "\"}]}";
+        assertTrue(
+                "the fixture is under the limit by character count", body.length() < 5 * 1024 * 1024);
+        assertTrue(
+                "... but over it by byte count",
+                body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 5 * 1024 * 1024);
+
+        assertBadRequest(
+                execute(Operation.CREATE, null, body), "Session payload must be 5 MiB or smaller.");
+        verify(this.sessionsIndex, never()).create(any(), any());
+    }
+
     public void testCreateRejectsAMalformedBody() {
         assertBadRequest(execute(Operation.CREATE, null, "not json"), "Invalid request body.");
         assertBadRequest(execute(Operation.CREATE, null, "[1,2,3]"), "Invalid request body.");

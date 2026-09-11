@@ -683,6 +683,11 @@ Three data-stream mechanics shape the implementation, all of them platform const
 - **Update and delete must target the backing index**, never the stream name, which accepts appends only. And they must be a full `index` replace: the partial `_update` API is refused outright wherever DLS applies to the role (`security_exception: Update is not supported when FLS or DLS or Fieldmasking is activated`).
 - **Optimistic concurrency is mandatory.** A backing index rejects an unconditional write (`illegal_argument_exception: index request with op_type=index and no if_primary_term and if_seq_no set targeting backing indices is disallowed`), so every write carries a pair — the caller's `expected_version` when it sent a decodable one, otherwise the pair the request just read. The `version` the API returns is that pair encoded as `"<seq_no>:<primary_term>"`, opaque to clients. A genuine mismatch is a `409`, never retried: retrying with a freshly read pair is exactly the silent overwrite `expected_version` exists to prevent.
 
+Request bodies are capped at **5 MiB** on every write route, checked against the raw payload before
+parsing so an oversized body never becomes a map in heap. `MAX_MESSAGES` (1000) bounds the number of
+turns but not their size, and the fallback ceiling would otherwise be `http.max_content_length`
+(100MB), which would leave the 500-session per-owner cap meaningless as a storage bound.
+
 Two smaller rules worth knowing: `PATCH` deliberately does **not** re-stamp `updated_at` (a rename is not session activity, and bumping it would reorder a list sorted by last activity), and `PUT`'s `title` is optional (a chat client auto-saves every turn, and resending a recomputed title would silently revert a rename the user had just made). Every write uses `RefreshPolicy.WAIT_UNTIL`, because every read here is a search and a search only sees a write after the shard refreshes.
 
 With the security plugin absent — the `integTest` cluster — there is no transient and the owner resolves to the `_shared` sentinel, treated as a real owner rather than as a bypass, so the tests exercise the whole stamp-and-scope path. See `AiAssistantSessionsIT` and `TransportPutAiAssistantSessionActionTests`.
