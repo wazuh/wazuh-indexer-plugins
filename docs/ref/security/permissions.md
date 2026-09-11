@@ -35,6 +35,7 @@ Wazuh custom actions:
 
 - `cluster:admin/wazuh/securityanalytics/detector/write`
 - `cluster:admin/wazuh/securityanalytics/detector/delete`
+- `cluster:admin/wazuh/securityanalytics/detector/set_enabled` — switch an existing detector on or off without changing anything else (used by the Content Manager when an integration is enabled or disabled)
 - `cluster:admin/wazuh/securityanalytics/logtype/write`
 - `cluster:admin/wazuh/securityanalytics/logtype/delete`
 - `cluster:admin/wazuh/securityanalytics/rule/write`
@@ -44,4 +45,6 @@ Wazuh custom actions:
 - `cluster:admin/wazuh/securityanalytics/rules/evaluate`
 - `cluster:admin/wazuh/securityanalytics/space/delete`
 
-The default roles also grant the upstream OpenSearch Security Analytics actions (`cluster:admin/opensearch/securityanalytics/*`) — the full `/*` set for `wazuh_admin` and `wazuh_demo`, and the read-only (`/get`, `/search`) subset for `wazuh_readonly`.
+The default roles also grant the upstream OpenSearch Security Analytics actions (`cluster:admin/opensearch/securityanalytics/*`) — the full `/*` set for `wazuh_admin`, and the read-only (`/get`, `/search`) subset for `wazuh_readonly`. `wazuh_demo` holds the full set except on detectors, where it is limited to `cluster:admin/opensearch/securityanalytics/detector/get` and `.../detector/search`.
+
+> **Note:** `cluster:admin/opensearch/securityanalytics/detector/write` is the permission that switches a detector on or off, and only `wazuh_admin` holds it. Disabling a detector stops detection for its integration and the interval missed is never re-evaluated — see [Enabling and disabling detectors](../modules/ruleset-management/index.md#enabling-and-disabling-detectors).

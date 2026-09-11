@@ -190,6 +190,7 @@
 - [BUG] Resource creation requires `indices:admin/create` on `.wazuh-content-manager-resource-locks` for the calling user [(#1520)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1520)
 - [BUG] `index.query.default_field` lists name fields the index does not have, fields no text term can match and entries with trailing spaces [(#1536)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1536)
 - [BUG] `logtest` reports `contains` matches that never fire in the real ingestion pipeline (case sensitivity) [(#321)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/321)
+- [BUG] Document that a disabled threat detector produces no findings and that the missed interval is never re-evaluated [(#1531)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1531)
 
 ## Prior versions
 - []()
