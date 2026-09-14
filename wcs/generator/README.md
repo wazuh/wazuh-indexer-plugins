@@ -3,7 +3,7 @@
 The generation of the Wazuh Common Schema is automated using a set of scripts and Docker projects.
 
 - [compose.yml](./compose.yml): Docker Compose file to define the services for the schema generator.
-- [generate_schema.sh](./generate_schema.sh): generates the complete schema. The list of modules to generate is read from the [module_list.txt](../module_list.txt) file. Copies the generated files to the appropriate folders. The index templates are copied to Setup plugin's [resources/](../../plugins/setup/src/main/resources/) folder, while the CSV files are copied to each module's `docs/` folder. For the `stateless/events/main` and `stateless/events/findings` modules, it also converts the copied template to `dynamic_templates` via `convert_to_dynamic_templates.py`.
+- [generate_schema.sh](./generate_schema.sh): generates the complete schema. The list of modules to generate is read from the [module_list.txt](../module_list.txt) file. Copies the generated files to the appropriate folders. The index templates are copied to Setup plugin's [resources/](../../plugins/setup/src/main/resources/) folder, while the CSV files are copied to each module's `docs/` folder. For the `stateless/events/main` and `stateless/events/findings` modules, it also converts the copied template to `dynamic_templates` via `convert_to_dynamic_templates.py`. For every regenerated module it then re-derives `index.query.default_field` from the module's own mapping via `generate_default_query_fields.py`.
 - [push_schema.sh](./push_schema.sh): commits and pushes the changes in the schema to the repository. This script is meant to be used by our GH Workflow. Do not use it locally.
 - [run_generator.sh](./run_generator.sh): Script to start the Docker Compose project. This is the main entry point for the schema generation.
 - [update_module_list.sh](./update_module_list.sh): generates the [module_list.txt](../module_list.txt) file, by scanning the [wcs/](..) folder. Run this script whenever a new module is added.
@@ -12,11 +12,12 @@ The generation of the Wazuh Common Schema is automated using a set of scripts an
 - [images/schema_sanitizer.py](./images/schema_sanitizer.py): Python script that modifies the ECS source mapping files to meet WCS requirements before generating the final templates. It is executedi in the image build process.
 - [count_and_update_total_fields.sh](./count_and_update_total_fields.sh): counts fields in a generated index template and proposes (or applies with --apply) an updated mapping.total_fields.limit rounded up to the next 500.
 - [convert_to_dynamic_templates.py](./convert_to_dynamic_templates.py): converts a generated index template's monolithic static `properties` block into a `dynamic_templates` array, so fields are mapped lazily on first ingest instead of all at once. Used to keep the field mapping count of the `wazuh-events` and `wazuh-findings` data streams (`stateless/events/main` and `stateless/events/findings` modules) under the `mapping.total_fields.limit`, since those streams define far more fields than any single document actually uses. `generate_schema.sh` runs it automatically for those two modules; see "Dynamic templates" below.
+- [generate_default_query_fields.py](./generate_default_query_fields.py): rewrites a module's `index.query.default_field` from the mapping the same template declares, so the list cannot name a field the index does not have, a field no text term can match, or an entry with stray whitespace. `generate_schema.sh` runs it automatically for every regenerated module; see "Default query fields" below.
 
 ### Requirements
 
 - [Docker Compose](https://docs.docker.com/compose/install/)
-- [Python 3](https://www.python.org/) (for `convert_to_dynamic_templates.py` and `count_and_update_total_fields.sh`)
+- [Python 3](https://www.python.org/) (for `convert_to_dynamic_templates.py`, `generate_default_query_fields.py` and `count_and_update_total_fields.sh`)
 
 ### Usage
 
@@ -41,6 +42,15 @@ However, it can also be run locally. To do so, follow these steps.
     ``` bash
     ./count_and_update_total_fields.sh all --apply
     ```
+
+`generate_schema.sh` already re-derives the default query fields of every module it regenerates
+(see "Default query fields" below). To re-derive them for every module regardless of what changed,
+which is also how to check that none has drifted:
+
+```bash
+python3 generate_default_query_fields.py all
+python3 generate_default_query_fields.py all --check
+```
 
 The scripts can be invoked from any location. When successful, all the generated files will be copied to their corresponding folders.
 
@@ -79,6 +89,48 @@ Omitting the output path prints the result to stdout instead of writing a file. 
 
 ```bash
 find plugins/setup/src/main/resources/templates/streams/ -name "events.json" -type f -exec python3 wcs/generator/convert_to_dynamic_templates.py {} {} \;
+```
+
+### Default query fields
+
+`index.query.default_field` is the list of fields a `query_string` with no field qualifier searches. Hand-written lists drift away from the mapping they describe, and each way they drift breaks a search.
+
+[generate_default_query_fields.py](./generate_default_query_fields.py) derives the list from the mapping the same template declares. It keeps only indexed fields of the text family (`keyword`, `text`, `match_only_text`, `wildcard`), trims every entry, and prefers the `wazuh.` prefixed field whenever a name exists both bare and under `wazuh.` - that is the branch the agent data populates, so `agent.id` becomes `wazuh.agent.id`.
+
+How much of the mapping it uses depends on whether the mapping is closed:
+
+- A **closed** mapping (`dynamic: strict` with no dynamic templates) describes every field the
+  index can ever hold, so the list becomes the full set of its searchable text fields. This is the
+  case of every `wazuh-states-*` template.
+- An **open** mapping (`strict_allow_templates`, `dynamic: true`/`false`, or any mapping with
+  dynamic templates) reaches far more fields than its `properties` block spells out - the
+  `wazuh-events` and `wazuh-findings` streams reach over 1600 text fields through their dynamic
+  templates, well past the 1024 field `indices.query.bool.max_clause_count` expansion limit a
+  `query_string` is checked against, so listing them all would fail the very query the setting
+  exists to serve. The curated list is kept instead, and each entry is only resolved against the
+  mapping: trimmed, moved to its `wazuh.` twin when that is the reachable one, and dropped when it
+  resolves to nothing searchable.
+
+The derived list is written to the module's index template under `plugins/setup/src/main/resources/`
+and back to the module's `fields/template-settings.json` and `fields/template-settings-legacy.json`,
+so the next generation starts from the corrected list. Only the `query.default_field` array is
+rewritten; the rest of each file is left byte for byte as it was. Templates that do not set
+`query.default_field` are left alone - the script never adds the setting.
+
+`generate_schema.sh` runs it for every regenerated module, after the `dynamic_templates`
+conversion, so the events and findings lists resolve against the dynamic templates that ship. To
+run it by hand for one module, or for all of them:
+
+```bash
+python3 wcs/generator/generate_default_query_fields.py stateful/fim/files
+python3 wcs/generator/generate_default_query_fields.py all --verbose
+```
+
+`--check` reports what would change and exits non-zero if anything would, without writing, which
+is how to assert in CI that no list has drifted from its mapping:
+
+```bash
+python3 wcs/generator/generate_default_query_fields.py all --check
 ```
 
 ### Uploading templates to the Indexer

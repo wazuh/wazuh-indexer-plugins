@@ -16,6 +16,10 @@ Draft → Test → Custom
 
 Logtest sends a raw log event through the full detection pipeline — the Wazuh Engine normalizes the event, and the Ruleset Management plugin evaluates your Sigma rules against the normalized output. The combined result shows exactly what was decoded and which rules matched.
 
+Rules are evaluated the way a deployed threat detector evaluates them: compiled into the same
+queries, analyzed by the same analyzers, and matched by the same percolator. A logtest result is
+therefore a prediction of the finding, not an approximation of it.
+
 Logtest supports the `test`, `standard`, and `custom` spaces. Use `test` for validating draft content, `standard` for testing against production rules, and `custom` for validating content promoted to production
 
 ---
@@ -30,10 +34,10 @@ curl -sk -u admin:admin -X POST \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
-      "category": "endpoint-security",
+      "category": "security",
       "enabled": true,
       "metadata": {
-        "title": "SSH Brute Force Detection",
+        "title": "ssh-brute-force",
         "author": "Security Team",
         "description": "Detects SSH brute force attempts from auth logs.",
         "references": ["https://attack.mitre.org/techniques/T1110/"]
@@ -41,6 +45,11 @@ curl -sk -u admin:admin -X POST \
     }
   }'
 ```
+
+Two constraints on this payload are worth noting, because both are rejected with `400 Bad Request`:
+
+- **`category`** must be one of `access-management`, `applications`, `cloud-services`, `network-activity`, `other`, `security`, `system-activity` or `unclassified`, matched case-sensitively.
+- **`metadata.title`** becomes the integration's name in the Engine, so it cannot contain spaces or any of `\ / : * ? " < > |`. It is also the value every rule in this integration must repeat in `logsource.product`.
 
 The response returns the integration ID:
 
@@ -94,6 +103,8 @@ curl -sk -u admin:admin -X POST \
 
 Rules use the [Sigma format](../ruleset-management/rules.md) to define detection logic. Link a rule to the same integration:
 
+`logsource.product` must repeat the parent integration's `metadata.title` exactly — `ssh-brute-force` here — otherwise the rule is rejected. `status` and `level` are required too, and each accepts a closed set of values (see [Create rule](api.md#create-rule)).
+
 ```bash
 curl -sk -u admin:admin -X POST \
   "https://localhost:9200/_plugins/_content_manager/rules" \
@@ -111,7 +122,7 @@ curl -sk -u admin:admin -X POST \
       "enabled": true,
       "status": "experimental",
       "logsource": {
-        "product": "linux",
+        "product": "ssh-brute-force",
         "category": "authentication"
       },
       "detection": {
@@ -142,20 +153,33 @@ curl -sk -u admin:admin -X POST \
 ```
 ## Step 4: promote to test space
 
-Before running logtest, your content must be in the **test** space. 
+Before running logtest, your content must be in the **test** space.
 
 ```bash
 # 1. Preview what will be promoted
 curl -sk -u admin:admin \
   "https://localhost:9200/_plugins/_content_manager/promote?space=draft"
 
-# 2. Execute the promotion (use the changes from the preview response)
+# 2. Execute the promotion, passing back the changes the preview reported
 curl -sk -u admin:admin -X POST \
   "https://localhost:9200/_plugins/_content_manager/promote" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "draft",
-    "changes": { ... }
+    "changes": {
+      "integrations": [
+        {"operation": "add", "id": "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509"}
+      ],
+      "decoders": [
+        {"operation": "add", "id": "f56f3865-2827-464b-8335-30561b0f381b"}
+      ],
+      "rules": [
+        {"operation": "add", "id": "85bba177-a2e9-4468-9d59-26f4798906c9"}
+      ],
+      "kvdbs": [],
+      "filters": [],
+      "policy": []
+    }
   }'
 ```
 
@@ -241,8 +265,9 @@ The `trace_level` field controls how much detail the Engine returns:
 If the results aren't what you expect:
 
 1. **Decoder not matching?** Check `asset_traces` — if your decoder isn't listed, review the `check` conditions. Use `trace_level: ALL` to see which decoders were attempted.
-2. **Rule not matching?** Compare the normalized event fields with your rule's `detection` block. Field names and values must match exactly (case-insensitive for strings).
-3. **Unexpected matches?** Review `matched_conditions` to understand why a rule triggered.
+2. **Rule not matching?** Compare the normalized event fields with your rule's `detection` block. Field names and string values must both match exactly — string comparison is case-sensitive.
+3. **Unexpected matches?** Review `matched_conditions`: it lists the conditions this event
+   satisfies, so it shows what in the event triggered the rule rather than restating the rule.
 
 After making changes:
 - Update the rule or decoder via `PUT` on the respective endpoint.
@@ -258,13 +283,26 @@ Once your rules are validated, promote from test to custom for production use:
 curl -sk -u admin:admin \
   "https://localhost:9200/_plugins/_content_manager/promote?space=test"
 
-# Execute
+# Execute, passing back the changes the preview reported
 curl -sk -u admin:admin -X POST \
   "https://localhost:9200/_plugins/_content_manager/promote" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "test",
-    "changes": { ... }
+    "changes": {
+      "integrations": [
+        {"operation": "add", "id": "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509"}
+      ],
+      "decoders": [
+        {"operation": "add", "id": "f56f3865-2827-464b-8335-30561b0f381b"}
+      ],
+      "rules": [
+        {"operation": "add", "id": "85bba177-a2e9-4468-9d59-26f4798906c9"}
+      ],
+      "kvdbs": [],
+      "filters": [],
+      "policy": []
+    }
   }'
 ```
 
@@ -315,7 +353,7 @@ curl -sk -u admin:admin -X POST \
     "space": "test",
     "queue": 1,
     "location": "/var/log/auth.log",
-    "input": "Dec 19 12:00:00 host sshd[12345]: Failed password for root from 10.0.0.1 port 54321 ssh2",
+    "event": "Dec 19 12:00:00 host sshd[12345]: Failed password for root from 10.0.0.1 port 54321 ssh2",
     "trace_level": "ALL"
   }'
 ```
