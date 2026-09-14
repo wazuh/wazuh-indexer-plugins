@@ -42,6 +42,8 @@ public class Constants {
     // success.
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
     public static final String S_201_ACCESS_TOKEN_RECEIVED = "Access token received successfully.";
+    public static final String S_200_PERMISSION_CHECK_ALLOWED =
+            "Permission check passed: security plugin disabled.";
     public static final String E_400_INVALID_REQUEST_BODY = "Invalid request body.";
     public static final String E_400_MISSING_FIELD = "Missing [%s] field.";
     public static final String E_400_INVALID_FIELD_FORMAT = "Invalid '%s' format.";
@@ -336,6 +338,16 @@ public class Constants {
             "No {} to synchronize with the Security Analytics plugin.";
     public static final String D_LOG_SAP_ITEM_FAILED =
             "{} [{}] could not be sent to Security Analytics: {}";
+    public static final String E_LOG_RULE_MISSING_PRODUCT =
+            "Rule [{}] declares no 'logsource.product'. It is not sent to Security Analytics, because "
+                    + "the field is the log type the compiled query is filed under.";
+    public static final String E_LOG_RULE_PRODUCT_MISMATCH =
+            "Rule [{}] declares 'logsource.product' [{}] but belongs to integration [{}]. It is not "
+                    + "sent to Security Analytics, because it would be filed under a log type that "
+                    + "integration's detector does not read.";
+    public static final String E_RULE_MISSING_PRODUCT =
+            "Rule [%s] declares no 'logsource.product', so its Security Analytics log type cannot be "
+                    + "resolved.";
     public static final String W_LOG_SAP_SYNC_TIMEOUT =
             "Timed out sending {} to Security Analytics; some may be unavailable until the next sync.";
     public static final String E_LOG_SAP_SYNC_INTERRUPTED =
@@ -627,6 +639,14 @@ public class Constants {
             "Catalog Sync Job scheduled successfully.";
     public static final String W_LOG_CATALOG_SYNC_JOB_FAILED =
             "Failed to schedule Catalog Sync Job: {}, retrying";
+    public static final String I_LOG_CATALOG_SYNC_JOB_RECONCILED =
+            "Catalog Sync Job reconciled with the current settings (enabled: {} -> {}, interval: {} -> {} minutes).";
+    public static final String D_LOG_CATALOG_SYNC_JOB_IN_SYNC =
+            "Catalog Sync Job already matches the current settings (enabled: {}, interval: {} minutes). Nothing to do.";
+    public static final String W_LOG_CATALOG_SYNC_JOB_UNREADABLE =
+            "Could not parse the existing Catalog Sync Job document; rewriting it from the current settings: {}";
+    public static final String I_LOG_CATALOG_SYNC_SKIPPED_DISABLED =
+            "Scheduled catalog synchronization (ID: {}) skipped: plugins.content_manager.catalog.update_on_schedule is false.";
     public static final String E_LOG_JOB_SCHEDULE_GIVE_UP = "Giving up {} after {} attempts.";
     public static final String I_LOG_JOB_SCHEDULE_RETRY = "Retrying {} (attempt {}/{}) in {}s.";
     public static final String D_LOG_TELEMETRY_JOB_DISABLED =
@@ -692,6 +712,13 @@ public class Constants {
     public static final String INDEX_IOCS = "wazuh-threatintel-enrichments";
     public static final String INDEX_CVES = ".wazuh-threatintel-vulnerabilities";
     public static final String INDEX_FILTERS = "wazuh-threatintel-filters";
+
+    /**
+     * Prefix of the WCS event data streams a threat detector reads. Completed with the integration's
+     * category when the integration document names no explicit detector source, the same fallback
+     * Security Analytics applies when it builds the detector.
+     */
+    public static final String INDEX_EVENTS_PREFIX = "wazuh-events-v5-";
 
     /**
      * Document id of the single user-overrides registry document, stored in {@link #INDEX_POLICIES}.
@@ -762,6 +789,10 @@ public class Constants {
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
     public static final String KEY_MESSAGE = "message";
+    // Owned by the security plugin: field names of
+    // org.opensearch.security.action.simulate.PermissionCheckResponse.
+    public static final String KEY_ACCESS_ALLOWED = "accessAllowed";
+    public static final String KEY_MISSING_PRIVILEGES = "missingPrivileges";
     public static final String KEY_STATUS = "status";
     public static final String KEY_INPUT = "input";
     public static final String KEY_YAML = "yaml";

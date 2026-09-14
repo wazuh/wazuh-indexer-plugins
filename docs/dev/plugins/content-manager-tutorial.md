@@ -214,7 +214,22 @@ curl -X POST "https://localhost:9200/_plugins/_content_manager/rules" \
   -d '{
     "integration": "<integration-id>",
     "resource": {
-      "title": "Test Rule"
+      "metadata": {
+        "title": "Test Rule",
+        "author": "Tester"
+      },
+      "status": "experimental",
+      "level": "low",
+      "logsource": {
+        "product": "<integration-title>",
+        "category": "authentication"
+      },
+      "detection": {
+        "condition": "selection",
+        "selection": {
+          "event.outcome": "failure"
+        }
+      }
     }
   }'
 

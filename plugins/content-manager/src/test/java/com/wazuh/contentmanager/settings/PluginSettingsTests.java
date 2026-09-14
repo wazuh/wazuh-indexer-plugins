@@ -384,32 +384,69 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         Assert.assertFalse(pluginSettings.isRegistered());
     }
 
-    /** Tests that wazuhUid is null by default. */
-    public void testWazuhUidIsNullByDefault() {
+    /** Tests that clusterUUID is null by default. */
+    public void testClusterUUIDIsNullByDefault() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        Assert.assertNull(pluginSettings.getWazuhUid());
+        Assert.assertNull(pluginSettings.getClusterUUID());
     }
 
-    /** Tests that setWazuhUid persists the value and getWazuhUid returns it. */
-    public void testSetAndGetWazuhUid() {
+    /** Tests that setClusterUUID persists the value and getClusterUUID returns it. */
+    public void testSetAndGetClusterUUID() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        pluginSettings.setWazuhUid("test-cluster-uuid");
-        Assert.assertEquals("test-cluster-uuid", pluginSettings.getWazuhUid());
+        pluginSettings.setClusterUUID("test-cluster-uuid");
+        Assert.assertEquals("test-cluster-uuid", pluginSettings.getClusterUUID());
     }
 
-    /** Tests that setWazuhUid can be updated and the latest value is returned. */
-    public void testWazuhUidUpdates() {
+    /** Tests that setClusterUUID can be updated and the latest value is returned. */
+    public void testClusterUUIDUpdates() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        pluginSettings.setWazuhUid("first-uuid");
-        pluginSettings.setWazuhUid("second-uuid");
-        Assert.assertEquals("second-uuid", pluginSettings.getWazuhUid());
+        pluginSettings.setClusterUUID("first-uuid");
+        pluginSettings.setClusterUUID("second-uuid");
+        Assert.assertEquals("second-uuid", pluginSettings.getClusterUUID());
     }
 
-    /** Tests that setWazuhUid(null) clears the value. */
-    public void testWazuhUidCanBeCleared() {
+    /** Tests that setClusterUUID(null) clears the value. */
+    public void testClusterUUIDCanBeCleared() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        pluginSettings.setWazuhUid("a-uuid");
-        pluginSettings.setWazuhUid(null);
-        Assert.assertNull(pluginSettings.getWazuhUid());
+        pluginSettings.setClusterUUID("a-uuid");
+        pluginSettings.setClusterUUID(null);
+        Assert.assertNull(pluginSettings.getClusterUUID());
+    }
+
+    /**
+     * Both catalog scheduling settings must be dynamic, otherwise the cluster settings API rejects an
+     * update to them and the operator is back to editing opensearch.yml and restarting.
+     */
+    public void testCatalogSchedulingSettingsAreDynamic() {
+        Assert.assertTrue(
+                "update_on_schedule must be dynamic", PluginSettings.UPDATE_ON_SCHEDULE.isDynamic());
+        Assert.assertTrue(
+                "sync_interval must be dynamic", PluginSettings.CATALOG_SYNC_INTERVAL.isDynamic());
+    }
+
+    /** The scheduled-update setter must be readable back through its getter. */
+    public void testSetAndIsUpdateOnSchedule() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        boolean original = pluginSettings.isUpdateOnSchedule();
+        try {
+            pluginSettings.setUpdateOnSchedule(false);
+            Assert.assertFalse(pluginSettings.isUpdateOnSchedule());
+            pluginSettings.setUpdateOnSchedule(true);
+            Assert.assertTrue(pluginSettings.isUpdateOnSchedule());
+        } finally {
+            pluginSettings.setUpdateOnSchedule(original);
+        }
+    }
+
+    /** The sync interval setter must be readable back through its getter. */
+    public void testSetAndGetCatalogSyncInterval() {
+        PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
+        int original = pluginSettings.getCatalogSyncInterval();
+        try {
+            pluginSettings.setCatalogSyncInterval(120);
+            Assert.assertEquals(Integer.valueOf(120), pluginSettings.getCatalogSyncInterval());
+        } finally {
+            pluginSettings.setCatalogSyncInterval(original);
+        }
     }
 }

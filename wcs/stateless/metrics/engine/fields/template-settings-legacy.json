@@ -13,14 +13,14 @@
       "auto_expand_replicas": "0-1",
       "refresh_interval": "5s",
       "query.default_field": [
-        "event.module",
         "event.kind",
+        "event.module",
         "metric.name",
         "metric.type",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
-        "wazuh.space.name",
-        "wazuh.schema.version"
+        "wazuh.schema.version",
+        "wazuh.space.name"
       ],
       "max_docvalue_fields_search": 100
     },
