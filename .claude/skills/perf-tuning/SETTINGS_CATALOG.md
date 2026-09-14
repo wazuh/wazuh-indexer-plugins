@@ -37,7 +37,6 @@ JVM startup.**
 | `plugins.content_manager.max_rules` | 200 | ≥0 | **Dynamic** | unchanged |
 | `plugins.content_manager.max_kvdbs` | 100 | ≥0 | **Dynamic** | unchanged |
 | `plugins.content_manager.max_filters` | 100 | ≥0 | **Dynamic** | unchanged |
-| `plugins.content_manager.wazuh_uid` | `""` | — | **Dynamic** | not memory-relevant; **undocumented anywhere in `docs/ref`** — flag as a doc gap if updating docs |
 
 **Detector schedule interval** — there is no registered `Setting<?>` for
 this. `DetectorFactory.createDetector()` (security-analytics repo) takes

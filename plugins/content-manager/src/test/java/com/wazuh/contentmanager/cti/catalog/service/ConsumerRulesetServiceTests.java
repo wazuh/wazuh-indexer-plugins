@@ -37,6 +37,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -576,6 +577,90 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
                 .upsertRule(any(), eq(Space.STANDARD), any(), any());
 
         this.synchronizer.onSyncComplete(true);
+
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(captor.capture());
+        Assert.assertEquals(List.of("rules"), captor.getValue().getPendingSyncPhases());
+    }
+
+    /**
+     * A rule whose {@code logsource.product} does not name the integration that lists it is held back
+     * rather than sent: Security Analytics files a rule's compiled query under the log type that
+     * field names, so sending it would put the rule where the owning integration's detector does not
+     * read it, and the sync would report success. The rule that agrees with its integration is still
+     * sent, and only "rules" is left pending.
+     */
+    @SuppressWarnings("unchecked")
+    public void testOnSyncComplete_ruleProductMismatchesIntegration_isNotSent() throws Exception {
+        this.mockExistingConsumerDoc(Collections.emptyList());
+        this.mockIndexResolution(name -> false);
+
+        this.mockResourcesBySpace(
+                Constants.INDEX_INTEGRATIONS,
+                Map.of(
+                        "int-apache",
+                        Map.of(
+                                "document",
+                                Map.of(
+                                        "id",
+                                        "int-apache",
+                                        "metadata",
+                                        Map.of("title", "apache-http"),
+                                        "rules",
+                                        List.of("rule-ok", "rule-mismatch")))));
+
+        Map<String, Map<String, Object>> rules = new LinkedHashMap<>();
+        rules.put(
+                "rule-ok",
+                Map.of(
+                        "document",
+                        Map.of(
+                                "id",
+                                "rule-ok",
+                                "name",
+                                "ok",
+                                "metadata",
+                                Map.of("title", "ok"),
+                                "logsource",
+                                Map.of("product", "apache-http"))));
+        rules.put(
+                "rule-mismatch",
+                Map.of(
+                        "document",
+                        Map.of(
+                                "id",
+                                "rule-mismatch",
+                                "name",
+                                "mismatch",
+                                "metadata",
+                                Map.of("title", "mismatch"),
+                                // Names a real product, but not the integration that lists this rule.
+                                "logsource",
+                                Map.of("product", "windows"))));
+        this.mockResourcesBySpace(Constants.INDEX_RULES, rules);
+
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<?>>getArgument(3).onResponse(null);
+                            return null;
+                        })
+                .when(this.securityAnalyticsService)
+                .upsertIntegration(any(), eq(Space.STANDARD), any(), any());
+
+        List<String> sentRules = Collections.synchronizedList(new ArrayList<>());
+        doAnswer(
+                        invocation -> {
+                            JsonNode doc = invocation.getArgument(0);
+                            sentRules.add(doc.get("id").asText());
+                            invocation.<ActionListener<?>>getArgument(3).onResponse(null);
+                            return null;
+                        })
+                .when(this.securityAnalyticsService)
+                .upsertRule(any(), eq(Space.STANDARD), any(), any());
+
+        this.synchronizer.onSyncComplete(true);
+
+        Assert.assertEquals(List.of("rule-ok"), sentRules);
 
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(captor.capture());

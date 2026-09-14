@@ -12,19 +12,33 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
-          "agent.host.architecture",
-          "agent.host.ip",
-          "agent.id",
-          "agent.name",
-          "agent.version",
           "browser.name",
-          "user.id",
-          "package.name",
+          "browser.profile.name",
+          "browser.profile.path",
+          "checksum.hash.sha1",
+          "file.hash.sha256",
+          "message",
+          "package.build_version",
+          "package.description",
           "package.id",
-          "package.version",
-          "package.vendor",
+          "package.name",
+          "package.path",
+          "package.permissions",
+          "package.reference",
           "package.type",
-          "state.modified_at",
+          "package.vendor",
+          "package.version",
+          "user.id",
+          "wazuh.agent.groups",
+          "wazuh.agent.host.architecture",
+          "wazuh.agent.host.hostname",
+          "wazuh.agent.host.os.name",
+          "wazuh.agent.host.os.platform",
+          "wazuh.agent.host.os.type",
+          "wazuh.agent.host.os.version",
+          "wazuh.agent.id",
+          "wazuh.agent.name",
+          "wazuh.agent.version",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
           "wazuh.schema.version"
@@ -84,8 +98,7 @@
           }
         },
         "message": {
-          "ignore_above": 1024,
-          "type": "keyword"
+          "type": "match_only_text"
         },
         "package": {
           "properties": {

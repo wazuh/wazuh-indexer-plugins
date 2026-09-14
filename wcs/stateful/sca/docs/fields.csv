@@ -1,5 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
+9.1.0,true,base,message,match_only_text,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,check,check.compliance.cmmc,keyword,custom,array,"[""AC.1.001"", ""AU.L2-3.3.1""]",CMMC requirements.
 9.1.0,true,check,check.compliance.fedramp,keyword,custom,array,"[""AC-2"", ""SC-7""]",FedRAMP requirements.
 9.1.0,true,check,check.compliance.gdpr,keyword,custom,array,"[""Art. 32"", ""Art. 25""]",GDPR requirements.

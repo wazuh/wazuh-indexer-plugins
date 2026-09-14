@@ -188,7 +188,10 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** The interval in minutes for the catalog synchronization job. */
+    /**
+     * The interval in minutes for the catalog synchronization job. Dynamic: a change is reflected in
+     * the {@code wazuh-catalog-sync-job} document without restarting the node.
+     */
     public static final Setting<Integer> CATALOG_SYNC_INTERVAL =
             Setting.intSetting(
                     "plugins.content_manager.catalog.sync_interval",
@@ -196,7 +199,7 @@ public class PluginSettings {
                     10,
                     1440,
                     Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
+                    Setting.Property.Dynamic);
 
     /** Setting to trigger content update on start. */
     public static final Setting<Boolean> UPDATE_ON_START =
@@ -206,13 +209,16 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Setting to enable/disable the content update job. */
+    /**
+     * Setting to enable/disable the periodic catalog synchronization job. Dynamic: a change is
+     * reflected in the {@code wazuh-catalog-sync-job} document without restarting the node.
+     */
     public static final Setting<Boolean> UPDATE_ON_SCHEDULE =
             Setting.boolSetting(
                     "plugins.content_manager.catalog.update_on_schedule",
                     DEFAULT_UPDATE_ON_SCHEDULE,
                     Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
+                    Setting.Property.Dynamic);
 
     /** Setting to enable/disable the content update job. */
     public static final Setting<Boolean> CREATE_DETECTORS =
@@ -317,6 +323,22 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /**
+     * Setting to enable the mock Security Analytics service for testing environments.
+     *
+     * <p>Separate from {@link #ENGINE_MOCK_ENABLED} because the two are not available under the same
+     * conditions: the Engine talks over a Unix socket that a test cluster does not have, while
+     * Security Analytics is a plugin this one extends and is therefore always installed. Defaults to
+     * whatever the engine mock is set to, so an environment that mocked both keeps doing so, but a
+     * test cluster can now mock only the Engine and exercise real rule evaluation.
+     */
+    public static final Setting<Boolean> SECURITY_ANALYTICS_MOCK_ENABLED =
+            Setting.boolSetting(
+                    "plugins.content_manager.security_analytics.mock",
+                    ENGINE_MOCK_ENABLED,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     /** Configuration setting to enable or disable the telemetry ping. Defaults to true. */
     public static final Setting<Boolean> TELEMETRY_ENABLED =
             Setting.boolSetting(
@@ -411,31 +433,21 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
-    /**
-     * Dynamic setting to override the wazuh-uid header value sent with CTI API requests. When empty
-     * (the default), the cluster UUID is used.
-     */
-    public static final Setting<String> WAZUH_UID =
-            Setting.simpleString(
-                    "plugins.content_manager.wazuh_uid",
-                    "",
-                    Setting.Property.NodeScope,
-                    Setting.Property.Dynamic);
-
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
     private volatile long logtestMaxBodyBytes;
     private final int maximumConcurrentBulks;
     private final long clientTimeout;
-    private final int catalogSyncInterval;
+    private volatile int catalogSyncInterval;
     private final boolean updateOnStart;
-    private final boolean updateOnSchedule;
+    private volatile boolean updateOnSchedule;
     private final String catalogRuleset;
     private final String catalogIocs;
     private final String catalogVulnerabilities;
     private final long pitKeepalive;
     private final boolean engineMockEnabled;
+    private final boolean securityAnalyticsMockEnabled;
     private final int setupWaitMaxRetries;
     private final int setupWaitBackoffBaseSeconds;
     private final int clientMaxRetries;
@@ -450,7 +462,7 @@ public class PluginSettings {
     private volatile int maxKvdbs;
     private volatile int maxFilters;
     private volatile String accessToken;
-    private volatile String wazuhUid;
+    private volatile String clusterUUID;
     private String version;
 
     /**
@@ -473,6 +485,7 @@ public class PluginSettings {
         this.catalogVulnerabilities = CATALOG_VULNERABILITIES.get(settings);
         this.pitKeepalive = PIT_KEEPALIVE.get(settings);
         this.engineMockEnabled = ENGINE_MOCK_ENABLED.get(settings);
+        this.securityAnalyticsMockEnabled = SECURITY_ANALYTICS_MOCK_ENABLED.get(settings);
         this.setupWaitMaxRetries = SETUP_WAIT_MAX_RETRIES.get(settings);
         this.setupWaitBackoffBaseSeconds = SETUP_WAIT_BACKOFF_BASE_SECONDS.get(settings);
         this.clientMaxRetries = CLIENT_MAX_RETRIES.get(settings);
@@ -486,11 +499,7 @@ public class PluginSettings {
         this.maxRules = MAX_RULES.get(settings);
         this.maxKvdbs = MAX_KVDBS.get(settings);
         this.maxFilters = MAX_FILTERS.get(settings);
-        String uid = WAZUH_UID.get(settings);
-        if (!uid.isEmpty()) {
-            this.wazuhUid = uid;
-        }
-        log.debug("Settings.loaded: {}", this.toString());
+        log.debug("Settings loaded: {}", this.toString());
     }
 
     /**
@@ -604,10 +613,10 @@ public class PluginSettings {
     /**
      * Sets the cluster UUID used as the wazuh-uid header in CTI API requests.
      *
-     * @param wazuhUid the cluster UUID string, or null to clear it.
+     * @param clusterUUID the cluster UUID string, or null to clear it.
      */
-    public void setWazuhUid(String wazuhUid) {
-        this.wazuhUid = wazuhUid;
+    public void setClusterUUID(String clusterUUID) {
+        this.clusterUUID = clusterUUID;
     }
 
     /**
@@ -615,8 +624,8 @@ public class PluginSettings {
      *
      * @return the cluster UUID string, or null if not yet set.
      */
-    public String getWazuhUid() {
-        return this.wazuhUid;
+    public String getClusterUUID() {
+        return this.clusterUUID;
     }
 
     /**
@@ -722,6 +731,16 @@ public class PluginSettings {
     }
 
     /**
+     * Updates the catalog synchronization interval. Invoked by the cluster settings update consumer
+     * registered for {@link #CATALOG_SYNC_INTERVAL}.
+     *
+     * @param catalogSyncInterval the new interval, in minutes.
+     */
+    public void setCatalogSyncInterval(int catalogSyncInterval) {
+        this.catalogSyncInterval = catalogSyncInterval;
+    }
+
+    /**
      * Retrieves the value for the update on start setting.
      *
      * @return a Boolean indicating if the update on start is enabled.
@@ -737,6 +756,16 @@ public class PluginSettings {
      */
     public Boolean isUpdateOnSchedule() {
         return this.updateOnSchedule;
+    }
+
+    /**
+     * Enables or disables the periodic catalog synchronization job. Invoked by the cluster settings
+     * update consumer registered for {@link #UPDATE_ON_SCHEDULE}.
+     *
+     * @param updateOnSchedule true to enable the scheduled synchronization, false to disable it.
+     */
+    public void setUpdateOnSchedule(boolean updateOnSchedule) {
+        this.updateOnSchedule = updateOnSchedule;
     }
 
     /**
@@ -839,6 +868,15 @@ public class PluginSettings {
      */
     public Boolean isEngineMockEnabled() {
         return this.engineMockEnabled;
+    }
+
+    /**
+     * Retrieves the value for the Security Analytics mock enabled setting.
+     *
+     * @return a Boolean indicating if the mock Security Analytics service is enabled.
+     */
+    public Boolean isSecurityAnalyticsMockEnabled() {
+        return this.securityAnalyticsMockEnabled;
     }
 
     /**
