@@ -51,6 +51,15 @@ public class TransportIndexSubscriptionAction
     @Override
     protected void doExecute(
             Task task, IndexSubscriptionRequest request, ActionListener<MessageStatusResponse> listener) {
+        // With the security plugin enabled this branch is unreachable in check mode: SecurityFilter
+        // answers with its own PermissionCheckResponse before the action executes. Reaching it means
+        // no filter intercepted -> security is disabled -> every caller may register.
+        if (request.isPermissionCheckOnly()) {
+            listener.onResponse(
+                    new MessageStatusResponse(Constants.S_200_PERMISSION_CHECK_ALLOWED, RestStatus.OK));
+            return;
+        }
+
         String accessToken = request.getToken();
         this.subscriptionService.register(
                 accessToken,

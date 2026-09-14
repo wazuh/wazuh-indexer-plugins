@@ -24,7 +24,33 @@ All HTTP clients that communicate with CTI services send a custom `User-Agent` h
 
 ### Job scheduler
 
-Registers a periodic job that triggers content synchronization at a configurable interval (default: 60 minutes). The job metadata is stored in `.wazuh-content-manager-jobs`.
+Runs content synchronization on a schedule, at a configurable interval (default: 60 minutes). The job is defined by the `wazuh-catalog-sync-job` document in `.wazuh-content-manager-jobs`; the OpenSearch Job Scheduler reads that document to decide whether the job is active and how often it runs.
+
+Two settings control it, and both are dynamic:
+
+- `plugins.content_manager.catalog.update_on_schedule` — whether the job is active.
+- `plugins.content_manager.catalog.sync_interval` — how often it runs.
+
+Because the job document is what the Job Scheduler acts on, the plugin keeps it in step with those settings rather than writing it once. On every node start, and whenever either setting changes, the plugin compares the document against the current values and rewrites it if they diverge. A document that already matches is left untouched, so a restart with unchanged settings does not disturb the next scheduled run.
+
+```mermaid
+flowchart TD
+    A[Node starts, or a setting changes] --> B{Job document exists?}
+    B -->|No| C[Create it from the current settings]
+    B -->|Yes| D{Matches the current settings?}
+    D -->|Yes| E[Leave it untouched<br/>next run keeps its schedule]
+    D -->|No| F[Rewrite it and log the change]
+    C --> G[Job Scheduler applies the document]
+    F --> G
+    G --> H{Scheduled run fires}
+    H --> I{update_on_schedule enabled?}
+    I -->|Yes| J[Synchronize ruleset, IoCs and CVEs]
+    I -->|No| K[Refuse the run<br/>no Wazuh CTI request]
+```
+
+The check at the moment a run fires is deliberate: it means that even if the job document is out of step — restored from a snapshot, or edited by hand — a deployment with scheduled synchronization disabled still never contacts Wazuh CTI on a schedule. On-demand updates go through a separate path and are unaffected; they are controlled by `plugins.content_manager.catalog.update_on_demand`.
+
+Each reconciliation is logged, naming the previous and new values, so the applied configuration can be confirmed from the indexer log.
 
 ### Update check service
 

@@ -205,7 +205,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
             String.format(Locale.ROOT, """
-            {"document": {"rules": ["%s"]}}
+            {"document": {"rules": ["%s"], "category": "test", "metadata": {"title": "Test Integration"}}}
             """, RULE_ID));
         SearchHit ruleHit = createHit(2, "rule-1",
             """
@@ -221,7 +221,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"skipped\""));
         Assert.assertTrue(response.getMessage().contains("Engine processing failed"));
-        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
+        verify(this.securityAnalytics, never())
+                .evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any());
     }
 
     /** When engine throws exception, SAP is skipped. */
@@ -229,7 +230,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
             """
-            {"document": {"rules": []}}
+            {"document": {"rules": [], "category": "test", "metadata": {"title": "Test Integration"}}}
             """);
         // spotless:on
         mockClientSearchAsync(createSearchResponse(integrationHit));
@@ -241,7 +242,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"skipped\""));
         Assert.assertTrue(response.getMessage().contains("socket timeout"));
-        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
+        verify(this.securityAnalytics, never())
+                .evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any());
     }
 
     /** Integration with no rules returns success with zero matches. */
@@ -268,7 +270,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         Assert.assertTrue(response.getMessage().contains("\"rules_evaluated\":0"));
         Assert.assertTrue(response.getMessage().contains("\"rules_matched\":0"));
         Assert.assertTrue(response.getMessage().contains("\"success\""));
-        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
+        verify(this.securityAnalytics, never())
+                .evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any());
     }
 
     /** Full flow: engine success + SAP evaluation. */
@@ -277,7 +280,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
             String.format(Locale.ROOT, """
-            {"document": {"rules": ["%s"]}}
+            {"document": {"rules": ["%s"], "category": "test", "metadata": {"title": "Test Integration"}}}
             """, RULE_ID));
         SearchHit ruleHit = createHit(2, "rule-1",
             """
@@ -294,14 +297,14 @@ public class LogtestServiceTests extends OpenSearchTestCase {
                 """
             ));
         doAnswer(invocation -> {
-            ActionListener<String> l = invocation.getArgument(2);
+            ActionListener<String> l = invocation.getArgument(5);
             l.onResponse(
                 """
                 {"status":"success","rules_evaluated":1,"rules_matched":1,"matches":[{"rule_name":"Test Rule"}],"evaluation_time_ms":10}
                 """
             );
             return null;
-        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), any(ActionListener.class));
+        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any(ActionListener.class));
         // spotless:on
 
         RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
@@ -309,7 +312,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         Assert.assertTrue(response.getMessage().contains("normalization"));
         Assert.assertTrue(response.getMessage().contains("detection"));
         Assert.assertTrue(response.getMessage().contains("\"rules_matched\":1"));
-        verify(this.securityAnalytics, times(1)).evaluateRulesAsync(anyString(), anyList(), any());
+        verify(this.securityAnalytics, times(1))
+                .evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any());
     }
 
     /** Normalized event from engine output is passed to SAP. */
@@ -318,7 +322,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
             String.format(Locale.ROOT, """
-            {"document": {"rules": ["%s"]}}
+            {"document": {"rules": ["%s"], "category": "test", "metadata": {"title": "Test Integration"}}}
             """, RULE_ID));
         SearchHit ruleHit = createHit(2, "rule-1",
             """
@@ -335,17 +339,19 @@ public class LogtestServiceTests extends OpenSearchTestCase {
                 """
             ));
         doAnswer(invocation -> {
-            ActionListener<String> l = invocation.getArgument(2);
+            ActionListener<String> l = invocation.getArgument(5);
             l.onResponse("{\"status\":\"success\",\"rules_evaluated\":0,\"rules_matched\":0,\"matches\":[]}");
             return null;
-        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), any(ActionListener.class));
+        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any(ActionListener.class));
         // spotless:on
 
         ActionListener<RestResponse> listener = mock(ActionListener.class);
         this.service.executeLogtest(INTEGRATION_ID, Space.TEST, createEnginePayload(), listener);
 
         var eventCaptor = ArgumentCaptor.forClass(String.class);
-        verify(this.securityAnalytics).evaluateRulesAsync(eventCaptor.capture(), anyList(), any());
+        verify(this.securityAnalytics)
+                .evaluateRulesAsync(
+                        eventCaptor.capture(), anyList(), anyString(), anyString(), anyList(), any());
         String normalizedEvent = eventCaptor.getValue();
         Assert.assertTrue(normalizedEvent.contains("custom_field"));
         Assert.assertTrue(normalizedEvent.contains("event"));
@@ -361,7 +367,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
             String.format(Locale.ROOT, """
-            {"document": {"rules": ["%s"]}}
+            {"document": {"rules": ["%s"], "category": "test", "metadata": {"title": "Test Integration"}}}
             """, RULE_ID));
         SearchHit ruleHit = createHit(2, "rule-1",
             """
@@ -378,14 +384,14 @@ public class LogtestServiceTests extends OpenSearchTestCase {
                 """
             ));
         doAnswer(invocation -> {
-            ActionListener<String> l = invocation.getArgument(2);
+            ActionListener<String> l = invocation.getArgument(5);
             l.onResponse(
                 """
                 {"status":"success","rules_evaluated":1,"rules_matched":0,"matches":[]}
                 """
             );
             return null;
-        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), any(ActionListener.class));
+        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any(ActionListener.class));
         // spotless:on
 
         executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
@@ -406,7 +412,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
             String.format(Locale.ROOT, """
-            {"document": {"rules": ["%s"]}}
+            {"document": {"rules": ["%s"], "category": "test", "metadata": {"title": "Test Integration"}}}
             """, RULE_ID));
         // spotless:on
         // Return integration, then empty rules (simulates no rules found)
@@ -424,7 +430,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"rules_evaluated\":0"));
-        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
+        verify(this.securityAnalytics, never())
+                .evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any());
     }
 
     /** SAP evaluation error returns error SAP result but still 200. */
@@ -433,7 +440,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
             String.format(Locale.ROOT, """
-            {"document": {"rules": ["%s"]}}
+            {"document": {"rules": ["%s"], "category": "test", "metadata": {"title": "Test Integration"}}}
             """, RULE_ID));
         SearchHit ruleHit = createHit(2, "rule-1",
             """
@@ -453,12 +460,13 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         // SAP returns unparseable response
         doAnswer(
                         invocation -> {
-                            ActionListener<String> l = invocation.getArgument(2);
+                            ActionListener<String> l = invocation.getArgument(5);
                             l.onResponse("not valid json");
                             return null;
                         })
                 .when(this.securityAnalytics)
-                .evaluateRulesAsync(anyString(), anyList(), any(ActionListener.class));
+                .evaluateRulesAsync(
+                        anyString(), anyList(), anyString(), anyString(), anyList(), any(ActionListener.class));
 
         RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
@@ -511,7 +519,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"rules_evaluated\":0"));
         Assert.assertTrue(response.getMessage().contains("\"rules_matched\":0"));
-        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
+        verify(this.securityAnalytics, never())
+                .evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any());
     }
 
     /** Detection: full flow with SAP evaluation. */
@@ -520,7 +529,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
             String.format(Locale.ROOT, """
-            {"document": {"rules": ["%s"]}}
+            {"document": {"rules": ["%s"], "category": "test", "metadata": {"title": "Test Integration"}}}
             """, RULE_ID));
         SearchHit ruleHit = createHit(2, "rule-1",
             """
@@ -531,21 +540,22 @@ public class LogtestServiceTests extends OpenSearchTestCase {
 
         // spotless:off
         doAnswer(invocation -> {
-            ActionListener<String> l = invocation.getArgument(2);
+            ActionListener<String> l = invocation.getArgument(5);
             l.onResponse(
                 """
                 {"status":"success","rules_evaluated":1,"rules_matched":1,"matches":[{"rule_name":"Test Rule"}],"evaluation_time_ms":10}
                 """
             );
             return null;
-        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), any(ActionListener.class));
+        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any(ActionListener.class));
         // spotless:on
 
         JsonNode inputEvent = MAPPER.readTree("{\"event\":{\"kind\":\"event\"}}");
         RestResponse response = executeDetectionAndCapture(INTEGRATION_ID, Space.TEST, inputEvent);
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"rules_matched\":1"));
-        verify(this.securityAnalytics, times(1)).evaluateRulesAsync(anyString(), anyList(), any());
+        verify(this.securityAnalytics, times(1))
+                .evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any());
     }
 
     /** Detection: rule fetch failure returns empty matches. */
@@ -554,7 +564,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         // spotless:off
         SearchHit integrationHit = createHit(1, "int-1",
             String.format(Locale.ROOT, """
-            {"document": {"rules": ["%s"]}}
+            {"document": {"rules": ["%s"], "category": "test", "metadata": {"title": "Test Integration"}}}
             """, RULE_ID));
         // spotless:on
         // Integration succeeds, rule fetch fails
@@ -579,6 +589,7 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         RestResponse response = executeDetectionAndCapture(INTEGRATION_ID, Space.TEST, inputEvent);
         Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
         Assert.assertTrue(response.getMessage().contains("\"rules_evaluated\":0"));
-        verify(this.securityAnalytics, never()).evaluateRulesAsync(anyString(), anyList(), any());
+        verify(this.securityAnalytics, never())
+                .evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any());
     }
 }
