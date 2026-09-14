@@ -293,7 +293,7 @@ public IndexStateManagement(String index, String template) {
 ## Additional notes
 Always follow existing naming conventions to maintain consistency.
 
-Use epoch timestamps (in milliseconds) for `last_updated_time` fields.
+Use epoch timestamps (in milliseconds) for `last_updated_time` fields. Update the policy's one whenever you change the policy, and keep it in the past: `IndexStateManagement.indexPolicy()` copies it into every `ism_template` entry before indexing the policy, and ISM applies a template only to indices created after that timestamp. A template without it is stamped with the current time on every read, so it matches no index at all.
 
 ISM policies and templates must be properly deployed before the indices are created.
 
