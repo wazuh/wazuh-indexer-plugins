@@ -38,7 +38,7 @@
             "agent": {
               "properties": {
                 "id": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "statistics": {
@@ -56,7 +56,7 @@
                           }
                         },
                         "status": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "tasks": {
@@ -102,7 +102,7 @@
                                   "type": "long"
                                 },
                                 "location": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "targets": {
@@ -111,7 +111,7 @@
                                       "type": "long"
                                     },
                                     "name": {
-                                      "ignore_above": 1024,
+                                      "ignore_above": 4096,
                                       "type": "keyword"
                                     }
                                   }
@@ -137,7 +137,7 @@
                                   "type": "long"
                                 },
                                 "location": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "targets": {
@@ -146,7 +146,7 @@
                                       "type": "long"
                                     },
                                     "name": {
-                                      "ignore_above": 1024,
+                                      "ignore_above": 4096,
                                       "type": "keyword"
                                     }
                                   }
@@ -167,11 +167,11 @@
             "cluster": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "node": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -179,7 +179,7 @@
             "schema": {
               "properties": {
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
