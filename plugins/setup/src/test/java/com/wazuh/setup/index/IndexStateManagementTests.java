@@ -216,8 +216,10 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
 
     /**
      * Verifies that every shipped policy ends up with a timestamp in each of its {@code ism_template}
-     * entries. Without it ISM stamps the template with the current time on every read and the
-     * template matches no index at all.
+     * entries, and that the timestamp is in the past. Without it ISM stamps the template with the
+     * current time on every read and the template matches no index at all; a timestamp ahead of the
+     * deployment clock reproduces the same failure, because ISM only applies a template to indices
+     * created after it.
      *
      * @throws IOException if a policy file cannot be read
      */
@@ -241,6 +243,9 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
             Map<String, Object> policy = (Map<String, Object>) policyFile.get("policy");
             Object lastUpdatedTime = policy.get("last_updated_time");
             assertNotNull(name + " declares no last_updated_time", lastUpdatedTime);
+            assertTrue(
+                    name + " declares a last_updated_time that is not in the past",
+                    ((Number) lastUpdatedTime).longValue() < System.currentTimeMillis());
 
             List<Object> templates = (List<Object>) policy.get("ism_template");
             assertNotNull(name + " declares no ism_template", templates);
