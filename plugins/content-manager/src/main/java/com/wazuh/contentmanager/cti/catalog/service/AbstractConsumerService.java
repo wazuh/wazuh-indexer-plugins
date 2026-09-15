@@ -95,6 +95,13 @@ public abstract class AbstractConsumerService {
     protected boolean shadowSwapPerformed;
 
     /**
+     * Set by {@link #requestImmediateRetry()} when a pass completed but did not leave the consumer in
+     * the state it was meant to reach, so {@link #synchronize()} can ask the caller for one immediate
+     * retry
+     */
+    private volatile boolean immediateRetryRequested;
+
+    /**
      * Constructs a new AbstractConsumerService.
      *
      * @param client The OpenSearch client for index operations.
@@ -174,6 +181,14 @@ public abstract class AbstractConsumerService {
     }
 
     /**
+     * Requests that the caller retry this consumer immediately instead of waiting for the next
+     * scheduled run
+     */
+    protected void requestImmediateRetry() {
+        this.immediateRetryRequested = true;
+    }
+
+    /**
      * Main synchronization entry point. Orchestrates the synchronization process by performing the
      * actual sync and calling onSyncComplete with the result.
      *
@@ -187,13 +202,15 @@ public abstract class AbstractConsumerService {
      * rather than {@code READY} — nothing was synced, so nothing completed.
      *
      * @return {@code true} when the caller should retry this consumer immediately instead of waiting
-     *     for the next scheduled run: either a catalog URL was configured but the remote feed could
-     *     not be reached (the pass still completes by falling back to the local snapshot, and the
-     *     status is still moved to {@link LocalConsumer.Status#READY}), or the target indices were
-     *     not yet provisioned (nothing was synced, status stays {@code RUNNING}). {@code false} when
-     *     the feed was reached, or when no catalog was configured (nothing to reach).
+     *     for the next scheduled run: a catalog URL was configured but the remote feed could not be
+     *     reached (the pass still completes by falling back to the local snapshot, and the status is
+     *     still moved to {@link LocalConsumer.Status#READY}), the target indices were not yet
+     *     provisioned (nothing was synced, status stays {@code RUNNING}), or {@link
+     *     #onSyncComplete(boolean)} called {@link #requestImmediateRetry()} because the pass left
+     *     work undone. {@code false} when the pass reached the state it was meant to reach.
      */
     public boolean synchronize() {
+        this.immediateRetryRequested = false;
         this.setConsumerStatus(LocalConsumer.Status.RUNNING);
         try {
             SyncResult result = this.syncConsumerServices();
@@ -206,7 +223,7 @@ public abstract class AbstractConsumerService {
             }
             this.onSyncComplete(result.updated());
             this.setConsumerStatus(LocalConsumer.Status.READY);
-            return result.feedUnreachable();
+            return result.feedUnreachable() || this.immediateRetryRequested;
         } catch (Exception e) {
             this.setConsumerStatus(LocalConsumer.Status.FAILED);
             throw new RuntimeException(
