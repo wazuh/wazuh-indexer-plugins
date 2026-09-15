@@ -1,7 +1,7 @@
 {
   "policy": {
     "policy_id": "ai-assistant-sessions-policy",
-    "description": "ISM policy for the AI assistant sessions data stream. Rolls over backing indices daily and deletes indices older than 7 days.",
+    "description": "ISM policy for the AI assistant sessions data stream. Rolls over backing indices daily, or earlier at 20 GB per primary shard (or 200,000,000 documents), then deletes each rolled-over index once it reaches 7 days of age. The daily rollover bounds retention, so sessions are kept for at most about 8 days regardless of volume.",
     "last_updated_time": 1772122150,
     "schema_version": 1,
     "default_state": "hot",

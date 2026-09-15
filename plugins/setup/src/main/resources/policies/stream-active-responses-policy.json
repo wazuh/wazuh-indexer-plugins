@@ -1,7 +1,7 @@
 {
   "policy": {
     "policy_id": "stream-active-responses-policy",
-    "description": "ISM policy for active responses data stream. Rolls over backing indices based on size or document count, and deletes indices older than 3 days.",
+    "description": "ISM policy for active responses data stream. Rolls over backing indices at 20 GB per primary shard (or 200,000,000 documents), then deletes each rolled-over index once it reaches 3 days of age. Effective retention is the greater of the two: the 3 days is a floor, not a ceiling, and deployments that never fill a shard retain active responses indefinitely.",
     "last_updated_time": 1772122150,
     "schema_version": 1,
     "default_state": "hot",

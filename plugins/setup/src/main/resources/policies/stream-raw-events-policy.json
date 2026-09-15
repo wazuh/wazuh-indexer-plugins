@@ -1,7 +1,7 @@
 {
   "policy": {
     "policy_id": "stream-raw-events-policy",
-    "description": "ISM policy for raw events data stream. Rolls over backing indices based on size or document count, and deletes indices older than 10 minutes.",
+    "description": "ISM policy for raw events data stream. Rolls over backing indices at 20 GB per primary shard (or 200,000,000 documents), then deletes each rolled-over index once it reaches 10 minutes of age. Effective retention is the greater of the two: the 10 minutes is a floor, not a ceiling, and deployments that never fill a shard retain raw events indefinitely.",
     "last_updated_time": 1772122150,
     "schema_version": 1,
     "default_state": "hot",
