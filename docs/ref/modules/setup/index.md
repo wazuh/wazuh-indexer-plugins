@@ -5,7 +5,7 @@ The `wazuh-indexer-setup` plugin is a module composing the Wazuh Indexer respons
 The Wazuh Indexer Setup plugin is responsible for:
 - Creating the index templates, to define the mappings and settings for the indices.
 - Creating the initial indices. We distinguish between **stateful** and **stream** indices. While stream indices contain immutable time-series data and are rolled over periodically, stateful indices store dynamic data that can change over time and reside in a single index.
-- Stream indices are created with a data stream configuration and an ISM rollover policy.
+- Stream indices are created with a data stream configuration and an ISM rollover policy. See [Retention](retention.md) for what those policies actually guarantee — rollover is driven by volume, so the deletion ages are a floor and not a ceiling.
 
 ## Indices
 
