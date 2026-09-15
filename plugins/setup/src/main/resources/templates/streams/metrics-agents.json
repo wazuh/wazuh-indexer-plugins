@@ -13,13 +13,15 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
-          "wazuh.agent.id",
-          "wazuh.agent.name",
-          "wazuh.agent.version",
-          "wazuh.agent.status",
+          "wazuh.agent.groups",
           "wazuh.agent.host.architecture",
           "wazuh.agent.host.os.name",
           "wazuh.agent.host.os.platform",
+          "wazuh.agent.host.os.version",
+          "wazuh.agent.id",
+          "wazuh.agent.name",
+          "wazuh.agent.status",
+          "wazuh.agent.version",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
           "wazuh.schema.version"
@@ -40,33 +42,6 @@
           "properties": {
             "agent": {
               "properties": {
-                "config": {
-                  "properties": {
-                    "group": {
-                      "properties": {
-                        "hash": {
-                          "properties": {
-                            "md5": {
-                              "ignore_above": 1024,
-                              "type": "keyword"
-                            }
-                          }
-                        },
-                        "synced": {
-                          "type": "boolean"
-                        }
-                      }
-                    },
-                    "hash": {
-                      "properties": {
-                        "md5": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        }
-                      }
-                    }
-                  }
-                },
                 "disconnected_at": {
                   "type": "date"
                 },
@@ -85,10 +60,6 @@
                     },
                     "os": {
                       "properties": {
-                        "full": {
-                          "ignore_above": 1024,
-                          "type": "keyword"
-                        },
                         "name": {
                           "ignore_above": 1024,
                           "type": "keyword"

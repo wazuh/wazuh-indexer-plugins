@@ -404,8 +404,10 @@ YAML requests use the **same envelope** as JSON. The `integration` (or `space` f
 integration: <uuid>
 resource:
   metadata:
-    title: "My Resource"
-  content: { ... }
+    title: my-resource
+    author: "Wazuh Inc."
+  content:
+    key1: value1
 ```
 
 This is parsed into a `JsonNode` tree identical to what the JSON path produces.
@@ -417,7 +419,7 @@ When `supportsYamlField()` returns `true`, the handler populates a `yaml` field 
 - **YAML requests**: `rawYaml` is generated from the parsed `resource` subtree (not the raw request body, which includes the envelope).
 - **JSON requests**: `YamlUtils.toYaml(resourceNode)` auto-generates the YAML representation.
 
-The `yaml` field is stored as `text` in the index mappings (see `cti-decoders-mappings.json`, `cti-kvdbs-mappings.json`, `engine-filters-mappings.json`).
+The `yaml` field is stored as `text` in the index mappings (see `cti-decoders-mappings.json`, `cti-kvdbs-mappings.json`, `cti-filters-mappings.json`).
 
 ### Type fidelity
 

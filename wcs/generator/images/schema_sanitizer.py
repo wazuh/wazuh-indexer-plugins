@@ -25,11 +25,37 @@ SEARCH_PATTERNS = [
 ]
 
 # Type mappings from ECS types to WCS-compatible types
+#
+# The entries here handle incompatibilities that break generated templates
+# or detection querying in OpenSearch:
+#
+#   constant_keyword -> keyword
+#     OpenSearch requires the `value` parameter at mapping time
+#     (ConstantKeywordFieldMapper.TypeParser rejects a mapping without it) and
+#     ECS declares the type with no value, because Elasticsearch infers it from
+#     the first document. In an explicit `properties` block that fails template
+#     creation outright; inside a dynamic_template it is accepted and then
+#     fails at ingest with mapper_parsing_exception, dropping every document
+#     that carries the field. data_stream.{type,dataset,namespace} are the only
+#     constant_keyword fields in ECS and both the events and the findings
+#     subsets include them, so this entry is load-bearing.
+#
+#   flattened -> flat_object
+#     OpenSearch has no `flattened` type ("No handler for type [flattened]");
+#     flat_object is its equivalent.
+#
+#   wildcard -> match_only_text
+#     Security Analytics compiles Sigma rules to `query_string` queries, which
+#     cannot query OpenSearch `wildcard` fields (upstream WildcardFieldMapper
+#     overrides only the 4-arg wildcardQuery method; StringFieldType delegates
+#     the 5-arg normalizedWildcardQuery from query_string to base Lucene over
+#     n-grams, producing zero hits without error). Remapping to `match_only_text`
+#     keeps fields (e.g. process.command_line, url.*) reachable from the
+#     detection query path without the 1024-char ceiling of `keyword`.
 TYPES_TO_REMAP = {
     'constant_keyword': 'keyword',
-    'wildcard': 'keyword',
-    'match_only_text': 'keyword',
     'flattened': 'flat_object',
+    'wildcard': 'match_only_text',
 }
 
 # Specific field type remappings

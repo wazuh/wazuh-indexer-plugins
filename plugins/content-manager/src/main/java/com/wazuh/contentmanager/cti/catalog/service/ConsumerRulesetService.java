@@ -41,6 +41,7 @@ import java.util.function.Consumer;
 import com.wazuh.contentmanager.action.ReloadEngineContentAction;
 import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
@@ -218,11 +219,11 @@ public class ConsumerRulesetService extends AbstractConsumerService {
 
         List<String> stillPending = new ArrayList<>();
 
-        // Integrations and detectors are both built from the integration documents, so read them
-        // once for whichever of the two phases is due this pass.
+        // Integrations, rules and detectors are all built from or validated against the integration
+        // documents, so read them once for whichever of the three phases is due this pass.
         Map<String, JsonNode> integrationDocs = Collections.emptyMap();
         boolean integrationDocsRead = false;
-        if (shouldSyncIntegrations || shouldSyncDetectors) {
+        if (shouldSyncIntegrations || shouldSyncRules || shouldSyncDetectors) {
             IntegrationDocsResult read = this.readIntegrationDocs();
             integrationDocs = read.docs();
             integrationDocsRead = read.ok();
@@ -243,7 +244,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         // Sync Rules
         if (shouldSyncRules) {
             try {
-                if (!this.syncRules()) {
+                if (!this.syncRules(integrationDocs)) {
                     stillPending.add(PHASE_RULES);
                 }
             } catch (Exception e) {
@@ -455,13 +456,48 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     }
 
     /**
+     * Maps every rule ID an integration lists to that integration's {@code metadata.title}.
+     *
+     * <p>The title is the Security Analytics log type a rule must declare as its {@code
+     * logsource.product}; see {@link ContentIndex#extractProduct(JsonNode)}.
+     *
+     * @param integrationDocs the integration documents read for this pass, keyed by document ID. May
+     *     be empty or partial when the integrations read did not complete, in which case the rules it
+     *     does not cover are sent without an ownership check rather than being held back.
+     * @return rule ID to owning integration title.
+     */
+    private Map<String, String> ruleOwnersByIntegration(Map<String, JsonNode> integrationDocs) {
+        Map<String, String> owners = new HashMap<>();
+        integrationDocs
+                .values()
+                .forEach(
+                        doc -> {
+                            String title = doc.path(Constants.KEY_METADATA).path(Constants.KEY_TITLE).asText("");
+                            if (title.isBlank()) {
+                                return;
+                            }
+                            doc.path(Constants.KEY_RULES).forEach(rule -> owners.put(rule.asText(), title));
+                        });
+        return owners;
+    }
+
+    /**
      * Synchronizes Rules from the internal index to the Security Analytics Plugin. Supports both
      * Standard and Custom rules.
      *
+     * <p>A rule whose {@code logsource.product} does not name the integration that lists it is held
+     * back rather than sent, because Security Analytics would file its compiled query under a log
+     * type that integration's detector does not read, and the sync would still report success. This
+     * is the same invariant {@code TransportCreateRuleAction} enforces for user-created rules; CTI
+     * content had nothing checking it.
+     *
+     * @param integrationDocs the integration document nodes already extracted by {@link
+     *     #readIntegrationDocs()}, keyed by document ID, used to resolve which integration owns each
+     *     rule. An empty map skips the ownership check.
      * @return {@code true} if every rule was sent successfully (or there was nothing to sync); {@code
-     *     false} if the source index is missing or at least one item failed.
+     *     false} if the source index is missing or at least one item failed or was held back.
      */
-    private boolean syncRules() {
+    private boolean syncRules(Map<String, JsonNode> integrationDocs) {
         if (this.indexIsMissing(Constants.INDEX_RULES)) {
             log.error(Constants.E_LOG_SAP_INDEX_MISSING, "Rules", "rules");
             return false;
@@ -478,22 +514,34 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 return true;
             }
 
+            List<String> failed = Collections.synchronizedList(new ArrayList<>());
+            Map<String, String> ruleOwners = this.ruleOwnersByIntegration(integrationDocs);
             Map<String, JsonNode> docs = new LinkedHashMap<>();
             rules.forEach(
                     (id, sourceMap) -> {
                         JsonNode doc = this.extractDocumentFromMap(sourceMap, id);
-                        if (doc != null) {
-                            docs.put(id, doc);
+                        if (doc == null) {
+                            return;
                         }
+                        String owner = ruleOwners.get(id);
+                        String product = ContentIndex.extractProduct(doc);
+                        if (owner != null && !owner.equals(product)) {
+                            log.error(Constants.E_LOG_RULE_PRODUCT_MISMATCH, id, product, owner);
+                            failed.add(id);
+                            return;
+                        }
+                        docs.put(id, doc);
                     });
 
             if (docs.isEmpty()) {
-                return true;
+                if (!failed.isEmpty()) {
+                    log.error(Constants.E_LOG_SAP_PARTIAL, failed.size(), "rules", Space.STANDARD, failed);
+                }
+                return failed.isEmpty();
             }
 
             CountDownLatch latch = new CountDownLatch(docs.size());
             AtomicInteger sent = new AtomicInteger();
-            List<String> failed = Collections.synchronizedList(new ArrayList<>());
 
             docs.forEach(
                     (id, doc) -> {

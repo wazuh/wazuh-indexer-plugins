@@ -21,7 +21,8 @@ buildscript {
     opensearch_version = System.getProperty("opensearch.version", "3.6.0-SNAPSHOT")
     opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
     job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
-    wazuh_version = System.getProperty("version", "5.0.0")
+    wazuh_version = System.getProperty("version") ?: new groovy.json.JsonSlurper()
+        .parse(new File(projectDir, "../../VERSION.json")).version
     revision = System.getProperty("revision", "0")
   }
 
@@ -267,6 +268,9 @@ testClusters.integTest {
   setting 'plugins.content_manager.catalog.create_detectors', 'false'
   setting 'plugins.content_manager.telemetry.enabled', 'false'
   setting 'plugins.content_manager.engine.mock', 'true'
+  // Security Analytics is installed on this cluster, so rule evaluation runs for real; only the
+  // Engine's Unix socket is missing.
+  setting 'plugins.content_manager.security_analytics.mock', 'false'
   setting 'plugins.content_manager.catalog.ruleset', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta3-t1-ruleset-5/consumers/public-ruleset-5"
   setting 'plugins.content_manager.catalog.iocs', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5"
   setting 'plugins.content_manager.catalog.vulnerabilities', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5"
