@@ -60,7 +60,7 @@
             "feed": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -69,46 +69,46 @@
               "type": "date"
             },
             "id": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "last_seen": {
               "type": "date"
             },
             "name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "provider": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "reference": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "software": {
               "properties": {
                 "alias": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "type": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
             },
             "tags": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "type": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -116,7 +116,7 @@
         "hash": {
           "properties": {
             "sha256": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }

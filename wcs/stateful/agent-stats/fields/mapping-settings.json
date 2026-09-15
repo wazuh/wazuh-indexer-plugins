@@ -1,4 +1,52 @@
 {
-    "dynamic": "true",
-    "date_detection": false
+    "dynamic": "strict_allow_templates",
+    "date_detection": false,
+    "dynamic_templates": [
+        {
+            "agent_statistics_objects": {
+                "match_mapping_type": "object",
+                "path_match": "wazuh.agent.statistics.*",
+                "mapping": {
+                    "type": "object"
+                }
+            }
+        },
+        {
+            "agent_statistics_booleans": {
+                "match_mapping_type": "boolean",
+                "path_match": "wazuh.agent.statistics.*",
+                "mapping": {
+                    "type": "boolean"
+                }
+            }
+        },
+        {
+            "agent_statistics_longs": {
+                "match_mapping_type": "long",
+                "path_match": "wazuh.agent.statistics.*",
+                "mapping": {
+                    "type": "long"
+                }
+            }
+        },
+        {
+            "agent_statistics_doubles": {
+                "match_mapping_type": "double",
+                "path_match": "wazuh.agent.statistics.*",
+                "mapping": {
+                    "type": "double"
+                }
+            }
+        },
+        {
+            "agent_statistics_strings": {
+                "match_mapping_type": "string",
+                "path_match": "wazuh.agent.statistics.*",
+                "mapping": {
+                    "type": "keyword",
+                    "ignore_above": 1024
+                }
+            }
+        }
+    ]
 }

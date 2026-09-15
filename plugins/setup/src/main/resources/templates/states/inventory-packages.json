@@ -51,7 +51,7 @@
             "hash": {
               "properties": {
                 "sha1": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -64,53 +64,53 @@
         "package": {
           "properties": {
             "architecture": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "category": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "description": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "installed": {
               "type": "date"
             },
             "multiarch": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "path": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "priority": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "size": {
               "type": "long"
             },
             "source": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "type": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "vendor": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "version": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -130,17 +130,17 @@
             "agent": {
               "properties": {
                 "groups": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "host": {
                   "properties": {
                     "architecture": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "hostname": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "ip": {
@@ -149,19 +149,19 @@
                     "os": {
                       "properties": {
                         "name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "platform": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "type": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "version": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -169,15 +169,15 @@
                   }
                 },
                 "id": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -185,11 +185,11 @@
             "cluster": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "node": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -197,7 +197,7 @@
             "schema": {
               "properties": {
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }

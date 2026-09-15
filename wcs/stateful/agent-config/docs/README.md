@@ -18,9 +18,12 @@ The agent configuration is stored under `wazuh.agent.configuration`:
   agent module (`agent`, `fim`, `logcollector`, `syscollector`, `sca`, cloud
   integrations, etc.).
 
-Unlike other state indices, the mappings use `"dynamic": "true"` instead of `strict`.
-Known configuration fields are mapped explicitly, while any field not present in the
-mapping is added to the mapping dynamically as it is reported. This lets new agent
-settings be indexed without an index-template change and without rejecting the document.
+The mappings use `"dynamic": "strict_allow_templates"`. Known configuration options are
+mapped explicitly, and an option that is not in the mapping is only accepted when it
+matches one of the `dynamic_templates`, which cover `wazuh.agent.configuration.content.*`
+and assign the type from the reported value (object, boolean, long, double, or `keyword`
+for everything else). This lets a new agent setting be indexed without an index-template
+change, while anything reported outside `wazuh.agent.configuration.content` is rejected
+instead of silently added to the mapping shared by the whole fleet.
 
 The detail of the fields can be found in csv file [Agent config Fields](fields.csv).
