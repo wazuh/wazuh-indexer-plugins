@@ -660,9 +660,9 @@ The AI assistant stores its conversation history in the **`wazuh-ai-assistant-se
 
 Access is granted by the `wazuh_ai_assistant` role, defined in the `wazuh-indexer` repository and mapped to every authenticated user. Reads are filtered with DLS parameter substitution (`{"term": {"user": "${user.name}"}}`), so a user only retrieves their own conversations. The restriction also applies to users holding a role that grants `read` on the `*` index pattern.
 
-**Reads and writes are scoped differently on purpose.** DLS is a read-path filter and cannot scope a write, so an index-level `write` grant on this data stream — which is what the role carried before internal-devel-requests#6111 — let any account holding it append a document naming somebody else in `user`, which the victim then saw as their own conversation and the author could not see at all. No role syntax can express "this document's `user` must equal your name", so the fix is to stop `user` being client input.
+**Reads and writes are scoped differently on purpose.** DLS is a read-path filter and cannot scope a write: no role syntax can express "this document's `user` must equal your name". An index-level `write` grant on this data stream would therefore be unscoped, and every authenticated user holds this role.
 
-The role therefore grants **no index-level `write`**. Sessions are still *read* directly against the data stream, under the per-owner DLS, but every write goes through the session API below, gated by the `plugin:wazuh/ai_assistant/session/write` cluster permission. Fixing the writes is also what makes the read filter sound: `user` is only safe to filter on once the server, not the client, decides it.
+So the role grants **no index-level `write`**. Sessions are still *read* directly against the data stream, under the per-owner DLS, but every write goes through the session API below, gated by the `plugin:wazuh/ai_assistant/session/write` cluster permission, which derives `user` from the authenticated principal. That is also what the read filter depends on: `user` is only meaningful to filter on because the server, not the client, decides it.
 
 #### Session write API
 

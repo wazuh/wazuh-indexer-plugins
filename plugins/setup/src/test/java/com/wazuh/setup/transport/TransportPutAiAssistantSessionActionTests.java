@@ -57,9 +57,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link TransportPutAiAssistantSessionAction}, which is where the fix for
- * internal-devel-requests#6111 lives: the session's {@code user} field is stamped from the
- * authenticated caller and never read from the request body.
+ * Unit tests for {@link TransportPutAiAssistantSessionAction}, which is where session ownership is
+ * decided: the {@code user} field is stamped from the authenticated caller and never read from the
+ * request body.
  *
  * <p>These tests capture the document handed to the index accessor, so they assert on exactly what
  * would be written. The impersonation refusal itself needs a second identity and therefore a

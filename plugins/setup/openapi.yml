@@ -43,11 +43,11 @@ tags:
       reimplement any of that behind an endpoint.
 
       What DLS cannot do is scope a *write*: it is a read-path filter, so the `user` field it
-      filters on was, until these endpoints existed, whatever the client chose to send. These
-      four operations close that: the owning `user` is derived from the authenticated principal
-      and stamped server-side, overwriting anything the caller sends, and updates and deletes
-      check ownership against the stored document first. That is also what makes the read-side
-      DLS trustworthy for the first time — it now filters on a field nobody can forge.
+      filters on must not be client input. That is what these four operations are for. The
+      owning `user` is derived from the authenticated principal and stamped server-side,
+      overwriting anything the caller sends, and updates and deletes check ownership against the
+      stored document first. The read-side DLS depends on this: it is only meaningful because
+      `user` is decided by the server.
 
       There is no impersonation and no administrative override: `all_access` and `wazuh-admin`
       can only write their own sessions, which is the behaviour the DLS query already had on the
@@ -993,8 +993,8 @@ components:
           type: string
           description: |
             Ignored if sent — always overwritten with the authenticated principal. Present here
-            only to document that supplying it has no effect; it is the field whose forgeability
-            this API exists to remove.
+            only to document that supplying it has no effect: ownership is decided by the server,
+            never by the request body.
         created_at:
           type: string
           format: date-time

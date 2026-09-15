@@ -50,13 +50,12 @@ import com.wazuh.setup.utils.AuthenticatedUser;
  * Transport action that performs every write to the caller's own AI assistant sessions. Gated by
  * {@link PutAiAssistantSessionAction#NAME} as a cluster permission.
  *
- * <p>This class is the fix for the authorization gap this API exists to close. Document-level
- * security is a read-path filter and cannot scope a write, so the {@code user} field on a session —
- * the field the read filter keys on — was forgeable by any account able to reach the index. Here
- * {@code user} is resolved from the security plugin's thread context and stamped onto the document,
- * and whatever the caller sent for it is dropped. Update, rename and delete load the stored
- * document first, through a lookup that filters on the same resolved owner, so a session belonging
- * to someone else is simply not found.
+ * <p>Ownership is decided here, and this is the reason the API exists. Document-level security is a
+ * read-path filter and cannot scope a write, so the {@code user} field — the field the read filter
+ * keys on — must not be client input. It is resolved from the security plugin's thread context and
+ * stamped onto the document, and whatever the caller sent for it is dropped. Update, rename and
+ * delete load the stored document first, through a lookup that filters on the same resolved owner,
+ * so a session belonging to someone else is simply not found.
  */
 public class TransportPutAiAssistantSessionAction
         extends HandledTransportAction<PutAiAssistantSessionRequest, PutAiAssistantSessionResponse> {

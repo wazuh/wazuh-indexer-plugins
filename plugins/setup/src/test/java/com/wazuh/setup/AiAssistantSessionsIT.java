@@ -37,8 +37,7 @@ import java.nio.charset.StandardCharsets;
  * Integration tests for the AI assistant sessions write API — {@code POST}/{@code PUT}/{@code
  * PATCH}/{@code DELETE} on {@code /_plugins/_setup/ai_assistant/sessions}, which mediates every
  * write to the {@code wazuh-ai-assistant-sessions} data stream so that a session's {@code user}
- * field is stamped by the server instead of being taken from the request body
- * (internal-devel-requests#6111).
+ * field is stamped by the server instead of being taken from the request body.
  *
  * <p>There are no read endpoints by design: listing sessions and reading a transcript stay direct
  * index queries under the {@code wazuh_ai_assistant} role's document-level security filter, which
