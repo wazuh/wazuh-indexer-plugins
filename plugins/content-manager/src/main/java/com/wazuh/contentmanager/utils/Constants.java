@@ -314,6 +314,10 @@ public class Constants {
             "Index [{}] does not exist yet; deferring Engine content load until it is created.";
     public static final String D_LOG_ENGINE_CLUSTER_NOT_READY =
             "Cluster cannot serve content reads yet ({}); deferring Engine content load.";
+    public static final String W_LOG_ENGINE_CONTENT_LOAD_STILL_DEFERRED =
+            "Engine content load still deferred after [{}] of retries; the content indices are not "
+                    + "serving reads ({}). The shared content spaces stay unloaded on this node until "
+                    + "this clears.";
     public static final String W_LOG_ENGINE_RELOAD_TIMED_OUT =
             "Engine content reload did not complete within [{}]; releasing the in-flight guard.";
     public static final String D_LOG_ENGINE_SPACE_NO_POLICY =
