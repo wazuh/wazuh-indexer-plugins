@@ -2,7 +2,7 @@
   "policy": {
     "policy_id": "ai-assistant-sessions-policy",
     "description": "ISM policy for the AI assistant sessions data stream. Rolls over backing indices daily and deletes indices older than 7 days.",
-    "last_updated_time": 1772122150,
+    "last_updated_time": 1772122150000,
     "schema_version": 1,
     "default_state": "hot",
     "states": [

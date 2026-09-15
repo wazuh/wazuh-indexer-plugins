@@ -2,7 +2,7 @@
   "policy": {
     "policy_id": "stream-events-policy",
     "description": "ISM policy for events data streams. Rolls over backing indices based on size or document count, and deletes indices older than 1 hour.",
-    "last_updated_time": 1772122150,
+    "last_updated_time": 1772122150000,
     "schema_version": 1,
     "default_state": "hot",
     "states": [
