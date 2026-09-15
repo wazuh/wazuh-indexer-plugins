@@ -20,7 +20,55 @@
     },
     "mappings": {
       "date_detection": false,
-      "dynamic": "true",
+      "dynamic": "strict_allow_templates",
+      "dynamic_templates": [
+        {
+          "agent_configuration_objects": {
+            "mapping": {
+              "type": "object"
+            },
+            "match_mapping_type": "object",
+            "path_match": "wazuh.agent.configuration.content.*"
+          }
+        },
+        {
+          "agent_configuration_booleans": {
+            "mapping": {
+              "type": "boolean"
+            },
+            "match_mapping_type": "boolean",
+            "path_match": "wazuh.agent.configuration.content.*"
+          }
+        },
+        {
+          "agent_configuration_longs": {
+            "mapping": {
+              "type": "long"
+            },
+            "match_mapping_type": "long",
+            "path_match": "wazuh.agent.configuration.content.*"
+          }
+        },
+        {
+          "agent_configuration_doubles": {
+            "mapping": {
+              "type": "double"
+            },
+            "match_mapping_type": "double",
+            "path_match": "wazuh.agent.configuration.content.*"
+          }
+        },
+        {
+          "agent_configuration_strings": {
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "match_mapping_type": "string",
+            "path_match": "wazuh.agent.configuration.content.*"
+          }
+        }
+      ],
       "properties": {
         "message": {
           "type": "match_only_text"
