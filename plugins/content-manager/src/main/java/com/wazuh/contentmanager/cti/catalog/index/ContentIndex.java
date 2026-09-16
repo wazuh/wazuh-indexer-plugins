@@ -99,6 +99,18 @@ public class ContentIndex {
     /** Describes a single document update: the document ID, patch operations, and CTI offset. */
     public record UpdateTask(String id, List<Operation> operations, long offset) {}
 
+    /** A synchronous call to the cluster that may fail with a checked exception. */
+    @FunctionalInterface
+    private interface ClusterCall<T> {
+        /**
+         * Runs the call.
+         *
+         * @return The call's result.
+         * @throws Exception If the call fails.
+         */
+        T run() throws Exception;
+    }
+
     private final Client client;
     private final PluginSettings pluginSettings;
     private final Semaphore semaphore;
@@ -448,27 +460,12 @@ public class ContentIndex {
      * @throws Exception If the document does not exist, or if patching/indexing fails.
      */
     public void update(String id, List<Operation> operations, Long offset) throws Exception {
-        long backoffMs = UPDATE_INITIAL_BACKOFF_MS;
-
-        for (int attempt = 0; ; attempt++) {
-            try {
-                this.doUpdate(id, operations, offset);
-                return;
-            } catch (Exception e) {
-                if (attempt < MAX_UPDATE_RETRIES && isCircuitBreakerException(e)) {
-                    log.warn(
-                            "Circuit breaker tripped during update of [{}], retry {}/{} in {}ms",
-                            id,
-                            attempt + 1,
-                            MAX_UPDATE_RETRIES,
-                            backoffMs);
-                    Thread.sleep(backoffMs);
-                    backoffMs = Math.min(backoffMs * 2, UPDATE_MAX_BACKOFF_MS);
-                } else {
-                    throw e;
-                }
-            }
-        }
+        this.retryWhileShed(
+                "update of document [" + id + "]",
+                () -> {
+                    this.doUpdate(id, operations, offset);
+                    return null;
+                });
     }
 
     private void doUpdate(String id, List<Operation> operations, Long offset) throws Exception {
@@ -537,7 +534,9 @@ public class ContentIndex {
                     new MultiGetRequest.Item(this.indexName, task.id()).fetchSourceContext(excludeYaml));
         }
         MultiGetResponse mgetResponse =
-                this.client.multiGet(mgetRequest).get(timeout, TimeUnit.SECONDS);
+                this.retryWhileShed(
+                        "multi-get of " + tasks.size() + " document(s)",
+                        () -> this.client.multiGet(mgetRequest).get(timeout, TimeUnit.SECONDS));
         MultiGetItemResponse[] responses = mgetResponse.getResponses();
 
         // 2. Stream: patch each document and flush when size limit is reached
@@ -597,18 +596,74 @@ public class ContentIndex {
         return tasks.get(tasks.size() - 1).offset();
     }
 
+    /**
+     * Submits one accumulated bulk of update operations, re-submitting the items the cluster shed
+     * until they are applied or the retry budget is exhausted.
+     * 
+     * @param bulkRequest The operations to apply.
+     * @param timeout The client timeout, in seconds.
+     * @throws Exception If an item fails permanently, or if the cluster is still shedding once the
+     *     retry budget is exhausted.
+     */
     private void executeBulkUpdate(BulkRequest bulkRequest, long timeout) throws Exception {
-        BulkResponse bulkResponse = this.client.bulk(bulkRequest).get(timeout, TimeUnit.SECONDS);
-        if (bulkResponse.hasFailures()) {
-            for (BulkItemResponse item : bulkResponse.getItems()) {
-                if (item.isFailed()) {
-                    throw new IOException(
-                            "Bulk update failed for document ["
-                                    + item.getId()
-                                    + "]: "
-                                    + item.getFailureMessage());
+        BulkRequest pending = bulkRequest;
+        long backoffMs = UPDATE_INITIAL_BACKOFF_MS;
+
+        for (int attempt = 0; ; attempt++) {
+            BulkRequest retryRequest;
+            String lastShedFailure;
+
+            try {
+                BulkResponse bulkResponse = this.client.bulk(pending).get(timeout, TimeUnit.SECONDS);
+                if (!bulkResponse.hasFailures()) {
+                    return;
                 }
+
+                retryRequest = new BulkRequest();
+                lastShedFailure = null;
+                for (BulkItemResponse item : bulkResponse.getItems()) {
+                    if (!item.isFailed()) {
+                        continue;
+                    }
+                    if (!isRetryable(item.getFailure())) {
+                        throw new IOException(
+                                "Bulk update failed for document ["
+                                        + item.getId()
+                                        + "]: "
+                                        + item.getFailureMessage());
+                    }
+                    retryRequest.add(pending.requests().get(item.getItemId()));
+                    lastShedFailure = item.getFailureMessage();
+                }
+            } catch (ExecutionException e) {
+                // The whole request was rejected before any item was evaluated.
+                if (!isRetryable(e)) {
+                    throw e;
+                }
+                retryRequest = pending;
+                lastShedFailure = e.getMessage();
             }
+
+            int shed = retryRequest.numberOfActions();
+            if (attempt >= MAX_UPDATE_RETRIES) {
+                throw new IOException(
+                        "Bulk update shed "
+                                + shed
+                                + " document(s) and the cluster was still shedding after "
+                                + MAX_UPDATE_RETRIES
+                                + " retries. Last failure: "
+                                + lastShedFailure);
+            }
+
+            log.warn(
+                    Constants.W_LOG_BULK_UPDATE_RETRY_SCHEDULED,
+                    shed,
+                    attempt + 1,
+                    MAX_UPDATE_RETRIES,
+                    backoffMs);
+            Thread.sleep(backoffMs);
+            backoffMs = Math.min(backoffMs * 2, UPDATE_MAX_BACKOFF_MS);
+            pending = retryRequest;
         }
     }
 
@@ -862,6 +917,42 @@ public class ContentIndex {
     }
 
     /**
+     * Runs a synchronous cluster call, re-submitting it while the failure is the cluster shedding
+     * load rather than rejecting the request itself.
+     *
+     * <p>This is the blocking sibling of {@link #retryOrDrop(BulkRequest, int, long, String)}: a shed
+     * call is logged at {@code WARN} and retried under the same exponential backoff, and the failure
+     * only propagates once the retry budget is exhausted.
+     *
+     * @param description What is being retried, for logging.
+     * @param call The call to run.
+     * @param <T> The call's result type.
+     * @return The call's result.
+     * @throws Exception The failure, once it is permanent or the retry budget is exhausted.
+     */
+    private <T> T retryWhileShed(String description, ClusterCall<T> call) throws Exception {
+        long backoffMs = UPDATE_INITIAL_BACKOFF_MS;
+
+        for (int attempt = 0; ; attempt++) {
+            try {
+                return call.run();
+            } catch (Exception e) {
+                if (attempt >= MAX_UPDATE_RETRIES || !isRetryable(e)) {
+                    throw e;
+                }
+                log.warn(
+                        Constants.W_LOG_SHED_CALL_RETRY_SCHEDULED,
+                        description,
+                        attempt + 1,
+                        MAX_UPDATE_RETRIES,
+                        backoffMs);
+                Thread.sleep(backoffMs);
+                backoffMs = Math.min(backoffMs * 2, UPDATE_MAX_BACKOFF_MS);
+            }
+        }
+    }
+
+    /**
      * Returns the number of documents this instance failed to index and gave up on since the last
      * {@link #resetDroppedDocuments()}.
      *
@@ -886,10 +977,6 @@ public class ContentIndex {
             cause = cause.getCause();
         }
         return false;
-    }
-
-    private static boolean isCircuitBreakerException(Exception e) {
-        return hasCause(e, CircuitBreakingException.class);
     }
 
     /**
