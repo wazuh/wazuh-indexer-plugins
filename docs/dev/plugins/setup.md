@@ -297,6 +297,13 @@ Use epoch timestamps (in milliseconds) for `last_updated_time` fields. Update th
 
 ISM policies and templates must be properly deployed before the indices are created.
 
+`IndexStateManagement.initialize()` runs on every cluster-manager election, and `indexPolicy()`
+writes each policy with a plain `IndexRequest` keyed by policy id, so **the six shipped policies
+are overwritten on every restart**. Any edit an operator makes to one of them through the ISM API
+is reverted on the next boot. This is why
+[Retention](../../ref/modules/setup/retention.md#opting-in-to-a-hard-time-ceiling) tells operators
+to create a policy under their own id rather than editing a shipped one.
+
 ---
 
 ## Event stream templates

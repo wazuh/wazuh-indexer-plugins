@@ -91,21 +91,42 @@ A response showing `"step": {"name": "attempt_rollover", "step_status": "conditi
 `"rolled_over": false` means the index has not yet met a rollover condition and is not eligible
 for deletion.
 
+## The shipped policies are rewritten on every restart
+
+The Setup plugin re-indexes its six policy documents whenever a node is elected cluster manager,
+which includes every restart. It writes each one by policy id, so the write **overwrites whatever
+is there** — an edit made to a shipped policy through the ISM API is silently reverted on the next
+boot, and the plugin logs `ISM policy [<name>] created` for all six as if they were new.
+
+It reverts *partially*, which is the dangerous part. Each managed index holds its own embedded copy
+of the policy it was registered with, so indices already moved onto an edited policy keep the edit
+while every backing index created afterwards gets the shipped one. The result is two retention
+regimes in the same data stream, with nothing to signal it.
+
+**Never edit one of the six shipped policies in place.** To change retention, create your own
+policy instead, as described next.
+
 ## Opting in to a hard time ceiling
 
-If your deployment needs retention bounded in *time* rather than in volume — a regulatory
-maximum, or a data-minimization requirement — add an age condition to the **rollover** action, as
-`ai-assistant-sessions-policy` does. This is the supported way to cap retention.
+If your deployment needs retention bounded in *time* rather than in volume — a regulatory maximum,
+or a data-minimization requirement — put an age condition on the **rollover** action, the way
+`ai-assistant-sessions-policy` does.
 
-Choose a `min_index_age` shorter than the deletion age that follows it, then update the policy:
+Do it in a policy of your own. The plugin only ever rewrites its own six policy ids, so a policy
+under a different id is never touched.
+
+**1. Create the policy under its own `policy_id`.** Put `min_index_age` on the rollover action,
+shorter than the deletion age that follows it, and give its `ism_template` the same index patterns
+as the shipped policy at `priority: 1`, so it wins over the shipped policy (`priority: 0`) for
+newly created backing indices:
 
 ```bash
 curl -sk -u admin:admin -X PUT \
-  'https://localhost:9200/_plugins/_ism/policies/stream-events-policy?if_seq_no=<seq>&if_primary_term=<term>' \
+  'https://localhost:9200/_plugins/_ism/policies/custom-events-24h-ceiling' \
   -H 'Content-Type: application/json' -d '{
   "policy": {
-    "policy_id": "stream-events-policy",
-    "description": "Events, capped at ~1 day of retention.",
+    "policy_id": "custom-events-24h-ceiling",
+    "description": "Events, capped at 24 hours of retention.",
     "default_state": "hot",
     "states": [
       {
@@ -138,16 +159,34 @@ curl -sk -u admin:admin -X PUT \
     "ism_template": [
       {
         "index_patterns": [".ds-wazuh-events-v5-*", "wazuh-events-v5*"],
-        "priority": 0
+        "priority": 1
       }
     ]
   }
 }'
 ```
 
-Fetch the current `_seq_no` and `_primary_term` first with
-`GET _plugins/_ism/policies/stream-events-policy`, and apply the updated policy to the existing
-managed indices with `POST _plugins/_ism/change_policy/<index-pattern>`.
+**2. Move the already-managed backing indices onto it.** The `ism_template` only applies to indices
+created from now on; existing ones keep the policy they were registered with:
+
+```bash
+curl -sk -u admin:admin -X POST \
+  'https://localhost:9200/_plugins/_ism/change_policy/.ds-wazuh-events-v5-*' \
+  -H 'Content-Type: application/json' -d '{"policy_id": "custom-events-24h-ceiling"}'
+```
+
+**3. Wait for the change to actually apply, and verify it.** `change_policy` is asynchronous: the
+response reports the indices it queued, not indices it changed. The switch happens on the managed
+index's next ISM run, roughly a minute later. Confirm before going further:
+
+```bash
+curl -sk -u admin:admin \
+  'https://localhost:9200/_plugins/_ism/explain/.ds-wazuh-events-v5-*?pretty'
+```
+
+Every index must report your `policy_id`. **Do not restart the cluster until it does** — a restart
+while the change is still pending drops it, and you are left with some indices on your policy and
+some on the shipped one, which is the split described above.
 
 Two trade-offs to weigh before doing this:
 
