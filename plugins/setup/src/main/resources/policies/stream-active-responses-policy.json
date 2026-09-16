@@ -2,7 +2,7 @@
   "policy": {
     "policy_id": "stream-active-responses-policy",
     "description": "ISM policy for active responses data stream. Rolls over backing indices based on size or document count, and deletes indices older than 3 days.",
-    "last_updated_time": 1772122150,
+    "last_updated_time": 1772122150000,
     "schema_version": 1,
     "default_state": "hot",
     "states": [

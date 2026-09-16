@@ -32,6 +32,8 @@ import org.opensearch.transport.client.ClusterAdminClient;
 import org.opensearch.transport.client.IndicesAdminClient;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.wazuh.setup.utils.JsonUtils;
@@ -177,5 +179,83 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
     public void testFileIOException() throws IOException {
         doThrow(new IOException("Test failed successfully")).when(this.jsonUtils).fromFile(anyString());
         this.ismIndex.indexPolicy("test-template");
+    }
+
+    /**
+     * Verifies that {@link IndexStateManagement#applyIsmTemplateTimestamp(Map)} copies the policy's
+     * timestamp into the templates that do not declare one, and leaves the ones that do untouched.
+     */
+    public void testApplyIsmTemplateTimestamp_CopiesThePolicyTimestamp() {
+        Map<String, Object> withoutTimestamp = new HashMap<>();
+        withoutTimestamp.put("index_patterns", List.of("a-*"));
+        Map<String, Object> withTimestamp = new HashMap<>();
+        withTimestamp.put("index_patterns", List.of("b-*"));
+        withTimestamp.put("last_updated_time", 1L);
+
+        Map<String, Object> policy = new HashMap<>();
+        policy.put("last_updated_time", 1772122150000L);
+        policy.put("ism_template", List.of(withoutTimestamp, withTimestamp));
+        Map<String, Object> policyFile = new HashMap<>();
+        policyFile.put("policy", policy);
+
+        IndexStateManagement.applyIsmTemplateTimestamp(policyFile);
+
+        assertEquals(1772122150000L, withoutTimestamp.get("last_updated_time"));
+        assertEquals(1L, withTimestamp.get("last_updated_time"));
+    }
+
+    /** Verifies that a policy without an {@code ism_template} is left alone. */
+    public void testApplyIsmTemplateTimestamp_IgnoresPoliciesWithoutTemplates() {
+        Map<String, Object> policyFile = new HashMap<>();
+        policyFile.put("policy", "definition");
+
+        IndexStateManagement.applyIsmTemplateTimestamp(policyFile);
+
+        assertEquals("definition", policyFile.get("policy"));
+    }
+
+    /**
+     * Verifies that every shipped policy ends up with a timestamp in each of its {@code ism_template}
+     * entries, and that the timestamp is in the past. Without it ISM stamps the template with the
+     * current time on every read and the template matches no index at all; a timestamp ahead of the
+     * deployment clock reproduces the same failure, because ISM only applies a template to indices
+     * created after it.
+     *
+     * @throws IOException if a policy file cannot be read
+     */
+    @SuppressWarnings("unchecked")
+    public void testShippedPolicies_DeclareAnIsmTemplateTimestamp() throws IOException {
+        JsonUtils utils = new JsonUtils();
+        List<String> shipped =
+                List.of(
+                        IndexStateManagement.EVENTS_POLICY,
+                        IndexStateManagement.FINDINGS_POLICY,
+                        IndexStateManagement.RAW_EVENTS_POLICY,
+                        IndexStateManagement.ACTIVE_RESPONSES_POLICY,
+                        IndexStateManagement.METRICS_POLICY,
+                        IndexStateManagement.AI_ASSISTANT_SESSIONS_POLICY);
+
+        for (String name : shipped) {
+            Map<String, Object> policyFile =
+                    utils.fromFile(IndexStateManagement.POLICIES_PATH + name + ".json");
+            IndexStateManagement.applyIsmTemplateTimestamp(policyFile);
+
+            Map<String, Object> policy = (Map<String, Object>) policyFile.get("policy");
+            Object lastUpdatedTime = policy.get("last_updated_time");
+            assertNotNull(name + " declares no last_updated_time", lastUpdatedTime);
+            assertTrue(
+                    name + " declares a last_updated_time that is not in the past",
+                    ((Number) lastUpdatedTime).longValue() < System.currentTimeMillis());
+
+            List<Object> templates = (List<Object>) policy.get("ism_template");
+            assertNotNull(name + " declares no ism_template", templates);
+            assertFalse(name + " declares an empty ism_template", templates.isEmpty());
+            for (Object template : templates) {
+                assertEquals(
+                        name + " has a template without the policy timestamp",
+                        lastUpdatedTime,
+                        ((Map<String, Object>) template).get("last_updated_time"));
+            }
+        }
     }
 }
