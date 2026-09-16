@@ -26,6 +26,7 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
 import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.UnavailableShardsException;
 import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
@@ -46,6 +47,8 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.breaker.CircuitBreaker;
 import org.opensearch.core.common.breaker.CircuitBreakingException;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.node.NodeClosedException;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -661,11 +664,19 @@ public class ContentIndexTests extends OpenSearchTestCase {
     // executeBulk: load shedding must be retried, never silently dropped.
     // ---------------------------------------------------------------------
 
+    /**
+     * Delays the code asked the scheduler for, in order, recorded by {@link
+     * #runScheduledTasksInline()}.
+     */
+    private final List<Long> scheduledDelaysMs = new ArrayList<>();
+
     /** Makes the scheduler run the retry inline, so backoff does not slow the tests down. */
     private void runScheduledTasksInline() {
         when(this.client.threadPool().schedule(any(Runnable.class), any(TimeValue.class), anyString()))
                 .thenAnswer(
                         invocation -> {
+                            ContentIndexTests.this.scheduledDelaysMs.add(
+                                    invocation.getArgument(1, TimeValue.class).millis());
                             invocation.getArgument(0, Runnable.class).run();
                             return null;
                         });
@@ -957,6 +968,188 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         Assert.assertEquals(100L, result);
         verify(this.client, times(2)).bulk(any(BulkRequest.class));
+    }
+
+    // ---------------------------------------------------------------------
+    // A transient cluster-topology change must be retried too, and for long
+    // enough to outlast a rolling restart (wazuh/wazuh-indexer#1913).
+    // ---------------------------------------------------------------------
+
+    /** An index recreated mid-load: the write resolved against a generation that no longer exists. */
+    private static BulkItemResponse topologyItem(int id, String docId) {
+        return new BulkItemResponse(
+                id,
+                DocWriteRequest.OpType.INDEX,
+                new BulkItemResponse.Failure(INDEX_NAME, docId, new IndexNotFoundException(INDEX_NAME)));
+    }
+
+    /** The node holding the shard left the cluster as part of a rolling restart. */
+    private static BulkItemResponse unavailableShardItem(int id, String docId) {
+        return new BulkItemResponse(
+                id,
+                DocWriteRequest.OpType.INDEX,
+                new BulkItemResponse.Failure(
+                        INDEX_NAME,
+                        docId,
+                        new UnavailableShardsException(null, "primary shard is not active")));
+    }
+
+    /** The local node is shutting down: expected restart noise, never worth retrying. */
+    private static BulkItemResponse nodeClosedItem(int id, String docId) {
+        return new BulkItemResponse(
+                id,
+                DocWriteRequest.OpType.INDEX,
+                new BulkItemResponse.Failure(INDEX_NAME, docId, mock(NodeClosedException.class)));
+    }
+
+    /** An administrative write block: a 403, which must stay permanent. */
+    private static BulkItemResponse forbiddenItem(int id, String docId) {
+        return new BulkItemResponse(
+                id,
+                DocWriteRequest.OpType.INDEX,
+                new BulkItemResponse.Failure(
+                        INDEX_NAME,
+                        docId,
+                        new IllegalStateException("index write (api)"),
+                        RestStatus.FORBIDDEN));
+    }
+
+    /**
+     * The #1913 case: an index recreated mid-load is transient, so the batch is re-submitted rather
+     * than dropped, and the retry re-resolves the index name onto the current generation.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_RetriesIndexNotFoundInsteadOfDroppingTheSnapshot() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent =
+                this.stubBulkResponses(
+                        bulkResponseWith(successItem(0), topologyItem(1, "IOC-2")),
+                        bulkResponseWith(successItem(0)));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1", "IOC-2"));
+
+        Assert.assertEquals(2, sent.size());
+        Assert.assertEquals(1, sent.get(1).numberOfActions());
+        Assert.assertEquals("IOC-2", sent.get(1).requests().get(0).id());
+        Assert.assertEquals(0L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /**
+     * A topology change takes as long as a node restart to settle, so its budget must outlast one.
+     * The shed schedule (1 s + 2 s + 4 s) expires long before a restarted node is back.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_TopologyBudgetOutlastsARollingRestart() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent =
+                this.stubBulkResponses(bulkResponseWith(unavailableShardItem(0, "IOC-1")));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1"));
+
+        // Initial attempt plus five retries, versus four attempts for a shed write.
+        Assert.assertEquals(6, sent.size());
+        Assert.assertEquals(List.of(5000L, 10000L, 20000L, 30000L, 30000L), this.scheduledDelaysMs);
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /** A batch holding both kinds of failure is retried on the schedule that outlasts both. */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_MixedBatchUsesTheTopologySchedule() throws Exception {
+        this.runScheduledTasksInline();
+        this.stubBulkResponses(
+                bulkResponseWith(shedItem(0, "IOC-1"), unavailableShardItem(1, "IOC-2")));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1", "IOC-2"));
+
+        Assert.assertEquals(5000L, (long) this.scheduledDelaysMs.get(0));
+        Assert.assertEquals(5, this.scheduledDelaysMs.size());
+    }
+
+    /**
+     * The local node shutting down is expected restart noise, not a transient topology change:
+     * retrying would only burn the budget while the node goes away.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_DoesNotRetryNodeClosed() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent = this.stubBulkResponses(bulkResponseWith(nodeClosedItem(0, "IOC-1")));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1"));
+
+        Assert.assertEquals(1, sent.size());
+        Assert.assertTrue(this.scheduledDelaysMs.isEmpty());
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /**
+     * A cluster block is not classified by its exception type but by its status: an administrative
+     * write block reports 403 and must stay permanent, unlike the 429 a flood-stage block reports.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_DoesNotRetryForbiddenClusterBlock() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent = this.stubBulkResponses(bulkResponseWith(forbiddenItem(0, "IOC-1")));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1"));
+
+        Assert.assertEquals(1, sent.size());
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /**
+     * The transport layer clears the entries of a request it has taken over, so a retry must be
+     * rebuilt from operations captured before submission. Rebuilding from the submitted instance
+     * re-sends a list of nulls, which the cluster rejects with {@code No support for request [null]},
+     * losing the very batch the retry exists to save.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_RetrySurvivesTheTransportClearingTheRequest() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent = new ArrayList<>();
+        AtomicInteger call = new AtomicInteger();
+        doAnswer(
+                        invocation -> {
+                            BulkRequest request = invocation.getArgument(0, BulkRequest.class);
+                            sent.add(request);
+                            ActionListener<BulkResponse> listener =
+                                    invocation.getArgument(1, ActionListener.class);
+                            if (call.getAndIncrement() == 0) {
+                                // What the transport does to a request it has taken over.
+                                request.requests().replaceAll(operation -> null);
+                                listener.onFailure(
+                                        new UnavailableShardsException(null, "primary shard is not active"));
+                            } else {
+                                listener.onResponse(bulkResponseWith(successItem(0), successItem(1)));
+                            }
+                            return null;
+                        })
+                .when(this.client)
+                .bulk(any(BulkRequest.class), any(ActionListener.class));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1", "IOC-2"));
+
+        Assert.assertEquals(2, sent.size());
+        Assert.assertEquals(2, sent.get(1).numberOfActions());
+        Assert.assertFalse(
+                "the retry must not carry cleared entries", sent.get(1).requests().contains(null));
+        Assert.assertEquals(0L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /** The batched-update path routes a topology failure through the longer schedule as well. */
+    public void testBatchUpdate_RetriesTopologyFailureOnTheLongerBudget() throws Exception {
+        this.stubMultiGet("R1");
+        List<BulkRequest> sent =
+                this.stubSyncBulkResponses(
+                        bulkResponseWith(topologyItem(0, "R1")), bulkResponseWith(successItem(0)));
+
+        long startMs = System.currentTimeMillis();
+        long result = this.contentIndex.batchUpdate(updateTasks("R1"));
+        long elapsedMs = System.currentTimeMillis() - startMs;
+
+        Assert.assertEquals(100L, result);
+        Assert.assertEquals(2, sent.size());
+        // The topology schedule opens at 5 s, not the shed schedule's 1 s.
+        Assert.assertTrue("elapsed was " + elapsedMs + "ms", elapsedMs >= 5000);
     }
 
     /**
