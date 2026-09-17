@@ -6,6 +6,9 @@ on:
     paths:
       - "plugins/**/*.java"
       - "plugins/**/*.gradle"
+  push:
+    branches:
+      - fix/integtest-cache-clear-system-indices
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
