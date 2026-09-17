@@ -546,6 +546,16 @@ public class Constants {
             "Bulk indexing dropped {} document(s) with non-retryable failures. Last failure: {}";
     public static final String E_LOG_BULK_RETRY_SCHEDULE_FAILED =
             "Bulk indexing dropped {} document(s): retry could not be scheduled: {}";
+    public static final String W_LOG_BULK_RETRY_TOPOLOGY =
+            "Bulk indexing deferred {} document(s) after a cluster-topology change; retry {}/{} in {}ms.";
+    public static final String W_LOG_BULK_UPDATE_RETRY_SCHEDULED =
+            "Bulk update shed {} document(s) under load; retry {}/{} in {}ms.";
+    public static final String W_LOG_BULK_UPDATE_RETRY_TOPOLOGY =
+            "Bulk update deferred {} document(s) after a cluster-topology change; retry {}/{} in {}ms.";
+    public static final String W_LOG_SHED_CALL_RETRY_SCHEDULED =
+            "Cluster shed the {} under load; retry {}/{} in {}ms.";
+    public static final String W_LOG_TRANSIENT_CALL_RETRY_SCHEDULED =
+            "Deferred the {} after a cluster-topology change; retry {}/{} in {}ms.";
     public static final String E_LOG_SEMAPHORE_INTERRUPTED =
             "Interrupted while waiting for semaphore: {}";
     public static final String E_LOG_CLEAR_INDEX_NO_MAPPINGS =
