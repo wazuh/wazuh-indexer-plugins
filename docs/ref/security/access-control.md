@@ -106,12 +106,18 @@ Read-only access across the platform.
 
 Grants every authenticated user access to their own AI assistant conversations, stored in the `wazuh-ai-assistant-sessions` data stream. Mapped to `*` (all users) in `roles_mapping.yml`.
 
-- **Cluster permissions:** none.
+- **Cluster permissions:**
+  - `plugin:wazuh/ai_assistant/session/write` — the setup plugin's session write API.
 - **Index permissions:**
   - `read` on `wazuh-ai-assistant-sessions*`, `.ds-wazuh-ai-assistant-sessions-*`, restricted with the DLS query `{"term": {"user": "${user.name}"}}`.
-  - `write` on the same patterns, with no DLS query (DLS filters reads, not writes).
 
 `${user.name}` is substituted at query time with the name of the authenticated user, so each user retrieves only the conversations whose `user` field holds their own username.
+
+**Reads and writes are scoped by two different mechanisms, and the asymmetry is deliberate.** Document Level Security is a read-path filter: it cannot scope a write. A role granting index-level `write` on this data stream would therefore let any account holding it store a document naming somebody else in `user` — including one the victim then sees as their own. So the role grants no index-level `write` at all. Every write goes through `POST`/`PUT`/`PATCH`/`DELETE` on `/_plugins/_setup/ai_assistant/sessions`, gated by the cluster permission above, where the setup plugin derives `user` from the authenticated caller and discards whatever the request body said (see [Setup — API reference](../modules/setup/api-reference.md#ai-assistant-sessions)).
+
+That is also what makes the read filter trustworthy: `user` is only a safe thing to filter on once it stops being client input.
+
+Listing sessions and reading a transcript stay direct queries against the data stream, under the DLS filter above — there is no read endpoint, because DLS already scopes reads correctly and OpenSearch already provides search, sorting and pagination.
 
 The per-owner DLS applies to every user, including `wazuh-admin` and `admin`
 
