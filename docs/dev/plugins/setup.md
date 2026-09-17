@@ -297,6 +297,13 @@ Use epoch timestamps (in milliseconds) for `last_updated_time` fields. Update th
 
 ISM policies and templates must be properly deployed before the indices are created.
 
+`IndexStateManagement.initialize()` runs on every cluster-manager election, and `indexPolicy()`
+writes each policy with a plain `IndexRequest` keyed by policy id, so **the six shipped policies
+are overwritten on every restart**. Any edit an operator makes to one of them through the ISM API
+is reverted on the next boot. This is why
+[Retention](../../ref/modules/setup/retention.md#opting-in-to-a-hard-time-ceiling) tells operators
+to create a policy under their own id rather than editing a shipped one.
+
 ---
 
 ## Event stream templates
@@ -368,13 +375,13 @@ new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-s
 
 ### Overview
 
-The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It combines rollover (based on shard size or document count) with a short retention period to ensure timely cleanup of processed event data.
+The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It combines rollover (based on shard size or document count) with deletion of rolled-over indices once they reach a minimum age. See [Retention](../../ref/modules/setup/retention.md) for the effective retention this yields.
 
 ### Policy details
 - **Policy Name**: `stream-events-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-events-policy.json`
 - **Index Pattern**: `wazuh-events-v5-*`
-- **Retention Period**: 1 hour
+- **Deletion age (floor)**: 1 hour
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -382,7 +389,7 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` after 1 hour
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 1 hour
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -394,13 +401,13 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 
 ### Overview
 
-The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. It combines rollover with a 90-day retention period to maintain detection findings for compliance and investigation purposes.
+The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. It combines rollover with deletion of rolled-over indices once they reach 90 days of age, to maintain detection findings for compliance and investigation purposes. See [Retention](../../ref/modules/setup/retention.md).
 
 ### Policy details
 - **Policy Name**: `stream-findings-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-findings-policy.json`
 - **Index Pattern**: `wazuh-findings-v5-*`
-- **Retention Period**: 90 days
+- **Deletion age (floor)**: 90 days
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -408,7 +415,7 @@ The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. I
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` after 90 days
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 90 days
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -420,13 +427,13 @@ The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. I
 
 ### Overview
 
-The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream with an aggressive 10-minute retention for temporary raw event storage.
+The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream. Rolled-over indices are deleted once they reach 10 minutes of age. Note that the write index only rolls over on volume, so raw events are not bounded in time — see [Retention](../../ref/modules/setup/retention.md).
 
 ### Policy details
 - **Policy Name**: `stream-raw-events-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-raw-events-policy.json`
 - **Index Pattern**: `wazuh-events-raw-v5*`
-- **Retention Period**: 10 minutes
+- **Deletion age (floor)**: 10 minutes
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -434,7 +441,7 @@ The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream w
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` after 10 minutes
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 10 minutes
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -483,7 +490,7 @@ The **wazuh-active-responses** data stream stores Active Response execution requ
 #### Policy details
 - **Policy Name**: `stream-active-responses-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-active-responses-policy.json`
-- **Retention Period**: 3 days
+- **Deletion age (floor)**: 3 days
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -506,13 +513,13 @@ Integration tests for the active responses data stream are located at:
 
 ### Overview
 
-The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh-metrics-agents`, `wazuh-metrics-comms-v4`, `wazuh-metrics-normalization`) with a 30-day retention period.
+The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh-metrics-agents`, `wazuh-metrics-comms-v4`, `wazuh-metrics-normalization`). Rolled-over indices are deleted once they reach 30 days of age. See [Retention](../../ref/modules/setup/retention.md).
 
 ### Policy details
 - **Policy Name**: `stream-metrics-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-metrics-policy.json`
 - **Index Pattern**: `wazuh-metrics-*`
-- **Retention Period**: 30 days
+- **Deletion age (floor)**: 30 days
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -520,7 +527,7 @@ The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` after 30 days
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 30 days
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -722,7 +729,7 @@ Example documents:
 - **Policy Name**: `ai-assistant-sessions-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/ai-assistant-sessions-policy.json`
 - **Index Patterns**: `.ds-wazuh-ai-assistant-sessions-*`, `wazuh-ai-assistant-sessions*`
-- **Retention Period**: 7 days
+- **Deletion age (floor)**: 7 days
 - **Rollover Conditions**: index age of 1 day (daily rotation), or 20 GB primary shard size / 200,000,000 documents, whichever comes first
 - **ISM template priority**: 0
 
@@ -730,7 +737,7 @@ Example documents:
 
 1. **Hot State**
    - Actions: Rollover when the index is 1 day old, or reaches 20 GB / 200M documents
-   - Transition Condition: Transitions to `delete` after 7 days
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 7 days
 
 2. **Delete State**
    - Actions: Deletes the index
