@@ -56,7 +56,7 @@ public class PluginSettings {
     public static final String LOGTEST_THREAD_POOL = "content_manager_logtest";
 
     /** Settings default values */
-    private static final int DEFAULT_MAX_ITEMS_PER_BULK = 999;
+    private static final int DEFAULT_MAX_ITEMS_PER_BULK = 1000;
 
     public static final int DEFAULT_MAX_INTEGRATIONS = 100;
     private static final int MINIMUM_MAX_INTEGRATIONS = 0;
@@ -128,7 +128,7 @@ public class PluginSettings {
                     "plugins.content_manager.max_items_per_bulk",
                     DEFAULT_MAX_ITEMS_PER_BULK,
                     10,
-                    999,
+                    1000,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
