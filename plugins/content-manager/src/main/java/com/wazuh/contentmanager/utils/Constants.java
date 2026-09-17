@@ -367,8 +367,9 @@ public class Constants {
     public static final String W_LOG_HIT_MISSING_DOCUMENT =
             "Hit [{}] missing 'document' field, skipping";
     public static final String E_LOG_SAP_SYNC_DEGRADED =
-            "Security Analytics content sync degraded for consumer [{}]: phase(s) {} still pending; "
-                    + "will retry on the next scheduled sync pass.";
+            "Security Analytics content sync degraded for consumer [{}]: phase(s) {} still pending. "
+                    + "One immediate retry follows; after that the phase is retried on every scheduled "
+                    + "sync pass.";
 
     // Log messages - snapshot / update / IOC (SnapshotServiceImpl, UpdateServiceImpl,
     // ConsumerIocService)
