@@ -24,7 +24,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilter;
@@ -662,7 +661,7 @@ public class ContentManagerPlugin extends Plugin
                 // Credentials index is not a system index — wipe any stored token to prevent
                 // unprotected access and ensure the environment falls back to unregistered mode.
                 if (this.awaitResult(this.credentialsIndex::exists)) {
-                    this.<DeleteResponse>awaitResult(this.credentialsIndex::deleteDocument);
+                    this.awaitResult(this.credentialsIndex::deleteDocument);
                     log.warn(Constants.W_LOG_ACCESS_TOKEN_DELETED_UNPROTECTED);
                 }
                 PluginSettings.getInstance().setAccessToken(null);
@@ -1176,8 +1175,6 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.RESOURCE_LOCK_STALE_THRESHOLD_MILLIS,
                 PluginSettings.USER_OVERRIDES_MAX_UPDATE_ATTEMPTS,
                 PluginSettings.INTEGRATION_MAX_UPDATE_ATTEMPTS,
-                PluginSettings.CTI_CONSOLE_URL,
-                PluginSettings.CTI_CONSOLE_TIMEOUT,
                 PluginSettings.ENGINE_RELOAD_TIMEOUT_MINUTES,
                 PluginSettings.ENGINE_NOT_READY_GRACE_MINUTES,
                 PluginSettings.ENGINE_SOCKET_PATH,
@@ -1211,8 +1208,8 @@ public class ContentManagerPlugin extends Plugin
                 new AbstractModule() {
                     @Override
                     protected void configure() {
-                        bind(EngineService.class).toProvider(() -> ContentManagerPlugin.this.engine);
-                        bind(SecurityAnalyticsService.class)
+                        this.bind(EngineService.class).toProvider(() -> ContentManagerPlugin.this.engine);
+                        this.bind(SecurityAnalyticsService.class)
                                 .toProvider(() -> ContentManagerPlugin.this.securityAnalyticsService);
                     }
                 });

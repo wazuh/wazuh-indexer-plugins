@@ -130,10 +130,8 @@ public class PluginSettings {
     private static final int DEFAULT_USER_OVERRIDES_MAX_UPDATE_ATTEMPTS = 3;
     private static final int DEFAULT_INTEGRATION_MAX_UPDATE_ATTEMPTS = 5;
 
-    // Defaults for the CTI Console client, which is a different host and a much shorter timeout
-    // than the CTI catalog API the rest of the plugin talks to.
-    private static final String DEFAULT_CTI_CONSOLE_URL = "https://api.pre.cloud.wazuh.com";
-    private static final int DEFAULT_CTI_CONSOLE_TIMEOUT = 5;
+    // Default timeout value for outbound CTI requests, in seconds.
+    private static final int DEFAULT_CTI_API_TIMEOUT = 60;
 
     // Defaults for the Engine integration: the single-flight guard on a content reload, the grace
     // period before a read-not-ready deferral is escalated to a warning, and the Unix socket the
@@ -171,6 +169,15 @@ public class PluginSettings {
                     CTI_URL,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
+
+    /** Request timeout, in seconds, for CTI API calls. */
+    public static final Setting<Integer> CTI_API_TIMEOUT =
+            Setting.intSetting(
+                    "plugins.content_manager.cti.api.timeout",
+                    DEFAULT_CTI_API_TIMEOUT,
+                    1,
+                    120,
+                    Setting.Property.NodeScope);
 
     /**
      * The maximum number of elements that are included in a bulk request during the initialization
@@ -653,25 +660,6 @@ public class PluginSettings {
                     Setting.Property.Dynamic);
 
     /**
-     * Base URL of the Wazuh CTI Console, used for instance registration and token exchange. Distinct
-     * from {@link #CTI_API_URL}, which addresses the CTI catalog API.
-     */
-    public static final Setting<String> CTI_CONSOLE_URL =
-            Setting.simpleString(
-                    "plugins.content_manager.cti.console.api",
-                    DEFAULT_CTI_CONSOLE_URL,
-                    Setting.Property.NodeScope);
-
-    /** Request timeout, in seconds, for CTI Console calls. */
-    public static final Setting<Integer> CTI_CONSOLE_TIMEOUT =
-            Setting.intSetting(
-                    "plugins.content_manager.cti.console.timeout",
-                    DEFAULT_CTI_CONSOLE_TIMEOUT,
-                    1,
-                    120,
-                    Setting.Property.NodeScope);
-
-    /**
      * Upper bound, in minutes, on how long a single Engine content reload may stay in flight. It
      * guards against a lost callback wedging the single-flight guard forever.
      */
@@ -786,6 +774,7 @@ public class PluginSettings {
                     Setting.Property.NodeScope);
 
     private final String ctiBaseUrl;
+    private final int ctiRequestTimeout;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
     private volatile long logtestMaxBodyBytes;
@@ -826,8 +815,6 @@ public class PluginSettings {
     private volatile long resourceLockStaleThresholdMillis;
     private volatile int userOverridesMaxUpdateAttempts;
     private volatile int integrationMaxUpdateAttempts;
-    private final String ctiConsoleUrl;
-    private final int ctiConsoleTimeout;
     private final int engineReloadTimeoutMinutes;
     private final int engineNotReadyGraceMinutes;
     private final String engineSocketPath;
@@ -889,8 +876,7 @@ public class PluginSettings {
         this.resourceLockStaleThresholdMillis = RESOURCE_LOCK_STALE_THRESHOLD_MILLIS.get(settings);
         this.userOverridesMaxUpdateAttempts = USER_OVERRIDES_MAX_UPDATE_ATTEMPTS.get(settings);
         this.integrationMaxUpdateAttempts = INTEGRATION_MAX_UPDATE_ATTEMPTS.get(settings);
-        this.ctiConsoleUrl = CTI_CONSOLE_URL.get(settings);
-        this.ctiConsoleTimeout = CTI_CONSOLE_TIMEOUT.get(settings);
+        this.ctiRequestTimeout = CTI_API_TIMEOUT.get(settings);
         this.engineReloadTimeoutMinutes = ENGINE_RELOAD_TIMEOUT_MINUTES.get(settings);
         this.engineNotReadyGraceMinutes = ENGINE_NOT_READY_GRACE_MINUTES.get(settings);
         this.engineSocketPath = ENGINE_SOCKET_PATH.get(settings);
@@ -1551,21 +1537,12 @@ public class PluginSettings {
     }
 
     /**
-     * Retrieves the base URL of the Wazuh CTI Console.
-     *
-     * @return the CTI Console base URL.
-     */
-    public String getCtiConsoleUrl() {
-        return this.ctiConsoleUrl;
-    }
-
-    /**
      * Retrieves the request timeout, in seconds, for CTI Console calls.
      *
      * @return the timeout in seconds.
      */
-    public int getCtiConsoleTimeout() {
-        return this.ctiConsoleTimeout;
+    public int getCtiRequestTimeout() {
+        return this.ctiRequestTimeout;
     }
 
     /**

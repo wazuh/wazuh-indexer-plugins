@@ -744,7 +744,6 @@ public class Constants {
      */
     public static final String USER_OVERRIDES_DOC_ID = "wazuh-user-overrides";
 
-
     // Consumer types
     public static final String CONSUMER_TYPE_VULNERABILITIES = "cti:catalog:consumer:vulnerabilities";
     public static final String CONSUMER_TYPE_IOCS = "cti:catalog:consumer:iocs";

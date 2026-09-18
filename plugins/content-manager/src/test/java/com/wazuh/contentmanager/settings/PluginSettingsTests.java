@@ -482,7 +482,7 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         Assert.assertEquals(5, s.getIntegrationMaxUpdateAttempts());
         // cti.console.client.ApiClient BASE_URI / TIMEOUT
         Assert.assertEquals("https://api.pre.cloud.wazuh.com", s.getCtiConsoleUrl());
-        Assert.assertEquals(5, s.getCtiConsoleTimeout());
+        Assert.assertEquals(5, s.getCtiRequestTimeout());
         // EngineContentLoader RELOAD_TIMEOUT / NOT_READY_GRACE, EngineSocketClient socket path
         Assert.assertEquals(10, s.getEngineReloadTimeoutMinutes());
         Assert.assertEquals(5, s.getEngineNotReadyGraceMinutes());
@@ -536,7 +536,7 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         Assert.assertEquals(12, s.getBulkTopologyMaxRetries());
         Assert.assertEquals(10_000L, s.getBulkTopologyInitialBackoffMillis());
         Assert.assertEquals("https://api.cloud.wazuh.com", s.getCtiConsoleUrl());
-        Assert.assertEquals(30, s.getCtiConsoleTimeout());
+        Assert.assertEquals(30, s.getCtiRequestTimeout());
         Assert.assertEquals("/tmp/engine.sock", s.getEngineSocketPath());
         Assert.assertEquals(500, s.getSearchPageSize());
         Assert.assertEquals(1, s.getOffsetFlushInterval());
@@ -625,7 +625,7 @@ public class PluginSettingsTests extends OpenSearchTestCase {
             PluginSettings.USER_OVERRIDES_MAX_UPDATE_ATTEMPTS,
             PluginSettings.INTEGRATION_MAX_UPDATE_ATTEMPTS,
             PluginSettings.CTI_CONSOLE_URL,
-            PluginSettings.CTI_CONSOLE_TIMEOUT,
+            PluginSettings.CTI_API_TIMEOUT,
             PluginSettings.ENGINE_RELOAD_TIMEOUT_MINUTES,
             PluginSettings.ENGINE_NOT_READY_GRACE_MINUTES,
             PluginSettings.ENGINE_SOCKET_PATH,
