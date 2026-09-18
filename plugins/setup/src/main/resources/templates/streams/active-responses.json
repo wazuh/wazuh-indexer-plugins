@@ -206,6 +206,7 @@
           "wazuh.threat.enrichments.indicator.reference",
           "wazuh.threat.enrichments.indicator.registry.data.bytes",
           "wazuh.threat.enrichments.indicator.registry.data.strings",
+          "wazuh.threat.enrichments.indicator.registry.data.strings.text",
           "wazuh.threat.enrichments.indicator.registry.data.type",
           "wazuh.threat.enrichments.indicator.registry.hive",
           "wazuh.threat.enrichments.indicator.registry.key",
@@ -356,6 +357,7 @@
           "wazuh.threat.indicator.reference",
           "wazuh.threat.indicator.registry.data.bytes",
           "wazuh.threat.indicator.registry.data.strings",
+          "wazuh.threat.indicator.registry.data.strings.text",
           "wazuh.threat.indicator.registry.data.type",
           "wazuh.threat.indicator.registry.hive",
           "wazuh.threat.indicator.registry.key",
@@ -1621,7 +1623,13 @@
                                   "type": "keyword"
                                 },
                                 "strings": {
-                                  "type": "match_only_text"
+                                  "fields": {
+                                    "text": {
+                                      "type": "match_only_text"
+                                    }
+                                  },
+                                  "ignore_above": 4096,
+                                  "type": "keyword"
                                 },
                                 "type": {
                                   "ignore_above": 4096,
@@ -2505,7 +2513,13 @@
                               "type": "keyword"
                             },
                             "strings": {
-                              "type": "match_only_text"
+                              "fields": {
+                                "text": {
+                                  "type": "match_only_text"
+                                }
+                              },
+                              "ignore_above": 4096,
+                              "type": "keyword"
                             },
                             "type": {
                               "ignore_above": 4096,

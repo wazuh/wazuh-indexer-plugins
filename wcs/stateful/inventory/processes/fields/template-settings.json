@@ -17,6 +17,7 @@
           "message",
           "process.args",
           "process.command_line",
+          "process.command_line.text",
           "process.name",
           "process.state",
           "wazuh.agent.groups",
