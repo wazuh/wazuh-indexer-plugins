@@ -145,6 +145,7 @@
 - ECS object removal [(#604)](https://github.com/wazuh/wazuh-indexer-plugins/issues/604)
 - Removal of alerts and archives index templates [(#689)](https://github.com/wazuh/wazuh-indexer-plugins/issues/689)
 - Make Unclassified events standard WCS category [(#1348)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1348)
+- WCS multi-fields on the ECS `wildcard` fields, so they aggregate and search [(#1586)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1586)
 
 ### Fixed
 - Wrong folder structure under `ecs` folder [(#461)](https://github.com/wazuh/wazuh-indexer-plugins/issues/461)
