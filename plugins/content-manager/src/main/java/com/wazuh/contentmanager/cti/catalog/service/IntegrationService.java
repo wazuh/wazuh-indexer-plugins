@@ -42,6 +42,7 @@ import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -50,7 +51,6 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 public class IntegrationService {
     private static final Logger log = LogManager.getLogger(IntegrationService.class);
-    private static final int MAX_RETRIES = 5;
 
     private final Client client;
     private final ObjectMapper mapper;
@@ -192,7 +192,9 @@ public class IntegrationService {
             for (SearchHit hit : searchResponse.getHits().getHits()) {
                 String integrationId = hit.getId();
                 boolean success = false;
-                for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+                for (int attempt = 1;
+                        attempt <= PluginSettings.getInstance().getIntegrationMaxUpdateAttempts();
+                        attempt++) {
                     try {
                         GetRequest getRequest = new GetRequest(Constants.INDEX_INTEGRATIONS, integrationId);
                         GetResponse getResponse = this.client.get(getRequest).actionGet();
@@ -254,12 +256,12 @@ public class IntegrationService {
                                 "Version conflict updating integration [{}]. Attempt {} of {}",
                                 integrationId,
                                 attempt,
-                                MAX_RETRIES);
-                        if (attempt == MAX_RETRIES) {
+                                PluginSettings.getInstance().getIntegrationMaxUpdateAttempts());
+                        if (attempt == PluginSettings.getInstance().getIntegrationMaxUpdateAttempts()) {
                             log.error(
                                     "Failed to unlink resource from integration [{}] after {} concurrent modification retries.",
                                     integrationId,
-                                    MAX_RETRIES);
+                                    PluginSettings.getInstance().getIntegrationMaxUpdateAttempts());
                             throw new IOException(
                                     "Failed to unlink resource due to high concurrency on integration updates.", e);
                         }

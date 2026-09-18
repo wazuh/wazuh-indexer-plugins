@@ -744,12 +744,6 @@ public class Constants {
      */
     public static final String USER_OVERRIDES_DOC_ID = "wazuh-user-overrides";
 
-    /**
-     * How many times a user-overrides registry write is retried on a version conflict before giving
-     * up. The registry is one shared document, so concurrent writers are serialized optimistically:
-     * each conflict re-reads and re-applies, and this bounds the loop.
-     */
-    public static final int MAX_USER_OVERRIDES_UPDATE_ATTEMPTS = 3;
 
     // Consumer types
     public static final String CONSUMER_TYPE_VULNERABILITIES = "cti:catalog:consumer:vulnerabilities";
@@ -927,9 +921,10 @@ public class Constants {
     public static final String OP_REMOVE = "remove";
     public static final String OP_UPDATE = "update";
 
-    // Job Scheduler registration retries
-    public static final int MAX_JOB_SCHEDULE_RETRIES = 3;
-    public static final int JOB_SCHEDULE_RETRY_BACKOFF_SECONDS = 15;
+    // Bounds Security Analytics accepts for a detector schedule interval, in minutes: one minute to
+    // one week.
+    public static final int DETECTOR_INTERVAL_MIN_MINUTES = 1;
+    public static final int DETECTOR_INTERVAL_MAX_MINUTES = 60 * 24 * 7;
 
     // Setup plugin readiness marker (written by the Setup plugin once all its
     // index templates, indices and data streams have been created).
@@ -944,9 +939,6 @@ public class Constants {
     // plugins.content_manager.max_{integrations,decoders,rules,kvdbs,filters}, keyed per
     // resource type and space.
     public static final String INDEX_RESOURCE_LOCKS = ".wazuh-content-manager-resource-locks";
-    public static final int MAX_LOCK_ACQUIRE_RETRIES = 20;
-    public static final long LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS = 100;
-    public static final long LOCK_STALE_THRESHOLD_MILLIS = 30_000;
     public static final String E_503_RESOURCE_LOCK_TIMEOUT =
             "Too many concurrent requests creating this resource. Please retry.";
 }

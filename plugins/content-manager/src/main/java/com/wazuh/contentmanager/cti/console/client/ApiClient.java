@@ -49,29 +49,41 @@ import com.wazuh.contentmanager.utils.Constants;
 /** CTI Console API client. */
 public class ApiClient {
 
-    private static final String BASE_URI = "https://api.pre.cloud.wazuh.com";
     private static final String API_PREFIX = "/api/v1";
-    private static final String TOKEN_URI = BASE_URI + API_PREFIX + "/instances/token";
-    private static final String PRODUCTS_URI = BASE_URI + API_PREFIX + "/instances/me";
-    private static final String RESOURCE_URI =
-            BASE_URI + API_PREFIX + "/platform/environments/token/exchange";
     private static final String CATALOG_PLANS_PATH = "/catalog/plans";
-    private static final String ENVIRONMENTS_ME_URI =
-            BASE_URI + API_PREFIX + "/platform/environments/me";
 
     protected CloseableHttpAsyncClient client;
 
-    private final int TIMEOUT = 5;
+    /**
+     * Console endpoints, resolved from {@code plugins.content_manager.cti.console.api} when the
+     * client is constructed. They address the CTI Console, which is a different host from the CTI
+     * catalog API behind {@code plugins.content_manager.cti.api}.
+     */
+    private final String tokenUri;
+
+    private final String productsUri;
+    private final String resourceUri;
+    private final String environmentsMeUri;
+
+    /** Request timeout, in seconds, applied to every Console call. */
+    private final int timeout;
 
     /** Constructs an CtiApiClient instance. */
     public ApiClient() {
+        PluginSettings settings = PluginSettings.getInstance();
+        String baseUri = settings.getCtiConsoleUrl();
+        this.timeout = settings.getCtiConsoleTimeout();
+        this.tokenUri = baseUri + API_PREFIX + "/instances/token";
+        this.productsUri = baseUri + API_PREFIX + "/instances/me";
+        this.resourceUri = baseUri + API_PREFIX + "/platform/environments/token/exchange";
+        this.environmentsMeUri = baseUri + API_PREFIX + "/platform/environments/me";
         this.buildClient();
     }
 
     /** Builds and starts the Http client. */
     private void buildClient() {
         IOReactorConfig ioReactorConfig =
-                IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(this.TIMEOUT)).build();
+                IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(this.timeout)).build();
 
         List<Header> defaultHeaders =
                 List.of(
@@ -123,7 +135,7 @@ public class ApiClient {
                         Locale.ROOT, "%s&client_id=%s&device_code=%s", grantType, clientId, deviceCode);
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.post(TOKEN_URI)
+                SimpleRequestBuilder.post(this.tokenUri)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
@@ -134,7 +146,7 @@ public class ApiClient {
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
-        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.timeout, TimeUnit.SECONDS);
     }
 
     /***
@@ -164,7 +176,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.post(RESOURCE_URI)
+                SimpleRequestBuilder.post(this.resourceUri)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -177,7 +189,7 @@ public class ApiClient {
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
-        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.timeout, TimeUnit.SECONDS);
     }
 
     /** URL-encodes a value for inclusion in an {@code application/x-www-form-urlencoded} body. */
@@ -202,7 +214,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.get(PRODUCTS_URI)
+                SimpleRequestBuilder.get(this.productsUri)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -215,7 +227,7 @@ public class ApiClient {
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
-        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.timeout, TimeUnit.SECONDS);
     }
 
     /**
@@ -235,7 +247,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.get(ENVIRONMENTS_ME_URI)
+                SimpleRequestBuilder.get(this.environmentsMeUri)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -248,7 +260,7 @@ public class ApiClient {
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
-        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.timeout, TimeUnit.SECONDS);
     }
 
     /**
@@ -264,7 +276,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.get(ENVIRONMENTS_ME_URI)
+                SimpleRequestBuilder.get(this.environmentsMeUri)
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -321,7 +333,7 @@ public class ApiClient {
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
-        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.timeout, TimeUnit.SECONDS);
     }
 
     /**

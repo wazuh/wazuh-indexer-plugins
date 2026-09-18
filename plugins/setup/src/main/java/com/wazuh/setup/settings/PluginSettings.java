@@ -36,6 +36,12 @@ public class PluginSettings {
      */
     public static final int DEFAULT_BACKOFF = 15;
 
+    /**
+     * Default number of re-attempts for an initialization task (index or index-template creation)
+     * that timed out. One re-attempt is what the plugin did before the count became configurable.
+     */
+    public static final int DEFAULT_MAX_RETRIES = 1;
+
     /** Timeout setting definition. */
     public static final Setting<Integer> TIMEOUT =
             Setting.intSetting(
@@ -55,6 +61,16 @@ public class PluginSettings {
     public static final Setting<Boolean> SETTINGS_UPDATE_ENABLED =
             Setting.boolSetting(
                     "plugins.setup.settings_update.enabled", true, Setting.Property.NodeScope);
+
+    /**
+     * Number of times an initialization task that timed out is re-attempted, each attempt separated
+     * by {@link PluginSettings#BACKOFF}, before the failure is rethrown and the node shuts down. Zero
+     * disables retrying. Raise it on clusters where a cluster-manager election, and therefore the
+     * first index creation, routinely outlasts the default single re-attempt.
+     */
+    public static final Setting<Integer> MAX_RETRIES =
+            Setting.intSetting(
+                    "plugins.setup.max_retries", DEFAULT_MAX_RETRIES, 0, 10, Setting.Property.NodeScope);
 
     /**
      * {@link PluginSettings#SETTINGS_UPDATE_ENABLED} getter.
@@ -84,5 +100,15 @@ public class PluginSettings {
      */
     public static long getBackoff(Settings settings) {
         return new TimeValue(BACKOFF.get(settings), TimeUnit.SECONDS).millis();
+    }
+
+    /**
+     * {@link PluginSettings#MAX_RETRIES} getter.
+     *
+     * @param settings settings of this node.
+     * @return the number of re-attempts allowed for an initialization task.
+     */
+    public static int getMaxRetries(Settings settings) {
+        return MAX_RETRIES.get(settings);
     }
 }
