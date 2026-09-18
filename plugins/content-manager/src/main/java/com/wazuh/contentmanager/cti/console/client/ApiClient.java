@@ -49,15 +49,12 @@ import com.wazuh.contentmanager.utils.Constants;
 /** CTI Console API client. */
 public class ApiClient {
 
-    private static final String BASE_URI = "https://api.pre.cloud.wazuh.com";
-    private static final String API_PREFIX = "/api/v1";
-    private static final String TOKEN_URI = BASE_URI + API_PREFIX + "/instances/token";
-    private static final String PRODUCTS_URI = BASE_URI + API_PREFIX + "/instances/me";
-    private static final String RESOURCE_URI =
-            BASE_URI + API_PREFIX + "/platform/environments/token/exchange";
-    private static final String CATALOG_PLANS_PATH = "/catalog/plans";
-    private static final String ENVIRONMENTS_ME_URI =
-            BASE_URI + API_PREFIX + "/platform/environments/me";
+    // Endpoint paths, appended to the CTI base URL. Package-private for testing.
+    static final String TOKEN_PATH = "/instances/token";
+    static final String PRODUCTS_PATH = "/instances/me";
+    static final String RESOURCE_PATH = "/platform/environments/token/exchange";
+    static final String ENVIRONMENTS_ME_PATH = "/platform/environments/me";
+    static final String CATALOG_PLANS_PATH = "/catalog/plans";
 
     protected CloseableHttpAsyncClient client;
 
@@ -104,6 +101,23 @@ public class ApiClient {
     }
 
     /**
+     * Builds the absolute URI of a CTI endpoint from the configured base URL ({@code
+     * plugins.content_manager.cti.api}). The Console endpoints served here live under the same base
+     * URL as the catalog ones, so pointing the plugin at a different CTI environment moves both.
+     *
+     * <p>Resolved per call, as {@link #getCatalogPlans()} already did, so the client does not capture
+     * the settings singleton at construction time.
+     *
+     * <p>Package-private for testing.
+     *
+     * @param path endpoint path, relative to the CTI base URL.
+     * @return the absolute request URI.
+     */
+    static String ctiUri(String path) {
+        return PluginSettings.getInstance().getCtiBaseUrl() + path;
+    }
+
+    /**
      * Perform an HTTP POST request to the CTI Console to obtain a permanent token for this XDR/SIEM
      * Wazuh instance
      *
@@ -123,7 +137,7 @@ public class ApiClient {
                         Locale.ROOT, "%s&client_id=%s&device_code=%s", grantType, clientId, deviceCode);
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.post(TOKEN_URI)
+                SimpleRequestBuilder.post(ctiUri(TOKEN_PATH))
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
@@ -164,7 +178,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.post(RESOURCE_URI)
+                SimpleRequestBuilder.post(ctiUri(RESOURCE_PATH))
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -202,7 +216,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.get(PRODUCTS_URI)
+                SimpleRequestBuilder.get(ctiUri(PRODUCTS_PATH))
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -235,7 +249,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.get(ENVIRONMENTS_ME_URI)
+                SimpleRequestBuilder.get(ctiUri(ENVIRONMENTS_ME_PATH))
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -264,7 +278,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.get(ENVIRONMENTS_ME_URI)
+                SimpleRequestBuilder.get(ctiUri(ENVIRONMENTS_ME_PATH))
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -307,7 +321,7 @@ public class ApiClient {
      */
     public SimpleHttpResponse getCatalogPlans()
             throws ExecutionException, InterruptedException, TimeoutException {
-        String url = PluginSettings.getInstance().getCtiBaseUrl() + CATALOG_PLANS_PATH;
+        String url = ctiUri(CATALOG_PLANS_PATH);
 
         SimpleHttpRequest request =
                 SimpleRequestBuilder.get(url)
@@ -331,7 +345,7 @@ public class ApiClient {
      * @param listener listener notified with the HTTP response on success, or on failure.
      */
     public void getCatalogPlans(ActionListener<SimpleHttpResponse> listener) {
-        String url = PluginSettings.getInstance().getCtiBaseUrl() + CATALOG_PLANS_PATH;
+        String url = ctiUri(CATALOG_PLANS_PATH);
 
         SimpleHttpRequest request =
                 SimpleRequestBuilder.get(url)
