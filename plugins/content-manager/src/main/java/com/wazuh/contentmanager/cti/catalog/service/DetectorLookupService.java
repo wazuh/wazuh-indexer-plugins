@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -48,8 +49,6 @@ import com.wazuh.contentmanager.utils.Constants;
 public class DetectorLookupService {
 
     private static final Logger log = LogManager.getLogger(DetectorLookupService.class);
-
-    private static final int MAX_RESULTS = 10000;
 
     /**
      * Security Analytics detectors index. Read-only: content-manager never writes to it, and cannot
@@ -120,7 +119,7 @@ public class DetectorLookupService {
                                                     "detector.name", "detector.enabled", CUSTOM_RULES_PATH + ".id"
                                                 },
                                                 null)
-                                        .size(MAX_RESULTS))
+                                        .size(PluginSettings.getInstance().getSearchPageSize()))
                         .indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
 
         this.client.search(
@@ -214,7 +213,7 @@ public class DetectorLookupService {
                                                                 QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString())))
                                         .fetchSource(
                                                 new String[] {Constants.Q_DOCUMENT_ID, Constants.Q_DOCUMENT_ENABLED}, null)
-                                        .size(MAX_RESULTS));
+                                        .size(PluginSettings.getInstance().getSearchPageSize()));
 
         this.client.search(
                 request,

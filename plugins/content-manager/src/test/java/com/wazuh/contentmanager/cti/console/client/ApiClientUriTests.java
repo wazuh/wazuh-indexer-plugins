@@ -18,12 +18,13 @@ package com.wazuh.contentmanager.cti.console.client;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.settings.PluginSettingsTests;
+
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
 
 /**
  * Unit tests for the request URIs built by {@link ApiClient}. The Console endpoints must be derived
@@ -32,18 +33,24 @@ import com.wazuh.contentmanager.settings.PluginSettingsTests;
  */
 public class ApiClientUriTests extends OpenSearchTestCase {
 
-    @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
         PluginSettingsTests.clearInstance();
     }
 
-    @After
     @Override
     public void tearDown() throws Exception {
         PluginSettingsTests.clearInstance();
         super.tearDown();
+    }
+
+    /**
+     * An {@link ApiClient} whose real methods run but whose constructor never does, so no I/O reactor
+     * is started for a test that only exercises URI building.
+     */
+    private static ApiClient realMethodClient() {
+        return mock(ApiClient.class, CALLS_REAL_METHODS);
     }
 
     /** Every endpoint, Console and catalog alike, is built from the configured CTI base URL. */
@@ -54,19 +61,23 @@ public class ApiClientUriTests extends OpenSearchTestCase {
                         .build();
         PluginSettings.getInstance(settings);
 
+        ApiClient client = realMethodClient();
+
         Assert.assertEquals(
-                "https://cti.example.test/api/v1/instances/token", ApiClient.ctiUri(ApiClient.TOKEN_PATH));
+                "https://cti.example.test/api/v1/instances/token",
+                client.buildEndpointUri(ApiClient.TOKEN_PATH));
         Assert.assertEquals(
-                "https://cti.example.test/api/v1/instances/me", ApiClient.ctiUri(ApiClient.PRODUCTS_PATH));
+                "https://cti.example.test/api/v1/instances/me",
+                client.buildEndpointUri(ApiClient.PRODUCTS_PATH));
         Assert.assertEquals(
                 "https://cti.example.test/api/v1/platform/environments/me",
-                ApiClient.ctiUri(ApiClient.ENVIRONMENTS_ME_PATH));
+                client.buildEndpointUri(ApiClient.ENVIRONMENTS_ME_PATH));
         Assert.assertEquals(
                 "https://cti.example.test/api/v1/platform/environments/token/exchange",
-                ApiClient.ctiUri(ApiClient.RESOURCE_PATH));
+                client.buildEndpointUri(ApiClient.RESOURCE_PATH));
         Assert.assertEquals(
                 "https://cti.example.test/api/v1/catalog/plans",
-                ApiClient.ctiUri(ApiClient.CATALOG_PLANS_PATH));
+                client.buildEndpointUri(ApiClient.CATALOG_PLANS_PATH));
     }
 
     /**
@@ -75,17 +86,22 @@ public class ApiClientUriTests extends OpenSearchTestCase {
     public void testUrisFallBackToDefault() {
         PluginSettings.getInstance(Settings.EMPTY);
 
+        ApiClient client = realMethodClient();
+
         Assert.assertEquals(
                 "https://api.pre.cloud.wazuh.com/api/v1/instances/token",
-                ApiClient.ctiUri(ApiClient.TOKEN_PATH));
+                client.buildEndpointUri(ApiClient.TOKEN_PATH));
         Assert.assertEquals(
                 "https://api.pre.cloud.wazuh.com/api/v1/instances/me",
-                ApiClient.ctiUri(ApiClient.PRODUCTS_PATH));
+                client.buildEndpointUri(ApiClient.PRODUCTS_PATH));
         Assert.assertEquals(
                 "https://api.pre.cloud.wazuh.com/api/v1/platform/environments/me",
-                ApiClient.ctiUri(ApiClient.ENVIRONMENTS_ME_PATH));
+                client.buildEndpointUri(ApiClient.ENVIRONMENTS_ME_PATH));
         Assert.assertEquals(
                 "https://api.pre.cloud.wazuh.com/api/v1/platform/environments/token/exchange",
-                ApiClient.ctiUri(ApiClient.RESOURCE_PATH));
+                client.buildEndpointUri(ApiClient.RESOURCE_PATH));
+        Assert.assertEquals(
+                "https://api.pre.cloud.wazuh.com/api/v1/catalog/plans",
+                client.buildEndpointUri(ApiClient.CATALOG_PLANS_PATH));
     }
 }

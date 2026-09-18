@@ -29,6 +29,7 @@ import org.opensearch.action.search.SearchPhaseExecutionException;
 import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.common.logging.Loggers;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.core.action.ActionListener;
@@ -49,6 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -86,6 +88,9 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        // The loader reads its reload timeout and not-ready grace period from the plugin settings.
+        PluginSettings.resetForTesting();
+        PluginSettings.getInstance(Settings.EMPTY);
         this.engine = mock(EngineService.class);
         this.spaceService = mock(SpaceService.class);
         this.threadPool = mock(ThreadPool.class);

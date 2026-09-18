@@ -27,6 +27,7 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.VersionConflictEngineException;
@@ -40,6 +41,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 
@@ -60,6 +62,8 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
 
     @Before
     public void setUpService() {
+        PluginSettings.resetForTesting();
+        PluginSettings.getInstance(Settings.EMPTY);
         this.client = mock(Client.class);
         this.spaceService = mock(SpaceService.class);
         this.service = new UserOverridesService(this.client, this.spaceService);
@@ -247,7 +251,7 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
         this.service.update("standard", UserOverridesServiceTests::pinEnabled, future);
 
         expectThrows(VersionConflictEngineException.class, future::actionGet);
-        assertEquals(Constants.MAX_USER_OVERRIDES_UPDATE_ATTEMPTS, attempts.get());
+        assertEquals(PluginSettings.getInstance().getUserOverridesMaxUpdateAttempts(), attempts.get());
     }
 
     /**

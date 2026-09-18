@@ -137,7 +137,6 @@
 - Reduce the IoCs and ruleset memory footprint [(#1740)](https://github.com/wazuh/wazuh-indexer/issues/1740)
 - Reduce snapshot ingestion overhead with partial JSON parsing [(#1351)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1351)
 - Remove maximum values from Content Manager settings [(#1420)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1420)
-- Use the CTI API setting as the base url for the CTI console [(#1584)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1584)
 
 ### Removed
 - Remove plugins not planned for 5.x [(#440)](https://github.com/wazuh/wazuh-indexer-plugins/issues/440)

@@ -39,6 +39,7 @@ import java.util.*;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.securityanalytics.action.*;
 import com.wazuh.securityanalytics.model.Integration;
@@ -302,7 +303,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         }
 
         List<String> sourceIndices = new ArrayList<>();
-        int DEFAULT_INTERVAL = 2;
+        int DEFAULT_INTERVAL = PluginSettings.getInstance().getSaDetectorInterval();
         int interval = DEFAULT_INTERVAL;
 
         // The integration gates the detector: disabled means no detector, whatever the user chose for
@@ -327,8 +328,8 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             if (detectorNode.has(Constants.KEY_INTERVAL)) {
                 interval = detectorNode.path(Constants.KEY_INTERVAL).asInt();
 
-                int MIN = 1;
-                int MAX = 10080; // 60*24*7
+                int MIN = Constants.DETECTOR_INTERVAL_MIN_MINUTES;
+                int MAX = Constants.DETECTOR_INTERVAL_MAX_MINUTES;
                 if (interval < MIN || interval > MAX) {
                     log.warn(
                             Constants.W_LOG_DETECTOR_INTERVAL_OUT_OF_BOUNDS,

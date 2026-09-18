@@ -432,7 +432,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                                         }));
                     });
 
-            if (!latch.await(60, TimeUnit.SECONDS)) {
+            if (!latch.await(PluginSettings.getInstance().getSaSyncTimeoutSeconds(), TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "integrations");
                 success = false;
             }
@@ -563,7 +563,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     });
 
             boolean success = true;
-            if (!latch.await(60, TimeUnit.SECONDS)) {
+            if (!latch.await(PluginSettings.getInstance().getSaSyncTimeoutSeconds(), TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "rules");
                 success = false;
             }
@@ -673,7 +673,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                         }));
 
         try {
-            if (!firstLatch.await(30, TimeUnit.SECONDS)) {
+            if (!firstLatch.await(
+                    PluginSettings.getInstance().getSaDetectorTimeoutSeconds(), TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "detectors");
                 return false;
             }
@@ -759,7 +760,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                                         integrationLatch.countDown();
                                     }));
                 }
-                integrationLatch.await(120, TimeUnit.SECONDS);
+                integrationLatch.await(
+                        PluginSettings.getInstance().getSaCleanupTimeoutSeconds(), TimeUnit.SECONDS);
             }
 
             Set<String> currentRuleIds =
@@ -780,7 +782,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                                         ruleLatch.countDown();
                                     }));
                 }
-                ruleLatch.await(120, TimeUnit.SECONDS);
+                ruleLatch.await(
+                        PluginSettings.getInstance().getSaCleanupTimeoutSeconds(), TimeUnit.SECONDS);
             }
 
             if (!staleIntegrationIds.isEmpty() || !staleRuleIds.isEmpty()) {

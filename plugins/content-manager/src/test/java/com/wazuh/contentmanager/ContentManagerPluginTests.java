@@ -219,7 +219,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
 
         this.invokePrivateIntMethod("scheduleTelemetryPingJob", 0);
 
-        long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
+        long expectedDelay = (long) PluginSettings.getInstance().getJobScheduleRetryBackoffSeconds();
         verify(this.threadPool)
                 .schedule(
                         any(Runnable.class),
@@ -229,7 +229,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
 
     /**
      * Tests that once the retry budget is exhausted, no further retry is scheduled. The private
-     * method is invoked with {@code attempt == MAX_JOB_SCHEDULE_RETRIES} so the catch branch lands on
+     * method is invoked with {@code attempt == job_schedule.max_retries} so the catch branch lands on
      * the "give up" path.
      */
     public void testTelemetryGiveUpAfterMaxRetries() throws Exception {
@@ -237,7 +237,8 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                 Settings.builder().put("plugins.content_manager.telemetry.enabled", true).build();
         PluginSettings.getInstance(settings);
 
-        this.invokePrivateIntMethod("scheduleTelemetryPingJob", Constants.MAX_JOB_SCHEDULE_RETRIES);
+        this.invokePrivateIntMethod(
+                "scheduleTelemetryPingJob", PluginSettings.getInstance().getJobScheduleMaxRetries());
 
         verify(this.threadPool, never())
                 .schedule(any(Runnable.class), any(TimeValue.class), anyString());
@@ -252,7 +253,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
 
         this.invokePrivateIntMethod("scheduleCatalogSyncJob", 0);
 
-        long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
+        long expectedDelay = (long) PluginSettings.getInstance().getJobScheduleRetryBackoffSeconds();
         verify(this.threadPool)
                 .schedule(
                         any(Runnable.class),

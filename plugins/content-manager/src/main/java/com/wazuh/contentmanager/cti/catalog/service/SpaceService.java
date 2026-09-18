@@ -181,7 +181,7 @@ public class SpaceService {
                                     // match every document in the index would delete it, and silently lose
                                     // the user's policy settings and the filters they created.
                                     sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
-                                    sourceBuilder.size(10000);
+                                    sourceBuilder.size(PluginSettings.getInstance().getSearchPageSize());
                                     sourceBuilder.fetchSource(false);
                                     searchRequest.source(sourceBuilder);
 
@@ -401,7 +401,7 @@ public class SpaceService {
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
         sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
         sourceBuilder.fetchSource(new String[] {Constants.Q_HASH, Constants.Q_DOCUMENT_ID}, null);
-        sourceBuilder.size(10000);
+        sourceBuilder.size(PluginSettings.getInstance().getSearchPageSize());
         searchRequest.source(sourceBuilder);
 
         this.client.search(
@@ -472,7 +472,7 @@ public class SpaceService {
                                     SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
                                     sourceBuilder.query(
                                             QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()));
-                                    sourceBuilder.size(10000);
+                                    sourceBuilder.size(PluginSettings.getInstance().getSearchPageSize());
                                     if (includes != null) {
                                         sourceBuilder.fetchSource(includes, null);
                                     }
@@ -528,7 +528,7 @@ public class SpaceService {
                 SearchRequest searchRequest = new SearchRequest(indexName);
                 SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
                 sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString()));
-                sourceBuilder.size(10000);
+                sourceBuilder.size(PluginSettings.getInstance().getSearchPageSize());
                 sourceBuilder.fetchSource(new String[] {Constants.Q_DOCUMENT_ID}, null);
                 searchRequest.source(sourceBuilder);
 
@@ -1097,7 +1097,7 @@ public class SpaceService {
         searchRequest
                 .source()
                 .query(QueryBuilders.boolQuery().filter(QueryBuilders.existsQuery(Constants.Q_SPACE_NAME)))
-                .size(10000);
+                .size(PluginSettings.getInstance().getSearchPageSize());
 
         this.client.search(
                 searchRequest,

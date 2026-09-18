@@ -58,17 +58,20 @@ public class ApiClient {
 
     protected CloseableHttpAsyncClient client;
 
-    private final int TIMEOUT = 5;
+    /** Request timeout, in seconds, applied to every Console call. */
+    private final int timeout;
 
     /** Constructs an CtiApiClient instance. */
     public ApiClient() {
+        PluginSettings settings = PluginSettings.getInstance();
+        this.timeout = settings.getCtiRequestTimeout();
         this.buildClient();
     }
 
     /** Builds and starts the Http client. */
     private void buildClient() {
         IOReactorConfig ioReactorConfig =
-                IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(this.TIMEOUT)).build();
+                IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(this.timeout)).build();
 
         List<Header> defaultHeaders =
                 List.of(
@@ -113,7 +116,7 @@ public class ApiClient {
      * @param path endpoint path, relative to the CTI base URL.
      * @return the absolute request URI.
      */
-    static String ctiUri(String path) {
+    String buildEndpointUri(String path) {
         return PluginSettings.getInstance().getCtiBaseUrl() + path;
     }
 
@@ -137,7 +140,7 @@ public class ApiClient {
                         Locale.ROOT, "%s&client_id=%s&device_code=%s", grantType, clientId, deviceCode);
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.post(ctiUri(TOKEN_PATH))
+                SimpleRequestBuilder.post(this.buildEndpointUri(TOKEN_PATH))
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
@@ -148,7 +151,7 @@ public class ApiClient {
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
-        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.timeout, TimeUnit.SECONDS);
     }
 
     /***
@@ -178,7 +181,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.post(ctiUri(RESOURCE_PATH))
+                SimpleRequestBuilder.post(this.buildEndpointUri(RESOURCE_PATH))
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -191,7 +194,7 @@ public class ApiClient {
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
-        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.timeout, TimeUnit.SECONDS);
     }
 
     /** URL-encodes a value for inclusion in an {@code application/x-www-form-urlencoded} body. */
@@ -216,7 +219,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.get(ctiUri(PRODUCTS_PATH))
+                SimpleRequestBuilder.get(this.buildEndpointUri(PRODUCTS_PATH))
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -229,7 +232,7 @@ public class ApiClient {
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
-        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.timeout, TimeUnit.SECONDS);
     }
 
     /**
@@ -249,7 +252,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.get(ctiUri(ENVIRONMENTS_ME_PATH))
+                SimpleRequestBuilder.get(this.buildEndpointUri(ENVIRONMENTS_ME_PATH))
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -262,7 +265,7 @@ public class ApiClient {
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
-        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.timeout, TimeUnit.SECONDS);
     }
 
     /**
@@ -278,7 +281,7 @@ public class ApiClient {
                         Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request =
-                SimpleRequestBuilder.get(ctiUri(ENVIRONMENTS_ME_PATH))
+                SimpleRequestBuilder.get(this.buildEndpointUri(ENVIRONMENTS_ME_PATH))
                         .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.AUTHORIZATION, token)
                         .addHeader("wazuh-uid", PluginSettings.getInstance().getClusterUUID())
@@ -321,7 +324,7 @@ public class ApiClient {
      */
     public SimpleHttpResponse getCatalogPlans()
             throws ExecutionException, InterruptedException, TimeoutException {
-        String url = ctiUri(CATALOG_PLANS_PATH);
+        String url = this.buildEndpointUri(CATALOG_PLANS_PATH);
 
         SimpleHttpRequest request =
                 SimpleRequestBuilder.get(url)
@@ -335,7 +338,7 @@ public class ApiClient {
                         SimpleRequestProducer.create(request),
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
-        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.timeout, TimeUnit.SECONDS);
     }
 
     /**
@@ -345,7 +348,7 @@ public class ApiClient {
      * @param listener listener notified with the HTTP response on success, or on failure.
      */
     public void getCatalogPlans(ActionListener<SimpleHttpResponse> listener) {
-        String url = ctiUri(CATALOG_PLANS_PATH);
+        String url = this.buildEndpointUri(CATALOG_PLANS_PATH);
 
         SimpleHttpRequest request =
                 SimpleRequestBuilder.get(url)
