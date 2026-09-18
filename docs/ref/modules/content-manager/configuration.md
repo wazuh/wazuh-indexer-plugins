@@ -3,7 +3,7 @@
 
 The Content Manager plugin is configured through settings in `opensearch.yml`. All settings use the `plugins.content_manager` prefix.
 
-- **`plugins.content_manager.cti.api`** (String, default `https://api.pre.cloud.wazuh.com/api/v1`) — base URL for the Wazuh CTI API.
+- **`plugins.content_manager.cti.api`** (String, default `https://api.pre.cloud.wazuh.com/api/v1`) — base URL for the Wazuh CTI API. Covers both the catalog endpoints (snapshots, changes, plans) and the CTI Console ones (instance registration, environment lookup, resource-token exchange).
 - **`plugins.content_manager.catalog.sync_interval`** (Integer, default `60`, range 10–1440, dynamic) — interval, in minutes, between scheduled synchronizations.
 - **`plugins.content_manager.setup_wait.max_retries`** (Integer, default `4`, range 0–10) — number of retries the catalog sync job performs while waiting for the Setup plugin to report readiness on startup, before giving up until the next scheduled sync.
 - **`plugins.content_manager.setup_wait.backoff_base_seconds`** (Integer, default `20`, range 1–120) — base delay, in seconds, for the exponential backoff between those retries (delay for retry `n` is `base * 2^n`; with the defaults, 20s/40s/80s/160s = 300s / 5 min worst case).
@@ -128,6 +128,10 @@ To point to a different CTI API (e.g., production):
 # opensearch.yml
 plugins.content_manager.cti.api: "https://cti.wazuh.com/api/v1"
 ```
+
+The setting moves every CTI request the plugin makes, not just content retrieval. Besides the catalog endpoints (snapshots, changes, plans), it is also the base URL for the CTI Console calls: instance registration (`POST /_plugins/_content_manager/subscription`), environment and plan lookup, and the resource-token exchange that produces the HMAC-signed URLs used during synchronization.
+
+A registered instance is not valid against a different CTI environment. After changing this setting, re-register the instance with `POST /_plugins/_content_manager/subscription`.
 
 #### Custom catalog consumer URLs
 
