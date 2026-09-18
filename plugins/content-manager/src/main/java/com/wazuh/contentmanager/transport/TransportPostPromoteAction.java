@@ -704,12 +704,10 @@ public class TransportPostPromoteAction
                         engineResponse -> {
                             if (engineResponse.getStatus() != RestStatus.OK.getStatus()
                                     && engineResponse.getStatus() != RestStatus.ACCEPTED.getStatus()) {
-                                RestResponse shaped =
-                                        TransportActionHelper.fromDownstreamValidation(engineResponse);
-                                if (shaped.getStatus() < 500) {
-                                    log.warn(Constants.W_LOG_VALIDATION_FAILED, shaped.getMessage());
+                                if (engineResponse.getStatus() < 500) {
+                                    log.warn(Constants.W_LOG_VALIDATION_FAILED, engineResponse.getMessage());
                                 } else {
-                                    log.error(Constants.W_LOG_VALIDATION_FAILED, shaped.getMessage());
+                                    log.error(Constants.W_LOG_VALIDATION_FAILED, engineResponse.getMessage());
                                 }
                                 try {
                                     log.debug(
@@ -719,7 +717,8 @@ public class TransportPostPromoteAction
                                 }
                                 listener.onResponse(
                                         new MessageStatusResponse(
-                                                shaped.getMessage(), RestStatus.fromCode(shaped.getStatus())));
+                                                engineResponse.getMessage(),
+                                                RestStatus.fromCode(engineResponse.getStatus())));
                                 return;
                             }
                             log.debug(Constants.D_LOG_ENGINE_VALIDATION_COMPLETE, targetSpace);

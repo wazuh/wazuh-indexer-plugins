@@ -267,8 +267,8 @@ public class PayloadValidations {
                     }
                 }
                 return new RestResponse(
-                        String.format(Locale.ROOT, Constants.E_400_DUPLICATE_NAME, resourceType, title, space),
-                        RestStatus.BAD_REQUEST.getStatus());
+                        String.format(Locale.ROOT, Constants.E_409_DUPLICATE_NAME, resourceType, title, space),
+                        RestStatus.CONFLICT.getStatus());
             }
         } catch (Exception e) {
             return new RestResponse(
@@ -323,11 +323,11 @@ public class PayloadValidations {
                                         new RestResponse(
                                                 String.format(
                                                         Locale.ROOT,
-                                                        Constants.E_400_DUPLICATE_NAME,
+                                                        Constants.E_409_DUPLICATE_NAME,
                                                         resourceType,
                                                         title,
                                                         space),
-                                                RestStatus.BAD_REQUEST.getStatus()));
+                                                RestStatus.CONFLICT.getStatus()));
                             } else {
                                 listener.onResponse(null);
                             }

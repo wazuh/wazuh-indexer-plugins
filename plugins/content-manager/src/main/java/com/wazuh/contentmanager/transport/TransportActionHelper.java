@@ -275,17 +275,25 @@ public final class TransportActionHelper {
     }
 
     /**
-     * Builds the client-facing response for a downstream (Engine/SAP) validation call from that
-     * call's own status: when the downstream service rejected the request as invalid (status &lt;
-     * 500), its response is already client-shaped and is passed through as-is. When the downstream
-     * status indicates a genuine communication/infra failure (&gt;= 500), the status is preserved but
-     * the message is replaced with a fixed, generic one — never force a communication failure into
-     * 400, and never leak the downstream service's internal failure detail in a 5xx body.
+     * Builds the client-facing response for an Engine validation call from that call's own status,
+     * never forcing a communication failure into a 400:
+     *
+     * <ul>
+     *   <li>Below 500 the Engine rejected the content itself, so its validation message is passed
+     *       through behind the {@link Constants#E_400_ENGINE_VALIDATION_FAILED} prefix.
+     *   <li>500 or above the Engine could not be reached or failed, so the status is preserved and
+     *       the Engine client's own message is surfaced unchanged.
+     * </ul>
+     *
+     * @param engineResponse the non-OK response returned by the Engine.
+     * @return the response to send to the client.
      */
-    public static RestResponse fromDownstreamValidation(RestResponse downstreamResponse) {
-        if (downstreamResponse.getStatus() < 500) {
-            return downstreamResponse;
+    public static RestResponse fromEngineValidation(RestResponse engineResponse) {
+        if (engineResponse.getStatus() < 500) {
+            return new RestResponse(
+                    Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineResponse.getMessage(),
+                    engineResponse.getStatus());
         }
-        return new RestResponse(Constants.E_500_INTERNAL_SERVER_ERROR, downstreamResponse.getStatus());
+        return engineResponse;
     }
 }

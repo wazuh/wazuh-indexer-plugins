@@ -148,13 +148,7 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
 
         RestResponse engineResponse = this.engine.validate(enginePayload);
         if (engineResponse.getStatus() != RestStatus.OK.getStatus()) {
-            RestResponse response = TransportActionHelper.fromDownstreamValidation(engineResponse);
-            listener.onResponse(
-                    new RestResponse(
-                            response.getStatus() < 500
-                                    ? Constants.E_400_ENGINE_VALIDATION_FAILED + " " + response.getMessage()
-                                    : response.getMessage(),
-                            response.getStatus()));
+            listener.onResponse(TransportActionHelper.fromEngineValidation(engineResponse));
             return;
         }
 

@@ -228,20 +228,22 @@ public class TransportUpdatePolicyAction
             ActionListener<MessageStatusResponse> listener) {
         try {
             if (currentPolicy == null) {
-                log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, Constants.KEY_POLICY, spaceName);
+                log.error(Constants.E_LOG_POLICY_DOCUMENT_MISSING, spaceName);
                 listener.onResponse(
                         new MessageStatusResponse(
-                                "Policy document not found in " + spaceName + " space.", RestStatus.NOT_FOUND));
+                                "Policy document not found in " + spaceName + " space.",
+                                RestStatus.INTERNAL_SERVER_ERROR));
                 return;
             }
 
             Map<String, Object> currentPolicyDoc =
                     (Map<String, Object>) currentPolicy.get(Constants.KEY_DOCUMENT);
             if (currentPolicyDoc == null) {
-                log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, Constants.KEY_POLICY, spaceName);
+                log.error(Constants.E_LOG_POLICY_DOCUMENT_MISSING, spaceName);
                 listener.onResponse(
                         new MessageStatusResponse(
-                                "Policy document not found in " + spaceName + " space.", RestStatus.NOT_FOUND));
+                                "Policy document not found in " + spaceName + " space.",
+                                RestStatus.INTERNAL_SERVER_ERROR));
                 return;
             }
 
@@ -337,10 +339,11 @@ public class TransportUpdatePolicyAction
             Policy pendingOverride,
             ActionListener<MessageStatusResponse> listener) {
         if (documentId == null) {
-            log.warn(Constants.W_LOG_RESOURCE_NOT_FOUND, Constants.KEY_POLICY, spaceName);
+            log.error(Constants.E_LOG_POLICY_DOCUMENT_MISSING, spaceName);
             listener.onResponse(
                     new MessageStatusResponse(
-                            "Policy document not found in " + spaceName + " space.", RestStatus.NOT_FOUND));
+                            "Policy document not found in " + spaceName + " space.",
+                            RestStatus.INTERNAL_SERVER_ERROR));
             return;
         }
 
