@@ -16,6 +16,7 @@
           "message",
           "process.args",
           "process.command_line",
+          "process.command_line.text",
           "process.name",
           "process.state",
           "wazuh.agent.groups",
@@ -64,7 +65,13 @@
               "type": "long"
             },
             "command_line": {
-              "type": "match_only_text"
+              "fields": {
+                "text": {
+                  "type": "match_only_text"
+                }
+              },
+              "ignore_above": 4096,
+              "type": "keyword"
             },
             "name": {
               "ignore_above": 4096,
