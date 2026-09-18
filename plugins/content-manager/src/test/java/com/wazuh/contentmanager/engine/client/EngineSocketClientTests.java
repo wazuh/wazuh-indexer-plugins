@@ -25,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Before;
 
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Unit tests for the {@link EngineSocketClient} class.
@@ -76,7 +77,10 @@ public class EngineSocketClientTests extends OpenSearchTestCase {
         Assert.assertEquals(expectedPath, client.getSocketPath());
     }
 
-    /** Test that sendRequest returns 500 status when socket file does not exist. */
+    /**
+     * Test that sendRequest returns 500 status when socket file does not exist, with a message that
+     * names the actual problem but does not leak the socket path.
+     */
     public void testSendRequestReturns500WhenSocketDoesNotExist() {
         EngineSocketClient client = new EngineSocketClient("/non/existent/socket.sock");
         ObjectNode payload = this.objectMapper.createObjectNode();
@@ -84,11 +88,14 @@ public class EngineSocketClientTests extends OpenSearchTestCase {
         RestResponse response = client.sendRequest("/test/endpoint", "POST", payload);
 
         Assert.assertEquals(500, response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("Socket file not found"));
-        Assert.assertTrue(response.getMessage().contains("/non/existent/socket.sock"));
+        Assert.assertEquals(Constants.E_500_ENGINE_SOCKET_UNAVAILABLE, response.getMessage());
+        Assert.assertFalse(response.getMessage().contains("/non/existent/socket.sock"));
     }
 
-    /** Test sendRequest with different non-existent socket paths. */
+    /**
+     * Test sendRequest with different non-existent socket paths: whatever the configured path is, it
+     * is never echoed back to the client.
+     */
     public void testSendRequestWithVariousNonExistentPaths() {
         String[] testPaths = {
             "/tmp/nonexistent.sock", "/var/run/missing.sock", "/invalid/path/socket.sock"
@@ -102,8 +109,10 @@ public class EngineSocketClientTests extends OpenSearchTestCase {
             RestResponse response = client.sendRequest("/endpoint", "POST", payload);
 
             Assert.assertEquals(500, response.getStatus());
-            Assert.assertTrue(
-                    "Expected error message to contain path: " + path, response.getMessage().contains(path));
+            Assert.assertEquals(Constants.E_500_ENGINE_SOCKET_UNAVAILABLE, response.getMessage());
+            Assert.assertFalse(
+                    "Error message must not leak the socket path: " + path,
+                    response.getMessage().contains(path));
         }
     }
 
@@ -129,7 +138,7 @@ public class EngineSocketClientTests extends OpenSearchTestCase {
 
         // Should fail because socket doesn't exist
         Assert.assertEquals(500, response.getStatus());
-        Assert.assertTrue(response.getMessage().contains("Socket file not found"));
+        Assert.assertEquals(Constants.E_500_ENGINE_SOCKET_UNAVAILABLE, response.getMessage());
     }
 
     /** Test sendRequest with complex nested JSON payload. */
@@ -158,7 +167,7 @@ public class EngineSocketClientTests extends OpenSearchTestCase {
             RestResponse response = client.sendRequest("/test/endpoint", method, payload);
 
             Assert.assertEquals(500, response.getStatus());
-            Assert.assertTrue(response.getMessage().contains("Socket file not found"));
+            Assert.assertEquals(Constants.E_500_ENGINE_SOCKET_UNAVAILABLE, response.getMessage());
         }
     }
 
@@ -187,7 +196,7 @@ public class EngineSocketClientTests extends OpenSearchTestCase {
             RestResponse response = client.sendRequest(endpoint, "POST", payload);
 
             Assert.assertEquals(500, response.getStatus());
-            Assert.assertTrue(response.getMessage().contains("Socket file not found"));
+            Assert.assertEquals(Constants.E_500_ENGINE_SOCKET_UNAVAILABLE, response.getMessage());
         }
     }
 }
