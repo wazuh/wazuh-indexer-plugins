@@ -140,11 +140,11 @@ concurrency, and the indexer log shows the security plugin denying `indices:admi
 index for the requesting user:
 
 ```
-[INFO ][o.o.s.p.PrivilegesEvaluatorImpl] No index-level perm match for User [name=wazuh-demo, ...]
+[INFO ][o.o.s.p.PrivilegesEvaluatorImpl] No index-level perm match for User [name=<caller>, ...]
   Resolved [... allIndices=[.wazuh-content-manager-resource-locks] ...]:
   Insufficient permissions for the referenced index [Action [indices:admin/create]]
 [WARN ][c.w.c.t.AbstractTransportCreateAction] Failed to acquire resource-creation lock for [integration]:
-  no permissions for [indices:admin/create] and User [name=wazuh-demo, ...]
+  no permissions for [indices:admin/create] and User [name=<caller>, ...]
 ```
 
 The `.wazuh-content-manager-resource-locks` index is created at node startup and every operation on
