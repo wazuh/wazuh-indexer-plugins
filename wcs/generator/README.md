@@ -91,6 +91,74 @@ Omitting the output path prints the result to stdout instead of writing a file. 
 find plugins/setup/src/main/resources/templates/streams/ -name "events.json" -type f -exec python3 wcs/generator/convert_to_dynamic_templates.py {} {} \;
 ```
 
+### Multi-fields
+
+A multi-field indexes the same value twice, under two mappings. The WCS uses one
+where a single mapping cannot serve both of the things done with a field:
+
+| Operation | Needs | `keyword` | `match_only_text` |
+|---|---|---|---|
+| aggregate, sort | doc values | yes | **no** |
+| match a single word inside the value | an analyzed index | **no** | yes |
+
+The sanitizer strips ECS's multi-fields by default, because a second mapping is a
+second field against `mapping.total_fields.limit` and most fields only ever need
+one. The exception is the types listed in `MULTI_FIELD_TYPES` in
+[images/schema_sanitizer.py](./images/schema_sanitizer.py), today just
+`wildcard`, whose primary mapping the WCS rewrites to `keyword`:
+
+```json
+"url.original": {
+  "type": "keyword",
+  "ignore_above": 4096,
+  "fields": { "text": { "type": "match_only_text" } }
+}
+```
+
+`url.original` aggregates and sorts, `url.original.text` matches word by word.
+The ten ECS `wildcard` fields — `email.message_id`, `error.stack_trace`,
+`http.request.body.content`, `http.response.body.content`,
+`process.command_line`, `process.io.text`, `registry.data.strings`, `url.full`,
+`url.original`, `url.path` — all end up with this shape. Six declare the `text`
+multi-field in ECS and are kept as they are; the other four have none and the
+sanitizer adds `DEFAULT_MULTI_FIELD`, so the whole family is uniform and no
+consumer has to special-case a member of it.
+
+Why that type and not another:
+
+- It cannot stay `wildcard`. Security Analytics compiles Sigma rules to
+  `query_string` queries, and those return zero hits against an OpenSearch
+  `wildcard` field, silently — no error, just nothing detected. That is what
+  [#1566](https://github.com/wazuh/wazuh-indexer-plugins/pull/1566) reverted.
+- It cannot be `match_only_text` either. That type carries no doc values, so
+  every aggregation and sort over it is rejected with
+  `illegal_argument_exception: Text fields are not optimised for operations that
+  require per-document field data`. The Dashboard aggregates `url.original` in
+  five GitHub visualizations and all five showed an error badge
+  ([wazuh-dashboard-plugins#9180](https://github.com/wazuh/wazuh-dashboard-plugins/issues/9180)).
+- `keyword` + a `text` multi-field answers both, and is what ECS itself does for
+  these fields.
+
+`generate_default_query_fields.py` picks the new subfields up on its own, so
+`index.query.default_field` gains `url.original.text` and its siblings with no
+manual edit.
+
+Two consequences worth knowing:
+
+- **The sanitizer is not idempotent, and must visit each file exactly once.** The
+  decision to keep a multi-field reads the `type` that the same pass rewrites
+  (`wildcard` -> `keyword`), so a second visit no longer recognises the field and
+  strips what the first visit kept. `find_and_modify_yaml_files()` deduplicates
+  the glob results for this reason — `SEARCH_PATTERNS` overlap, because pathlib
+  expands a leading `**/` to zero directories as well. The image build runs the
+  sanitizer once, over a pristine ECS clone, which is the only supported way to
+  run it.
+- **An existing index keeps the mapping it was created with.** Updating the index
+  template only affects indices created afterwards, so a data stream that already
+  mapped `url.original` needs a rollover (`POST <stream>/_rollover`) before the
+  aggregation works on it; the older backing indices keep failing until they age
+  out.
+
 ### Default query fields
 
 `index.query.default_field` is the list of fields a `query_string` with no field qualifier searches. Hand-written lists drift away from the mapping they describe, and each way they drift breaks a search.
