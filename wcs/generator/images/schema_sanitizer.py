@@ -2,8 +2,9 @@
 
 # WCS Sanitizer tool
 # This tool processes ECS YAML files to replace unsupported field types
-# with Wazuh-compatible alternatives, removes multi-fields, and eliminates
-# unwanted fields. It provides detailed logging and a summary of modifications.
+# with Wazuh-compatible alternatives, prunes the multi-fields that are not
+# needed, and eliminates unwanted fields. It provides detailed logging and a
+# summary of modifications.
 
 import yaml
 import os
@@ -44,19 +45,50 @@ SEARCH_PATTERNS = [
 #     OpenSearch has no `flattened` type ("No handler for type [flattened]");
 #     flat_object is its equivalent.
 #
-#   wildcard -> match_only_text
-#     Security Analytics compiles Sigma rules to `query_string` queries, which
-#     cannot query OpenSearch `wildcard` fields (upstream WildcardFieldMapper
-#     overrides only the 4-arg wildcardQuery method; StringFieldType delegates
-#     the 5-arg normalizedWildcardQuery from query_string to base Lucene over
-#     n-grams, producing zero hits without error). Remapping to `match_only_text`
-#     keeps fields (e.g. process.command_line, url.*) reachable from the
-#     detection query path without the 1024-char ceiling of `keyword`.
+#   wildcard -> keyword (+ a `.text` multi-field, see MULTI_FIELD_TYPES)
+#     Two constraints meet on this type and neither can be dropped.
+#
+#     It cannot stay `wildcard`: Security Analytics compiles Sigma rules to
+#     `query_string` queries, which cannot query OpenSearch `wildcard` fields
+#     (upstream WildcardFieldMapper overrides only the 4-arg wildcardQuery
+#     method; StringFieldType delegates the 5-arg normalizedWildcardQuery from
+#     query_string to base Lucene over n-grams, producing zero hits without
+#     error). That is what wazuh/wazuh-indexer-plugins#1566 reverted.
+#
+#     It cannot become `match_only_text` either: that type carries no doc
+#     values, so every aggregation and sort over it is rejected with
+#     `illegal_argument_exception: Text fields are not optimised for operations
+#     that require per-document field data`. The Dashboard aggregates
+#     `url.original` in five GitHub visualizations and they all error out
+#     (wazuh/wazuh-dashboard-plugins#9180).
+#
+#     `keyword` as the primary mapping satisfies both — it is aggregatable,
+#     sortable and reachable from query_string — and the word-level search that
+#     `match_only_text` provided is preserved on the `.text` multi-field that
+#     preserve_multi_fields() keeps (and adds where ECS declares none). See
+#     wazuh/wazuh-indexer-plugins#1586.
 TYPES_TO_REMAP = {
     'constant_keyword': 'keyword',
     'flattened': 'flat_object',
-    'wildcard': 'match_only_text',
+    'wildcard': 'keyword',
 }
+
+# ECS field types whose multi-fields are kept instead of stripped.
+#
+# The WCS drops multi-fields by default: they multiply the field count of every
+# generated template for no benefit when the primary mapping already answers the
+# query. The exception is the types remapped to `keyword` above, which lose
+# full-text search in the process. For those, ECS's own `text` multi-field
+# (`match_only_text`) gives it back at one extra field each, and the default
+# multi-field below is synthesised for the ECS wildcard fields that declare no
+# multi-field at all (email.message_id, process.io.text, registry.data.strings,
+# url.path).
+MULTI_FIELD_TYPES = {'wildcard'}
+
+# The multi-field added to a MULTI_FIELD_TYPES field that has none in ECS. Same
+# name and type ECS uses on the wildcard fields that do declare one, so the
+# resulting mapping is uniform across the whole family.
+DEFAULT_MULTI_FIELD = {'name': 'text', 'type': 'match_only_text'}
 
 # Specific field type remappings
 OBJECT_TYPES_TO_REMAP = {
@@ -80,6 +112,8 @@ class ModificationStats:
     field_type_changes: int = 0
     scaling_factor_removals: int = 0
     multi_field_removals: int = 0
+    multi_fields_preserved: int = 0
+    multi_fields_added: int = 0
     specific_fixes: int = 0
     fields_removed: int = 0
 
@@ -233,7 +267,16 @@ class SchemaSanitizer:
 
     def remove_multi_fields(self, field_data: Dict[str, Any]) -> bool:
         """
-        Remove multi-fields (.fields) from field definitions.
+        Prune multi-fields (.fields) from field definitions.
+
+        Kept for the types in MULTI_FIELD_TYPES, whose primary mapping is
+        remapped to `keyword` and therefore needs a text multi-field to stay
+        searchable word by word. A field of such a type that declares no
+        multi-field in ECS gets DEFAULT_MULTI_FIELD, so the whole family ends
+        up with the same shape.
+
+        Must run *before* modify_field_type(), which is what rewrites the type
+        this decision reads.
 
         Args:
             field_data (Dict[str, Any]): The field definition data.
@@ -245,6 +288,20 @@ class SchemaSanitizer:
 
         if not isinstance(field_data, dict):
             return False
+
+        if field_data.get('type') in MULTI_FIELD_TYPES:
+            field_name = field_data.get('name', '<unnamed>')
+            if field_data.get('multi_fields'):
+                self.log.debug(f"Preserved multi_fields of {field_name} "
+                               f"({field_data['type']})")
+                self.stats.multi_fields_preserved += 1
+            else:
+                field_data['multi_fields'] = [dict(DEFAULT_MULTI_FIELD)]
+                self.log.debug(f"Added default multi_field to {field_name} "
+                               f"({field_data['type']})")
+                self.stats.multi_fields_added += 1
+                modified = True
+            return modified
 
         # Remove multi_fields property (array of multi-field definitions)
         if 'multi_fields' in field_data:
@@ -299,16 +356,18 @@ class SchemaSanitizer:
             if isinstance(data, list):
                 for item in data:
                     if isinstance(item, dict):
-                        if self.modify_field_type(item):
-                            modified = True
+                        # Before modify_field_type: the multi-field decision
+                        # reads the original ECS type.
                         if self.remove_multi_fields(item):
+                            modified = True
+                        if self.modify_field_type(item):
                             modified = True
                         if self.remove_unwanted_fields(item):
                             modified = True
             elif isinstance(data, dict):
-                if self.modify_field_type(data):
-                    modified = True
                 if self.remove_multi_fields(data):
+                    modified = True
+                if self.modify_field_type(data):
                     modified = True
                 if self.remove_unwanted_fields(data):
                     modified = True
@@ -350,8 +409,10 @@ class SchemaSanitizer:
         #
         # The patterns overlap — pathlib expands a leading `**/` to zero
         # directories too, so `**/schemas/**/*.yml` matches everything
-        # `schemas/**/*.yml` does, and every file under `schemas/` was being
-        # read, rewritten and counted twice.
+        # `schemas/**/*.yml` does. Every file must be sanitized exactly once:
+        # the pass is not idempotent, because the multi-field decision reads a
+        # type that the same pass rewrites (`wildcard` -> `keyword`), so a
+        # second visit strips the multi-fields the first one kept.
         seen = set()
         all_files = []
         for pattern in SEARCH_PATTERNS:
@@ -395,6 +456,8 @@ class SchemaSanitizer:
         self.log.info(f"  Specific fixes: {self.stats.specific_fixes}")
         self.log.info(f"  Scaling factor removals: {self.stats.scaling_factor_removals}")
         self.log.info(f"  Multi-field removals: {self.stats.multi_field_removals}")
+        self.log.info(f"  Multi-fields preserved: {self.stats.multi_fields_preserved}")
+        self.log.info(f"  Multi-fields added: {self.stats.multi_fields_added}")
         self.log.info(f"  Fields removed: {self.stats.fields_removed}")
         self.log.info(f"  Total modifications: {self.stats.total_modifications}")
 
