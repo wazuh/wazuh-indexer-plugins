@@ -12,16 +12,18 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
-          "document.name",
           "document.id",
-          "document.type",
-          "document.check",
+          "document.metadata.author",
           "document.metadata.description",
-          "document.metadata.author.name",
-          "document.metadata.author.email",
-          "document.metadata.author.url",
+          "document.metadata.documentation",
+          "document.metadata.references",
+          "document.metadata.supports",
+          "document.metadata.title",
+          "document.name",
+          "document.type",
           "hash.sha256",
-          "space.name"
+          "space.name",
+          "yaml"
         ],
         "refresh_interval": "5s"
       },
@@ -44,13 +46,13 @@
               "type": "boolean"
             },
             "id": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "metadata": {
               "properties": {
                 "author": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "date": {
@@ -61,32 +63,32 @@
                   "type": "text"
                 },
                 "documentation": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "modified": {
                   "type": "date"
                 },
                 "references": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "supports": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "title": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
             },
             "name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "type": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -94,7 +96,7 @@
         "hash": {
           "properties": {
             "sha256": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -102,7 +104,7 @@
         "space": {
           "properties": {
             "name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }

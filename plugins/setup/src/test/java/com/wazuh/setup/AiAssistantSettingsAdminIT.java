@@ -166,9 +166,9 @@ public class AiAssistantSettingsAdminIT extends OpenSearchRestTestCase {
 
     /**
      * Verifies that a {@code privacy_default_per_provider} map keyed by runtime-generated provider
-     * ids is accepted and round-trips. The keys are UUIDs minted by the client, so under this
-     * index's {@code dynamic: strict} mapping the field has to be a {@code flat_object}: as a plain
-     * {@code object} every new key was rejected with a {@code strict_dynamic_mapping_exception}.
+     * ids is accepted and round-trips. The keys are UUIDs minted by the client, so under this index's
+     * {@code dynamic: strict} mapping the field has to be a {@code flat_object}: as a plain {@code
+     * object} every new key was rejected with a {@code strict_dynamic_mapping_exception}.
      *
      * @throws IOException if there is an issue with the HTTP request
      * @throws ParseException if there is an issue parsing the response

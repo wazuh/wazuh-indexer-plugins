@@ -12,11 +12,7 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
-          "agent.host.architecture",
-          "agent.host.ip",
-          "agent.id",
-          "agent.name",
-          "agent.version",
+          "checksum.hash.sha1",
           "host.architecture",
           "host.hostname",
           "host.os.build",
@@ -33,7 +29,17 @@
           "host.os.platform",
           "host.os.type",
           "host.os.version",
-          "state.modified_at",
+          "message",
+          "wazuh.agent.groups",
+          "wazuh.agent.host.architecture",
+          "wazuh.agent.host.hostname",
+          "wazuh.agent.host.os.name",
+          "wazuh.agent.host.os.platform",
+          "wazuh.agent.host.os.type",
+          "wazuh.agent.host.os.version",
+          "wazuh.agent.id",
+          "wazuh.agent.name",
+          "wazuh.agent.version",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
           "wazuh.schema.version"
@@ -50,7 +56,7 @@
             "hash": {
               "properties": {
                 "sha1": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -60,77 +66,77 @@
         "host": {
           "properties": {
             "architecture": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "hostname": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "os": {
               "properties": {
                 "build": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "codename": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "distribution": {
                   "properties": {
                     "release": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     }
                   }
                 },
                 "full": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "kernel": {
                   "properties": {
                     "name": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "release": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "version": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     }
                   }
                 },
                 "major": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "minor": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "patch": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "platform": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "type": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -138,8 +144,7 @@
           }
         },
         "message": {
-          "ignore_above": 1024,
-          "type": "keyword"
+          "type": "match_only_text"
         },
         "state": {
           "properties": {
@@ -156,17 +161,17 @@
             "agent": {
               "properties": {
                 "groups": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "host": {
                   "properties": {
                     "architecture": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "hostname": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "ip": {
@@ -175,19 +180,19 @@
                     "os": {
                       "properties": {
                         "name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "platform": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "type": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "version": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -195,15 +200,15 @@
                   }
                 },
                 "id": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -211,11 +216,11 @@
             "cluster": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "node": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -223,7 +228,7 @@
             "schema": {
               "properties": {
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }

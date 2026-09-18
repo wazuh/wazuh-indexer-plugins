@@ -12,27 +12,31 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
+          "checksum.hash.sha1",
+          "login.tty",
+          "login.type",
+          "message",
+          "user.full_name",
+          "user.groups",
+          "user.home",
           "user.id",
           "user.name",
-          "user.home",
-          "user.type",
-          "user.created",
-          "user.groups",
-          "user.uuid",
-          "user.auth_failures.timestamp",
-          "user.auth_failures.count",
-          "user.group.id_signed",
-          "user.login.status",
-          "user.login.type",
-          "user.login.tty",
+          "user.password.hash_algorithm",
           "user.password.status",
-          "user.password.last_change",
-          "user.password.expiration_date",
           "user.roles",
-          "user.last_login",
-          "process.pid",
-          "host.ip",
-          "state.modified_at",
+          "user.shell",
+          "user.type",
+          "user.uuid",
+          "wazuh.agent.groups",
+          "wazuh.agent.host.architecture",
+          "wazuh.agent.host.hostname",
+          "wazuh.agent.host.os.name",
+          "wazuh.agent.host.os.platform",
+          "wazuh.agent.host.os.type",
+          "wazuh.agent.host.os.version",
+          "wazuh.agent.id",
+          "wazuh.agent.name",
+          "wazuh.agent.version",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
           "wazuh.schema.version"
@@ -49,7 +53,7 @@
             "hash": {
               "properties": {
                 "sha1": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -69,18 +73,17 @@
               "type": "boolean"
             },
             "tty": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "type": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
         },
         "message": {
-          "ignore_above": 1024,
-          "type": "keyword"
+          "type": "match_only_text"
         },
         "process": {
           "properties": {
@@ -115,7 +118,7 @@
               "type": "date"
             },
             "full_name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "group": {
@@ -129,15 +132,15 @@
               }
             },
             "groups": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "home": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "id": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "is_hidden": {
@@ -150,7 +153,7 @@
               "type": "date"
             },
             "name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "password": {
@@ -159,7 +162,7 @@
                   "type": "date"
                 },
                 "hash_algorithm": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "inactive_days": {
@@ -178,7 +181,7 @@
                   "type": "integer"
                 },
                 "status": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "warning_days_before_expiration": {
@@ -187,22 +190,22 @@
               }
             },
             "roles": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "shell": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "type": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "uid_signed": {
               "type": "long"
             },
             "uuid": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -212,17 +215,17 @@
             "agent": {
               "properties": {
                 "groups": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "host": {
                   "properties": {
                     "architecture": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "hostname": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "ip": {
@@ -231,19 +234,19 @@
                     "os": {
                       "properties": {
                         "name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "platform": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "type": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "version": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -251,15 +254,15 @@
                   }
                 },
                 "id": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -267,11 +270,11 @@
             "cluster": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "node": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -279,7 +282,7 @@
             "schema": {
               "properties": {
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }

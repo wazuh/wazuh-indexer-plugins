@@ -12,29 +12,44 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
-          "agent.host.architecture",
-          "agent.host.ip",
-          "agent.id",
-          "agent.name",
-          "agent.version",
-          "service.name",
-          "service.id",
-          "service.description",
-          "service.enabled",
-          "service.restart",
-          "service.state",
-          "service.sub_state",
-          "service.type",
-          "service.start_type",
-          "process.executable",
+          "checksum.hash.sha1",
+          "error.log.file.path",
           "file.path",
           "log.file.path",
-          "error.log.file.path",
+          "message",
           "process.args",
-          "process.user.name",
+          "process.executable",
           "process.group.name",
+          "process.root_directory",
+          "process.user.name",
+          "process.working_directory",
           "service.address",
-          "state.modified_at",
+          "service.description",
+          "service.enabled",
+          "service.following",
+          "service.id",
+          "service.name",
+          "service.object_path",
+          "service.restart",
+          "service.start_type",
+          "service.starts.on_not_empty_directory",
+          "service.starts.on_path_modified",
+          "service.state",
+          "service.sub_state",
+          "service.target.address",
+          "service.target.ephemeral_id",
+          "service.target.type",
+          "service.type",
+          "wazuh.agent.groups",
+          "wazuh.agent.host.architecture",
+          "wazuh.agent.host.hostname",
+          "wazuh.agent.host.os.name",
+          "wazuh.agent.host.os.platform",
+          "wazuh.agent.host.os.type",
+          "wazuh.agent.host.os.version",
+          "wazuh.agent.id",
+          "wazuh.agent.name",
+          "wazuh.agent.version",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
           "wazuh.schema.version"
@@ -51,7 +66,7 @@
             "hash": {
               "properties": {
                 "sha1": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -65,7 +80,7 @@
                 "file": {
                   "properties": {
                     "path": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     }
                   }
@@ -77,7 +92,7 @@
         "file": {
           "properties": {
             "path": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -87,7 +102,7 @@
             "file": {
               "properties": {
                 "path": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -95,23 +110,22 @@
           }
         },
         "message": {
-          "ignore_above": 1024,
-          "type": "keyword"
+          "type": "match_only_text"
         },
         "process": {
           "properties": {
             "args": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "executable": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "group": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -120,19 +134,19 @@
               "type": "long"
             },
             "root_directory": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "user": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
             },
             "working_directory": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -140,48 +154,48 @@
         "service": {
           "properties": {
             "address": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "description": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "enabled": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "exit_code": {
               "type": "integer"
             },
             "following": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "frequency": {
               "type": "long"
             },
             "id": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "inetd_compatibility": {
               "type": "boolean"
             },
             "name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "object_path": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "restart": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "start_type": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "starts": {
@@ -190,41 +204,41 @@
                   "type": "boolean"
                 },
                 "on_not_empty_directory": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "on_path_modified": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
             },
             "state": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "sub_state": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "target": {
               "properties": {
                 "address": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "ephemeral_id": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "type": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
             },
             "type": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "win32_exit_code": {
@@ -247,17 +261,17 @@
             "agent": {
               "properties": {
                 "groups": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "host": {
                   "properties": {
                     "architecture": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "hostname": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "ip": {
@@ -266,19 +280,19 @@
                     "os": {
                       "properties": {
                         "name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "platform": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "type": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "version": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -286,15 +300,15 @@
                   }
                 },
                 "id": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -302,11 +316,11 @@
             "cluster": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "node": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -314,7 +328,7 @@
             "schema": {
               "properties": {
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }

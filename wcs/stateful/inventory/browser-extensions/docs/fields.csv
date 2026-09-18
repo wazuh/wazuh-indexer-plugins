@@ -1,5 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
+9.1.0,true,base,message,match_only_text,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,browser,browser.name,keyword,custom,,chrome,"Name of the browser. Valid values: chrome, chromium, opera, yandex, brave, edge, edge_beta."
 9.1.0,true,browser,browser.profile.name,keyword,custom,,default,Name of the browser profile.
 9.1.0,true,browser,browser.profile.path,keyword,custom,,/home/user/.config/google-chrome/Default,Path to the browser profile.

@@ -12,28 +12,70 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
-          "agent.host.architecture",
-          "agent.host.ip",
-          "agent.id",
-          "agent.name",
-          "agent.version",
+          "checksum.hash.sha1",
+          "host.os.full",
+          "host.os.kernel",
+          "host.os.name",
+          "host.os.platform",
+          "host.os.type",
+          "host.os.version",
+          "message",
           "package.architecture",
-          "package.category",
+          "package.build_version",
+          "package.checksum",
           "package.description",
-          "package.installed",
-          "package.multiarch",
+          "package.install_scope",
+          "package.license",
           "package.name",
           "package.path",
-          "package.priority",
-          "package.size",
-          "package.source",
+          "package.reference",
           "package.type",
-          "package.vendor",
           "package.version",
-          "vulnerability.id",
+          "vulnerability.category",
+          "vulnerability.classification",
           "vulnerability.description",
+          "vulnerability.enumeration",
+          "vulnerability.id",
+          "vulnerability.report_id",
+          "vulnerability.scanner.condition",
+          "vulnerability.scanner.reference",
+          "vulnerability.scanner.source",
+          "vulnerability.scanner.vendor",
+          "vulnerability.score.version",
           "vulnerability.severity",
-          "state.modified_at",
+          "wazuh.agent.build.original",
+          "wazuh.agent.ephemeral_id",
+          "wazuh.agent.groups",
+          "wazuh.agent.host.architecture",
+          "wazuh.agent.host.boot.id",
+          "wazuh.agent.host.domain",
+          "wazuh.agent.host.geo.city_name",
+          "wazuh.agent.host.geo.continent_code",
+          "wazuh.agent.host.geo.continent_name",
+          "wazuh.agent.host.geo.country_iso_code",
+          "wazuh.agent.host.geo.country_name",
+          "wazuh.agent.host.geo.name",
+          "wazuh.agent.host.geo.postal_code",
+          "wazuh.agent.host.geo.region_iso_code",
+          "wazuh.agent.host.geo.region_name",
+          "wazuh.agent.host.geo.timezone",
+          "wazuh.agent.host.hostname",
+          "wazuh.agent.host.id",
+          "wazuh.agent.host.mac",
+          "wazuh.agent.host.name",
+          "wazuh.agent.host.os.family",
+          "wazuh.agent.host.os.full",
+          "wazuh.agent.host.os.kernel",
+          "wazuh.agent.host.os.name",
+          "wazuh.agent.host.os.platform",
+          "wazuh.agent.host.os.type",
+          "wazuh.agent.host.os.version",
+          "wazuh.agent.host.pid_ns_ino",
+          "wazuh.agent.host.type",
+          "wazuh.agent.id",
+          "wazuh.agent.name",
+          "wazuh.agent.type",
+          "wazuh.agent.version",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
           "wazuh.schema.version"
@@ -50,7 +92,7 @@
             "hash": {
               "properties": {
                 "sha1": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -62,27 +104,27 @@
             "os": {
               "properties": {
                 "full": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "kernel": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "platform": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "type": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -90,59 +132,58 @@
           }
         },
         "message": {
-          "ignore_above": 1024,
-          "type": "keyword"
+          "type": "match_only_text"
         },
         "package": {
           "properties": {
             "architecture": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "build_version": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "checksum": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "description": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "install_scope": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "installed": {
               "type": "date"
             },
             "license": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "path": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "reference": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "size": {
               "type": "long"
             },
             "type": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "version": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -160,51 +201,51 @@
         "vulnerability": {
           "properties": {
             "category": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "classification": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "description": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "detected_at": {
               "type": "date"
             },
             "enumeration": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "id": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "published_at": {
               "type": "date"
             },
             "report_id": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "scanner": {
               "properties": {
                 "condition": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "reference": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "source": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "vendor": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -221,13 +262,13 @@
                   "type": "float"
                 },
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
             },
             "severity": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "under_evaluation": {
@@ -242,29 +283,29 @@
                 "build": {
                   "properties": {
                     "original": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     }
                   }
                 },
                 "ephemeral_id": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "groups": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "host": {
                   "properties": {
                     "architecture": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "boot": {
                       "properties": {
                         "id": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -296,73 +337,73 @@
                       }
                     },
                     "domain": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "geo": {
                       "properties": {
                         "city_name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "continent_code": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "continent_name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "country_iso_code": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "country_name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "location": {
                           "type": "geo_point"
                         },
                         "name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "postal_code": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "region_iso_code": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "region_name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "timezone": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
                     },
                     "hostname": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "id": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "ip": {
                       "type": "ip"
                     },
                     "mac": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "name": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "network": {
@@ -392,41 +433,41 @@
                     "os": {
                       "properties": {
                         "family": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "full": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "kernel": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "platform": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "type": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "version": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
                     },
                     "pid_ns_ino": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "type": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "uptime": {
@@ -435,19 +476,19 @@
                   }
                 },
                 "id": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "type": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -455,11 +496,11 @@
             "cluster": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "node": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -467,7 +508,7 @@
             "schema": {
               "properties": {
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }

@@ -188,6 +188,12 @@
 - [BUG] Retry sending resources to SAP after failure [(#1487)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1487)
 - [BUG] `privacy_default_per_provider` mapped as object under `dynamic:strict` rejects new provider overrides [(#1498)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1498)
 - [BUG] Resource creation requires `indices:admin/create` on `.wazuh-content-manager-resource-locks` for the calling user [(#1520)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1520)
+- [BUG] `index.query.default_field` lists name fields the index does not have, fields no text term can match and entries with trailing spaces [(#1536)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1536)
+- [BUG] `logtest` reports `contains` matches that never fire in the real ingestion pipeline (case sensitivity) [(#321)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/321)
+- [BUG] `update_on_schedule` and `sync_interval` are ignored after first boot: the catalog sync job keeps contacting CTI [(#1564)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1564)
+- [BUG] Document that a disabled threat detector produces no findings and that the missed interval is never re-evaluated [(#1531)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1531)
+- [BUG] A rolled-over write index was created outside its own policy, so everything written to it now is unmanaged [(#1533)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1533)
+- [BUG] Document the real ISM retention contract: rollover is volume-driven, so the deletion ages are a floor and low-volume deployments retain data indefinitely [(#1530)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1530)
 
 ## Prior versions
 - []()

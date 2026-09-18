@@ -13,14 +13,14 @@
         "number_of_replicas": "0",
         "number_of_shards": "1",
         "query.default_field": [
-          "event.module",
           "event.kind",
+          "event.module",
           "metric.name",
           "metric.type",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
-          "wazuh.space.name",
-          "wazuh.schema.version"
+          "wazuh.schema.version",
+          "wazuh.space.name"
         ],
         "refresh_interval": "5s"
       },
@@ -37,11 +37,11 @@
         "event": {
           "properties": {
             "kind": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "module": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -52,11 +52,11 @@
               "type": "boolean"
             },
             "name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "type": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "value": {
@@ -69,11 +69,11 @@
             "cluster": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "node": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -81,7 +81,7 @@
             "schema": {
               "properties": {
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -89,7 +89,7 @@
             "space": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }

@@ -38,6 +38,8 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.SetupReadiness;
 
 /**
@@ -113,6 +115,13 @@ public class CatalogSyncJob implements JobExecutor {
      */
     @Override
     public void execute(JobExecutionContext context) {
+        // The job document is reconciled with the settings on start and on every dynamic change,
+        // but a stale `enabled: true` document (written by an older version, restored from a
+        // snapshot, or edited by hand) must never reach CTI while the setting says otherwise.
+        if (!PluginSettings.getInstance().isUpdateOnSchedule()) {
+            log.info(Constants.I_LOG_CATALOG_SYNC_SKIPPED_DISABLED, context.getJobId());
+            return;
+        }
         if (!this.semaphore.tryAcquire()) {
             log.warn(
                     "CatalogSyncJob (ID: {}) skipped because synchronization is already running.",
@@ -235,16 +244,17 @@ public class CatalogSyncJob implements JobExecutor {
             boolean anyFailure = false;
             for (AbstractConsumerService synchronizer : this.synchronizers) {
                 try {
-                    // true means the pass did not fully complete for a transient reason — either the
-                    // configured CTI feed was unreachable (fell back to the local snapshot) or the
-                    // Setup plugin had not yet provisioned this consumer's target indices — and should
-                    // be retried immediately rather than waiting for the next scheduled run.
+                    // true means the pass did not fully complete for a transient reason — the
+                    // configured CTI feed was unreachable (fell back to the local snapshot), the Setup
+                    // plugin had not yet provisioned this consumer's target indices, or the consumer
+                    // finished with a phase still pending and asked for a retry itself — and should be
+                    // retried immediately rather than waiting for the next scheduled run.
                     boolean needsRetry = synchronizer.synchronize();
                     if (needsRetry) {
                         anyFailure = true;
                         log.warn(
-                                "{} did not fully synchronize this pass (unreachable feed or indices not"
-                                        + " yet provisioned); retrying.",
+                                "{} did not fully synchronize this pass (unreachable feed, indices not yet"
+                                        + " provisioned, or a phase left pending); retrying.",
                                 synchronizer.getClass().getSimpleName());
                     } else {
                         log.debug("{} synchronized.", synchronizer.getClass().getSimpleName());
