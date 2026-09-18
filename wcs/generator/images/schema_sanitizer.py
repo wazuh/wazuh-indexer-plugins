@@ -346,12 +346,23 @@ class SchemaSanitizer:
         """
         self.log.info(f"Searching for YAML files in: {self.source_path}")
 
-        # Collect all files first to show progress
+        # Collect all files first to show progress.
+        #
+        # The patterns overlap — pathlib expands a leading `**/` to zero
+        # directories too, so `**/schemas/**/*.yml` matches everything
+        # `schemas/**/*.yml` does, and every file under `schemas/` was being
+        # read, rewritten and counted twice.
+        seen = set()
         all_files = []
         for pattern in SEARCH_PATTERNS:
             for yaml_file in self.source_path.glob(pattern):
-                if yaml_file.is_file():
-                    all_files.append(yaml_file)
+                if not yaml_file.is_file():
+                    continue
+                resolved = yaml_file.resolve()
+                if resolved in seen:
+                    continue
+                seen.add(resolved)
+                all_files.append(yaml_file)
 
         self.log.info(f"Found {len(all_files)} YAML files to process")
 
