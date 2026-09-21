@@ -139,7 +139,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
     /**
      * Create an integration with the same title as an existing integration.
      *
-     * <p>Verifies: Response status code is 400.
+     * <p>Verifies: Response status code is 409.
      *
      * @throws IOException On request or response parsing failure.
      */
@@ -168,8 +168,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 expectThrows(
                         ResponseException.class,
                         () -> this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload));
-        assertEquals(
-                RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
+        assertEquals(RestStatus.CONFLICT.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
     /**
@@ -392,7 +391,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
     /**
      * Update an integration changing its title to one that already exists in draft space.
      *
-     * <p>Verifies: Response status code is 400.
+     * <p>Verifies: Response status code is 409.
      *
      * @throws IOException On request or response parsing failure.
      */
@@ -425,8 +424,7 @@ public class IntegrationCUDIT extends ContentManagerRestTestCase {
                 expectThrows(
                         ResponseException.class,
                         () -> this.makeRequest("PUT", PluginSettings.INTEGRATIONS_URI + "/" + id1, payload));
-        assertEquals(
-                RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
+        assertEquals(RestStatus.CONFLICT.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
     /**

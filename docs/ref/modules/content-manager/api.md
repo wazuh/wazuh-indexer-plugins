@@ -972,7 +972,8 @@ The `message` field contains the UUID of the created rule.
 #### Status codes
 
 - **201** — rule created.
-- **400** — missing fields, duplicate title, integration not in draft space, validation failure, or `max_rules` limit reached (default: 100).
+- **400** — missing fields, integration not in draft space, validation failure, or `max_rules` limit reached (default: 100).
+- **409** — a rule with the same title already exists in the space.
 - **500** — internal error or Ruleset Management unavailable.
 
 ---
@@ -1040,6 +1041,7 @@ curl -sk -u admin:admin -X PUT \
 - **200** — rule updated.
 - **400** — invalid request, not in draft space, or validation failure.
 - **404** — rule not found.
+- **409** — the new title is already used by another rule in the space.
 - **500** — internal error.
 
 ---
@@ -1274,7 +1276,7 @@ curl -sk -u admin:admin -X PUT \
 - **200** — decoder updated.
 - **400** — invalid request, not in draft space, or Engine validation failure.
 - **404** — decoder not found.
-- **500** — internal error.
+- **500** — Engine unavailable or internal error.
 
 ---
 
@@ -1473,7 +1475,7 @@ curl -sk -u admin:admin -X PUT \
 - **200** — filter updated.
 - **400** — invalid request, invalid space, or Engine validation failure.
 - **404** — filter not found.
-- **500** — internal error.
+- **500** — Engine unavailable or internal error.
 
 ---
 
@@ -1585,7 +1587,8 @@ The `message` field contains the UUID of the created integration.
 #### Status codes
 
 - **201** — integration created.
-- **400** — missing required fields (`title`, `author`, `category`), duplicate title, validation failure, or `max_integrations` limit reached (default: 100).
+- **400** — missing required fields (`title`, `author`, `category`), validation failure, or `max_integrations` limit reached (default: 100).
+- **409** — an integration with the same title already exists in the space.
 - **500** — internal error or Ruleset Management/Engine unavailable.
 
 ---
@@ -1661,9 +1664,10 @@ curl -sk -u admin:admin -X PUT \
 #### Status codes
 
 - **200** — integration updated.
-- **400** — invalid request, missing required fields, not in draft space, or duplicate title.
+- **400** — invalid request, missing required fields, or not in draft space.
 - **404** — integration not found.
-- **500** — internal error.
+- **409** — the new title is already used by another integration in the space.
+- **500** — internal error or Ruleset Management/Engine unavailable.
 
 ---
 
@@ -1831,7 +1835,7 @@ resource:
 
 - **201** — KVDB created.
 - **400** — missing `integration` or required resource fields, integration not in draft space, or `max_kvdbs` limit reached (default: 100).
-- **500** — internal error.
+- **500** — Engine unavailable or internal error.
 
 ---
 
@@ -1917,7 +1921,7 @@ curl -sk -u admin:admin -X PUT \
 - **200** — KVDB updated.
 - **400** — invalid request, missing required fields, or not in draft space.
 - **404** — KVDB not found.
-- **500** — internal error.
+- **500** — Engine unavailable or internal error.
 
 ---
 
@@ -2105,8 +2109,9 @@ curl -sk -u admin:admin -X POST \
 #### Status codes
 
 - **200** — promotion successful.
-- **400** — invalid request body or missing `space` field.
-- **500** — Engine communication error or validation failure.
+- **400** — invalid request body, missing `space` field, or Engine validation failure.
+- **409** — a promoted resource already exists in the target space (use an `update` operation instead).
+- **500** — Engine communication error or internal error.
 
 ---
 
