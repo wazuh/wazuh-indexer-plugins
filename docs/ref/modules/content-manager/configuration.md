@@ -31,19 +31,18 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.max_kvdbs`** (Integer, default `100`, minimum `0`, no upper bound, dynamic) — maximum number of KVDBs that can be created. Requests that would exceed this limit are rejected with HTTP 400.
 - **`plugins.content_manager.max_filters`** (Integer, default `100`, minimum `0`, no upper bound, dynamic) — maximum number of filters that can be created per space. Requests that would exceed this limit are rejected with HTTP 400.
 
-- **`plugins.content_manager.cti.console.api`** (String, default `https://api.pre.cloud.wazuh.com`) — base URL for the Wazuh CTI Console, used for instance registration and token exchange. Distinct from `plugins.content_manager.cti.api`, which addresses the CTI catalog API.
-- **`plugins.content_manager.cti.console.timeout`** (Integer, default `5`, range 1–120) — request timeout, in seconds, for CTI Console calls.
-- **`plugins.content_manager.bulk.retry.shed.max_retries`** (Integer, default `3`, range 0–20, dynamic) — number of times a bulk operation the cluster shed under load (circuit breaker trip, indexing-pressure rejection, HTTP 429/503) is re-submitted before its documents are counted as dropped.
-- **`plugins.content_manager.bulk.retry.shed.initial_backoff_millis`** (Long, default `1000`, range 100–600000, dynamic) — delay, in milliseconds, before the first re-submission of a shed bulk operation. Each subsequent retry doubles it, capped at the max backoff.
-- **`plugins.content_manager.bulk.retry.shed.max_backoff_millis`** (Long, default `30000`, range 100–600000, dynamic) — ceiling, in milliseconds, for the exponential backoff between shed bulk re-submissions.
-- **`plugins.content_manager.bulk.retry.topology.max_retries`** (Integer, default `5`, range 0–20, dynamic) — number of times a bulk operation deferred by a transient cluster-topology change (an index recreated mid-load, a shard left unavailable, the node holding it leaving) is re-submitted before its documents are counted as dropped. The default was sized to outlast one rolling restart; raise it on clusters where a restart takes longer, otherwise a synchronization running across a restart drops documents.
-- **`plugins.content_manager.bulk.retry.topology.initial_backoff_millis`** (Long, default `5000`, range 100–600000, dynamic) — delay, in milliseconds, before the first re-submission of a topology-deferred bulk operation. Each subsequent retry doubles it, capped at the max backoff.
-- **`plugins.content_manager.bulk.retry.topology.max_backoff_millis`** (Long, default `30000`, range 100–600000, dynamic) — ceiling, in milliseconds, for the exponential backoff between topology-deferred bulk re-submissions.
+- **`plugins.content_manager.cti.console.timeout`** (Integer, default `5`, range 1–120) — request timeout, in seconds, for CTI Console calls (instance registration, plans, token exchange). The catalog client has its own timeout in `plugins.content_manager.client.timeout`; the Console endpoints resolve against `plugins.content_manager.cti.api`, so moving that setting moves both services.
+- **`plugins.content_manager.bulk.retry.shed.max_retries`** (Integer, default `3`, range 0–10, dynamic) — number of times a bulk operation the cluster shed under load (circuit breaker trip, indexing-pressure rejection, HTTP 429/503) is re-submitted before its documents are counted as dropped.
+- **`plugins.content_manager.bulk.retry.shed.initial_backoff_millis`** (Long, default `1000`, range 100–60000, dynamic) — delay, in milliseconds, before the first re-submission of a shed bulk operation. Each subsequent retry doubles it, capped at the max backoff.
+- **`plugins.content_manager.bulk.retry.shed.max_backoff_millis`** (Long, default `30000`, range 100–60000, dynamic) — ceiling, in milliseconds, for the exponential backoff between shed bulk re-submissions.
+- **`plugins.content_manager.bulk.retry.topology.max_retries`** (Integer, default `5`, range 0–10, dynamic) — number of times a bulk operation deferred by a transient cluster-topology change (an index recreated mid-load, a shard left unavailable, the node holding it leaving) is re-submitted before its documents are counted as dropped. The default was sized to outlast one rolling restart; raise it on clusters where a restart takes longer, otherwise a synchronization running across a restart drops documents.
+- **`plugins.content_manager.bulk.retry.topology.initial_backoff_millis`** (Long, default `5000`, range 100–60000, dynamic) — delay, in milliseconds, before the first re-submission of a topology-deferred bulk operation. Each subsequent retry doubles it, capped at the max backoff.
+- **`plugins.content_manager.bulk.retry.topology.max_backoff_millis`** (Long, default `30000`, range 100–60000, dynamic) — ceiling, in milliseconds, for the exponential backoff between topology-deferred bulk re-submissions.
 - **`plugins.content_manager.job_schedule.max_retries`** (Integer, default `3`, range 0–10) — number of attempts to register a periodic job with the job scheduler before giving up and logging an error.
 - **`plugins.content_manager.job_schedule.retry_backoff_seconds`** (Integer, default `15`, range 1–300) — base delay, in seconds, for the linear backoff between job-registration attempts (delay before attempt `n` is `base * n`).
 - **`plugins.content_manager.resource_lock.max_retries`** (Integer, default `20`, range 1–100, dynamic) — number of attempts to acquire the resource-creation lock before the request is rejected with HTTP 503.
 - **`plugins.content_manager.resource_lock.retry_backoff_millis`** (Long, default `100`, range 10–10000, dynamic) — delay, in milliseconds, between resource-creation lock acquisition attempts.
-- **`plugins.content_manager.resource_lock.stale_threshold_millis`** (Long, default `30000`, range 1000–600000, dynamic) — age, in milliseconds, past which a held resource-creation lock is treated as orphaned by a crashed node and stolen by the next caller.
+- **`plugins.content_manager.resource_lock.stale_threshold_millis`** (Long, default `30000`, range 5000–600000, dynamic) — age, in milliseconds, past which a held resource-creation lock is treated as orphaned by a crashed node and stolen by the next caller. **Set this to the same value on every node**, and above the worst-case resource-creation time: the lock is cluster-wide but the setting is read from each node's own configuration, so nodes that disagree can both consider themselves inside the critical section. The holder never renews the lock, so a value below the time a creation takes lets every concurrent request steal it and the mutex stops working.
 - **`plugins.content_manager.user_overrides.max_update_attempts`** (Integer, default `3`, range 1–20, dynamic) — number of attempts to write the shared user-overrides registry document before giving up. The registry is a single document, so concurrent writers are serialized optimistically and each version conflict re-reads and re-applies.
 - **`plugins.content_manager.integration.max_update_attempts`** (Integer, default `5`, range 1–20, dynamic) — number of attempts to update an integration document on a version conflict, when linking or unlinking a resource, before the operation fails.
 - **`plugins.content_manager.engine.socket_path`** (String, default `/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock`) — filesystem path of the Unix domain socket the Engine API listens on.
@@ -51,11 +50,23 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.engine.not_ready_grace_minutes`** (Integer, default `5`, range 1–1440) — how long, in minutes, the content indices may stay unable to serve reads before the deferral is escalated from a debug line to a warning.
 - **`plugins.content_manager.security_analytics.sync_timeout_seconds`** (Integer, default `60`, range 1–3600) — how long, in seconds, a Ruleset Management bulk synchronization step (uploading rules or integrations) may run before it is abandoned and the pass reported as unsuccessful.
 - **`plugins.content_manager.security_analytics.detector_timeout_seconds`** (Integer, default `30`, range 1–3600) — how long, in seconds, to wait for the first detector creation to complete.
-- **`plugins.content_manager.security_analytics.cleanup_timeout_seconds`** (Integer, default `120`, range 1–3600) — how long, in seconds, to wait for the deletion of stale Ruleset Management rules and integrations after a content swap.
+- **`plugins.content_manager.security_analytics.cleanup_timeout_seconds`** (Integer, default `120`, range 120–3600) — how long, in seconds, to wait for the deletion of stale Ruleset Management rules and integrations after a content swap. The floor is the default: on timeout the deletion is not retried, so lowering it would make stale resources routine rather than exceptional.
 - **`plugins.content_manager.security_analytics.detector_interval`** (Integer, default `2`, range 1–10080, dynamic) — detector schedule interval, in minutes, applied when the CTI integration document does not specify one, or specifies one outside the bounds Ruleset Management accepts.
 - **`plugins.content_manager.update_sub_batch_size`** (Integer, default `50`, range 1–1000) — maximum number of UPDATE offsets batched into a single MultiGet + bulk request while applying a catalog changeset.
 - **`plugins.content_manager.offset_flush_interval`** (Integer, default `10`, range 1–1000) — how many batches (changeset application) or bulks (snapshot load) are processed between consumer-offset checkpoints. A smaller value narrows the window of work replayed after a crash, at the cost of more writes to the consumer-state document.
-- **`plugins.content_manager.search_page_size`** (Integer, default `10000`, range 100–10000) — page size used by the internal paginated searches that enumerate content documents (space membership, IoC reconciliation, detector lookup).
+- **`plugins.content_manager.search_page_size`** (Integer, default `10000`, range 100–10000) — page size used by the paginated IoC reconciliation scan. Lower values mean more round trips over the same documents, not fewer documents.
+
+Settings marked *dynamic* can be changed on a running cluster and take effect on the next operation:
+
+```console
+PUT _cluster/settings
+{
+  "persistent": {
+    "plugins.content_manager.bulk.retry.topology.max_retries": 8,
+    "plugins.content_manager.bulk.retry.topology.max_backoff_millis": 45000
+  }
+}
+```
 
 <!-- // ANCHOR_END: settings-table -->
 

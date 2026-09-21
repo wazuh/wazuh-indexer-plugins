@@ -64,7 +64,7 @@ public class ApiClient {
     /** Constructs an CtiApiClient instance. */
     public ApiClient() {
         PluginSettings settings = PluginSettings.getInstance();
-        this.timeout = settings.getCtiRequestTimeout();
+        this.timeout = settings.getCtiConsoleTimeout();
         this.buildClient();
     }
 

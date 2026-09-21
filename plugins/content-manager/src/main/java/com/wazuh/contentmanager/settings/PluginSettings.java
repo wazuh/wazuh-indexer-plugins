@@ -130,8 +130,8 @@ public class PluginSettings {
     private static final int DEFAULT_USER_OVERRIDES_MAX_UPDATE_ATTEMPTS = 3;
     private static final int DEFAULT_INTEGRATION_MAX_UPDATE_ATTEMPTS = 5;
 
-    // Default timeout value for outbound CTI requests, in seconds.
-    private static final int DEFAULT_CTI_API_TIMEOUT = 60;
+    // Request timeout for the CTI Console client, in seconds.
+    private static final int DEFAULT_CTI_CONSOLE_TIMEOUT = 5;
 
     // Defaults for the Engine integration: the single-flight guard on a content reload, the grace
     // period before a read-not-ready deferral is escalated to a warning, and the Unix socket the
@@ -170,11 +170,14 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Request timeout, in seconds, for CTI API calls. */
-    public static final Setting<Integer> CTI_API_TIMEOUT =
+    /**
+     * Request timeout, in seconds, for CTI Console calls (instance registration, plans, token
+     * exchange). The catalog client has its own timeout in {@link #CLIENT_TIMEOUT}.
+     */
+    public static final Setting<Integer> CTI_CONSOLE_TIMEOUT =
             Setting.intSetting(
-                    "plugins.content_manager.cti.api.timeout",
-                    DEFAULT_CTI_API_TIMEOUT,
+                    "plugins.content_manager.cti.console.timeout",
+                    DEFAULT_CTI_CONSOLE_TIMEOUT,
                     1,
                     120,
                     Setting.Property.NodeScope);
@@ -504,7 +507,7 @@ public class PluginSettings {
                     "plugins.content_manager.bulk.retry.shed.max_retries",
                     DEFAULT_BULK_SHED_MAX_RETRIES,
                     0,
-                    20,
+                    10,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -517,7 +520,7 @@ public class PluginSettings {
                     "plugins.content_manager.bulk.retry.shed.initial_backoff_millis",
                     DEFAULT_BULK_SHED_INITIAL_BACKOFF_MILLIS,
                     100,
-                    600_000,
+                    60_000,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -527,7 +530,7 @@ public class PluginSettings {
                     "plugins.content_manager.bulk.retry.shed.max_backoff_millis",
                     DEFAULT_BULK_SHED_MAX_BACKOFF_MILLIS,
                     100,
-                    600_000,
+                    60_000,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -542,7 +545,7 @@ public class PluginSettings {
                     "plugins.content_manager.bulk.retry.topology.max_retries",
                     DEFAULT_BULK_TOPOLOGY_MAX_RETRIES,
                     0,
-                    20,
+                    10,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -555,7 +558,7 @@ public class PluginSettings {
                     "plugins.content_manager.bulk.retry.topology.initial_backoff_millis",
                     DEFAULT_BULK_TOPOLOGY_INITIAL_BACKOFF_MILLIS,
                     100,
-                    600_000,
+                    60_000,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -568,7 +571,7 @@ public class PluginSettings {
                     "plugins.content_manager.bulk.retry.topology.max_backoff_millis",
                     DEFAULT_BULK_TOPOLOGY_MAX_BACKOFF_MILLIS,
                     100,
-                    600_000,
+                    60_000,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
@@ -627,7 +630,7 @@ public class PluginSettings {
             Setting.longSetting(
                     "plugins.content_manager.resource_lock.stale_threshold_millis",
                     DEFAULT_RESOURCE_LOCK_STALE_THRESHOLD_MILLIS,
-                    1_000,
+                    5_000,
                     600_000,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
@@ -719,7 +722,7 @@ public class PluginSettings {
             Setting.intSetting(
                     "plugins.content_manager.security_analytics.cleanup_timeout_seconds",
                     DEFAULT_SA_CLEANUP_TIMEOUT_SECONDS,
-                    1,
+                    120,
                     3600,
                     Setting.Property.NodeScope);
 
@@ -762,8 +765,11 @@ public class PluginSettings {
                     Setting.Property.NodeScope);
 
     /**
-     * Page size used by the internal paginated searches that enumerate content documents (space
-     * membership, IoC reconciliation, detector lookup).
+     * Page size for the IoC reconciliation scan, the one genuinely paginated search in the plugin
+     * (PIT + {@code search_after}). Lowering it means more round trips over the same documents, not
+     * fewer documents. The remaining bulk reads fetch a complete set in one request and are bounded
+     * by {@link Constants#MAX_RESULT_WINDOW}, which is not configurable because lowering it would
+     * silently truncate them.
      */
     public static final Setting<Integer> SEARCH_PAGE_SIZE =
             Setting.intSetting(
@@ -774,7 +780,7 @@ public class PluginSettings {
                     Setting.Property.NodeScope);
 
     private final String ctiBaseUrl;
-    private final int ctiRequestTimeout;
+    private final int ctiConsoleTimeout;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
     private volatile long logtestMaxBodyBytes;
@@ -876,7 +882,7 @@ public class PluginSettings {
         this.resourceLockStaleThresholdMillis = RESOURCE_LOCK_STALE_THRESHOLD_MILLIS.get(settings);
         this.userOverridesMaxUpdateAttempts = USER_OVERRIDES_MAX_UPDATE_ATTEMPTS.get(settings);
         this.integrationMaxUpdateAttempts = INTEGRATION_MAX_UPDATE_ATTEMPTS.get(settings);
-        this.ctiRequestTimeout = CTI_API_TIMEOUT.get(settings);
+        this.ctiConsoleTimeout = CTI_CONSOLE_TIMEOUT.get(settings);
         this.engineReloadTimeoutMinutes = ENGINE_RELOAD_TIMEOUT_MINUTES.get(settings);
         this.engineNotReadyGraceMinutes = ENGINE_NOT_READY_GRACE_MINUTES.get(settings);
         this.engineSocketPath = ENGINE_SOCKET_PATH.get(settings);
@@ -1541,8 +1547,8 @@ public class PluginSettings {
      *
      * @return the timeout in seconds.
      */
-    public int getCtiRequestTimeout() {
-        return this.ctiRequestTimeout;
+    public int getCtiConsoleTimeout() {
+        return this.ctiConsoleTimeout;
     }
 
     /**

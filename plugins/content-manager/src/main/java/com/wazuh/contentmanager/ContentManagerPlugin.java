@@ -1136,6 +1136,7 @@ public class ContentManagerPlugin extends Plugin
         return Arrays.asList(
                 PluginSettings.CLIENT_TIMEOUT,
                 PluginSettings.CTI_API_URL,
+                PluginSettings.CTI_CONSOLE_TIMEOUT,
                 PluginSettings.MAX_CONCURRENT_BULKS,
                 PluginSettings.MAX_ITEMS_PER_BULK,
                 PluginSettings.MAX_BULK_BYTES,

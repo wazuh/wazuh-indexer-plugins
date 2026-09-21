@@ -100,6 +100,7 @@ public class IndexStateManagement extends Index {
      * @param policy policy name to create.
      */
     void indexPolicy(String policy) {
+        this.indexCreationAttempts = 0;
         try {
             String policyPath = POLICIES_PATH + policy + ".json";
             Map<String, Object> policyFile = this.jsonUtils.fromFile(policyPath);

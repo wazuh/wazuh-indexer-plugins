@@ -25,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Before;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -480,9 +481,11 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         // Constants.MAX_USER_OVERRIDES_UPDATE_ATTEMPTS / IntegrationService.MAX_RETRIES
         Assert.assertEquals(3, s.getUserOverridesMaxUpdateAttempts());
         Assert.assertEquals(5, s.getIntegrationMaxUpdateAttempts());
-        // cti.console.client.ApiClient BASE_URI / TIMEOUT
-        Assert.assertEquals("https://api.pre.cloud.wazuh.com", s.getCtiBaseUrl());
-        Assert.assertEquals(5, s.getCtiRequestTimeout());
+        // cti.console.client.ApiClient TIMEOUT. The Console endpoints resolve against
+        // CTI_API_URL since #1589, and that setting carries the /api/v1 prefix — the bare paths
+        // in ApiClient are appended to it.
+        Assert.assertEquals("https://api.pre.cloud.wazuh.com/api/v1", s.getCtiBaseUrl());
+        Assert.assertEquals(5, s.getCtiConsoleTimeout());
         // EngineContentLoader RELOAD_TIMEOUT / NOT_READY_GRACE, EngineSocketClient socket path
         Assert.assertEquals(10, s.getEngineReloadTimeoutMinutes());
         Assert.assertEquals(5, s.getEngineNotReadyGraceMinutes());
@@ -523,9 +526,9 @@ public class PluginSettingsTests extends OpenSearchTestCase {
     public void testPromotedSettingsReadCustomValues() {
         Settings settings =
                 Settings.builder()
-                        .put("plugins.content_manager.bulk.retry.topology.max_retries", 12)
+                        .put("plugins.content_manager.bulk.retry.topology.max_retries", 9)
                         .put("plugins.content_manager.bulk.retry.topology.initial_backoff_millis", 10_000L)
-                        .put("plugins.content_manager.cti.console.api", "https://api.cloud.wazuh.com")
+                        .put("plugins.content_manager.cti.api", "https://api.cloud.wazuh.com/api/v1")
                         .put("plugins.content_manager.cti.console.timeout", 30)
                         .put("plugins.content_manager.engine.socket_path", "/tmp/engine.sock")
                         .put("plugins.content_manager.search_page_size", 500)
@@ -533,10 +536,10 @@ public class PluginSettingsTests extends OpenSearchTestCase {
                         .build();
         PluginSettings s = PluginSettings.getInstance(settings);
 
-        Assert.assertEquals(12, s.getBulkTopologyMaxRetries());
+        Assert.assertEquals(9, s.getBulkTopologyMaxRetries());
         Assert.assertEquals(10_000L, s.getBulkTopologyInitialBackoffMillis());
-        Assert.assertEquals("https://api.cloud.wazuh.com", s.getCtiBaseUrl());
-        Assert.assertEquals(30, s.getCtiRequestTimeout());
+        Assert.assertEquals("https://api.cloud.wazuh.com/api/v1", s.getCtiBaseUrl());
+        Assert.assertEquals(30, s.getCtiConsoleTimeout());
         Assert.assertEquals("/tmp/engine.sock", s.getEngineSocketPath());
         Assert.assertEquals(500, s.getSearchPageSize());
         Assert.assertEquals(1, s.getOffsetFlushInterval());
@@ -552,7 +555,76 @@ public class PluginSettingsTests extends OpenSearchTestCase {
     /** A retry budget above its maximum is rejected, so a typo cannot produce an endless loop. */
     public void testBulkRetriesAboveMaxThrows() {
         Settings settings =
-                Settings.builder().put("plugins.content_manager.bulk.retry.shed.max_retries", 21).build();
+                Settings.builder().put("plugins.content_manager.bulk.retry.shed.max_retries", 11).build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /**
+     * The retry budget and the backoff ceiling multiply: the worst case a configuration can produce
+     * is {@code max_retries × max_backoff_millis}, because the initial delay is clamped to the
+     * ceiling. Two of the three retry paths block a shared GENERIC thread on {@code Thread.sleep}, so
+     * the maxima are bounded to keep that worst case near ten minutes rather than the hours a wider
+     * range would allow. Ranges can be widened after release but not narrowed, so these assertions
+     * exist to make a future widening a deliberate act.
+     */
+    public void testBulkRetryWorstCaseIsBounded() throws Exception {
+        Settings maxed =
+                Settings.builder()
+                        .put("plugins.content_manager.bulk.retry.topology.max_retries", 10)
+                        .put("plugins.content_manager.bulk.retry.topology.max_backoff_millis", 60_000L)
+                        .build();
+        PluginSettings s = PluginSettings.getInstance(maxed);
+
+        long worstCaseMillis =
+                (long) s.getBulkTopologyMaxRetries() * s.getBulkTopologyMaxBackoffMillis();
+        Assert.assertEquals(
+                "worst-case blocking retry time must stay at 10 minutes",
+                TimeUnit.MINUTES.toMillis(10),
+                worstCaseMillis);
+
+        // getInstance() caches, so each rejection needs a fresh singleton or the settings are never
+        // parsed and the assertion passes vacuously.
+        PluginSettingsTests.clearInstance();
+        Settings tooManyRetries =
+                Settings.builder()
+                        .put("plugins.content_manager.bulk.retry.topology.max_retries", 11)
+                        .build();
+        Assert.assertThrows(
+                IllegalArgumentException.class, () -> PluginSettings.getInstance(tooManyRetries));
+
+        PluginSettingsTests.clearInstance();
+        Settings backoffTooLong =
+                Settings.builder()
+                        .put("plugins.content_manager.bulk.retry.topology.max_backoff_millis", 60_001L)
+                        .build();
+        Assert.assertThrows(
+                IllegalArgumentException.class, () -> PluginSettings.getInstance(backoffTooLong));
+    }
+
+    /**
+     * The lock holder never renews {@code acquired_at}, so a staleness threshold below the worst-case
+     * resource-creation time makes every concurrent request steal the lock and the mutex stops
+     * working. The floor keeps that unreachable by configuration.
+     */
+    public void testResourceLockStaleThresholdBelowFloorThrows() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.resource_lock.stale_threshold_millis", 4_999L)
+                        .build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /**
+     * {@code deleteStaleResources} discards its {@code await()} result, so a timeout there leaves
+     * stale Security Analytics resources behind without retrying them. That is pre-existing and not
+     * fixed here, but the floor keeps it exactly as reachable as it is today rather than letting a
+     * configuration make it routine.
+     */
+    public void testSaCleanupTimeoutBelowDefaultThrows() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.security_analytics.cleanup_timeout_seconds", 119)
+                        .build();
         Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
     }
 
@@ -624,7 +696,7 @@ public class PluginSettingsTests extends OpenSearchTestCase {
             PluginSettings.RESOURCE_LOCK_STALE_THRESHOLD_MILLIS,
             PluginSettings.USER_OVERRIDES_MAX_UPDATE_ATTEMPTS,
             PluginSettings.INTEGRATION_MAX_UPDATE_ATTEMPTS,
-            PluginSettings.CTI_API_TIMEOUT,
+            PluginSettings.CTI_CONSOLE_TIMEOUT,
             PluginSettings.ENGINE_RELOAD_TIMEOUT_MINUTES,
             PluginSettings.ENGINE_NOT_READY_GRACE_MINUTES,
             PluginSettings.ENGINE_SOCKET_PATH,

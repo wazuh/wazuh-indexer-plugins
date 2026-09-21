@@ -920,6 +920,15 @@ public class Constants {
     public static final String OP_REMOVE = "remove";
     public static final String OP_UPDATE = "update";
 
+    /**
+     * The OpenSearch {@code index.max_result_window} default. The searches using it fetch a complete
+     * result set in a single request and have no {@code search_after} or PIT, so this is an
+     * "everything" bound rather than a page size: lowering it would silently truncate them. The
+     * genuinely paginated IoC reconciliation scan uses {@code PluginSettings#SEARCH_PAGE_SIZE}
+     * instead.
+     */
+    public static final int MAX_RESULT_WINDOW = 10_000;
+
     // Bounds Security Analytics accepts for a detector schedule interval, in minutes: one minute to
     // one week.
     public static final int DETECTOR_INTERVAL_MIN_MINUTES = 1;

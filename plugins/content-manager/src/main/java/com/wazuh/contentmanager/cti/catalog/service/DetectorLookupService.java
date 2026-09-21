@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -119,7 +118,7 @@ public class DetectorLookupService {
                                                     "detector.name", "detector.enabled", CUSTOM_RULES_PATH + ".id"
                                                 },
                                                 null)
-                                        .size(PluginSettings.getInstance().getSearchPageSize()))
+                                        .size(Constants.MAX_RESULT_WINDOW))
                         .indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
 
         this.client.search(
@@ -213,7 +212,7 @@ public class DetectorLookupService {
                                                                 QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString())))
                                         .fetchSource(
                                                 new String[] {Constants.Q_DOCUMENT_ID, Constants.Q_DOCUMENT_ENABLED}, null)
-                                        .size(PluginSettings.getInstance().getSearchPageSize()));
+                                        .size(Constants.MAX_RESULT_WINDOW));
 
         this.client.search(
                 request,

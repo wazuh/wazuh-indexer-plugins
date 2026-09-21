@@ -19,12 +19,14 @@ package com.wazuh.contentmanager.engine.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
  * Unit tests for the {@link EngineSocketClient} class.
@@ -43,12 +45,17 @@ public class EngineSocketClientTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        // The no-arg constructor resolves the socket path from the settings singleton. Without
+        // this the test passes or fails depending on which class ran before it in the same JVM.
+        PluginSettings.resetForTesting();
+        PluginSettings.getInstance(Settings.EMPTY);
         this.objectMapper = new ObjectMapper();
     }
 
     @After
     @Override
     public void tearDown() throws Exception {
+        PluginSettings.resetForTesting();
         super.tearDown();
     }
 
