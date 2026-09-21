@@ -88,10 +88,16 @@ public class IndexStateManagement extends Index {
 
     /**
      * Creates every ISM policy added to {@link #policies} by passing it to {@link
-     * #indexPolicy(String)}.
+     * #indexPolicy(String)}. Each policy starts with a fresh retry budget. The counter is reset here
+     * rather than in {@link #indexPolicy(String)} because that method retries by calling itself, so a
+     * reset there would run on every retry and the budget would never run out.
      */
     private void createPolicies() {
-        this.policies.forEach(this::indexPolicy);
+        this.policies.forEach(
+                policy -> {
+                    this.indexCreationAttempts = 0;
+                    this.indexPolicy(policy);
+                });
     }
 
     /**
@@ -100,7 +106,6 @@ public class IndexStateManagement extends Index {
      * @param policy policy name to create.
      */
     void indexPolicy(String policy) {
-        this.indexCreationAttempts = 0;
         try {
             String policyPath = POLICIES_PATH + policy + ".json";
             Map<String, Object> policyFile = this.jsonUtils.fromFile(policyPath);
@@ -232,8 +237,6 @@ public class IndexStateManagement extends Index {
                 .execute()
                 .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
 
-        // Re-used counter: the ISM policy creation that follows gets its own retry budget.
-        this.indexCreationAttempts = 0;
         this.createPolicies();
     }
 }
