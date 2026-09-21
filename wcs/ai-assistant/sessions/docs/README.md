@@ -12,7 +12,7 @@ The detail of the fields can be found in the csv file [Fields](fields.csv).
 ### Data stream
 
 - **Index pattern:** `wazuh-ai-assistant-sessions*`
-- **ISM policy:** `ai-assistant-sessions-policy` — rolls over backing indices daily and deletes indices older than 7 days.
+- **ISM policy:** `ai-assistant-sessions-policy` — rolls over backing indices daily (or earlier at 20 GB per primary shard) and deletes rolled-over indices once they reach 7 days of age.
 
 ### Field table
 

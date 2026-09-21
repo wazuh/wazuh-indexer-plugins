@@ -38,7 +38,7 @@ A standard detector accepts one user change and one only: switching `enabled` on
 
 ```bash
 # Disable a detector (as an administrator)
-curl -sk -u wazuh-admin:<password> -X PUT \
+curl -sk -u admin:<password> -X PUT \
   -H 'Content-Type: application/json' \
   "https://localhost:9200/_plugins/_security_analytics/detectors/<detector_id>" \
   --data-binary @detector-with-enabled-false.json
@@ -48,7 +48,7 @@ curl -sk -u wazuh-admin:<password> -X PUT \
 
 ### Who can switch a detector off
 
-Switching a detector on or off requires `cluster:admin/opensearch/securityanalytics/detector/write`, which among the [default roles](../../security/access-control.md) only `wazuh_admin` holds. `wazuh_demo` and `wazuh_readonly` can read detectors (`detector/get`, `detector/search`) but cannot change their state.
+Switching a detector on or off requires `cluster:admin/opensearch/securityanalytics/detector/write`, which no [default role](../../security/access-control.md) holds — out of the box only `all_access` does. `wazuh_readonly` can read detectors (`detector/get`, `detector/search`) but cannot change their state.
 
 ### The detection gap
 
@@ -67,8 +67,8 @@ Plan a maintenance window that disables a detector accordingly, and re-ingest th
 Every transition is recorded in the Wazuh Indexer log at `INFO`, together with the account that requested it:
 
 ```
-[2026-09-10T13:54:15,906][INFO ][o.o.s.t.TransportIndexDetectorAction] [indexer] Detector [h1BSbaABJb1ilIZ5JvzP] (windows, standard) was disabled by [wazuh-admin]. No findings will be generated for its integration until it is enabled again.
-[2026-09-10T13:54:20,282][INFO ][o.o.s.t.TransportIndexDetectorAction] [indexer] Detector [h1BSbaABJb1ilIZ5JvzP] (windows, standard) was enabled by [wazuh-admin]. Events indexed while it was disabled are not re-evaluated.
+[2026-09-10T13:54:15,906][INFO ][o.o.s.t.TransportIndexDetectorAction] [indexer] Detector [h1BSbaABJb1ilIZ5JvzP] (windows, standard) was disabled by [admin]. No findings will be generated for its integration until it is enabled again.
+[2026-09-10T13:54:20,282][INFO ][o.o.s.t.TransportIndexDetectorAction] [indexer] Detector [h1BSbaABJb1ilIZ5JvzP] (windows, standard) was enabled by [admin]. Events indexed while it was disabled are not re-evaluated.
 ```
 
 A change carried with no authenticated user attached to the request — the Content Manager switching a detector off because its integration was disabled in the CTI catalog, or any cluster running without the security plugin — is logged the same way, with `internal` in place of the account name. Nothing is written when a request leaves the state unchanged, and nothing is written until the change is persisted.

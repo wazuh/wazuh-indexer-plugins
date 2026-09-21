@@ -31,51 +31,51 @@
                     "affected": {
                       "properties": {
                         "collectionURL": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "cpes": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "defaultStatus": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "modules": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "packageName": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "platforms": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "product": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "programFiles": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "programRoutines": {
                           "properties": {
                             "name": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "repo": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "vendor": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "versions": {
@@ -83,33 +83,33 @@
                             "changes": {
                               "properties": {
                                 "at": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "status": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 }
                               }
                             },
                             "lessThan": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "lessThanOrEqual": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "status": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "version": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "versionType": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -119,15 +119,15 @@
                     "configurations": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "supportingMedia": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -135,31 +135,31 @@
                     "credits": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "type": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "user": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
                     },
                     "datePublic": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "descriptions": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "supportingMedia": {
@@ -168,17 +168,17 @@
                               "type": "boolean"
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "value": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -186,15 +186,15 @@
                     "exploits": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "supportingMedia": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -202,13 +202,13 @@
                     "impacts": {
                       "properties": {
                         "capecId": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "descriptions": {
                           "properties": {
                             "lang": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "supportingMedia": {
@@ -217,17 +217,17 @@
                                   "type": "boolean"
                                 },
                                 "type": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "value": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 }
                               }
                             },
                             "value": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -239,76 +239,76 @@
                         "cvssV2_0": {
                           "properties": {
                             "accessComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "accessVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "authentication": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "baseScore": {
                               "type": "float"
                             },
                             "collateralDamagePotential": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "environmentalScore": {
                               "type": "float"
                             },
                             "exploitability": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "remediationLevel": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "reportConfidence": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "targetDistribution": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "temporalScore": {
                               "type": "float"
                             },
                             "vectorString": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "version": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -316,120 +316,120 @@
                         "cvssV3_0": {
                           "properties": {
                             "attackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "attackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "baseScore": {
                               "type": "float"
                             },
                             "baseSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "environmentalScore": {
                               "type": "float"
                             },
                             "environmentalSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "exploitCodeMaturity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedPrivilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedScope": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedUserInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "privilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "remediationLevel": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "reportConfidence": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "scope": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "temporalScore": {
                               "type": "float"
                             },
                             "temporalSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "userInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vectorString": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "version": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -437,120 +437,120 @@
                         "cvssV3_1": {
                           "properties": {
                             "attackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "attackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "baseScore": {
                               "type": "float"
                             },
                             "baseSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "environmentalScore": {
                               "type": "float"
                             },
                             "environmentalSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "exploitCodeMaturity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedPrivilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedScope": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedUserInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "privilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "remediationLevel": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "reportConfidence": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "scope": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "temporalScore": {
                               "type": "float"
                             },
                             "temporalSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "userInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vectorString": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "version": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -558,152 +558,152 @@
                         "cvssV4_0": {
                           "properties": {
                             "Automatable": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "Recovery": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "Safety": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "attackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "attackRequirements": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "attackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "baseScore": {
                               "type": "float"
                             },
                             "baseSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "exploitMaturity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackRequirements": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedPrivilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedSubAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedSubConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedSubIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedUserInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedVulnAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedVulnConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedVulnIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "privilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "providerUrgency": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "subAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "subConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "subIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "userInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "valueDensity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vectorString": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "version": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vulnAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vulnConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vulnIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vulnerabilityResponseEffort": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "format": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "other": {
@@ -712,13 +712,13 @@
                               "type": "flat_object"
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "scenarios": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -728,35 +728,35 @@
                         "descriptions": {
                           "properties": {
                             "cweId": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "description": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "lang": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "references": {
                               "properties": {
                                 "name": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "tags": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "url": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 }
                               }
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -769,15 +769,15 @@
                           "type": "date"
                         },
                         "orgId": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "shortName": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "x_subShortName": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -785,15 +785,15 @@
                     "references": {
                       "properties": {
                         "name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "tags": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "url": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -801,51 +801,51 @@
                     "solutions": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "supportingMedia": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
                     },
                     "source": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "tags": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "taxonomyMappings": {
                       "properties": {
                         "taxonomyName": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "taxonomyRelations": {
                           "properties": {
                             "relationshipName": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "relationshipValue": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "taxonomyId": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "taxonomyVersion": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -853,35 +853,35 @@
                     "timeline": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "time": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
                     },
                     "title": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "workarounds": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "supportingMedia": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -891,15 +891,15 @@
                         "windows": {
                           "properties": {
                             "anyOf": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "products": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           },
@@ -914,51 +914,51 @@
                     "affected": {
                       "properties": {
                         "collectionURL": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "cpes": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "defaultStatus": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "modules": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "packageName": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "platforms": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "product": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "programFiles": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "programRoutines": {
                           "properties": {
                             "name": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "repo": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "vendor": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "versions": {
@@ -966,33 +966,33 @@
                             "changes": {
                               "properties": {
                                 "at": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "status": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 }
                               }
                             },
                             "lessThan": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "lessThanOrEqual": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "status": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "version": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "versionType": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -1002,7 +1002,7 @@
                     "configurations": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "supportingMedia": {
@@ -1011,17 +1011,17 @@
                               "type": "boolean"
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "value": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -1029,35 +1029,35 @@
                     "credits": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "type": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "user": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
                     },
                     "dateAssigned": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "datePublic": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "descriptions": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "supportingMedia": {
@@ -1066,17 +1066,17 @@
                               "type": "boolean"
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "value": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -1084,7 +1084,7 @@
                     "exploits": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "supportingMedia": {
@@ -1093,17 +1093,17 @@
                               "type": "boolean"
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "value": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -1111,13 +1111,13 @@
                     "impacts": {
                       "properties": {
                         "capecId": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "descriptions": {
                           "properties": {
                             "lang": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "supportingMedia": {
@@ -1126,17 +1126,17 @@
                                   "type": "boolean"
                                 },
                                 "type": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "value": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 }
                               }
                             },
                             "value": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -1148,76 +1148,76 @@
                         "cvssV2_0": {
                           "properties": {
                             "accessComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "accessVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "authentication": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "baseScore": {
                               "type": "float"
                             },
                             "collateralDamagePotential": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "environmentalScore": {
                               "type": "float"
                             },
                             "exploitability": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "remediationLevel": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "reportConfidence": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "targetDistribution": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "temporalScore": {
                               "type": "float"
                             },
                             "vectorString": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "version": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -1225,120 +1225,120 @@
                         "cvssV3_0": {
                           "properties": {
                             "attackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "attackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "baseScore": {
                               "type": "float"
                             },
                             "baseSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "environmentalScore": {
                               "type": "float"
                             },
                             "environmentalSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "exploitCodeMaturity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedPrivilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedScope": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedUserInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "privilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "remediationLevel": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "reportConfidence": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "scope": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "temporalScore": {
                               "type": "float"
                             },
                             "temporalSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "userInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vectorString": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "version": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -1346,120 +1346,120 @@
                         "cvssV3_1": {
                           "properties": {
                             "attackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "attackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "baseScore": {
                               "type": "float"
                             },
                             "baseSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "environmentalScore": {
                               "type": "float"
                             },
                             "environmentalSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "exploitCodeMaturity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedPrivilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedScope": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedUserInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "privilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "remediationLevel": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "reportConfidence": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "scope": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "temporalScore": {
                               "type": "float"
                             },
                             "temporalSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "userInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vectorString": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "version": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -1467,152 +1467,152 @@
                         "cvssV4_0": {
                           "properties": {
                             "Automatable": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "Recovery": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "Safety": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "attackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "attackRequirements": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "attackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "availabilityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "baseScore": {
                               "type": "float"
                             },
                             "baseSeverity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "confidentialityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "exploitMaturity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "integrityRequirement": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackComplexity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackRequirements": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedAttackVector": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedPrivilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedSubAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedSubConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedSubIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedUserInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedVulnAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedVulnConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "modifiedVulnIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "privilegesRequired": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "providerUrgency": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "subAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "subConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "subIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "userInteraction": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "valueDensity": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vectorString": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "version": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vulnAvailabilityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vulnConfidentialityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vulnIntegrityImpact": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "vulnerabilityResponseEffort": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "format": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "other": {
@@ -1621,13 +1621,13 @@
                               "type": "flat_object"
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "scenarios": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -1637,35 +1637,35 @@
                         "descriptions": {
                           "properties": {
                             "cweId": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "description": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "lang": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "references": {
                               "properties": {
                                 "name": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "tags": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "url": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 }
                               }
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
@@ -1678,15 +1678,15 @@
                           "type": "date"
                         },
                         "orgId": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "shortName": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "x_subShortName": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -1694,15 +1694,15 @@
                     "references": {
                       "properties": {
                         "name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "tags": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "url": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -1710,27 +1710,27 @@
                     "rejectedReasons": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "supportingMedia": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
                     },
                     "replacedBy": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "solutions": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "supportingMedia": {
@@ -1739,53 +1739,53 @@
                               "type": "boolean"
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "value": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
                     },
                     "source": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "tags": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "taxonomyMappings": {
                       "properties": {
                         "taxonomyName": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "taxonomyRelations": {
                           "properties": {
                             "relationshipName": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "relationshipValue": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "taxonomyId": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "taxonomyVersion": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -1793,27 +1793,27 @@
                     "timeline": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "time": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
                     },
                     "title": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "workarounds": {
                       "properties": {
                         "lang": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "supportingMedia": {
@@ -1822,17 +1822,17 @@
                               "type": "boolean"
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "value": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           }
                         },
                         "value": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -1842,15 +1842,15 @@
                         "windows": {
                           "properties": {
                             "anyOf": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "products": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             },
                             "type": {
-                              "ignore_above": 1024,
+                              "ignore_above": 4096,
                               "type": "keyword"
                             }
                           },
@@ -1865,15 +1865,15 @@
             "cveMetadata": {
               "properties": {
                 "assignerOrgId": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "assignerShortName": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "cveId": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "datePublished": {
@@ -1889,25 +1889,25 @@
                   "type": "date"
                 },
                 "requesterUserId": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "serial": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "state": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
             },
             "dataType": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "dataVersion": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -1916,22 +1916,22 @@
           "type": "date"
         },
         "name": {
-          "ignore_above": 1024,
+          "ignore_above": 4096,
           "type": "keyword"
         },
         "offset": {
           "type": "unsigned_long"
         },
         "tags": {
-          "ignore_above": 1024,
+          "ignore_above": 4096,
           "type": "keyword"
         },
         "type": {
-          "ignore_above": 1024,
+          "ignore_above": 4096,
           "type": "keyword"
         },
         "version": {
-          "ignore_above": 1024,
+          "ignore_above": 4096,
           "type": "keyword"
         }
       }
