@@ -42,6 +42,7 @@
     - [Architecture](ref/modules/setup/architecture.md)
     - [Configuration](ref/modules/setup/configuration.md)
     - [API reference](ref/modules/setup/api-reference.md)
+    - [Retention](ref/modules/setup/retention.md)
     - [Wazuh Common Schema](ref/modules/setup/schema.md)
   - [Content Manager](ref/modules/content-manager/index.md)
     - [Architecture](ref/modules/content-manager/architecture.md)

@@ -25,6 +25,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.NoShardAvailableActionException;
+import org.opensearch.action.UnavailableShardsException;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -49,16 +52,21 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.breaker.CircuitBreakingException;
 import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.node.NodeClosedException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.NodeDisconnectedException;
+import org.opensearch.transport.NodeNotConnectedException;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
@@ -85,19 +93,83 @@ public class ContentIndex {
     /** The second physical suffix, used as the shadow slot during blue/green swaps. */
     public static final String SUFFIX_B = "-b";
 
-    private static final int MAX_UPDATE_RETRIES = 3;
-    private static final long UPDATE_INITIAL_BACKOFF_MS = 1000;
-    private static final long UPDATE_MAX_BACKOFF_MS = 30_000;
+    /**
+     * How persistently a failed operation is worth re-submitting, and on what schedule
+     */
+    private enum RetryPolicy {
+        /**
+         * The cluster shed the operation under load: a circuit breaker trip, an indexing-pressure
+         * rejection, or a 429/503. Pressure clears in seconds, so a short budget is enough.
+         */
+        SHED(3, 1_000, 30_000, "shed", "the cluster was still shedding"),
 
-    private static final int MAX_BULK_RETRIES = 3;
-    private static final long BULK_INITIAL_BACKOFF_MS = 1000;
-    private static final long BULK_MAX_BACKOFF_MS = 30_000;
+        /**
+         * A transient cluster-topology change: an index recreated mid-load, a shard left unavailable,
+         * or the node holding it leaving. A rolling restart takes tens of seconds per node, so this
+         * budget has to outlast one full cluster restart.
+         */
+        TOPOLOGY(5, 5_000, 30_000, "deferred", "the cluster had not settled");
+
+        private final int maxRetries;
+        private final long initialBackoffMs;
+        private final long maxBackoffMs;
+        private final String verb;
+        private final String unsettledPhrase;
+
+        RetryPolicy(
+                int maxRetries,
+                long initialBackoffMs,
+                long maxBackoffMs,
+                String verb,
+                String unsettledPhrase) {
+            this.maxRetries = maxRetries;
+            this.initialBackoffMs = initialBackoffMs;
+            this.maxBackoffMs = maxBackoffMs;
+            this.verb = verb;
+            this.unsettledPhrase = unsettledPhrase;
+        }
+
+        /** The delay before the retry that follows the given zero-based attempt. */
+        long backoffMs(int attempt) {
+            long backoff = this.initialBackoffMs;
+            for (int i = 0; i < attempt; i++) {
+                backoff = Math.min(backoff * 2, this.maxBackoffMs);
+            }
+            return backoff;
+        }
+
+        /**
+         * The more persistent of two policies. A batch holding both kinds of failure is retried on the
+         * schedule that outlasts both.
+         */
+        static RetryPolicy mostPersistent(RetryPolicy a, RetryPolicy b) {
+            if (a == null) {
+                return b;
+            }
+            if (b == null) {
+                return a;
+            }
+            return a == TOPOLOGY || b == TOPOLOGY ? TOPOLOGY : SHED;
+        }
+    }
 
     /** Maximum number of UPDATE offsets to batch into a single MultiGet + BulkRequest. */
     public static final int UPDATE_SUB_BATCH_SIZE = 50;
 
     /** Describes a single document update: the document ID, patch operations, and CTI offset. */
     public record UpdateTask(String id, List<Operation> operations, long offset) {}
+
+    /** A synchronous call to the cluster that may fail with a checked exception. */
+    @FunctionalInterface
+    private interface ClusterCall<T> {
+        /**
+         * Runs the call.
+         *
+         * @return The call's result.
+         * @throws Exception If the call fails.
+         */
+        T run() throws Exception;
+    }
 
     private final Client client;
     private final PluginSettings pluginSettings;
@@ -448,27 +520,12 @@ public class ContentIndex {
      * @throws Exception If the document does not exist, or if patching/indexing fails.
      */
     public void update(String id, List<Operation> operations, Long offset) throws Exception {
-        long backoffMs = UPDATE_INITIAL_BACKOFF_MS;
-
-        for (int attempt = 0; ; attempt++) {
-            try {
-                this.doUpdate(id, operations, offset);
-                return;
-            } catch (Exception e) {
-                if (attempt < MAX_UPDATE_RETRIES && isCircuitBreakerException(e)) {
-                    log.warn(
-                            "Circuit breaker tripped during update of [{}], retry {}/{} in {}ms",
-                            id,
-                            attempt + 1,
-                            MAX_UPDATE_RETRIES,
-                            backoffMs);
-                    Thread.sleep(backoffMs);
-                    backoffMs = Math.min(backoffMs * 2, UPDATE_MAX_BACKOFF_MS);
-                } else {
-                    throw e;
-                }
-            }
-        }
+        this.retryTransient(
+                "update of document [" + id + "]",
+                () -> {
+                    this.doUpdate(id, operations, offset);
+                    return null;
+                });
     }
 
     private void doUpdate(String id, List<Operation> operations, Long offset) throws Exception {
@@ -537,7 +594,9 @@ public class ContentIndex {
                     new MultiGetRequest.Item(this.indexName, task.id()).fetchSourceContext(excludeYaml));
         }
         MultiGetResponse mgetResponse =
-                this.client.multiGet(mgetRequest).get(timeout, TimeUnit.SECONDS);
+                this.retryTransient(
+                        "multi-get of " + tasks.size() + " document(s)",
+                        () -> this.client.multiGet(mgetRequest).get(timeout, TimeUnit.SECONDS));
         MultiGetItemResponse[] responses = mgetResponse.getResponses();
 
         // 2. Stream: patch each document and flush when size limit is reached
@@ -597,18 +656,86 @@ public class ContentIndex {
         return tasks.get(tasks.size() - 1).offset();
     }
 
+    /**
+     * Submits one accumulated bulk of update operations, re-submitting the items the cluster shed
+     * until they are applied or the retry budget is exhausted.
+     *
+     * @param bulkRequest The operations to apply.
+     * @param timeout The client timeout, in seconds.
+     * @throws Exception If an item fails permanently, or if the cluster is still shedding once the
+     *     retry budget is exhausted.
+     */
     private void executeBulkUpdate(BulkRequest bulkRequest, long timeout) throws Exception {
-        BulkResponse bulkResponse = this.client.bulk(bulkRequest).get(timeout, TimeUnit.SECONDS);
-        if (bulkResponse.hasFailures()) {
-            for (BulkItemResponse item : bulkResponse.getItems()) {
-                if (item.isFailed()) {
-                    throw new IOException(
-                            "Bulk update failed for document ["
-                                    + item.getId()
-                                    + "]: "
-                                    + item.getFailureMessage());
+        BulkRequest pending = bulkRequest;
+
+        for (int attempt = 0; ; attempt++) {
+            BulkRequest retryRequest;
+            String lastRetryableFailure;
+            RetryPolicy policy;
+            // Captured before submission: see submitBulk.
+            List<DocWriteRequest<?>> operations = new ArrayList<>(pending.requests());
+
+            try {
+                BulkResponse bulkResponse = this.client.bulk(pending).get(timeout, TimeUnit.SECONDS);
+                if (!bulkResponse.hasFailures()) {
+                    return;
                 }
+
+                retryRequest = new BulkRequest();
+                lastRetryableFailure = null;
+                policy = null;
+                for (BulkItemResponse item : bulkResponse.getItems()) {
+                    if (!item.isFailed()) {
+                        continue;
+                    }
+                    RetryPolicy itemPolicy = retryPolicyFor(item.getFailure());
+                    if (itemPolicy == null) {
+                        throw new IOException(
+                                "Bulk update failed for document ["
+                                        + item.getId()
+                                        + "]: "
+                                        + item.getFailureMessage());
+                    }
+                    retryRequest.add(operations.get(item.getItemId()));
+                    lastRetryableFailure = item.getFailureMessage();
+                    policy = RetryPolicy.mostPersistent(policy, itemPolicy);
+                }
+            } catch (ExecutionException e) {
+                // The whole request was rejected before any item was evaluated.
+                policy = retryPolicyFor(e);
+                if (policy == null) {
+                    throw e;
+                }
+                retryRequest = bulkOf(operations);
+                lastRetryableFailure = e.getMessage();
             }
+
+            int deferred = retryRequest.numberOfActions();
+            if (attempt >= policy.maxRetries) {
+                throw new IOException(
+                        "Bulk update "
+                                + policy.verb
+                                + " "
+                                + deferred
+                                + " document(s) and "
+                                + policy.unsettledPhrase
+                                + " after "
+                                + policy.maxRetries
+                                + " retries. Last failure: "
+                                + lastRetryableFailure);
+            }
+
+            long backoffMs = policy.backoffMs(attempt);
+            log.warn(
+                    policy == RetryPolicy.SHED
+                            ? Constants.W_LOG_BULK_UPDATE_RETRY_SCHEDULED
+                            : Constants.W_LOG_BULK_UPDATE_RETRY_TOPOLOGY,
+                    deferred,
+                    attempt + 1,
+                    policy.maxRetries,
+                    backoffMs);
+            Thread.sleep(backoffMs);
+            pending = retryRequest;
         }
     }
 
@@ -736,7 +863,8 @@ public class ContentIndex {
      * <p>The indexer is deliberately configured to shed writes rather than exhaust the heap (see
      * {@code indices.breaker.total.limit} in {@code opensearch.prod.yml}), so a rejected bulk is an
      * expected, transient outcome that the client is responsible for re-submitting. Only the failed
-     * items are retried, with exponential backoff, up to {@link #MAX_BULK_RETRIES} attempts.
+     * items are retried, with exponential backoff, for as many attempts as their {@link RetryPolicy}
+     * allows.
      *
      * <p>Items that fail for a non-retryable reason, and items still failing once the retry budget is
      * exhausted, are counted in {@link #getDroppedDocuments()} so callers can avoid committing
@@ -755,7 +883,7 @@ public class ContentIndex {
             Thread.currentThread().interrupt();
             return;
         }
-        this.submitBulk(bulkRequest, 0, BULK_INITIAL_BACKOFF_MS);
+        this.submitBulk(bulkRequest, 0, RetryPolicy.SHED);
     }
 
     /**
@@ -765,9 +893,11 @@ public class ContentIndex {
      *
      * @param bulkRequest The operations to submit on this attempt.
      * @param attempt The zero-based attempt number.
-     * @param backoffMs The delay to apply before the next attempt, if one is needed.
+     * @param policy The policy that scheduled this attempt. A later attempt may escalate it.
      */
-    private void submitBulk(BulkRequest bulkRequest, int attempt, long backoffMs) {
+    private void submitBulk(BulkRequest bulkRequest, int attempt, RetryPolicy policy) {
+        List<DocWriteRequest<?>> operations = new ArrayList<>(bulkRequest.requests());
+
         this.client.bulk(
                 bulkRequest,
                 new ActionListener<>() {
@@ -782,15 +912,18 @@ public class ContentIndex {
                         int permanent = 0;
                         String lastPermanentFailure = null;
                         String lastRetryableFailure = null;
+                        RetryPolicy retryPolicy = null;
 
                         for (BulkItemResponse item : bulkResponse.getItems()) {
                             if (!item.isFailed()) {
                                 continue;
                             }
                             BulkItemResponse.Failure failure = item.getFailure();
-                            if (isRetryable(failure)) {
-                                retryRequest.add(bulkRequest.requests().get(item.getItemId()));
+                            RetryPolicy itemPolicy = retryPolicyFor(failure);
+                            if (itemPolicy != null) {
+                                retryRequest.add(operations.get(item.getItemId()));
                                 lastRetryableFailure = item.getFailureMessage();
+                                retryPolicy = RetryPolicy.mostPersistent(retryPolicy, itemPolicy);
                             } else {
                                 permanent++;
                                 lastPermanentFailure = item.getFailureMessage();
@@ -806,16 +939,18 @@ public class ContentIndex {
                             ContentIndex.this.semaphore.release();
                             return;
                         }
-                        ContentIndex.this.retryOrDrop(retryRequest, attempt, backoffMs, lastRetryableFailure);
+                        ContentIndex.this.retryOrDrop(retryRequest, attempt, retryPolicy, lastRetryableFailure);
                     }
 
                     @Override
                     public void onFailure(Exception e) {
-                        if (isRetryable(e)) {
-                            ContentIndex.this.retryOrDrop(bulkRequest, attempt, backoffMs, e.getMessage());
+                        RetryPolicy failurePolicy = retryPolicyFor(e);
+                        if (failurePolicy != null) {
+                            ContentIndex.this.retryOrDrop(
+                                    bulkOf(operations), attempt, failurePolicy, e.getMessage());
                             return;
                         }
-                        ContentIndex.this.droppedDocuments.addAndGet(bulkRequest.numberOfActions());
+                        ContentIndex.this.droppedDocuments.addAndGet(operations.size());
                         log.error(Constants.E_LOG_BULK_INDEX_OPERATION_FAILED, e.getMessage());
                         ContentIndex.this.semaphore.release();
                     }
@@ -828,29 +963,36 @@ public class ContentIndex {
      *
      * @param retryRequest The operations still pending.
      * @param attempt The zero-based attempt number that just failed.
+     * @param policy The policy to retry under, chosen from the failures this attempt reported.
      * @param backoffMs The delay to apply before this retry.
      * @param failureMessage The failure reported by the last attempt, for logging.
      */
     private void retryOrDrop(
-            BulkRequest retryRequest, int attempt, long backoffMs, String failureMessage) {
+            BulkRequest retryRequest, int attempt, RetryPolicy policy, String failureMessage) {
         int pending = retryRequest.numberOfActions();
 
-        if (attempt >= MAX_BULK_RETRIES) {
+        if (attempt >= policy.maxRetries) {
             this.droppedDocuments.addAndGet(pending);
-            log.error(Constants.E_LOG_BULK_RETRIES_EXHAUSTED, pending, MAX_BULK_RETRIES, failureMessage);
+            log.error(Constants.E_LOG_BULK_RETRIES_EXHAUSTED, pending, policy.maxRetries, failureMessage);
             this.semaphore.release();
             return;
         }
 
+        long backoffMs = policy.backoffMs(attempt);
         log.warn(
-                Constants.W_LOG_BULK_RETRY_SCHEDULED, pending, attempt + 1, MAX_BULK_RETRIES, backoffMs);
+                policy == RetryPolicy.SHED
+                        ? Constants.W_LOG_BULK_RETRY_SCHEDULED
+                        : Constants.W_LOG_BULK_RETRY_TOPOLOGY,
+                pending,
+                attempt + 1,
+                policy.maxRetries,
+                backoffMs);
 
-        long nextBackoffMs = Math.min(backoffMs * 2, BULK_MAX_BACKOFF_MS);
         try {
             this.client
                     .threadPool()
                     .schedule(
-                            () -> this.submitBulk(retryRequest, attempt + 1, nextBackoffMs),
+                            () -> this.submitBulk(retryRequest, attempt + 1, policy),
                             TimeValue.timeValueMillis(backoffMs),
                             ThreadPool.Names.GENERIC);
         } catch (Exception e) {
@@ -858,6 +1000,44 @@ public class ContentIndex {
             this.droppedDocuments.addAndGet(pending);
             log.error(Constants.E_LOG_BULK_RETRY_SCHEDULE_FAILED, pending, e.getMessage());
             this.semaphore.release();
+        }
+    }
+
+    /**
+     * Runs a synchronous cluster call, re-submitting it while the failure is a transient condition
+     * the cluster is expected to clear on its own rather than a rejection of the request itself.
+     *
+     * <p>This is the blocking sibling of {@link #retryOrDrop(BulkRequest, int, RetryPolicy, String)}:
+     * a deferred call is logged at {@code WARN} and retried on the schedule its {@link RetryPolicy}
+     * prescribes, and the failure only propagates once the retry budget is exhausted. Nothing is
+     * dropped, because the callers on this path commit a consumer offset on return.
+     *
+     * @param description What is being retried, for logging.
+     * @param call The call to run.
+     * @param <T> The call's result type.
+     * @return The call's result.
+     * @throws Exception The failure, once it is permanent or the retry budget is exhausted.
+     */
+    private <T> T retryTransient(String description, ClusterCall<T> call) throws Exception {
+        for (int attempt = 0; ; attempt++) {
+            try {
+                return call.run();
+            } catch (Exception e) {
+                RetryPolicy policy = retryPolicyFor(e);
+                if (policy == null || attempt >= policy.maxRetries) {
+                    throw e;
+                }
+                long backoffMs = policy.backoffMs(attempt);
+                log.warn(
+                        policy == RetryPolicy.SHED
+                                ? Constants.W_LOG_SHED_CALL_RETRY_SCHEDULED
+                                : Constants.W_LOG_TRANSIENT_CALL_RETRY_SCHEDULED,
+                        description,
+                        attempt + 1,
+                        policy.maxRetries,
+                        backoffMs);
+                Thread.sleep(backoffMs);
+            }
         }
     }
 
@@ -876,6 +1056,20 @@ public class ContentIndex {
         this.droppedDocuments.set(0);
     }
 
+    /**
+     * Builds a request from operations captured before an earlier submission.
+     *
+     * @param operations The operations to re-submit.
+     * @return A new request carrying them.
+     */
+    private static BulkRequest bulkOf(List<DocWriteRequest<?>> operations) {
+        BulkRequest request = new BulkRequest();
+        for (DocWriteRequest<?> operation : operations) {
+            request.add(operation);
+        }
+        return request;
+    }
+
     /** Returns true if any cause in the chain is an instance of the given type. */
     private static boolean hasCause(Throwable throwable, Class<? extends Throwable> type) {
         Throwable cause = throwable;
@@ -888,27 +1082,52 @@ public class ContentIndex {
         return false;
     }
 
-    private static boolean isCircuitBreakerException(Exception e) {
-        return hasCause(e, CircuitBreakingException.class);
+    /**
+     * The policy a failed operation is worth re-submitting under, or {@code null} when the failure is
+     * the cluster rejecting the operation itself and retrying cannot help.
+     */
+    private static RetryPolicy retryPolicyFor(Exception e) {
+        if (isPermanent(e)) {
+            return null;
+        }
+        if (hasCause(e, CircuitBreakingException.class)
+                || hasCause(e, OpenSearchRejectedExecutionException.class)) {
+            return RetryPolicy.SHED;
+        }
+        if (hasCause(e, IndexNotFoundException.class)
+                || hasCause(e, UnavailableShardsException.class)
+                || hasCause(e, NoShardAvailableActionException.class)
+                || hasCause(e, NodeDisconnectedException.class)
+                || hasCause(e, NodeNotConnectedException.class)) {
+            return RetryPolicy.TOPOLOGY;
+        }
+        return null;
     }
 
     /**
-     * Whether a failure is the cluster shedding load rather than rejecting the document itself.
-     * Circuit breaker trips and thread pool / indexing pressure rejections are transient and clear on
-     * their own, so the operation is worth re-submitting.
+     * Failures that are never worth re-submitting, whatever status they report. The local node going
+     * away is expected restart noise: retrying only burns the budget while it shuts down.
      */
-    private static boolean isRetryable(Exception e) {
-        return hasCause(e, CircuitBreakingException.class)
-                || hasCause(e, OpenSearchRejectedExecutionException.class);
+    private static boolean isPermanent(Throwable t) {
+        return hasCause(t, NodeClosedException.class);
     }
 
-    /** Per-item variant of {@link #isRetryable(Exception)}, which also honours the REST status. */
-    private static boolean isRetryable(BulkItemResponse.Failure failure) {
-        RestStatus status = failure.getStatus();
-        if (status == RestStatus.TOO_MANY_REQUESTS || status == RestStatus.SERVICE_UNAVAILABLE) {
-            return true;
+    /**
+     * Per-item variant of {@link #retryPolicyFor(Exception)}, which falls back to the REST status.
+     */
+    private static RetryPolicy retryPolicyFor(BulkItemResponse.Failure failure) {
+        Exception cause = failure.getCause();
+        if (isPermanent(cause)) {
+            return null;
         }
-        return isRetryable(failure.getCause());
+        RetryPolicy byCause = retryPolicyFor(cause);
+        if (byCause != null) {
+            return byCause;
+        }
+        RestStatus status = failure.getStatus();
+        return status == RestStatus.TOO_MANY_REQUESTS || status == RestStatus.SERVICE_UNAVAILABLE
+                ? RetryPolicy.SHED
+                : null;
     }
 
     /**

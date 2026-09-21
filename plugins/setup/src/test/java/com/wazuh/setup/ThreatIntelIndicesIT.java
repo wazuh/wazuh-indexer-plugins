@@ -295,8 +295,14 @@ public class ThreatIntelIndicesIT extends OpenSearchRestTestCase {
      */
     @After
     public void clearFieldData() throws IOException {
-        Request request = new Request("POST", "/_cache/clear");
+        // Scoped to Wazuh's own indices. A cluster-wide clear also resolves OpenSearch's system
+        // indices, and the deprecation warning returned for those fails the REST test client,
+        // which is strict about warnings, even though the clear itself answers 200. The warning
+        // is deduplicated per node, so it strikes whichever test runs first once
+        // .opendistro-job-scheduler-lock exists, and reads as a failure of that test.
+        Request request = new Request("POST", "/wazuh-*,.wazuh-*/_cache/clear");
         request.addParameter("fielddata", "true");
+        request.addParameter("expand_wildcards", "open,hidden");
         client().performRequest(request);
     }
 }
