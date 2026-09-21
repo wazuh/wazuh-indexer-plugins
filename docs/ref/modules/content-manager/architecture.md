@@ -94,8 +94,10 @@ Serializes the "count existing resources, then create if under the configured ma
 concurrent create requests cannot all observe a stale count and overshoot the limit. The mutex is a
 short-lived document with a deterministic ID per (resource type, space) in the hidden
 `.wazuh-content-manager-resource-locks` index, written with `op_type=create` so only one request can
-hold it at a time. It is released when the creation chain finishes, and a lock older than 30 seconds
-is stolen by the next caller so a crashed node cannot block creations permanently.
+hold it at a time. It is released when the creation chain finishes, and a lock older than
+`plugins.content_manager.resource_lock.stale_threshold_millis` (default 30 s) is stolen by the
+next caller so a crashed node cannot block creations permanently. That threshold must be set
+identically on every node — see [Configuration](configuration.md).
 
 The lock index is plugin-internal bookkeeping and is never addressed by API consumers:
 

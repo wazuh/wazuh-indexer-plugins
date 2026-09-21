@@ -264,9 +264,9 @@ INFO   ... Failed to schedule Telemetry Ping Job: Index .wazuh-content-manager-j
 INFO   ... Retrying Telemetry Ping Job (attempt 1/3) in 15s.
 ```
 
-The plugin automatically retries each registration up to 3 times with a linear backoff (15 s, 30 s, 45 s). Each attempt logs the failure reason and the scheduled retry delay at `INFO` — these are expected during startup and do not require action.
+The plugin automatically retries each registration up to `plugins.content_manager.job_schedule.max_retries` times (default 3) with a linear backoff of `plugins.content_manager.job_schedule.retry_backoff_seconds` × attempt (default 15 s, so 15 s, 30 s, 45 s). Each attempt logs the failure reason and the scheduled retry delay at `INFO` — these are expected during startup and do not require action.
 
-If all retries fail, the plugin logs `ERROR ... Giving up scheduling <job> after 3 attempts.` and the job will only be retried on the next node start. A persistent failure usually indicates the cluster cannot allocate shards — check cluster health with `GET _cluster/health` and verify index allocation settings.
+If all retries fail, the plugin logs `ERROR ... Giving up scheduling <job> after N attempts.` and the job will only be retried on the next node start. Raising `plugins.content_manager.job_schedule.max_retries` gives a slow-starting cluster more room. A persistent failure usually indicates the cluster cannot allocate shards — check cluster health with `GET _cluster/health` and verify index allocation settings.
 
 ## Log monitoring
 

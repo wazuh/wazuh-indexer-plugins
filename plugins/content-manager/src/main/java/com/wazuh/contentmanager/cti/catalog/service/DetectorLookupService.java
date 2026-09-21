@@ -49,8 +49,6 @@ public class DetectorLookupService {
 
     private static final Logger log = LogManager.getLogger(DetectorLookupService.class);
 
-    private static final int MAX_RESULTS = 10000;
-
     /**
      * Security Analytics detectors index. Read-only: content-manager never writes to it, and cannot
      * reference the constant from security-analytics because only its {@code commons} module is on
@@ -120,7 +118,7 @@ public class DetectorLookupService {
                                                     "detector.name", "detector.enabled", CUSTOM_RULES_PATH + ".id"
                                                 },
                                                 null)
-                                        .size(MAX_RESULTS))
+                                        .size(Constants.MAX_RESULT_WINDOW))
                         .indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
 
         this.client.search(
@@ -214,7 +212,7 @@ public class DetectorLookupService {
                                                                 QueryBuilders.termQuery(Constants.Q_SPACE_NAME, space.toString())))
                                         .fetchSource(
                                                 new String[] {Constants.Q_DOCUMENT_ID, Constants.Q_DOCUMENT_ENABLED}, null)
-                                        .size(MAX_RESULTS));
+                                        .size(Constants.MAX_RESULT_WINDOW));
 
         this.client.search(
                 request,

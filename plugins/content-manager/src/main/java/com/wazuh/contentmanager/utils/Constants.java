@@ -752,13 +752,6 @@ public class Constants {
      */
     public static final String USER_OVERRIDES_DOC_ID = "wazuh-user-overrides";
 
-    /**
-     * How many times a user-overrides registry write is retried on a version conflict before giving
-     * up. The registry is one shared document, so concurrent writers are serialized optimistically:
-     * each conflict re-reads and re-applies, and this bounds the loop.
-     */
-    public static final int MAX_USER_OVERRIDES_UPDATE_ATTEMPTS = 3;
-
     // Consumer types
     public static final String CONSUMER_TYPE_VULNERABILITIES = "cti:catalog:consumer:vulnerabilities";
     public static final String CONSUMER_TYPE_IOCS = "cti:catalog:consumer:iocs";
@@ -935,9 +928,19 @@ public class Constants {
     public static final String OP_REMOVE = "remove";
     public static final String OP_UPDATE = "update";
 
-    // Job Scheduler registration retries
-    public static final int MAX_JOB_SCHEDULE_RETRIES = 3;
-    public static final int JOB_SCHEDULE_RETRY_BACKOFF_SECONDS = 15;
+    /**
+     * The OpenSearch {@code index.max_result_window} default. The searches using it fetch a complete
+     * result set in a single request and have no {@code search_after} or PIT, so this is an
+     * "everything" bound rather than a page size: lowering it would silently truncate them. The
+     * genuinely paginated IoC reconciliation scan uses {@code PluginSettings#SEARCH_PAGE_SIZE}
+     * instead.
+     */
+    public static final int MAX_RESULT_WINDOW = 10_000;
+
+    // Bounds Security Analytics accepts for a detector schedule interval, in minutes: one minute to
+    // one week.
+    public static final int DETECTOR_INTERVAL_MIN_MINUTES = 1;
+    public static final int DETECTOR_INTERVAL_MAX_MINUTES = 60 * 24 * 7;
 
     // Setup plugin readiness marker (written by the Setup plugin once all its
     // index templates, indices and data streams have been created).
@@ -952,9 +955,9 @@ public class Constants {
     // plugins.content_manager.max_{integrations,decoders,rules,kvdbs,filters}, keyed per
     // resource type and space.
     public static final String INDEX_RESOURCE_LOCKS = ".wazuh-content-manager-resource-locks";
-    public static final int MAX_LOCK_ACQUIRE_RETRIES = 20;
-    public static final long LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS = 100;
-    public static final long LOCK_STALE_THRESHOLD_MILLIS = 30_000;
+    // The retry count, backoff and stale threshold are configurable settings; see
+    // PluginSettings#RESOURCE_LOCK_MAX_RETRIES, PluginSettings#RESOURCE_LOCK_RETRY_BACKOFF_MILLIS
+    // and PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS.
     public static final String E_429_RESOURCE_LOCK_TIMEOUT =
             "Too many concurrent requests creating this resource. Please retry.";
 }

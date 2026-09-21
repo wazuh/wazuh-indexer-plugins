@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.wazuh.setup.utils.JsonUtils;
 
@@ -257,5 +258,66 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
                         ((Map<String, Object>) template).get("last_updated_time"));
             }
         }
+    }
+
+    /**
+     * A policy whose creation keeps timing out is retried up to {@code plugins.setup.max_retries}
+     * times and then the failure is rethrown. {@code indexPolicy} retries by calling itself, so a
+     * counter reset inside it would retry forever: the mock fails the test after 20 calls instead of
+     * letting it hang.
+     */
+    public void testIndexPolicy_StopsAfterMaxRetries() throws IOException {
+        doNothing().when(this.ismIndex).sleep(anyLong());
+        Map<String, Object> policyFile = new HashMap<>();
+        policyFile.put("policy", new HashMap<String, Object>());
+        doReturn(policyFile).when(this.jsonUtils).fromFile(anyString());
+
+        AtomicInteger attempts = new AtomicInteger();
+        ActionFuture<?> indexFuture = mock(ActionFuture.class);
+        doAnswer(
+                        invocation -> {
+                            if (attempts.incrementAndGet() > 20) {
+                                throw new AssertionError("indexPolicy is still retrying after 20 attempts");
+                            }
+                            throw new RuntimeException("simulated timeout");
+                        })
+                .when(indexFuture)
+                .actionGet(anyLong());
+        doReturn(indexFuture).when(this.client).index(any(IndexRequest.class));
+
+        assertThrows(RuntimeException.class, () -> this.ismIndex.indexPolicy("wazuh-events"));
+        // Default plugins.setup.max_retries is 1: the first attempt plus one retry.
+        assertEquals(2, attempts.get());
+    }
+
+    /**
+     * Every policy times out once and then succeeds. The retry budget is per policy, so with the
+     * default of one retry all six recover; a budget shared across policies would rethrow on the
+     * second one.
+     */
+    public void testInitialize_EachPolicyGetsItsOwnRetryBudget() throws IOException {
+        doNothing().when(this.ismIndex).sleep(anyLong());
+        doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
+        Map<String, Object> policyFile = new HashMap<>();
+        policyFile.put("policy", new HashMap<String, Object>());
+        doReturn(policyFile).when(this.jsonUtils).fromFile(anyString());
+
+        AtomicInteger calls = new AtomicInteger();
+        ActionFuture<?> indexFuture = mock(ActionFuture.class);
+        doAnswer(
+                        invocation -> {
+                            if (calls.incrementAndGet() % 2 == 1) {
+                                throw new RuntimeException("simulated timeout");
+                            }
+                            return null;
+                        })
+                .when(indexFuture)
+                .actionGet(anyLong());
+        doReturn(indexFuture).when(this.client).index(any(IndexRequest.class));
+
+        this.ismIndex.initialize();
+
+        // Six policies, each one timeout plus one successful retry.
+        verify(this.client, times(12)).index(any(IndexRequest.class));
     }
 }

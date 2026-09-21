@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.TransientFailures;
 
@@ -76,15 +77,23 @@ public class EngineContentLoader {
      * Upper bound on how long a single reload run may stay in flight. It only guards against a lost
      * callback wedging the single-flight guard forever: when it fires, the run is completed
      * exceptionally so a later trigger can start a fresh one.
+     *
+     * @return the configured reload timeout.
      */
-    private static final TimeValue RELOAD_TIMEOUT = TimeValue.timeValueMinutes(10);
+    private static TimeValue reloadTimeout() {
+        return TimeValue.timeValueMinutes(PluginSettings.getInstance().getEngineReloadTimeoutMinutes());
+    }
 
     /**
      * How long the content indices may stay unable to serve reads before the deferral is escalated
      * from a debug line to a single warning. Startup deferrals clear within seconds; anything past
      * this is no longer a boot condition, and the node is running with no content in its Engine.
+     *
+     * @return the configured grace period.
      */
-    private static final TimeValue NOT_READY_GRACE = TimeValue.timeValueMinutes(5);
+    private static TimeValue notReadyGrace() {
+        return TimeValue.timeValueMinutes(PluginSettings.getInstance().getEngineNotReadyGraceMinutes());
+    }
 
     /** {@link #deferringSince} value meaning "the last run got its reads served". */
     private static final long NOT_DEFERRING = Long.MIN_VALUE;
@@ -198,7 +207,7 @@ public class EngineContentLoader {
      *
      * @param listener notified once: {@code onResponse} when the run completed (individual space
      *     failures are logged, not surfaced), {@code onFailure} if the Engine is unavailable or the
-     *     run did not complete within {@link #RELOAD_TIMEOUT}.
+     *     run did not complete within {@link #reloadTimeout()}.
      */
     public void reloadIfChanged(ActionListener<Void> listener) {
         Run run;
@@ -367,7 +376,7 @@ public class EngineContentLoader {
      *
      * <p>Because these deferrals are silent, a condition that never clears would otherwise leave the
      * node running with no content in its Engine and nothing in the log to say so. The first deferral
-     * of a streak starts a clock, and once the streak outlives {@link #NOT_READY_GRACE} it is
+     * of a streak starts a clock, and once the streak outlives {@link #notReadyGrace()} it is
      * escalated to a single warning; the streak resets as soon as a run gets its reads served.
      *
      * @param debugMessage the parameterized debug message describing the condition.
@@ -379,9 +388,9 @@ public class EngineContentLoader {
         if (this.deferringSince == NOT_DEFERRING) {
             this.deferringSince = now;
         }
-        if (!this.deferralWarned && now - this.deferringSince >= NOT_READY_GRACE.millis()) {
+        if (!this.deferralWarned && now - this.deferringSince >= notReadyGrace().millis()) {
             this.deferralWarned = true;
-            log.warn(Constants.W_LOG_ENGINE_CONTENT_LOAD_STILL_DEFERRED, NOT_READY_GRACE, detail);
+            log.warn(Constants.W_LOG_ENGINE_CONTENT_LOAD_STILL_DEFERRED, notReadyGrace(), detail);
         } else {
             log.debug(debugMessage, detail);
         }
@@ -435,11 +444,11 @@ public class EngineContentLoader {
                         if (this.complete(
                                 run,
                                 new OpenSearchTimeoutException(
-                                        Constants.W_LOG_ENGINE_RELOAD_TIMED_OUT, RELOAD_TIMEOUT))) {
-                            log.warn(Constants.W_LOG_ENGINE_RELOAD_TIMED_OUT, RELOAD_TIMEOUT);
+                                        Constants.W_LOG_ENGINE_RELOAD_TIMED_OUT, reloadTimeout()))) {
+                            log.warn(Constants.W_LOG_ENGINE_RELOAD_TIMED_OUT, reloadTimeout());
                         }
                     },
-                    RELOAD_TIMEOUT,
+                    reloadTimeout(),
                     ThreadPool.Names.GENERIC);
         } catch (Exception e) {
             log.debug(Constants.E_LOG_ENGINE_RELOAD_SCHEDULE_FAILED, e.getMessage());

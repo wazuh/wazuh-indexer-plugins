@@ -158,7 +158,7 @@ public class ResourceLockService {
      * @param resourceType The resource type (e.g. "rule", "filter").
      * @param space The space the resource is being created in.
      * @param listener Notified with the lock document ID on success, or an {@link IOException} if the
-     *     lock could not be acquired after {@link Constants#MAX_LOCK_ACQUIRE_RETRIES} attempts.
+     *     lock could not be acquired after {@link PluginSettings#RESOURCE_LOCK_MAX_RETRIES} attempts.
      */
     public void acquire(String resourceType, String space, ActionListener<String> listener) {
         // Only the lock index is touched as the plugin. The caller's continuation creates the actual
@@ -183,7 +183,7 @@ public class ResourceLockService {
             String space,
             int attempt,
             ActionListener<String> listener) {
-        if (attempt > Constants.MAX_LOCK_ACQUIRE_RETRIES) {
+        if (attempt > PluginSettings.getInstance().getResourceLockMaxRetries()) {
             listener.onFailure(
                     new ResourceLockTimeoutException(
                             "Timed out waiting for the resource-creation lock on ["
@@ -223,7 +223,8 @@ public class ResourceLockService {
                                                                         this.tryAcquire(
                                                                                 lockId, resourceType, space, attempt + 1, listener),
                                                                 TimeValue.timeValueMillis(
-                                                                        Constants.LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS),
+                                                                        PluginSettings.getInstance()
+                                                                                .getResourceLockRetryBackoffMillis()),
                                                                 ThreadPool.Names.GENERIC);
                                                     }
                                                 },
@@ -233,7 +234,8 @@ public class ResourceLockService {
                                                                         this.tryAcquire(
                                                                                 lockId, resourceType, space, attempt + 1, listener),
                                                                 TimeValue.timeValueMillis(
-                                                                        Constants.LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS),
+                                                                        PluginSettings.getInstance()
+                                                                                .getResourceLockRetryBackoffMillis()),
                                                                 ThreadPool.Names.GENERIC)));
                             }));
         }
@@ -242,7 +244,7 @@ public class ResourceLockService {
     /**
      * Releases a previously acquired lock. Failures are logged and swallowed so a release problem
      * never surfaces as a resource-creation failure; a lock older than {@link
-     * Constants#LOCK_STALE_THRESHOLD_MILLIS} is stolen by the next caller regardless.
+     * PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS} is stolen by the next caller regardless.
      *
      * @param lockId The lock document ID returned by {@link #acquire(String, String,
      *     ActionListener)}.
@@ -264,8 +266,9 @@ public class ResourceLockService {
 
     /**
      * Deletes the lock document if it was acquired more than {@link
-     * Constants#LOCK_STALE_THRESHOLD_MILLIS} ago, guarding against a lock orphaned by a crashed node.
-     * Never calls {@link ActionListener#onFailure}; all errors resolve to {@code onResponse(false)}.
+     * PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS} ago, guarding against a lock orphaned by a
+     * crashed node. Never calls {@link ActionListener#onFailure}; all errors resolve to {@code
+     * onResponse(false)}.
      *
      * @param lockId The lock document ID.
      * @param listener Notified with {@code true} if the stale lock was stolen (deleted) and the
@@ -286,7 +289,7 @@ public class ResourceLockService {
                                 long acquiredAtMillis =
                                         acquiredAt instanceof Number ? ((Number) acquiredAt).longValue() : 0L;
                                 if (Instant.now().toEpochMilli() - acquiredAtMillis
-                                        <= Constants.LOCK_STALE_THRESHOLD_MILLIS) {
+                                        <= PluginSettings.getInstance().getResourceLockStaleThresholdMillis()) {
                                     listener.onResponse(false);
                                     return;
                                 }

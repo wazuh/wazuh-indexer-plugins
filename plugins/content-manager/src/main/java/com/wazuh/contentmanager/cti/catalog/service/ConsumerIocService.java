@@ -67,7 +67,6 @@ import com.wazuh.contentmanager.utils.Constants;
 public class ConsumerIocService extends AbstractConsumerService {
     private static final Logger log = LogManager.getLogger(ConsumerIocService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final int SEARCH_PAGE_SIZE = 10_000;
 
     /** The engine service for notifying the Engine about IOC updates. */
     private final EngineService engineService;
@@ -229,7 +228,7 @@ public class ConsumerIocService extends AbstractConsumerService {
                                             .mustNot(QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
                             .sort(Constants.Q_DOCUMENT_TYPE, SortOrder.ASC)
                             .sort("_id", SortOrder.ASC)
-                            .size(SEARCH_PAGE_SIZE)
+                            .size(PluginSettings.getInstance().getSearchPageSize())
                             .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));
             if (searchAfter != null) {
                 source.searchAfter(searchAfter);
@@ -332,7 +331,7 @@ public class ConsumerIocService extends AbstractConsumerService {
                                                                 .mustNot(
                                                                         QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
                                                 .sort("_id", SortOrder.ASC)
-                                                .size(SEARCH_PAGE_SIZE)
+                                                .size(PluginSettings.getInstance().getSearchPageSize())
                                                 .fetchSource(new String[] {Constants.KEY_DOCUMENT}, null)
                                                 .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));
                                 if (searchAfter != null) {

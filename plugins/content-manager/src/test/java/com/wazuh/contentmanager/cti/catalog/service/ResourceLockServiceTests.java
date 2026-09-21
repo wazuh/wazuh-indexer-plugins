@@ -37,6 +37,7 @@ import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.Assert;
+import org.junit.Before;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -58,6 +60,13 @@ import static org.mockito.Mockito.when;
 /** Unit tests for {@link ResourceLockService}. */
 @SuppressWarnings("unchecked")
 public class ResourceLockServiceTests extends OpenSearchTestCase {
+
+    /** The service reads its retry budget and stale threshold from the plugin settings. */
+    @Before
+    public void setUpSettings() {
+        PluginSettings.resetForTesting();
+        PluginSettings.getInstance(Settings.EMPTY);
+    }
 
     /** Header the security plugin uses to carry the authenticated user across the transport layer. */
     private static final String SECURITY_USER_HEADER = "_opendistro_security_user_info";
@@ -200,7 +209,7 @@ public class ResourceLockServiceTests extends OpenSearchTestCase {
     public void testAcquireStealsStaleLock() {
         Client client = mock(Client.class);
         mockLockIndexExists(client);
-        mockLockGet(client, Constants.LOCK_STALE_THRESHOLD_MILLIS + 1000);
+        mockLockGet(client, PluginSettings.getInstance().getResourceLockStaleThresholdMillis() + 1000);
 
         doAnswer(
                         invocation -> {
@@ -291,7 +300,8 @@ public class ResourceLockServiceTests extends OpenSearchTestCase {
         Client client = mock(Client.class);
         mockLockIndexExists(client, observe);
         // Stale lock, so the acquire exercises index -> get -> delete -> index.
-        mockLockGet(client, Constants.LOCK_STALE_THRESHOLD_MILLIS + 1000, observe);
+        mockLockGet(
+                client, PluginSettings.getInstance().getResourceLockStaleThresholdMillis() + 1000, observe);
         doAnswer(
                         invocation -> {
                             observe.run();

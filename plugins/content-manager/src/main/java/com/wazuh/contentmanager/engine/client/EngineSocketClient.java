@@ -40,6 +40,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -50,8 +51,6 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 public class EngineSocketClient {
     private static final Logger logger = LogManager.getLogger(EngineSocketClient.class);
-    private static final String DEFAULT_SOCKET_PATH =
-            "/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock";
     private static final int BUFFER_SIZE = 8192;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -59,7 +58,7 @@ public class EngineSocketClient {
 
     /** Creates a EngineSocketClient with the default socket path. */
     public EngineSocketClient() {
-        this(DEFAULT_SOCKET_PATH);
+        this(PluginSettings.getInstance().getEngineSocketPath());
     }
 
     /**
