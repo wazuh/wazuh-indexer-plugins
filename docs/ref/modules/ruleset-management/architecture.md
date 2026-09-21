@@ -76,7 +76,8 @@ See [Configuration](configuration.md) for the settings that control batch size, 
 
 Access to Ruleset Management is governed by the [default Wazuh roles](../../security/access-control.md). The plugin authorizes requests against two action namespaces: the Wazuh custom actions `cluster:admin/wazuh/securityanalytics/*` and the upstream OpenSearch actions `cluster:admin/opensearch/securityanalytics/*` (see [Permissions](../../security/permissions.md)).
 
-- **`wazuh_admin`** — full access: create/update/delete detectors, rules, integrations, and correlations; read findings and alerts.
-- **`wazuh_demo`** — full access, same endpoints as `wazuh_admin`.
+- **`all_access`** — full access: create/update/delete detectors, rules, integrations, and correlations; read findings and alerts.
 - **`wazuh_readonly`** — read-only: get/search detectors, rules, findings, alerts, mappings, correlations, and threat intel; `rules/evaluate`.
 - **`wazuh_manager`** — no access.
+
+No default Wazuh role grants write access; to allow it without granting `all_access`, define a role with the actions above and map it to the user.

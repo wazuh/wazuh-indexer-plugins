@@ -23,7 +23,7 @@ JVM startup.**
 
 | Setting | Default | Range | Dynamic? | Recommended |
 |---|---|---|---|---|
-| `plugins.content_manager.max_items_per_bulk` | 999 | 10–999 | Static | 200 |
+| `plugins.content_manager.max_items_per_bulk` | 1000 | 10–1000 | Static | 200 |
 | `plugins.content_manager.max_bulk_bytes` | 5,242,880 (5MB) | 1MB–100MB | Static | 2MB |
 | `plugins.content_manager.max_concurrent_bulks` | 5 | 1–5 | Static | 2 |
 | `plugins.content_manager.client.timeout` | 10s | 10–50s | Static | unchanged |

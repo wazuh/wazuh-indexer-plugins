@@ -394,7 +394,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(false);
 
-        // Act — range spans 2 batches (0-999, 999-1998)
+        // Act — range spans 2 batches (0-1000, 1000-1998)
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(0, 1998));
 
         // Assert — first batch checkpoint was persisted
@@ -402,7 +402,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         verify(this.consumersIndex).setConsumer(captor.capture(), eq(true));
 
         LocalConsumer checkpoint = captor.getValue();
-        Assert.assertEquals(999, checkpoint.getLocalOffset());
+        Assert.assertEquals(1000, checkpoint.getLocalOffset());
         Assert.assertEquals(1998, checkpoint.getRemoteOffset());
         Assert.assertEquals(LocalConsumer.Status.RUNNING, checkpoint.getStatus());
     }
