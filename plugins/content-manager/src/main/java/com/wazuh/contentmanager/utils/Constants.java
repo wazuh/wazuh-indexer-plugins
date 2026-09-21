@@ -62,7 +62,7 @@ public class Constants {
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
             "Only 'update' operation is supported for policy.";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
-    public static final String E_400_DUPLICATE_NAME =
+    public static final String E_409_DUPLICATE_NAME =
             "A %s with the name '%s' already exists in the %s space.";
     public static final String E_400_TOO_MANY_INTEGRATIONS =
             "This request would create more than the allowed integrations [%d].";
@@ -106,6 +106,9 @@ public class Constants {
     public static final String E_403_POLICY_UPDATE_DISABLED =
             "Policy updates are disabled on this deployment.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
+    public static final String E_500_ENGINE_SOCKET_UNAVAILABLE =
+            "Cannot reach the Wazuh Engine: its API socket is not available. "
+                    + "Verify the Engine is running.";
     public static final String E_SECURITY_ANALYTICS_ERROR =
             "Error in Security Analytics."; // Used for both BAD_REQUEST and INTERNAL_SERVER_ERROR
     public static final String E_500_MISSING_DRAFT_POLICY = "Draft policy not found.";
@@ -130,11 +133,16 @@ public class Constants {
     public static final String E_LOG_INDEX_NOT_FOUND = "Index [{}] not found.";
     public static final String E_LOG_SAP_SYNC_FAILED = "Failed to sync {} in Security Analytics: {}";
     public static final String E_LOG_OPERATION_FAILED = "Error {} {}: {}";
-    public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
+    public static final String E_LOG_FAILED_TO =
+            "Failed to {} {} (id={}): {}"; // Used for both WARN (4xx) and ERROR (5xx)
     public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
     public static final String E_LOG_MISSING_FIELD = "Missing '{}' field.";
+    public static final String E_LOG_POLICY_DOCUMENT_MISSING =
+            "Policy document missing in the [{}] space. Every space must have one, "
+                    + "so this is a server-side inconsistency, not a client error.";
     public static final String E_LOG_MISSING_OBJECT = "Missing '{}' object.";
-    public static final String W_LOG_VALIDATION_FAILED = "Validation failed: {}";
+    public static final String W_LOG_VALIDATION_FAILED =
+            "Validation failed: {}"; // Used for both WARN (4xx) and ERROR (5xx)
     public static final String W_LOG_OPERATION_FAILED = "{} failed for {}: {}";
     public static final String W_LOG_OPERATION_FAILED_ID = "{} failed for {} [{}]: {}";
     public static final String W_LOG_RESOURCE_NOT_FOUND = "{} [{}] not found.";
@@ -947,6 +955,9 @@ public class Constants {
     // plugins.content_manager.max_{integrations,decoders,rules,kvdbs,filters}, keyed per
     // resource type and space.
     public static final String INDEX_RESOURCE_LOCKS = ".wazuh-content-manager-resource-locks";
-    public static final String E_503_RESOURCE_LOCK_TIMEOUT =
+    // The retry count, backoff and stale threshold are configurable settings; see
+    // PluginSettings#RESOURCE_LOCK_MAX_RETRIES, PluginSettings#RESOURCE_LOCK_RETRY_BACKOFF_MILLIS
+    // and PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS.
+    public static final String E_429_RESOURCE_LOCK_TIMEOUT =
             "Too many concurrent requests creating this resource. Please retry.";
 }

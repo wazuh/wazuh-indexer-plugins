@@ -85,7 +85,7 @@ public class EngineSocketClient {
         if (!Files.exists(socketFile)) {
             logger.error(Constants.E_LOG_ENGINE_SOCKET_UNAVAILABLE);
             logger.debug(Constants.D_LOG_ENGINE_SOCKET_NOT_FOUND, this.socketPath);
-            return new RestResponse("Socket file not found at " + this.socketPath, 500);
+            return new RestResponse(Constants.E_500_ENGINE_SOCKET_UNAVAILABLE, 500);
         }
 
         try {
