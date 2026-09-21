@@ -86,7 +86,7 @@ jobs:
     steps:
       - name: Restore Maven Local Cache
         id: cache-common-utils
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.get-version.outputs.version }}
@@ -101,7 +101,7 @@ jobs:
           reference: ${{ needs.branches.outputs.common_utils_ref }}
       - name: Cache Maven Local
         if: steps.cache-common-utils.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ~/.m2/repository
           key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.get-version.outputs.version }}
@@ -113,7 +113,7 @@ jobs:
     steps:
       - name: Restore Maven Local Cache
         id: cache-alerting
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_ref }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.get-version.outputs.version }}
@@ -121,7 +121,7 @@ jobs:
             m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_ref }}-${{ needs.branches.outputs.alerting_sha }}-
       - name: Restore Maven Local Cache (common-utils)
         if: steps.cache-alerting.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: m2-common-utils-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_ref }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.get-version.outputs.version }}
@@ -136,7 +136,7 @@ jobs:
           reference: ${{ needs.branches.outputs.alerting_ref }}
       - name: Cache Maven Local
         if: steps.cache-alerting.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ~/.m2/repository
           key: m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_ref }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.get-version.outputs.version }}
@@ -148,7 +148,7 @@ jobs:
     steps:
       - name: Restore Maven Local Cache
         id: cache-sap
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: m2-sap-all-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.branches.outputs.security_analytics_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-${{ needs.get-version.outputs.version }}
@@ -156,7 +156,7 @@ jobs:
             m2-sap-all-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.branches.outputs.security_analytics_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-
       - name: Restore Maven Local Cache (alerting)
         if: steps.cache-sap.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.m2/repository
           key: m2-alerting-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_ref }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.get-version.outputs.version }}
@@ -171,7 +171,7 @@ jobs:
           reference: ${{ needs.branches.outputs.security_analytics_ref }}
       - name: Cache Maven Local
         if: steps.cache-sap.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ~/.m2/repository
           key: m2-sap-all-deps-${{ github.ref_name }}-${{ needs.branches.outputs.common_utils_sha }}-${{ needs.branches.outputs.alerting_sha }}-${{ needs.branches.outputs.security_analytics_ref }}-${{ needs.branches.outputs.security_analytics_sha }}-${{ needs.get-version.outputs.version }}
