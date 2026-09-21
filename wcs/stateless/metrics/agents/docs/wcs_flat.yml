@@ -48,7 +48,7 @@ wazuh.agent.groups:
   description: List of groups the agent belongs to.
   example: '["group1", "group2"]'
   flat_name: wazuh.agent.groups
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: groups
   normalize:
@@ -61,7 +61,7 @@ wazuh.agent.host.architecture:
   description: Operating system architecture.
   example: x86_64
   flat_name: wazuh.agent.host.architecture
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: architecture
   normalize: []
@@ -84,7 +84,7 @@ wazuh.agent.host.os.name:
   description: Operating system name, without the version.
   example: Mac OS X
   flat_name: wazuh.agent.host.os.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: name
   normalize: []
@@ -96,7 +96,7 @@ wazuh.agent.host.os.platform:
   description: Operating system platform (such centos, ubuntu, windows).
   example: darwin
   flat_name: wazuh.agent.host.os.platform
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: platform
   normalize: []
@@ -108,7 +108,7 @@ wazuh.agent.host.os.version:
   description: Operating system version as a raw string.
   example: 10.14.1
   flat_name: wazuh.agent.host.os.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: version
   normalize: []
@@ -122,7 +122,7 @@ wazuh.agent.id:
     Example: For Beats this would be beat.id.'
   example: 8a4f500d
   flat_name: wazuh.agent.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: id
   normalize: []
@@ -149,7 +149,7 @@ wazuh.agent.name:
     is needed on which Filebeat instance data is coming from.'
   example: foo
   flat_name: wazuh.agent.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: name
   normalize: []
@@ -184,7 +184,7 @@ wazuh.agent.status:
     `active`, `pending`, `disconnected` and `never_connected`.
   example: active
   flat_name: wazuh.agent.status
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: status
   normalize: []
@@ -207,7 +207,7 @@ wazuh.agent.version:
   description: Version of the agent.
   example: 6.0.0-rc2
   flat_name: wazuh.agent.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: version
   normalize: []
@@ -219,7 +219,7 @@ wazuh.cluster.name:
   description: Wazuh cluster name.
   example: wazuh-cluster-1
   flat_name: wazuh.cluster.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: cluster.name
   normalize: []
@@ -230,7 +230,7 @@ wazuh.cluster.node:
   description: Wazuh cluster node name.
   example: wazuh-cluster-node-1
   flat_name: wazuh.cluster.node
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: cluster.node
   normalize: []
@@ -241,7 +241,7 @@ wazuh.schema.version:
   description: Wazuh schema version.
   example: 1.7.0
   flat_name: wazuh.schema.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: schema.version
   normalize: []

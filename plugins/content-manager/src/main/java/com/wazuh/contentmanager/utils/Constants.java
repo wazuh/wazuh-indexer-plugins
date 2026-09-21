@@ -314,6 +314,10 @@ public class Constants {
             "Index [{}] does not exist yet; deferring Engine content load until it is created.";
     public static final String D_LOG_ENGINE_CLUSTER_NOT_READY =
             "Cluster cannot serve content reads yet ({}); deferring Engine content load.";
+    public static final String W_LOG_ENGINE_CONTENT_LOAD_STILL_DEFERRED =
+            "Engine content load still deferred after [{}] of retries; the content indices are not "
+                    + "serving reads ({}). The shared content spaces stay unloaded on this node until "
+                    + "this clears.";
     public static final String W_LOG_ENGINE_RELOAD_TIMED_OUT =
             "Engine content reload did not complete within [{}]; releasing the in-flight guard.";
     public static final String D_LOG_ENGINE_SPACE_NO_POLICY =
@@ -363,8 +367,9 @@ public class Constants {
     public static final String W_LOG_HIT_MISSING_DOCUMENT =
             "Hit [{}] missing 'document' field, skipping";
     public static final String E_LOG_SAP_SYNC_DEGRADED =
-            "Security Analytics content sync degraded for consumer [{}]: phase(s) {} still pending; "
-                    + "will retry on the next scheduled sync pass.";
+            "Security Analytics content sync degraded for consumer [{}]: phase(s) {} still pending. "
+                    + "One immediate retry follows; after that the phase is retried on every scheduled "
+                    + "sync pass.";
 
     // Log messages - snapshot / update / IOC (SnapshotServiceImpl, UpdateServiceImpl,
     // ConsumerIocService)
@@ -541,6 +546,16 @@ public class Constants {
             "Bulk indexing dropped {} document(s) with non-retryable failures. Last failure: {}";
     public static final String E_LOG_BULK_RETRY_SCHEDULE_FAILED =
             "Bulk indexing dropped {} document(s): retry could not be scheduled: {}";
+    public static final String W_LOG_BULK_RETRY_TOPOLOGY =
+            "Bulk indexing deferred {} document(s) after a cluster-topology change; retry {}/{} in {}ms.";
+    public static final String W_LOG_BULK_UPDATE_RETRY_SCHEDULED =
+            "Bulk update shed {} document(s) under load; retry {}/{} in {}ms.";
+    public static final String W_LOG_BULK_UPDATE_RETRY_TOPOLOGY =
+            "Bulk update deferred {} document(s) after a cluster-topology change; retry {}/{} in {}ms.";
+    public static final String W_LOG_SHED_CALL_RETRY_SCHEDULED =
+            "Cluster shed the {} under load; retry {}/{} in {}ms.";
+    public static final String W_LOG_TRANSIENT_CALL_RETRY_SCHEDULED =
+            "Deferred the {} after a cluster-topology change; retry {}/{} in {}ms.";
     public static final String E_LOG_SEMAPHORE_INTERRUPTED =
             "Interrupted while waiting for semaphore: {}";
     public static final String E_LOG_CLEAR_INDEX_NO_MAPPINGS =

@@ -65,8 +65,8 @@ paths:
         read, no access token is required and the operation has no side effects. The
         permission evaluated is the same one a real registration needs,
         `cluster:admin/content_manager/subscription/create` (action group
-        `plugin:content_manager/subscription/post`, granted to `wazuh_admin` in the stock
-        role set).
+        `plugin:content_manager/subscription/post`, held by no default role in the stock
+        role set — out of the box only `all_access` has it).
 
         In that mode the response is **always `200`** — permitted and denied differ only in
         the body — so clients must branch on `accessAllowed`, never on the HTTP status.
@@ -2761,7 +2761,7 @@ components:
             $ref: "#/components/schemas/PermissionCheckResponse"
           examples:
             allowed:
-              summary: Caller holds the permission (e.g. wazuh_admin)
+              summary: Caller holds the permission (e.g. all_access)
               value:
                 accessAllowed: true
                 missingPrivileges: []
