@@ -147,8 +147,11 @@ no changes at all.
 
 Where a repository ships `tools/pre-commit` (today `wazuh-indexer-plugins`,
 `-security-analytics`, `-alerting` and `-common-utils`) and the user has copied
-it into `.git/hooks`, committing runs `./gradlew spotlessCheck` over the whole
-tree. Read the output before reacting. Spotless is unmistakable:
+it into `.git/hooks` **and made it executable**, committing runs
+`./gradlew spotlessCheck` over the whole tree. Without the execute bit git
+ignores it and only prints `hint: The '.git/hooks/pre-commit' hook was ignored
+because it's not set as executable`, so the same clone can behave differently
+from another one. Read the output before reacting. Spotless is unmistakable:
 
 ```
 > Task :spotlessJavaCheck FAILED
