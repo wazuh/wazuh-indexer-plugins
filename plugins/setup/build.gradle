@@ -6,7 +6,8 @@ buildscript {
   ext {
     opensearch_version = System.getProperty("opensearch.version", "3.6.0-SNAPSHOT")
     opensearch_build = opensearch_version.replace("-SNAPSHOT", "") + ".0"
-    wazuh_version = System.getProperty("version", "5.0.0")
+    wazuh_version = System.getProperty("version") ?: new groovy.json.JsonSlurper()
+        .parse(new File(projectDir, "../../VERSION.json")).version
     revision = System.getProperty("revision", "0")
   }
 
