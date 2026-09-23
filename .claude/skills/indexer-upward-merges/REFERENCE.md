@@ -66,8 +66,9 @@ old="- [ ] Merge branch \`$lower\` into branch \`$higher\`."
 new="- [x] Merge branch \`$lower\` into branch \`$higher\`."
 body=$(gh issue view "$issue" --repo "wazuh/$repo" --json body --jq .body)
 [[ $body == *"$old"* ]] || { echo "task line not found"; exit 1; }
-printf '%s\n' "${body/"$old"/"$new"}" > "$tmp/body.md"
-gh issue edit "$issue" --repo "wazuh/$repo" --body-file "$tmp/body.md"
+out=$(mktemp)                       # outside the clone, never inside it
+printf '%s\n' "${body/"$old"/"$new"}" > "$out"
+gh issue edit "$issue" --repo "wazuh/$repo" --body-file "$out"
 ```
 
 Issue comments, word for word (read the comments first and never post one
@@ -92,15 +93,34 @@ This PR merges changes from branch `<lower>` into branch `<higher>`
 Related to #<issue>
 ```
 
-For a cross-version step, add why it is not a plain merge and what was
-carried, the convention set by [#1933](https://github.com/wazuh/wazuh-indexer/pull/1933).
+A cross-version step uses this second template instead, the convention set by
+[#1933](https://github.com/wazuh/wazuh-indexer/pull/1933), and nothing is added
+to that one either:
+
+```markdown
+## Description
+
+This PR merges changes from branch `<lower>` into branch `<higher>`
+
+Related to #<issue>
+
+## Proposed Changes
+
+This link is not a plain `git merge`. `<lower>` tracks OpenSearch <x.y> and
+`<higher>` tracks <x.y>, so merging the branches conflicts in thousands of
+files. It is carried the way the previous merges of this kind were, by
+cherry-picking the part of `<lower>` that applies to `<higher>`.
+
+Cherry-picked: <sha> <subject>
+Left out: <sha> <subject> (<why>)
+```
 
 The only label is `no-changelog`, and only when the merge does not touch
 `CHANGELOG.md`. It exists in all seven repositories.
 
 ## Resolving the bookkeeping conflicts
 
-These four are the only conflicts the skill resolves. Anything else belongs to
+These five are the only conflicts the skill resolves. Anything else belongs to
 the user, however trivial it looks — a workflow is bookkeeping, a build file
 is not.
 
@@ -110,6 +130,22 @@ is not.
 | `.github/**` | Keep the destination's. Every branch pins its workflows to its own actions and sibling repositories, so the destination's file is the right one by definition. A genuine workflow improvement that has to travel upwards goes in its own PR, not inside a merge. |
 | `CHANGELOG.md` | Union, keeping the destination's structure: its version headings and its `## Prior versions` section stay, and the incoming entries go under the matching `### Added` / `### Changed` / `### Fixed` / `### Removed` heading, with no duplicates. `tools/changelog_sync.sh` rewrites this file on bumps, so the two branches can be structurally different; the destination's shape wins. |
 | `release-notes/*` | Additive lists — same union treatment. Only some repositories have them (not `wazuh-indexer` or `wazuh-indexer-plugins`). |
+| `distribution/packages/src/rpm/wazuh-indexer.rpm.spec`, `%changelog` only | Union of the entries, and **the incoming side wins an entry both sides have** — this is the one rule that is not destination-wins. Release dates are corrected on the lower line and have to travel up. Anything in that spec outside `%changelog` is the user's. |
+
+The spec's `%changelog` is worth a worked example, because it is the one that
+inverts the rule and it conflicts in the plain merges of `wazuh-indexer`: all
+three of week #38 hit it (#1929, #1930, #1931), and in #1929 it was the only
+conflict in that file even though the merge changed 35 other lines of it.
+In #1930 the destination (`5.0.1`) carried its own `5.0.1` entry and `4.14.8`
+dated `Wed Sep 02 2026`; the source (`5.0.0`) had no `5.0.1` entry and `4.14.8`
+dated `Wed Sep 23 2026`, the correction #1933 had just brought over from the
+4.x line. The resolution keeps both: the destination's `5.0.1` entry and the
+source's corrected `4.14.8` line. Destination-wins would have stranded that
+correction below `main` for good.
+
+In a cross-version step this is a judgement call instead, not a rule: #1933
+took the `4.14.8` date from the 4.x line but deliberately left the `4.14.7` one
+alone, because `5.0.0` already carried the corrected value.
 
 After resolving them, and before staging anything else:
 
@@ -170,7 +206,8 @@ choose:
   are inherited: in `wazuh-indexer-plugins`, `-security-analytics` and
   `-common-utils`, `gradle/formatting.gradle` sets `enforceCheck false` under
   GitHub Actions, so Spotless never blocks CI there. Check the repository's own
-  configuration before repeating that.
+  configuration before repeating that:
+  `git -C <repo> grep -n "enforceCheck\|GITHUB_ACTIONS" origin/<higher> -- gradle/formatting.gradle`.
 - **Apply Spotless** — commit the merge with `--no-verify` first, so the merge
   commit stays exactly what was resolved, then `./gradlew spotlessApply` and a
   second signed commit on top, which passes the hook by itself. Show the extent
@@ -237,15 +274,31 @@ that apply, as in #1706, #1784, #1802 and #1933.
    a judgement call, so never pick before the user says so.
 4. **Nothing applies**: post the "no changes need to be migrated" comment, tick
    the task, and carry on with the next step.
-5. **Something applies**: create `merge-<lower>-into-<higher>` from
-   `origin/<higher>` and `git cherry-pick -S -x <sha>` one at a time, oldest
-   first. `-x` records where each commit came from, which makes the next
-   round's bookkeeping easier. An empty commit needs `--allow-empty` or is left
-   out. On a conflict, stop and resolve it with the user; a bump usually
-   applies only in part, the spec line and not `VERSION.json`. If their
+5. **Something applies**: run the branch checks of `SKILL.md` step 3 — on
+   `origin` it means work in review, locally it may be a resumable state or
+   somebody's work — and then:
+
+   ```bash
+   git -C <repo> switch --no-track -c merge-<lower>-into-<higher> origin/<higher>
+   git -C <repo> cherry-pick -S -x <sha>       # one at a time, oldest first
+   ```
+
+   `--no-track` for the same reason as in a plain merge: without it a bare
+   `git push` aims at the release branch. `-x` records where each commit came
+   from, which makes the next round's bookkeeping easier. An empty commit
+   needs `--allow-empty` or is left out.
+
+   On a conflict, stop and hand the repository over exactly as a merge
+   conflict is handed over in `SKILL.md` step 4; a bump usually applies only
+   in part, the spec line and not `VERSION.json`. The user resolves,
+   `git add`s and either leaves it or runs `git cherry-pick --continue`, and
+   the rerun finds `CHERRY_PICK_HEAD` on that branch, which is the resumable
+   state for this path: carry on from here rather than starting over. If their
    resolution leaves `git status --porcelain` empty, that commit contributes
-   nothing: `git cherry-pick --skip` and say so. Then show
-   `git diff --stat origin/<higher>`, wait for their OK, push and open the PR.
+   nothing: `git cherry-pick --skip` and say so.
+6. Show `git diff --stat origin/<higher>`, wait for the user's OK, and finish
+   with `SKILL.md` steps 6 and 7 — same push, same `gh pr create` with
+   `--assignee @me`, the cross-version PR body, and the same tick rule.
 
 ## Slack
 
