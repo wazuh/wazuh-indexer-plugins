@@ -18,11 +18,11 @@ package com.wazuh.contentmanager.cti.catalog.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -58,6 +59,14 @@ public class DetectorLookupService {
 
     private static final String CUSTOM_RULES_PATH = "detector.inputs.detector_input.custom_rules";
 
+    /**
+     * Security Analytics maps the whole {@code detector} object as {@code nested}, so its fields are
+     * only reachable through a nested query on this path; a plain query on them matches nothing.
+     */
+    private static final String DETECTOR_PATH = "detector";
+
+    private static final String DETECTOR_ENABLED_FIELD = DETECTOR_PATH + ".enabled";
+
     private final Client client;
 
     /**
@@ -81,17 +90,20 @@ public class DetectorLookupService {
      * Returns the enabled detectors that reference any of the given rules, with the custom rules each
      * one references.
      *
-     * <p>The nested query narrows the result server-side. Because {@code custom_rules.id} is mapped
-     * as {@code text}, the match is analysed and can return detectors that merely share a token of a
-     * UUID; those are discarded by an exact intersection check. The match never misses a real
-     * reference, so no detector is silently skipped.
-     *
-     * <p>Disabled detectors are filtered out: a stopped detector needs no protection.
+     * <p>The search reads every enabled detector and the rule intersection is computed here, not in
+     * the query. Filtering by rule id server-side would take one clause per id, and because {@code
+     * custom_rules.id} is mapped as {@code text}, each id is further split into several analysed
+     * terms: a promotion carrying a few hundred rules exceeds {@code
+     * indices.query.bool.max_clause_count} and fails on every shard. Detectors are few (roughly one
+     * per integration), so reading all enabled ones stays cheap and keeps the query the same size
+     * however many rules are promoted. Disabled detectors are not read: a stopped detector needs no
+     * protection.
      *
      * <p>A failed search is propagated to the caller and fails the promotion: it must not be let
-     * through on a guard that could not read its inputs. A cluster with no detectors index yet is not
-     * one of those failures, because the search uses {@code LENIENT_EXPAND_OPEN} and gets an empty
-     * result instead of an error.
+     * through on a guard that could not read its inputs. The same applies when there are more enabled
+     * detectors than one search returns, since the ones left out would be silently skipped. A cluster
+     * with no detectors index yet is not one of those failures, because the search uses {@code
+     * LENIENT_EXPAND_OPEN} and gets an empty result instead of an error.
      *
      * @param ruleIds the content-manager rule ids being promoted.
      * @param listener receives the affected detectors, or the failure that prevented reading them.
@@ -103,16 +115,16 @@ public class DetectorLookupService {
             return;
         }
 
-        BoolQueryBuilder anyRule = QueryBuilders.boolQuery().minimumShouldMatch(1);
-        for (String ruleId : ruleIds) {
-            anyRule.should(QueryBuilders.matchQuery(CUSTOM_RULES_PATH + ".id", ruleId));
-        }
-
         SearchRequest request =
                 new SearchRequest(DETECTORS_INDEX)
                         .source(
                                 new SearchSourceBuilder()
-                                        .query(QueryBuilders.nestedQuery(CUSTOM_RULES_PATH, anyRule, ScoreMode.None))
+                                        .query(
+                                                QueryBuilders.nestedQuery(
+                                                        DETECTOR_PATH,
+                                                        QueryBuilders.termQuery(DETECTOR_ENABLED_FIELD, true),
+                                                        ScoreMode.None))
+                                        .trackTotalHits(true)
                                         .fetchSource(
                                                 new String[] {
                                                     "detector.name", "detector.enabled", CUSTOM_RULES_PATH + ".id"
@@ -125,6 +137,18 @@ public class DetectorLookupService {
                 request,
                 ActionListener.wrap(
                         response -> {
+                            TotalHits total = response.getHits().getTotalHits();
+                            if (total != null && total.value() > response.getHits().getHits().length) {
+                                String message =
+                                        String.format(
+                                                Locale.ROOT,
+                                                Constants.E_DETECTOR_LOOKUP_TRUNCATED,
+                                                total.value(),
+                                                Constants.MAX_RESULT_WINDOW);
+                                log.warn(Constants.W_LOG_DETECTOR_LOOKUP_FAILED, message);
+                                listener.onFailure(new IllegalStateException(message));
+                                return;
+                            }
                             List<DetectorRules> detectors = new ArrayList<>();
                             for (SearchHit hit : response.getHits()) {
                                 DetectorRules parsed = parseDetector(hit);

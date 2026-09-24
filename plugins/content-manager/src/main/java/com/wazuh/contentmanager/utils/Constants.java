@@ -115,6 +115,11 @@ public class Constants {
     public static final String E_500_VERSION_NOT_FOUND = "Unable to determine current Wazuh version.";
     public static final String E_500_CTI_UNREACHABLE =
             "Unable to reach the CTI API to check for updates.";
+    public static final String E_500_DETECTOR_GUARD_FAILED =
+            "The promotion was not applied: could not verify that it leaves every running detector "
+                    + "with enabled rules (cause: %s).";
+    public static final String E_DETECTOR_LOOKUP_TRUNCATED =
+            "Found %d enabled detectors, more than the %d that can be checked in one search.";
 
     // Log messages
     public static final String I_LOG_MAX_INTEGRATIONS_REACHED =
@@ -150,6 +155,8 @@ public class Constants {
             "Resource {} [{}] not found in external service, continuing deletion.";
     public static final String W_LOG_DETECTOR_LOOKUP_FAILED =
             "Could not read detectors while validating promotion: {}";
+    public static final String E_LOG_DETECTOR_GUARD_FAILED =
+            "Detector guard failed while validating promotion ({}): {}";
     public static final String D_LOG_SAP_SEND = "Sending {} [{}] with ID [{}] to Security Analytics.";
     public static final String D_LOG_SAP_DELETED = "{} deleted successfully (document.id={}{}).";
     public static final String D_LOG_SAP_DELETE_ASYNC =

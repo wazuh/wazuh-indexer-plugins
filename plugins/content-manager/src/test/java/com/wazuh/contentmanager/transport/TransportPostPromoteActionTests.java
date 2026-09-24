@@ -16,16 +16,104 @@
  */
 package com.wazuh.contentmanager.transport;
 
+import org.apache.lucene.search.IndexSearcher;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.action.search.SearchPhaseExecutionException;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.search.ShardSearchFailure;
+import org.opensearch.action.support.ActionFilters;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.Client;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
+import com.wazuh.contentmanager.action.MessageStatusResponse;
+import com.wazuh.contentmanager.action.PostPromoteRequest;
 import com.wazuh.contentmanager.cti.catalog.service.DetectorLookupService.DetectorRules;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.engine.service.EngineService;
+import com.wazuh.contentmanager.utils.Constants;
 
-/** Unit tests for the rejection message built by {@link TransportPostPromoteAction}. */
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+
+/** Unit tests for {@link TransportPostPromoteAction}'s detector guard. */
 public class TransportPostPromoteActionTests extends OpenSearchTestCase {
+
+    /** A test to custom promotion carrying one rule, so the detector guard runs. */
+    private static final String TEST_TO_CUSTOM_BODY =
+            "{\"space\":\"test\",\"changes\":{\"policy\":[],\"integrations\":[],\"kvdbs\":[],"
+                    + "\"decoders\":[],\"filters\":[],\"rules\":[{\"operation\":\"add\",\"id\":\"r1\"}]}}";
+
+    /** Runs a test to custom promotion whose detector lookup fails with {@code failure}. */
+    @SuppressWarnings("unchecked")
+    private MessageStatusResponse promoteWithFailingDetectorLookup(Exception failure) {
+        Client client = mock(Client.class);
+        doAnswer(
+                        invocation -> {
+                            ((ActionListener<SearchResponse>) invocation.getArguments()[1]).onFailure(failure);
+                            return null;
+                        })
+                .when(client)
+                .search(any(SearchRequest.class), any(ActionListener.class));
+        TransportPostPromoteAction action =
+                new TransportPostPromoteAction(
+                        mock(TransportService.class),
+                        mock(ActionFilters.class),
+                        mock(SpaceService.class),
+                        mock(EngineService.class),
+                        mock(SecurityAnalyticsService.class),
+                        client);
+
+        AtomicReference<MessageStatusResponse> response = new AtomicReference<>();
+        action.doExecute(
+                mock(Task.class),
+                new PostPromoteRequest(TEST_TO_CUSTOM_BODY),
+                ActionListener.wrap(response::set, e -> fail(e.getMessage())));
+        return response.get();
+    }
+
+    /**
+     * A guard that could not read the detectors refuses the promotion with the root cause named, not
+     * with a bare "Internal Server Error." that needs the Indexer logs to diagnose
+     * (wazuh-indexer#1945).
+     */
+    public void testDetectorLookupFailureNamesTheRootCause() {
+        MessageStatusResponse response =
+                promoteWithFailingDetectorLookup(
+                        new SearchPhaseExecutionException(
+                                "query",
+                                "all shards failed",
+                                new ShardSearchFailure[] {
+                                    new ShardSearchFailure(new IndexSearcher.TooManyClauses())
+                                }));
+
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
+        assertEquals(
+                String.format(Locale.ROOT, Constants.E_500_DETECTOR_GUARD_FAILED, "too_many_clauses"),
+                response.getMessage());
+    }
+
+    /** A permission failure while reading the detectors keeps its own status and message. */
+    public void testDetectorLookupSecurityFailureKeepsItsStatus() {
+        MessageStatusResponse response =
+                promoteWithFailingDetectorLookup(
+                        new OpenSearchSecurityException("no permissions", RestStatus.FORBIDDEN));
+
+        assertEquals(RestStatus.FORBIDDEN, response.getStatus());
+        assertEquals("no permissions", response.getMessage());
+    }
 
     private static DetectorRules detector(String name, String... ruleIds) {
         return new DetectorRules(name, name, true, List.of(ruleIds));

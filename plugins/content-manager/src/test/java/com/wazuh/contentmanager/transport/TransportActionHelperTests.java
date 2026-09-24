@@ -20,11 +20,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.lucene.search.IndexSearcher;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.OpenSearchStatusException;
+import org.opensearch.action.search.SearchPhaseExecutionException;
+import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.io.stream.NotSerializableExceptionWrapper;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.test.OpenSearchTestCase;
@@ -293,6 +297,44 @@ public class TransportActionHelperTests extends OpenSearchTestCase {
 
         assertNotNull(classified);
         assertEquals(RestStatus.BAD_REQUEST.getStatus(), classified.getStatus());
+    }
+
+    /**
+     * A search that fails on every shard names the shard's root cause, not the generic "all shards
+     * failed" wrapper (wazuh-indexer#1945).
+     */
+    public void testRootCauseTypeNamesTheShardFailure() {
+        SearchPhaseExecutionException allShardsFailed =
+                new SearchPhaseExecutionException(
+                        "query",
+                        "all shards failed",
+                        new ShardSearchFailure[] {new ShardSearchFailure(new IndexSearcher.TooManyClauses())});
+
+        assertEquals("too_many_clauses", TransportActionHelper.rootCauseType(allShardsFailed));
+    }
+
+    /**
+     * A shard failure from another node arrives wrapped for serialization; the wrapped exception's
+     * type is the one reported.
+     */
+    public void testRootCauseTypeSeesThroughSerializationWrapper() {
+        SearchPhaseExecutionException allShardsFailed =
+                new SearchPhaseExecutionException(
+                        "query",
+                        "all shards failed",
+                        new ShardSearchFailure[] {
+                            new ShardSearchFailure(
+                                    new NotSerializableExceptionWrapper(new IndexSearcher.TooManyClauses()))
+                        });
+
+        assertEquals("too_many_clauses", TransportActionHelper.rootCauseType(allShardsFailed));
+    }
+
+    /** A plain exception is named after its own class. */
+    public void testRootCauseTypeOfPlainException() {
+        assertEquals(
+                "illegal_state_exception",
+                TransportActionHelper.rootCauseType(new IllegalStateException("truncated")));
     }
 
     public void testClassifyExceptionReturnsNullForUnclassifiedException() {
