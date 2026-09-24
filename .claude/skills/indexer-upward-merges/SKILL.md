@@ -12,6 +12,14 @@ with a chain of steps such as `4.14.8 → 4.14.9`, `4.14.9 → 5.0.0`,
 repository's chain, and goes on through the following steps for as long as
 they turn out to have no changes.
 
+The same chain also appears in the **post-release issue** opened after each
+release, titled `Post release tasks for <version>` (for example
+[wazuh-indexer#1937](https://github.com/wazuh/wazuh-indexer/issues/1937)).
+Its `Merge branch` task lines are carried exactly like the weekly ones; its
+other tasks (LTS changelog entry, publishing the release, deleting stage
+pre-releases and tags) are not upward merges and the skill never touches or
+ticks them.
+
 ```
 /indexer-upward-merges <issue-url> <lower> <higher>
 ```
@@ -148,7 +156,8 @@ before it when it is not.
 1. Read the repository and the number from the link
    (`https://github.com/wazuh/<repo>/issues/<n>`); the repository must be one
    of the table above. `gh auth status` must succeed. The issue must be open,
-   its title must match the weekly pattern, and the requested step must be one
+   its title must match the weekly pattern or the post-release one
+   (`REFERENCE.md`, "The weekly issue"), and the requested step must be one
    of its task lines.
 
    ```bash
@@ -186,9 +195,23 @@ before it when it is not.
    If conflicts are still unresolved
    (`git -C <repo> diff --name-only --diff-filter=U` prints something), say
    which ones and stop; that is the user's work, not a state to fix.
-3. **GPG.** Claude's shell has no terminal, so `pinentry` cannot ask for the
-   passphrase: it must already be cached, or signing fails with
-   `Inappropriate ioctl for device`.
+3. **Signing key.** Check the format first:
+   `git -C <repo> config gpg.format`. When it is `ssh`, `user.signingkey` is
+   a path to an SSH public key, not a GPG key id, and the GPG check below
+   always answers `not-cached`. Instead, signing works when the key is loaded
+   in `ssh-agent` (or has no passphrase):
+
+   ```bash
+   key=$(git -C <repo> config --get user.signingkey)
+   echo check | ssh-keygen -Y sign -n git -f "$key" >/dev/null 2>&1 \
+       && echo ready || echo not-ready
+   ```
+
+   If it is not ready, ask the user to run `ssh-add` in their own terminal.
+
+   Otherwise (`openpgp`, or unset) it is GPG: Claude's shell has no terminal,
+   so `pinentry` cannot ask for the passphrase: it must already be cached, or
+   signing fails with `Inappropriate ioctl for device`.
 
    ```bash
    key=$(git config --get user.signingkey || true)

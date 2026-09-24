@@ -51,6 +51,15 @@ of the chain, but branch and PR names always use branch names, never versions.
   open, titled
   `Scheduled upward merges for numbered branches in <repo> repository - Week #<N>`.
   Anything else: stop and tell the user. Never open or close an issue.
+- The one other issue accepted is the **post-release issue**, titled
+  `Post release tasks for <version>`, opened after each release. It is
+  handled the same way: same task-line format, same PR body (`Related to` its
+  number), same comments and tick rule, and "this week" means created after
+  that issue. Only its ``Merge branch `<a>` into branch `<b>`.`` lines form the
+  chain; leave every other task in it (LTS changelog entry, GitHub release,
+  stage pre-releases and tags) unticked and untouched. A step whose PR was
+  merged before the issue was opened is not done for it: check whether the
+  source has anything left to merge, and record it as "no changes" if not.
 - Task lines, in chain order: ``- [ ] Merge branch `<lower>` into branch `<higher>`.``
   The requested step must be one of them. The chain can leave out branches
   that exist (`6.0.0`, and week #38 skipped `4.14.10`).
