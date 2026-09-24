@@ -49,6 +49,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -161,8 +163,67 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException if the setup requests fail
      */
     @Before
-    public void seedPoliciesIndex() throws IOException {
+    public void seedPoliciesIndex() throws Exception {
+        this.waitForSetupPlugin();
         this.ensureRequiredIndicesExist();
+    }
+
+    /** Setup plugin marker that reports whether it has finished initializing its indices. */
+    private static final String SETUP_STATUS_URI = "/.wazuh-setup-status/_doc/setup-status";
+
+    /** Upper bound for the setup plugin to initialize its indices after the cluster starts. */
+    private static final long SETUP_READY_TIMEOUT_SECONDS = 120;
+
+    /**
+     * Whether the setup plugin has already been seen ready. It initializes once per cluster start,
+     * and every test class in this JVM runs against the same cluster, so only the first one waits.
+     */
+    private static volatile boolean setupPluginReady = false;
+
+    /**
+     * Waits until the setup plugin reports its indices as initialized.
+     *
+     * <p>While initializing, the setup plugin deletes any concrete index that holds the name of one
+     * of its public aliases (e.g. {@code wazuh-threatintel-rules}) and replaces it with the alias. A
+     * test that runs in that window writes into an index that is then deleted under it, and fails
+     * with errors unrelated to what it tests ("no such index", "all shards failed", resources not
+     * found). Waiting for the marker keeps every test out of that window.
+     *
+     * <p>The marker index is the first one the setup plugin creates, but it is written only once per
+     * cluster start, and a test class that wipes the cluster deletes it for every class that runs
+     * after. A missing marker therefore only means "not started yet" while the public aliases are
+     * missing too; once they exist, setup has already finished.
+     *
+     * @throws Exception if the setup plugin reports a failure or does not finish in time
+     */
+    private void waitForSetupPlugin() throws Exception {
+        if (setupPluginReady) {
+            return;
+        }
+        assertBusy(
+                () -> {
+                    String status;
+                    try {
+                        status =
+                                this.responseAsJson(this.makeRequest("GET", SETUP_STATUS_URI))
+                                        .path("_source")
+                                        .path("status")
+                                        .asText();
+                    } catch (ResponseException e) {
+                        if (e.getResponse().getStatusLine().getStatusCode() == 404
+                                && aliasExists(Constants.INDEX_POLICIES)) {
+                            return;
+                        }
+                        throw new AssertionError("The setup status marker is not written yet", e);
+                    }
+                    if ("failed".equals(status)) {
+                        throw new IllegalStateException("The setup plugin failed to initialize its indices");
+                    }
+                    assertEquals("Setup plugin initialization status", "ready", status);
+                },
+                SETUP_READY_TIMEOUT_SECONDS,
+                TimeUnit.SECONDS);
+        setupPluginReady = true;
     }
 
     /**
@@ -312,7 +373,11 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         }
 
         // Always re-seed policy documents using deterministic IDs so they overwrite
-        // any modifications made by prior tests (e.g. PUT policy tests).
+        // any modifications made by prior tests (e.g. PUT policy tests). The IDs are the ones the
+        // plugin itself creates its default space policies with (SpaceService#initializeSpace), so
+        // each space keeps a single policy whichever of the two writes first: a second policy for
+        // the same space makes getPolicy return either one, and promotions and hash checks then
+        // read a different policy than the one they changed.
         String documentId = "00000000-0000-0000-0000-000000000000";
         String date = "2025-01-01T00:00:00Z";
         String hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
@@ -353,7 +418,10 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
             this.makeRequest(
                     "PUT",
                     String.format(
-                            Locale.ROOT, "%s/_doc/policy-%s?refresh=true", Constants.INDEX_POLICIES, space),
+                            Locale.ROOT,
+                            "%s/_doc/%s?refresh=true",
+                            Constants.INDEX_POLICIES,
+                            UUID.nameUUIDFromBytes(("wazuh-space-" + space).getBytes(StandardCharsets.UTF_8))),
                     doc);
         }
     }

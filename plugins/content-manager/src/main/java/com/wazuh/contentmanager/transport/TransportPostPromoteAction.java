@@ -1306,9 +1306,7 @@ public class TransportPostPromoteAction
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
     }
 
-    /**
-     * Responds to a promotion whose detector guard could not read its inputs.
-     */
+    /** Responds to a promotion whose detector guard could not read its inputs. */
     private void respondWithDetectorGuardError(
             ActionListener<MessageStatusResponse> listener, Exception e) {
         if (TransportActionHelper.extractSecurityException(e) != null) {

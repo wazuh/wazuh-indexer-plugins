@@ -44,6 +44,16 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 public class PromoteIT extends ContentManagerRestTestCase {
 
+    /** Indices the promotion preview reads. */
+    private static final List<String> CONTENT_INDICES =
+            List.of(
+                    Constants.INDEX_POLICIES,
+                    Constants.INDEX_INTEGRATIONS,
+                    Constants.INDEX_DECODERS,
+                    Constants.INDEX_RULES,
+                    Constants.INDEX_KVDBS,
+                    Constants.INDEX_FILTERS);
+
     // ========================
     // Helper: Build promotion payload from GET preview
     // ========================
@@ -56,6 +66,11 @@ public class PromoteIT extends ContentManagerRestTestCase {
      * @throws IOException on communication error
      */
     private String buildPromotionPayload(String space) throws IOException {
+        // The preview reads the content indices through search, which only sees writes after a
+        // refresh. Without one, content created or deleted just before is missing from the changeset:
+        // it stays behind for whichever test runs next, and a policy change can go unnoticed, so the
+        // promotion leaves the space hash as it was.
+        this.makeRequest("POST", "/" + String.join(",", CONTENT_INDICES) + "/_refresh");
         Response previewResponse =
                 this.makeRequest("GET", PluginSettings.PROMOTE_URI, null, Map.of("space", space));
         assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(previewResponse));
