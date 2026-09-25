@@ -30,6 +30,9 @@ The Active Response monitor type enforces stricter validation than standard docu
 - Indices must match the `wazuh-findings-v5-*` prefix.
 - Schedule interval cannot exceed 60,000 milliseconds (1 minute).
 - Only `DocumentLevelTrigger` is accepted — other trigger types are rejected.
+- Actions must use the `per_alert` execution scope. A `per_execution` action is rejected, because each Active Response message carries a single `<doc_id>|<index>` reference and would answer only the first alert of a run.
+
+At run time, actions of an Active Response monitor always run once per alert. Unlike other monitor types, they never fall back to a single execution for the whole run when the run exceeds `plugins.alerting.max_actionable_alert_count` or ends with an error.
 
 ## Triggers
 
