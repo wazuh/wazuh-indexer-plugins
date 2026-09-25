@@ -37,8 +37,11 @@ The Alerting plugin includes a Wazuh-specific **Active Response monitor type** t
 - **Indices:** Must target indices matching the `wazuh-findings-v5-*` prefix.
 - **Schedule:** Maximum interval of 1 minute (60,000 ms).
 - **Triggers:** Only `DocumentLevelTrigger` is supported.
+- **Actions:** Only the `per_alert` action execution scope is accepted. An action without an `action_execution_policy` defaults to `per_alert`.
 
 When an Active Response monitor triggers, it writes execution requests to the `wazuh-active-responses` data stream. The Wazuh Manager retrieves documents from this data stream to distribute and execute Active Response actions on agents. Each document references the source event that triggered the response.
+
+Each matched event produces its own request, however many events a single run matches. The [`plugins.alerting.max_actionable_alert_count`](configuration.md#alert-history-settings) limit does not apply to Active Response monitors, and a run that ends with an error still sends one request per matched event, logging a `WARN` message.
 
 ## Dependencies
 

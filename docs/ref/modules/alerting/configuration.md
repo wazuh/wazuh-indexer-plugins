@@ -32,7 +32,7 @@ The Alerting plugin is configured through cluster settings under the `plugins.al
 - **`plugins.alerting.alert_backoff_count`** (Integer, default `3`) — number of retry attempts for failed alert writes.
 - **`plugins.alerting.move_alerts_backoff_millis`** (TimeValue, default `50ms`) — backoff interval between retries when moving alerts between indices.
 - **`plugins.alerting.move_alerts_backoff_count`** (Integer, default `3`) — number of retry attempts when moving alerts between indices.
-- **`plugins.alerting.max_actionable_alert_count`** (Long, default `50`) — maximum number of alerts that can trigger actions in a single monitor execution.
+- **`plugins.alerting.max_actionable_alert_count`** (Long, default `50`) — maximum number of alerts that can trigger `per_alert` actions in a single monitor execution. Above it, the action runs once for the whole execution instead of once per alert; `-1` removes the limit. Does not apply to Active Response monitors, which always run their actions once per alert.
 
 ## Finding history settings
 

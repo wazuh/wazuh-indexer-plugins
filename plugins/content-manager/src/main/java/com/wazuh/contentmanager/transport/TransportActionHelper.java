@@ -23,13 +23,20 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.block.ClusterBlockException;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.MediaTypeRegistry;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -209,6 +216,33 @@ public final class TransportActionHelper {
             cause = cause.getCause();
         }
         return null;
+    }
+
+    /**
+     * Returns the type of the exception's root cause, as the REST layer names it in {@code
+     * root_cause[0].type} (for example {@code too_many_clauses} for a query over {@code
+     * indices.query.bool.max_clause_count}).
+     *
+     * @param throwable the failure to inspect.
+     * @return the root cause type, in snake case.
+     */
+    public static String rootCauseType(Throwable throwable) {
+        OpenSearchException[] causes = OpenSearchException.guessRootCauses(throwable);
+        if (causes.length == 0) {
+            return OpenSearchException.getExceptionName(throwable);
+        }
+        try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
+            builder.startObject();
+            causes[0].toXContent(builder, ToXContent.EMPTY_PARAMS);
+            builder.endObject();
+            Object type =
+                    XContentHelper.convertToMap(BytesReference.bytes(builder), false, MediaTypeRegistry.JSON)
+                            .v2()
+                            .get("type");
+            return type == null ? OpenSearchException.getExceptionName(causes[0]) : type.toString();
+        } catch (IOException e) {
+            return OpenSearchException.getExceptionName(causes[0]);
+        }
     }
 
     /**

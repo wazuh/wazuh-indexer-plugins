@@ -23,6 +23,7 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.core.rest.RestStatus;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,6 +44,16 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 public class PromoteIT extends ContentManagerRestTestCase {
 
+    /** Indices the promotion preview reads. */
+    private static final List<String> CONTENT_INDICES =
+            List.of(
+                    Constants.INDEX_POLICIES,
+                    Constants.INDEX_INTEGRATIONS,
+                    Constants.INDEX_DECODERS,
+                    Constants.INDEX_RULES,
+                    Constants.INDEX_KVDBS,
+                    Constants.INDEX_FILTERS);
+
     // ========================
     // Helper: Build promotion payload from GET preview
     // ========================
@@ -55,6 +66,11 @@ public class PromoteIT extends ContentManagerRestTestCase {
      * @throws IOException on communication error
      */
     private String buildPromotionPayload(String space) throws IOException {
+        // The preview reads the content indices through search, which only sees writes after a
+        // refresh. Without one, content created or deleted just before is missing from the changeset:
+        // it stays behind for whichever test runs next, and a policy change can go unnoticed, so the
+        // promotion leaves the space hash as it was.
+        this.makeRequest("POST", "/" + String.join(",", CONTENT_INDICES) + "/_refresh");
         Response previewResponse =
                 this.makeRequest("GET", PluginSettings.PROMOTE_URI, null, Map.of("space", space));
         assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(previewResponse));
@@ -329,6 +345,274 @@ public class PromoteIT extends ContentManagerRestTestCase {
         this.assertHashesMatch(Constants.INDEX_DECODERS, decoderId, "test", "custom");
         this.assertHashesMatch(Constants.INDEX_RULES, ruleId, "test", "custom");
         this.assertHashesMatch(Constants.INDEX_KVDBS, kvdbId, "test", "custom");
+    }
+
+    // ========================
+    // POST Promote - Detector guard
+    // ========================
+
+    /** Security Analytics detectors index, read by the promotion's detector guard. */
+    private static final String DETECTORS_INDEX = ".opensearch-sap-detectors-config";
+
+    /**
+     * Rules promoted by {@link #testPostPromote_testToCustomWithManyRules}: past the ~205 rules at
+     * which a per-rule-id query used to exceed {@code indices.query.bool.max_clause_count}.
+     */
+    private static final int MANY_RULES = 300;
+
+    /**
+     * Promote from test to custom a changeset whose rule count used to break the detector guard
+     * (wazuh-indexer#1945).
+     *
+     * <p>The guard queried the detectors with one clause per promoted rule id against {@code
+     * custom_rules.id}, a {@code text} field that splits each UUID into several terms. Past about 200
+     * rules the query exceeded {@code indices.query.bool.max_clause_count}, failed on every shard and
+     * the promotion was refused with a bare {@code Internal Server Error}.
+     *
+     * <p>Verifies, with an enabled detector referencing one of the rules:
+     *
+     * <ul>
+     *   <li>Promoting the rules to custom succeeds and they reach the custom space.
+     *   <li>Promoting the deletion of all of them is rejected with 400, naming the detector: the
+     *       guard still sees the detector however many rules the changeset carries. A lookup that
+     *       silently found no detector would let this through.
+     *   <li>Once the detector is gone, the same deletion goes through.
+     * </ul>
+     *
+     * @throws IOException On communication error
+     */
+    public void testPostPromote_testToCustomWithManyRules() throws IOException {
+        // Indices outlive each test, so rules left in draft by other tests count towards the limit.
+        this.setMaxRules(MANY_RULES * 4);
+        boolean createdDetectorsIndex = false;
+        try {
+            String integrationTitle = "promote-many-rules";
+            String integrationId = this.createIntegration(integrationTitle);
+            List<String> ruleIds = new ArrayList<>();
+            for (int i = 0; i < MANY_RULES; i++) {
+                ruleIds.add(this.createNumberedRule(integrationId, integrationTitle, i));
+            }
+
+            String draftPayload = this.buildPromotionPayload("draft");
+            Response draftPromoteResponse =
+                    this.makeRequest("POST", PluginSettings.PROMOTE_URI, draftPayload);
+            assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(draftPromoteResponse));
+
+            // The guard only runs its query when the detectors index exists and holds a detector.
+            createdDetectorsIndex = this.createDetectorsIndex();
+            this.indexDetector("promote-many-rules-detector", ruleIds.get(0));
+
+            String testPayload = this.buildPromotionPayload("test");
+            Response response = this.makeRequest("POST", PluginSettings.PROMOTE_URI, testPayload);
+            assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(response));
+
+            this.assertResourceExistsInSpace(Constants.INDEX_RULES, ruleIds.get(0), "custom");
+            this.assertResourceExistsInSpace(
+                    Constants.INDEX_RULES, ruleIds.get(MANY_RULES - 1), "custom");
+
+            // Deleting every rule would leave the detector with none enabled.
+            for (String ruleId : ruleIds) {
+                this.deleteResource(PluginSettings.RULES_URI, ruleId);
+            }
+            String draftRemovalPayload = this.buildPromotionPayload("draft");
+            assertEquals(
+                    RestStatus.OK.getStatus(),
+                    this.getStatusCode(
+                            this.makeRequest("POST", PluginSettings.PROMOTE_URI, draftRemovalPayload)));
+
+            String testRemovalPayload = this.buildPromotionPayload("test");
+            ResponseException rejected =
+                    expectThrows(
+                            ResponseException.class,
+                            () -> this.makeRequest("POST", PluginSettings.PROMOTE_URI, testRemovalPayload));
+            assertEquals(
+                    RestStatus.BAD_REQUEST.getStatus(),
+                    rejected.getResponse().getStatusLine().getStatusCode());
+            assertEquals(
+                    String.format(
+                            Locale.ROOT,
+                            Constants.E_400_PROMOTION_EMPTIES_DETECTOR,
+                            ruleIds.get(0),
+                            "promote-many-rules-detector"),
+                    this.responseAsJson(rejected.getResponse()).path("message").asText());
+            this.assertResourceExistsInSpace(Constants.INDEX_RULES, ruleIds.get(0), "custom");
+
+            this.deleteDetector("promote-many-rules-detector");
+            Response removed =
+                    this.makeRequest("POST", PluginSettings.PROMOTE_URI, this.buildPromotionPayload("test"));
+            assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(removed));
+        } finally {
+            if (createdDetectorsIndex) {
+                this.makeRequest("DELETE", "/" + DETECTORS_INDEX);
+            } else {
+                this.deleteDetector("promote-many-rules-detector");
+            }
+            this.setMaxRules(null);
+        }
+    }
+
+    /**
+     * Creates a draft rule under an integration. Rule titles must be unique within a space, so each
+     * one carries {@code number}; otherwise the rule matches {@link #createRule}.
+     *
+     * @param integrationId the parent integration ID
+     * @param integrationTitle the parent integration title, used as the rule's log source
+     * @param number distinguishes this rule's title from its siblings'
+     * @return the generated rule ID
+     * @throws IOException on communication error
+     */
+    private String createNumberedRule(String integrationId, String integrationTitle, int number)
+            throws IOException {
+        // spotless:off
+        String payload = """
+                {
+                    "integration": "%s",
+                    "resource": {
+                        "metadata": {
+                            "title": "Test Rule %s %d",
+                            "description": "A rule for integration tests.",
+                            "author": "Tester",
+                            "references": ["https://wazuh.com"]
+                        },
+                        "sigma_id": "test-sigma",
+                        "enabled": true,
+                        "status": "experimental",
+                        "logsource": {
+                            "product": "%s",
+                            "category": "%s"
+                        },
+                        "detection": {
+                            "condition": "selection",
+                            "selection": {
+                                "event.action": ["test_event"]
+                            }
+                        },
+                        "level": "low"
+                    }
+                }
+                """;
+        payload = String.format(Locale.ROOT, payload, integrationId, integrationTitle, number, integrationTitle, integrationTitle);
+        // spotless:on
+
+        Response response = this.makeRequest("POST", PluginSettings.RULES_URI, payload);
+        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
+        String id = (String) this.parseResponseAsMap(response).get("message");
+        assertNotNull("Rule ID should not be null", id);
+        return id;
+    }
+
+    /**
+     * Sets {@code plugins.content_manager.max_rules}, or restores its default when {@code null}.
+     *
+     * @param maxRules the limit, or {@code null} to reset it.
+     * @throws IOException on communication error
+     */
+    private void setMaxRules(Integer maxRules) throws IOException {
+        String value = maxRules == null ? "null" : maxRules.toString();
+        this.makeRequest(
+                "PUT",
+                "/_cluster/settings",
+                "{\"persistent\":{\"plugins.content_manager.max_rules\":" + value + "}}");
+    }
+
+    /**
+     * Creates the detectors index with the part of Security Analytics' {@code detectors.json} mapping
+     * the guard reads, unless Security Analytics already created it.
+     *
+     * <p>The shape must match Security Analytics' own: {@code detector} is {@code nested}, so a query
+     * that forgets the nested wrapper matches no detector, and {@code custom_rules.id} is {@code
+     * text}, which is what made each rule id cost several query clauses.
+     *
+     * @return whether this call created the index.
+     * @throws IOException on communication error
+     */
+    private boolean createDetectorsIndex() throws IOException {
+        // spotless:off
+        String mapping = """
+                {
+                    "mappings": {
+                        "properties": {
+                            "detector": {
+                                "type": "nested",
+                                "dynamic": "false",
+                                "properties": {
+                                    "name": {"type": "text", "fields": {"keyword": {"type": "keyword"}}},
+                                    "enabled": {"type": "boolean"},
+                                    "inputs": {
+                                        "type": "nested",
+                                        "properties": {
+                                            "detector_input": {
+                                                "type": "nested",
+                                                "properties": {
+                                                    "custom_rules": {
+                                                        "type": "nested",
+                                                        "properties": {"id": {"type": "text"}}
+                                                    },
+                                                    "pre_packaged_rules": {
+                                                        "type": "nested",
+                                                        "properties": {"id": {"type": "text"}}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                """;
+        // spotless:on
+        try {
+            this.makeRequest("PUT", "/" + DETECTORS_INDEX, mapping);
+            return true;
+        } catch (ResponseException e) {
+            if (e.getResponse().getStatusLine().getStatusCode() != 400) {
+                throw e;
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Indexes an enabled detector whose only custom rule is {@code ruleId}.
+     *
+     * @param detectorId the detector document id.
+     * @param ruleId the content-manager rule id the detector references.
+     * @throws IOException on communication error
+     */
+    private void indexDetector(String detectorId, String ruleId) throws IOException {
+        // spotless:off
+        String detector = """
+                {
+                    "detector": {
+                        "name": "%s",
+                        "enabled": true,
+                        "inputs": [{"detector_input": {"custom_rules": [{"id": "%s"}], "pre_packaged_rules": []}}]
+                    }
+                }
+                """;
+        // spotless:on
+        this.makeRequest(
+                "PUT",
+                "/" + DETECTORS_INDEX + "/_doc/" + detectorId + "?refresh=true",
+                String.format(Locale.ROOT, detector, detectorId, ruleId));
+    }
+
+    /**
+     * Deletes a detector document, ignoring one that does not exist.
+     *
+     * @param detectorId the detector document id.
+     * @throws IOException on communication error
+     */
+    private void deleteDetector(String detectorId) throws IOException {
+        try {
+            this.makeRequest("DELETE", "/" + DETECTORS_INDEX + "/_doc/" + detectorId + "?refresh=true");
+        } catch (ResponseException e) {
+            if (e.getResponse().getStatusLine().getStatusCode() != 404) {
+                throw e;
+            }
+        }
     }
 
     // ========================
