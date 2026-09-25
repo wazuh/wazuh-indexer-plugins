@@ -149,7 +149,7 @@ public class TransportPostPromoteAction
                                 }
                                 this.gatherPromotionDataAsync(spaceDiff, listener);
                             },
-                            e -> respondWithError(listener, e)));
+                            e -> respondWithDetectorGuardError(listener, e)));
         } catch (IllegalArgumentException e) {
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             listener.onResponse(new MessageStatusResponse(e.getMessage(), RestStatus.BAD_REQUEST));
@@ -1304,6 +1304,21 @@ public class TransportPostPromoteAction
         listener.onResponse(
                 new MessageStatusResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
+    }
+
+    /** Responds to a promotion whose detector guard could not read its inputs. */
+    private void respondWithDetectorGuardError(
+            ActionListener<MessageStatusResponse> listener, Exception e) {
+        if (TransportActionHelper.extractSecurityException(e) != null) {
+            respondWithError(listener, e);
+            return;
+        }
+        String causeType = TransportActionHelper.rootCauseType(e);
+        log.error(Constants.E_LOG_DETECTOR_GUARD_FAILED, causeType, e.getMessage(), e);
+        listener.onResponse(
+                new MessageStatusResponse(
+                        String.format(Locale.ROOT, Constants.E_500_DETECTOR_GUARD_FAILED, causeType),
+                        RestStatus.INTERNAL_SERVER_ERROR));
     }
 
     private static IOException wrapAsIOException(Exception e) {
