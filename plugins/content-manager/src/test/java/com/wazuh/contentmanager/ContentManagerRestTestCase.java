@@ -171,6 +171,12 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     /** Setup plugin marker that reports whether it has finished initializing its indices. */
     private static final String SETUP_STATUS_URI = "/.wazuh-setup-status/_doc/setup-status";
 
+    /**
+     * Composable index template of {@code .wazuh-settings}, the last index the setup plugin
+     * initializes (SetupPlugin#createComponents registers it after every content index).
+     */
+    private static final String SETUP_LAST_INDEX_TEMPLATE = "settings";
+
     /** Upper bound for the setup plugin to initialize its indices after the cluster starts. */
     private static final long SETUP_READY_TIMEOUT_SECONDS = 120;
 
@@ -189,10 +195,12 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * with errors unrelated to what it tests ("no such index", "all shards failed", resources not
      * found). Waiting for the marker keeps every test out of that window.
      *
-     * <p>The marker index is the first one the setup plugin creates, but it is written only once per
-     * cluster start, and a test class that wipes the cluster deletes it for every class that runs
-     * after. A missing marker therefore only means "not started yet" while the public aliases are
-     * missing too; once they exist, setup has already finished.
+     * <p>The marker is written only once per cluster start, and the {@code OpenSearchIntegTestCase}
+     * classes that share this cluster wipe every index (and every data stream and legacy template)
+     * when they finish, the marker and the public aliases included. A missing marker therefore only
+     * means "not started yet" while the index template of the last index setup initializes is missing
+     * too: composable templates survive the wipe, and setup creates that one only after every public
+     * alias is in place.
      *
      * @throws Exception if the setup plugin reports a failure or does not finish in time
      */
@@ -211,7 +219,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                                         .asText();
                     } catch (ResponseException e) {
                         if (e.getResponse().getStatusLine().getStatusCode() == 404
-                                && aliasExists(Constants.INDEX_POLICIES)) {
+                                && indexTemplateExists(SETUP_LAST_INDEX_TEMPLATE)) {
                             return;
                         }
                         throw new AssertionError("The setup status marker is not written yet", e);
@@ -224,6 +232,18 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                 SETUP_READY_TIMEOUT_SECONDS,
                 TimeUnit.SECONDS);
         setupPluginReady = true;
+    }
+
+    /**
+     * Returns whether a composable index template exists.
+     *
+     * @param name template name
+     * @return true if the template exists
+     * @throws IOException if the request fails
+     */
+    private static boolean indexTemplateExists(String name) throws IOException {
+        Response response = client().performRequest(new Request("HEAD", "/_index_template/" + name));
+        return response.getStatusLine().getStatusCode() == 200;
     }
 
     /**
