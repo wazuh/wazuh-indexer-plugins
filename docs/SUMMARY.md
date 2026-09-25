@@ -11,6 +11,7 @@
 - [Build from sources](dev/build-sources.md)
 - [Run from sources](dev/run-sources.md)
 - [Run tests](dev/run-tests.md)
+- [Credential and TLS resolution](dev/credentials.md)
 - [Plugins]()
   - [Setup](dev/plugins/setup.md)
   - [Security](dev/plugins/security.md)

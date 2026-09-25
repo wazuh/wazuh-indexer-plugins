@@ -31,8 +31,8 @@ public class AuthenticatedUserTests extends OpenSearchTestCase {
     public void testParseTakesTheNameBeforeTheFirstUnescapedSeparator() {
         assertEquals("qadls-probe", AuthenticatedUser.parse("qadls-probe|||"));
         assertEquals(
-                "wazuh-readonly",
-                AuthenticatedUser.parse("wazuh-readonly|backend1,backend2|wazuh_readonly,own_index|"));
+                "custom-user",
+                AuthenticatedUser.parse("custom-user|backend1,backend2|custom_role,own_index|"));
         assertEquals(
                 "admin", AuthenticatedUser.parse("admin|admin|all_access,own_index|global_tenant"));
     }
