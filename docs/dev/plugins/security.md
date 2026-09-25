@@ -23,8 +23,10 @@ new-user:
   backend_roles: []
   description: "New user description"
 ```
+
 OpenSearch's reference:
 - [internal_users.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#internal_usersyml)
+
 ## 2. Adding a new role
 Add the new role to the `roles.wazuh.yml` file located at: `wazuh-indexer/distribution/src/config/security/`.
 - Under `index_permissions.index_patterns`, list the index patterns the role will have effect on.
@@ -63,7 +65,7 @@ role-write:
    static: true
 ```
 
-OpenSearch's reference: 
+OpenSearch's reference:
 - [roles.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#rolesyml)
 - [action_groups.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#action_groupsyml)
 - [Default action groups](https://docs.opensearch.org/3.6/security/access-control/default-action-groups/)
@@ -92,7 +94,7 @@ role-write:
    and_backend_roles: [ ]
 ```
 
-OpenSearch's reference: 
+OpenSearch's reference:
 - [roles_mapping.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#roles_mappingymll)
 
 ## Testing the configuration

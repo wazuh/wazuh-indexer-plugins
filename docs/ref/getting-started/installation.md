@@ -88,13 +88,13 @@ Install the following packages if missing:
 ##### yum
 
 ```bash
-yum install coreutils
+yum install coreutils diffutils hostname iproute openssl procps-ng util-linux
 ```
 
 ##### apt
 
 ```bash
-apt-get install debconf adduser procps
+apt-get install debconf adduser procps diffutils iproute2 openssl
 ```
 
 #### Installing the Wazuh indexer package
