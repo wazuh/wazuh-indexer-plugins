@@ -22,20 +22,17 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
 
 The Wazuh indexer issues its own certificates when the package is installed, signed by a certificate authority it creates in `/etc/wazuh/ca/`. **A single-node deployment needs nothing from this stage** — skip to [Nodes installation](#2-nodes-installation).
 
-Every node of a cluster must trust the same authority, and the authority each package creates is local to its own host. For a multi-node cluster, generate the certificates in advance and place them on each node **before** installing the package, as described below. The package finds them and issues nothing.
+Every node of a cluster must trust the same authority, and the authority each package creates is local to its own host. For a multi-node cluster, generate one set of certificates for the whole cluster and distribute it, as described below.
 
-The same applies if you bring certificates from your own PKI: place the node's certificate and key in `/etc/wazuh-indexer/certs/` and the trust anchor in `/etc/wazuh/ca/root-ca.pem` before installing.
+The same applies if you bring certificates from your own PKI: place each node's certificate and key in `/etc/wazuh-indexer/certs/` and the trust anchor in `/etc/wazuh/ca/root-ca.pem`.
 
 #### Generating the SSL certificates
 
-1. Download the `wazuh-certs-tool.sh` script and the `config.yml` configuration file. This creates the certificates that encrypt communications between the Wazuh central components.
+The certificates tool ships with the Wazuh indexer package, so install the package on one node first and generate the cluster's certificates from there. Installing does not start the service, so nothing runs before you are ready.
 
-    ```bash
-    curl -sO https://packages-dev.wazuh.com/5.0/wazuh-certs-tool.sh
-    curl -sO https://packages-dev.wazuh.com/5.0/config.yml
-    ```
+1. Install the Wazuh indexer package on one node, following [Nodes installation](#2-nodes-installation), and stop after the package is installed.
 
-1. Edit `./config.yml` and replace the node names and IP values with the corresponding names and IP addresses. You need to do this for all Wazuh Manager, Wazuh indexer, and Wazuh dashboard nodes. Add as many node fields as needed.
+1. Edit `/usr/share/wazuh-indexer/tools/config.yml` and replace the node names and IP values with the corresponding names and IP addresses. You need to do this for all Wazuh Manager, Wazuh indexer, and Wazuh dashboard nodes. Add as many node fields as needed.
 
     ```yml
     nodes:
@@ -70,20 +67,23 @@ The same applies if you bring certificates from your own PKI: place the node's c
 
     To learn more about how to create and configure the certificates, see the [Certificates deployment](https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/certificate-deployment.html) section.
 
-1. Run `./wazuh-certs-tool.sh` to create the certificates. For a multi-node cluster, these certificates need to be later deployed to all Wazuh instances in your cluster.
+1. Run the tool to create the certificates. It reads `config.yml` from beside itself and writes the result to `wazuh-certificates/` in the same directory.
 
     ```bash
-    ./wazuh-certs-tool.sh -A
+    /usr/share/wazuh-indexer/tools/wazuh-certs-tool.sh -A
     ```
 
 1. Compress all the necessary files.
 
     ```bash
-    tar -cvf ./wazuh-certificates.tar -C ./wazuh-certificates/ .
+    cd /usr/share/wazuh-indexer/tools/
+    tar -cvf /tmp/wazuh-certificates.tar -C ./wazuh-certificates/ .
     rm -rf ./wazuh-certificates
     ```
 
 1. Copy the `wazuh-certificates.tar` file to all the nodes, including the Wazuh indexer, Wazuh Manager, and Wazuh dashboard nodes. This can be done by using the `scp` utility.
+
+    On the node that generated them, and on every other Wazuh indexer node, replace the certificates the package issued with this node's pair — see [Deploying certificates](#deploying-certificates).
 
 ### 2. Nodes installation
 
@@ -137,7 +137,11 @@ The Wazuh Manager and the Wazuh Dashboard read this file when **they** are insta
 rm /etc/wazuh/credentials.env
 ```
 
-Passwords are generated once. Reinstalling, restarting or upgrading the Wazuh indexer does not change them, and neither does removing this file. To change a password afterwards, use `wazuh-passwords-tool.sh`.
+Passwords are generated once. Reinstalling, restarting or upgrading the Wazuh indexer does not change them, and neither does removing this file. To change one afterwards, use the passwords tool, which also ships with the package:
+
+```bash
+/usr/share/wazuh-indexer/tools/wazuh-passwords-tool.sh -u admin -p <new-password>
+```
 
 #### Configuring the Wazuh indexer
 

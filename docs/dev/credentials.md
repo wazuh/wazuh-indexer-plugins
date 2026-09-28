@@ -20,9 +20,8 @@ deliberately does **not** record completion, so the next install can still finis
 installing the package, which would otherwise bake one host's credentials into a layer every
 container shares.
 
-`indexer-security-init.sh` keeps its own state in `/var/lib/wazuh-indexer/.security-initialized`.
-The two record different facts and are reached at different moments: resolution completes in
-`postinst`, while the security configuration can only be uploaded once the node is running.
+`indexer-security-init.sh` keeps no state of its own. It is run by an operator, once, and the
+package never calls it — so there is nothing for it to guard against repeating.
 
 ## How a password reaches the cluster
 
