@@ -53,6 +53,28 @@ Which case applies is decided entirely by what is present, with no mode flag —
 
 The Subject Alternative Names default to the hostname, the FQDN, loopback and the global addresses of default-route interfaces. `WAZUH_INDEXER_CERT_SANS` replaces that list wholesale.
 
+## File ownership
+
+Root runs `bin/resolve-credentials.sh` — from the maintainer scripts and from the unit's
+`ExecStartPre` — and that script sources `lib/wazuh-credentials.sh`. So the product tree is
+**`root`-owned**, group `wazuh-indexer`, mode `750`/`640`: the service account reads and executes
+everything and writes nothing. A service account able to rewrite either file could have root run
+its own code.
+
+Two directories under the product tree are exceptions, because the service writes them at runtime:
+
+- `engine/` — sockets, logs and data
+- `plugins/wazuh-indexer-content-manager/snapshots/` — the content manager deletes the shipped
+  snapshot once it has consumed it
+
+**Adding a file the service must write means adding a third exception**, in the DEB `postinst` and
+in the spec's `%files`. Adding one it only reads needs nothing: the default covers it. The
+acceptance suite asserts both the root ownership and the two exceptions, so getting this wrong
+fails the build rather than shipping quietly.
+
+The same reasoning applies outside the product tree. `/etc/default/wazuh-indexer` and
+`/usr/lib/sysctl.d/wazuh-indexer.conf` are read by systemd as root, so both stay root-owned.
+
 ## Host dependencies
 
 Both packages declare these (`Depends:` in `debian/control`, `Requires:` in the spec, where
