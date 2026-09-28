@@ -20,11 +20,11 @@ Common issues and solutions when working with the Notifications plugin.
 
 ```bash
 # Verify the config
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
   "https://localhost:9200/_plugins/_notifications/configs/<config-id>"
 
 # Send a test notification
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://localhost:9200/_plugins/_notifications/feature/test/<config-id>"
 ```
 

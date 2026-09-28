@@ -24,6 +24,36 @@ container shares.
 The two record different facts and are reached at different moments: resolution completes in
 `postinst`, while the security configuration can only be uploaded once the node is running.
 
+## How a password reaches the cluster
+
+`internal_users.wazuh.yml` ships each account's `hash` as a `${NAME}` placeholder rather than a digest, so the package carries no usable credential. `resolve-credentials.sh` resolves the value, bcrypts it with the security plugin's `hash.sh`, and substitutes the digest in place.
+
+The placeholder is deliberately bare. The security plugin substitutes `${env.X}`, `${envbc.X}` and `${envbase64.X}` itself, node-side, at every configuration load — which would tie each account to a variable that has to stay in the service environment for the life of the deployment. A placeholder with no such prefix is left untouched by the plugin.
+
+Loading the result into the cluster stays a manual step, `indexer-security-init.sh`. A package cannot know whether other nodes of the same cluster are still to be installed elsewhere, so running it automatically would either race those nodes or overwrite what they uploaded.
+
+## Resolver modes
+
+`resolve-credentials.sh` takes one of four modes, and is invoked from `postinst` / `%post`, the unit's `ExecStartPre`, and a container entrypoint:
+
+- `--install` — from a fresh install. Creates what it can, never fails, and is the only moment that issues certificates.
+- `--upgrade` — fills in only what this host never had, and never touches the certificates.
+- `--prestart` — from the unit. Refuses to start the service when something is unresolved.
+- `--clear` — removes everything this component owns, so the next run resolves from nothing. For images built by installing the package, which would otherwise bake one host's credentials into a layer every container shares.
+
+## Certificate resolution
+
+Which case applies is decided entirely by what is present, with no mode flag — the presence of a private key beside the trust anchor is the signal, so a host never given one cannot sign:
+
+| In the CA directory | Pair already in place | Result |
+| --- | --- | --- |
+| Nothing | No | Mint a CA, then self-issue |
+| Anchor and key | No | Issue from the CA found |
+| Anchor only | Yes | Use both, generate nothing |
+| Anchor only | No | Unresolved; the service will not start |
+
+The Subject Alternative Names default to the hostname, the FQDN, loopback and the global addresses of default-route interfaces. `WAZUH_INDEXER_CERT_SANS` replaces that list wholesale.
+
 ## Host dependencies
 
 Both packages declare these (`Depends:` in `debian/control`, `Requires:` in the spec, where

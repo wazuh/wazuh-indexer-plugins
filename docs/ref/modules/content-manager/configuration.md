@@ -85,7 +85,7 @@ plugins.content_manager.telemetry.enabled: false
 `plugins.content_manager.catalog.update_on_schedule` and `plugins.content_manager.telemetry.enabled` are dynamic, so on a running deployment they can be applied without a restart:
 
 ```bash
-curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
 {
   "persistent": {
     "plugins.content_manager.catalog.update_on_schedule": false,
@@ -119,7 +119,7 @@ plugins.content_manager.catalog.sync_interval: 1440
 The setting is dynamic, so the interval can also be changed on a running deployment:
 
 ```bash
-curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
 {
   "persistent": {
     "plugins.content_manager.catalog.sync_interval": 1440
@@ -239,7 +239,7 @@ This data allows Wazuh to determine if a newer version is available and notify u
 The update check service can be enabled or disabled at runtime without restarting the node using the Cluster Settings API:
 
 ```bash
-curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
 {
   "persistent": {
     "plugins.content_manager.telemetry.enabled": false

@@ -18,7 +18,13 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
 
 > **Note**: You need root user privileges to run all the commands described below.
 
-### 1. Certificates creation
+### 1. Certificates
+
+The Wazuh indexer issues its own certificates when the package is installed, signed by a certificate authority it creates in `/etc/wazuh/ca/`. **A single-node deployment needs nothing from this stage** — skip to [Nodes installation](#2-nodes-installation).
+
+Every node of a cluster must trust the same authority, and the authority each package creates is local to its own host. For a multi-node cluster, generate the certificates in advance and place them on each node **before** installing the package, as described below. The package finds them and issues nothing.
+
+The same applies if you bring certificates from your own PKI: place the node's certificate and key in `/etc/wazuh-indexer/certs/` and the trust anchor in `/etc/wazuh/ca/root-ca.pem` before installing.
 
 #### Generating the SSL certificates
 
@@ -111,6 +117,28 @@ rpm -ivh --replacepkgs wazuh-indexer-<VERSION>.rpm
 dpkg -i wazuh-indexer-<VERSION>.deb
 ```
 
+#### Retrieving the generated credentials
+
+The installation generates one password per internal user and writes them to `/etc/wazuh/credentials.env`, readable only by root:
+
+```bash
+cat /etc/wazuh/credentials.env
+```
+
+```
+WAZUH_INDEXER_ADMIN_PASSWORD='...'
+WAZUH_INDEXER_KIBANASERVER_PASSWORD='...'
+WAZUH_INDEXER_MANAGER_PASSWORD='...'
+```
+
+The Wazuh Manager and the Wazuh Dashboard read this file when **they** are installed, so keep it until every component is installed and running. Delete it afterwards — it holds every password in the deployment in plain text:
+
+```bash
+rm /etc/wazuh/credentials.env
+```
+
+Passwords are generated once. Reinstalling, restarting or upgrading the Wazuh indexer does not change them, and neither does removing this file. To change a password afterwards, use `wazuh-passwords-tool.sh`.
+
 #### Configuring the Wazuh indexer
 
 Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the following values:
@@ -138,7 +166,7 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
   - "10.0.0.3"
   ```
 
-  e. **`plugins.security.nodes_dn`**: List of the Distinguished Names of the certificates of all the Wazuh indexer cluster nodes. Uncomment the lines for `node-2` and `node-3` and change the common names (CN) and values according to your settings and your `config.yml` definitions.
+  e. **`plugins.security.nodes_dn`**: List of the Distinguished Names of the certificates of all the Wazuh indexer cluster nodes. The installation writes this node's own Distinguished Name. For a cluster, add one line per remaining node.
 
   ```yml
   plugins.security.nodes_dn:
@@ -149,7 +177,9 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
 
 #### Deploying certificates
 
-> **Note**: Make sure that a copy of the `wazuh-certificates.tar` file, created during the initial configuration step, is placed in your working directory.
+> **Note**: This step applies only if you generated the certificates in advance, as described in [Certificates](#1-certificates). A single-node deployment already has the certificates the package issued.
+>
+> Make sure that a copy of the `wazuh-certificates.tar` file, created during the initial configuration step, is placed in your working directory.
 
 Run the following commands, replacing `<INDEXER_NODE_NAME>` with the name of the Wazuh indexer node you are configuring as defined in `config.yml`. For example, `node-1`. This deploys the SSL certificates to encrypt communications between the Wazuh central components.
 
@@ -224,7 +254,7 @@ Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer nod
 1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following commands to confirm that the installation is successful.
 
     ```bash
-    curl -k -u admin:admin https://$WAZUH_INDEXER_IP_ADDRESS:9200
+    curl -k -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD https://$WAZUH_INDEXER_IP_ADDRESS:9200
     ```
 
     **Output**
@@ -251,5 +281,5 @@ Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer nod
 1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following command to check if the single-node or multi-node cluster is working correctly.
 
     ```bash
-    curl -k -u admin:admin https://$WAZUH_INDEXER_IP_ADDRESS:9200/_cat/nodes?v
+    curl -k -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD https://$WAZUH_INDEXER_IP_ADDRESS:9200/_cat/nodes?v
     ```

@@ -26,7 +26,7 @@ The Reporting plugin is configured through cluster settings.
 To change it at runtime:
 
 ```bash
-curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
 {
   "persistent": {
     "plugins.reports.max_report_definitions": 20

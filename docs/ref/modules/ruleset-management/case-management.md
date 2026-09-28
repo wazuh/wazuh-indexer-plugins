@@ -113,7 +113,7 @@ All fields inside `case` are optional — you can update only the fields you nee
 
 ```bash
 # 1. Classify and acknowledge a finding
-curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_plugins/_security_analytics/findings/_update" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_plugins/_security_analytics/findings/_update" \
   -H "Content-Type: application/json" \
   -d '{
     "findings": [{
@@ -136,7 +136,7 @@ curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_plugins/_security_analyt
   }'
 
 # 2. Add a follow-up comment and close the finding after investigation
-curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_plugins/_security_analytics/findings/_update" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_plugins/_security_analytics/findings/_update" \
   -H "Content-Type: application/json" \
   -d '{
     "findings": [{
@@ -165,7 +165,7 @@ Since `wazuh.case.status` is a `keyword` field, you can filter findings by statu
 
 ```bash
 # Get all acknowledged findings
-curl -sk -u admin:admin -X GET "https://127.0.0.1:9200/wazuh-findings-v5-*/_search" -H 'Content-Type: application/json' -d'
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://127.0.0.1:9200/wazuh-findings-v5-*/_search" -H 'Content-Type: application/json' -d'
 {
   "query": {
     "term": {

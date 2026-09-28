@@ -64,7 +64,7 @@ The Alerting plugin is configured through cluster settings under the `plugins.al
 All settings can be updated at runtime through the cluster settings API:
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_cluster/settings" \
   -H 'Content-Type: application/json' \
   -d '{

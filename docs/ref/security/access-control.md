@@ -13,15 +13,15 @@ These default users and roles definitions are stored in the `internal_users.yml`
 
 ### Users
 
-One internal user ships with the indexer, mapped 1:1 to the role of the matching name in `roles_mapping.yml`:
+Three internal users ship with the indexer:
 
+- **`admin`** — superuser, holding `all_access`. Administration goes through this account.
+- **`kibanaserver`** → `dashboard_server` — service account the Wazuh Dashboard authenticates as internally.
 - **`wazuh-manager`** → `wazuh_manager` — service account for the Wazuh Manager: read/write on stateless (events, metrics) indices, read/write/delete on stateful (states) indices, read/write on the agent statistics and configuration indexes, and read on consumers, threat intelligence and active-responses.
 
-> **Security note:** The bundled password hash decodes to the username. Change the default password immediately after installation.
+> **Passwords are generated during installation**, one per account, unique to each deployment. No account ships with a password, and none can be authenticated as until the security configuration is loaded. See [Retrieving the generated credentials](../getting-started/installation.md#retrieving-the-generated-credentials).
 
-No administrative persona ships any more: administration goes through the built-in OpenSearch `admin` superuser, which holds `all_access`. To give somebody administrative access without handing them `all_access`, define a role with the permissions that job needs — the permission names available are listed in [Permissions](./permissions.md) — and map it to your own user (see [Defining Users and Roles](./defining-users-and-roles.md)).
-
-There is no dedicated internal user for the `dashboard_server` role below — it is mapped to the built-in OpenSearch `kibanaserver` user, which the Wazuh Dashboard authenticates as internally.
+No administrative persona ships beyond `admin`. To give somebody administrative access without handing them `all_access`, define a role with the permissions that job needs — the permission names available are listed in [Permissions](./permissions.md) — and map it to your own user (see [Defining Users and Roles](./defining-users-and-roles.md)).
 
 Besides the 1:1 roles, `wazuh_ai_assistant` is mapped to **every** authenticated user. It is the only role mapped to more than one account, and exists to attach a Document Level Security query to an index.
 
