@@ -18,18 +18,21 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
 
 > **Note**: You need root user privileges to run all the commands described below.
 
-### 1. Certificates creation
+### 1. Certificates
+
+The Wazuh indexer issues its own certificates when the package is installed, signed by a certificate authority it creates in `/etc/wazuh/ca/`. **A single-node deployment needs nothing from this stage** — skip to [Nodes installation](#2-nodes-installation).
+
+Every node of a cluster must trust the same authority, and the authority each package creates is local to its own host. For a multi-node cluster, generate one set of certificates for the whole cluster and distribute it, as described below.
+
+The same applies if you bring certificates from your own PKI: place each node's certificate and key in `/etc/wazuh-indexer/certs/` and the trust anchor in `/etc/wazuh/ca/root-ca.pem`.
 
 #### Generating the SSL certificates
 
-1. Download the `wazuh-certs-tool.sh` script and the `config.yml` configuration file. This creates the certificates that encrypt communications between the Wazuh central components.
+The certificates tool ships with the Wazuh indexer package, so install the package on one node first and generate the cluster's certificates from there. Installing does not start the service, so nothing runs before you are ready.
 
-    ```bash
-    curl -sO https://packages-dev.wazuh.com/5.0/wazuh-certs-tool.sh
-    curl -sO https://packages-dev.wazuh.com/5.0/config.yml
-    ```
+1. Install the Wazuh indexer package on one node, following [Nodes installation](#2-nodes-installation), and stop after the package is installed.
 
-1. Edit `./config.yml` and replace the node names and IP values with the corresponding names and IP addresses. You need to do this for all Wazuh Manager, Wazuh indexer, and Wazuh dashboard nodes. Add as many node fields as needed.
+1. Edit `/usr/share/wazuh-indexer/tools/config.yml` and replace the node names and IP values with the corresponding names and IP addresses. You need to do this for all Wazuh Manager, Wazuh indexer, and Wazuh dashboard nodes. Add as many node fields as needed.
 
     ```yml
     nodes:
@@ -64,20 +67,23 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
 
     To learn more about how to create and configure the certificates, see the [Certificates deployment](https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/certificate-deployment.html) section.
 
-1. Run `./wazuh-certs-tool.sh` to create the certificates. For a multi-node cluster, these certificates need to be later deployed to all Wazuh instances in your cluster.
+1. Run the tool to create the certificates. It reads `config.yml` from beside itself and writes the result to `wazuh-certificates/` in the same directory.
 
     ```bash
-    ./wazuh-certs-tool.sh -A
+    /usr/share/wazuh-indexer/tools/wazuh-certs-tool.sh -A
     ```
 
 1. Compress all the necessary files.
 
     ```bash
-    tar -cvf ./wazuh-certificates.tar -C ./wazuh-certificates/ .
+    cd /usr/share/wazuh-indexer/tools/
+    tar -cvf /tmp/wazuh-certificates.tar -C ./wazuh-certificates/ .
     rm -rf ./wazuh-certificates
     ```
 
 1. Copy the `wazuh-certificates.tar` file to all the nodes, including the Wazuh indexer, Wazuh Manager, and Wazuh dashboard nodes. This can be done by using the `scp` utility.
+
+    On the node that generated them, and on every other Wazuh indexer node, replace the certificates the package issued with this node's pair — see [Deploying certificates](#deploying-certificates).
 
 ### 2. Nodes installation
 
@@ -88,13 +94,13 @@ Install the following packages if missing:
 ##### yum
 
 ```bash
-yum install coreutils
+yum install coreutils diffutils hostname iproute openssl procps-ng util-linux
 ```
 
 ##### apt
 
 ```bash
-apt-get install debconf adduser procps
+apt-get install debconf adduser procps diffutils iproute2 openssl
 ```
 
 #### Installing the Wazuh indexer package
@@ -109,6 +115,32 @@ rpm -ivh --replacepkgs wazuh-indexer-<VERSION>.rpm
 
 ```bash
 dpkg -i wazuh-indexer-<VERSION>.deb
+```
+
+#### Retrieving the generated credentials
+
+The installation generates one password per internal user and writes them to `/etc/wazuh/credentials.env`, readable only by root:
+
+```bash
+cat /etc/wazuh/credentials.env
+```
+
+```
+WAZUH_INDEXER_ADMIN_PASSWORD='...'
+WAZUH_INDEXER_KIBANASERVER_PASSWORD='...'
+WAZUH_INDEXER_MANAGER_PASSWORD='...'
+```
+
+The Wazuh Manager and the Wazuh Dashboard read this file when **they** are installed, so keep it until every component is installed and running. Delete it afterwards — it holds every password in the deployment in plain text:
+
+```bash
+rm /etc/wazuh/credentials.env
+```
+
+Passwords are generated once. Reinstalling, restarting or upgrading the Wazuh indexer does not change them, and neither does removing this file. To change one afterwards, use the passwords tool, which also ships with the package:
+
+```bash
+/usr/share/wazuh-indexer/tools/wazuh-passwords-tool.sh -u admin -p <new-password>
 ```
 
 #### Configuring the Wazuh indexer
@@ -138,7 +170,7 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
   - "10.0.0.3"
   ```
 
-  e. **`plugins.security.nodes_dn`**: List of the Distinguished Names of the certificates of all the Wazuh indexer cluster nodes. Uncomment the lines for `node-2` and `node-3` and change the common names (CN) and values according to your settings and your `config.yml` definitions.
+  e. **`plugins.security.nodes_dn`**: List of the Distinguished Names of the certificates of all the Wazuh indexer cluster nodes. The installation writes this node's own Distinguished Name. For a cluster, add one line per remaining node.
 
   ```yml
   plugins.security.nodes_dn:
@@ -149,7 +181,9 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
 
 #### Deploying certificates
 
-> **Note**: Make sure that a copy of the `wazuh-certificates.tar` file, created during the initial configuration step, is placed in your working directory.
+> **Note**: This step applies only if you generated the certificates in advance, as described in [Certificates](#1-certificates). A single-node deployment already has the certificates the package issued.
+>
+> Make sure that a copy of the `wazuh-certificates.tar` file, created during the initial configuration step, is placed in your working directory.
 
 Run the following commands, replacing `<INDEXER_NODE_NAME>` with the name of the Wazuh indexer node you are configuring as defined in `config.yml`. For example, `node-1`. This deploys the SSL certificates to encrypt communications between the Wazuh central components.
 
@@ -224,7 +258,7 @@ Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer nod
 1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following commands to confirm that the installation is successful.
 
     ```bash
-    curl -k -u admin:admin https://$WAZUH_INDEXER_IP_ADDRESS:9200
+    curl -k -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD https://$WAZUH_INDEXER_IP_ADDRESS:9200
     ```
 
     **Output**
@@ -251,5 +285,5 @@ Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer nod
 1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following command to check if the single-node or multi-node cluster is working correctly.
 
     ```bash
-    curl -k -u admin:admin https://$WAZUH_INDEXER_IP_ADDRESS:9200/_cat/nodes?v
+    curl -k -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD https://$WAZUH_INDEXER_IP_ADDRESS:9200/_cat/nodes?v
     ```

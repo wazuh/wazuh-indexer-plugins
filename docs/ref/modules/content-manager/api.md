@@ -110,7 +110,7 @@ Stores the provided CTI access token in the `.wazuh-internal-state` hidden index
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/subscription" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -160,7 +160,7 @@ None. The body is not read in this mode, and `access_token` is not required.
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/subscription?perform_permission_check=true"
 ```
 
@@ -207,7 +207,7 @@ Returns the current subscription status and active plan. For registered instance
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X GET \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
   "https://127.0.0.1:9200/_plugins/_content_manager/subscription"
 ```
 
@@ -260,7 +260,7 @@ Clears the stored CTI access token document from the credentials index and clear
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/subscription"
 ```
 
@@ -294,7 +294,7 @@ Triggers an immediate content synchronization with the CTI API. Requires a valid
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/update"
 ```
 
@@ -360,7 +360,7 @@ Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is pr
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/logtest" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -469,7 +469,7 @@ curl -sk -u admin:admin -X POST \
 #### Example request (normalization only, no integration)
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/logtest" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -553,7 +553,7 @@ Sends a log event to the Wazuh Engine for decoding and normalization without per
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/logtest/normalization" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -649,7 +649,7 @@ Use this after obtaining a normalized event from the `/logtest/normalization` en
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/logtest/detection" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -798,7 +798,7 @@ Fields within `resource.metadata`:
 #### Example request (draft space)
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/policy/draft" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -828,7 +828,7 @@ curl -sk -u admin:admin -X PUT \
 #### Example request (standard space)
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/policy/standard" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -911,7 +911,7 @@ Fields within `resource.metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/rules" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -998,7 +998,7 @@ Updates an existing rule in the draft space. Unlike on create, `detection` and `
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/rules/6e1c43f1-f09b-4cec-bb59-00e3a52b7930" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1062,7 +1062,7 @@ Deletes a rule from the draft space. The rule is also removed from any integrati
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/rules/6e1c43f1-f09b-4cec-bb59-00e3a52b7930"
 ```
 
@@ -1123,7 +1123,7 @@ Fields within `metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/decoders" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1176,7 +1176,7 @@ The `message` field contains the UUID of the created decoder (prefixed with `d_`
 #### Example request (YAML)
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/decoders" \
   -H 'Content-Type: application/yaml' \
   --data-binary '---
@@ -1232,7 +1232,7 @@ Updates an existing decoder in the draft space. The decoder is re-validated agai
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/decoders/bb6d0245-8c1d-42d1-8edb-4e0907cf45e0" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1296,7 +1296,7 @@ Deletes a decoder from the draft space. The decoder is also removed from any int
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/decoders/acbdba85-09c4-45a0-a487-61c8eeec58e6"
 ```
 
@@ -1361,7 +1361,7 @@ Fields within `metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/filters" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1394,7 +1394,7 @@ The `message` field contains the UUID of the created filter (prefixed with `f_`)
 #### Example request (YAML)
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/filters" \
   -H 'Content-Type: application/yaml' \
   --data-binary '---
@@ -1442,7 +1442,7 @@ Updates an existing filter in the draft or standard space. The filter is re-vali
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/filters/a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1495,7 +1495,7 @@ Deletes a filter from the draft or standard space. The filter is also removed fr
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/filters/a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6"
 ```
 
@@ -1553,7 +1553,7 @@ Fields within `resource.metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/integrations" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1631,7 +1631,7 @@ Fields within `resource.metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/integrations/94e5a2af-505e-4164-ab62-576a71873308" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1687,7 +1687,7 @@ Deletes an integration from the draft space. The integration must have no attach
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/integrations/94e5a2af-505e-4164-ab62-576a71873308"
 ```
 
@@ -1752,7 +1752,7 @@ Fields within `resource.metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1800,7 +1800,7 @@ The `message` field contains the UUID of the created KVDB.
 #### Example request (YAML)
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs" \
   -H 'Content-Type: application/yaml' \
   --data-binary '---
@@ -1874,7 +1874,7 @@ Fields within `resource.metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs/9d4ec6d5-8e30-4ea3-be05-957968c02dae" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1941,7 +1941,7 @@ Deletes a KVDB from the draft space. The KVDB is also removed from any integrati
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs/9d4ec6d5-8e30-4ea3-be05-957968c02dae"
 ```
 
@@ -1980,7 +1980,7 @@ Returns a preview of changes that would be applied when promoting from the speci
 #### Example request
 
 ```bash
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
   "https://127.0.0.1:9200/_plugins/_content_manager/promote?space=draft"
 ```
 
@@ -2066,7 +2066,7 @@ The `changes` object contains arrays for each content type (`policy`, `integrati
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/promote" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -2139,7 +2139,7 @@ When resetting the `draft` space, this operation will:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/space/draft"
 ```
 
@@ -2174,7 +2174,7 @@ Returns whether there are newer versions of Wazuh available for download. The en
 #### Example request
 
 ```bash
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
   "https://127.0.0.1:9200/_plugins/_content_manager/version/check"
 ```
 

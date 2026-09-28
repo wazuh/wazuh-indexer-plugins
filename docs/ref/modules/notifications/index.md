@@ -52,7 +52,7 @@ To activate a default channel:
 For example, to configure the Slack channel:
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://localhost:9200/_plugins/_notifications/configs/default_slack_channel" \
   -H 'Content-Type: application/json' \
   -d '{

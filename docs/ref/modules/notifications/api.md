@@ -254,7 +254,7 @@ Retrieves notification configurations with filtering, sorting, and pagination.
 #### Example
 
 ```bash
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
   "https://127.0.0.1:9200/_plugins/_notifications/configs?config_type=slack&max_items=10&sort_order=desc"
 ```
 
@@ -357,7 +357,7 @@ Sends a test notification to a configured channel to validate the configuration.
 #### Example
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_notifications/feature/test/<config-id>"
 ```
 

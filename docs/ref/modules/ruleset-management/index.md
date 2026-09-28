@@ -48,7 +48,7 @@ curl -sk -u admin:<password> -X PUT \
 
 ### Who can switch a detector off
 
-Switching a detector on or off requires `cluster:admin/opensearch/securityanalytics/detector/write`, which no [default role](../../security/access-control.md) holds — out of the box only `all_access` does. `wazuh_readonly` can read detectors (`detector/get`, `detector/search`) but cannot change their state.
+Switching a detector on or off requires `cluster:admin/opensearch/securityanalytics/detector/write`, which no [default role](../../security/access-control.md) holds — out of the box only `all_access` does.
 
 ### The detection gap
 

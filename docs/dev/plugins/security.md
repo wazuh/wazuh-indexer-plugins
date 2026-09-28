@@ -14,17 +14,21 @@ Any security related resource (roles, action groups, users, ...) created by us *
 ## 1. Adding a new user
 
 Add the new user to the `internal_users.wazuh.yml` file located at: `wazuh-indexer/distribution/src/config/security/`.
+
 ```yaml
 new-user:
-  # Generate the hash using the tool at `plugins/opensearch-security/tools/hash.sh -p <new-password>`
-  hash: "<HASHED-PASSWORD>"
+  hash: "${WAZUH_INDEXER_NEWUSER_PASSWORD}"
   reserved: true
   hidden: false
   backend_roles: []
   description: "New user description"
 ```
+
+Do not write a hash. `hash` carries a `${NAME}` placeholder naming the environment variable that will hold the password; a password generated at installation replaces it with a bcrypt digest. A literal hash would ship the same password in every deployment, which is what the placeholder exists to prevent. Add the variable to the resolver's list of owned accounts — see [Credential and TLS resolution](../credentials.md).
+
 OpenSearch's reference:
 - [internal_users.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#internal_usersyml)
+
 ## 2. Adding a new role
 Add the new role to the `roles.wazuh.yml` file located at: `wazuh-indexer/distribution/src/config/security/`.
 - Under `index_permissions.index_patterns`, list the index patterns the role will have effect on.
@@ -63,7 +67,7 @@ role-write:
    static: true
 ```
 
-OpenSearch's reference: 
+OpenSearch's reference:
 - [roles.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#rolesyml)
 - [action_groups.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#action_groupsyml)
 - [Default action groups](https://docs.opensearch.org/3.6/security/access-control/default-action-groups/)
@@ -92,7 +96,7 @@ role-write:
    and_backend_roles: [ ]
 ```
 
-OpenSearch's reference: 
+OpenSearch's reference:
 - [roles_mapping.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#roles_mappingymll)
 
 ## Testing the configuration

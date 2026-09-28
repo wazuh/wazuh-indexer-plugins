@@ -24,7 +24,7 @@ No CTI access token has been registered. The Content Manager cannot sync content
 
 Register credentials by posting the CTI access token:
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/subscription" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -42,7 +42,7 @@ Content is not being updated despite having a valid subscription.
 
 1. Check consumer state and offsets:
    ```bash
-   curl -sk -u admin:admin \
+   curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
      "https://127.0.0.1:9200/.wazuh-cti-consumers/_search?pretty"
    ```
 
@@ -50,7 +50,7 @@ Content is not being updated despite having a valid subscription.
 
 2. Check the sync job is registered and enabled:
    ```bash
-   curl -sk -u admin:admin \
+   curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
      "https://127.0.0.1:9200/.wazuh-content-manager-jobs/_search?pretty"
    ```
 
@@ -63,7 +63,7 @@ Content is not being updated despite having a valid subscription.
 
    It is also dynamic, and a value set through the Cluster Settings API overrides `opensearch.yml`, so check there too:
    ```bash
-   curl -sk -u admin:admin \
+   curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
      "https://127.0.0.1:9200/_cluster/settings?pretty"
    ```
 
@@ -74,7 +74,7 @@ Content is not being updated despite having a valid subscription.
 
 4. Trigger a manual sync to test:
    ```bash
-   curl -sk -u admin:admin -X POST \
+   curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
      "https://127.0.0.1:9200/_plugins/_content_manager/update"
    ```
 
@@ -188,7 +188,7 @@ Note that the index is hidden and has no alias, so its absence cannot be confirm
 View synchronization state for all content contexts:
 
 ```bash
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
   "https://127.0.0.1:9200/.wazuh-cti-consumers/_search?pretty"
 ```
 
@@ -230,7 +230,7 @@ Example output:
 View the periodic sync job configuration:
 
 ```bash
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
   "https://127.0.0.1:9200/.wazuh-content-manager-jobs/_search?pretty"
 ```
 
@@ -240,19 +240,19 @@ Check how many rules, decoders, etc. have been indexed:
 
 ```bash
 # Rules
-curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-rules/_count?pretty"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD "https://127.0.0.1:9200/wazuh-threatintel-rules/_count?pretty"
 
 # Decoders
-curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-decoders/_count?pretty"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD "https://127.0.0.1:9200/wazuh-threatintel-decoders/_count?pretty"
 
 # Integrations
-curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-integrations/_count?pretty"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD "https://127.0.0.1:9200/wazuh-threatintel-integrations/_count?pretty"
 
 # KVDBs
-curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-kvdbs/_count?pretty"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD "https://127.0.0.1:9200/wazuh-threatintel-kvdbs/_count?pretty"
 
 # IoCs
-curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-enrichments/_count?pretty"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD "https://127.0.0.1:9200/wazuh-threatintel-enrichments/_count?pretty"
 ```
 
 ## Job scheduling on startup
@@ -300,7 +300,7 @@ To force a full re-sync from snapshot, delete the consumer state document and re
 
 ```bash
 # Delete consumer state (forces snapshot on next sync)
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/.wazuh-cti-consumers/_doc/*"
 
 # Restart indexer to trigger sync

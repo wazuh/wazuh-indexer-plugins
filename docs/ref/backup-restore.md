@@ -112,8 +112,12 @@ Perform the following steps to restore the Wazuh indexer files on the new server
     chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-reports-scheduler/
     chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-notifications/
     chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-notifications-core/
-    chown wazuh-indexer:wazuh-indexer /usr/lib/sysctl.d/wazuh-indexer.conf
+    chown root:root /usr/lib/sysctl.d/wazuh-indexer.conf
     ```
+
+    > **Note:** the sysctl drop-in stays `root`-owned, as the package ships it. It is applied by
+    > `systemd-sysctl` as root, so a copy the service account can edit would let that account set
+    > kernel parameters.
 
 3. Start the Wazuh indexer service:
 

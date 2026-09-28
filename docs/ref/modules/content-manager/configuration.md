@@ -85,7 +85,7 @@ plugins.content_manager.telemetry.enabled: false
 `plugins.content_manager.catalog.update_on_schedule` and `plugins.content_manager.telemetry.enabled` are dynamic, so on a running deployment they can be applied without a restart:
 
 ```bash
-curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
 {
   "persistent": {
     "plugins.content_manager.catalog.update_on_schedule": false,
@@ -119,7 +119,7 @@ plugins.content_manager.catalog.sync_interval: 1440
 The setting is dynamic, so the interval can also be changed on a running deployment:
 
 ```bash
-curl -sk -u admin:admin -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
 {
   "persistent": {
     "plugins.content_manager.catalog.sync_interval": 1440
@@ -239,7 +239,7 @@ This data allows Wazuh to determine if a newer version is available and notify u
 The update check service can be enabled or disabled at runtime without restarting the node using the Cluster Settings API:
 
 ```bash
-curl -sk -u admin:admin -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
 {
   "persistent": {
     "plugins.content_manager.telemetry.enabled": false
@@ -255,7 +255,7 @@ Some endpoints modify configuration with a high impact on the platform and are p
 - **`POST /_plugins/_content_manager/update`** — permission `cluster:admin/content_manager/update/trigger`.
 - **`PUT /_plugins/_setup/settings`** — permission `plugin:wazuh/settings/write`.
 
-1. **RBAC** — each endpoint is gated by a cluster permission (the action name above), enforced by the security plugin. No default role holds these permissions: `dashboard_server`, `wazuh_manager` and `wazuh_readonly` are all excluded, so out of the box only the superuser `admin` (role `all_access`, cluster wildcard `*`) can call them. To delegate any of these actions without granting full superuser, create a dedicated role for the permission(s) above. See the [access control reference](../../security/access-control.md).
+1. **RBAC** — each endpoint is gated by a cluster permission (the action name above), enforced by the security plugin. No default role holds these permissions: `dashboard_server` and `wazuh_manager` are both excluded, so out of the box only the superuser `admin` (role `all_access`, cluster wildcard `*`) can call them. To delegate any of these actions without granting full superuser, create a dedicated role for the permission(s) above. See the [access control reference](../../security/access-control.md).
 2. **Per-endpoint disable settings** — each endpoint can be disabled independently with its own node setting; when disabled it returns `403 Forbidden` for **every** caller, including `admin` / `all_access`. This is intended for externally managed (e.g. Wazuh Cloud) deployments.
 
    - **`POST /_plugins/_content_manager/update`** — disable via `plugins.content_manager.catalog.update_on_demand: false`.

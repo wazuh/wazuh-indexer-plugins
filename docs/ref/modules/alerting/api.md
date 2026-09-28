@@ -64,7 +64,7 @@ The Alerting plugin exposes a REST API under the `/_plugins/_alerting/` base pat
 This example creates a monitor that checks every 5 minutes whether the number of error-level events in the last hour exceeds 100:
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://localhost:9200/_plugins/_alerting/monitors" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -122,7 +122,7 @@ curl -sk -u admin:admin -X POST \
 ### Acknowledge alerts
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://localhost:9200/_plugins/_alerting/monitors/{monitorId}/_acknowledge/alerts" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -133,6 +133,6 @@ curl -sk -u admin:admin -X POST \
 ### Execute a monitor on-demand
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://localhost:9200/_plugins/_alerting/monitors/{monitorId}/_execute"
 ```

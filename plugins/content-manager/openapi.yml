@@ -2766,7 +2766,7 @@ components:
                 accessAllowed: true
                 missingPrivileges: []
             denied:
-              summary: Caller lacks the permission (e.g. wazuh_readonly)
+              summary: Caller lacks the permission (e.g. a custom role without it)
               value:
                 accessAllowed: false
                 missingPrivileges:
@@ -2951,9 +2951,9 @@ components:
                 error:
                   root_cause:
                     - type: "security_exception"
-                      reason: "no permissions for [cluster:admin/content_manager/integration/create] and User [name=wazuh-readonly, backend_roles=[], requestedTenant=null]"
+                      reason: "no permissions for [cluster:admin/content_manager/integration/create] and User [name=custom-user, backend_roles=[], requestedTenant=null]"
                   type: "security_exception"
-                  reason: "no permissions for [cluster:admin/content_manager/integration/create] and User [name=wazuh-readonly, backend_roles=[], requestedTenant=null]"
+                  reason: "no permissions for [cluster:admin/content_manager/integration/create] and User [name=custom-user, backend_roles=[], requestedTenant=null]"
                 status: 403
             feature_disabled:
               summary: Feature disabled via plugin setting

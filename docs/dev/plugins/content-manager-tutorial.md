@@ -210,7 +210,7 @@ Start a local cluster (see [tools/test-cluster](https://github.com/wazuh/wazuh-i
 # Create a rule first (so there's something to fetch)
 curl -X POST "https://localhost:9200/_plugins/_content_manager/rules" \
   -H "Content-Type: application/json" \
-  -u admin:admin --insecure \
+  -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD --insecure \
   -d '{
     "integration": "<integration-id>",
     "resource": {
@@ -235,7 +235,7 @@ curl -X POST "https://localhost:9200/_plugins/_content_manager/rules" \
 
 # The response returns the UUID. Use it to fetch:
 curl -X GET "https://localhost:9200/_plugins/_content_manager/rules/<uuid>" \
-  -u admin:admin --insecure
+  -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD --insecure
 ```
 
 ### Writing a unit test
