@@ -194,6 +194,7 @@
 - [BUG] Document that a disabled threat detector produces no findings and that the missed interval is never re-evaluated [(#1531)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1531)
 - [BUG] A rolled-over write index was created outside its own policy, so everything written to it now is unmanaged [(#1533)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1533)
 - [BUG] Document the real ISM retention contract: rollover is volume-driven, so the deletion ages are a floor and low-volume deployments retain data indefinitely [(#1530)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1530)
+- Concurrent CatalogSyncJob runs create a duplicate query index per detector, and nothing removes them [(#1601)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1601)
 
 ## Prior versions
 - []()

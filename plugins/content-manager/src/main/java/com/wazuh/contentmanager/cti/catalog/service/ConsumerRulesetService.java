@@ -66,6 +66,12 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private static final String PHASE_RULES = "rules";
     private static final String PHASE_DETECTORS = "detectors";
 
+    /**
+     * How long, past the sync timeout, to keep waiting for detector upserts that are still running
+     * before ending the pass anyway. See {@link #awaitInFlightDetectors(CountDownLatch)}.
+     */
+    private static final long DETECTOR_IN_FLIGHT_CAP_SECONDS = 300;
+
     private final ObjectMapper mapper;
 
     private final SecurityAnalyticsService securityAnalyticsService;
@@ -676,6 +682,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             if (!firstLatch.await(
                     PluginSettings.getInstance().getSaDetectorTimeoutSeconds(), TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "detectors");
+                this.awaitInFlightDetectors(firstLatch);
                 return false;
             }
         } catch (InterruptedException e) {
@@ -716,6 +723,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 if (!parallelLatch.await(60, TimeUnit.SECONDS)) {
                     log.warn(Constants.W_LOG_SAP_SYNC_TIMEOUT, "detectors");
                     timedOut = true;
+                    this.awaitInFlightDetectors(parallelLatch);
                 }
             } catch (InterruptedException e) {
                 log.error(Constants.E_LOG_DETECTOR_WAIT_INTERRUPTED, e);
@@ -733,6 +741,30 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             log.error(Constants.E_LOG_SAP_PARTIAL, failed.size(), "detectors", Space.STANDARD, failed);
         }
         return !timedOut && failed.isEmpty();
+    }
+
+    /**
+     * Waits, up to {@link #DETECTOR_IN_FLIGHT_CAP_SECONDS}, for detector upserts that outlived the
+     * sync timeout. The pass reports the timeout either way and asks for an immediate retry, but it
+     * must not end while those upserts still run: ending it releases the catalog sync lock, and the
+     * retry, or another node's pass, would upsert the same detectors concurrently. On a cluster with
+     * no detectors yet, both upserts would take the create path and each create its own query index,
+     * leaving one orphaned.
+     *
+     * @param latch The latch counting the upserts still running.
+     */
+    private void awaitInFlightDetectors(CountDownLatch latch) {
+        try {
+            if (!latch.await(DETECTOR_IN_FLIGHT_CAP_SECONDS, TimeUnit.SECONDS)) {
+                log.error(
+                        Constants.E_LOG_SAP_DETECTORS_STILL_IN_FLIGHT,
+                        latch.getCount(),
+                        DETECTOR_IN_FLIGHT_CAP_SECONDS);
+            }
+        } catch (InterruptedException e) {
+            log.error(Constants.E_LOG_DETECTOR_WAIT_INTERRUPTED, e);
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**
