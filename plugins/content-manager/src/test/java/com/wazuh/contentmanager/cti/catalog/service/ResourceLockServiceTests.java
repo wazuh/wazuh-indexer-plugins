@@ -25,6 +25,7 @@ import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -47,6 +48,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -70,6 +72,11 @@ public class ResourceLockServiceTests extends OpenSearchTestCase {
 
     /** Header the security plugin uses to carry the authenticated user across the transport layer. */
     private static final String SECURITY_USER_HEADER = "_opendistro_security_user_info";
+
+    /** Version of the lock document the mocked GET reports, which a steal must be conditional on. */
+    private static final long SEEN_SEQ_NO = 5;
+
+    private static final long SEEN_PRIMARY_TERM = 1;
 
     private static VersionConflictEngineException versionConflict() {
         return new VersionConflictEngineException(
@@ -120,6 +127,8 @@ public class ResourceLockServiceTests extends OpenSearchTestCase {
     private static void mockLockGet(Client client, long ageMillis, Runnable onGet) {
         GetResponse getResponse = mock(GetResponse.class);
         when(getResponse.isExists()).thenReturn(true);
+        when(getResponse.getSeqNo()).thenReturn(SEEN_SEQ_NO);
+        when(getResponse.getPrimaryTerm()).thenReturn(SEEN_PRIMARY_TERM);
         when(getResponse.getSourceAsMap())
                 .thenReturn(Map.of("acquired_at", Instant.now().toEpochMilli() - ageMillis));
         doAnswer(
@@ -391,5 +400,157 @@ public class ResourceLockServiceTests extends OpenSearchTestCase {
         ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
         service.release("some-lock-id");
         verify(client, times(1)).delete(any(DeleteRequest.class), any(ActionListener.class));
+    }
+
+    public void testTryAcquireOnceTakesAFreeLock() {
+        Client client = mock(Client.class);
+        mockLockIndexExists(client);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        service.tryAcquireOnce("catalog-sync", future);
+
+        Assert.assertTrue(future.actionGet());
+        verify(client, times(1)).index(any(IndexRequest.class), any(ActionListener.class));
+    }
+
+    /** A lock held and renewed by someone else is reported as taken at once, with no retries. */
+    public void testTryAcquireOnceReportsAHeldLockWithoutRetrying() {
+        Client client = mock(Client.class);
+        mockLockIndexExists(client);
+        mockLockGet(client, 0);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onFailure(versionConflict());
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
+        ThreadPool threadPool = immediateThreadPool();
+
+        ResourceLockService service = new ResourceLockService(client, threadPool);
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        service.tryAcquireOnce("catalog-sync", future);
+
+        Assert.assertFalse(future.actionGet());
+        verify(client, times(1)).index(any(IndexRequest.class), any(ActionListener.class));
+        verify(client, never()).delete(any(DeleteRequest.class), any(ActionListener.class));
+        verify(threadPool, never()).schedule(any(Runnable.class), any(TimeValue.class), anyString());
+    }
+
+    /** A lock whose holder stopped renewing it is stolen and taken. */
+    public void testTryAcquireOnceStealsAStaleLock() {
+        Client client = mock(Client.class);
+        mockLockIndexExists(client);
+        mockLockGet(client, PluginSettings.getInstance().getResourceLockStaleThresholdMillis() + 1000);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onFailure(versionConflict());
+                            return null;
+                        })
+                .doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> l = invocation.getArgument(1);
+                            l.onResponse(mock(DeleteResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .delete(any(DeleteRequest.class), any(ActionListener.class));
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        service.tryAcquireOnce("catalog-sync", future);
+
+        Assert.assertTrue(future.actionGet());
+        ArgumentCaptor<DeleteRequest> delete = ArgumentCaptor.forClass(DeleteRequest.class);
+        verify(client, times(1)).delete(delete.capture(), any(ActionListener.class));
+        Assert.assertEquals(
+                "The steal only deletes the version read as stale",
+                SEEN_SEQ_NO,
+                delete.getValue().ifSeqNo());
+        Assert.assertEquals(SEEN_PRIMARY_TERM, delete.getValue().ifPrimaryTerm());
+        verify(client, times(2)).index(any(IndexRequest.class), any(ActionListener.class));
+    }
+
+    /** Renewal updates the existing document, so it can never create a lock nobody holds. */
+    public void testRenewUpdatesTheLockDocument() {
+        Client client = mock(Client.class);
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+
+        service.renew("catalog-sync");
+
+        verify(client, times(1)).update(any(UpdateRequest.class), any(ActionListener.class));
+        verify(client, never()).index(any(IndexRequest.class), any(ActionListener.class));
+    }
+
+    /** The release callback runs even when the delete fails, so its caller is never left waiting. */
+    public void testReleaseRunsCallbackWhenDeleteFails() {
+        Client client = mock(Client.class);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> l = invocation.getArgument(1);
+                            l.onFailure(new RuntimeException("delete failed"));
+                            return null;
+                        })
+                .when(client)
+                .delete(any(DeleteRequest.class), any(ActionListener.class));
+        AtomicReference<Boolean> released = new AtomicReference<>(false);
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        service.release("catalog-sync", () -> released.set(true));
+
+        Assert.assertTrue(released.get());
+    }
+
+    /**
+     * Two callers see the same stale lock. The second one to delete it finds a newer version, the
+     * lock the first caller has just created, so its delete fails and it reports the lock as held,
+     * instead of deleting that lock and taking it too.
+     */
+    public void testTryAcquireOnceLosingTheStealToAnotherCallerReportsTheLockAsHeld() {
+        Client client = mock(Client.class);
+        mockLockIndexExists(client);
+        mockLockGet(client, PluginSettings.getInstance().getResourceLockStaleThresholdMillis() + 1000);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onFailure(versionConflict());
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<DeleteResponse> l = invocation.getArgument(1);
+                            l.onFailure(versionConflict());
+                            return null;
+                        })
+                .when(client)
+                .delete(any(DeleteRequest.class), any(ActionListener.class));
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        service.tryAcquireOnce("catalog-sync", future);
+
+        Assert.assertFalse(future.actionGet());
+        verify(client, times(1)).index(any(IndexRequest.class), any(ActionListener.class));
     }
 }

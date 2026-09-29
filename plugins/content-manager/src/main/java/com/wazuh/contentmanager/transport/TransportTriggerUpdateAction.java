@@ -53,29 +53,41 @@ public class TransportTriggerUpdateAction
     protected void doExecute(
             Task task, TriggerUpdateRequest request, ActionListener<MessageStatusResponse> listener) {
         try {
-            if (this.catalogSyncJob.isRunning()) {
-                listener.onResponse(
-                        new MessageStatusResponse(
-                                "A content update is already in progress.", RestStatus.CONFLICT));
-                return;
-            }
-            this.catalogSyncJob.trigger();
-            listener.onResponse(
-                    new MessageStatusResponse(
-                            "The update request has been accepted for processing.", RestStatus.ACCEPTED));
+            // A pass running on any node of the cluster, not only this one, answers 409: trigger()
+            // checks this node's semaphore and then the cluster-wide sync lock.
+            this.catalogSyncJob.trigger(
+                    ActionListener.wrap(
+                            started -> {
+                                if (started) {
+                                    listener.onResponse(
+                                            new MessageStatusResponse(
+                                                    "The update request has been accepted for processing.",
+                                                    RestStatus.ACCEPTED));
+                                } else {
+                                    listener.onResponse(
+                                            new MessageStatusResponse(
+                                                    "A content update is already in progress.", RestStatus.CONFLICT));
+                                }
+                            },
+                            e -> respondWithFailure(e, listener)));
         } catch (Exception e) {
-            RestResponse classified = TransportActionHelper.classifyException(e);
-            if (classified != null) {
-                log.warn("Failed to trigger content update: {}", classified.getMessage());
-                listener.onResponse(
-                        new MessageStatusResponse(
-                                classified.getMessage(), RestStatus.fromCode(classified.getStatus())));
-                return;
-            }
-            log.error("Failed to trigger content update: {}", e.getMessage(), e);
+            respondWithFailure(e, listener);
+        }
+    }
+
+    private static void respondWithFailure(
+            Exception e, ActionListener<MessageStatusResponse> listener) {
+        RestResponse classified = TransportActionHelper.classifyException(e);
+        if (classified != null) {
+            log.warn("Failed to trigger content update: {}", classified.getMessage());
             listener.onResponse(
                     new MessageStatusResponse(
-                            Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
+                            classified.getMessage(), RestStatus.fromCode(classified.getStatus())));
+            return;
         }
+        log.error("Failed to trigger content update: {}", e.getMessage(), e);
+        listener.onResponse(
+                new MessageStatusResponse(
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
     }
 }

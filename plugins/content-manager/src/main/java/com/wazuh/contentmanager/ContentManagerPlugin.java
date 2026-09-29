@@ -253,7 +253,8 @@ public class ContentManagerPlugin extends Plugin
                         this.engine,
                         this.spaceService,
                         this.securityAnalyticsService,
-                        this.userOverridesService);
+                        this.userOverridesService,
+                        this.resourceLockService);
 
         // Initialize TelemetryPingJob
         this.telemetryPingJob =
@@ -448,7 +449,7 @@ public class ContentManagerPlugin extends Plugin
                                         }
 
                                         // 3. Initialize
-                                        ContentManagerPlugin.this.catalogSyncJob.trigger();
+                                        ContentManagerPlugin.this.catalogSyncJob.triggerOnStartup();
                                     } else {
                                         log.debug(Constants.D_LOG_SKIP_CATALOG_SYNC_TRIGGER);
                                     }
@@ -935,11 +936,15 @@ public class ContentManagerPlugin extends Plugin
      * @throws IOException if the job document cannot be serialized.
      */
     private void writeCatalogSyncJob(boolean enabled, int intervalMinutes) throws IOException {
+        // Start one interval from now, not now. The job runs on whichever node holds the job index,
+        // and IntervalSchedule fires straight away on a node whose clock is behind the start time,
+        // right on top of the startup sync the cluster manager has just triggered.
+        Instant start = Instant.now().plus(intervalMinutes, ChronoUnit.MINUTES);
         ContentJobParameter job =
                 new ContentJobParameter(
                         "Catalog Sync Periodic Task",
                         CatalogSyncJob.JOB_TYPE,
-                        new IntervalSchedule(Instant.now(), intervalMinutes, ChronoUnit.MINUTES),
+                        new IntervalSchedule(start, intervalMinutes, ChronoUnit.MINUTES),
                         enabled,
                         Instant.now(),
                         Instant.now());

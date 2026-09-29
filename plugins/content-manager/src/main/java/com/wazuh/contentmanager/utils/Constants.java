@@ -379,6 +379,9 @@ public class Constants {
             "Integration documents could not be read; keeping the detectors phase pending.";
     public static final String E_LOG_DETECTOR_WAIT_INTERRUPTED =
             "Interrupted while waiting for detector sync to complete.";
+    public static final String E_LOG_SAP_DETECTORS_STILL_IN_FLIGHT =
+            "{} detector upserts still running {} s after the sync timeout; ending the pass anyway. A"
+                    + " later pass may upsert the same detectors while they run.";
     public static final String W_LOG_HIT_MISSING_DOCUMENT =
             "Hit [{}] missing 'document' field, skipping";
     public static final String E_LOG_SAP_SYNC_DEGRADED =
