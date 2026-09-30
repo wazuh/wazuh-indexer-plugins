@@ -45,6 +45,6 @@ Wazuh custom actions:
 - `cluster:admin/wazuh/securityanalytics/rules/evaluate`
 - `cluster:admin/wazuh/securityanalytics/space/delete`
 
-The default roles also grant the upstream OpenSearch Security Analytics actions (`cluster:admin/opensearch/securityanalytics/*`) — the full `/*` set for `wazuh_admin`, and the read-only (`/get`, `/search`) subset for `wazuh_readonly`. `wazuh_demo` holds the full set except on detectors, where it is limited to `cluster:admin/opensearch/securityanalytics/detector/get` and `.../detector/search`.
+The default roles also grant the upstream OpenSearch Security Analytics actions (`cluster:admin/opensearch/securityanalytics/*`): the read-only (`/get`, `/search`) subset, granted to `wazuh_readonly`. The full `/*` set is held only by `all_access`.
 
-> **Note:** `cluster:admin/opensearch/securityanalytics/detector/write` is the permission that switches a detector on or off, and only `wazuh_admin` holds it. Disabling a detector stops detection for its integration and the interval missed is never re-evaluated — see [Enabling and disabling detectors](../modules/ruleset-management/index.md#enabling-and-disabling-detectors).
+> **Note:** `cluster:admin/opensearch/securityanalytics/detector/write` is the permission that switches a detector on or off, and no default role holds it — out of the box only `all_access` does. Disabling a detector stops detection for its integration and the interval missed is never re-evaluated — see [Enabling and disabling detectors](../modules/ruleset-management/index.md#enabling-and-disabling-detectors).

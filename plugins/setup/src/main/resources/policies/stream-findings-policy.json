@@ -1,8 +1,8 @@
 {
   "policy": {
     "policy_id": "stream-findings-policy",
-    "description": "ISM policy for findings data streams. Rolls over backing indices based on size or document count, and deletes indices older than 90 days.",
-    "last_updated_time": 1772122150,
+    "description": "ISM policy for findings data streams. Rolls over backing indices at 20 GB per primary shard (or 200,000,000 documents), then deletes each rolled-over index once it reaches 90 days of age. Effective retention is the greater of the two: the 90 days is a floor, not a ceiling, and deployments that never fill a shard retain findings indefinitely.",
+    "last_updated_time": 1772122150000,
     "schema_version": 1,
     "default_state": "hot",
     "states": [

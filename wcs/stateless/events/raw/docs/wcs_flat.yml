@@ -61,7 +61,7 @@ wazuh.agent.build.original:
   example: metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c
     built 2020-02-05 23:10:10 +0000 UTC]
   flat_name: wazuh.agent.build.original
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: build.original
   normalize: []
@@ -75,7 +75,7 @@ wazuh.agent.ephemeral_id:
     This id normally changes across restarts, but `agent.id` does not.'
   example: 8a4f500f
   flat_name: wazuh.agent.ephemeral_id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: ephemeral_id
   normalize: []
@@ -87,7 +87,7 @@ wazuh.agent.groups:
   description: List of groups the agent belongs to.
   example: '["group1", "group2"]'
   flat_name: wazuh.agent.groups
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: groups
   normalize:
@@ -100,7 +100,7 @@ wazuh.agent.host.architecture:
   description: Operating system architecture.
   example: x86_64
   flat_name: wazuh.agent.host.architecture
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: architecture
   normalize: []
@@ -115,7 +115,7 @@ wazuh.agent.host.boot.id:
     in each container.
   example: 88a1f0ed-5ae5-41ee-af6b-41921c311872
   flat_name: wazuh.agent.host.boot.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: boot.id
   normalize: []
@@ -149,7 +149,7 @@ wazuh.agent.host.cpu.name:
   description: CPU Model name.
   example: Intel(R) Core(TM) i7-7700HQ CPU
   flat_name: wazuh.agent.host.cpu.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: cpu.name
   normalize: []
@@ -214,7 +214,7 @@ wazuh.agent.host.domain:
     domain name. For Linux this could be the domain of the host''s LDAP provider.'
   example: CONTOSO
   flat_name: wazuh.agent.host.domain
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: domain
   normalize: []
@@ -226,7 +226,7 @@ wazuh.agent.host.geo.city_name:
   description: City name.
   example: Montreal
   flat_name: wazuh.agent.host.geo.city_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: city_name
   normalize: []
@@ -238,7 +238,7 @@ wazuh.agent.host.geo.continent_code:
   description: Two-letter code representing continent's name.
   example: NA
   flat_name: wazuh.agent.host.geo.continent_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: continent_code
   normalize: []
@@ -250,7 +250,7 @@ wazuh.agent.host.geo.continent_name:
   description: Name of the continent.
   example: North America
   flat_name: wazuh.agent.host.geo.continent_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: continent_name
   normalize: []
@@ -262,7 +262,7 @@ wazuh.agent.host.geo.country_iso_code:
   description: Country ISO code.
   example: CA
   flat_name: wazuh.agent.host.geo.country_iso_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: country_iso_code
   normalize: []
@@ -274,7 +274,7 @@ wazuh.agent.host.geo.country_name:
   description: Country name.
   example: Canada
   flat_name: wazuh.agent.host.geo.country_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: country_name
   normalize: []
@@ -303,7 +303,7 @@ wazuh.agent.host.geo.name:
     Not typically used in automated geolocation.'
   example: boston-dc
   flat_name: wazuh.agent.host.geo.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: name
   normalize: []
@@ -318,7 +318,7 @@ wazuh.agent.host.geo.postal_code:
     and will vary widely from country to country.'
   example: 94040
   flat_name: wazuh.agent.host.geo.postal_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: postal_code
   normalize: []
@@ -330,7 +330,7 @@ wazuh.agent.host.geo.region_iso_code:
   description: Region ISO code.
   example: CA-QC
   flat_name: wazuh.agent.host.geo.region_iso_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: region_iso_code
   normalize: []
@@ -342,7 +342,7 @@ wazuh.agent.host.geo.region_name:
   description: Region name.
   example: Quebec
   flat_name: wazuh.agent.host.geo.region_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: region_name
   normalize: []
@@ -354,7 +354,7 @@ wazuh.agent.host.geo.timezone:
   description: The time zone of the location, such as IANA time zone name.
   example: America/Argentina/Buenos_Aires
   flat_name: wazuh.agent.host.geo.timezone
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: timezone
   normalize: []
@@ -367,7 +367,7 @@ wazuh.agent.host.hostname:
 
     It normally contains what the `hostname` command returns on the host machine.'
   flat_name: wazuh.agent.host.hostname
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: hostname
   normalize: []
@@ -382,7 +382,7 @@ wazuh.agent.host.id:
 
     Example: The current usage of `beat.name`.'
   flat_name: wazuh.agent.host.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: id
   normalize: []
@@ -409,7 +409,7 @@ wazuh.agent.host.mac:
     as an unsigned integer. Successive octets are separated by a hyphen.'
   example: '["00-00-5E-00-53-23", "00-00-5E-00-53-24"]'
   flat_name: wazuh.agent.host.mac
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: mac
   normalize:
@@ -481,7 +481,7 @@ wazuh.agent.host.name:
     name (FQDN), or a name specified by the user. The recommended value is the lowercase
     FQDN of the host.'
   flat_name: wazuh.agent.host.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: name
   normalize: []
@@ -603,7 +603,7 @@ wazuh.agent.host.os.family:
   description: OS family (such as redhat, debian, freebsd, windows).
   example: debian
   flat_name: wazuh.agent.host.os.family
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: family
   normalize: []
@@ -615,7 +615,7 @@ wazuh.agent.host.os.full:
   description: Operating system name, including the version or code name.
   example: Mac OS Mojave
   flat_name: wazuh.agent.host.os.full
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: full
   normalize: []
@@ -627,7 +627,7 @@ wazuh.agent.host.os.kernel:
   description: Operating system kernel version as a raw string.
   example: 4.4.0-112-generic
   flat_name: wazuh.agent.host.os.kernel
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: kernel
   normalize: []
@@ -639,7 +639,7 @@ wazuh.agent.host.os.name:
   description: Operating system name, without the version.
   example: Mac OS X
   flat_name: wazuh.agent.host.os.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: name
   normalize: []
@@ -651,7 +651,7 @@ wazuh.agent.host.os.platform:
   description: Operating system platform (such centos, ubuntu, windows).
   example: darwin
   flat_name: wazuh.agent.host.os.platform
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: platform
   normalize: []
@@ -675,7 +675,7 @@ wazuh.agent.host.os.type:
   - ios
   - android
   flat_name: wazuh.agent.host.os.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: type
   normalize: []
@@ -688,7 +688,7 @@ wazuh.agent.host.os.version:
   description: Operating system version as a raw string.
   example: 10.14.1
   flat_name: wazuh.agent.host.os.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: version
   normalize: []
@@ -701,7 +701,7 @@ wazuh.agent.host.pid_ns_ino:
     (nsfs). Unsigned int inum in include/linux/ns_common.h.
   example: 256383
   flat_name: wazuh.agent.host.pid_ns_ino
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: pid_ns_ino
   normalize: []
@@ -714,7 +714,7 @@ wazuh.agent.host.risk.calculated_level:
     of entity analytics and entity risk scoring.
   example: High
   flat_name: wazuh.agent.host.risk.calculated_level
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: calculated_level
   normalize: []
@@ -754,7 +754,7 @@ wazuh.agent.host.risk.static_level:
     as from some external Threat Intelligence Platform.
   example: High
   flat_name: wazuh.agent.host.risk.static_level
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: static_level
   normalize: []
@@ -795,7 +795,7 @@ wazuh.agent.host.type:
     For Cloud providers this can be the machine type like `t2.medium`. If vm, this
     could be the container, for example, or other information meaningful in your environment.'
   flat_name: wazuh.agent.host.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: type
   normalize: []
@@ -820,7 +820,7 @@ wazuh.agent.id:
     Example: For Beats this would be beat.id.'
   example: 8a4f500d
   flat_name: wazuh.agent.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: id
   normalize: []
@@ -836,7 +836,7 @@ wazuh.agent.name:
     is needed on which Filebeat instance data is coming from.'
   example: foo
   flat_name: wazuh.agent.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: name
   normalize: []
@@ -852,7 +852,7 @@ wazuh.agent.type:
     are run on the same machine.'
   example: filebeat
   flat_name: wazuh.agent.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: type
   normalize: []
@@ -864,7 +864,7 @@ wazuh.agent.version:
   description: Version of the agent.
   example: 6.0.0-rc2
   flat_name: wazuh.agent.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: version
   normalize: []
@@ -876,7 +876,7 @@ wazuh.cluster.name:
   description: Wazuh cluster name.
   example: wazuh-cluster-1
   flat_name: wazuh.cluster.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: cluster.name
   normalize: []
@@ -887,7 +887,7 @@ wazuh.cluster.node:
   description: Wazuh cluster node name.
   example: wazuh-cluster-node-1
   flat_name: wazuh.cluster.node
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: cluster.node
   normalize: []
@@ -898,7 +898,7 @@ wazuh.event.id:
   description: Unique identifier shared across all related events, generated by Wazuh.
   example: 1234567890abcdef
   flat_name: wazuh.event.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: event.id
   normalize: []
@@ -909,7 +909,7 @@ wazuh.integration.category:
   description: Wazuh integration category.
   example: security
   flat_name: wazuh.integration.category
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: integration.category
   normalize: []
@@ -920,7 +920,7 @@ wazuh.integration.decoders:
   description: List of Wazuh decoders applied to the event.
   example: '["json", "syslog"]'
   flat_name: wazuh.integration.decoders
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: integration.decoders
   normalize:
@@ -932,7 +932,7 @@ wazuh.integration.name:
   description: Name of the Wazuh integration.
   example: Cisco Aironet
   flat_name: wazuh.integration.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: integration.name
   normalize: []
@@ -943,7 +943,7 @@ wazuh.integration.rules:
   description: List of Wazuh rules applied to the event.
   example: '["1002", "2003"]'
   flat_name: wazuh.integration.rules
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: integration.rules
   normalize:
@@ -955,7 +955,7 @@ wazuh.protocol.location:
   description: Source of the log as retrieved by the Wazuh Agent.
   example: /var/log/auth.log
   flat_name: wazuh.protocol.location
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: protocol.location
   normalize: []
@@ -976,7 +976,7 @@ wazuh.schema.version:
   description: Wazuh schema version.
   example: 1.7.0
   flat_name: wazuh.schema.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: schema.version
   normalize: []
@@ -999,7 +999,7 @@ wazuh.space.name:
   description: Wazuh space name.
   example: default
   flat_name: wazuh.space.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: space.name
   normalize: []

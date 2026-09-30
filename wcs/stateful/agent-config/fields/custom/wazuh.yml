@@ -53,7 +53,7 @@
     - name: agent.configuration.content.agent-upgrade.ca_store
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent-upgrade.ca_store.
     - name: agent.configuration.content.agent-upgrade.ca_verification
@@ -84,7 +84,7 @@
     - name: agent.configuration.content.agent.agent.config-profile
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.config-profile.
     - name: agent.configuration.content.agent.agent.config_report.enabled
@@ -100,25 +100,25 @@
     - name: agent.configuration.content.agent.agent.enrollment.agent_certificate_path
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.enrollment.agent_certificate_path.
     - name: agent.configuration.content.agent.agent.enrollment.agent_key_path
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.enrollment.agent_key_path.
     - name: agent.configuration.content.agent.agent.enrollment.agent_name
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.enrollment.agent_name.
     - name: agent.configuration.content.agent.agent.enrollment.authorization_pass_path
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.enrollment.authorization_pass_path.
     - name: agent.configuration.content.agent.agent.enrollment.auto_method
@@ -139,7 +139,7 @@
     - name: agent.configuration.content.agent.agent.enrollment.group
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.enrollment.group.
     - name: agent.configuration.content.agent.agent.enrollment.interface_index
@@ -150,7 +150,7 @@
     - name: agent.configuration.content.agent.agent.enrollment.manager_address
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.enrollment.manager_address.
     - name: agent.configuration.content.agent.agent.enrollment.port
@@ -161,13 +161,13 @@
     - name: agent.configuration.content.agent.agent.enrollment.server_certificate_path
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.enrollment.server_certificate_path.
     - name: agent.configuration.content.agent.agent.enrollment.ssl_cipher
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.enrollment.ssl_cipher.
     - name: agent.configuration.content.agent.agent.ip_update_interval
@@ -178,7 +178,7 @@
     - name: agent.configuration.content.agent.agent.manager.endpoint
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.manager.endpoint.
     - name: agent.configuration.content.agent.agent.manager.interface_index
@@ -209,25 +209,25 @@
     - name: agent.configuration.content.agent.agent.ssl.certificate
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.ssl.certificate.
     - name: agent.configuration.content.agent.agent.ssl.certificate_authorities
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.ssl.certificate_authorities.
     - name: agent.configuration.content.agent.agent.ssl.ciphers
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.ssl.ciphers.
     - name: agent.configuration.content.agent.agent.ssl.key
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: agent.agent.ssl.key.
     - name: agent.configuration.content.agent.agent.ssl.verification_mode
@@ -323,55 +323,55 @@
     - name: agent.configuration.content.aws-s3.buckets.access_key
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.access_key.
     - name: agent.configuration.content.aws-s3.buckets.aws_account_alias
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.aws_account_alias.
     - name: agent.configuration.content.aws-s3.buckets.aws_account_id
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.aws_account_id.
     - name: agent.configuration.content.aws-s3.buckets.aws_profile
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.aws_profile.
     - name: agent.configuration.content.aws-s3.buckets.discard_field
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.discard_field.
     - name: agent.configuration.content.aws-s3.buckets.discard_regex
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.discard_regex.
     - name: agent.configuration.content.aws-s3.buckets.iam_role_arn
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.iam_role_arn.
     - name: agent.configuration.content.aws-s3.buckets.iam_role_duration
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.iam_role_duration.
     - name: agent.configuration.content.aws-s3.buckets.name
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.name.
     - name: agent.configuration.content.aws-s3.buckets.only_logs_after
@@ -382,19 +382,19 @@
     - name: agent.configuration.content.aws-s3.buckets.path
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.path.
     - name: agent.configuration.content.aws-s3.buckets.path_suffix
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.path_suffix.
     - name: agent.configuration.content.aws-s3.buckets.regions
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.regions.
     - name: agent.configuration.content.aws-s3.buckets.remove_from_bucket
@@ -405,19 +405,19 @@
     - name: agent.configuration.content.aws-s3.buckets.secret_key
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.secret_key.
     - name: agent.configuration.content.aws-s3.buckets.service_endpoint
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.service_endpoint.
     - name: agent.configuration.content.aws-s3.buckets.sts_endpoint
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.buckets.sts_endpoint.
     - name: agent.configuration.content.aws-s3.buckets.type
@@ -448,55 +448,55 @@
     - name: agent.configuration.content.aws-s3.services.access_key
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.access_key.
     - name: agent.configuration.content.aws-s3.services.aws_account_alias
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.aws_account_alias.
     - name: agent.configuration.content.aws-s3.services.aws_account_id
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.aws_account_id.
     - name: agent.configuration.content.aws-s3.services.aws_log_groups
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.aws_log_groups.
     - name: agent.configuration.content.aws-s3.services.aws_profile
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.aws_profile.
     - name: agent.configuration.content.aws-s3.services.discard_field
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.discard_field.
     - name: agent.configuration.content.aws-s3.services.discard_regex
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.discard_regex.
     - name: agent.configuration.content.aws-s3.services.iam_role_arn
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.iam_role_arn.
     - name: agent.configuration.content.aws-s3.services.iam_role_duration
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.iam_role_duration.
     - name: agent.configuration.content.aws-s3.services.only_logs_after
@@ -507,7 +507,7 @@
     - name: agent.configuration.content.aws-s3.services.regions
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.regions.
     - name: agent.configuration.content.aws-s3.services.remove_log_streams
@@ -518,19 +518,19 @@
     - name: agent.configuration.content.aws-s3.services.secret_key
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.secret_key.
     - name: agent.configuration.content.aws-s3.services.service_endpoint
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.service_endpoint.
     - name: agent.configuration.content.aws-s3.services.sts_endpoint
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.services.sts_endpoint.
     - name: agent.configuration.content.aws-s3.services.type
@@ -546,55 +546,55 @@
     - name: agent.configuration.content.aws-s3.subscribers.aws_profile
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.subscribers.aws_profile.
     - name: agent.configuration.content.aws-s3.subscribers.discard_field
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.subscribers.discard_field.
     - name: agent.configuration.content.aws-s3.subscribers.discard_regex
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.subscribers.discard_regex.
     - name: agent.configuration.content.aws-s3.subscribers.external_id
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.subscribers.external_id.
     - name: agent.configuration.content.aws-s3.subscribers.iam_role_arn
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.subscribers.iam_role_arn.
     - name: agent.configuration.content.aws-s3.subscribers.iam_role_duration
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.subscribers.iam_role_duration.
     - name: agent.configuration.content.aws-s3.subscribers.service_endpoint
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.subscribers.service_endpoint.
     - name: agent.configuration.content.aws-s3.subscribers.sqs_name
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.subscribers.sqs_name.
     - name: agent.configuration.content.aws-s3.subscribers.sts_endpoint
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: aws-s3.subscribers.sts_endpoint.
     - name: agent.configuration.content.aws-s3.subscribers.type
@@ -615,43 +615,43 @@
     - name: agent.configuration.content.azure-logs.content.account_key
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: azure-logs.content.account_key.
     - name: agent.configuration.content.azure-logs.content.account_name
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: azure-logs.content.account_name.
     - name: agent.configuration.content.azure-logs.content.application_id
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: azure-logs.content.application_id.
     - name: agent.configuration.content.azure-logs.content.application_key
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: azure-logs.content.application_key.
     - name: agent.configuration.content.azure-logs.content.auth_path
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: azure-logs.content.auth_path.
     - name: agent.configuration.content.azure-logs.content.tag
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: azure-logs.content.tag.
     - name: agent.configuration.content.azure-logs.content.tenantdomain
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: azure-logs.content.tenantdomain.
     - name: agent.configuration.content.azure-logs.content.type
@@ -697,7 +697,7 @@
     - name: agent.configuration.content.command.command
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: command.command.
     - name: agent.configuration.content.command.day
@@ -733,7 +733,7 @@
     - name: agent.configuration.content.command.tag
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: command.tag.
     - name: agent.configuration.content.command.time
@@ -869,7 +869,7 @@
     - name: agent.configuration.content.fim.rootcheck.base_directory
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.rootcheck.base_directory.
     - name: agent.configuration.content.fim.rootcheck.check_dev
@@ -910,13 +910,13 @@
     - name: agent.configuration.content.fim.rootcheck.ignore
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.rootcheck.ignore.
     - name: agent.configuration.content.fim.rootcheck.ignore_sregex
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.rootcheck.ignore_sregex.
     - name: agent.configuration.content.fim.rootcheck.scanall
@@ -957,7 +957,7 @@
     - name: agent.configuration.content.fim.syscheck.directories.dir
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.directories.dir.
     - name: agent.configuration.content.fim.syscheck.directories.opts
@@ -973,19 +973,19 @@
     - name: agent.configuration.content.fim.syscheck.directories.restrict
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.directories.restrict.
     - name: agent.configuration.content.fim.syscheck.directories.symbolic_link
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.directories.symbolic_link.
     - name: agent.configuration.content.fim.syscheck.directories.tags
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.directories.tags.
     - name: agent.configuration.content.fim.syscheck.disabled
@@ -1011,13 +1011,13 @@
     - name: agent.configuration.content.fim.syscheck.ignore
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.ignore.
     - name: agent.configuration.content.fim.syscheck.ignore_sregex
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.ignore_sregex.
     - name: agent.configuration.content.fim.syscheck.key_ignore.arch
@@ -1028,7 +1028,7 @@
     - name: agent.configuration.content.fim.syscheck.key_ignore.entry
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.key_ignore.entry.
     - name: agent.configuration.content.fim.syscheck.key_ignore_sregex.arch
@@ -1039,7 +1039,7 @@
     - name: agent.configuration.content.fim.syscheck.key_ignore_sregex.entry
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.key_ignore_sregex.entry.
     - name: agent.configuration.content.fim.syscheck.max_eps
@@ -1055,7 +1055,7 @@
     - name: agent.configuration.content.fim.syscheck.nodiff
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.nodiff.
     - name: agent.configuration.content.fim.syscheck.notify_first_scan
@@ -1081,7 +1081,7 @@
     - name: agent.configuration.content.fim.syscheck.registry.entry
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.registry.entry.
     - name: agent.configuration.content.fim.syscheck.registry.opts
@@ -1097,19 +1097,19 @@
     - name: agent.configuration.content.fim.syscheck.registry.restrict_key
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.registry.restrict_key.
     - name: agent.configuration.content.fim.syscheck.registry.restrict_value
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.registry.restrict_value.
     - name: agent.configuration.content.fim.syscheck.registry.tags
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.registry.tags.
     - name: agent.configuration.content.fim.syscheck.registry_limit.enabled
@@ -1130,7 +1130,7 @@
     - name: agent.configuration.content.fim.syscheck.registry_nodiff.entry
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.registry_nodiff.entry.
     - name: agent.configuration.content.fim.syscheck.registry_nodiff_sregex.arch
@@ -1141,7 +1141,7 @@
     - name: agent.configuration.content.fim.syscheck.registry_nodiff_sregex.entry
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.registry_nodiff_sregex.entry.
     - name: agent.configuration.content.fim.syscheck.scan_day
@@ -1212,7 +1212,7 @@
     - name: agent.configuration.content.fim.syscheck.value_ignore.entry
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.value_ignore.entry.
     - name: agent.configuration.content.fim.syscheck.value_ignore_sregex.arch
@@ -1223,13 +1223,13 @@
     - name: agent.configuration.content.fim.syscheck.value_ignore_sregex.entry
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.value_ignore_sregex.entry.
     - name: agent.configuration.content.fim.syscheck.whodata.audit_key
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: fim.syscheck.whodata.audit_key.
     - name: agent.configuration.content.fim.syscheck.whodata.provider
@@ -1260,13 +1260,13 @@
     - name: agent.configuration.content.gcp-bucket.buckets.bucket
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: gcp-bucket.buckets.bucket.
     - name: agent.configuration.content.gcp-bucket.buckets.credentials_file
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: gcp-bucket.buckets.credentials_file.
     - name: agent.configuration.content.gcp-bucket.buckets.only_logs_after
@@ -1277,7 +1277,7 @@
     - name: agent.configuration.content.gcp-bucket.buckets.prefix
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: gcp-bucket.buckets.prefix.
     - name: agent.configuration.content.gcp-bucket.buckets.remove_from_bucket
@@ -1328,7 +1328,7 @@
     - name: agent.configuration.content.gcp-pubsub.credentials_file
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: gcp-pubsub.credentials_file.
     - name: agent.configuration.content.gcp-pubsub.day
@@ -1364,7 +1364,7 @@
     - name: agent.configuration.content.gcp-pubsub.project_id
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: gcp-pubsub.project_id.
     - name: agent.configuration.content.gcp-pubsub.pull_on_start
@@ -1375,7 +1375,7 @@
     - name: agent.configuration.content.gcp-pubsub.subscription_name
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: gcp-pubsub.subscription_name.
     - name: agent.configuration.content.gcp-pubsub.time
@@ -1391,13 +1391,13 @@
     - name: agent.configuration.content.github.api_auth.api_token
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: github.api_auth.api_token.
     - name: agent.configuration.content.github.api_auth.org_name
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: github.api_auth.org_name.
     - name: agent.configuration.content.github.curl_max_size
@@ -1523,25 +1523,25 @@
     - name: agent.configuration.content.logcollector.localfile.alias
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.alias.
     - name: agent.configuration.content.logcollector.localfile.channel
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.channel.
     - name: agent.configuration.content.logcollector.localfile.command
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.command.
     - name: agent.configuration.content.logcollector.localfile.djb_program_name
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.djb_program_name.
     - name: agent.configuration.content.logcollector.localfile.duplicate
@@ -1552,25 +1552,25 @@
     - name: agent.configuration.content.logcollector.localfile.exclude
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.exclude.
     - name: agent.configuration.content.logcollector.localfile.file
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.file.
     - name: agent.configuration.content.logcollector.localfile.filters.expression
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.filters.expression.
     - name: agent.configuration.content.logcollector.localfile.filters.field
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.filters.field.
     - name: agent.configuration.content.logcollector.localfile.filters.ignore_if_missing
@@ -1596,7 +1596,7 @@
     - name: agent.configuration.content.logcollector.localfile.ignore.value
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.ignore.value.
     - name: agent.configuration.content.logcollector.localfile.ignore_binaries
@@ -1622,7 +1622,7 @@
     - name: agent.configuration.content.logcollector.localfile.multiline_regex.regex
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.multiline_regex.regex.
     - name: agent.configuration.content.logcollector.localfile.multiline_regex.replace
@@ -1643,7 +1643,7 @@
     - name: agent.configuration.content.logcollector.localfile.out_format.format
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.out_format.format.
     - name: agent.configuration.content.logcollector.localfile.out_format.target
@@ -1664,7 +1664,7 @@
     - name: agent.configuration.content.logcollector.localfile.query.value
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.query.value.
     - name: agent.configuration.content.logcollector.localfile.reconnect_time
@@ -1680,7 +1680,7 @@
     - name: agent.configuration.content.logcollector.localfile.restrict.value
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.localfile.restrict.value.
     - name: agent.configuration.content.logcollector.localfile.target
@@ -1691,7 +1691,7 @@
     - name: agent.configuration.content.logcollector.socket.location
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.socket.location.
     - name: agent.configuration.content.logcollector.socket.mode
@@ -1702,13 +1702,13 @@
     - name: agent.configuration.content.logcollector.socket.name
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.socket.name.
     - name: agent.configuration.content.logcollector.socket.prefix
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: logcollector.socket.prefix.
     - name: agent.configuration.content.ms_graph.api_auth.api_type
@@ -1719,25 +1719,25 @@
     - name: agent.configuration.content.ms_graph.api_auth.client_id
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: ms_graph.api_auth.client_id.
     - name: agent.configuration.content.ms_graph.api_auth.name
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: ms_graph.api_auth.name.
     - name: agent.configuration.content.ms_graph.api_auth.secret_value
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: ms_graph.api_auth.secret_value.
     - name: agent.configuration.content.ms_graph.api_auth.tenant_id
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: ms_graph.api_auth.tenant_id.
     - name: agent.configuration.content.ms_graph.curl_max_size
@@ -1773,13 +1773,13 @@
     - name: agent.configuration.content.ms_graph.resources.name
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: ms_graph.resources.name.
     - name: agent.configuration.content.ms_graph.resources.relationship
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: ms_graph.resources.relationship.
     - name: agent.configuration.content.ms_graph.run_on_start
@@ -1815,25 +1815,25 @@
     - name: agent.configuration.content.office365.api_auth.client_id
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: office365.api_auth.client_id.
     - name: agent.configuration.content.office365.api_auth.client_secret
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: office365.api_auth.client_secret.
     - name: agent.configuration.content.office365.api_auth.client_secret_path
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: office365.api_auth.client_secret_path.
     - name: agent.configuration.content.office365.api_auth.tenant_id
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: office365.api_auth.tenant_id.
     - name: agent.configuration.content.office365.curl_max_size
@@ -1859,7 +1859,7 @@
     - name: agent.configuration.content.office365.subscriptions
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: office365.subscriptions.
     - name: agent.configuration.content.sca.day
@@ -1885,7 +1885,7 @@
     - name: agent.configuration.content.sca.policies.policy
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Agent module configuration: sca.policies.policy.
     - name: agent.configuration.content.sca.scan_on_start
@@ -2077,24 +2077,24 @@
     - name: agent.id
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Unique identifier of the Wazuh agent.
     - name: cluster.name
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Wazuh cluster name.
     - name: cluster.node
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Wazuh cluster node name.
     - name: schema.version
       type: keyword
       level: custom
-      ignore_above: 1024
+      ignore_above: 4096
       description: >
         Wazuh schema version.

@@ -52,7 +52,7 @@ event.module:
     name of this module.'
   example: apache
   flat_name: event.module
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: module
   normalize: []
@@ -238,7 +238,7 @@ wazuh.cluster.name:
   description: Wazuh cluster name.
   example: master
   flat_name: wazuh.cluster.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: cluster.name
   normalize: []
@@ -249,7 +249,7 @@ wazuh.cluster.node:
   description: Wazuh cluster node name.
   example: master
   flat_name: wazuh.cluster.node
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: cluster.node
   normalize: []
@@ -260,7 +260,7 @@ wazuh.schema.version:
   description: Wazuh schema version.
   example: '1'
   flat_name: wazuh.schema.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: schema.version
   normalize: []

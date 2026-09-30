@@ -282,6 +282,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         }
         if (!stillPending.isEmpty()) {
             log.error(Constants.E_LOG_SAP_SYNC_DEGRADED, this.getConsumerType(), stillPending);
+            this.requestImmediateRetry();
         }
 
         if (this.shadowSwapPerformed) {

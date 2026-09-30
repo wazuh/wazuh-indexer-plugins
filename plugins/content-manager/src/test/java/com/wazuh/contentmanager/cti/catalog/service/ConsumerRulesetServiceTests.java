@@ -923,6 +923,112 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
     }
 
     /**
+     * A degraded pass must ask CatalogSyncJob for its immediate retry. Persisting the pending phase
+     * alone only guarantees a retry one full sync interval later (60 minutes by default), which is
+     * long enough for a deployment to finish and be assessed with an incomplete detector set, and
+     * long enough for the "will retry" the log promises to look like it never arrived.
+     */
+    @SuppressWarnings("unchecked")
+    public void testSynchronize_degradedPassRequestsImmediateRetry() throws Exception {
+        ConsumerRulesetService svc = this.serviceWithOneDetector(this.failingSapService());
+
+        Assert.assertTrue(
+                "a pass that ends with a phase pending must request an immediate retry", svc.synchronize());
+    }
+
+    /**
+     * The retry request describes the pass that just ran and nothing earlier, so a clean pass on a
+     * service that degraded before must not keep asking to be retried. Without the reset, one
+     * degraded pass would make every later pass claim it needs retrying too.
+     */
+    @SuppressWarnings("unchecked")
+    public void testSynchronize_retryRequestIsClearedOnTheNextPass() throws Exception {
+        SecurityAnalyticsServiceImpl sapServiceImpl = this.failingSapService();
+        ConsumerRulesetService svc = this.serviceWithOneDetector(sapServiceImpl);
+
+        Assert.assertTrue(svc.synchronize());
+
+        // Same service, same consumer doc, but the detector now goes through.
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Object> listener = invocation.getArgument(4);
+                            listener.onResponse(null);
+                            return null;
+                        })
+                .when(sapServiceImpl)
+                .upsertDetectorAsync(any(), anyBoolean(), any(), any(), any());
+
+        Assert.assertFalse(
+                "a pass that left nothing pending must not request a retry", svc.synchronize());
+    }
+
+    /**
+     * Builds a ruleset service with "detectors" already pending and exactly one integration to push,
+     * wired to the given Security Analytics service. Shared by the immediate-retry tests.
+     */
+    @SuppressWarnings("unchecked")
+    private ConsumerRulesetService serviceWithOneDetector(SecurityAnalyticsServiceImpl sapServiceImpl)
+            throws Exception {
+        this.mockExistingConsumerDoc(List.of("detectors"));
+        this.mockIndexResolution(name -> false);
+
+        ConsumerRulesetService svc =
+                new ConsumerRulesetService(
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.spaceService,
+                        sapServiceImpl,
+                        this.userOverridesService);
+
+        // No catalog configured and the offset already caught up: isUpdated=false, so the pass is
+        // driven entirely by the persisted pending phase.
+        ConsumerService consumerService = mock(ConsumerService.class);
+        when(consumerService.getLocalConsumer())
+                .thenReturn(
+                        new LocalConsumer(
+                                "ctx",
+                                "name",
+                                "cti:catalog:consumer:ruleset",
+                                "",
+                                true,
+                                LocalConsumer.Status.READY,
+                                100L,
+                                100L,
+                                List.of("detectors")));
+        svc.setConsumerService(consumerService);
+
+        Map<String, Map<String, Object>> integrations = new LinkedHashMap<>();
+        integrations.put(
+                "int-1",
+                Map.of(
+                        "document",
+                        Map.of(
+                                "id", "int-1",
+                                "metadata", Map.of("title", "Test"),
+                                "detector", Map.of("source", List.of("wazuh-events-v5-test")))));
+        this.mockResourcesBySpace(Constants.INDEX_INTEGRATIONS, integrations);
+        when(sapServiceImpl.buildDetectorRequest(any(), eq(true), any()))
+                .thenReturn(mock(WIndexDetectorRequest.class));
+        return svc;
+    }
+
+    /** A Security Analytics service whose detector pushes all fail. */
+    @SuppressWarnings("unchecked")
+    private SecurityAnalyticsServiceImpl failingSapService() {
+        SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Object> listener = invocation.getArgument(4);
+                            listener.onFailure(new RuntimeException("still broken"));
+                            return null;
+                        })
+                .when(sapServiceImpl)
+                .upsertDetectorAsync(any(), anyBoolean(), any(), any(), any());
+        return sapServiceImpl;
+    }
+
+    /**
      * A failed integrations read must not clear a pending "detectors" phase. syncDetectors() reports
      * an empty document map as success ("nothing to create"), so mistaking the failed read for an
      * empty result would drop the retry for good — the very bug the pending-phase list exists to

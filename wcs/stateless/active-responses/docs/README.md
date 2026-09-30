@@ -29,4 +29,4 @@ The detail of the fields can be found in the csv file [Fields](fields.csv).
 ### Data stream
 
 - **Index pattern:** `wazuh-active-responses*`
-- **ISM policy:** `stream-active-responses-policy` — rolls over on size/doc count and deletes indices older than 3 days.
+- **ISM policy:** `stream-active-responses-policy` — rolls over at 20 GB per primary shard (or 200M docs) and deletes rolled-over indices once they reach 3 days of age. Retention is the greater of the two.

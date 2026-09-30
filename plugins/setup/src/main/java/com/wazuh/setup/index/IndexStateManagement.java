@@ -56,6 +56,15 @@ public class IndexStateManagement extends Index {
     /** Base path for ISM policy files */
     static final String POLICIES_PATH = "policies/";
 
+    /** Policy field holding the policy definition */
+    private static final String POLICY_FIELD = "policy";
+
+    /** Policy field holding the index templates the policy is applied to */
+    private static final String ISM_TEMPLATE_FIELD = "ism_template";
+
+    /** Policy field holding the time the policy was last updated, in epoch milliseconds */
+    private static final String LAST_UPDATED_TIME_FIELD = "last_updated_time";
+
     private final List<String> policies;
 
     /**
@@ -94,6 +103,7 @@ public class IndexStateManagement extends Index {
         try {
             String policyPath = POLICIES_PATH + policy + ".json";
             Map<String, Object> policyFile = this.jsonUtils.fromFile(policyPath);
+            applyIsmTemplateTimestamp(policyFile);
 
             IndexRequest indexRequest =
                     new IndexRequest(this.index).id(policy).source(policyFile, MediaTypeRegistry.JSON);
@@ -118,6 +128,35 @@ public class IndexStateManagement extends Index {
             this.retry_index_creation = false;
             this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.indexPolicy(policy);
+        }
+    }
+
+    /**
+     * Copies the policy's <code>last_updated_time</code> into every <code>ism_template</code> entry
+     * that does not declare one.
+     *
+     * <p>ISM applies an <code>ism_template</code> only to indices created after the template's <code>
+     * last_updated_time</code>. The field is optional in the document, but when it is absent ISM
+     * fills it with the current time every time it parses the policy, so that comparison never
+     * succeeds and the template matches no index at all. The ISM API stores the same timestamp in
+     * both places; this does the same for the policies indexed here.
+     *
+     * @param policyFile parsed policy document, modified in place.
+     */
+    @SuppressWarnings("unchecked")
+    static void applyIsmTemplateTimestamp(Map<String, Object> policyFile) {
+        if (!(policyFile.get(POLICY_FIELD) instanceof Map)) {
+            return;
+        }
+        Map<String, Object> policy = (Map<String, Object>) policyFile.get(POLICY_FIELD);
+        Object lastUpdatedTime = policy.get(LAST_UPDATED_TIME_FIELD);
+        if (lastUpdatedTime == null || !(policy.get(ISM_TEMPLATE_FIELD) instanceof List)) {
+            return;
+        }
+        for (Object template : (List<Object>) policy.get(ISM_TEMPLATE_FIELD)) {
+            if (template instanceof Map) {
+                ((Map<String, Object>) template).putIfAbsent(LAST_UPDATED_TIME_FIELD, lastUpdatedTime);
+            }
         }
     }
 

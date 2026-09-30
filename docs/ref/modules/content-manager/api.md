@@ -140,7 +140,7 @@ curl -sk -u admin:admin -X POST \
 
 Answers whether the current user is allowed to register a CTI subscription, without registering one. Intended for callers that need to decide before starting the CTI OAuth device flow, since approving that flow creates the environment on the CTI side and an authorization failure afterwards leaves it orphaned.
 
-The check is performed with the `perform_permission_check` query parameter, which is provided natively by the OpenSearch security plugin for any REST endpoint. The permission evaluated is the same one a real registration requires: `plugin:content_manager/subscription/post`, mapped to the `cluster:admin/content_manager/subscription/create` action. Under the default role set, only `wazuh_admin` holds it.
+The check is performed with the `perform_permission_check` query parameter, which is provided natively by the OpenSearch security plugin for any REST endpoint. The permission evaluated is the same one a real registration requires: `plugin:content_manager/subscription/post`, mapped to the `cluster:admin/content_manager/subscription/create` action. No default role holds it — out of the box only `all_access` does.
 
 > The request has **no side effects**: the security plugin answers before the action executes, so no CTI API call is made and no credentials are written. It is idempotent and safe to call repeatedly.
 

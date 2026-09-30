@@ -5,7 +5,7 @@ The `wazuh-indexer-setup` plugin is a module composing the Wazuh Indexer respons
 The Wazuh Indexer Setup plugin is responsible for:
 - Creating the index templates, to define the mappings and settings for the indices.
 - Creating the initial indices. We distinguish between **stateful** and **stream** indices. While stream indices contain immutable time-series data and are rolled over periodically, stateful indices store dynamic data that can change over time and reside in a single index.
-- Stream indices are created with a data stream configuration and an ISM rollover policy.
+- Stream indices are created with a data stream configuration and an ISM rollover policy. See [Retention](retention.md) for what those policies actually guarantee — rollover is driven by volume, so the deletion ages are a floor and not a ceiling.
 
 ## Indices
 
@@ -22,7 +22,7 @@ The following tables list the indices created by this plugin.
 | `wazuh-metrics-agents`         | Stores statistics about the Wazuh Agents state.                                                                                                                                                                                            |
 | `wazuh-metrics-comms-v4`       | Stores statistics about the Wazuh Manager usage and performance for the legacy communication protocol, used by agents below v5.0.0. The information includes the number of events decoded, bytes received, and TCP sessions.                 |
 | `wazuh-metrics-normalization`  | Stores statistics about the Wazuh Engine's event normalization (decoding) stage.                                                                                                                                                           |
-| `wazuh-ai-assistant-sessions`  | Stores the users' conversations with the AI assistant. Rolled over daily, kept for 7 days. Each document carries the owning username in its `user` field; Document Level Security restricts every user to their own conversations.        |
+| `wazuh-ai-assistant-sessions`  | Stores the users' conversations with the AI assistant. Rolled over daily, kept for 7 days. Each document carries the owning username in its `user` field, stamped by the plugin from the authenticated caller; Document Level Security restricts every read to that user's own conversations, and every write goes through the [session API](./api-reference.md#ai-assistant-sessions).        |
 
 ### Stateful indices
 

@@ -71,57 +71,57 @@
             "compliance": {
               "properties": {
                 "cmmc": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "fedramp": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "gdpr": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "hipaa": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "iso_27001": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "nis2": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "nist_800_171": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "nist_800_53": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "pci_dss": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "tsc": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
             },
             "condition": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "description": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "id": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "mitre": {
@@ -129,11 +129,11 @@
                 "subtechnique": {
                   "properties": {
                     "id": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "name": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     }
                   },
@@ -142,11 +142,11 @@
                 "tactic": {
                   "properties": {
                     "id": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "name": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     }
                   },
@@ -155,11 +155,11 @@
                 "technique": {
                   "properties": {
                     "id": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "name": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     }
                   },
@@ -168,31 +168,31 @@
               }
             },
             "name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "rationale": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "reason": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "references": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "remediation": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "result": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "rules": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -202,7 +202,7 @@
             "hash": {
               "properties": {
                 "sha1": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -215,23 +215,23 @@
         "policy": {
           "properties": {
             "description": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "file": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "id": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "references": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -251,17 +251,17 @@
             "agent": {
               "properties": {
                 "groups": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "host": {
                   "properties": {
                     "architecture": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "hostname": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "ip": {
@@ -270,19 +270,19 @@
                     "os": {
                       "properties": {
                         "name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "platform": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "type": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "version": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -290,15 +290,15 @@
                   }
                 },
                 "id": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -306,11 +306,11 @@
             "cluster": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "node": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -318,7 +318,7 @@
             "schema": {
               "properties": {
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }

@@ -66,7 +66,7 @@ title:
     by the user.
   example: how many agents are connected?
   flat_name: title
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: title
   normalize: []
@@ -88,7 +88,7 @@ user:
   description: Name of the user the conversation belongs to.
   example: admin
   flat_name: user
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: user
   normalize: []

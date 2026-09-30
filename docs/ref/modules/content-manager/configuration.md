@@ -3,11 +3,11 @@
 
 The Content Manager plugin is configured through settings in `opensearch.yml`. All settings use the `plugins.content_manager` prefix.
 
-- **`plugins.content_manager.cti.api`** (String, default `https://api.pre.cloud.wazuh.com/api/v1`) — base URL for the Wazuh CTI API.
+- **`plugins.content_manager.cti.api`** (String, default `https://api.pre.cloud.wazuh.com/api/v1`) — base URL for the Wazuh CTI API. Covers both the catalog endpoints (snapshots, changes, plans) and the CTI Console ones (instance registration, environment lookup, resource-token exchange).
 - **`plugins.content_manager.catalog.sync_interval`** (Integer, default `60`, range 10–1440, dynamic) — interval, in minutes, between scheduled synchronizations.
 - **`plugins.content_manager.setup_wait.max_retries`** (Integer, default `4`, range 0–10) — number of retries the catalog sync job performs while waiting for the Setup plugin to report readiness on startup, before giving up until the next scheduled sync.
 - **`plugins.content_manager.setup_wait.backoff_base_seconds`** (Integer, default `20`, range 1–120) — base delay, in seconds, for the exponential backoff between those retries (delay for retry `n` is `base * 2^n`; with the defaults, 20s/40s/80s/160s = 300s / 5 min worst case).
-- **`plugins.content_manager.max_items_per_bulk`** (Integer, default `999`, range 10–999) — maximum documents per bulk indexing request.
+- **`plugins.content_manager.max_items_per_bulk`** (Integer, default `1000`, range 10–1000) — maximum documents per bulk indexing request.
 - **`plugins.content_manager.max_concurrent_bulks`** (Integer, default `5`, range 1–5) — maximum concurrent bulk operations.
 - **`plugins.content_manager.max_bulk_bytes`** (Long, default `5242880` / 5 MB, range 1048576–104857600 / 1–100 MB) — maximum request body size, in bytes, for a single bulk indexing request.
 - **`plugins.content_manager.logtest.max_body_bytes`** (Long, default `1048576` / 1 MiB, range 1024–16777216 / 1 KiB–16 MiB, dynamic) — maximum size, in bytes, of a logtest request body (`POST /logtest`, `/logtest/normalization`, `/logtest/detection`). Requests whose body exceeds this are rejected with HTTP 413 at the REST layer, before parsing or dispatch, so an oversized event cannot be amplified into the response and exhaust the indexer's heap.
@@ -129,6 +129,10 @@ To point to a different CTI API (e.g., production):
 plugins.content_manager.cti.api: "https://cti.wazuh.com/api/v1"
 ```
 
+The setting moves every CTI request the plugin makes, not just content retrieval. Besides the catalog endpoints (snapshots, changes, plans), it is also the base URL for the CTI Console calls: instance registration (`POST /_plugins/_content_manager/subscription`), environment and plan lookup, and the resource-token exchange that produces the HMAC-signed URLs used during synchronization.
+
+A registered instance is not valid against a different CTI environment. After changing this setting, re-register the instance with `POST /_plugins/_content_manager/subscription`.
+
 #### Custom catalog consumer URLs
 
 To override default consumers, provide full HTTP(S) consumer URLs:
@@ -214,7 +218,7 @@ Some endpoints modify configuration with a high impact on the platform and are p
 - **`POST /_plugins/_content_manager/update`** — permission `cluster:admin/content_manager/update/trigger`.
 - **`PUT /_plugins/_setup/settings`** — permission `plugin:wazuh/settings/write`.
 
-1. **RBAC** — each endpoint is gated by a cluster permission (the action name above), enforced by the security plugin. Among the bundled users, only `wazuh-admin` holds these permissions; `wazuh-manager`, `wazuh-demo` and `wazuh-readonly` are excluded. The superuser `admin` (role `all_access`, cluster wildcard `*`) also holds them. To delegate any of these actions without granting full superuser, create a dedicated role for the permission(s) above. See the [access control reference](../../security/access-control.md).
+1. **RBAC** — each endpoint is gated by a cluster permission (the action name above), enforced by the security plugin. No default role holds these permissions: `dashboard_server`, `wazuh_manager` and `wazuh_readonly` are all excluded, so out of the box only the superuser `admin` (role `all_access`, cluster wildcard `*`) can call them. To delegate any of these actions without granting full superuser, create a dedicated role for the permission(s) above. See the [access control reference](../../security/access-control.md).
 2. **Per-endpoint disable settings** — each endpoint can be disabled independently with its own node setting; when disabled it returns `403 Forbidden` for **every** caller, including `admin` / `all_access`. This is intended for externally managed (e.g. Wazuh Cloud) deployments.
 
    - **`POST /_plugins/_content_manager/update`** — disable via `plugins.content_manager.catalog.update_on_demand: false`.

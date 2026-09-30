@@ -31,7 +31,7 @@ event.doc_id:
   description: Document ID of the matched alert that triggered the active response.
   example: abc123
   flat_name: event.doc_id
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: doc_id
   normalize: []
@@ -42,7 +42,7 @@ event.index:
   description: Source index of the matched alert that triggered the active response.
   example: wazuh-events-v5-security
   flat_name: event.index
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: index
   normalize: []
@@ -53,7 +53,7 @@ wazuh.active_response.agent_id:
   description: Agent configured in the active response channel.
   example: '001'
   flat_name: wazuh.active_response.agent_id
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: agent_id
   normalize: []
@@ -65,7 +65,7 @@ wazuh.active_response.executable:
   description: Executable configured in the active response channel.
   example: firewall-drop
   flat_name: wazuh.active_response.executable
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: executable
   normalize: []
@@ -77,7 +77,7 @@ wazuh.active_response.extra_arguments:
   description: Arguments configured in the active response channel.
   example: '["192.168.1.100", "600"]'
   flat_name: wazuh.active_response.extra_arguments
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: extra_arguments
   normalize:
@@ -90,7 +90,7 @@ wazuh.active_response.location:
   description: 'Where to execute. One of: local, defined-agent, all.'
   example: defined-agent
   flat_name: wazuh.active_response.location
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: location
   normalize: []
@@ -102,7 +102,7 @@ wazuh.active_response.name:
   description: Name of the active response configured in the channel.
   example: firewall-drop
   flat_name: wazuh.active_response.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: name
   normalize: []
@@ -125,7 +125,7 @@ wazuh.active_response.type:
   description: 'Response type. One of: stateless, stateful.'
   example: stateless
   flat_name: wazuh.active_response.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: type
   normalize: []
@@ -141,7 +141,7 @@ wazuh.agent.build.original:
   example: metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c
     built 2020-02-05 23:10:10 +0000 UTC]
   flat_name: wazuh.agent.build.original
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: build.original
   normalize: []
@@ -155,7 +155,7 @@ wazuh.agent.ephemeral_id:
     This id normally changes across restarts, but `agent.id` does not.'
   example: 8a4f500f
   flat_name: wazuh.agent.ephemeral_id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: ephemeral_id
   normalize: []
@@ -167,7 +167,7 @@ wazuh.agent.groups:
   description: List of groups the agent belongs to.
   example: '["group1", "group2"]'
   flat_name: wazuh.agent.groups
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: groups
   normalize:
@@ -180,7 +180,7 @@ wazuh.agent.host.architecture:
   description: Operating system architecture.
   example: x86_64
   flat_name: wazuh.agent.host.architecture
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: architecture
   normalize: []
@@ -195,7 +195,7 @@ wazuh.agent.host.boot.id:
     in each container.
   example: 88a1f0ed-5ae5-41ee-af6b-41921c311872
   flat_name: wazuh.agent.host.boot.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: boot.id
   normalize: []
@@ -229,7 +229,7 @@ wazuh.agent.host.cpu.name:
   description: CPU Model name.
   example: Intel(R) Core(TM) i7-7700HQ CPU
   flat_name: wazuh.agent.host.cpu.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: cpu.name
   normalize: []
@@ -294,7 +294,7 @@ wazuh.agent.host.domain:
     domain name. For Linux this could be the domain of the host''s LDAP provider.'
   example: CONTOSO
   flat_name: wazuh.agent.host.domain
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: domain
   normalize: []
@@ -306,7 +306,7 @@ wazuh.agent.host.geo.city_name:
   description: City name.
   example: Montreal
   flat_name: wazuh.agent.host.geo.city_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: city_name
   normalize: []
@@ -318,7 +318,7 @@ wazuh.agent.host.geo.continent_code:
   description: Two-letter code representing continent's name.
   example: NA
   flat_name: wazuh.agent.host.geo.continent_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: continent_code
   normalize: []
@@ -330,7 +330,7 @@ wazuh.agent.host.geo.continent_name:
   description: Name of the continent.
   example: North America
   flat_name: wazuh.agent.host.geo.continent_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: continent_name
   normalize: []
@@ -342,7 +342,7 @@ wazuh.agent.host.geo.country_iso_code:
   description: Country ISO code.
   example: CA
   flat_name: wazuh.agent.host.geo.country_iso_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: country_iso_code
   normalize: []
@@ -354,7 +354,7 @@ wazuh.agent.host.geo.country_name:
   description: Country name.
   example: Canada
   flat_name: wazuh.agent.host.geo.country_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: country_name
   normalize: []
@@ -383,7 +383,7 @@ wazuh.agent.host.geo.name:
     Not typically used in automated geolocation.'
   example: boston-dc
   flat_name: wazuh.agent.host.geo.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: name
   normalize: []
@@ -398,7 +398,7 @@ wazuh.agent.host.geo.postal_code:
     and will vary widely from country to country.'
   example: 94040
   flat_name: wazuh.agent.host.geo.postal_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: postal_code
   normalize: []
@@ -410,7 +410,7 @@ wazuh.agent.host.geo.region_iso_code:
   description: Region ISO code.
   example: CA-QC
   flat_name: wazuh.agent.host.geo.region_iso_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: region_iso_code
   normalize: []
@@ -422,7 +422,7 @@ wazuh.agent.host.geo.region_name:
   description: Region name.
   example: Quebec
   flat_name: wazuh.agent.host.geo.region_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: region_name
   normalize: []
@@ -434,7 +434,7 @@ wazuh.agent.host.geo.timezone:
   description: The time zone of the location, such as IANA time zone name.
   example: America/Argentina/Buenos_Aires
   flat_name: wazuh.agent.host.geo.timezone
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: timezone
   normalize: []
@@ -447,7 +447,7 @@ wazuh.agent.host.hostname:
 
     It normally contains what the `hostname` command returns on the host machine.'
   flat_name: wazuh.agent.host.hostname
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: hostname
   normalize: []
@@ -462,7 +462,7 @@ wazuh.agent.host.id:
 
     Example: The current usage of `beat.name`.'
   flat_name: wazuh.agent.host.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: id
   normalize: []
@@ -489,7 +489,7 @@ wazuh.agent.host.mac:
     as an unsigned integer. Successive octets are separated by a hyphen.'
   example: '["00-00-5E-00-53-23", "00-00-5E-00-53-24"]'
   flat_name: wazuh.agent.host.mac
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: mac
   normalize:
@@ -561,7 +561,7 @@ wazuh.agent.host.name:
     name (FQDN), or a name specified by the user. The recommended value is the lowercase
     FQDN of the host.'
   flat_name: wazuh.agent.host.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: name
   normalize: []
@@ -683,7 +683,7 @@ wazuh.agent.host.os.family:
   description: OS family (such as redhat, debian, freebsd, windows).
   example: debian
   flat_name: wazuh.agent.host.os.family
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: family
   normalize: []
@@ -695,7 +695,7 @@ wazuh.agent.host.os.full:
   description: Operating system name, including the version or code name.
   example: Mac OS Mojave
   flat_name: wazuh.agent.host.os.full
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: full
   normalize: []
@@ -707,7 +707,7 @@ wazuh.agent.host.os.kernel:
   description: Operating system kernel version as a raw string.
   example: 4.4.0-112-generic
   flat_name: wazuh.agent.host.os.kernel
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: kernel
   normalize: []
@@ -719,7 +719,7 @@ wazuh.agent.host.os.name:
   description: Operating system name, without the version.
   example: Mac OS X
   flat_name: wazuh.agent.host.os.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: name
   normalize: []
@@ -731,7 +731,7 @@ wazuh.agent.host.os.platform:
   description: Operating system platform (such centos, ubuntu, windows).
   example: darwin
   flat_name: wazuh.agent.host.os.platform
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: platform
   normalize: []
@@ -755,7 +755,7 @@ wazuh.agent.host.os.type:
   - ios
   - android
   flat_name: wazuh.agent.host.os.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: type
   normalize: []
@@ -768,7 +768,7 @@ wazuh.agent.host.os.version:
   description: Operating system version as a raw string.
   example: 10.14.1
   flat_name: wazuh.agent.host.os.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: version
   normalize: []
@@ -781,7 +781,7 @@ wazuh.agent.host.pid_ns_ino:
     (nsfs). Unsigned int inum in include/linux/ns_common.h.
   example: 256383
   flat_name: wazuh.agent.host.pid_ns_ino
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: pid_ns_ino
   normalize: []
@@ -794,7 +794,7 @@ wazuh.agent.host.risk.calculated_level:
     of entity analytics and entity risk scoring.
   example: High
   flat_name: wazuh.agent.host.risk.calculated_level
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: calculated_level
   normalize: []
@@ -834,7 +834,7 @@ wazuh.agent.host.risk.static_level:
     as from some external Threat Intelligence Platform.
   example: High
   flat_name: wazuh.agent.host.risk.static_level
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: static_level
   normalize: []
@@ -875,7 +875,7 @@ wazuh.agent.host.type:
     For Cloud providers this can be the machine type like `t2.medium`. If vm, this
     could be the container, for example, or other information meaningful in your environment.'
   flat_name: wazuh.agent.host.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: type
   normalize: []
@@ -900,7 +900,7 @@ wazuh.agent.id:
     Example: For Beats this would be beat.id.'
   example: 8a4f500d
   flat_name: wazuh.agent.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: id
   normalize: []
@@ -916,7 +916,7 @@ wazuh.agent.name:
     is needed on which Filebeat instance data is coming from.'
   example: foo
   flat_name: wazuh.agent.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: name
   normalize: []
@@ -932,7 +932,7 @@ wazuh.agent.type:
     are run on the same machine.'
   example: filebeat
   flat_name: wazuh.agent.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: type
   normalize: []
@@ -944,7 +944,7 @@ wazuh.agent.version:
   description: Version of the agent.
   example: 6.0.0-rc2
   flat_name: wazuh.agent.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: version
   normalize: []
@@ -956,7 +956,7 @@ wazuh.cluster.name:
   description: Wazuh cluster name.
   example: wazuh-cluster-1
   flat_name: wazuh.cluster.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: cluster.name
   normalize: []
@@ -967,7 +967,7 @@ wazuh.cluster.node:
   description: Wazuh cluster node name.
   example: wazuh-cluster-node-1
   flat_name: wazuh.cluster.node
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: cluster.node
   normalize: []
@@ -978,7 +978,7 @@ wazuh.event.id:
   description: Unique identifier shared across all related events, generated by Wazuh.
   example: 1234567890abcdef
   flat_name: wazuh.event.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: event.id
   normalize: []
@@ -989,7 +989,7 @@ wazuh.integration.category:
   description: Wazuh integration category.
   example: security
   flat_name: wazuh.integration.category
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: integration.category
   normalize: []
@@ -1000,7 +1000,7 @@ wazuh.integration.decoders:
   description: List of Wazuh decoders applied to the event.
   example: '["json", "syslog"]'
   flat_name: wazuh.integration.decoders
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: integration.decoders
   normalize:
@@ -1012,7 +1012,7 @@ wazuh.integration.name:
   description: Name of the Wazuh integration.
   example: Cisco Aironet
   flat_name: wazuh.integration.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: integration.name
   normalize: []
@@ -1023,7 +1023,7 @@ wazuh.integration.rules:
   description: List of Wazuh rules applied to the event.
   example: '["1002", "2003"]'
   flat_name: wazuh.integration.rules
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: integration.rules
   normalize:
@@ -1035,7 +1035,7 @@ wazuh.protocol.location:
   description: Source of the log as retrieved by the Wazuh Agent.
   example: /var/log/auth.log
   flat_name: wazuh.protocol.location
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: protocol.location
   normalize: []
@@ -1057,7 +1057,7 @@ wazuh.rule.author:
     the rule used to generate this event.
   example: '["Star-Lord"]'
   flat_name: wazuh.rule.author
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: author
   normalize:
@@ -1071,7 +1071,7 @@ wazuh.rule.category:
     detection of this event.
   example: Attempted Information Leak
   flat_name: wazuh.rule.category
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: category
   normalize: []
@@ -1083,7 +1083,7 @@ wazuh.rule.compliance.cmmc:
   description: CMMC requirements.
   example: '["AC.1.001", "AU.L2-3.3.1"]'
   flat_name: wazuh.rule.compliance.cmmc
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: cmmc
   normalize:
@@ -1096,7 +1096,7 @@ wazuh.rule.compliance.fedramp:
   description: FedRAMP requirements.
   example: '["AC-2", "SC-7"]'
   flat_name: wazuh.rule.compliance.fedramp
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: fedramp
   normalize:
@@ -1109,7 +1109,7 @@ wazuh.rule.compliance.gdpr:
   description: GDPR requirements.
   example: '["Art. 32", "Art. 25"]'
   flat_name: wazuh.rule.compliance.gdpr
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: gdpr
   normalize:
@@ -1122,7 +1122,7 @@ wazuh.rule.compliance.hipaa:
   description: HIPAA requirements.
   example: '["164.312(a)(1)", "164.308(a)(5)(ii)(C)"]'
   flat_name: wazuh.rule.compliance.hipaa
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: hipaa
   normalize:
@@ -1135,7 +1135,7 @@ wazuh.rule.compliance.iso_27001:
   description: ISO 27001 requirements.
   example: '["A.9.4.1", "A.8.8"]'
   flat_name: wazuh.rule.compliance.iso_27001
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: iso_27001
   normalize:
@@ -1148,7 +1148,7 @@ wazuh.rule.compliance.nis2:
   description: NIS2 requirements.
   example: '["Art. 21", "Art. 23"]'
   flat_name: wazuh.rule.compliance.nis2
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: nis2
   normalize:
@@ -1161,7 +1161,7 @@ wazuh.rule.compliance.nist_800_171:
   description: NIST 800-171 requirements.
   example: '["3.1.1", "3.3.1"]'
   flat_name: wazuh.rule.compliance.nist_800_171
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: nist_800_171
   normalize:
@@ -1174,7 +1174,7 @@ wazuh.rule.compliance.nist_800_53:
   description: NIST 800-53 requirements.
   example: '["AC-3", "AU-2"]'
   flat_name: wazuh.rule.compliance.nist_800_53
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: nist_800_53
   normalize:
@@ -1187,7 +1187,7 @@ wazuh.rule.compliance.pci_dss:
   description: PCI DSS requirements.
   example: '["2.2.1", "6.3.3"]'
   flat_name: wazuh.rule.compliance.pci_dss
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: pci_dss
   normalize:
@@ -1200,7 +1200,7 @@ wazuh.rule.compliance.tsc:
   description: TSC requirements.
   example: '["CC6.1", "CC7.1"]'
   flat_name: wazuh.rule.compliance.tsc
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: tsc
   normalize:
@@ -1213,7 +1213,7 @@ wazuh.rule.description:
   description: The description of the rule generating the event.
   example: Block requests to public DNS over HTTPS / TLS protocols
   flat_name: wazuh.rule.description
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: description
   normalize: []
@@ -1226,7 +1226,7 @@ wazuh.rule.id:
     other entity using the rule for detection of this event.
   example: 101
   flat_name: wazuh.rule.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: id
   normalize: []
@@ -1238,7 +1238,7 @@ wazuh.rule.level:
   description: Severity level of the rule.
   example: high
   flat_name: wazuh.rule.level
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: level
   normalize: []
@@ -1251,7 +1251,7 @@ wazuh.rule.license:
     is made available.
   example: Apache 2.0
   flat_name: wazuh.rule.license
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: license
   normalize: []
@@ -1273,7 +1273,7 @@ wazuh.rule.mitre.subtechnique.id:
   description: MITRE ATT&CK subtechnique identifiers.
   example: '["T1059.001", "T1078.001"]'
   flat_name: wazuh.rule.mitre.subtechnique.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: subtechnique.id
   normalize:
@@ -1287,7 +1287,7 @@ wazuh.rule.mitre.subtechnique.name:
   example: '["Command and Scripting Interpreter: PowerShell", "Valid Accounts: Default
     Accounts"]'
   flat_name: wazuh.rule.mitre.subtechnique.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: subtechnique.name
   normalize:
@@ -1310,7 +1310,7 @@ wazuh.rule.mitre.tactic.id:
   description: MITRE ATT&CK tactic identifiers.
   example: '["TA0002", "TA0005"]'
   flat_name: wazuh.rule.mitre.tactic.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: tactic.id
   normalize:
@@ -1323,7 +1323,7 @@ wazuh.rule.mitre.tactic.name:
   description: MITRE ATT&CK tactic names.
   example: '["Execution", "Defense Evasion"]'
   flat_name: wazuh.rule.mitre.tactic.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: tactic.name
   normalize:
@@ -1346,7 +1346,7 @@ wazuh.rule.mitre.technique.id:
   description: MITRE ATT&CK technique identifiers.
   example: '["T1059", "T1562"]'
   flat_name: wazuh.rule.mitre.technique.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: technique.id
   normalize:
@@ -1359,7 +1359,7 @@ wazuh.rule.mitre.technique.name:
   description: MITRE ATT&CK technique names.
   example: '["Command and Scripting Interpreter", "Impair Defenses"]'
   flat_name: wazuh.rule.mitre.technique.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: technique.name
   normalize:
@@ -1372,7 +1372,7 @@ wazuh.rule.name:
   description: The name of the rule or signature generating the event.
   example: BLOCK_DNS_over_TLS
   flat_name: wazuh.rule.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: name
   normalize: []
@@ -1389,7 +1389,7 @@ wazuh.rule.reference:
     alert.'
   example: https://en.wikipedia.org/wiki/DNS_over_TLS
   flat_name: wazuh.rule.reference
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: reference
   normalize: []
@@ -1402,7 +1402,7 @@ wazuh.rule.ruleset:
     rule used to generate this event is a member.
   example: Standard_Protocol_Filters
   flat_name: wazuh.rule.ruleset
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: ruleset
   normalize: []
@@ -1414,7 +1414,7 @@ wazuh.rule.sigma_id:
   description: Sigma rule identifier.
   example: 5af54681-df95-4c26-854f-2565e13cfab0
   flat_name: wazuh.rule.sigma_id
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: sigma_id
   normalize: []
@@ -1426,7 +1426,7 @@ wazuh.rule.status:
   description: Status of the rule (e.g., stable, test, experimental).
   example: stable
   flat_name: wazuh.rule.status
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: status
   normalize: []
@@ -1438,7 +1438,7 @@ wazuh.rule.tags:
   description: Tags associated with the rule.
   example: '["attack.execution", "attack.t1059"]'
   flat_name: wazuh.rule.tags
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: tags
   normalize:
@@ -1451,7 +1451,7 @@ wazuh.rule.title:
   description: Title of the rule that generated the finding.
   example: Suspicious PowerShell Execution
   flat_name: wazuh.rule.title
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: title
   normalize: []
@@ -1464,7 +1464,7 @@ wazuh.rule.uuid:
     observers, or other entities using the rule for detection of this event.
   example: 1100110011
   flat_name: wazuh.rule.uuid
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: uuid
   normalize: []
@@ -1476,7 +1476,7 @@ wazuh.rule.version:
   description: The version / revision of the rule being used for analysis.
   example: 1.1
   flat_name: wazuh.rule.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: version
   normalize: []
@@ -1488,7 +1488,7 @@ wazuh.schema.version:
   description: Wazuh schema version.
   example: 1.7.0
   flat_name: wazuh.schema.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: schema.version
   normalize: []
@@ -1511,7 +1511,7 @@ wazuh.space.name:
   description: Wazuh space name.
   example: default
   flat_name: wazuh.space.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: space.name
   normalize: []
@@ -1556,7 +1556,7 @@ wazuh.threat.enrichments.indicator.as.organization.name:
   description: Organization name.
   example: Google LLC
   flat_name: wazuh.threat.enrichments.indicator.as.organization.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: organization.name
   normalize: []
@@ -1576,7 +1576,7 @@ wazuh.threat.enrichments.indicator.confidence:
   - Medium
   - High
   flat_name: wazuh.threat.enrichments.indicator.confidence
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.indicator.confidence
   normalize: []
@@ -1588,7 +1588,7 @@ wazuh.threat.enrichments.indicator.description:
   description: Describes the type of action conducted by the threat.
   example: IP x.x.x.x was observed delivering the Angler EK.
   flat_name: wazuh.threat.enrichments.indicator.description
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.indicator.description
   normalize: []
@@ -1601,7 +1601,7 @@ wazuh.threat.enrichments.indicator.email.address:
     direction).
   example: phish@example.com
   flat_name: wazuh.threat.enrichments.indicator.email.address
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.indicator.email.address
   normalize: []
@@ -1612,7 +1612,7 @@ wazuh.threat.enrichments.indicator.feed.name:
   dashed_name: wazuh-threat-enrichments-indicator-feed-name
   description: Name of the feed that supplied the indicator.
   flat_name: wazuh.threat.enrichments.indicator.feed.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: enrichments.indicator.feed.name
   normalize: []
@@ -1640,7 +1640,7 @@ wazuh.threat.enrichments.indicator.file.attributes:
     hidden, read, readonly, system, write.'
   example: '["readonly", "system"]'
   flat_name: wazuh.threat.enrichments.indicator.file.attributes
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: attributes
   normalize:
@@ -1656,7 +1656,7 @@ wazuh.threat.enrichments.indicator.file.code_signature.digest_algorithm:
     the same signer but with a different digest algorithm.'
   example: sha256
   flat_name: wazuh.threat.enrichments.indicator.file.code_signature.digest_algorithm
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: digest_algorithm
   normalize: []
@@ -1680,7 +1680,7 @@ wazuh.threat.enrichments.indicator.file.code_signature.flags:
   description: The flags used to sign the process.
   example: 570522385
   flat_name: wazuh.threat.enrichments.indicator.file.code_signature.flags
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: flags
   normalize: []
@@ -1695,7 +1695,7 @@ wazuh.threat.enrichments.indicator.file.code_signature.signing_id:
     field is relevant to Apple *OS only.'
   example: com.apple.xpc.proxy
   flat_name: wazuh.threat.enrichments.indicator.file.code_signature.signing_id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: signing_id
   normalize: []
@@ -1711,7 +1711,7 @@ wazuh.threat.enrichments.indicator.file.code_signature.status:
     was unchecked.'
   example: ERROR_UNTRUSTED_ROOT
   flat_name: wazuh.threat.enrichments.indicator.file.code_signature.status
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: status
   normalize: []
@@ -1723,7 +1723,7 @@ wazuh.threat.enrichments.indicator.file.code_signature.subject_name:
   description: Subject name of the code signer
   example: Microsoft Corporation
   flat_name: wazuh.threat.enrichments.indicator.file.code_signature.subject_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: subject_name
   normalize: []
@@ -1738,7 +1738,7 @@ wazuh.threat.enrichments.indicator.file.code_signature.team_id:
     relevant to Apple *OS only.'
   example: EQHXZ8M8AV
   flat_name: wazuh.threat.enrichments.indicator.file.code_signature.team_id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: team_id
   normalize: []
@@ -1829,7 +1829,7 @@ wazuh.threat.enrichments.indicator.file.device:
   description: Device that is the source of the file.
   example: sda
   flat_name: wazuh.threat.enrichments.indicator.file.device
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: device
   normalize: []
@@ -1842,7 +1842,7 @@ wazuh.threat.enrichments.indicator.file.directory:
     when appropriate.
   example: /home/alice
   flat_name: wazuh.threat.enrichments.indicator.file.directory
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: directory
   normalize: []
@@ -1869,7 +1869,7 @@ wazuh.threat.enrichments.indicator.file.elf.architecture:
   description: Machine architecture of the ELF file.
   example: x86-64
   flat_name: wazuh.threat.enrichments.indicator.file.elf.architecture
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: architecture
   normalize: []
@@ -1881,7 +1881,7 @@ wazuh.threat.enrichments.indicator.file.elf.byte_order:
   description: Byte sequence of ELF file.
   example: Little Endian
   flat_name: wazuh.threat.enrichments.indicator.file.elf.byte_order
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: byte_order
   normalize: []
@@ -1893,7 +1893,7 @@ wazuh.threat.enrichments.indicator.file.elf.cpu_type:
   description: CPU type of the ELF file.
   example: Intel
   flat_name: wazuh.threat.enrichments.indicator.file.elf.cpu_type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: cpu_type
   normalize: []
@@ -1933,7 +1933,7 @@ wazuh.threat.enrichments.indicator.file.elf.go_import_hash:
     are available here: https://github.com/elastic/toutoumomoma'
   example: 10bddcb4cee42080f76c88d9ff964491
   flat_name: wazuh.threat.enrichments.indicator.file.elf.go_import_hash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: go_import_hash
   normalize: []
@@ -1987,7 +1987,7 @@ wazuh.threat.enrichments.indicator.file.elf.header.abi_version:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-header-abi-version
   description: Version of the ELF Application Binary Interface (ABI).
   flat_name: wazuh.threat.enrichments.indicator.file.elf.header.abi_version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.abi_version
   normalize: []
@@ -1998,7 +1998,7 @@ wazuh.threat.enrichments.indicator.file.elf.header.class:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-header-class
   description: Header class of the ELF file.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.header.class
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.class
   normalize: []
@@ -2009,7 +2009,7 @@ wazuh.threat.enrichments.indicator.file.elf.header.data:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-header-data
   description: Data table of the ELF header.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.header.data
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.data
   normalize: []
@@ -2031,7 +2031,7 @@ wazuh.threat.enrichments.indicator.file.elf.header.object_version:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-header-object-version
   description: '"0x1" for original ELF files.'
   flat_name: wazuh.threat.enrichments.indicator.file.elf.header.object_version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.object_version
   normalize: []
@@ -2042,7 +2042,7 @@ wazuh.threat.enrichments.indicator.file.elf.header.os_abi:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-header-os-abi
   description: Application Binary Interface (ABI) of the Linux OS.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.header.os_abi
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.os_abi
   normalize: []
@@ -2053,7 +2053,7 @@ wazuh.threat.enrichments.indicator.file.elf.header.type:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-header-type
   description: Header type of the ELF file.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.header.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.type
   normalize: []
@@ -2064,7 +2064,7 @@ wazuh.threat.enrichments.indicator.file.elf.header.version:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-header-version
   description: Version of the ELF header.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.header.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.version
   normalize: []
@@ -2080,7 +2080,7 @@ wazuh.threat.enrichments.indicator.file.elf.import_hash:
     This is an ELF implementation of the Windows PE imphash.'
   example: d41d8cd98f00b204e9800998ecf8427e
   flat_name: wazuh.threat.enrichments.indicator.file.elf.import_hash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: import_hash
   normalize: []
@@ -2163,7 +2163,7 @@ wazuh.threat.enrichments.indicator.file.elf.sections.flags:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-sections-flags
   description: ELF Section List flags.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.sections.flags
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sections.flags
   normalize: []
@@ -2174,7 +2174,7 @@ wazuh.threat.enrichments.indicator.file.elf.sections.name:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-sections-name
   description: ELF Section List name.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.sections.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sections.name
   normalize: []
@@ -2185,7 +2185,7 @@ wazuh.threat.enrichments.indicator.file.elf.sections.physical_offset:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-sections-physical-offset
   description: ELF Section List offset.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.sections.physical_offset
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sections.physical_offset
   normalize: []
@@ -2207,7 +2207,7 @@ wazuh.threat.enrichments.indicator.file.elf.sections.type:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-sections-type
   description: ELF Section List type.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.sections.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sections.type
   normalize: []
@@ -2265,7 +2265,7 @@ wazuh.threat.enrichments.indicator.file.elf.segments.sections:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-segments-sections
   description: ELF object segment sections.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.segments.sections
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: segments.sections
   normalize: []
@@ -2276,7 +2276,7 @@ wazuh.threat.enrichments.indicator.file.elf.segments.type:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-segments-type
   description: ELF object segment type.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.segments.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: segments.type
   normalize: []
@@ -2287,7 +2287,7 @@ wazuh.threat.enrichments.indicator.file.elf.shared_libraries:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-shared-libraries
   description: List of shared libraries used by this ELF object.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.shared_libraries
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: shared_libraries
   normalize:
@@ -2299,7 +2299,7 @@ wazuh.threat.enrichments.indicator.file.elf.telfhash:
   dashed_name: wazuh-threat-enrichments-indicator-file-elf-telfhash
   description: telfhash symbol hash for ELF file.
   flat_name: wazuh.threat.enrichments.indicator.file.elf.telfhash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: telfhash
   normalize: []
@@ -2314,7 +2314,7 @@ wazuh.threat.enrichments.indicator.file.extension:
     last one should be captured ("gz", not "tar.gz").'
   example: png
   flat_name: wazuh.threat.enrichments.indicator.file.extension
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: extension
   normalize: []
@@ -2338,7 +2338,7 @@ wazuh.threat.enrichments.indicator.file.fork_name:
     `file.path`, will include the fork name.'
   example: Zone.Identifer
   flat_name: wazuh.threat.enrichments.indicator.file.fork_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: fork_name
   normalize: []
@@ -2350,7 +2350,7 @@ wazuh.threat.enrichments.indicator.file.gid:
   description: Primary group ID (GID) of the file.
   example: '1001'
   flat_name: wazuh.threat.enrichments.indicator.file.gid
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: gid
   normalize: []
@@ -2362,7 +2362,7 @@ wazuh.threat.enrichments.indicator.file.group:
   description: Primary group name of the file.
   example: alice
   flat_name: wazuh.threat.enrichments.indicator.file.group
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: group
   normalize: []
@@ -2376,7 +2376,7 @@ wazuh.threat.enrichments.indicator.file.hash.cdhash:
     the integrity of the executable code.
   example: 3783b4052fd474dbe30676b45c329e7a6d44acd9
   flat_name: wazuh.threat.enrichments.indicator.file.hash.cdhash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: cdhash
   normalize: []
@@ -2387,7 +2387,7 @@ wazuh.threat.enrichments.indicator.file.hash.md5:
   dashed_name: wazuh-threat-enrichments-indicator-file-hash-md5
   description: MD5 hash.
   flat_name: wazuh.threat.enrichments.indicator.file.hash.md5
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: md5
   normalize: []
@@ -2398,7 +2398,7 @@ wazuh.threat.enrichments.indicator.file.hash.sha1:
   dashed_name: wazuh-threat-enrichments-indicator-file-hash-sha1
   description: SHA1 hash.
   flat_name: wazuh.threat.enrichments.indicator.file.hash.sha1
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sha1
   normalize: []
@@ -2409,7 +2409,7 @@ wazuh.threat.enrichments.indicator.file.hash.sha256:
   dashed_name: wazuh-threat-enrichments-indicator-file-hash-sha256
   description: SHA256 hash.
   flat_name: wazuh.threat.enrichments.indicator.file.hash.sha256
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sha256
   normalize: []
@@ -2420,7 +2420,7 @@ wazuh.threat.enrichments.indicator.file.hash.sha384:
   dashed_name: wazuh-threat-enrichments-indicator-file-hash-sha384
   description: SHA384 hash.
   flat_name: wazuh.threat.enrichments.indicator.file.hash.sha384
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sha384
   normalize: []
@@ -2431,7 +2431,7 @@ wazuh.threat.enrichments.indicator.file.hash.sha512:
   dashed_name: wazuh-threat-enrichments-indicator-file-hash-sha512
   description: SHA512 hash.
   flat_name: wazuh.threat.enrichments.indicator.file.hash.sha512
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sha512
   normalize: []
@@ -2442,7 +2442,7 @@ wazuh.threat.enrichments.indicator.file.hash.ssdeep:
   dashed_name: wazuh-threat-enrichments-indicator-file-hash-ssdeep
   description: SSDEEP hash.
   flat_name: wazuh.threat.enrichments.indicator.file.hash.ssdeep
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: ssdeep
   normalize: []
@@ -2453,7 +2453,7 @@ wazuh.threat.enrichments.indicator.file.hash.tlsh:
   dashed_name: wazuh-threat-enrichments-indicator-file-hash-tlsh
   description: TLSH hash.
   flat_name: wazuh.threat.enrichments.indicator.file.hash.tlsh
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: tlsh
   normalize: []
@@ -2465,7 +2465,7 @@ wazuh.threat.enrichments.indicator.file.inode:
   description: Inode representing the file in the filesystem.
   example: '256383'
   flat_name: wazuh.threat.enrichments.indicator.file.inode
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: inode
   normalize: []
@@ -2479,7 +2479,7 @@ wazuh.threat.enrichments.indicator.file.mime_type:
     where possible. When more than one type is applicable, the most specific type
     should be used.'
   flat_name: wazuh.threat.enrichments.indicator.file.mime_type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: mime_type
   normalize: []
@@ -2491,7 +2491,7 @@ wazuh.threat.enrichments.indicator.file.mode:
   description: Mode of the file in octal representation.
   example: '0640'
   flat_name: wazuh.threat.enrichments.indicator.file.mode
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: mode
   normalize: []
@@ -2513,7 +2513,7 @@ wazuh.threat.enrichments.indicator.file.name:
   description: Name of the file including the extension, without the directory.
   example: example.png
   flat_name: wazuh.threat.enrichments.indicator.file.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: name
   normalize: []
@@ -2551,7 +2551,7 @@ wazuh.threat.enrichments.indicator.file.owner:
   description: File owner's username.
   example: alice
   flat_name: wazuh.threat.enrichments.indicator.file.owner
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: owner
   normalize: []
@@ -2564,7 +2564,7 @@ wazuh.threat.enrichments.indicator.file.path:
     drive letter, when appropriate.
   example: /home/alice/example.png
   flat_name: wazuh.threat.enrichments.indicator.file.path
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: path
   normalize: []
@@ -2576,7 +2576,7 @@ wazuh.threat.enrichments.indicator.file.pe.architecture:
   description: CPU architecture target for the file.
   example: x64
   flat_name: wazuh.threat.enrichments.indicator.file.pe.architecture
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: architecture
   normalize: []
@@ -2588,7 +2588,7 @@ wazuh.threat.enrichments.indicator.file.pe.company:
   description: Internal company name of the file, provided at compile-time.
   example: Microsoft Corporation
   flat_name: wazuh.threat.enrichments.indicator.file.pe.company
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: company
   normalize: []
@@ -2600,7 +2600,7 @@ wazuh.threat.enrichments.indicator.file.pe.description:
   description: Internal description of the file, provided at compile-time.
   example: Paint
   flat_name: wazuh.threat.enrichments.indicator.file.pe.description
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: description
   normalize: []
@@ -2612,7 +2612,7 @@ wazuh.threat.enrichments.indicator.file.pe.file_version:
   description: Internal version of the file, provided at compile-time.
   example: 6.3.9600.17415
   flat_name: wazuh.threat.enrichments.indicator.file.pe.file_version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: file_version
   normalize: []
@@ -2630,7 +2630,7 @@ wazuh.threat.enrichments.indicator.file.pe.go_import_hash:
     are available here: https://github.com/elastic/toutoumomoma'
   example: 10bddcb4cee42080f76c88d9ff964491
   flat_name: wazuh.threat.enrichments.indicator.file.pe.go_import_hash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: go_import_hash
   normalize: []
@@ -2689,7 +2689,7 @@ wazuh.threat.enrichments.indicator.file.pe.imphash:
     Learn more at https://www.fireeye.com/blog/threat-research/2014/01/tracking-malware-import-hashing.html.'
   example: 0c6803c4e922103c4dca5963aad36ddf
   flat_name: wazuh.threat.enrichments.indicator.file.pe.imphash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: imphash
   normalize: []
@@ -2705,7 +2705,7 @@ wazuh.threat.enrichments.indicator.file.pe.import_hash:
     This is a synonym for imphash.'
   example: d41d8cd98f00b204e9800998ecf8427e
   flat_name: wazuh.threat.enrichments.indicator.file.pe.import_hash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: import_hash
   normalize: []
@@ -2753,7 +2753,7 @@ wazuh.threat.enrichments.indicator.file.pe.original_file_name:
   description: Internal name of the file, provided at compile-time.
   example: MSPAINT.EXE
   flat_name: wazuh.threat.enrichments.indicator.file.pe.original_file_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: original_file_name
   normalize: []
@@ -2769,7 +2769,7 @@ wazuh.threat.enrichments.indicator.file.pe.pehash:
     Learn more at https://www.usenix.org/legacy/events/leet09/tech/full_papers/wicherski/wicherski_html/index.html.'
   example: 73ff189b63cd6be375a7ff25179a38d347651975
   flat_name: wazuh.threat.enrichments.indicator.file.pe.pehash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: pehash
   normalize: []
@@ -2781,7 +2781,7 @@ wazuh.threat.enrichments.indicator.file.pe.product:
   description: Internal product name of the file, provided at compile-time.
   example: Microsoft® Windows® Operating System
   flat_name: wazuh.threat.enrichments.indicator.file.pe.product
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: product
   normalize: []
@@ -2817,7 +2817,7 @@ wazuh.threat.enrichments.indicator.file.pe.sections.name:
   dashed_name: wazuh-threat-enrichments-indicator-file-pe-sections-name
   description: PE Section List name.
   flat_name: wazuh.threat.enrichments.indicator.file.pe.sections.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sections.name
   normalize: []
@@ -2874,7 +2874,7 @@ wazuh.threat.enrichments.indicator.file.target_path:
   dashed_name: wazuh-threat-enrichments-indicator-file-target-path
   description: Target path for symlinks.
   flat_name: wazuh.threat.enrichments.indicator.file.target_path
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: target_path
   normalize: []
@@ -2886,7 +2886,7 @@ wazuh.threat.enrichments.indicator.file.type:
   description: File type (file, dir, or symlink).
   example: file
   flat_name: wazuh.threat.enrichments.indicator.file.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: type
   normalize: []
@@ -2898,7 +2898,7 @@ wazuh.threat.enrichments.indicator.file.uid:
   description: The user ID (UID) or security identifier (SID) of the file owner.
   example: '1001'
   flat_name: wazuh.threat.enrichments.indicator.file.uid
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: uid
   normalize: []
@@ -2912,7 +2912,7 @@ wazuh.threat.enrichments.indicator.file.x509.alternative_names:
     wildcards), and email addresses.
   example: '*.elastic.co'
   flat_name: wazuh.threat.enrichments.indicator.file.x509.alternative_names
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: alternative_names
   normalize:
@@ -2925,7 +2925,7 @@ wazuh.threat.enrichments.indicator.file.x509.issuer.common_name:
   description: List of common name (CN) of issuing certificate authority.
   example: Example SHA2 High Assurance Server CA
   flat_name: wazuh.threat.enrichments.indicator.file.x509.issuer.common_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.common_name
   normalize:
@@ -2938,7 +2938,7 @@ wazuh.threat.enrichments.indicator.file.x509.issuer.country:
   description: List of country \(C) codes
   example: US
   flat_name: wazuh.threat.enrichments.indicator.file.x509.issuer.country
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.country
   normalize:
@@ -2952,7 +2952,7 @@ wazuh.threat.enrichments.indicator.file.x509.issuer.distinguished_name:
   example: C=US, O=Example Inc, OU=www.example.com, CN=Example SHA2 High Assurance
     Server CA
   flat_name: wazuh.threat.enrichments.indicator.file.x509.issuer.distinguished_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.distinguished_name
   normalize: []
@@ -2964,7 +2964,7 @@ wazuh.threat.enrichments.indicator.file.x509.issuer.locality:
   description: List of locality names (L)
   example: Mountain View
   flat_name: wazuh.threat.enrichments.indicator.file.x509.issuer.locality
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.locality
   normalize:
@@ -2977,7 +2977,7 @@ wazuh.threat.enrichments.indicator.file.x509.issuer.organization:
   description: List of organizations (O) of issuing certificate authority.
   example: Example Inc
   flat_name: wazuh.threat.enrichments.indicator.file.x509.issuer.organization
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.organization
   normalize:
@@ -2990,7 +2990,7 @@ wazuh.threat.enrichments.indicator.file.x509.issuer.organizational_unit:
   description: List of organizational units (OU) of issuing certificate authority.
   example: www.example.com
   flat_name: wazuh.threat.enrichments.indicator.file.x509.issuer.organizational_unit
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.organizational_unit
   normalize:
@@ -3003,7 +3003,7 @@ wazuh.threat.enrichments.indicator.file.x509.issuer.state_or_province:
   description: List of state or province names (ST, S, or P)
   example: California
   flat_name: wazuh.threat.enrichments.indicator.file.x509.issuer.state_or_province
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.state_or_province
   normalize:
@@ -3038,7 +3038,7 @@ wazuh.threat.enrichments.indicator.file.x509.public_key_algorithm:
   description: Algorithm used to generate the public key.
   example: RSA
   flat_name: wazuh.threat.enrichments.indicator.file.x509.public_key_algorithm
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: public_key_algorithm
   normalize: []
@@ -3051,7 +3051,7 @@ wazuh.threat.enrichments.indicator.file.x509.public_key_curve:
     algorithm specific.
   example: nistp521
   flat_name: wazuh.threat.enrichments.indicator.file.x509.public_key_curve
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: public_key_curve
   normalize: []
@@ -3089,7 +3089,7 @@ wazuh.threat.enrichments.indicator.file.x509.serial_number:
     this must be encoded in base 16 and formatted without colons and uppercase characters.
   example: 55FBB9C7DEBF09809D12CCAA
   flat_name: wazuh.threat.enrichments.indicator.file.x509.serial_number
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: serial_number
   normalize: []
@@ -3102,7 +3102,7 @@ wazuh.threat.enrichments.indicator.file.x509.signature_algorithm:
     names found in Go Lang Crypto library. See https://github.com/golang/go/blob/go1.14/src/crypto/x509/x509.go#L337-L353.
   example: SHA256-RSA
   flat_name: wazuh.threat.enrichments.indicator.file.x509.signature_algorithm
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: signature_algorithm
   normalize: []
@@ -3114,7 +3114,7 @@ wazuh.threat.enrichments.indicator.file.x509.subject.common_name:
   description: List of common names (CN) of subject.
   example: shared.global.example.net
   flat_name: wazuh.threat.enrichments.indicator.file.x509.subject.common_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.common_name
   normalize:
@@ -3127,7 +3127,7 @@ wazuh.threat.enrichments.indicator.file.x509.subject.country:
   description: List of country \(C) code
   example: US
   flat_name: wazuh.threat.enrichments.indicator.file.x509.subject.country
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.country
   normalize:
@@ -3140,7 +3140,7 @@ wazuh.threat.enrichments.indicator.file.x509.subject.distinguished_name:
   description: Distinguished name (DN) of the certificate subject entity.
   example: C=US, ST=California, L=San Francisco, O=Example, Inc., CN=shared.global.example.net
   flat_name: wazuh.threat.enrichments.indicator.file.x509.subject.distinguished_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.distinguished_name
   normalize: []
@@ -3152,7 +3152,7 @@ wazuh.threat.enrichments.indicator.file.x509.subject.locality:
   description: List of locality names (L)
   example: San Francisco
   flat_name: wazuh.threat.enrichments.indicator.file.x509.subject.locality
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.locality
   normalize:
@@ -3165,7 +3165,7 @@ wazuh.threat.enrichments.indicator.file.x509.subject.organization:
   description: List of organizations (O) of subject.
   example: Example, Inc.
   flat_name: wazuh.threat.enrichments.indicator.file.x509.subject.organization
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.organization
   normalize:
@@ -3177,7 +3177,7 @@ wazuh.threat.enrichments.indicator.file.x509.subject.organizational_unit:
   dashed_name: wazuh-threat-enrichments-indicator-file-x509-subject-organizational-unit
   description: List of organizational units (OU) of subject.
   flat_name: wazuh.threat.enrichments.indicator.file.x509.subject.organizational_unit
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.organizational_unit
   normalize:
@@ -3190,7 +3190,7 @@ wazuh.threat.enrichments.indicator.file.x509.subject.state_or_province:
   description: List of state or province names (ST, S, or P)
   example: California
   flat_name: wazuh.threat.enrichments.indicator.file.x509.subject.state_or_province
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.state_or_province
   normalize:
@@ -3203,7 +3203,7 @@ wazuh.threat.enrichments.indicator.file.x509.version_number:
   description: Version of x509 format.
   example: 3
   flat_name: wazuh.threat.enrichments.indicator.file.x509.version_number
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: version_number
   normalize: []
@@ -3227,7 +3227,7 @@ wazuh.threat.enrichments.indicator.geo.city_name:
   description: City name.
   example: Montreal
   flat_name: wazuh.threat.enrichments.indicator.geo.city_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: city_name
   normalize: []
@@ -3239,7 +3239,7 @@ wazuh.threat.enrichments.indicator.geo.continent_code:
   description: Two-letter code representing continent's name.
   example: NA
   flat_name: wazuh.threat.enrichments.indicator.geo.continent_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: continent_code
   normalize: []
@@ -3251,7 +3251,7 @@ wazuh.threat.enrichments.indicator.geo.continent_name:
   description: Name of the continent.
   example: North America
   flat_name: wazuh.threat.enrichments.indicator.geo.continent_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: continent_name
   normalize: []
@@ -3263,7 +3263,7 @@ wazuh.threat.enrichments.indicator.geo.country_iso_code:
   description: Country ISO code.
   example: CA
   flat_name: wazuh.threat.enrichments.indicator.geo.country_iso_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: country_iso_code
   normalize: []
@@ -3275,7 +3275,7 @@ wazuh.threat.enrichments.indicator.geo.country_name:
   description: Country name.
   example: Canada
   flat_name: wazuh.threat.enrichments.indicator.geo.country_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: country_name
   normalize: []
@@ -3304,7 +3304,7 @@ wazuh.threat.enrichments.indicator.geo.name:
     Not typically used in automated geolocation.'
   example: boston-dc
   flat_name: wazuh.threat.enrichments.indicator.geo.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: name
   normalize: []
@@ -3319,7 +3319,7 @@ wazuh.threat.enrichments.indicator.geo.postal_code:
     and will vary widely from country to country.'
   example: 94040
   flat_name: wazuh.threat.enrichments.indicator.geo.postal_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: postal_code
   normalize: []
@@ -3331,7 +3331,7 @@ wazuh.threat.enrichments.indicator.geo.region_iso_code:
   description: Region ISO code.
   example: CA-QC
   flat_name: wazuh.threat.enrichments.indicator.geo.region_iso_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: region_iso_code
   normalize: []
@@ -3343,7 +3343,7 @@ wazuh.threat.enrichments.indicator.geo.region_name:
   description: Region name.
   example: Quebec
   flat_name: wazuh.threat.enrichments.indicator.geo.region_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: region_name
   normalize: []
@@ -3355,7 +3355,7 @@ wazuh.threat.enrichments.indicator.geo.timezone:
   description: The time zone of the location, such as IANA time zone name.
   example: America/Argentina/Buenos_Aires
   flat_name: wazuh.threat.enrichments.indicator.geo.timezone
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: timezone
   normalize: []
@@ -3367,7 +3367,7 @@ wazuh.threat.enrichments.indicator.id:
   description: Unique identifier for the enrichment data, such as a hash of the indicator
     data or a unique ID from the provider.
   flat_name: wazuh.threat.enrichments.indicator.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: enrichments.indicator.id
   normalize: []
@@ -3410,7 +3410,7 @@ wazuh.threat.enrichments.indicator.marking.tlp:
   - AMBER+STRICT
   - RED
   flat_name: wazuh.threat.enrichments.indicator.marking.tlp
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.indicator.marking.tlp
   normalize: []
@@ -3422,7 +3422,7 @@ wazuh.threat.enrichments.indicator.marking.tlp_version:
   description: Traffic Light Protocol version.
   example: 2.0
   flat_name: wazuh.threat.enrichments.indicator.marking.tlp_version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.indicator.marking.tlp_version
   normalize: []
@@ -3449,7 +3449,7 @@ wazuh.threat.enrichments.indicator.name:
     relevant name can serve as the display name.'
   example: 5.2.75.227
   flat_name: wazuh.threat.enrichments.indicator.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.indicator.name
   normalize: []
@@ -3472,7 +3472,7 @@ wazuh.threat.enrichments.indicator.provider:
   description: The name of the indicator's provider.
   example: lrz_urlhaus
   flat_name: wazuh.threat.enrichments.indicator.provider
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.indicator.provider
   normalize: []
@@ -3484,7 +3484,7 @@ wazuh.threat.enrichments.indicator.reference:
   description: Reference URL linking to additional information about this indicator.
   example: https://system.example.com/indicator/0001234
   flat_name: wazuh.threat.enrichments.indicator.reference
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.indicator.reference
   normalize: []
@@ -3500,7 +3500,7 @@ wazuh.threat.enrichments.indicator.registry.data.bytes:
     recoverability and should be populated for REG_BINARY encoded values.'
   example: ZQBuAC0AVQBTAAAAZQBuAAAAAAA=
   flat_name: wazuh.threat.enrichments.indicator.registry.data.bytes
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: data.bytes
   normalize: []
@@ -3530,7 +3530,7 @@ wazuh.threat.enrichments.indicator.registry.data.type:
   description: Standard registry type for encoding contents
   example: REG_SZ
   flat_name: wazuh.threat.enrichments.indicator.registry.data.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: data.type
   normalize: []
@@ -3542,7 +3542,7 @@ wazuh.threat.enrichments.indicator.registry.hive:
   description: Abbreviated name for the hive.
   example: HKLM
   flat_name: wazuh.threat.enrichments.indicator.registry.hive
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: hive
   normalize: []
@@ -3554,7 +3554,7 @@ wazuh.threat.enrichments.indicator.registry.key:
   description: Hive-relative path of keys.
   example: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe
   flat_name: wazuh.threat.enrichments.indicator.registry.key
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: key
   normalize: []
@@ -3567,7 +3567,7 @@ wazuh.threat.enrichments.indicator.registry.path:
   example: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution
     Options\winword.exe\Debugger
   flat_name: wazuh.threat.enrichments.indicator.registry.path
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: path
   normalize: []
@@ -3579,7 +3579,7 @@ wazuh.threat.enrichments.indicator.registry.value:
   description: Name of the value written.
   example: Debugger
   flat_name: wazuh.threat.enrichments.indicator.registry.value
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: value
   normalize: []
@@ -3625,7 +3625,7 @@ wazuh.threat.enrichments.indicator.software.alias:
   dashed_name: wazuh-threat-enrichments-indicator-software-alias
   description: Alias or alternative names for the software associated with the indicator.
   flat_name: wazuh.threat.enrichments.indicator.software.alias
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: enrichments.indicator.software.alias
   normalize:
@@ -3637,7 +3637,7 @@ wazuh.threat.enrichments.indicator.software.name:
   dashed_name: wazuh-threat-enrichments-indicator-software-name
   description: Name of the software associated with the indicator.
   flat_name: wazuh.threat.enrichments.indicator.software.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: enrichments.indicator.software.name
   normalize: []
@@ -3649,7 +3649,7 @@ wazuh.threat.enrichments.indicator.software.type:
   description: Type of software associated with the indicator, such as malware, attack
     framework, or tool.
   flat_name: wazuh.threat.enrichments.indicator.software.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: enrichments.indicator.software.type
   normalize: []
@@ -3661,7 +3661,7 @@ wazuh.threat.enrichments.indicator.tags:
   dashed_name: wazuh-threat-enrichments-indicator-tags
   description: List of tags associated with the indicator.
   flat_name: wazuh.threat.enrichments.indicator.tags
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: enrichments.indicator.tags
   normalize:
@@ -3692,7 +3692,7 @@ wazuh.threat.enrichments.indicator.type:
   - windows-registry-key
   - x509-certificate
   flat_name: wazuh.threat.enrichments.indicator.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.indicator.type
   normalize: []
@@ -3706,7 +3706,7 @@ wazuh.threat.enrichments.indicator.x509.alternative_names:
     wildcards), and email addresses.
   example: '*.elastic.co'
   flat_name: wazuh.threat.enrichments.indicator.x509.alternative_names
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: alternative_names
   normalize:
@@ -3719,7 +3719,7 @@ wazuh.threat.enrichments.indicator.x509.issuer.common_name:
   description: List of common name (CN) of issuing certificate authority.
   example: Example SHA2 High Assurance Server CA
   flat_name: wazuh.threat.enrichments.indicator.x509.issuer.common_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.common_name
   normalize:
@@ -3732,7 +3732,7 @@ wazuh.threat.enrichments.indicator.x509.issuer.country:
   description: List of country \(C) codes
   example: US
   flat_name: wazuh.threat.enrichments.indicator.x509.issuer.country
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.country
   normalize:
@@ -3746,7 +3746,7 @@ wazuh.threat.enrichments.indicator.x509.issuer.distinguished_name:
   example: C=US, O=Example Inc, OU=www.example.com, CN=Example SHA2 High Assurance
     Server CA
   flat_name: wazuh.threat.enrichments.indicator.x509.issuer.distinguished_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.distinguished_name
   normalize: []
@@ -3758,7 +3758,7 @@ wazuh.threat.enrichments.indicator.x509.issuer.locality:
   description: List of locality names (L)
   example: Mountain View
   flat_name: wazuh.threat.enrichments.indicator.x509.issuer.locality
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.locality
   normalize:
@@ -3771,7 +3771,7 @@ wazuh.threat.enrichments.indicator.x509.issuer.organization:
   description: List of organizations (O) of issuing certificate authority.
   example: Example Inc
   flat_name: wazuh.threat.enrichments.indicator.x509.issuer.organization
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.organization
   normalize:
@@ -3784,7 +3784,7 @@ wazuh.threat.enrichments.indicator.x509.issuer.organizational_unit:
   description: List of organizational units (OU) of issuing certificate authority.
   example: www.example.com
   flat_name: wazuh.threat.enrichments.indicator.x509.issuer.organizational_unit
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.organizational_unit
   normalize:
@@ -3797,7 +3797,7 @@ wazuh.threat.enrichments.indicator.x509.issuer.state_or_province:
   description: List of state or province names (ST, S, or P)
   example: California
   flat_name: wazuh.threat.enrichments.indicator.x509.issuer.state_or_province
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.state_or_province
   normalize:
@@ -3832,7 +3832,7 @@ wazuh.threat.enrichments.indicator.x509.public_key_algorithm:
   description: Algorithm used to generate the public key.
   example: RSA
   flat_name: wazuh.threat.enrichments.indicator.x509.public_key_algorithm
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: public_key_algorithm
   normalize: []
@@ -3845,7 +3845,7 @@ wazuh.threat.enrichments.indicator.x509.public_key_curve:
     algorithm specific.
   example: nistp521
   flat_name: wazuh.threat.enrichments.indicator.x509.public_key_curve
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: public_key_curve
   normalize: []
@@ -3883,7 +3883,7 @@ wazuh.threat.enrichments.indicator.x509.serial_number:
     this must be encoded in base 16 and formatted without colons and uppercase characters.
   example: 55FBB9C7DEBF09809D12CCAA
   flat_name: wazuh.threat.enrichments.indicator.x509.serial_number
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: serial_number
   normalize: []
@@ -3896,7 +3896,7 @@ wazuh.threat.enrichments.indicator.x509.signature_algorithm:
     names found in Go Lang Crypto library. See https://github.com/golang/go/blob/go1.14/src/crypto/x509/x509.go#L337-L353.
   example: SHA256-RSA
   flat_name: wazuh.threat.enrichments.indicator.x509.signature_algorithm
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: signature_algorithm
   normalize: []
@@ -3908,7 +3908,7 @@ wazuh.threat.enrichments.indicator.x509.subject.common_name:
   description: List of common names (CN) of subject.
   example: shared.global.example.net
   flat_name: wazuh.threat.enrichments.indicator.x509.subject.common_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.common_name
   normalize:
@@ -3921,7 +3921,7 @@ wazuh.threat.enrichments.indicator.x509.subject.country:
   description: List of country \(C) code
   example: US
   flat_name: wazuh.threat.enrichments.indicator.x509.subject.country
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.country
   normalize:
@@ -3934,7 +3934,7 @@ wazuh.threat.enrichments.indicator.x509.subject.distinguished_name:
   description: Distinguished name (DN) of the certificate subject entity.
   example: C=US, ST=California, L=San Francisco, O=Example, Inc., CN=shared.global.example.net
   flat_name: wazuh.threat.enrichments.indicator.x509.subject.distinguished_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.distinguished_name
   normalize: []
@@ -3946,7 +3946,7 @@ wazuh.threat.enrichments.indicator.x509.subject.locality:
   description: List of locality names (L)
   example: San Francisco
   flat_name: wazuh.threat.enrichments.indicator.x509.subject.locality
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.locality
   normalize:
@@ -3959,7 +3959,7 @@ wazuh.threat.enrichments.indicator.x509.subject.organization:
   description: List of organizations (O) of subject.
   example: Example, Inc.
   flat_name: wazuh.threat.enrichments.indicator.x509.subject.organization
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.organization
   normalize:
@@ -3971,7 +3971,7 @@ wazuh.threat.enrichments.indicator.x509.subject.organizational_unit:
   dashed_name: wazuh-threat-enrichments-indicator-x509-subject-organizational-unit
   description: List of organizational units (OU) of subject.
   flat_name: wazuh.threat.enrichments.indicator.x509.subject.organizational_unit
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.organizational_unit
   normalize:
@@ -3984,7 +3984,7 @@ wazuh.threat.enrichments.indicator.x509.subject.state_or_province:
   description: List of state or province names (ST, S, or P)
   example: California
   flat_name: wazuh.threat.enrichments.indicator.x509.subject.state_or_province
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.state_or_province
   normalize:
@@ -3997,7 +3997,7 @@ wazuh.threat.enrichments.indicator.x509.version_number:
   description: Version of x509 format.
   example: 3
   flat_name: wazuh.threat.enrichments.indicator.x509.version_number
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: version_number
   normalize: []
@@ -4010,7 +4010,7 @@ wazuh.threat.enrichments.matched.atomic:
     endpoint or network event.
   example: bad-domain.com
   flat_name: wazuh.threat.enrichments.matched.atomic
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.matched.atomic
   normalize: []
@@ -4023,7 +4023,7 @@ wazuh.threat.enrichments.matched.field:
     endpoint or network event.
   example: file.hash.sha256
   flat_name: wazuh.threat.enrichments.matched.field
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.matched.field
   normalize: []
@@ -4035,7 +4035,7 @@ wazuh.threat.enrichments.matched.id:
   description: Identifies the _id of the indicator document enriching the event.
   example: ff93aee5-86a1-4a61-b0e6-0cdc313d01b5
   flat_name: wazuh.threat.enrichments.matched.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.matched.id
   normalize: []
@@ -4047,7 +4047,7 @@ wazuh.threat.enrichments.matched.index:
   description: Identifies the _index of the indicator document enriching the event.
   example: filebeat-8.0.0-2021.05.23-000011
   flat_name: wazuh.threat.enrichments.matched.index
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.matched.index
   normalize: []
@@ -4071,7 +4071,7 @@ wazuh.threat.enrichments.matched.type:
     the given indicator
   example: indicator_match_rule
   flat_name: wazuh.threat.enrichments.matched.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: enrichments.matched.type
   normalize: []
@@ -4084,7 +4084,7 @@ wazuh.threat.feed.dashboard_id:
     displaying dashboard links to threat feeds in Kibana.
   example: 5ba16340-72e6-11eb-a3e3-b3cc7c78a70f
   flat_name: wazuh.threat.feed.dashboard_id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: feed.dashboard_id
   normalize: []
@@ -4096,7 +4096,7 @@ wazuh.threat.feed.description:
   description: Description of the threat feed in a UI friendly format.
   example: Threat feed from the AlienVault Open Threat eXchange network.
   flat_name: wazuh.threat.feed.description
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: feed.description
   normalize: []
@@ -4108,7 +4108,7 @@ wazuh.threat.feed.name:
   description: The name of the threat feed in UI friendly format.
   example: AlienVault OTX
   flat_name: wazuh.threat.feed.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: feed.name
   normalize: []
@@ -4120,7 +4120,7 @@ wazuh.threat.feed.reference:
   description: Reference information for the threat feed in a UI friendly format.
   example: https://otx.alienvault.com
   flat_name: wazuh.threat.feed.reference
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: feed.reference
   normalize: []
@@ -4135,7 +4135,7 @@ wazuh.threat.framework:
     tagged to events.
   example: MITRE ATT&CK
   flat_name: wazuh.threat.framework
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: framework
   normalize: []
@@ -4150,7 +4150,7 @@ wazuh.threat.group.alias:
     While not required, you can use a MITRE ATT&CK® group alias(es).'
   example: '[ "Magecart Group 6" ]'
   flat_name: wazuh.threat.group.alias
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: group.alias
   normalize:
@@ -4166,7 +4166,7 @@ wazuh.threat.group.id:
     While not required, you can use a MITRE ATT&CK® group id.'
   example: G0037
   flat_name: wazuh.threat.group.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: group.id
   normalize: []
@@ -4181,7 +4181,7 @@ wazuh.threat.group.name:
     While not required, you can use a MITRE ATT&CK® group name.'
   example: FIN6
   flat_name: wazuh.threat.group.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: group.name
   normalize: []
@@ -4196,7 +4196,7 @@ wazuh.threat.group.reference:
     While not required, you can use a MITRE ATT&CK® group reference URL.'
   example: https://attack.mitre.org/groups/G0037/
   flat_name: wazuh.threat.group.reference
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: group.reference
   normalize: []
@@ -4220,7 +4220,7 @@ wazuh.threat.indicator.as.organization.name:
   description: Organization name.
   example: Google LLC
   flat_name: wazuh.threat.indicator.as.organization.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: organization.name
   normalize: []
@@ -4249,7 +4249,7 @@ wazuh.threat.indicator.description:
   description: Describes the type of action conducted by the threat.
   example: IP x.x.x.x was observed delivering the Angler EK.
   flat_name: wazuh.threat.indicator.description
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: indicator.description
   normalize: []
@@ -4262,7 +4262,7 @@ wazuh.threat.indicator.email.address:
     direction).
   example: phish@example.com
   flat_name: wazuh.threat.indicator.email.address
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: indicator.email.address
   normalize: []
@@ -4290,7 +4290,7 @@ wazuh.threat.indicator.file.attributes:
     hidden, read, readonly, system, write.'
   example: '["readonly", "system"]'
   flat_name: wazuh.threat.indicator.file.attributes
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: attributes
   normalize:
@@ -4306,7 +4306,7 @@ wazuh.threat.indicator.file.code_signature.digest_algorithm:
     the same signer but with a different digest algorithm.'
   example: sha256
   flat_name: wazuh.threat.indicator.file.code_signature.digest_algorithm
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: digest_algorithm
   normalize: []
@@ -4330,7 +4330,7 @@ wazuh.threat.indicator.file.code_signature.flags:
   description: The flags used to sign the process.
   example: 570522385
   flat_name: wazuh.threat.indicator.file.code_signature.flags
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: flags
   normalize: []
@@ -4345,7 +4345,7 @@ wazuh.threat.indicator.file.code_signature.signing_id:
     field is relevant to Apple *OS only.'
   example: com.apple.xpc.proxy
   flat_name: wazuh.threat.indicator.file.code_signature.signing_id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: signing_id
   normalize: []
@@ -4361,7 +4361,7 @@ wazuh.threat.indicator.file.code_signature.status:
     was unchecked.'
   example: ERROR_UNTRUSTED_ROOT
   flat_name: wazuh.threat.indicator.file.code_signature.status
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: status
   normalize: []
@@ -4373,7 +4373,7 @@ wazuh.threat.indicator.file.code_signature.subject_name:
   description: Subject name of the code signer
   example: Microsoft Corporation
   flat_name: wazuh.threat.indicator.file.code_signature.subject_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: subject_name
   normalize: []
@@ -4388,7 +4388,7 @@ wazuh.threat.indicator.file.code_signature.team_id:
     relevant to Apple *OS only.'
   example: EQHXZ8M8AV
   flat_name: wazuh.threat.indicator.file.code_signature.team_id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: team_id
   normalize: []
@@ -4479,7 +4479,7 @@ wazuh.threat.indicator.file.device:
   description: Device that is the source of the file.
   example: sda
   flat_name: wazuh.threat.indicator.file.device
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: device
   normalize: []
@@ -4492,7 +4492,7 @@ wazuh.threat.indicator.file.directory:
     when appropriate.
   example: /home/alice
   flat_name: wazuh.threat.indicator.file.directory
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: directory
   normalize: []
@@ -4519,7 +4519,7 @@ wazuh.threat.indicator.file.elf.architecture:
   description: Machine architecture of the ELF file.
   example: x86-64
   flat_name: wazuh.threat.indicator.file.elf.architecture
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: architecture
   normalize: []
@@ -4531,7 +4531,7 @@ wazuh.threat.indicator.file.elf.byte_order:
   description: Byte sequence of ELF file.
   example: Little Endian
   flat_name: wazuh.threat.indicator.file.elf.byte_order
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: byte_order
   normalize: []
@@ -4543,7 +4543,7 @@ wazuh.threat.indicator.file.elf.cpu_type:
   description: CPU type of the ELF file.
   example: Intel
   flat_name: wazuh.threat.indicator.file.elf.cpu_type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: cpu_type
   normalize: []
@@ -4583,7 +4583,7 @@ wazuh.threat.indicator.file.elf.go_import_hash:
     are available here: https://github.com/elastic/toutoumomoma'
   example: 10bddcb4cee42080f76c88d9ff964491
   flat_name: wazuh.threat.indicator.file.elf.go_import_hash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: go_import_hash
   normalize: []
@@ -4637,7 +4637,7 @@ wazuh.threat.indicator.file.elf.header.abi_version:
   dashed_name: wazuh-threat-indicator-file-elf-header-abi-version
   description: Version of the ELF Application Binary Interface (ABI).
   flat_name: wazuh.threat.indicator.file.elf.header.abi_version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.abi_version
   normalize: []
@@ -4648,7 +4648,7 @@ wazuh.threat.indicator.file.elf.header.class:
   dashed_name: wazuh-threat-indicator-file-elf-header-class
   description: Header class of the ELF file.
   flat_name: wazuh.threat.indicator.file.elf.header.class
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.class
   normalize: []
@@ -4659,7 +4659,7 @@ wazuh.threat.indicator.file.elf.header.data:
   dashed_name: wazuh-threat-indicator-file-elf-header-data
   description: Data table of the ELF header.
   flat_name: wazuh.threat.indicator.file.elf.header.data
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.data
   normalize: []
@@ -4681,7 +4681,7 @@ wazuh.threat.indicator.file.elf.header.object_version:
   dashed_name: wazuh-threat-indicator-file-elf-header-object-version
   description: '"0x1" for original ELF files.'
   flat_name: wazuh.threat.indicator.file.elf.header.object_version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.object_version
   normalize: []
@@ -4692,7 +4692,7 @@ wazuh.threat.indicator.file.elf.header.os_abi:
   dashed_name: wazuh-threat-indicator-file-elf-header-os-abi
   description: Application Binary Interface (ABI) of the Linux OS.
   flat_name: wazuh.threat.indicator.file.elf.header.os_abi
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.os_abi
   normalize: []
@@ -4703,7 +4703,7 @@ wazuh.threat.indicator.file.elf.header.type:
   dashed_name: wazuh-threat-indicator-file-elf-header-type
   description: Header type of the ELF file.
   flat_name: wazuh.threat.indicator.file.elf.header.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.type
   normalize: []
@@ -4714,7 +4714,7 @@ wazuh.threat.indicator.file.elf.header.version:
   dashed_name: wazuh-threat-indicator-file-elf-header-version
   description: Version of the ELF header.
   flat_name: wazuh.threat.indicator.file.elf.header.version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: header.version
   normalize: []
@@ -4730,7 +4730,7 @@ wazuh.threat.indicator.file.elf.import_hash:
     This is an ELF implementation of the Windows PE imphash.'
   example: d41d8cd98f00b204e9800998ecf8427e
   flat_name: wazuh.threat.indicator.file.elf.import_hash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: import_hash
   normalize: []
@@ -4813,7 +4813,7 @@ wazuh.threat.indicator.file.elf.sections.flags:
   dashed_name: wazuh-threat-indicator-file-elf-sections-flags
   description: ELF Section List flags.
   flat_name: wazuh.threat.indicator.file.elf.sections.flags
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sections.flags
   normalize: []
@@ -4824,7 +4824,7 @@ wazuh.threat.indicator.file.elf.sections.name:
   dashed_name: wazuh-threat-indicator-file-elf-sections-name
   description: ELF Section List name.
   flat_name: wazuh.threat.indicator.file.elf.sections.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sections.name
   normalize: []
@@ -4835,7 +4835,7 @@ wazuh.threat.indicator.file.elf.sections.physical_offset:
   dashed_name: wazuh-threat-indicator-file-elf-sections-physical-offset
   description: ELF Section List offset.
   flat_name: wazuh.threat.indicator.file.elf.sections.physical_offset
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sections.physical_offset
   normalize: []
@@ -4857,7 +4857,7 @@ wazuh.threat.indicator.file.elf.sections.type:
   dashed_name: wazuh-threat-indicator-file-elf-sections-type
   description: ELF Section List type.
   flat_name: wazuh.threat.indicator.file.elf.sections.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sections.type
   normalize: []
@@ -4915,7 +4915,7 @@ wazuh.threat.indicator.file.elf.segments.sections:
   dashed_name: wazuh-threat-indicator-file-elf-segments-sections
   description: ELF object segment sections.
   flat_name: wazuh.threat.indicator.file.elf.segments.sections
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: segments.sections
   normalize: []
@@ -4926,7 +4926,7 @@ wazuh.threat.indicator.file.elf.segments.type:
   dashed_name: wazuh-threat-indicator-file-elf-segments-type
   description: ELF object segment type.
   flat_name: wazuh.threat.indicator.file.elf.segments.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: segments.type
   normalize: []
@@ -4937,7 +4937,7 @@ wazuh.threat.indicator.file.elf.shared_libraries:
   dashed_name: wazuh-threat-indicator-file-elf-shared-libraries
   description: List of shared libraries used by this ELF object.
   flat_name: wazuh.threat.indicator.file.elf.shared_libraries
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: shared_libraries
   normalize:
@@ -4949,7 +4949,7 @@ wazuh.threat.indicator.file.elf.telfhash:
   dashed_name: wazuh-threat-indicator-file-elf-telfhash
   description: telfhash symbol hash for ELF file.
   flat_name: wazuh.threat.indicator.file.elf.telfhash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: telfhash
   normalize: []
@@ -4964,7 +4964,7 @@ wazuh.threat.indicator.file.extension:
     last one should be captured ("gz", not "tar.gz").'
   example: png
   flat_name: wazuh.threat.indicator.file.extension
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: extension
   normalize: []
@@ -4988,7 +4988,7 @@ wazuh.threat.indicator.file.fork_name:
     `file.path`, will include the fork name.'
   example: Zone.Identifer
   flat_name: wazuh.threat.indicator.file.fork_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: fork_name
   normalize: []
@@ -5000,7 +5000,7 @@ wazuh.threat.indicator.file.gid:
   description: Primary group ID (GID) of the file.
   example: '1001'
   flat_name: wazuh.threat.indicator.file.gid
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: gid
   normalize: []
@@ -5012,7 +5012,7 @@ wazuh.threat.indicator.file.group:
   description: Primary group name of the file.
   example: alice
   flat_name: wazuh.threat.indicator.file.group
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: group
   normalize: []
@@ -5026,7 +5026,7 @@ wazuh.threat.indicator.file.hash.cdhash:
     the integrity of the executable code.
   example: 3783b4052fd474dbe30676b45c329e7a6d44acd9
   flat_name: wazuh.threat.indicator.file.hash.cdhash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: cdhash
   normalize: []
@@ -5037,7 +5037,7 @@ wazuh.threat.indicator.file.hash.md5:
   dashed_name: wazuh-threat-indicator-file-hash-md5
   description: MD5 hash.
   flat_name: wazuh.threat.indicator.file.hash.md5
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: md5
   normalize: []
@@ -5048,7 +5048,7 @@ wazuh.threat.indicator.file.hash.sha1:
   dashed_name: wazuh-threat-indicator-file-hash-sha1
   description: SHA1 hash.
   flat_name: wazuh.threat.indicator.file.hash.sha1
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sha1
   normalize: []
@@ -5059,7 +5059,7 @@ wazuh.threat.indicator.file.hash.sha256:
   dashed_name: wazuh-threat-indicator-file-hash-sha256
   description: SHA256 hash.
   flat_name: wazuh.threat.indicator.file.hash.sha256
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sha256
   normalize: []
@@ -5070,7 +5070,7 @@ wazuh.threat.indicator.file.hash.sha384:
   dashed_name: wazuh-threat-indicator-file-hash-sha384
   description: SHA384 hash.
   flat_name: wazuh.threat.indicator.file.hash.sha384
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sha384
   normalize: []
@@ -5081,7 +5081,7 @@ wazuh.threat.indicator.file.hash.sha512:
   dashed_name: wazuh-threat-indicator-file-hash-sha512
   description: SHA512 hash.
   flat_name: wazuh.threat.indicator.file.hash.sha512
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sha512
   normalize: []
@@ -5092,7 +5092,7 @@ wazuh.threat.indicator.file.hash.ssdeep:
   dashed_name: wazuh-threat-indicator-file-hash-ssdeep
   description: SSDEEP hash.
   flat_name: wazuh.threat.indicator.file.hash.ssdeep
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: ssdeep
   normalize: []
@@ -5103,7 +5103,7 @@ wazuh.threat.indicator.file.hash.tlsh:
   dashed_name: wazuh-threat-indicator-file-hash-tlsh
   description: TLSH hash.
   flat_name: wazuh.threat.indicator.file.hash.tlsh
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: tlsh
   normalize: []
@@ -5115,7 +5115,7 @@ wazuh.threat.indicator.file.inode:
   description: Inode representing the file in the filesystem.
   example: '256383'
   flat_name: wazuh.threat.indicator.file.inode
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: inode
   normalize: []
@@ -5129,7 +5129,7 @@ wazuh.threat.indicator.file.mime_type:
     where possible. When more than one type is applicable, the most specific type
     should be used.'
   flat_name: wazuh.threat.indicator.file.mime_type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: mime_type
   normalize: []
@@ -5141,7 +5141,7 @@ wazuh.threat.indicator.file.mode:
   description: Mode of the file in octal representation.
   example: '0640'
   flat_name: wazuh.threat.indicator.file.mode
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: mode
   normalize: []
@@ -5163,7 +5163,7 @@ wazuh.threat.indicator.file.name:
   description: Name of the file including the extension, without the directory.
   example: example.png
   flat_name: wazuh.threat.indicator.file.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: name
   normalize: []
@@ -5201,7 +5201,7 @@ wazuh.threat.indicator.file.owner:
   description: File owner's username.
   example: alice
   flat_name: wazuh.threat.indicator.file.owner
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: owner
   normalize: []
@@ -5214,7 +5214,7 @@ wazuh.threat.indicator.file.path:
     drive letter, when appropriate.
   example: /home/alice/example.png
   flat_name: wazuh.threat.indicator.file.path
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: path
   normalize: []
@@ -5226,7 +5226,7 @@ wazuh.threat.indicator.file.pe.architecture:
   description: CPU architecture target for the file.
   example: x64
   flat_name: wazuh.threat.indicator.file.pe.architecture
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: architecture
   normalize: []
@@ -5238,7 +5238,7 @@ wazuh.threat.indicator.file.pe.company:
   description: Internal company name of the file, provided at compile-time.
   example: Microsoft Corporation
   flat_name: wazuh.threat.indicator.file.pe.company
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: company
   normalize: []
@@ -5250,7 +5250,7 @@ wazuh.threat.indicator.file.pe.description:
   description: Internal description of the file, provided at compile-time.
   example: Paint
   flat_name: wazuh.threat.indicator.file.pe.description
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: description
   normalize: []
@@ -5262,7 +5262,7 @@ wazuh.threat.indicator.file.pe.file_version:
   description: Internal version of the file, provided at compile-time.
   example: 6.3.9600.17415
   flat_name: wazuh.threat.indicator.file.pe.file_version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: file_version
   normalize: []
@@ -5280,7 +5280,7 @@ wazuh.threat.indicator.file.pe.go_import_hash:
     are available here: https://github.com/elastic/toutoumomoma'
   example: 10bddcb4cee42080f76c88d9ff964491
   flat_name: wazuh.threat.indicator.file.pe.go_import_hash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: go_import_hash
   normalize: []
@@ -5339,7 +5339,7 @@ wazuh.threat.indicator.file.pe.imphash:
     Learn more at https://www.fireeye.com/blog/threat-research/2014/01/tracking-malware-import-hashing.html.'
   example: 0c6803c4e922103c4dca5963aad36ddf
   flat_name: wazuh.threat.indicator.file.pe.imphash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: imphash
   normalize: []
@@ -5355,7 +5355,7 @@ wazuh.threat.indicator.file.pe.import_hash:
     This is a synonym for imphash.'
   example: d41d8cd98f00b204e9800998ecf8427e
   flat_name: wazuh.threat.indicator.file.pe.import_hash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: import_hash
   normalize: []
@@ -5403,7 +5403,7 @@ wazuh.threat.indicator.file.pe.original_file_name:
   description: Internal name of the file, provided at compile-time.
   example: MSPAINT.EXE
   flat_name: wazuh.threat.indicator.file.pe.original_file_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: original_file_name
   normalize: []
@@ -5419,7 +5419,7 @@ wazuh.threat.indicator.file.pe.pehash:
     Learn more at https://www.usenix.org/legacy/events/leet09/tech/full_papers/wicherski/wicherski_html/index.html.'
   example: 73ff189b63cd6be375a7ff25179a38d347651975
   flat_name: wazuh.threat.indicator.file.pe.pehash
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: pehash
   normalize: []
@@ -5431,7 +5431,7 @@ wazuh.threat.indicator.file.pe.product:
   description: Internal product name of the file, provided at compile-time.
   example: Microsoft® Windows® Operating System
   flat_name: wazuh.threat.indicator.file.pe.product
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: product
   normalize: []
@@ -5467,7 +5467,7 @@ wazuh.threat.indicator.file.pe.sections.name:
   dashed_name: wazuh-threat-indicator-file-pe-sections-name
   description: PE Section List name.
   flat_name: wazuh.threat.indicator.file.pe.sections.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: sections.name
   normalize: []
@@ -5524,7 +5524,7 @@ wazuh.threat.indicator.file.target_path:
   dashed_name: wazuh-threat-indicator-file-target-path
   description: Target path for symlinks.
   flat_name: wazuh.threat.indicator.file.target_path
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: target_path
   normalize: []
@@ -5536,7 +5536,7 @@ wazuh.threat.indicator.file.type:
   description: File type (file, dir, or symlink).
   example: file
   flat_name: wazuh.threat.indicator.file.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: type
   normalize: []
@@ -5548,7 +5548,7 @@ wazuh.threat.indicator.file.uid:
   description: The user ID (UID) or security identifier (SID) of the file owner.
   example: '1001'
   flat_name: wazuh.threat.indicator.file.uid
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: uid
   normalize: []
@@ -5562,7 +5562,7 @@ wazuh.threat.indicator.file.x509.alternative_names:
     wildcards), and email addresses.
   example: '*.elastic.co'
   flat_name: wazuh.threat.indicator.file.x509.alternative_names
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: alternative_names
   normalize:
@@ -5575,7 +5575,7 @@ wazuh.threat.indicator.file.x509.issuer.common_name:
   description: List of common name (CN) of issuing certificate authority.
   example: Example SHA2 High Assurance Server CA
   flat_name: wazuh.threat.indicator.file.x509.issuer.common_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.common_name
   normalize:
@@ -5588,7 +5588,7 @@ wazuh.threat.indicator.file.x509.issuer.country:
   description: List of country \(C) codes
   example: US
   flat_name: wazuh.threat.indicator.file.x509.issuer.country
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.country
   normalize:
@@ -5602,7 +5602,7 @@ wazuh.threat.indicator.file.x509.issuer.distinguished_name:
   example: C=US, O=Example Inc, OU=www.example.com, CN=Example SHA2 High Assurance
     Server CA
   flat_name: wazuh.threat.indicator.file.x509.issuer.distinguished_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.distinguished_name
   normalize: []
@@ -5614,7 +5614,7 @@ wazuh.threat.indicator.file.x509.issuer.locality:
   description: List of locality names (L)
   example: Mountain View
   flat_name: wazuh.threat.indicator.file.x509.issuer.locality
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.locality
   normalize:
@@ -5627,7 +5627,7 @@ wazuh.threat.indicator.file.x509.issuer.organization:
   description: List of organizations (O) of issuing certificate authority.
   example: Example Inc
   flat_name: wazuh.threat.indicator.file.x509.issuer.organization
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.organization
   normalize:
@@ -5640,7 +5640,7 @@ wazuh.threat.indicator.file.x509.issuer.organizational_unit:
   description: List of organizational units (OU) of issuing certificate authority.
   example: www.example.com
   flat_name: wazuh.threat.indicator.file.x509.issuer.organizational_unit
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.organizational_unit
   normalize:
@@ -5653,7 +5653,7 @@ wazuh.threat.indicator.file.x509.issuer.state_or_province:
   description: List of state or province names (ST, S, or P)
   example: California
   flat_name: wazuh.threat.indicator.file.x509.issuer.state_or_province
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.state_or_province
   normalize:
@@ -5688,7 +5688,7 @@ wazuh.threat.indicator.file.x509.public_key_algorithm:
   description: Algorithm used to generate the public key.
   example: RSA
   flat_name: wazuh.threat.indicator.file.x509.public_key_algorithm
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: public_key_algorithm
   normalize: []
@@ -5701,7 +5701,7 @@ wazuh.threat.indicator.file.x509.public_key_curve:
     algorithm specific.
   example: nistp521
   flat_name: wazuh.threat.indicator.file.x509.public_key_curve
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: public_key_curve
   normalize: []
@@ -5739,7 +5739,7 @@ wazuh.threat.indicator.file.x509.serial_number:
     this must be encoded in base 16 and formatted without colons and uppercase characters.
   example: 55FBB9C7DEBF09809D12CCAA
   flat_name: wazuh.threat.indicator.file.x509.serial_number
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: serial_number
   normalize: []
@@ -5752,7 +5752,7 @@ wazuh.threat.indicator.file.x509.signature_algorithm:
     names found in Go Lang Crypto library. See https://github.com/golang/go/blob/go1.14/src/crypto/x509/x509.go#L337-L353.
   example: SHA256-RSA
   flat_name: wazuh.threat.indicator.file.x509.signature_algorithm
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: signature_algorithm
   normalize: []
@@ -5764,7 +5764,7 @@ wazuh.threat.indicator.file.x509.subject.common_name:
   description: List of common names (CN) of subject.
   example: shared.global.example.net
   flat_name: wazuh.threat.indicator.file.x509.subject.common_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.common_name
   normalize:
@@ -5777,7 +5777,7 @@ wazuh.threat.indicator.file.x509.subject.country:
   description: List of country \(C) code
   example: US
   flat_name: wazuh.threat.indicator.file.x509.subject.country
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.country
   normalize:
@@ -5790,7 +5790,7 @@ wazuh.threat.indicator.file.x509.subject.distinguished_name:
   description: Distinguished name (DN) of the certificate subject entity.
   example: C=US, ST=California, L=San Francisco, O=Example, Inc., CN=shared.global.example.net
   flat_name: wazuh.threat.indicator.file.x509.subject.distinguished_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.distinguished_name
   normalize: []
@@ -5802,7 +5802,7 @@ wazuh.threat.indicator.file.x509.subject.locality:
   description: List of locality names (L)
   example: San Francisco
   flat_name: wazuh.threat.indicator.file.x509.subject.locality
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.locality
   normalize:
@@ -5815,7 +5815,7 @@ wazuh.threat.indicator.file.x509.subject.organization:
   description: List of organizations (O) of subject.
   example: Example, Inc.
   flat_name: wazuh.threat.indicator.file.x509.subject.organization
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.organization
   normalize:
@@ -5827,7 +5827,7 @@ wazuh.threat.indicator.file.x509.subject.organizational_unit:
   dashed_name: wazuh-threat-indicator-file-x509-subject-organizational-unit
   description: List of organizational units (OU) of subject.
   flat_name: wazuh.threat.indicator.file.x509.subject.organizational_unit
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.organizational_unit
   normalize:
@@ -5840,7 +5840,7 @@ wazuh.threat.indicator.file.x509.subject.state_or_province:
   description: List of state or province names (ST, S, or P)
   example: California
   flat_name: wazuh.threat.indicator.file.x509.subject.state_or_province
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.state_or_province
   normalize:
@@ -5853,7 +5853,7 @@ wazuh.threat.indicator.file.x509.version_number:
   description: Version of x509 format.
   example: 3
   flat_name: wazuh.threat.indicator.file.x509.version_number
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: version_number
   normalize: []
@@ -5877,7 +5877,7 @@ wazuh.threat.indicator.geo.city_name:
   description: City name.
   example: Montreal
   flat_name: wazuh.threat.indicator.geo.city_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: city_name
   normalize: []
@@ -5889,7 +5889,7 @@ wazuh.threat.indicator.geo.continent_code:
   description: Two-letter code representing continent's name.
   example: NA
   flat_name: wazuh.threat.indicator.geo.continent_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: continent_code
   normalize: []
@@ -5901,7 +5901,7 @@ wazuh.threat.indicator.geo.continent_name:
   description: Name of the continent.
   example: North America
   flat_name: wazuh.threat.indicator.geo.continent_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: continent_name
   normalize: []
@@ -5913,7 +5913,7 @@ wazuh.threat.indicator.geo.country_iso_code:
   description: Country ISO code.
   example: CA
   flat_name: wazuh.threat.indicator.geo.country_iso_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: country_iso_code
   normalize: []
@@ -5925,7 +5925,7 @@ wazuh.threat.indicator.geo.country_name:
   description: Country name.
   example: Canada
   flat_name: wazuh.threat.indicator.geo.country_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: country_name
   normalize: []
@@ -5954,7 +5954,7 @@ wazuh.threat.indicator.geo.name:
     Not typically used in automated geolocation.'
   example: boston-dc
   flat_name: wazuh.threat.indicator.geo.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: name
   normalize: []
@@ -5969,7 +5969,7 @@ wazuh.threat.indicator.geo.postal_code:
     and will vary widely from country to country.'
   example: 94040
   flat_name: wazuh.threat.indicator.geo.postal_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: postal_code
   normalize: []
@@ -5981,7 +5981,7 @@ wazuh.threat.indicator.geo.region_iso_code:
   description: Region ISO code.
   example: CA-QC
   flat_name: wazuh.threat.indicator.geo.region_iso_code
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: region_iso_code
   normalize: []
@@ -5993,7 +5993,7 @@ wazuh.threat.indicator.geo.region_name:
   description: Region name.
   example: Quebec
   flat_name: wazuh.threat.indicator.geo.region_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: region_name
   normalize: []
@@ -6005,7 +6005,7 @@ wazuh.threat.indicator.geo.timezone:
   description: The time zone of the location, such as IANA time zone name.
   example: America/Argentina/Buenos_Aires
   flat_name: wazuh.threat.indicator.geo.timezone
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: timezone
   normalize: []
@@ -6022,7 +6022,7 @@ wazuh.threat.indicator.id:
     While not required, a common approach is to use a STIX 2.x indicator ID.'
   example: '[indicator--d7008e06-ab86-415a-9803-3c81ce2d3c37]'
   flat_name: wazuh.threat.indicator.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: indicator.id
   normalize:
@@ -6065,7 +6065,7 @@ wazuh.threat.indicator.marking.tlp:
   - AMBER+STRICT
   - RED
   flat_name: wazuh.threat.indicator.marking.tlp
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: indicator.marking.tlp
   normalize: []
@@ -6077,7 +6077,7 @@ wazuh.threat.indicator.marking.tlp_version:
   description: Traffic Light Protocol version.
   example: 2.0
   flat_name: wazuh.threat.indicator.marking.tlp_version
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: indicator.marking.tlp_version
   normalize: []
@@ -6104,7 +6104,7 @@ wazuh.threat.indicator.name:
     relevant name can serve as the display name.'
   example: 5.2.75.227
   flat_name: wazuh.threat.indicator.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: indicator.name
   normalize: []
@@ -6127,7 +6127,7 @@ wazuh.threat.indicator.provider:
   description: The name of the indicator's provider.
   example: lrz_urlhaus
   flat_name: wazuh.threat.indicator.provider
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: indicator.provider
   normalize: []
@@ -6139,7 +6139,7 @@ wazuh.threat.indicator.reference:
   description: Reference URL linking to additional information about this indicator.
   example: https://system.example.com/indicator/0001234
   flat_name: wazuh.threat.indicator.reference
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: indicator.reference
   normalize: []
@@ -6155,7 +6155,7 @@ wazuh.threat.indicator.registry.data.bytes:
     recoverability and should be populated for REG_BINARY encoded values.'
   example: ZQBuAC0AVQBTAAAAZQBuAAAAAAA=
   flat_name: wazuh.threat.indicator.registry.data.bytes
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: data.bytes
   normalize: []
@@ -6185,7 +6185,7 @@ wazuh.threat.indicator.registry.data.type:
   description: Standard registry type for encoding contents
   example: REG_SZ
   flat_name: wazuh.threat.indicator.registry.data.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: data.type
   normalize: []
@@ -6197,7 +6197,7 @@ wazuh.threat.indicator.registry.hive:
   description: Abbreviated name for the hive.
   example: HKLM
   flat_name: wazuh.threat.indicator.registry.hive
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: hive
   normalize: []
@@ -6209,7 +6209,7 @@ wazuh.threat.indicator.registry.key:
   description: Hive-relative path of keys.
   example: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe
   flat_name: wazuh.threat.indicator.registry.key
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: key
   normalize: []
@@ -6222,7 +6222,7 @@ wazuh.threat.indicator.registry.path:
   example: HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution
     Options\winword.exe\Debugger
   flat_name: wazuh.threat.indicator.registry.path
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: path
   normalize: []
@@ -6234,7 +6234,7 @@ wazuh.threat.indicator.registry.value:
   description: Name of the value written.
   example: Debugger
   flat_name: wazuh.threat.indicator.registry.value
-  ignore_above: 1024
+  ignore_above: 4096
   level: core
   name: value
   normalize: []
@@ -6287,7 +6287,7 @@ wazuh.threat.indicator.type:
   - windows-registry-key
   - x509-certificate
   flat_name: wazuh.threat.indicator.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: indicator.type
   normalize: []
@@ -6301,7 +6301,7 @@ wazuh.threat.indicator.x509.alternative_names:
     wildcards), and email addresses.
   example: '*.elastic.co'
   flat_name: wazuh.threat.indicator.x509.alternative_names
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: alternative_names
   normalize:
@@ -6314,7 +6314,7 @@ wazuh.threat.indicator.x509.issuer.common_name:
   description: List of common name (CN) of issuing certificate authority.
   example: Example SHA2 High Assurance Server CA
   flat_name: wazuh.threat.indicator.x509.issuer.common_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.common_name
   normalize:
@@ -6327,7 +6327,7 @@ wazuh.threat.indicator.x509.issuer.country:
   description: List of country \(C) codes
   example: US
   flat_name: wazuh.threat.indicator.x509.issuer.country
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.country
   normalize:
@@ -6341,7 +6341,7 @@ wazuh.threat.indicator.x509.issuer.distinguished_name:
   example: C=US, O=Example Inc, OU=www.example.com, CN=Example SHA2 High Assurance
     Server CA
   flat_name: wazuh.threat.indicator.x509.issuer.distinguished_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.distinguished_name
   normalize: []
@@ -6353,7 +6353,7 @@ wazuh.threat.indicator.x509.issuer.locality:
   description: List of locality names (L)
   example: Mountain View
   flat_name: wazuh.threat.indicator.x509.issuer.locality
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.locality
   normalize:
@@ -6366,7 +6366,7 @@ wazuh.threat.indicator.x509.issuer.organization:
   description: List of organizations (O) of issuing certificate authority.
   example: Example Inc
   flat_name: wazuh.threat.indicator.x509.issuer.organization
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.organization
   normalize:
@@ -6379,7 +6379,7 @@ wazuh.threat.indicator.x509.issuer.organizational_unit:
   description: List of organizational units (OU) of issuing certificate authority.
   example: www.example.com
   flat_name: wazuh.threat.indicator.x509.issuer.organizational_unit
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.organizational_unit
   normalize:
@@ -6392,7 +6392,7 @@ wazuh.threat.indicator.x509.issuer.state_or_province:
   description: List of state or province names (ST, S, or P)
   example: California
   flat_name: wazuh.threat.indicator.x509.issuer.state_or_province
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: issuer.state_or_province
   normalize:
@@ -6427,7 +6427,7 @@ wazuh.threat.indicator.x509.public_key_algorithm:
   description: Algorithm used to generate the public key.
   example: RSA
   flat_name: wazuh.threat.indicator.x509.public_key_algorithm
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: public_key_algorithm
   normalize: []
@@ -6440,7 +6440,7 @@ wazuh.threat.indicator.x509.public_key_curve:
     algorithm specific.
   example: nistp521
   flat_name: wazuh.threat.indicator.x509.public_key_curve
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: public_key_curve
   normalize: []
@@ -6478,7 +6478,7 @@ wazuh.threat.indicator.x509.serial_number:
     this must be encoded in base 16 and formatted without colons and uppercase characters.
   example: 55FBB9C7DEBF09809D12CCAA
   flat_name: wazuh.threat.indicator.x509.serial_number
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: serial_number
   normalize: []
@@ -6491,7 +6491,7 @@ wazuh.threat.indicator.x509.signature_algorithm:
     names found in Go Lang Crypto library. See https://github.com/golang/go/blob/go1.14/src/crypto/x509/x509.go#L337-L353.
   example: SHA256-RSA
   flat_name: wazuh.threat.indicator.x509.signature_algorithm
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: signature_algorithm
   normalize: []
@@ -6503,7 +6503,7 @@ wazuh.threat.indicator.x509.subject.common_name:
   description: List of common names (CN) of subject.
   example: shared.global.example.net
   flat_name: wazuh.threat.indicator.x509.subject.common_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.common_name
   normalize:
@@ -6516,7 +6516,7 @@ wazuh.threat.indicator.x509.subject.country:
   description: List of country \(C) code
   example: US
   flat_name: wazuh.threat.indicator.x509.subject.country
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.country
   normalize:
@@ -6529,7 +6529,7 @@ wazuh.threat.indicator.x509.subject.distinguished_name:
   description: Distinguished name (DN) of the certificate subject entity.
   example: C=US, ST=California, L=San Francisco, O=Example, Inc., CN=shared.global.example.net
   flat_name: wazuh.threat.indicator.x509.subject.distinguished_name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.distinguished_name
   normalize: []
@@ -6541,7 +6541,7 @@ wazuh.threat.indicator.x509.subject.locality:
   description: List of locality names (L)
   example: San Francisco
   flat_name: wazuh.threat.indicator.x509.subject.locality
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.locality
   normalize:
@@ -6554,7 +6554,7 @@ wazuh.threat.indicator.x509.subject.organization:
   description: List of organizations (O) of subject.
   example: Example, Inc.
   flat_name: wazuh.threat.indicator.x509.subject.organization
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.organization
   normalize:
@@ -6566,7 +6566,7 @@ wazuh.threat.indicator.x509.subject.organizational_unit:
   dashed_name: wazuh-threat-indicator-x509-subject-organizational-unit
   description: List of organizational units (OU) of subject.
   flat_name: wazuh.threat.indicator.x509.subject.organizational_unit
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.organizational_unit
   normalize:
@@ -6579,7 +6579,7 @@ wazuh.threat.indicator.x509.subject.state_or_province:
   description: List of state or province names (ST, S, or P)
   example: California
   flat_name: wazuh.threat.indicator.x509.subject.state_or_province
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: subject.state_or_province
   normalize:
@@ -6592,7 +6592,7 @@ wazuh.threat.indicator.x509.version_number:
   description: Version of x509 format.
   example: 3
   flat_name: wazuh.threat.indicator.x509.version_number
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: version_number
   normalize: []
@@ -6607,7 +6607,7 @@ wazuh.threat.software.alias:
     While not required, you can use a MITRE ATT&CK® associated software description.'
   example: '[ "X-Agent" ]'
   flat_name: wazuh.threat.software.alias
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: software.alias
   normalize:
@@ -6623,7 +6623,7 @@ wazuh.threat.software.id:
     While not required, you can use a MITRE ATT&CK® software id.'
   example: S0552
   flat_name: wazuh.threat.software.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: software.id
   normalize: []
@@ -6638,7 +6638,7 @@ wazuh.threat.software.name:
     While not required, you can use a MITRE ATT&CK® software name.'
   example: AdFind
   flat_name: wazuh.threat.software.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: software.name
   normalize: []
@@ -6664,7 +6664,7 @@ wazuh.threat.software.platforms:
   - SaaS
   - Windows
   flat_name: wazuh.threat.software.platforms
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: software.platforms
   normalize:
@@ -6680,7 +6680,7 @@ wazuh.threat.software.reference:
     While not required, you can use a MITRE ATT&CK® software reference URL.'
   example: https://attack.mitre.org/software/S0552/
   flat_name: wazuh.threat.software.reference
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: software.reference
   normalize: []
@@ -6698,7 +6698,7 @@ wazuh.threat.software.type:
   - Malware
   - Tool
   flat_name: wazuh.threat.software.type
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: software.type
   normalize: []
@@ -6711,7 +6711,7 @@ wazuh.threat.tactic.id:
     for example. (ex. https://attack.mitre.org/tactics/TA0002/ )
   example: TA0002
   flat_name: wazuh.threat.tactic.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: tactic.id
   normalize:
@@ -6725,7 +6725,7 @@ wazuh.threat.tactic.name:
     ATT&CK® tactic, for example. (ex. https://attack.mitre.org/tactics/TA0002/)
   example: Execution
   flat_name: wazuh.threat.tactic.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: tactic.name
   normalize:
@@ -6739,7 +6739,7 @@ wazuh.threat.tactic.reference:
     ATT&CK® tactic, for example. (ex. https://attack.mitre.org/tactics/TA0002/ )
   example: https://attack.mitre.org/tactics/TA0002/
   flat_name: wazuh.threat.tactic.reference
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: tactic.reference
   normalize:
@@ -6753,7 +6753,7 @@ wazuh.threat.technique.id:
     technique, for example. (ex. https://attack.mitre.org/techniques/T1059/)
   example: T1059
   flat_name: wazuh.threat.technique.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: technique.id
   normalize:
@@ -6767,7 +6767,7 @@ wazuh.threat.technique.name:
     technique, for example. (ex. https://attack.mitre.org/techniques/T1059/)
   example: Command and Scripting Interpreter
   flat_name: wazuh.threat.technique.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: technique.name
   normalize:
@@ -6781,7 +6781,7 @@ wazuh.threat.technique.reference:
     ATT&CK® technique, for example. (ex. https://attack.mitre.org/techniques/T1059/)
   example: https://attack.mitre.org/techniques/T1059/
   flat_name: wazuh.threat.technique.reference
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: technique.reference
   normalize:
@@ -6795,7 +6795,7 @@ wazuh.threat.technique.subtechnique.id:
     ATT&CK® subtechnique, for example. (ex. https://attack.mitre.org/techniques/T1059/001/)
   example: T1059.001
   flat_name: wazuh.threat.technique.subtechnique.id
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: technique.subtechnique.id
   normalize:
@@ -6809,7 +6809,7 @@ wazuh.threat.technique.subtechnique.name:
     subtechnique, for example. (ex. https://attack.mitre.org/techniques/T1059/001/)
   example: PowerShell
   flat_name: wazuh.threat.technique.subtechnique.name
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: technique.subtechnique.name
   normalize:
@@ -6823,7 +6823,7 @@ wazuh.threat.technique.subtechnique.reference:
     a MITRE ATT&CK® subtechnique, for example. (ex. https://attack.mitre.org/techniques/T1059/001/)
   example: https://attack.mitre.org/techniques/T1059/001/
   flat_name: wazuh.threat.technique.subtechnique.reference
-  ignore_above: 1024
+  ignore_above: 4096
   level: extended
   name: technique.subtechnique.reference
   normalize:

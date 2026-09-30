@@ -42,7 +42,7 @@
             "hash": {
               "properties": {
                 "sha1": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -52,7 +52,7 @@
         "interface": {
           "properties": {
             "name": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -78,7 +78,7 @@
               "type": "ip"
             },
             "type": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -98,17 +98,17 @@
             "agent": {
               "properties": {
                 "groups": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "host": {
                   "properties": {
                     "architecture": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "hostname": {
-                      "ignore_above": 1024,
+                      "ignore_above": 4096,
                       "type": "keyword"
                     },
                     "ip": {
@@ -117,19 +117,19 @@
                     "os": {
                       "properties": {
                         "name": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "platform": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "type": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "version": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         }
                       }
@@ -137,15 +137,15 @@
                   }
                 },
                 "id": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -153,11 +153,11 @@
             "cluster": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "node": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -165,7 +165,7 @@
             "schema": {
               "properties": {
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }

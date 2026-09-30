@@ -19,7 +19,14 @@ package com.wazuh.contentmanager.cti.catalog.index;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.opensearch.action.DocWriteRequest;
+import org.opensearch.action.UnavailableShardsException;
 import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
@@ -32,6 +39,7 @@ import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.common.logging.Loggers;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
@@ -39,6 +47,8 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.breaker.CircuitBreaker;
 import org.opensearch.core.common.breaker.CircuitBreakingException;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.node.NodeClosedException;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -48,6 +58,7 @@ import org.junit.Before;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
@@ -653,11 +664,19 @@ public class ContentIndexTests extends OpenSearchTestCase {
     // executeBulk: load shedding must be retried, never silently dropped.
     // ---------------------------------------------------------------------
 
+    /**
+     * Delays the code asked the scheduler for, in order, recorded by {@link
+     * #runScheduledTasksInline()}.
+     */
+    private final List<Long> scheduledDelaysMs = new ArrayList<>();
+
     /** Makes the scheduler run the retry inline, so backoff does not slow the tests down. */
     private void runScheduledTasksInline() {
         when(this.client.threadPool().schedule(any(Runnable.class), any(TimeValue.class), anyString()))
                 .thenAnswer(
                         invocation -> {
+                            ContentIndexTests.this.scheduledDelaysMs.add(
+                                    invocation.getArgument(1, TimeValue.class).millis());
                             invocation.getArgument(0, Runnable.class).run();
                             return null;
                         });
@@ -790,5 +809,388 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         this.contentIndex.resetDroppedDocuments();
         Assert.assertEquals(0L, this.contentIndex.getDroppedDocuments());
+    }
+
+    // ---------------------------------------------------------------------
+    // batchUpdate: the consumer sync must survive the cluster shedding a
+    // write, and must never advance its offset past a document it dropped.
+    // ---------------------------------------------------------------------
+
+    private static CircuitBreakingException parentBreakerTrip() {
+        return new CircuitBreakingException(
+                "[parent] Data too large", 100, 50, CircuitBreaker.Durability.TRANSIENT);
+    }
+
+    /** Stubs the MultiGet that opens batchUpdate with one existing document per id. */
+    private void stubMultiGet(String... ids) {
+        PlainActionFuture<MultiGetResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(multiGetResponseFor(ids));
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(future);
+    }
+
+    private static MultiGetResponse multiGetResponseFor(String... ids) {
+        MultiGetItemResponse[] items = new MultiGetItemResponse[ids.length];
+        for (int i = 0; i < ids.length; i++) {
+            GetResponse getResp = mock(GetResponse.class);
+            when(getResp.isExists()).thenReturn(true);
+            when(getResp.getSourceAsString())
+                    .thenReturn(
+                            "{\"type\":\"rule\",\"document\":{\"id\":\"" + ids[i] + "\",\"title\":\"Rule\"}}");
+            MultiGetItemResponse item = mock(MultiGetItemResponse.class);
+            when(item.isFailed()).thenReturn(false);
+            when(item.getResponse()).thenReturn(getResp);
+            items[i] = item;
+        }
+        MultiGetResponse mgetResponse = mock(MultiGetResponse.class);
+        when(mgetResponse.getResponses()).thenReturn(items);
+        return mgetResponse;
+    }
+
+    /** Answers the synchronous {@code client.bulk(request)} with the given responses, in order. */
+    private List<BulkRequest> stubSyncBulkResponses(BulkResponse... responses) {
+        List<BulkRequest> captured = new ArrayList<>();
+        AtomicInteger call = new AtomicInteger();
+        doAnswer(
+                        invocation -> {
+                            captured.add(invocation.getArgument(0, BulkRequest.class));
+                            int index = Math.min(call.getAndIncrement(), responses.length - 1);
+                            PlainActionFuture<BulkResponse> future = PlainActionFuture.newFuture();
+                            future.onResponse(responses[index]);
+                            return future;
+                        })
+                .when(this.client)
+                .bulk(any(BulkRequest.class));
+        return captured;
+    }
+
+    private static List<ContentIndex.UpdateTask> updateTasks(String... ids) {
+        List<ContentIndex.UpdateTask> tasks = new ArrayList<>();
+        for (int i = 0; i < ids.length; i++) {
+            tasks.add(
+                    new ContentIndex.UpdateTask(
+                            ids[i],
+                            List.of(new Operation("replace", "/document/title", null, "Updated")),
+                            100L + i));
+        }
+        return tasks;
+    }
+
+    /**
+     * A parent circuit breaker trip on one bulk item is the cluster shedding load, exactly as on the
+     * index path: only the shed document is re-submitted and the consumer reaches its offset.
+     */
+    public void testBatchUpdate_RetriesShedBulkItemsAndSucceeds() throws Exception {
+        this.stubMultiGet("R1", "R2");
+        List<BulkRequest> sent =
+                this.stubSyncBulkResponses(
+                        bulkResponseWith(successItem(0), shedItem(1, "R2")), bulkResponseWith(successItem(0)));
+
+        long result;
+        try (CapturingAppender logs = CapturingAppender.attach(ContentIndex.class)) {
+            result = this.contentIndex.batchUpdate(updateTasks("R1", "R2"));
+
+            // A shed write that the retry lands is a WARN, not the ERROR that aborted the sync.
+            Assert.assertEquals(1L, logs.count(Level.WARN));
+            Assert.assertEquals(0L, logs.count(Level.ERROR));
+        }
+
+        Assert.assertEquals(101L, result);
+        Assert.assertEquals(2, sent.size());
+        // Only the shed document is retried, not the whole batch.
+        Assert.assertEquals(1, sent.get(1).numberOfActions());
+        Assert.assertEquals("R2", sent.get(1).requests().get(0).id());
+    }
+
+    /**
+     * A rejected document is not load shedding. Retrying cannot help, and the offset must not be
+     * committed, so the batch aborts and the caller checkpoints at the last applied offset.
+     */
+    public void testBatchUpdate_AbortsOnPermanentBulkFailure() throws Exception {
+        this.stubMultiGet("R1");
+        List<BulkRequest> sent = this.stubSyncBulkResponses(bulkResponseWith(rejectedItem(0, "R1")));
+
+        IOException thrown =
+                expectThrows(IOException.class, () -> this.contentIndex.batchUpdate(updateTasks("R1")));
+
+        Assert.assertTrue(thrown.getMessage().contains("R1"));
+        Assert.assertEquals(1, sent.size());
+    }
+
+    /**
+     * The retry budget is finite: if the cluster is still shedding once it is spent, the batch aborts
+     * rather than dropping the documents, because batchUpdate's return value is committed.
+     */
+    public void testBatchUpdate_AbortsWhenClusterKeepsSheddingTheBulk() throws Exception {
+        this.stubMultiGet("R1");
+        List<BulkRequest> sent = this.stubSyncBulkResponses(bulkResponseWith(shedItem(0, "R1")));
+
+        IOException thrown =
+                expectThrows(IOException.class, () -> this.contentIndex.batchUpdate(updateTasks("R1")));
+
+        Assert.assertTrue(thrown.getMessage().contains("still shedding"));
+        // Initial attempt plus the three retries.
+        Assert.assertEquals(4, sent.size());
+    }
+
+    /**
+     * The read that opens batchUpdate is shed by the same breaker as the write, and aborts the sync
+     * just as readily, so it is retried too.
+     */
+    public void testBatchUpdate_RetriesShedMultiGet() throws Exception {
+        PlainActionFuture<MultiGetResponse> shed = PlainActionFuture.newFuture();
+        shed.onFailure(parentBreakerTrip());
+        PlainActionFuture<MultiGetResponse> ok = PlainActionFuture.newFuture();
+        ok.onResponse(multiGetResponseFor("R1"));
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(shed).thenReturn(ok);
+
+        this.stubSyncBulkResponses(bulkResponseWith(successItem(0)));
+
+        long result = this.contentIndex.batchUpdate(updateTasks("R1"));
+
+        Assert.assertEquals(100L, result);
+        verify(this.client, times(2)).multiGet(any(MultiGetRequest.class));
+    }
+
+    /**
+     * A whole bulk request rejected before any item is evaluated is the same condition as a shed
+     * item, and is re-submitted rather than aborting the sync.
+     */
+    public void testBatchUpdate_RetriesWhenWholeBulkRequestIsRejected() throws Exception {
+        this.stubMultiGet("R1");
+
+        PlainActionFuture<BulkResponse> shed = PlainActionFuture.newFuture();
+        shed.onFailure(parentBreakerTrip());
+        PlainActionFuture<BulkResponse> ok = PlainActionFuture.newFuture();
+        ok.onResponse(bulkResponseWith(successItem(0)));
+        when(this.client.bulk(any(BulkRequest.class))).thenReturn(shed).thenReturn(ok);
+
+        long result = this.contentIndex.batchUpdate(updateTasks("R1"));
+
+        Assert.assertEquals(100L, result);
+        verify(this.client, times(2)).bulk(any(BulkRequest.class));
+    }
+
+    // ---------------------------------------------------------------------
+    // A transient cluster-topology change must be retried too, and for long
+    // enough to outlast a rolling restart (wazuh/wazuh-indexer#1913).
+    // ---------------------------------------------------------------------
+
+    /** An index recreated mid-load: the write resolved against a generation that no longer exists. */
+    private static BulkItemResponse topologyItem(int id, String docId) {
+        return new BulkItemResponse(
+                id,
+                DocWriteRequest.OpType.INDEX,
+                new BulkItemResponse.Failure(INDEX_NAME, docId, new IndexNotFoundException(INDEX_NAME)));
+    }
+
+    /** The node holding the shard left the cluster as part of a rolling restart. */
+    private static BulkItemResponse unavailableShardItem(int id, String docId) {
+        return new BulkItemResponse(
+                id,
+                DocWriteRequest.OpType.INDEX,
+                new BulkItemResponse.Failure(
+                        INDEX_NAME,
+                        docId,
+                        new UnavailableShardsException(null, "primary shard is not active")));
+    }
+
+    /** The local node is shutting down: expected restart noise, never worth retrying. */
+    private static BulkItemResponse nodeClosedItem(int id, String docId) {
+        return new BulkItemResponse(
+                id,
+                DocWriteRequest.OpType.INDEX,
+                new BulkItemResponse.Failure(INDEX_NAME, docId, mock(NodeClosedException.class)));
+    }
+
+    /** An administrative write block: a 403, which must stay permanent. */
+    private static BulkItemResponse forbiddenItem(int id, String docId) {
+        return new BulkItemResponse(
+                id,
+                DocWriteRequest.OpType.INDEX,
+                new BulkItemResponse.Failure(
+                        INDEX_NAME,
+                        docId,
+                        new IllegalStateException("index write (api)"),
+                        RestStatus.FORBIDDEN));
+    }
+
+    /**
+     * The #1913 case: an index recreated mid-load is transient, so the batch is re-submitted rather
+     * than dropped, and the retry re-resolves the index name onto the current generation.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_RetriesIndexNotFoundInsteadOfDroppingTheSnapshot() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent =
+                this.stubBulkResponses(
+                        bulkResponseWith(successItem(0), topologyItem(1, "IOC-2")),
+                        bulkResponseWith(successItem(0)));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1", "IOC-2"));
+
+        Assert.assertEquals(2, sent.size());
+        Assert.assertEquals(1, sent.get(1).numberOfActions());
+        Assert.assertEquals("IOC-2", sent.get(1).requests().get(0).id());
+        Assert.assertEquals(0L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /**
+     * A topology change takes as long as a node restart to settle, so its budget must outlast one.
+     * The shed schedule (1 s + 2 s + 4 s) expires long before a restarted node is back.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_TopologyBudgetOutlastsARollingRestart() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent =
+                this.stubBulkResponses(bulkResponseWith(unavailableShardItem(0, "IOC-1")));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1"));
+
+        // Initial attempt plus five retries, versus four attempts for a shed write.
+        Assert.assertEquals(6, sent.size());
+        Assert.assertEquals(List.of(5000L, 10000L, 20000L, 30000L, 30000L), this.scheduledDelaysMs);
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /** A batch holding both kinds of failure is retried on the schedule that outlasts both. */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_MixedBatchUsesTheTopologySchedule() throws Exception {
+        this.runScheduledTasksInline();
+        this.stubBulkResponses(
+                bulkResponseWith(shedItem(0, "IOC-1"), unavailableShardItem(1, "IOC-2")));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1", "IOC-2"));
+
+        Assert.assertEquals(5000L, (long) this.scheduledDelaysMs.get(0));
+        Assert.assertEquals(5, this.scheduledDelaysMs.size());
+    }
+
+    /**
+     * The local node shutting down is expected restart noise, not a transient topology change:
+     * retrying would only burn the budget while the node goes away.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_DoesNotRetryNodeClosed() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent = this.stubBulkResponses(bulkResponseWith(nodeClosedItem(0, "IOC-1")));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1"));
+
+        Assert.assertEquals(1, sent.size());
+        Assert.assertTrue(this.scheduledDelaysMs.isEmpty());
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /**
+     * A cluster block is not classified by its exception type but by its status: an administrative
+     * write block reports 403 and must stay permanent, unlike the 429 a flood-stage block reports.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_DoesNotRetryForbiddenClusterBlock() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent = this.stubBulkResponses(bulkResponseWith(forbiddenItem(0, "IOC-1")));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1"));
+
+        Assert.assertEquals(1, sent.size());
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /**
+     * The transport layer clears the entries of a request it has taken over, so a retry must be
+     * rebuilt from operations captured before submission. Rebuilding from the submitted instance
+     * re-sends a list of nulls, which the cluster rejects with {@code No support for request [null]},
+     * losing the very batch the retry exists to save.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_RetrySurvivesTheTransportClearingTheRequest() throws Exception {
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent = new ArrayList<>();
+        AtomicInteger call = new AtomicInteger();
+        doAnswer(
+                        invocation -> {
+                            BulkRequest request = invocation.getArgument(0, BulkRequest.class);
+                            sent.add(request);
+                            ActionListener<BulkResponse> listener =
+                                    invocation.getArgument(1, ActionListener.class);
+                            if (call.getAndIncrement() == 0) {
+                                // What the transport does to a request it has taken over.
+                                request.requests().replaceAll(operation -> null);
+                                listener.onFailure(
+                                        new UnavailableShardsException(null, "primary shard is not active"));
+                            } else {
+                                listener.onResponse(bulkResponseWith(successItem(0), successItem(1)));
+                            }
+                            return null;
+                        })
+                .when(this.client)
+                .bulk(any(BulkRequest.class), any(ActionListener.class));
+
+        this.contentIndex.executeBulk(bulkOf("IOC-1", "IOC-2"));
+
+        Assert.assertEquals(2, sent.size());
+        Assert.assertEquals(2, sent.get(1).numberOfActions());
+        Assert.assertFalse(
+                "the retry must not carry cleared entries", sent.get(1).requests().contains(null));
+        Assert.assertEquals(0L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /** The batched-update path routes a topology failure through the longer schedule as well. */
+    public void testBatchUpdate_RetriesTopologyFailureOnTheLongerBudget() throws Exception {
+        this.stubMultiGet("R1");
+        List<BulkRequest> sent =
+                this.stubSyncBulkResponses(
+                        bulkResponseWith(topologyItem(0, "R1")), bulkResponseWith(successItem(0)));
+
+        long startMs = System.currentTimeMillis();
+        long result = this.contentIndex.batchUpdate(updateTasks("R1"));
+        long elapsedMs = System.currentTimeMillis() - startMs;
+
+        Assert.assertEquals(100L, result);
+        Assert.assertEquals(2, sent.size());
+        // The topology schedule opens at 5 s, not the shed schedule's 1 s.
+        Assert.assertTrue("elapsed was " + elapsedMs + "ms", elapsedMs >= 5000);
+    }
+
+    /**
+     * Collects the events a logger emits so a test can assert on the level a message was logged at.
+     * {@code MockLogAppender} from the test framework is not usable here: it rewrites expected logger
+     * names with an {@code org.opensearch.} prefix, so it cannot match this plugin's loggers.
+     */
+    private static final class CapturingAppender extends AbstractAppender implements AutoCloseable {
+
+        private final List<LogEvent> events = new CopyOnWriteArrayList<>();
+        private final Logger logger;
+
+        private CapturingAppender(Logger logger) {
+            super("capturing-" + logger.getName(), null, null, true, Property.EMPTY_ARRAY);
+            this.logger = logger;
+        }
+
+        /**
+         * Attaches a new appender to {@code clazz}'s logger. Close it (try-with-resources) to detach:
+         * Log4j configuration is global to the JVM, so a leaked appender would follow later tests.
+         */
+        static CapturingAppender attach(Class<?> clazz) {
+            CapturingAppender appender = new CapturingAppender(LogManager.getLogger(clazz));
+            appender.start();
+            Loggers.addAppender(appender.logger, appender);
+            return appender;
+        }
+
+        @Override
+        public void append(LogEvent event) {
+            this.events.add(event.toImmutable());
+        }
+
+        long count(Level level) {
+            return this.events.stream().filter(event -> event.getLevel() == level).count();
+        }
+
+        @Override
+        public void close() {
+            Loggers.removeAppender(this.logger, this);
+            super.stop();
+        }
     }
 }

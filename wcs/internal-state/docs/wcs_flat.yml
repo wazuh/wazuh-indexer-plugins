@@ -17,7 +17,7 @@ api_key:
   description: Encrypted API key used to authenticate against the provider. Only present
     on provider documents.
   flat_name: api_key
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: api_key
   normalize: []
@@ -28,7 +28,7 @@ base_url:
   description: Base URL of the provider's API. Only present on provider documents.
   example: https://api.anthropic.com
   flat_name: base_url
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: base_url
   normalize: []
@@ -41,7 +41,7 @@ field_policy.action:
     document.
   example: anonymize
   flat_name: field_policy.action
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: field_policy.action
   normalize: []
@@ -53,7 +53,7 @@ field_policy.field:
     Only present on the settings document.
   example: wazuh.agent.name
   flat_name: field_policy.field
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: field_policy.field
   normalize: []
@@ -65,7 +65,7 @@ field_policy.kind:
     on entries whose action is 'anonymize'. Only present on the settings document.
   example: HOST
   flat_name: field_policy.kind
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: field_policy.kind
   normalize: []
@@ -87,7 +87,7 @@ model:
   description: Model to request from the provider. Only present on provider documents.
   example: claude-opus-4-6
   flat_name: model
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: model
   normalize: []
@@ -99,7 +99,7 @@ name:
     documents.
   example: test-ai
   flat_name: name
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: name
   normalize: []
@@ -134,7 +134,7 @@ type:
   description: Provider implementation to use. Only present on provider documents.
   example: anthropic
   flat_name: type
-  ignore_above: 1024
+  ignore_above: 4096
   level: custom
   name: type
   normalize: []

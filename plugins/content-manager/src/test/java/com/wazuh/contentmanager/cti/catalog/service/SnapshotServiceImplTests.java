@@ -564,7 +564,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
      * executeBulk} must be invoked more than once.
      */
     public void testInitialize_ByteCapForcesAdditionalFlushes() throws Exception {
-        // Cap at the 1 MB floor; 10 docs of ~512 KB each => several flushes, well under the 999-doc
+        // Cap at the 1 MB floor; 10 docs of ~512 KB each => several flushes, well under the 1000-doc
         // count cap (the minimum allowed cap is 1 MB, so docs must be sized accordingly).
         long maxBulkBytes = 1L * 1024 * 1024;
         SnapshotServiceImpl service = serviceWithMaxBulkBytes(maxBulkBytes);

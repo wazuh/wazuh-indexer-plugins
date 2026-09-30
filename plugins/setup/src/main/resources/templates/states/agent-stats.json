@@ -18,7 +18,55 @@
     },
     "mappings": {
       "date_detection": false,
-      "dynamic": "true",
+      "dynamic": "strict_allow_templates",
+      "dynamic_templates": [
+        {
+          "agent_statistics_objects": {
+            "mapping": {
+              "type": "object"
+            },
+            "match_mapping_type": "object",
+            "path_match": "wazuh.agent.statistics.*"
+          }
+        },
+        {
+          "agent_statistics_booleans": {
+            "mapping": {
+              "type": "boolean"
+            },
+            "match_mapping_type": "boolean",
+            "path_match": "wazuh.agent.statistics.*"
+          }
+        },
+        {
+          "agent_statistics_longs": {
+            "mapping": {
+              "type": "long"
+            },
+            "match_mapping_type": "long",
+            "path_match": "wazuh.agent.statistics.*"
+          }
+        },
+        {
+          "agent_statistics_doubles": {
+            "mapping": {
+              "type": "double"
+            },
+            "match_mapping_type": "double",
+            "path_match": "wazuh.agent.statistics.*"
+          }
+        },
+        {
+          "agent_statistics_strings": {
+            "mapping": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "match_mapping_type": "string",
+            "path_match": "wazuh.agent.statistics.*"
+          }
+        }
+      ],
       "properties": {
         "message": {
           "type": "match_only_text"
@@ -38,7 +86,7 @@
             "agent": {
               "properties": {
                 "id": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "statistics": {
@@ -56,7 +104,7 @@
                           }
                         },
                         "status": {
-                          "ignore_above": 1024,
+                          "ignore_above": 4096,
                           "type": "keyword"
                         },
                         "tasks": {
@@ -102,7 +150,7 @@
                                   "type": "long"
                                 },
                                 "location": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "targets": {
@@ -111,7 +159,7 @@
                                       "type": "long"
                                     },
                                     "name": {
-                                      "ignore_above": 1024,
+                                      "ignore_above": 4096,
                                       "type": "keyword"
                                     }
                                   }
@@ -137,7 +185,7 @@
                                   "type": "long"
                                 },
                                 "location": {
-                                  "ignore_above": 1024,
+                                  "ignore_above": 4096,
                                   "type": "keyword"
                                 },
                                 "targets": {
@@ -146,7 +194,7 @@
                                       "type": "long"
                                     },
                                     "name": {
-                                      "ignore_above": 1024,
+                                      "ignore_above": 4096,
                                       "type": "keyword"
                                     }
                                   }
@@ -167,11 +215,11 @@
             "cluster": {
               "properties": {
                 "name": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "node": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }
@@ -179,7 +227,7 @@
             "schema": {
               "properties": {
                 "version": {
-                  "ignore_above": 1024,
+                  "ignore_above": 4096,
                   "type": "keyword"
                 }
               }

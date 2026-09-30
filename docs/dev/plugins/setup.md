@@ -293,9 +293,16 @@ public IndexStateManagement(String index, String template) {
 ## Additional notes
 Always follow existing naming conventions to maintain consistency.
 
-Use epoch timestamps (in milliseconds) for `last_updated_time` fields.
+Use epoch timestamps (in milliseconds) for `last_updated_time` fields. Update the policy's one whenever you change the policy, and keep it in the past: `IndexStateManagement.indexPolicy()` copies it into every `ism_template` entry before indexing the policy, and ISM applies a template only to indices created after that timestamp. A template without it is stamped with the current time on every read, so it matches no index at all.
 
 ISM policies and templates must be properly deployed before the indices are created.
+
+`IndexStateManagement.initialize()` runs on every cluster-manager election, and `indexPolicy()`
+writes each policy with a plain `IndexRequest` keyed by policy id, so **the six shipped policies
+are overwritten on every restart**. Any edit an operator makes to one of them through the ISM API
+is reverted on the next boot. This is why
+[Retention](../../ref/modules/setup/retention.md#opting-in-to-a-hard-time-ceiling) tells operators
+to create a policy under their own id rather than editing a shipped one.
 
 ---
 
@@ -368,13 +375,13 @@ new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-s
 
 ### Overview
 
-The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It combines rollover (based on shard size or document count) with a short retention period to ensure timely cleanup of processed event data.
+The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It combines rollover (based on shard size or document count) with deletion of rolled-over indices once they reach a minimum age. See [Retention](../../ref/modules/setup/retention.md) for the effective retention this yields.
 
 ### Policy details
 - **Policy Name**: `stream-events-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-events-policy.json`
 - **Index Pattern**: `wazuh-events-v5-*`
-- **Retention Period**: 1 hour
+- **Deletion age (floor)**: 1 hour
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -382,7 +389,7 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` after 1 hour
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 1 hour
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -394,13 +401,13 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 
 ### Overview
 
-The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. It combines rollover with a 90-day retention period to maintain detection findings for compliance and investigation purposes.
+The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. It combines rollover with deletion of rolled-over indices once they reach 90 days of age, to maintain detection findings for compliance and investigation purposes. See [Retention](../../ref/modules/setup/retention.md).
 
 ### Policy details
 - **Policy Name**: `stream-findings-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-findings-policy.json`
 - **Index Pattern**: `wazuh-findings-v5-*`
-- **Retention Period**: 90 days
+- **Deletion age (floor)**: 90 days
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -408,7 +415,7 @@ The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. I
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` after 90 days
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 90 days
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -420,13 +427,13 @@ The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. I
 
 ### Overview
 
-The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream with an aggressive 10-minute retention for temporary raw event storage.
+The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream. Rolled-over indices are deleted once they reach 10 minutes of age. Note that the write index only rolls over on volume, so raw events are not bounded in time — see [Retention](../../ref/modules/setup/retention.md).
 
 ### Policy details
 - **Policy Name**: `stream-raw-events-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-raw-events-policy.json`
 - **Index Pattern**: `wazuh-events-raw-v5*`
-- **Retention Period**: 10 minutes
+- **Deletion age (floor)**: 10 minutes
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -434,7 +441,7 @@ The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream w
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` after 10 minutes
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 10 minutes
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -483,7 +490,7 @@ The **wazuh-active-responses** data stream stores Active Response execution requ
 #### Policy details
 - **Policy Name**: `stream-active-responses-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-active-responses-policy.json`
-- **Retention Period**: 3 days
+- **Deletion age (floor)**: 3 days
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -506,13 +513,13 @@ Integration tests for the active responses data stream are located at:
 
 ### Overview
 
-The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh-metrics-agents`, `wazuh-metrics-comms-v4`, `wazuh-metrics-normalization`) with a 30-day retention period.
+The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh-metrics-agents`, `wazuh-metrics-comms-v4`, `wazuh-metrics-normalization`). Rolled-over indices are deleted once they reach 30 days of age. See [Retention](../../ref/modules/setup/retention.md).
 
 ### Policy details
 - **Policy Name**: `stream-metrics-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-metrics-policy.json`
 - **Index Pattern**: `wazuh-metrics-*`
-- **Retention Period**: 30 days
+- **Deletion age (floor)**: 30 days
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -520,7 +527,7 @@ The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` after 30 days
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 30 days
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -658,9 +665,39 @@ The AI assistant stores its conversation history in the **`wazuh-ai-assistant-se
 
 #### Access control
 
-Access is granted by the `wazuh_ai_assistant` role, defined in the `wazuh-indexer` repository and mapped to every authenticated user. Reads are filtered with DLS parameter substitution (`{"term": {"user": "${user.name}"}}`), so a user only retrieves their own conversations; writes carry no DLS query. The restriction also applies to users holding a role that grants `read` on the `*` index pattern.
+Access is granted by the `wazuh_ai_assistant` role, defined in the `wazuh-indexer` repository and mapped to every authenticated user. Reads are filtered with DLS parameter substitution (`{"term": {"user": "${user.name}"}}`), so a user only retrieves their own conversations. The restriction also applies to users holding a role that grants `read` on the `*` index pattern.
 
-Sessions are read and written by each user directly against the data stream, under that per-owner DLS; the setup plugin exposes no administrative API over them.
+**Reads and writes are scoped differently on purpose.** DLS is a read-path filter and cannot scope a write: no role syntax can express "this document's `user` must equal your name". An index-level `write` grant on this data stream would therefore be unscoped, and every authenticated user holds this role.
+
+So the role grants **no index-level `write`**. Sessions are still *read* directly against the data stream, under the per-owner DLS, but every write goes through the session API below, gated by the `plugin:wazuh/ai_assistant/session/write` cluster permission, which derives `user` from the authenticated principal. That is also what the read filter depends on: `user` is only meaningful to filter on because the server, not the client, decides it.
+
+#### Session write API
+
+| Endpoint | Method | Cluster permission | Backed by |
+| --- | --- | --- | --- |
+| `/_plugins/_setup/ai_assistant/sessions` | `POST` | `plugin:wazuh/ai_assistant/session/write` | `PutAiAssistantSessionAction` / `TransportPutAiAssistantSessionAction`, `Operation.CREATE` |
+| `/_plugins/_setup/ai_assistant/sessions/{id}` | `PUT` | same | same action, `Operation.UPDATE` |
+| `/_plugins/_setup/ai_assistant/sessions/{id}` | `PATCH` | same | same action, `Operation.RENAME` |
+| `/_plugins/_setup/ai_assistant/sessions/{id}` | `DELETE` | same | same action, `Operation.DELETE` |
+
+There is deliberately **no read endpoint and no `session/read` permission**. Listing sessions and reading a transcript are plain DLS-scoped searches, and OpenSearch already provides search, sorting, pagination, `track_total_hits` and source filtering; putting an endpoint in front of that would be reimplementing the search API for nothing. The consequence to accept is that the index mapping stays part of the Dashboard's contract.
+
+`TransportPutAiAssistantSessionAction` resolves the caller from the `_opendistro_security_user_info` thread-context transient (`com.wazuh.setup.utils.AuthenticatedUser`) **before** stashing the context, stamps it onto `user`, and only then calls `AiAssistantSessionsIndex` with the plugin's own privileges. Every lookup behind `PUT`/`PATCH`/`DELETE` filters on that same resolved owner, so a session belonging to somebody else simply is not found — reported as `404`, never `403`, since a `403` would confirm that another user's session id exists. There is no impersonation and no administrative override, not even for `all_access`, which preserves the DLS behaviour that already applied to `admin`.
+
+Three data-stream mechanics shape the implementation, all of them platform constraints rather than choices:
+
+- **A get-by-id is unusable.** The backing index rolls over daily and the get API targets exactly one concrete index. `findHit` searches the stream instead, which fans out across every backing index and reports the one holding the document (`hit.getIndex()`), together with the `seq_no`/`primary_term` pair the following write needs — one round trip for all three facts.
+- **Update and delete must target the backing index**, never the stream name, which accepts appends only. And they must be a full `index` replace: the partial `_update` API is refused outright wherever DLS applies to the role (`security_exception: Update is not supported when FLS or DLS or Fieldmasking is activated`).
+- **Optimistic concurrency is mandatory.** A backing index rejects an unconditional write (`illegal_argument_exception: index request with op_type=index and no if_primary_term and if_seq_no set targeting backing indices is disallowed`), so every write carries a pair — the caller's `expected_version` when it sent a decodable one, otherwise the pair the request just read. The `version` the API returns is that pair encoded as `"<seq_no>:<primary_term>"`, opaque to clients. A genuine mismatch is a `409`, never retried: retrying with a freshly read pair is exactly the silent overwrite `expected_version` exists to prevent.
+
+Request bodies are capped at **5 MiB** on every write route, checked against the raw payload before
+parsing so an oversized body never becomes a map in heap. `MAX_MESSAGES` (1000) bounds the number of
+turns but not their size, and the fallback ceiling would otherwise be `http.max_content_length`
+(100MB), which would leave the 500-session per-owner cap meaningless as a storage bound.
+
+Two smaller rules worth knowing: `PATCH` deliberately does **not** re-stamp `updated_at` (a rename is not session activity, and bumping it would reorder a list sorted by last activity), and `PUT`'s `title` is optional (a chat client auto-saves every turn, and resending a recomputed title would silently revert a rename the user had just made). Every write uses `RefreshPolicy.WAIT_UNTIL`, because every read here is a search and a search only sees a write after the shard refreshes.
+
+With the security plugin absent — the `integTest` cluster — there is no transient and the owner resolves to the `_shared` sentinel, treated as a real owner rather than as a bypass, so the tests exercise the whole stamp-and-scope path. See `AiAssistantSessionsIT` and `TransportPutAiAssistantSessionActionTests`.
 
 ### Settings, field policy and providers (`.wazuh-internal-state`)
 
@@ -722,7 +759,7 @@ Example documents:
 - **Policy Name**: `ai-assistant-sessions-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/ai-assistant-sessions-policy.json`
 - **Index Patterns**: `.ds-wazuh-ai-assistant-sessions-*`, `wazuh-ai-assistant-sessions*`
-- **Retention Period**: 7 days
+- **Deletion age (floor)**: 7 days
 - **Rollover Conditions**: index age of 1 day (daily rotation), or 20 GB primary shard size / 200,000,000 documents, whichever comes first
 - **ISM template priority**: 0
 
@@ -730,7 +767,7 @@ Example documents:
 
 1. **Hot State**
    - Actions: Rollover when the index is 1 day old, or reaches 20 GB / 200M documents
-   - Transition Condition: Transitions to `delete` after 7 days
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 7 days
 
 2. **Delete State**
    - Actions: Deletes the index

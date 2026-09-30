@@ -24,25 +24,25 @@
           "type": "keyword"
         },
         "api_key": {
-          "ignore_above": 1024,
+          "ignore_above": 4096,
           "type": "keyword"
         },
         "base_url": {
-          "ignore_above": 1024,
+          "ignore_above": 4096,
           "type": "keyword"
         },
         "field_policy": {
           "properties": {
             "action": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "field": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             },
             "kind": {
-              "ignore_above": 1024,
+              "ignore_above": 4096,
               "type": "keyword"
             }
           }
@@ -51,11 +51,11 @@
           "type": "boolean"
         },
         "model": {
-          "ignore_above": 1024,
+          "ignore_above": 4096,
           "type": "keyword"
         },
         "name": {
-          "ignore_above": 1024,
+          "ignore_above": 4096,
           "type": "keyword"
         },
         "privacy_default_on": {
@@ -65,7 +65,7 @@
           "type": "flat_object"
         },
         "type": {
-          "ignore_above": 1024,
+          "ignore_above": 4096,
           "type": "keyword"
         },
         "updated_at": {
