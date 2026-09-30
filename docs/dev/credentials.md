@@ -65,7 +65,7 @@ Which case applies is decided entirely by what is present, with no mode flag —
 
 The Subject Alternative Names default to the hostname, the FQDN, loopback and the global addresses of default-route interfaces. `WAZUH_INDEXER_CERT_SANS` replaces that list wholesale.
 
-The subject is `/C=US/L=California/O=Wazuh/OU=Wazuh/CN=<node>`, the same order `wazuh-certs-tool.sh` uses. The order matters: the Security plugin compares the rendered Distinguished Name, so a deployment that replaces the package certificates with the tool's own keeps the DNs already written into `opensearch.yml` valid.
+The package and `wazuh-certs-tool.sh` issue these certificates with the same subject, in the same order. That order is part of the contract, not a detail: the Security plugin compares the rendered Distinguished Name, so a deployment that replaces the package certificates with the tool's own keeps the DNs already written into `opensearch.yml` valid only while both agree.
 
 ### Distinguished names
 
