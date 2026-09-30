@@ -201,6 +201,8 @@ chmod 400 /etc/wazuh-indexer/certs/*
 chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
 ```
 
+The Distinguished Names already written into `/etc/wazuh-indexer/opensearch.yml` stay valid, because the certificates tool and the package issue certificates with the same subject format. If you deploy certificates from your own PKI instead, set `plugins.security.nodes_dn` and `plugins.security.authcz.admin_dn` to the subjects of the certificates you deployed; `indexer-security-init.sh` warns when the admin certificate is not among them.
+
 #### Set up Wazuh Indexer in your environment
 
 Follow the instructions in the [Configuration](../../ref/configuration/index.md) section to set up Wazuh Indexer in your environment.
