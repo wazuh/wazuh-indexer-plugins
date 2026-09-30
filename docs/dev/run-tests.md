@@ -92,7 +92,7 @@ Built packages are tested by the [package builder Workflow](https://github.com/w
 The tests cover:
 
 - **Installation and removal** — the package installs, and removes (DEB: purges) without errors.
-- **Removal leftovers** — `build-scripts/ci/test_purge.sh`: after a purge, no `wazuh-indexer` user or group and no file with an orphaned owner is left, what the service account owned belongs to root, a reinstall takes it back, and the account is kept when a file cannot be handed over or `opensearch.yml`'s paths cannot be read for certain. See [When the package is purged](packages.md#when-the-package-is-purged).
+- **Removal leftovers** — `build-scripts/ci/test_purge.sh`: a purge always removes the `wazuh-indexer` user and group; what the service account owned in the package's four directories belongs to root with no group or other access, so no file there is left with an orphaned owner; a custom `path.repo` is left exactly as it was; a directory that cannot be handed over is reported and not listed as kept; and a reinstall takes the four directories back. See [When the package is purged](packages.md#when-the-package-is-purged).
 - **Credential and TLS resolution** — `build-scripts/ci/test_credentials.sh`. See [Credential and TLS resolution](packages.md#credential-and-tls-resolution).
 - **Upgrades** — from the previous version, with the indexer stopped and running. Only when a previous version exists.
 - **4.x upgrade block** — `build-scripts/ci/test_upgrade_block.sh`: the package refuses to upgrade a 4.x installation.

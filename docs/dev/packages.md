@@ -9,15 +9,28 @@ Everything described here lives in the [`wazuh-indexer`](https://github.com/wazu
 repository, and every path on this page is relative to it: the build tooling is in
 `build-scripts/`, the package definitions and maintainer scripts in `distribution/packages/src/`.
 
-- [Supported systems](#supported-systems)
-- [How a package is built](#how-a-package-is-built)
-- [Package naming](#package-naming)
-- [Continuous integration](#continuous-integration)
-- [Testing](#testing)
-- [Maintainer scripts](#maintainer-scripts)
-- [Credential and TLS resolution](#credential-and-tls-resolution)
-- [File ownership](#file-ownership)
-- [Host dependencies](#host-dependencies)
+- [Packages](#packages)
+  - [Supported systems](#supported-systems)
+  - [How a package is built](#how-a-package-is-built)
+    - [Build](#build)
+    - [Assemble](#assemble)
+    - [The Docker builder](#the-docker-builder)
+    - [The artifacts directory](#the-artifacts-directory)
+  - [Package naming](#package-naming)
+  - [Continuous integration](#continuous-integration)
+  - [Testing](#testing)
+  - [Maintainer scripts](#maintainer-scripts)
+    - [Upgrades keep the service state](#upgrades-keep-the-service-state)
+    - [Configuration files](#configuration-files)
+    - [Further reading](#further-reading)
+  - [Credential and TLS resolution](#credential-and-tls-resolution)
+    - [Resolution happens once](#resolution-happens-once)
+    - [How a password reaches the cluster](#how-a-password-reaches-the-cluster)
+    - [Resolver modes](#resolver-modes)
+    - [Certificate resolution](#certificate-resolution)
+  - [File ownership](#file-ownership)
+    - [When the package is purged](#when-the-package-is-purged)
+  - [Host dependencies](#host-dependencies)
 
 ## Supported systems
 
@@ -374,11 +387,11 @@ The same reasoning applies outside the product tree. `/etc/default/wazuh-indexer
 
 ### When the package is purged
 
-A purge (DEB `purge`, RPM erase) deletes the `wazuh-indexer` user and group, and that frees their
-IDs. The next system account created would inherit them, and with them anything still on disk that
-they own: the certificates and their private keys, the keystore, the logs and the indexed data,
-none of which the purge deletes. So before `userdel` runs, the purge hands every file the account or
-its group owns over to root:
+A purge (DEB `purge`, RPM erase) always deletes the `wazuh-indexer` user and group. That frees
+their IDs: the next system account created would inherit them, and with them anything still on
+disk that they own — the certificates and their private keys, the keystore, the logs and the
+indexed data, none of which the purge deletes. So before `userdel` runs, the purge hands every file
+the account or its group owns in the package's own directories over to root:
 
 - Files owned by `wazuh-indexer` become `root:root`, with group and other access removed
   (`go-rwx`).
@@ -386,39 +399,31 @@ its group owns over to root:
 - `find -P` and `chown -h` change symlinks themselves, and `chmod` never sees one, so a link the
   service account planted cannot aim the purge at another file.
 
-It walks the default directories (`/etc/wazuh-indexer`, `/var/lib/wazuh-indexer`,
-`/var/log/wazuh-indexer`, `/usr/share/wazuh-indexer`, `/run/wazuh-indexer`) plus every directory
-`opensearch.yml` points the node at: `path.home`, `path.data`, `path.logs`, `path.repo` and
-`path.shared_data`. That file is a conffile, already gone when `postrm purge` runs, so `prerm` /
-`%preun` first records those paths in `/var/lib/wazuh-indexer/.data-paths`.
+The package's own directories are these four, and only these:
 
-The paths are read by `bin/ListDataPaths.java`, run with the bundled Java Development Kit (JDK) in
-source-file mode and `lib/*` on the class path. It loads the file with OpenSearch's own settings
-loader and reads the `Environment` settings, so it accepts exactly what the node accepts: flat or
-nested keys, a single value or a list. It prints nothing and fails when it cannot say for certain:
-an unreadable or invalid file, a relative path, or a `${...}` placeholder the node would resolve
-from its own environment. `prerm` then records `unknown`, and the purge keeps the user and group,
-still handing over the default directories. Null values elsewhere in the file are accepted, since
-an empty admin DN before the credentials are resolved says nothing about where data lives.
+- `/etc/wazuh-indexer` — configuration
+- `/usr/share/wazuh-indexer` — home
+- `/var/lib/wazuh-indexer` — data
+- `/var/log/wazuh-indexer` — logs
 
-The record is only ever read as a list of paths, never sourced: a service account able to rewrite
-it can at most make the purge touch files that it or its group already own, or keep the account.
-The helper itself sits in the root-owned product tree, like `resolve-credentials.sh`, because root
-runs it.
+**Nothing outside them is touched**, including a custom `path.data`, `path.logs` or `path.repo`.
+Such a directory is not necessarily this node's alone: a shared file system (`fs`) snapshot
+repository is mounted on every node of the cluster, and handing it over to root on the node being
+purged would stop the others from writing snapshots. Files there keep the removed account's ID.
+Handling them is the operator's job, and the purge prints a note saying so every time it runs.
 
-If any handover fails, on a read-only mount or a network file system that squashes root, say, the
-user and group are kept, so their IDs stay reserved, and the purge names the directories it could
-not hand over.
+If a handover fails, on a read-only mount or a network file system that squashes root, say, the
+purge names the directory and still deletes the user and group. A directory is reported as kept
+for root only when its handover succeeded.
 
-Nothing is deleted. On a reinstall, `postinst` / `%post` take the default directories back with the
-`chown -R` they already run. A directory outside them is taken back only by the operator, and the
-purge prints the command to do it. What the operator sees is described in
+Nothing is deleted. On a reinstall, `postinst` / `%post` take the four directories back with the
+`chown -R` they already run. What the operator sees is described in
 [Uninstall](../ref/uninstall.md).
 
-**A directory the service writes outside those locations must be added to the purge's list**, in
-the DEB `postrm` and in the spec's `%postun`, or its files are left with an orphaned owner.
-`build-scripts/ci/test_purge.sh` asserts that no file with an orphaned owner is left, but only in
-the directories it knows about.
+**A directory the package itself creates outside those four must be added to the purge's list**,
+in the DEB `postrm` and in the spec's `%postun`, or its files are left with an orphaned owner.
+`build-scripts/ci/test_purge.sh` asserts that no file with an orphaned owner is left in the four
+directories, and that a custom `path.repo` is left exactly as it was.
 
 ## Host dependencies
 

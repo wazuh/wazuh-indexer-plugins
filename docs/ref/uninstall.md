@@ -28,15 +28,14 @@ yum remove wazuh-indexer -y
 
 ## What a purge keeps
 
-A purge never deletes indexed data. These files stay on disk:
+A purge never deletes indexed data. It manages the package's own directories, and only these:
 
-- the node and admin certificates, including their private keys, in `/etc/wazuh-indexer/certs/`
-- the keystore, `/etc/wazuh-indexer/opensearch.keystore`
-- the indexed data, in `/var/lib/wazuh-indexer/`
-- the logs, in `/var/log/wazuh-indexer/`
-- any directory set in `path.home`, `path.data`, `path.logs`, `path.repo` or `path.shared_data`
+- `/etc/wazuh-indexer/` — the configuration, including the node and admin certificates with their private keys, and the keystore
+- `/usr/share/wazuh-indexer/` — the installation
+- `/var/lib/wazuh-indexer/` — the indexed data
+- `/var/log/wazuh-indexer/` — the logs
 
-Before it removes the `wazuh-indexer` user and group, the purge makes `root` the owner of these files and removes group and other access from them. The user's ID is then free for the system to give to another account, but that account cannot read anything the Wazuh indexer left behind.
+Before it removes the `wazuh-indexer` user and group, the purge makes `root` the owner of what the Wazuh indexer left in these directories and removes group and other access from it. The user's ID is then free for the system to give to another account, but that account cannot read anything left there.
 
 The purge lists every directory it kept:
 
@@ -44,56 +43,58 @@ The purge lists every directory it kept:
 Kept /var/lib/wazuh-indexer, now owned by root. Reinstalling wazuh-indexer takes it back.
 ```
 
-For a directory set in one of those settings outside the default locations, it prints the command to run before a new installation uses it:
+If a file cannot be given to `root`, for example because the directory is on a read-only file system, the purge names the directory instead of listing it as kept, and still removes the user and group:
 
 ```
-/srv/snapshots now belongs to root. Before a new wazuh-indexer installation uses it, run: chown -R wazuh-indexer:wazuh-indexer /srv/snapshots
+Some files under /var/log/wazuh-indexer could not be handed over to root; they keep the ID of the removed wazuh-indexer user.
 ```
+
+Give those files to `root` yourself once the file system is writable:
+
+```bash
+chown -R root:root /var/log/wazuh-indexer
+chmod -R go-rwx /var/log/wazuh-indexer
+```
+
+### Directories outside the default locations
+
+The purge does not touch any directory set in `opensearch.yml` outside the four above, such as a custom `path.data`, `path.logs` or `path.repo`. Such a directory can be shared with the other nodes of the cluster, as a shared file system snapshot repository must be, so changing it on the node being purged could break them. Its files keep the ID of the removed `wazuh-indexer` user, and an account created later can be given that ID. The purge reminds you every time it runs:
+
+```
+Note: the package only manages /etc/wazuh-indexer, /usr/share/wazuh-indexer, /var/lib/wazuh-indexer and /var/log/wazuh-indexer.
+Directories set elsewhere in opensearch.yml (a custom path.data, path.logs or path.repo) are left as they are, still owned by the ID of the removed wazuh-indexer user.
+```
+
+Handling these directories is up to you, before or after the purge. Delete the ones you no longer need. Give the ones only this node used, and that you want to keep, to `root`:
+
+```bash
+chown -R root:root /srv/indexer-data
+chmod -R go-rwx /srv/indexer-data
+```
+
+Leave a snapshot repository that other nodes still use as it is.
 
 ### Shared credentials
 
 The purge removes the Wazuh indexer's passwords from `/etc/wazuh/credentials.env` (see [Retrieving the generated credentials](getting-started/installation.md#retrieving-the-generated-credentials)) and leaves the other components' passwords in place. When no component's passwords are left, it also removes the root CA from `/etc/wazuh/ca/`.
 
-### When the user and group are kept
-
-The purge keeps the `wazuh-indexer` user and group, so that no other account can take their IDs, in two cases:
-
-- A file cannot be given to `root`, for example because it is on a read-only file system:
-
-  ```
-  Some files owned by wazuh-indexer under /srv/snapshots could not be handed over to root; keeping the wazuh-indexer user and group so their IDs are not reused.
-  ```
-
-- The purge cannot tell for certain which directories `opensearch.yml` configured: the file could not be read, or one of the settings above holds a relative path or a `${...}` placeholder:
-
-  ```
-  Could not read where opensearch.yml kept data, logs and snapshots; keeping the wazuh-indexer user and group so their IDs are not reused.
-  ```
-
-  The default directories are still given to `root`. The directories you configured are not, so find them in your own records of the configuration.
-
-To finish the removal, make the files writable if needed, give them to `root`, then delete the user and the group:
-
-```bash
-chown -R root:root /srv/snapshots
-chmod -R go-rwx /srv/snapshots
-userdel wazuh-indexer
-groupdel wazuh-indexer
-```
-
 ## Reinstalling after a purge
 
-Installing the package again gives the kept files in the default locations back to the `wazuh-indexer` user, and the node uses the certificates it finds in `/etc/wazuh-indexer/certs/` instead of issuing new ones.
+Installing the package again gives the files kept in the four directories back to the `wazuh-indexer` user, and the node uses the certificates it finds in `/etc/wazuh-indexer/certs/` instead of issuing new ones.
 
-Directories outside the default locations are not given back. Set them in `opensearch.yml` again, then run the `chown` command the purge printed for each one.
+A directory outside them is not given back. Set it in `opensearch.yml` again, then give it to the new user:
+
+```bash
+chown -R wazuh-indexer:wazuh-indexer /srv/indexer-data
+```
 
 ## Deleting everything
 
-To remove the Wazuh indexer and all its data for good, purge the package, then delete the directories it kept, including any you set in `opensearch.yml`:
+To remove the Wazuh indexer and all its data for good, purge the package, then delete the directories it kept, and any directory you set in `opensearch.yml` that no other node uses:
 
 ```bash
 apt-get purge wazuh-indexer -y   # or: yum remove wazuh-indexer -y
-rm -rf /etc/wazuh-indexer/ /var/lib/wazuh-indexer/ /var/log/wazuh-indexer/
+rm -rf /etc/wazuh-indexer/ /usr/share/wazuh-indexer/ /var/lib/wazuh-indexer/ /var/log/wazuh-indexer/
 ```
 
 This cannot be undone: it deletes the indexed data and the certificates' private keys.
