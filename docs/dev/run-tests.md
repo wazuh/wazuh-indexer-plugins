@@ -84,10 +84,20 @@ Refer to its `README.md` for setup and usage instructions.
 
 ## Package testing
 
-Smoke tests on built packages are run via [GitHub Actions Workflows](https://github.com/wazuh/wazuh-indexer/blob/main/.github/workflows/5_builderpackage_indexer.yml). These install packages on supported operating systems:
+Built packages are tested by the [package builder Workflow](https://github.com/wazuh/wazuh-indexer/blob/main/.github/workflows/5_builderpackage_indexer.yml), each test in a throwaway container:
 
-- **DEB packages** — installed on the Ubuntu 24.04 GitHub Actions runner.
-- **RPM packages** — installed in a Red Hat 9 Docker container.
+- **DEB packages** — an Ubuntu 22.04 container running systemd, started by `build-scripts/run_in_systemd_container.sh`.
+- **RPM packages** — Red Hat UBI 9 containers: `redhat/ubi9`, or `redhat/ubi9-init` when the test needs systemd, through the same script with `SYSTEMD_IMAGE` set.
+
+The tests cover:
+
+- **Installation and removal** — the package installs, and removes (DEB: purges) without errors.
+- **Removal leftovers** — `build-scripts/ci/test_purge.sh`: a purge always removes the `wazuh-indexer` user and group; what the service account owned in the package's four directories belongs to root and keeps its mode, and the directories are closed to everyone but root; the certificates issued from the removed CA go with it, and an operator's own pair stays; a custom `path.repo` is left exactly as it was; a directory that cannot be handed over is reported and not listed as kept; a reinstall restores every owner and mode, and the node's certificates chain to its CA; and the resolver refuses a pair the CA did not issue. See [When the package is purged](packages.md#when-the-package-is-purged).
+- **Credential and TLS resolution** — `build-scripts/ci/test_credentials.sh`. See [Credential and TLS resolution](packages.md#credential-and-tls-resolution).
+- **Upgrades** — from the previous version, with the indexer stopped and running. Only when a previous version exists.
+- **4.x upgrade block** — `build-scripts/ci/test_upgrade_block.sh`: the package refuses to upgrade a 4.x installation.
+
+Each script documents its requirements in its header and can also be run on a throwaway VM.
 
 ## Useful test flags
 
