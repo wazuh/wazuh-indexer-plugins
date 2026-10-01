@@ -31,7 +31,7 @@ The detail of the fields can be found in csv file [States inventory ports Fields
 | local_port     | long    | Local port number.                                             | destination.port           | FALSE  |
 | inode          | long    | Inode associated with the connection.                          | file.inode                 | FALSE  |
 | tx_queue       | long    | Transmit queue length.                                         | host.network.egress.queue  | TRUE   |
-| rx_queue       | long    | Receive queue length.                                          | host.network.ingress.queue | FALSE  |
+| rx_queue       | long    | Receive queue length.                                          | host.network.ingress.queue | TRUE   |
 | state          | string  | Connection state (e.g., LISTEN, ESTABLISHED).                  | interface.state            | TRUE   |
 | protocol       | string  | Transport protocol (TCP/UDP).                                  | network.transport          | FALSE  |
 | process        | string  | Name of the process using the port.                            | process.name               | FALSE  |

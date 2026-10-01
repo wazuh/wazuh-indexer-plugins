@@ -25,13 +25,17 @@ The following fields are available under `wazuh.case` in the findings data strea
 - **`wazuh.case.severity`** (`keyword`) — one of `informational`, `low`, `medium`, `high`, `critical` (lowercase).
 - **`wazuh.case.priority`** (`keyword`) — one of `low`, `medium`, `high`, `urgent` (lowercase).
 - **`wazuh.case.tlp`** (`keyword`) — Traffic Light Protocol classification. One of `TLP:RED`, `TLP:AMBER`, `TLP:GREEN`, `TLP:CLEAR` — uppercase, with the `TLP:` prefix, unlike the other enum fields.
-- **`wazuh.case.comments`** (`nested`) — array of comment objects (replaces the earlier single `comment` field). Each comment has:
+- **`wazuh.case.created_at`** (`date`) — when the case was created.
+- **`wazuh.case.updated_at`** (`date`) — when the case was last updated.
+- **`wazuh.case.comments`** (array of objects) — the comment thread (replaces the earlier single `comment` field). Each comment has:
   - **`wazuh.case.comments.author`** (`keyword`) — the user who wrote the comment.
   - **`wazuh.case.comments.created_at`** (`date`) — when the comment was created.
   - **`wazuh.case.comments.updated_at`** (`date`) — when the comment was last edited.
   - **`wazuh.case.comments.comment`** (`match_only_text`) — the comment text.
 
 A case with a single comment is represented as a one-element `comments` array — there's no separate single-comment shape.
+
+The update endpoint normalizes the enum fields before storing them: `status`, `severity` and `priority` are lowercased and `tlp` is uppercased, so a request sending `"status": "ACKNOWLEDGED"` stores `acknowledged`. A value outside the lists above, or any key not listed here, is rejected.
 
 ## Updating findings
 
@@ -76,11 +80,11 @@ PUT /_plugins/_security_analytics/findings/_update
 }
 ```
 
-> **Note:** The fields `user.name`, `comments[].created_at`, and `comments[].updated_at` are automatically managed by the Wazuh Dashboard. They should not be set manually.
+> **Note:** The fields `user.name`, `created_at`, `updated_at`, `comments[].created_at`, and `comments[].updated_at` are automatically managed by the Wazuh Dashboard. They should not be set manually.
 
 - **`findings`** (required) — array of finding updates. Maximum size is controlled by `plugins.security_analytics.max_case_management_bulk_size` (default `10`, dynamic; see [Configuration](configuration.md)). Setting it to `0` disables this endpoint entirely — every request is rejected with `400 Bad Request`.
 - **`findings[]._id`** (required) — document ID of the finding.
-- **`findings[]._index`** (required) — index where the finding is stored.
+- **`findings[]._index`** (required) — backing index where the finding is stored, as returned in the `_index` of a search hit (for example `.ds-wazuh-findings-v5-security-000001`). The data stream name (`wazuh-findings-v5-security`) is not accepted: that item fails with `400` inside a `207` response.
 - **`findings[].case`** (required) — object with the case fields to set or update.
 
 All fields inside `case` are optional — you can update only the fields you need (partial update). To add a new comment without disturbing existing ones, submit the full `comments` array including the previous entries plus the new one; the update replaces the array rather than appending to it.
@@ -94,7 +98,7 @@ All fields inside `case` are optional — you can update only the fields you nee
   "items": [
     {
       "_id": "abc123",
-      "_index": "wazuh-findings-v5-threat-000001",
+      "_index": ".ds-wazuh-findings-v5-security-000001",
       "status": 200,
       "result": "updated"
     }
@@ -105,7 +109,7 @@ All fields inside `case` are optional — you can update only the fields you nee
 ### Error responses
 
 - **400** — invalid JSON, missing required fields, empty array, unknown or invalid `case` field, exceeding the configured bulk-size limit, or case management disabled (limit set to `0`).
-- **207** — partial failure; some items succeeded, some failed (e.g., document not found).
+- **207** — partial failure; some items succeeded, some failed (e.g., document not found, or `_index` naming the data stream instead of its backing index).
 
 ## Example: triage workflow
 
@@ -118,7 +122,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_
   -d '{
     "findings": [{
       "_id": "finding-001",
-      "_index": "wazuh-findings-v5-threat-000001",
+      "_index": ".ds-wazuh-findings-v5-security-000001",
       "case": {
         "title": "Suspicious SSH activity",
         "severity": "high",
@@ -141,7 +145,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_
   -d '{
     "findings": [{
       "_id": "finding-001",
-      "_index": "wazuh-findings-v5-threat-000001",
+      "_index": ".ds-wazuh-findings-v5-security-000001",
       "case": {
         "status": "completed",
         "comments": [
@@ -161,7 +165,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_
 
 ## Querying findings by case status
 
-Since `wazuh.case.status` is a `keyword` field, you can filter findings by status using standard queries:
+Since `wazuh.case.status` is a `keyword` field, you can filter findings by status using standard queries. Keyword matching is case-sensitive and the update endpoint always stores the status in lowercase, so query it in lowercase:
 
 ```bash
 # Get all acknowledged findings

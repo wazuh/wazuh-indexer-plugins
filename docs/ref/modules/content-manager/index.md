@@ -141,11 +141,11 @@ For the alias-backed blue/green storage details and the exact hidden/alias statu
 
 ## Wazuh Cloud subscription
 
-To synchronize content from the CTI API, the Wazuh Indexer requires a valid CTI access token. The token is registered via the REST API:
+To synchronize the content of a subscription plan from the CTI API, the Wazuh Indexer requires a valid CTI access token. The token is registered via the REST API:
 
 1. **Store credentials** by sending the CTI access token via `POST /_plugins/_content_manager/subscription`. The token is persisted in the `.wazuh-internal-state` hidden index and loaded into memory.
 2. The Content Manager uses the in-memory token for all CTI API requests.
-3. Without a registered token, sync operations return a `404 Token not found` error.
+3. Without a registered token, the instance synchronizes the public content: `GET /_plugins/_content_manager/subscription` reports the public plan and `"is_registered": false`.
 
 See [Subscription management](api.md#store-cti-credentials) in the API reference.
 

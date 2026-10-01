@@ -903,12 +903,12 @@ flowchart TD
     Indexer -->|Validate space| Check{space == draft?}
     Check -->|No| Error400[400 Bad Request]
     Check -->|Yes| DeleteSA[Delete draft resources from Security Analytics]
-    DeleteSAP --> DeleteCTI[Delete all draft documents from wazuh-threatintel-* indices]
+    DeleteSA --> DeleteCTI[Delete all draft documents from wazuh-threatintel-* indices]
     DeleteCTI --> RegenPolicy[Re-generate default draft policy]
     RegenPolicy --> OK[200 OK]
 ```
 
-Only the `draft` space can be reset. Attempting to reset any other space returns `400 Bad Request`. Failures in Security Analytics cleanup are logged but do not block the reset — the primary goal is clearing the content indices and regenerating the policy.
+Only the `draft` space can be reset. Attempting to reset any other space returns `400 Bad Request`. Failures to delete individual Security Analytics detectors, rules or integrations are logged but do not block the reset — the primary goal is clearing the content indices and regenerating the policy. If the Security Analytics request fails outright (for example, the draft integration lookup fails), the reset stops and returns an error.
 
 ---
 

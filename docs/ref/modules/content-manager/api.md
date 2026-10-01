@@ -195,9 +195,9 @@ The response fields are produced by the security plugin and are therefore camelC
 
 ### Get CTI subscription status
 
-Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public free plan is returned.
+Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public plan is returned.
 
-> If the stored token is rejected by the CTI API (e.g. expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public free plan as if the instance were unregistered.
+> If the stored token is rejected by the CTI API (e.g. expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public plan as if the instance were unregistered.
 
 #### Request
 
@@ -232,7 +232,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
 {
   "message": {
     "plan": {
-      "name": "Free",
+      "name": "Open",
       "is_public": true
     },
     "is_registered": false
@@ -284,7 +284,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 ### Trigger manual sync
 
-Triggers an immediate content synchronization with the CTI API. Requires a valid subscription.
+Triggers an immediate content synchronization with the CTI API. A registered instance synchronizes the content of its subscription plan; an unregistered one synchronizes the public content.
 
 #### Request
 
@@ -307,15 +307,6 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 }
 ```
 
-#### Example response (no credentials)
-
-```json
-{
-  "message": "Token not found. Please create a subscription before attempting to update.",
-  "status": 404
-}
-```
-
 #### Example response (update in progress)
 
 ```json
@@ -328,7 +319,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 #### Status codes
 
 - **202** — update request accepted for processing.
-- **404** — no access token registered.
+- **403** — on-demand updates are disabled (`plugins.content_manager.catalog.update_on_demand: false`); returned for every caller, regardless of role.
 - **409** — a content update is already in progress.
 - **500** — internal error during sync.
 
@@ -724,7 +715,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
     "status": "success",
     "rules_evaluated": 0,
     "rules_matched": 0,
-    "matches": [],
+    "matches": []
   }
 }
 ```
@@ -874,7 +865,7 @@ Rules follow the Sigma format with Wazuh extensions. See [Sigma Rules](../rulese
 
 Creates a new detection rule in the draft space. The rule is linked to the specified parent integration and validated by the Ruleset Management plugin.
 
-The rule is also synchronized to Ruleset Management, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
+The rule is also synchronized to Ruleset Management, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `space` field (e.g., `draft`) for cross-reference.
 
 #### Request
 
@@ -972,7 +963,7 @@ The `message` field contains the UUID of the created rule.
 #### Status codes
 
 - **201** — rule created.
-- **400** — missing fields, integration not in draft space, validation failure, or `max_rules` limit reached (default: 100).
+- **400** — missing fields, integration not in draft space, validation failure, or `max_rules` limit reached (default: 200).
 - **409** — a rule with the same title already exists in the space.
 - **500** — internal error or Ruleset Management unavailable.
 
@@ -1207,7 +1198,7 @@ resource:
 #### Status codes
 
 - **201** — decoder created.
-- **400** — missing `integration` field, integration not in draft space, Engine validation failure, or `max_decoders` limit reached (see [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field) if the failure mentions an unrecognized WCS field).
+- **400** — missing `integration` field, integration not in draft space, Engine validation failure, or `max_decoders` limit reached (default: 200). See [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field) if the failure mentions an unrecognized WCS field.
 - **500** — Engine unavailable or internal error.
 
 ---
@@ -1522,7 +1513,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 Creates a new integration in the draft space. An integration is a logical grouping of related rules, decoders, and KVDBs. The integration is validated against the Engine and registered with the Ruleset Management plugin.
 
-The integration is also synchronized to Ruleset Management, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
+The integration is also synchronized to Ruleset Management, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `space` field (e.g., `draft`) for cross-reference.
 
 #### Request
 
@@ -1980,7 +1971,7 @@ Returns a preview of changes that would be applied when promoting from the speci
 #### Example request
 
 ```bash
-curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
   "https://127.0.0.1:9200/_plugins/_content_manager/promote?space=draft"
 ```
 
@@ -2035,7 +2026,7 @@ For Draft → Test promotions, the changeset is forwarded to the local Wazuh Eng
 In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Ruleset Management plugin. For each promoted resource, a new document is created in the target space with:
 - A newly generated UUID as the primary ID.
 - A `document.id` field storing the original CTI document UUID for cross-reference.
-- A `source` field indicating the target space (e.g., "Test", "Custom").
+- A `space` field indicating the target space (e.g., `test`, `custom`).
 
 New resources (add operations) use `POST` to create these documents; existing resources (update operations) use `PUT` to update them in-place.
 
@@ -2174,7 +2165,7 @@ Returns whether there are newer versions of Wazuh available for download. The en
 #### Example request
 
 ```bash
-curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
   "https://127.0.0.1:9200/_plugins/_content_manager/version/check"
 ```
 

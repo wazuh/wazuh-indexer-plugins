@@ -10,7 +10,7 @@ The alerting pipeline follows a linear flow:
 2. The query results are evaluated against one or more **Triggers** — boolean conditions that determine whether an alert should fire.
 3. When a trigger condition is met, the monitor executes its configured **Actions** — typically sending a notification through the Notifications plugin.
 4. An **Alert** record is created to track the triggered condition through its lifecycle.
-5. For document-level monitors, **Findings** record which specific documents matched the monitor's queries. Findings are written whether or not the monitor defines a trigger, so a monitor with an empty trigger list still produces them.
+5. For document-level monitors, **Findings** record which specific documents matched the monitor's queries. Findings are generated whether or not the monitor defines a trigger, so a monitor with an empty trigger list still produces them. They are stored only when finding storage is enabled; see [Findings](#findings).
 
 ## Monitor types
 
@@ -28,7 +28,7 @@ The alerting pipeline follows a linear flow:
 The Active Response monitor type enforces stricter validation than standard document-level monitors:
 
 - Indices must match the `wazuh-findings-v5-*` prefix.
-- Schedule interval cannot exceed 60,000 milliseconds (1 minute).
+- The schedule must be an interval schedule (cron schedules are rejected), and the interval cannot exceed 60,000 milliseconds (1 minute).
 - Only `DocumentLevelTrigger` is accepted — other trigger types are rejected.
 - Actions must use the `per_alert` execution scope. A `per_execution` action is rejected, because each Active Response message carries a single `<doc_id>|<index>` reference and would answer only the first alert of a run.
 
@@ -68,13 +68,13 @@ Alerts transition through the following states:
 
 ## Findings
 
-Document-level monitors produce **findings** — records of individual documents that matched the monitor's trigger conditions. Each finding contains:
+Document-level monitors produce **findings** — records of individual documents that matched the monitor's queries. Each finding contains:
 
 - The matching document IDs and source index.
 - The queries (rules) that matched.
 - A timestamp of when the match was detected.
 
-Findings are stored in rolling indices (`.opensearch-alerting-finding-history-*`) with a default retention of 30 days.
+Findings are stored only when `plugins.alerting.alert_finding_enabled` is `true`, which is off by default. Stored findings go to rolling indices (`.opensearch-alerting-finding-history-*`) and are deleted after 60 days by default; see [Alerting indices](#alerting-indices).
 
 These raw alerting findings are not the same as the findings surfaced in the Wazuh context. Detectors managed by the [Ruleset Management](../ruleset-management/index.md) plugin run on document-level monitors internally, but produce their own enriched findings — augmented with the full event payload and rule metadata — which are written to `wazuh-findings-v5-*` indices. A plain document-level monitor only produces the raw findings described above; it does not perform this enrichment.
 
@@ -82,7 +82,7 @@ These raw alerting findings are not the same as the findings surfaced in the Waz
 
 Workflows chain multiple monitors into a composite execution unit. A workflow defines an ordered sequence of monitors (delegates) that run together. This enables multi-stage detection scenarios where the output of one monitor informs the next.
 
-Workflows have their own CRUD API and can be executed, searched, and managed independently of individual monitors.
+Workflows have their own CRUD API and can be executed and managed independently of individual monitors. There is no separate workflow search endpoint: workflows are stored with the monitors and returned by the monitor search API.
 
 ## Alerting indices
 
@@ -91,9 +91,13 @@ The plugin manages the following system indices:
 | Index | Description | Retention |
 | --- | --- | --- |
 | `.opendistro-alerting-alerts` | Current active alerts | — |
-| `.opendistro-alerting-alert-history-*` | Historical alert records | 30 days (daily rollover) |
-| `.opensearch-alerting-finding-history-*` | Document-level monitor findings | 30 days (12-hour rollover) |
-| `.opensearch-alerting-comments-history-*` | Alert comments and annotations | 30 days (12-hour rollover) |
-| `.opensearch-scheduled-jobs` | Monitor and workflow definitions | — |
+| `.opendistro-alerting-alert-history-*` | Historical alert records. Created only when `plugins.alerting.alert_history_enabled` is `true` (off by default) | 60 days |
+| `.opensearch-alerting-finding-history-*` | Document-level monitor findings. Created only when `plugins.alerting.alert_finding_enabled` is `true` (off by default) | 60 days |
+| `.opensearch-alerting-comments-history-*` | Alert comments and annotations. Used only when `plugins.alerting.comments_enabled` is `true` (off by default) | 60 days |
+| `.opendistro-alerting-config` | Monitor and workflow definitions | — |
+| `.opensearch-alerting-queries*` | Queries of document-level monitors, prepared for matching | — |
+| `.opensearch-alerting-config-lock` | Short-lived locks that keep a monitor from running on two nodes at once | — |
 
-Rollover periods and retention are configurable through [plugin settings](configuration.md).
+The three history indices are managed the same way. Every 12 hours (the rollover period), the plugin rolls the current index over to a new one if it holds 1,000 documents or is older than 30 days, and deletes the history indices that are older than 60 days. The two limits do different things: `max_age` (30 days) only decides when a new index is started, while `retention_period` (60 days) decides when data is deleted.
+
+Rollover periods, rollover limits and retention are configurable through [plugin settings](configuration.md).

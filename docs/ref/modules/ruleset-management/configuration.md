@@ -58,7 +58,7 @@ plugins.security_analytics.alert_history_max_docs: 1000
 plugins.security_analytics.alert_history_retention_period: 60d
 ```
 
-The same pattern applies to finding history (`plugins.security_analytics.alert_finding_*`, `plugins.security_analytics.finding_history_*`), and correlation history (`plugins.security_analytics.correlation_history_*`).
+The same pattern applies to finding history (`plugins.security_analytics.alert_finding_*`, `plugins.security_analytics.finding_history_*`), and correlation history (`plugins.security_analytics.correlation_history_*`). Finding history indices only exist when the Alerting plugin stores raw findings (`plugins.alerting.alert_finding_enabled: true`, default `false`).
 
 > `plugins.security_analytics.alert_finding_max_docs` is deprecated. Configure finding history rollover through the other `finding_history_*` settings.
 
@@ -87,7 +87,7 @@ plugins.security_analytics.enable_workflow_usage: true
 plugins.security_analytics.filter_by_backend_roles: false
 ```
 
-Setting `enriched_findings_index_enabled` to `false` disables the Wazuh enriched findings pipeline described in [Architecture](architecture.md); raw Ruleset Management findings continue to be written to `.opensearch-sap-{category}-findings-*`, but no `wazuh-findings-v5-{category}*` documents are produced.
+Setting `enriched_findings_index_enabled` to `false` disables the Wazuh enriched findings pipeline described in [Architecture](architecture.md): no `wazuh-findings-v5-{category}*` documents are produced. Raw findings are unaffected — they are written to `.opensearch-sap-{integration}-findings-*` only when the Alerting plugin's `plugins.alerting.alert_finding_enabled` is `true` (default `false`), so with that setting at its default, disabling enrichment leaves no finding stored at all.
 
 ### Resource creation limits
 

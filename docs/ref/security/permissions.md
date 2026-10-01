@@ -1,12 +1,15 @@
 # Permissions
 
-This page lists the permissions registered by the Wazuh Indexer plugins that are referenced by the [default roles](./access-control.md). Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual `cluster:admin/content_manager/*` transport actions registered by the plugin; the Setup and Ruleset Management entries are raw cluster actions.
+This page lists the permissions registered by the Wazuh Indexer plugins, to grant in the roles you define. The [default roles](./access-control.md) use only a few of them. Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual `cluster:admin/content_manager/*` transport actions registered by the plugin; the Setup entries are raw cluster actions, each also exposed as an action group; the Ruleset Management entries are raw cluster actions.
 
-### Setup plugin permissions
+## Setup plugin permissions
 
 - `cluster:admin/setup/settings/update` — update the Wazuh settings (`PUT /_plugins/_setup/settings`), exposed as the action group `plugin:wazuh/settings/write`
+- `cluster:admin/ai_assistant/session/write` — create, update and delete the caller's own AI assistant sessions (`POST /_plugins/_setup/ai_assistant/sessions`, `PUT`, `PATCH` and `DELETE /_plugins/_setup/ai_assistant/sessions/{id}`), exposed as the action group `plugin:wazuh/ai_assistant/session/write`. Granted to every user by the default `wazuh_ai_assistant` role.
+- `cluster:admin/ai_assistant/settings/read` — read the AI assistant's providers, settings and field policy (`GET /_plugins/_setup/ai_assistant/settings`, `GET /_plugins/_setup/ai_assistant/providers`), exposed as the action group `plugin:wazuh/ai_assistant/settings/read`
+- `cluster:admin/ai_assistant/settings/write` — write the AI assistant's providers, settings and field policy (`PUT /_plugins/_setup/ai_assistant/settings`, `POST /_plugins/_setup/ai_assistant/providers`, `PUT` and `DELETE /_plugins/_setup/ai_assistant/providers/{id}`), exposed as the action group `plugin:wazuh/ai_assistant/settings/write`
 
-### Content Manager plugin permissions
+## Content Manager plugin permissions
 
 Each resource exposes `create`, `update` and `delete`, plus a `*` action group that aggregates the three:
 
@@ -29,7 +32,7 @@ Other Content Manager permissions:
 - `plugin:content_manager/space/delete` — delete a space
 - `plugin:content_manager/version/check` — check the catalog version
 
-### Ruleset Management plugin permissions
+## Ruleset Management plugin permissions
 
 Wazuh custom actions:
 
