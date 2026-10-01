@@ -369,9 +369,12 @@ Which case applies is decided entirely by what is present in the certificate aut
 | In the CA directory | Pair already in place | Result |
 | --- | --- | --- |
 | Nothing | No | Mint a CA, then self-issue |
+| Nothing | Yes | Use the pair if the `root-ca.pem` beside it issued it; mint nothing |
 | Anchor and key | No | Issue from the CA found |
-| Anchor only | Yes | Use both, generate nothing |
+| Anchor, with or without key | Yes | Use the pair if the anchor issued it |
 | Anchor only | No | Unresolved; the service will not start |
+
+A pair already in place is used only once `openssl verify` confirms that it chains to the anchor the node will trust: the CA directory's, or, with nothing there, the `root-ca.pem` staged beside the pair. A pair that does not, or one with nothing to verify it against, is unresolved. The resolver names it and records no completion, rather than leaving a node whose own certificate its trust anchor rejects while the resolution reports success. With nothing in the CA directory and a pair in place, no CA is minted: a new one could not have issued that pair.
 
 The Subject Alternative Names (SANs) default to the hostname, the fully qualified domain name (FQDN), loopback and the global addresses of default-route interfaces. `WAZUH_INDEXER_CERT_SANS` replaces that list wholesale.
 
@@ -420,15 +423,19 @@ confirms the process is the indexer's before signalling it.
 
 A purge (DEB `purge`, RPM erase) always deletes the `wazuh-indexer` user and group. That frees
 their IDs: the next system account created would inherit them, and with them anything still on
-disk that they own — the certificates and their private keys, the keystore, the logs and the
-indexed data, none of which the purge deletes. So before `userdel` runs, the purge hands every file
-the account or its group owns in the package's own directories over to root:
+disk that they own — the keystore, the logs, the indexed data and any certificates left behind. So
+before `userdel` runs, the purge hands every file the account or its group owns in the package's
+own directories over to root, and closes those directories:
 
-- Files owned by `wazuh-indexer` become `root:root`, with group and other access removed
-  (`go-rwx`).
-- Files that only its group owns get group `root`, with group access removed.
-- `find -P` and `chown -h` change symlinks themselves, and `chmod` never sees one, so a link the
-  service account planted cannot aim the purge at another file.
+- Files owned by `wazuh-indexer` become `root:root`; files that only its group owns get group
+  `root`. Their modes do not change.
+- Each of the four directories loses group and other access (`go-rwx`). That, not the files' own
+  modes, is what keeps what is inside unreadable to anyone but root, and it is all a reinstall has
+  to undo: on a fresh install, `postinst` / `%post` set the four back to their packaged `750`,
+  beside the `chown -R` they already run. An upgrade leaves the operator's modes alone.
+- `find -H` follows a directory that is itself a symlink, but no link inside it, and `chown -h`
+  changes those links themselves, so a link the service account planted cannot aim the purge at
+  another file.
 
 The package's own directories are these four, and only these:
 
@@ -447,14 +454,21 @@ If a handover fails, on a read-only mount or a network file system that squashes
 purge names the directory and still deletes the user and group. A directory is reported as kept
 for root only when its handover succeeded.
 
-Nothing is deleted. On a reinstall, `postinst` / `%post` take the four directories back with the
-`chown -R` they already run. What the operator sees is described in
-[Uninstall](../ref/uninstall.md).
+The purge deletes only what the package itself created: `tmp/`, the configuration, data and log
+directories once nothing else is left in them, and the certificates it issued. Those go when the
+purge removes the CA they were issued from, which it does once no component's passwords are left
+in `/etc/wazuh/credentials.env`: without that CA they are an identity nothing trusts, and a
+reinstall would find them beside a new one. Only a CA with its key in the CA directory issued
+anything on this host, and each pair is checked against it with `openssl verify` first, so a pair
+it did not issue — the operator's own — stays. On RPM, `opensearch-security/` goes as well, since
+rpm could not remove it while the `.rpmsave` that `%postun` deletes was still in it. What the
+operator sees is described in [Uninstall](../ref/uninstall.md).
 
 **A directory the package itself creates outside those four must be added to the purge's list**,
 in the DEB `postrm` and in the spec's `%postun`, or its files are left with an orphaned owner.
 `build-scripts/ci/test_purge.sh` asserts that no file with an orphaned owner is left in the four
-directories, and that a custom `path.repo` is left exactly as it was.
+directories, that a reinstall restores every owner and mode, that the node's certificates chain to
+its CA afterwards, and that a custom `path.repo` is left exactly as it was.
 
 ## Host dependencies
 
