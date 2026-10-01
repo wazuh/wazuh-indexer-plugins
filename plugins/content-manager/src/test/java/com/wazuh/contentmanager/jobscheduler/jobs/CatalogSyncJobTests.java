@@ -18,11 +18,15 @@ package com.wazuh.contentmanager.jobscheduler.jobs;
 
 import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.env.Environment;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.Scheduler;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -31,8 +35,11 @@ import org.junit.Before;
 
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
@@ -43,9 +50,13 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -74,6 +85,7 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
     @Mock private SecurityAnalyticsService securityAnalyticsService;
     @Mock private GetRequestBuilder getRequestBuilder;
     @Mock private GetResponse getResponse;
+    @Mock private ResourceLockService resourceLockService;
 
     @Before
     @Override
@@ -85,6 +97,16 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         when(this.threadPool.getThreadContext()).thenReturn(threadContext);
 
+        // By default no other node holds the cluster lock, and releasing it completes at once.
+        this.stubClusterLock(true);
+        doAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(1)).run();
+                            return null;
+                        })
+                .when(this.resourceLockService)
+                .release(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(Runnable.class));
+
         this.catalogSyncJob =
                 new CatalogSyncJob(
                         this.client,
@@ -94,7 +116,8 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
                         this.engineService,
                         this.spaceService,
                         this.securityAnalyticsService,
-                        mock(UserOverridesService.class));
+                        mock(UserOverridesService.class),
+                        this.resourceLockService);
 
         when(this.client.prepareGet(Constants.INDEX_SETUP_STATUS, Constants.SETUP_STATUS_DOC_ID))
                 .thenReturn(this.getRequestBuilder);
@@ -221,6 +244,371 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
                 this.catalogSyncJob.isRunning());
     }
 
+    /** Makes the cluster lock report {@code acquired} to every request. */
+    @SuppressWarnings("unchecked")
+    private void stubClusterLock(boolean acquired) {
+        doAnswer(
+                        invocation -> {
+                            ((ActionListener<Boolean>) invocation.getArgument(1)).onResponse(acquired);
+                            return null;
+                        })
+                .when(this.resourceLockService)
+                .tryAcquireOnce(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(ActionListener.class));
+    }
+
+    /**
+     * A pass already running on another node holds the cluster lock, so {@code trigger()} on this
+     * node must not start a second one, and must say so. This is the case the per-node semaphore
+     * alone could not see.
+     */
+    public void testTrigger_clusterLockHeldByAnotherNode_doesNotStartPass() {
+        this.useSameThreadExecutor();
+        this.stubClusterLock(false);
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        PlainActionFuture<Boolean> started = new PlainActionFuture<>();
+
+        job.trigger(started);
+
+        Assert.assertFalse(started.actionGet());
+        verify(job, never()).performSynchronization();
+        verify(this.resourceLockService, never()).release(anyString(), any(Runnable.class));
+        Assert.assertFalse("The semaphore must be released when the lock is held", job.isRunning());
+    }
+
+    /** A scheduled run landing while another node holds the cluster lock is skipped. */
+    public void testExecute_clusterLockHeldByAnotherNode_skipsPass() {
+        this.useSameThreadExecutor();
+        this.stubClusterLock(false);
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+
+        job.execute(mock(JobExecutionContext.class));
+
+        verify(job, never()).performSynchronization();
+        Assert.assertFalse(job.isRunning());
+    }
+
+    /** A pass that ran releases the cluster lock, and then the semaphore. */
+    public void testTrigger_passCompletes_releasesClusterLock() {
+        this.useSameThreadExecutor();
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+        PlainActionFuture<Boolean> started = new PlainActionFuture<>();
+
+        job.trigger(started);
+
+        Assert.assertTrue(started.actionGet());
+        verify(job, times(1)).performSynchronization();
+        verify(this.resourceLockService, times(1))
+                .release(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(Runnable.class));
+        Assert.assertFalse(job.isRunning());
+    }
+
+    /** If the lock index cannot be reached, no pass starts and the semaphore is not left held. */
+    @SuppressWarnings("unchecked")
+    public void testTrigger_clusterLockFails_reportsFailureAndReleasesSemaphore() {
+        this.useSameThreadExecutor();
+        doAnswer(
+                        invocation -> {
+                            ((ActionListener<Boolean>) invocation.getArgument(1))
+                                    .onFailure(new RuntimeException("lock index unavailable"));
+                            return null;
+                        })
+                .when(this.resourceLockService)
+                .tryAcquireOnce(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(ActionListener.class));
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        PlainActionFuture<Boolean> started = new PlainActionFuture<>();
+
+        job.trigger(started);
+
+        expectThrows(Exception.class, started::actionGet);
+        verify(job, never()).performSynchronization();
+        Assert.assertFalse(job.isRunning());
+    }
+
+    /**
+     * The lock is renewed while a pass runs and the renewal stops when it ends, so a long pass keeps
+     * the lock and a finished one does not keep it alive.
+     */
+    public void testTrigger_passRenewsClusterLockAndCancelsRenewalWhenDone() {
+        this.useSameThreadExecutor();
+        Scheduler.Cancellable renewal = mock(Scheduler.Cancellable.class);
+        when(this.threadPool.scheduleWithFixedDelay(
+                        any(Runnable.class), any(TimeValue.class), eq(ThreadPool.Names.GENERIC)))
+                .thenAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(0)).run();
+                            return renewal;
+                        });
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+        job.trigger();
+
+        verify(this.resourceLockService, times(1)).renew(CatalogSyncJob.CLUSTER_LOCK_ID);
+        verify(renewal, times(1)).cancel();
+    }
+
+    /**
+     * The immediate retry of a failed pass must wait for the cluster lock to be released. Fired
+     * earlier, it would find the lock document still there and be skipped as already running.
+     */
+    public void testRetry_waitsForClusterLockRelease() {
+        this.useSameThreadExecutor();
+        AtomicReference<Runnable> pendingRelease = new AtomicReference<>();
+        doAnswer(
+                        invocation -> {
+                            pendingRelease.set(invocation.getArgument(1));
+                            return null;
+                        })
+                .when(this.resourceLockService)
+                .release(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(Runnable.class));
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.FAILURE, CatalogSyncJob.SyncOutcome.SUCCESS)
+                .when(job)
+                .performSynchronization();
+
+        job.trigger();
+
+        verify(job, times(1)).performSynchronization();
+        Assert.assertTrue("The semaphore is held until the lock is released", job.isRunning());
+
+        pendingRelease.get().run();
+
+        verify(job, times(2)).performSynchronization();
+    }
+
+    /** Captures the task handed to {@code threadPool.schedule()} and the delay it was given. */
+    private AtomicReference<Runnable> captureScheduled(AtomicReference<TimeValue> delay) {
+        AtomicReference<Runnable> scheduled = new AtomicReference<>();
+        when(this.threadPool.schedule(any(Runnable.class), any(TimeValue.class), anyString()))
+                .thenAnswer(
+                        invocation -> {
+                            scheduled.set(invocation.getArgument(0));
+                            delay.set(invocation.getArgument(1));
+                            return null;
+                        });
+        return scheduled;
+    }
+
+    /** A startup sync that gets the lock runs at once and schedules no retry. */
+    public void testTriggerOnStartup_lockFree_runsWithoutRetry() {
+        this.useSameThreadExecutor();
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+        job.triggerOnStartup();
+
+        verify(job, times(1)).performSynchronization();
+        verify(this.threadPool, never())
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+    }
+
+    /**
+     * A startup sync that finds the lock held, for instance one this node left behind when restarted
+     * in the middle of a pass, retries once when that lock would have gone stale, and runs then.
+     */
+    public void testTriggerOnStartup_lockHeld_retriesOnceWhenStale() {
+        this.useSameThreadExecutor();
+        this.stubClusterLock(false);
+        AtomicReference<TimeValue> delay = new AtomicReference<>();
+        AtomicReference<Runnable> retry = this.captureScheduled(delay);
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+        job.triggerOnStartup();
+
+        verify(job, never()).performSynchronization();
+        Assert.assertNotNull("A retry must be scheduled", retry.get());
+        Assert.assertEquals(
+                PluginSettings.getInstance().getResourceLockStaleThresholdMillis()
+                        + CatalogSyncJob.STARTUP_RETRY_MARGIN_MILLIS,
+                delay.get().millis());
+
+        this.stubClusterLock(true);
+        retry.get().run();
+
+        verify(job, times(1)).performSynchronization();
+    }
+
+    /**
+     * If the lock is still held when the retry runs, another node really is syncing: the retry is
+     * skipped and no second retry is scheduled.
+     */
+    public void testTriggerOnStartup_lockStillHeldOnRetry_doesNotRetryAgain() {
+        this.useSameThreadExecutor();
+        this.stubClusterLock(false);
+        AtomicReference<Runnable> retry = this.captureScheduled(new AtomicReference<>());
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+
+        job.triggerOnStartup();
+        retry.get().run();
+
+        verify(job, never()).performSynchronization();
+        verify(this.threadPool, times(1))
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+    }
+
+    /** Makes every request for the cluster lock fail, as when the lock index cannot be reached. */
+    @SuppressWarnings("unchecked")
+    private void failClusterLock() {
+        doAnswer(
+                        invocation -> {
+                            ((ActionListener<Boolean>) invocation.getArgument(1))
+                                    .onFailure(new RuntimeException("lock index unavailable"));
+                            return null;
+                        })
+                .when(this.resourceLockService)
+                .tryAcquireOnce(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(ActionListener.class));
+    }
+
+    /**
+     * If the renewal cannot even be scheduled, the pass does not run without it, and the lock and the
+     * semaphore are still released.
+     */
+    public void testPass_renewalCannotBeScheduled_releasesLockAndSemaphore() {
+        this.useSameThreadExecutor();
+        when(this.threadPool.scheduleWithFixedDelay(
+                        any(Runnable.class), any(TimeValue.class), anyString()))
+                .thenThrow(new RejectedExecutionException("shutting down"));
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+
+        job.trigger();
+
+        verify(job, never()).performSynchronization();
+        verify(this.resourceLockService, times(1))
+                .release(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(Runnable.class));
+        Assert.assertFalse(job.isRunning());
+    }
+
+    /**
+     * A release that cannot even be sent still frees the semaphore; otherwise this node would answer
+     * 409 to every update until restarted.
+     */
+    public void testPass_releaseThrowing_stillReleasesTheSemaphore() {
+        this.useSameThreadExecutor();
+        doThrow(new IllegalStateException("node closed"))
+                .when(this.resourceLockService)
+                .release(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(Runnable.class));
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+        job.trigger();
+
+        Assert.assertFalse(job.isRunning());
+    }
+
+    /** If the pass cannot be handed to the executor, the lock and the semaphore are released. */
+    public void testTrigger_executorRejects_releasesLockAndSemaphore() {
+        ExecutorService rejecting = mock(ExecutorService.class);
+        doThrow(new RejectedExecutionException("shutting down"))
+                .when(rejecting)
+                .execute(any(Runnable.class));
+        when(this.threadPool.generic()).thenReturn(rejecting);
+        PlainActionFuture<Boolean> started = new PlainActionFuture<>();
+
+        this.catalogSyncJob.trigger(started);
+
+        expectThrows(Exception.class, started::actionGet);
+        verify(this.resourceLockService, times(1))
+                .release(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(Runnable.class));
+        Assert.assertFalse(this.catalogSyncJob.isRunning());
+    }
+
+    /**
+     * A caller whose listener throws must not make the lock service's failure path release the
+     * semaphore a second time. With two permits, two passes could run on this node at once.
+     */
+    @SuppressWarnings("unchecked")
+    public void testTrigger_throwingCallerListener_doesNotReleaseTheSemaphoreTwice() {
+        // Answers the way ActionListener.wrap does: an exception thrown by onResponse goes to
+        // onFailure.
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Boolean> l = invocation.getArgument(1);
+                            try {
+                                l.onResponse(false);
+                            } catch (Exception e) {
+                                l.onFailure(e);
+                            }
+                            return null;
+                        })
+                .when(this.resourceLockService)
+                .tryAcquireOnce(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(ActionListener.class));
+        this.catalogSyncJob.trigger(
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(Boolean started) {
+                        throw new IllegalStateException("caller failed");
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {}
+                });
+
+        ExecutorService neverRunsExecutor = mock(ExecutorService.class);
+        when(this.threadPool.generic()).thenReturn(neverRunsExecutor);
+        this.stubClusterLock(true);
+        this.catalogSyncJob.trigger();
+        this.catalogSyncJob.trigger();
+
+        verify(neverRunsExecutor, times(1)).execute(any(Runnable.class));
+    }
+
+    /**
+     * An immediate retry that does not start, because another node holds the lock, clears the retry
+     * flag itself. No outcome will come back to clear it, and left set it would cost the next
+     * unrelated failure its own retry.
+     */
+    public void testHandleOutcome_retryNotStarted_clearsTheRetryFlag() {
+        this.useSameThreadExecutor();
+        this.stubClusterLock(false);
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+
+        job.handleOutcome(CatalogSyncJob.SyncOutcome.FAILURE);
+
+        verify(job, never()).performSynchronization();
+        Assert.assertFalse(job.isRetryPending());
+    }
+
+    /** The same holds when the lock cannot even be requested. */
+    public void testHandleOutcome_retryCannotRequestTheLock_clearsTheRetryFlag() {
+        this.useSameThreadExecutor();
+        this.failClusterLock();
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+
+        job.handleOutcome(CatalogSyncJob.SyncOutcome.FAILURE);
+
+        verify(job, never()).performSynchronization();
+        Assert.assertFalse(job.isRetryPending());
+    }
+
+    /**
+     * A startup sync that cannot even request the lock, for instance because the primary of the lock
+     * index is not assigned yet after a restart, gets the same single retry.
+     */
+    public void testTriggerOnStartup_lockRequestFails_retriesOnce() {
+        this.useSameThreadExecutor();
+        this.failClusterLock();
+        AtomicReference<TimeValue> delay = new AtomicReference<>();
+        AtomicReference<Runnable> retry = this.captureScheduled(delay);
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+        job.triggerOnStartup();
+
+        verify(job, never()).performSynchronization();
+        Assert.assertNotNull("A retry must be scheduled", retry.get());
+        Assert.assertEquals(
+                PluginSettings.getInstance().getResourceLockStaleThresholdMillis()
+                        + CatalogSyncJob.STARTUP_RETRY_MARGIN_MILLIS,
+                delay.get().millis());
+
+        this.stubClusterLock(true);
+        retry.get().run();
+
+        verify(job, times(1)).performSynchronization();
+    }
+
     /** Makes {@code threadPool.generic()} run submitted tasks synchronously on the calling thread. */
     private void useSameThreadExecutor() {
         ExecutorService sameThreadExecutor = mock(ExecutorService.class);
@@ -242,7 +630,7 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
 
         job.handleOutcome(CatalogSyncJob.SyncOutcome.FAILURE);
 
-        verify(job, times(1)).trigger();
+        verify(job, times(1)).trigger(any(ActionListener.class));
         verify(job, times(1)).performSynchronization();
         Assert.assertFalse("Flag must be clear after the retry succeeds", job.isRetryPending());
         Assert.assertFalse("Semaphore must be released after the retry completes", job.isRunning());
@@ -256,7 +644,7 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
 
         job.handleOutcome(CatalogSyncJob.SyncOutcome.FAILURE);
 
-        verify(job, times(1)).trigger();
+        verify(job, times(1)).trigger(any(ActionListener.class));
         verify(job, times(1)).performSynchronization();
         Assert.assertFalse(
                 "Flag must be reset so the next distinct failure episode gets its own retry",
@@ -270,7 +658,7 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
 
         job.handleOutcome(CatalogSyncJob.SyncOutcome.SUCCESS);
 
-        verify(job, times(0)).trigger();
+        verify(job, never()).trigger(any(ActionListener.class));
         Assert.assertFalse(job.isRetryPending());
     }
 
@@ -296,7 +684,7 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
 
         job.handleOutcome(CatalogSyncJob.SyncOutcome.FAILURE);
 
-        verify(job, times(2)).trigger();
+        verify(job, times(2)).trigger(any(ActionListener.class));
         verify(job, times(2)).performSynchronization();
         Assert.assertFalse(
                 "The second, unrelated failure must trigger and resolve its own retry",
@@ -314,7 +702,7 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
 
         job.execute(context);
 
-        verify(job, times(1)).trigger();
+        verify(job, times(1)).trigger(any(ActionListener.class));
         verify(job, times(2)).performSynchronization();
         Assert.assertFalse(job.isRunning());
     }
