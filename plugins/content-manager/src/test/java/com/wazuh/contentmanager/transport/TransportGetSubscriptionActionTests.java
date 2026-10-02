@@ -19,8 +19,12 @@ package com.wazuh.contentmanager.transport;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.TransportService;
@@ -28,13 +32,16 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 
 import com.wazuh.contentmanager.action.GetSubscriptionRequest;
 import com.wazuh.contentmanager.action.GetSubscriptionResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
 import com.wazuh.contentmanager.cti.console.model.Plan;
+import com.wazuh.contentmanager.cti.console.service.PlanUnavailableException;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.Mockito.*;
 
@@ -58,6 +65,15 @@ public class TransportGetSubscriptionActionTests extends OpenSearchTestCase {
     public void tearDown() throws Exception {
         clearPluginSettingsInstance();
         super.tearDown();
+    }
+
+    private static String toJson(GetSubscriptionResponse response) {
+        try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
+            response.toXContent(builder, ToXContent.EMPTY_PARAMS);
+            return BytesReference.bytes(builder).utf8ToString();
+        } catch (IOException e) {
+            throw new AssertionError(e);
+        }
     }
 
     @SuppressForbidden(reason = "Unit test reset")
@@ -116,6 +132,37 @@ public class TransportGetSubscriptionActionTests extends OpenSearchTestCase {
                         argThat(
                                 response -> {
                                     Assert.assertEquals(RestStatus.OK, response.getStatus());
+                                    return true;
+                                }));
+    }
+
+    /** A failed plan lookup is reported as 502 with a fixed message, not as a plan. */
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_PlanUnavailable_Returns502() throws Exception {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Plan> asyncListener = invocation.getArgument(0);
+                            asyncListener.onFailure(
+                                    new PlanUnavailableException(
+                                            "The CTI Console answered status 503 to the plan lookup."));
+                            return null;
+                        })
+                .when(this.subscriptionService)
+                .getPlan(any(ActionListener.class));
+
+        ActionListener<GetSubscriptionResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), new GetSubscriptionRequest(), listener);
+
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.BAD_GATEWAY, response.getStatus());
+                                    Assert.assertEquals(
+                                            "{\"message\":\""
+                                                    + Constants.E_502_CTI_PLAN_UNAVAILABLE
+                                                    + "\",\"status\":502}",
+                                            toJson(response));
                                     return true;
                                 }));
     }

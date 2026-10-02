@@ -26,12 +26,14 @@ public interface SubscriptionService {
     /**
      * Returns the active CTI plan for this environment and notifies the listener with the result.
      *
-     * <p>If a valid access token is present, the authenticated plan is returned. If the token is
-     * invalid or expired, the credentials document is deleted, the in-memory token is cleared, and
-     * the public plan is returned as a fallback.
+     * <p>If a valid access token is present, the authenticated plan is returned. If the CTI Console
+     * rejects the token ({@code 401}), the credentials document is deleted, the in-memory token is
+     * cleared, and the public plan is returned as a fallback. Any other failure to obtain the plan
+     * (network error, timeout, another error status) leaves the token in place and fails the listener
+     * with a {@link com.wazuh.contentmanager.cti.console.service.PlanUnavailableException}.
      *
      * @param listener listener notified with the active {@link Plan}, or the public plan if the token
-     *     is invalid or absent.
+     *     was rejected or is absent.
      */
     void getPlan(ActionListener<Plan> listener);
 

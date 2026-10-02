@@ -30,6 +30,7 @@ import com.wazuh.contentmanager.action.GetSubscriptionAction;
 import com.wazuh.contentmanager.action.GetSubscriptionRequest;
 import com.wazuh.contentmanager.action.GetSubscriptionResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
+import com.wazuh.contentmanager.cti.console.service.PlanUnavailableException;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -64,6 +65,14 @@ public class TransportGetSubscriptionAction
                                             isRegistered));
                         },
                         e -> {
+                            if (e instanceof PlanUnavailableException) {
+                                // The CTI Console could not be reached or gave an unusable answer. The
+                                // stored token was kept, so report the outage instead of a plan.
+                                listener.onResponse(
+                                        new GetSubscriptionResponse(
+                                                Constants.E_502_CTI_PLAN_UNAVAILABLE, RestStatus.BAD_GATEWAY));
+                                return;
+                            }
                             RestResponse classified = TransportActionHelper.classifyException(e);
                             if (classified != null) {
                                 log.warn("Failed to retrieve subscription plan: {}", classified.getMessage());

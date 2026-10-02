@@ -47,49 +47,77 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
      * Obtains the specific plan for the registered environment. Communicates with GET
      * /platform/environments/me.
      *
-     * @return the environment's active plan.
+     * @return the environment's active plan, or {@code null} if {@code token} is {@code null}.
+     * @throws TokenRejectedException if the CTI Console rejects the token ({@code 401}).
+     * @throws PlanUnavailableException if the plan cannot be obtained for any other reason.
      */
-    public Plan getMyPlan(Token token) {
-        try {
-
-            if (token == null) {
-                log.warn("Cannot fetch environment plan: Token is null. Instance might not be registered.");
-                return null;
-            }
-
-            // Perform request to the environment-specific endpoint
-            SimpleHttpResponse response = this.client.getEnvironmentMe(token);
-
-            if (response.getCode() == 401) {
-                log.warn("Authentication failed: The environment token is invalid or missing.");
-            } else if (response.getCode() == 200) {
-                // The API returns a list of plans, but for this endpoint
-                // it contains only ONE active plan for the environment.
-                JsonNode root = this.mapper.readTree(response.getBodyText()).get("plans");
-
-                List<Plan> plans =
-                        this.mapper.readerFor(new TypeReference<List<Plan>>() {}).readValue(root);
-
-                if (plans != null && !plans.isEmpty()) {
-                    log.info(
-                            "Active plan for registered environment retrieved successfully from CTI"
-                                    + " Console. Active plan is: {}.",
-                            plans.get(0).getName());
-                    return plans.get(0);
-                }
-                return null;
-            } else {
-                log.warn(
-                        "Operation to fetch environment plan failed: { \"status_code\": {}, \"message\": {}",
-                        response.getCode(),
-                        response.getBodyText());
-            }
-        } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            log.error("Couldn't obtain environment plan from CTI: {}", e.getMessage());
-        } catch (IOException e) {
-            log.error("Failed to parse environment plan: {}", e.getMessage());
+    public Plan getMyPlan(Token token) throws TokenRejectedException, PlanUnavailableException {
+        if (token == null) {
+            log.warn("Cannot fetch environment plan: Token is null. Instance might not be registered.");
+            return null;
         }
-        return null;
+        SimpleHttpResponse response;
+        try {
+            // Perform request to the environment-specific endpoint
+            response = this.client.getEnvironmentMe(token);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw this.requestFailed(e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw this.requestFailed(e);
+        }
+        return this.toEnvironmentPlan(response);
+    }
+
+    /**
+     * Reads the active plan out of a {@code GET /platform/environments/me} response. Only a {@code
+     * 401} is taken as a rejected token; any other unusable response leaves the token's validity
+     * unknown.
+     *
+     * @param response the CTI Console response.
+     * @return the environment's active plan.
+     * @throws TokenRejectedException if the response is a {@code 401}.
+     * @throws PlanUnavailableException if the response is any other non-{@code 200} status, cannot be
+     *     parsed, or lists no plan.
+     */
+    private Plan toEnvironmentPlan(SimpleHttpResponse response)
+            throws TokenRejectedException, PlanUnavailableException {
+        if (response.getCode() == 401) {
+            log.warn("Authentication failed: The environment token is invalid or missing.");
+            throw new TokenRejectedException("The CTI Console rejected the access token (status 401).");
+        }
+        if (response.getCode() != 200) {
+            log.warn(
+                    "Operation to fetch environment plan failed: { \"status_code\": {}, \"message\": {}",
+                    response.getCode(),
+                    response.getBodyText());
+            throw new PlanUnavailableException(
+                    "The CTI Console answered status " + response.getCode() + " to the plan lookup.");
+        }
+        List<Plan> plans;
+        try {
+            // The API returns a list of plans, but for this endpoint
+            // it contains only ONE active plan for the environment.
+            JsonNode root = this.mapper.readTree(response.getBodyText()).get("plans");
+            plans = this.mapper.readerFor(new TypeReference<List<Plan>>() {}).readValue(root);
+        } catch (IOException | IllegalArgumentException e) {
+            log.error("Failed to parse environment plan: {}", e.getMessage());
+            throw new PlanUnavailableException("Failed to parse the environment plan.", e);
+        }
+        if (plans == null || plans.isEmpty()) {
+            log.warn("The CTI Console returned no plan for the registered environment.");
+            throw new PlanUnavailableException("The CTI Console returned no plan for the environment.");
+        }
+        log.info(
+                "Active plan for registered environment retrieved successfully from CTI"
+                        + " Console. Active plan is: {}.",
+                plans.get(0).getName());
+        return plans.get(0);
+    }
+
+    private PlanUnavailableException requestFailed(Exception e) {
+        log.error("Couldn't obtain environment plan from CTI: {}", e.getMessage());
+        return new PlanUnavailableException("The plan lookup request to the CTI Console failed.", e);
     }
 
     /**
@@ -123,7 +151,7 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
     }
 
     @Override
-    public Plan getPlan() {
+    public Plan getPlan() throws TokenRejectedException, PlanUnavailableException {
         String accessToken = PluginSettings.getInstance().getAccessToken();
         if (accessToken != null) {
             return getMyPlan(new Token(accessToken, "Bearer"));
@@ -143,41 +171,16 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
                 token,
                 ActionListener.wrap(
                         response -> {
-                            if (response.getCode() == 401) {
-                                log.warn("Authentication failed: The environment token is invalid or missing.");
-                                listener.onResponse(null);
-                            } else if (response.getCode() == 200) {
-                                try {
-                                    JsonNode root = this.mapper.readTree(response.getBodyText()).get("plans");
-                                    List<Plan> plans =
-                                            this.mapper.readerFor(new TypeReference<List<Plan>>() {}).readValue(root);
-                                    if (plans != null && !plans.isEmpty()) {
-                                        log.info(
-                                                "Active plan for registered environment retrieved"
-                                                        + " successfully from CTI Console. Active"
-                                                        + " plan is: {}.",
-                                                plans.get(0).getName());
-                                        listener.onResponse(plans.get(0));
-                                    } else {
-                                        listener.onResponse(null);
-                                    }
-                                } catch (IOException e) {
-                                    log.error("Failed to parse environment plan: {}", e.getMessage());
-                                    listener.onResponse(null);
-                                }
-                            } else {
-                                log.warn(
-                                        "Operation to fetch environment plan failed: {"
-                                                + " \"status_code\": {}, \"message\": {}",
-                                        response.getCode(),
-                                        response.getBodyText());
-                                listener.onResponse(null);
+                            Plan plan;
+                            try {
+                                plan = this.toEnvironmentPlan(response);
+                            } catch (TokenRejectedException | PlanUnavailableException e) {
+                                listener.onFailure(e);
+                                return;
                             }
+                            listener.onResponse(plan);
                         },
-                        e -> {
-                            log.error("Couldn't obtain environment plan from CTI: {}", e.getMessage());
-                            listener.onResponse(null);
-                        }));
+                        e -> listener.onFailure(this.requestFailed(e))));
     }
 
     @Override
