@@ -120,6 +120,9 @@ public class Constants {
                     + "with enabled rules (cause: %s).";
     public static final String E_DETECTOR_LOOKUP_TRUNCATED =
             "Found %d enabled detectors, more than the %d that can be checked in one search.";
+    public static final String E_502_CTI_PLAN_UNAVAILABLE =
+            "Unable to retrieve the subscription plan from the CTI Console. "
+                    + "The registration is unchanged; try again later.";
 
     // Log messages
     public static final String I_LOG_MAX_INTEGRATIONS_REACHED =
@@ -171,6 +174,8 @@ public class Constants {
             "Access token stored successfully. Registration will be confirmed on next plan retrieval.";
     public static final String I_LOG_ACCESS_TOKEN_EXPIRED_OR_INVALID =
             "Access token is invalid or expired. Clearing credentials and falling back to public plan.";
+    public static final String W_LOG_PLAN_LOOKUP_FAILED_TOKEN_KEPT =
+            "Could not retrieve the subscription plan from the CTI Console ({}). The access token is kept.";
 
     // Log messages - consumer synchronization (AbstractConsumerService)
     public static final String D_LOG_SYNC_COMPLETED =
@@ -268,12 +273,14 @@ public class Constants {
             "Failed to read snapshot manifest from [{}]: {}. Consumer cannot be initialized and will be retried on the next sync.";
     public static final String D_LOG_NO_PLAN_RETURNED =
             "No plan returned for registered environment.";
+    public static final String D_LOG_PLAN_TOKEN_REJECTED =
+            "The CTI Console rejected the access token; consumer [{}] has no plan resource.";
     public static final String D_LOG_NO_FEATURE_FOR_CONSUMER =
             "No feature found for consumer type [{}] in plan [{}].";
     public static final String D_LOG_PLAN_PROVIDES_RESOURCE =
             "Plan [{}] provides resource [{}] for consumer [{}].";
     public static final String W_LOG_PLAN_RESOURCE_RESOLVE_FAILED =
-            "Failed to resolve plan resource for consumer [{}]: {}";
+            "Could not retrieve the subscription plan for consumer [{}] ({}). Keeping the current data source.";
     public static final String E_LOG_SHADOW_SWAP_UNAVAILABLE =
             "Cannot rebuild content for consumer [{}]: the remote content source is unavailable.";
     public static final String D_LOG_SHADOW_INDICES_CREATING =
@@ -618,6 +625,8 @@ public class Constants {
             "Wazuh Console resource-token error: {}";
     public static final String E_LOG_CTI_RESOURCE_TOKEN_PARSE_FAILED =
             "Could not parse the response from the Wazuh Console to obtain a resource token.";
+    public static final String W_LOG_CTI_RESOURCE_TOKEN_DECLINED =
+            "The Wazuh Console declined to sign resource [{}] ({}); the plain URL is used.";
     public static final String D_LOG_CTI_ACCESS_TOKEN_UPDATED = "Wazuh Console access token updated.";
     public static final String E_LOG_ENGINE_SOCKET_UNAVAILABLE =
             "Cannot reach the Wazuh Engine: its API socket is not available. Verify the Engine is running.";

@@ -34,6 +34,14 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 
 A successful registration returns `{"message":"Access token received successfully.","status":201}`. The token is persisted in `.wazuh-internal-state` and loaded into memory immediately.
 
+### "Unable to retrieve the subscription plan from the CTI Console"
+
+`GET /_plugins/_content_manager/subscription` answers `502` with this message when the instance is registered but its plan can't be fetched from the CTI Console: the Console is unreachable, the request timed out, or the Console answered `429` or `5xx`. The stored token is kept, so the instance stays registered and keeps its current content. The node log shows the cause in a `Could not retrieve the subscription plan from the CTI Console` warning. The same kind of outage during a synchronization logs `Token exchange failed for resource [...] (...). The access token is kept.` or `Keeping the current data source.`, and the pass is retried.
+
+#### Resolution
+
+Check that the node can reach the URL in `plugins.content_manager.cti.api`, then repeat the request. You don't need to register again. The credentials are only deleted when the CTI Console rejects the token with `401`; `GET /subscription` then reports `"is_registered": false`.
+
 ### Sync not running
 
 Content is not being updated despite having a valid subscription.

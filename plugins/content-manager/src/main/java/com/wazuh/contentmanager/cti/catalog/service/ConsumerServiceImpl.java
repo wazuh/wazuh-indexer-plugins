@@ -33,6 +33,7 @@ import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
 
 /**
  * Implementation of the ConsumerService. Manages the retrieval and persistence of Local and Remote
@@ -113,6 +114,11 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
             }
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
             log.error("Couldn't obtain consumer from CTI: {}", e.getMessage());
+        } catch (CtiConsoleUnavailableException e) {
+            // The signed URL could not be obtained; the token is kept and the feed reads as
+            // unreachable, so the caller retries.
+            log.error(
+                    "Couldn't obtain a signed URL for consumer [{}]: {}", this.resource, e.getMessage());
         } catch (IOException e) {
             log.error("Failed to parse remote consumer: {}", e.getMessage());
         } catch (IllegalArgumentException e) {
