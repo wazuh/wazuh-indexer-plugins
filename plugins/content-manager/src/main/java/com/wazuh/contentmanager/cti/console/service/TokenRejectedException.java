@@ -19,11 +19,11 @@ package com.wazuh.contentmanager.cti.console.service;
 import java.io.IOException;
 
 /**
- * Signals that the CTI Console rejected the stored access token: {@code GET
- * /platform/environments/me} answered {@code 401 Unauthorized}, so the token is expired, revoked or
- * invalid. This is the only plan-lookup failure that says anything about the token, and the only
- * one after which the stored credentials may be cleared. Every other failure is a {@link
- * PlanUnavailableException}.
+ * Signals that the CTI Console rejected the stored access token, so it is expired, revoked or
+ * invalid: {@code 401} from the plan lookup, or {@code 401} or {@code 400 unauthorized_client} from
+ * the resource-token exchange. This is the only CTI Console failure that says anything about the
+ * token, and the only one after which the token may be cleared. Every other failure is a {@link
+ * CtiConsoleUnavailableException}.
  */
 public class TokenRejectedException extends IOException {
 

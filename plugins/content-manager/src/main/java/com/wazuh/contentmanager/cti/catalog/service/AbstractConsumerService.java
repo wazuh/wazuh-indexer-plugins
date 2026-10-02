@@ -50,7 +50,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.console.model.Feature;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
-import com.wazuh.contentmanager.cti.console.service.PlanUnavailableException;
+import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
 import com.wazuh.contentmanager.cti.console.service.TokenRejectedException;
@@ -567,7 +567,7 @@ public abstract class AbstractConsumerService {
         boolean planUnknown = false;
         try {
             planResource = this.resolvePlanResource(consumerType);
-        } catch (PlanUnavailableException e) {
+        } catch (CtiConsoleUnavailableException e) {
             log.warn(Constants.W_LOG_PLAN_RESOURCE_RESOLVE_FAILED, consumerType, e.getMessage());
             planUnknown = true;
         }
@@ -1107,10 +1107,10 @@ public abstract class AbstractConsumerService {
      *     "cti:catalog:consumer:ruleset"}).
      * @return the feature's resource URL, or {@code null} if not registered, the CTI Console rejected
      *     the token, or the plan has no matching feature.
-     * @throws PlanUnavailableException if the plan of a registered environment could not be fetched,
-     *     so whether it provides a resource is unknown.
+     * @throws CtiConsoleUnavailableException if the plan of a registered environment could not be
+     *     fetched, so whether it provides a resource is unknown.
      */
-    private String resolvePlanResource(String consumerType) throws PlanUnavailableException {
+    private String resolvePlanResource(String consumerType) throws CtiConsoleUnavailableException {
         if (!PluginSettings.getInstance().isRegistered()) {
             return null;
         }
@@ -1124,10 +1124,10 @@ public abstract class AbstractConsumerService {
         } catch (TokenRejectedException e) {
             log.debug(Constants.D_LOG_PLAN_TOKEN_REJECTED, consumerType);
             return null;
-        } catch (PlanUnavailableException e) {
+        } catch (CtiConsoleUnavailableException e) {
             throw e;
         } catch (Exception e) {
-            throw new PlanUnavailableException(e.getMessage(), e);
+            throw new CtiConsoleUnavailableException(e.getMessage(), e);
         } finally {
             if (plansService != null) {
                 plansService.close();

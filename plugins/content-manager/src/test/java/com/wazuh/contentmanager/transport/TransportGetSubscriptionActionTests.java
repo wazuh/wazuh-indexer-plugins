@@ -39,7 +39,7 @@ import com.wazuh.contentmanager.action.GetSubscriptionRequest;
 import com.wazuh.contentmanager.action.GetSubscriptionResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
 import com.wazuh.contentmanager.cti.console.model.Plan;
-import com.wazuh.contentmanager.cti.console.service.PlanUnavailableException;
+import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -143,7 +143,7 @@ public class TransportGetSubscriptionActionTests extends OpenSearchTestCase {
                         invocation -> {
                             ActionListener<Plan> asyncListener = invocation.getArgument(0);
                             asyncListener.onFailure(
-                                    new PlanUnavailableException(
+                                    new CtiConsoleUnavailableException(
                                             "The CTI Console answered status 503 to the plan lookup."));
                             return null;
                         })

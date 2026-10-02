@@ -19,19 +19,18 @@ package com.wazuh.contentmanager.cti.console.service;
 import java.io.IOException;
 
 /**
- * Signals that the environment's plan could not be obtained from the CTI Console for a reason that
- * says nothing about the access token: a network error, a timeout, a status other than {@code 200}
- * and {@code 401} (such as {@code 429} or a {@code 5xx}), or a response that cannot be parsed or
- * lists no plan. Callers must treat the registration as unchanged: keep the stored token and the
- * current content source, and retry later. A rejected token is a {@link TokenRejectedException}
- * instead.
+ * Signals that a CTI Console call (the plan lookup or the resource-token exchange) failed for a
+ * reason that says nothing about the access token: a network error, a timeout, a status other than
+ * {@code 200} and {@code 401} (such as {@code 429} or a {@code 5xx}), or a response that cannot be
+ * used. Callers must treat the registration as unchanged: keep the stored token and the current
+ * content source, and retry later. A rejected token is a {@link TokenRejectedException} instead.
  */
-public class PlanUnavailableException extends IOException {
+public class CtiConsoleUnavailableException extends IOException {
 
     /**
      * @param message the failure detail.
      */
-    public PlanUnavailableException(String message) {
+    public CtiConsoleUnavailableException(String message) {
         super(message);
     }
 
@@ -39,7 +38,7 @@ public class PlanUnavailableException extends IOException {
      * @param message the failure detail.
      * @param cause the underlying failure.
      */
-    public PlanUnavailableException(String message, Throwable cause) {
+    public CtiConsoleUnavailableException(String message, Throwable cause) {
         super(message, cause);
     }
 }

@@ -115,14 +115,14 @@ public class Constants {
     public static final String E_500_VERSION_NOT_FOUND = "Unable to determine current Wazuh version.";
     public static final String E_500_CTI_UNREACHABLE =
             "Unable to reach the CTI API to check for updates.";
-    public static final String E_502_CTI_PLAN_UNAVAILABLE =
-            "Unable to retrieve the subscription plan from the CTI Console. "
-                    + "The registration is unchanged; try again later.";
     public static final String E_500_DETECTOR_GUARD_FAILED =
             "The promotion was not applied: could not verify that it leaves every running detector "
                     + "with enabled rules (cause: %s).";
     public static final String E_DETECTOR_LOOKUP_TRUNCATED =
             "Found %d enabled detectors, more than the %d that can be checked in one search.";
+    public static final String E_502_CTI_PLAN_UNAVAILABLE =
+            "Unable to retrieve the subscription plan from the CTI Console. "
+                    + "The registration is unchanged; try again later.";
 
     // Log messages
     public static final String I_LOG_MAX_INTEGRATIONS_REACHED =
@@ -625,6 +625,8 @@ public class Constants {
             "Wazuh Console resource-token error: {}";
     public static final String E_LOG_CTI_RESOURCE_TOKEN_PARSE_FAILED =
             "Could not parse the response from the Wazuh Console to obtain a resource token.";
+    public static final String W_LOG_CTI_RESOURCE_TOKEN_DECLINED =
+            "The Wazuh Console declined to sign resource [{}] ({}); the plain URL is used.";
     public static final String D_LOG_CTI_ACCESS_TOKEN_UPDATED = "Wazuh Console access token updated.";
     public static final String E_LOG_ENGINE_SOCKET_UNAVAILABLE =
             "Cannot reach the Wazuh Engine: its API socket is not available. Verify the Engine is running.";

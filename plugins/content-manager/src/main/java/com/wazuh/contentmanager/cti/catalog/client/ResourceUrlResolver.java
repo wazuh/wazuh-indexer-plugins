@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.client;
 
+import java.io.IOException;
+
 /**
  * Resolves CTI resource URLs before HTTP requests are made. For non-registered environments, the
  * URL is returned as-is. For registered environments, the URL is exchanged for a temporary
@@ -28,8 +30,10 @@ public interface ResourceUrlResolver {
      *
      * @param originalUrl the original CTI resource URL.
      * @return the resolved URL to use for the request.
+     * @throws IOException if the URL cannot be resolved right now; the request must fail, as for an
+     *     unreachable feed.
      */
-    String resolve(String originalUrl);
+    String resolve(String originalUrl) throws IOException;
 
     /**
      * Releases any resources held by this resolver (e.g. an HTTP client used to obtain signed URLs).

@@ -49,9 +49,9 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
      *
      * @return the environment's active plan, or {@code null} if {@code token} is {@code null}.
      * @throws TokenRejectedException if the CTI Console rejects the token ({@code 401}).
-     * @throws PlanUnavailableException if the plan cannot be obtained for any other reason.
+     * @throws CtiConsoleUnavailableException if the plan cannot be obtained for any other reason.
      */
-    public Plan getMyPlan(Token token) throws TokenRejectedException, PlanUnavailableException {
+    public Plan getMyPlan(Token token) throws TokenRejectedException, CtiConsoleUnavailableException {
         if (token == null) {
             log.warn("Cannot fetch environment plan: Token is null. Instance might not be registered.");
             return null;
@@ -77,11 +77,11 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
      * @param response the CTI Console response.
      * @return the environment's active plan.
      * @throws TokenRejectedException if the response is a {@code 401}.
-     * @throws PlanUnavailableException if the response is any other non-{@code 200} status, cannot be
-     *     parsed, or lists no plan.
+     * @throws CtiConsoleUnavailableException if the response is any other non-{@code 200} status,
+     *     cannot be parsed, or lists no plan.
      */
     private Plan toEnvironmentPlan(SimpleHttpResponse response)
-            throws TokenRejectedException, PlanUnavailableException {
+            throws TokenRejectedException, CtiConsoleUnavailableException {
         if (response.getCode() == 401) {
             log.warn("Authentication failed: The environment token is invalid or missing.");
             throw new TokenRejectedException("The CTI Console rejected the access token (status 401).");
@@ -91,7 +91,7 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
                     "Operation to fetch environment plan failed: { \"status_code\": {}, \"message\": {}",
                     response.getCode(),
                     response.getBodyText());
-            throw new PlanUnavailableException(
+            throw new CtiConsoleUnavailableException(
                     "The CTI Console answered status " + response.getCode() + " to the plan lookup.");
         }
         List<Plan> plans;
@@ -102,11 +102,12 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
             plans = this.mapper.readerFor(new TypeReference<List<Plan>>() {}).readValue(root);
         } catch (IOException | IllegalArgumentException e) {
             log.error("Failed to parse environment plan: {}", e.getMessage());
-            throw new PlanUnavailableException("Failed to parse the environment plan.", e);
+            throw new CtiConsoleUnavailableException("Failed to parse the environment plan.", e);
         }
         if (plans == null || plans.isEmpty()) {
             log.warn("The CTI Console returned no plan for the registered environment.");
-            throw new PlanUnavailableException("The CTI Console returned no plan for the environment.");
+            throw new CtiConsoleUnavailableException(
+                    "The CTI Console returned no plan for the environment.");
         }
         log.info(
                 "Active plan for registered environment retrieved successfully from CTI"
@@ -115,9 +116,10 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
         return plans.get(0);
     }
 
-    private PlanUnavailableException requestFailed(Exception e) {
+    private CtiConsoleUnavailableException requestFailed(Exception e) {
         log.error("Couldn't obtain environment plan from CTI: {}", e.getMessage());
-        return new PlanUnavailableException("The plan lookup request to the CTI Console failed.", e);
+        return new CtiConsoleUnavailableException(
+                "The plan lookup request to the CTI Console failed.", e);
     }
 
     /**
@@ -151,7 +153,7 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
     }
 
     @Override
-    public Plan getPlan() throws TokenRejectedException, PlanUnavailableException {
+    public Plan getPlan() throws TokenRejectedException, CtiConsoleUnavailableException {
         String accessToken = PluginSettings.getInstance().getAccessToken();
         if (accessToken != null) {
             return getMyPlan(new Token(accessToken, "Bearer"));
@@ -174,7 +176,7 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
                             Plan plan;
                             try {
                                 plan = this.toEnvironmentPlan(response);
-                            } catch (TokenRejectedException | PlanUnavailableException e) {
+                            } catch (TokenRejectedException | CtiConsoleUnavailableException e) {
                                 listener.onFailure(e);
                                 return;
                             }

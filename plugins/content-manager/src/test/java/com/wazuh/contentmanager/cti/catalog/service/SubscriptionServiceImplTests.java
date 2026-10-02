@@ -29,7 +29,7 @@ import java.lang.reflect.Field;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
-import com.wazuh.contentmanager.cti.console.service.PlanUnavailableException;
+import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.TokenRejectedException;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -153,8 +153,9 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
     public void testGetPlanAsync_TransientFailure_KeepsToken() {
         for (Exception failure :
                 new Exception[] {
-                    new PlanUnavailableException("The CTI Console answered status 503 to the plan lookup."),
-                    new PlanUnavailableException(
+                    new CtiConsoleUnavailableException(
+                            "The CTI Console answered status 503 to the plan lookup."),
+                    new CtiConsoleUnavailableException(
                             "The plan lookup request to the CTI Console failed.",
                             new java.util.concurrent.TimeoutException("5 SECONDS")),
                     new RuntimeException("unexpected")

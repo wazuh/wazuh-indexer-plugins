@@ -264,9 +264,9 @@ public class PlansServiceTests extends OpenSearchTestCase {
                                     "{\"error\": \"x\"}".getBytes(StandardCharsets.UTF_8),
                                     ContentType.APPLICATION_JSON));
 
-            PlanUnavailableException e =
+            CtiConsoleUnavailableException e =
                     expectThrows(
-                            PlanUnavailableException.class,
+                            CtiConsoleUnavailableException.class,
                             () -> ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer")));
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(String.valueOf(status)));
         }
@@ -279,14 +279,14 @@ public class PlansServiceTests extends OpenSearchTestCase {
                 .thenThrow(new TimeoutException("5 SECONDS"))
                 .thenThrow(new ExecutionException(new java.net.ConnectException("Connection refused")));
 
-        PlanUnavailableException timeout =
+        CtiConsoleUnavailableException timeout =
                 expectThrows(
-                        PlanUnavailableException.class,
+                        CtiConsoleUnavailableException.class,
                         () -> ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer")));
         Assert.assertTrue(timeout.getCause() instanceof TimeoutException);
-        PlanUnavailableException refused =
+        CtiConsoleUnavailableException refused =
                 expectThrows(
-                        PlanUnavailableException.class,
+                        CtiConsoleUnavailableException.class,
                         () -> ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer")));
         Assert.assertTrue(refused.getCause() instanceof ExecutionException);
     }
@@ -301,7 +301,7 @@ public class PlansServiceTests extends OpenSearchTestCase {
                                     200, body.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
             expectThrows(
-                    PlanUnavailableException.class,
+                    CtiConsoleUnavailableException.class,
                     () -> ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer")));
         }
     }
@@ -313,14 +313,16 @@ public class PlansServiceTests extends OpenSearchTestCase {
         Assert.assertTrue(this.getMyPlanAsyncFailure() instanceof TokenRejectedException);
     }
 
-    /** Async getMyPlan: a 503 fails the listener with PlanUnavailableException. */
+    /** Async getMyPlan: a 503 fails the listener with CtiConsoleUnavailableException. */
     public void testGetMyPlanAsyncErrorStatusFailsWithPlanUnavailable() {
         this.stubAsyncEnvironmentMe(SimpleHttpResponse.create(503, "{}", ContentType.APPLICATION_JSON));
 
-        Assert.assertTrue(this.getMyPlanAsyncFailure() instanceof PlanUnavailableException);
+        Assert.assertTrue(this.getMyPlanAsyncFailure() instanceof CtiConsoleUnavailableException);
     }
 
-    /** Async getMyPlan: a transport failure fails the listener with PlanUnavailableException. */
+    /**
+     * Async getMyPlan: a transport failure fails the listener with CtiConsoleUnavailableException.
+     */
     @SuppressWarnings("unchecked")
     public void testGetMyPlanAsyncRequestFailureFailsWithPlanUnavailable() {
         java.net.ConnectException cause = new java.net.ConnectException("Connection refused");
@@ -333,7 +335,7 @@ public class PlansServiceTests extends OpenSearchTestCase {
                 .getEnvironmentMe(any(Token.class), any(ActionListener.class));
 
         Exception failure = this.getMyPlanAsyncFailure();
-        Assert.assertTrue(failure instanceof PlanUnavailableException);
+        Assert.assertTrue(failure instanceof CtiConsoleUnavailableException);
         Assert.assertSame(cause, failure.getCause());
     }
 

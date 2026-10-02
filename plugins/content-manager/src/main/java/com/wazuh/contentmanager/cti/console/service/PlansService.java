@@ -43,10 +43,10 @@ public interface PlansService extends ClosableHttpClient {
      * @return the applicable {@link Plan}, or {@code null} if the public plan cannot be retrieved.
      * @throws TokenRejectedException if the instance is registered and the CTI Console rejects its
      *     token.
-     * @throws PlanUnavailableException if the instance is registered and its plan cannot be obtained
-     *     for any other reason.
+     * @throws CtiConsoleUnavailableException if the instance is registered and its plan cannot be
+     *     obtained for any other reason.
      */
-    Plan getPlan() throws TokenRejectedException, PlanUnavailableException;
+    Plan getPlan() throws TokenRejectedException, CtiConsoleUnavailableException;
 
     /**
      * Retrieves the plan for the registered environment using the provided token.
@@ -56,10 +56,10 @@ public interface PlansService extends ClosableHttpClient {
      *     null}.
      * @throws TokenRejectedException if the CTI Console rejects the token ({@code 401}). Only this
      *     failure means the token is no longer valid.
-     * @throws PlanUnavailableException if the plan cannot be obtained for any other reason: network
-     *     error, timeout, another error status, or an unusable response.
+     * @throws CtiConsoleUnavailableException if the plan cannot be obtained for any other reason:
+     *     network error, timeout, another error status, or an unusable response.
      */
-    Plan getMyPlan(Token token) throws TokenRejectedException, PlanUnavailableException;
+    Plan getMyPlan(Token token) throws TokenRejectedException, CtiConsoleUnavailableException;
 
     /**
      * Async variant of {@link #getMyPlan(Token)}. Retrieves the plan for the registered environment
@@ -68,7 +68,7 @@ public interface PlansService extends ClosableHttpClient {
      * @param token the authentication {@link Token}.
      * @param listener notified with the active {@link Plan} ({@code null} if {@code token} is {@code
      *     null}), or failed with a {@link TokenRejectedException} when the CTI Console rejects the
-     *     token, or with a {@link PlanUnavailableException} for any other failure.
+     *     token, or with a {@link CtiConsoleUnavailableException} for any other failure.
      */
     void getMyPlan(Token token, ActionListener<Plan> listener);
 
