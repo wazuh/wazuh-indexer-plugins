@@ -1,6 +1,6 @@
 # Permissions
 
-This page lists the permissions registered by the Wazuh Indexer plugins, to grant in the roles you define. The [default roles](./access-control.md) use only a few of them. Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual `cluster:admin/content_manager/*` transport actions registered by the plugin; the Setup entries are raw cluster actions, each also exposed as an action group; the Ruleset Management entries are raw cluster actions.
+This page lists the permissions registered by the Wazuh Indexer plugins, to grant in the roles you define. The [default roles](./access-control.md) use only a few of them. Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual transport actions registered by the plugin: `cluster:admin/content_manager/*` for the actions that change state, and `cluster:monitor/content_manager/*` for the read-only ones (subscription get, logtest, promote get and version check); the Setup entries are raw cluster actions, each also exposed as an action group; the Ruleset Management entries are raw cluster actions.
 
 ## Setup plugin permissions
 

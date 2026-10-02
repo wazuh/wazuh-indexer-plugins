@@ -209,8 +209,8 @@ Validation errors short-circuit, the first error aborts the entire request.
 ```
 
 - On full success: HTTP `200`
-- On partial failure (some docs not found): HTTP `207 MULTI_STATUS`
-- On total bulk failure: HTTP `500`
+- When any item fails (for example, a finding that does not exist), including when every item fails: HTTP `207 MULTI_STATUS`, with each item's own status
+- When the bulk request itself fails: HTTP `500`
 
 #### Registration
 

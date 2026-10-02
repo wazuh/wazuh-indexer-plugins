@@ -98,6 +98,6 @@ The plugin manages the following system indices:
 | `.opensearch-alerting-queries*` | Queries of document-level monitors, prepared for matching | — |
 | `.opensearch-alerting-config-lock` | Short-lived locks that keep a monitor from running on two nodes at once | — |
 
-The three history indices are managed the same way. Every 12 hours (the rollover period), the plugin rolls the current index over to a new one if it holds 1,000 documents or is older than 30 days, and deletes the history indices that are older than 60 days. The two limits do different things: `max_age` (30 days) only decides when a new index is started, while `retention_period` (60 days) decides when data is deleted.
+Every 12 hours (the rollover period), the plugin checks each history index. It rolls the current index over to a new one if it holds 1,000 documents or is older than 30 days, and deletes the history indices that are older than 60 days. Alert and finding history only roll over while their setting (`alert_history_enabled`, `alert_finding_enabled`) is on, but the deletion of old indices runs either way; while the setting is on, the current write index is never deleted. Comments history rolls over and is pruned whether or not comments are enabled. The two limits do different things: `max_age` (30 days) only decides when a new index is started, while `retention_period` (60 days) decides when data is deleted.
 
 Rollover periods, rollover limits and retention are configurable through [plugin settings](configuration.md).

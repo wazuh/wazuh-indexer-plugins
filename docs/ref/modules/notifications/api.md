@@ -70,7 +70,7 @@ Creates a new notification channel configuration.
 ```json
 {
   "config": {
-    "name": "my-smtp-account",
+    "name": "my_smtp_account",
     "description": "Corporate SMTP server",
     "config_type": "smtp_account",
     "is_enabled": true,

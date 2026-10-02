@@ -163,7 +163,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
 
 **Symptoms:** The `status_text` of a webhook-based delivery holds only the beginning of the endpoint's response.
 
-**Cause:** The plugin reads at most `opensearch.notifications.core.max_http_response_size` bytes of a webhook response, that is, half that number of characters, and drops the rest. The delivery itself still succeeds.
+**Cause:** The plugin reads at most half of `opensearch.notifications.core.max_http_response_size`, counted in characters, from a webhook response and drops the rest. The delivery itself still succeeds.
 
 #### Resolution
 
