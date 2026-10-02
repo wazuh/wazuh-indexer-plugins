@@ -18,7 +18,7 @@ Follow these steps:
 
 ### 1. Create a role
 
-1. In the Wazuh Dashboard, go to **Index Management** -> **Security** -> **Roles**.
+1. In the Wazuh Dashboard, go to **Indexer management** -> **Security** -> **Roles**.
 2. Click **Create role**.
 3. Enter a **Role name** (e.g., `custom-read-write`).
 4. Under **Cluster permissions**, select permissions if needed.
@@ -32,7 +32,7 @@ Follow these steps:
 
 ### 2. Create a user
 
-1. In the Wazuh Dashboard, go to **Index Management** -> **Security** -> **Internal users**.
+1. In the Wazuh Dashboard, go to **Indexer management** -> **Security** -> **Internal users**.
 2. Click **Create internal user**.
 3. Fill in the following:
     * **Username** (e.g., `new-user`)
@@ -40,9 +40,9 @@ Follow these steps:
     * **Description** (optional)
 4. Click **Create** to create the user.
 
-### 3. Verify role mapping
+### 3. Map the user to the role
 
-When you assign a role to a user during creation, the mapping is created automatically. To review or edit:
+Creating an internal user does not assign it a role. To map the user to the role you created:
 
 1. In **Security**, go to **Roles**.
 2. Find and click your role (`custom-read-write`).
@@ -59,7 +59,7 @@ After creating the user and role:
 
 1. Log out from the Dashboard.
 2. Log in with the new user's credentials.
-3. Navigate to **Index Management** -> **Dev Tools**.
+3. Navigate to **Indexer management** -> **Dev Tools**.
 4. Run a query  to test access, such as:
    ```console
    GET /wazuh-*/_search

@@ -2,6 +2,17 @@
 
 The Alerting plugin exposes a REST API under the `/_plugins/_alerting/` base path. This page summarizes the available endpoints. For full request/response schemas, see the [OpenSearch Alerting API documentation](https://docs.opensearch.org/docs/3.6/observing-your-data/alerting/api/).
 
+## Sections
+
+- [Monitors](#monitors)
+- [Workflows](#workflows)
+- [Alerts](#alerts)
+- [Findings](#findings)
+- [Comments](#comments)
+- [Destinations (legacy)](#destinations-legacy)
+- [Statistics and remote indices](#statistics-and-remote-indices)
+- [Examples](#examples)
+
 ## Endpoint summary
 
 ### Monitors
@@ -12,8 +23,9 @@ The Alerting plugin exposes a REST API under the `/_plugins/_alerting/` base pat
 | `PUT` | `/_plugins/_alerting/monitors/{id}` | Update a monitor |
 | `GET` | `/_plugins/_alerting/monitors/{id}` | Get a monitor by ID |
 | `DELETE` | `/_plugins/_alerting/monitors/{id}` | Delete a monitor |
-| `GET` | `/_plugins/_alerting/monitors/_search` | Search monitors |
+| `GET`, `POST` | `/_plugins/_alerting/monitors/_search` | Search monitors and workflows |
 | `POST` | `/_plugins/_alerting/monitors/{id}/_execute` | Execute a monitor immediately |
+| `POST` | `/_plugins/_alerting/monitors/_execute` | Execute a monitor definition sent in the request body, without saving it |
 
 ### Workflows
 
@@ -25,19 +37,24 @@ The Alerting plugin exposes a REST API under the `/_plugins/_alerting/` base pat
 | `DELETE` | `/_plugins/_alerting/workflows/{id}` | Delete a workflow |
 | `POST` | `/_plugins/_alerting/workflows/{id}/_execute` | Execute a workflow immediately |
 
+There is no separate workflow search endpoint. Workflows are returned by `/_plugins/_alerting/monitors/_search`.
+
 ### Alerts
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/_plugins/_alerting/alerts` | List alerts across all monitors |
-| `GET` | `/_plugins/_alerting/workflows/{id}/alerts` | List alerts for a specific workflow |
-| `POST` | `/_plugins/_alerting/monitors/{id}/_acknowledge/alerts` | Acknowledge one or more alerts |
+| `GET` | `/_plugins/_alerting/monitors/alerts` | List alerts across all monitors. Filter by monitor with the `monitorId` query parameter |
+| `GET` | `/_plugins/_alerting/workflows/alerts` | List workflow alerts. Filter by workflow with the `workflowIds` query parameter |
+| `POST` | `/_plugins/_alerting/monitors/{id}/_acknowledge/alerts` | Acknowledge one or more alerts of a monitor |
+| `POST` | `/_plugins/_alerting/workflows/{id}/_acknowledge/alerts` | Acknowledge one or more alerts of a workflow |
 
 ### Findings
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/_plugins/_alerting/findings` | List findings from document-level monitors |
+| `GET` | `/_plugins/_alerting/findings/_search` | Search the findings of document-level monitors. Get a single finding with the `findingId` query parameter |
+
+Only stored findings are returned, and findings are stored only when `plugins.alerting.alert_finding_enabled` is `true` (off by default). See [Configuration](configuration.md#finding-history-settings).
 
 ### Comments
 
@@ -46,26 +63,42 @@ The Alerting plugin exposes a REST API under the `/_plugins/_alerting/` base pat
 | `POST` | `/_plugins/_alerting/comments/{alertId}` | Add a comment to an alert |
 | `PUT` | `/_plugins/_alerting/comments/{commentId}` | Update a comment |
 | `DELETE` | `/_plugins/_alerting/comments/{commentId}` | Delete a comment |
-| `GET` | `/_plugins/_alerting/comments/_search` | Search comments |
+| `GET`, `POST` | `/_plugins/_alerting/comments/_search` | Search comments. The query goes in the request body |
+
+Comments are disabled by default: every comments endpoint returns `403 Forbidden` until `plugins.alerting.comments_enabled` is set to `true`. See [Configuration](configuration.md#comment-settings).
 
 ### Destinations (legacy)
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
+| `GET` | `/_plugins/_alerting/destinations` | List destinations |
 | `GET` | `/_plugins/_alerting/destinations/{id}` | Get a destination by ID |
-| `GET` | `/_plugins/_alerting/destinations/_search` | Search destinations |
+| `GET` | `/_plugins/_alerting/destinations/email_accounts/{id}` | Get an email account by ID |
+| `GET`, `POST` | `/_plugins/_alerting/destinations/email_accounts/_search` | Search email accounts |
+| `GET` | `/_plugins/_alerting/destinations/email_groups/{id}` | Get an email group by ID |
+| `GET`, `POST` | `/_plugins/_alerting/destinations/email_groups/_search` | Search email groups |
 
 > **Note:** Destination management has been migrated to the [Notifications](../notifications/index.md) plugin. Use the Notifications API (`/_plugins/_notifications/`) for creating and managing notification channels.
+
+### Statistics and remote indices
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/_plugins/_alerting/stats` | Monitor scheduling statistics for every node |
+| `GET` | `/_plugins/_alerting/stats/{metric}` | A single statistics metric: `job_scheduling_metrics` or `jobs_info` |
+| `GET` | `/_plugins/_alerting/{nodeId}/stats` | Monitor scheduling statistics for the given nodes |
+| `GET` | `/_plugins/_alerting/{nodeId}/stats/{metric}` | A single statistics metric for the given nodes |
+| `GET` | `/_plugins/_alerting/remote/indexes` | List the indices, with their health, that match the patterns in the `indexes` query parameter on the local and remote clusters (`<cluster>:<pattern>`), for cross-cluster monitoring |
 
 ## Examples
 
 ### Create a query-level monitor
 
-This example creates a monitor that checks every 5 minutes whether the number of error-level events in the last hour exceeds 100:
+This example creates a monitor that checks every 5 minutes whether the number of error-level events (`log.level` is `error`) in the last hour exceeds 100:
 
 ```bash
 curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
-  "https://localhost:9200/_plugins/_alerting/monitors" \
+  "https://127.0.0.1:9200/_plugins/_alerting/monitors" \
   -H 'Content-Type: application/json' \
   -d '{
     "type": "monitor",
@@ -88,7 +121,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
               "bool": {
                 "filter": [
                   { "range": { "@timestamp": { "gte": "now-1h" } } },
-                  { "term": { "event.severity": "error" } }
+                  { "term": { "log.level": "error" } }
                 ]
               }
             },
@@ -119,11 +152,13 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   }'
 ```
 
+To test a monitor definition without saving it, send the same request body to `POST /_plugins/_alerting/monitors/_execute?dryrun=true`. The response shows the query results and whether each trigger fired.
+
 ### Acknowledge alerts
 
 ```bash
 curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
-  "https://localhost:9200/_plugins/_alerting/monitors/{monitorId}/_acknowledge/alerts" \
+  "https://127.0.0.1:9200/_plugins/_alerting/monitors/{monitorId}/_acknowledge/alerts" \
   -H 'Content-Type: application/json' \
   -d '{
     "alerts": ["alert-id-1", "alert-id-2"]
@@ -134,5 +169,5 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 
 ```bash
 curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
-  "https://localhost:9200/_plugins/_alerting/monitors/{monitorId}/_execute"
+  "https://127.0.0.1:9200/_plugins/_alerting/monitors/{monitorId}/_execute"
 ```

@@ -21,11 +21,7 @@ The detail of the fields can be found in csv file [States inventory hotfixes Fie
 | agent_ip       | string  | IP address of the agent.                                       | wazuh.agent.host.ip           | TRUE   |
 | agent_name     | string  | Name of the agent.                                             | wazuh.agent.name              | FALSE  |
 | agent_version  | string  | Agent version.                                                 | wazuh.agent.version           | FALSE  |
-| arch           | string  | Registry architecture type, e.g., "[x86]", "[x64]".            | wazuh.agent.host.architecture | TRUE   |
-| agent_ip       | string  | IP address of the agent.                                       | wazuh.agent.host.ip           | TRUE   |
-| agent_id       | string  | Unique identifier of the agent, e.g., "001".                   | wazuh.agent.id                | FALSE  |
-| agent_name     | string  | Name assigned to the agent.                                    | wazuh.agent.name              | FALSE  |
-| agent_version  | string  | Version of the agent software, e.g., "v4.10.2".                | wazuh.agent.version           | FALSE  |
+| arch           | string  | Agent host OS architecture, e.g., "x86_64".                    | wazuh.agent.host.architecture | TRUE   |
 | hotfix         | string  | Name or identifier of the applied hotfix.                      | package.hotfix.name           | TRUE   |
 | cluster_name   | string  | Wazuh cluster name                                             | wazuh.cluster.name            | TRUE   |
 | cluster_node   | string  | Wazuh cluster node                                             | wazuh.cluster.node            | TRUE   |

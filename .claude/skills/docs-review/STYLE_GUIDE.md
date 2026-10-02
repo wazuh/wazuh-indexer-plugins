@@ -310,18 +310,4 @@ in light of that split.
   around whether Ruleset Management enriched findings was shipped or planned —
   it's shipped, and the docs should just say so plainly with no version
   caveat.)
-- **Decided — exception: an explicit status caveat is required when a page
-  documents a change that has not yet merged into the stable branch.**
-  `ruleset-management/case-management.md` and the case-management section of
-  `dev/plugins/security-analytics.md` document a schema revision (`comment` →
-  `comments` array, plus `title`/`description`/`severity`/`priority`/`tlp`)
-  that exists only as a design doc at the time of writing, not in shipped
-  code. These pages open with a blockquote status note naming the source
-  design doc and stating plainly that it isn't merged yet. This is not the
-  same thing as the banned "Introduced in 5.0" marker — that pattern
-  disambiguates between two *shipped* versions, which this repo doesn't need.
-  This caveat instead disambiguates *shipped* from *not-yet-shipped*, which is
-  a real and necessary distinction. Use it sparingly, only when a page's
-  primary subject is genuinely unmerged — don't add speculative "may change"
-  hedging to normal shipped-behavior pages.
 

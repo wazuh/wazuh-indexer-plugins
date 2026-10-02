@@ -58,14 +58,14 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 
 Settings marked *dynamic* can be changed on a running cluster and take effect on the next operation:
 
-```console
-PUT _cluster/settings
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
 {
   "persistent": {
     "plugins.content_manager.bulk.retry.topology.max_retries": 8,
     "plugins.content_manager.bulk.retry.topology.max_backoff_millis": 45000
   }
-}
+}'
 ```
 
 <!-- // ANCHOR_END: settings-table -->
@@ -103,8 +103,8 @@ Disabling scheduled synchronization does not remove content that has already bee
 
 On online installations, manual synchronization can be performed on demand using the Content Manager API:
 
-```
-POST /_plugins/_content_manager/update"
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST "https://127.0.0.1:9200/_plugins/_content_manager/update"
 ```
 
 ### Custom scheduled synchronization interval
@@ -183,9 +183,8 @@ plugins.content_manager.catalog.vulnerabilities: "https://api.pre.cloud.wazuh.co
 
 Behavior:
 
-- If a setting is non-empty, Content Manager attempts remote snapshot initialization first.
-- If remote initialization fails, it falls back to the local packaged snapshot when available.
-- If a setting is empty, initialization uses the local packaged snapshot directly.
+- Content Manager attempts remote snapshot initialization first. If a setting is empty, it uses the catalog URL of the subscription plan, the one stored by the previous sync, or, on a fresh install, the one recorded in the packaged snapshot's manifest.
+- If remote initialization fails, it falls back to the last stable snapshot (the last one loaded in full), and then to the local packaged snapshot when available.
 
 #### Tune bulk operations
 
@@ -239,7 +238,7 @@ This data allows Wazuh to determine if a newer version is available and notify u
 The update check service can be enabled or disabled at runtime without restarting the node using the Cluster Settings API:
 
 ```bash
-curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://192.168.56.6:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_cluster/settings" -H 'Content-Type: application/json' -d'
 {
   "persistent": {
     "plugins.content_manager.telemetry.enabled": false
@@ -276,7 +275,7 @@ The plugin enforces configurable upper bounds on the number of resources that ca
 All limit settings are dynamic and can be changed at runtime:
 
 ```bash
-curl -X PUT "https://localhost:9200/_cluster/settings" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_cluster/settings" \
   -H 'Content-Type: application/json' \
   -d '{
     "persistent": {

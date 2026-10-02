@@ -105,16 +105,18 @@ apt-get install debconf adduser procps diffutils iproute2 openssl
 
 #### Installing the Wazuh indexer package
 
+Replace the file name with that of the package you downloaded. `<ARCH>` is `x86_64` or `aarch64` for RPM packages, and `amd64` or `arm64` for DEB packages. See [Packages](./packages.md).
+
 ##### rpm
 
 ```bash
-rpm -ivh --replacepkgs wazuh-indexer-<VERSION>.rpm
+rpm -ivh --replacepkgs wazuh-indexer-<VERSION>-<REVISION>.<ARCH>.rpm
 ```
 
 ##### dpkg
 
 ```bash
-dpkg -i wazuh-indexer-<VERSION>.deb
+dpkg -i wazuh-indexer_<VERSION>-<REVISION>_<ARCH>.deb
 ```
 
 #### Retrieving the generated credentials
@@ -126,9 +128,13 @@ cat /etc/wazuh/credentials.env
 ```
 
 ```
-WAZUH_INDEXER_ADMIN_PASSWORD='...'
-WAZUH_INDEXER_KIBANASERVER_PASSWORD='...'
-WAZUH_INDEXER_MANAGER_PASSWORD='...'
+# >>> wazuh generated — do not edit <<<
+# Editing a value here does not change the deployment.
+# To rotate, use wazuh-passwords-tool.sh.
+WAZUH_INDEXER_ADMIN_PASSWORD="..."
+WAZUH_INDEXER_KIBANASERVER_PASSWORD="..."
+WAZUH_INDEXER_MANAGER_PASSWORD="..."
+# >>> end wazuh generated <<<
 ```
 
 The Wazuh Manager and the Wazuh Dashboard read this file when **they** are installed, so keep it until every component is installed and running. Delete it afterwards — it holds every password in the deployment in plain text:
@@ -140,19 +146,23 @@ rm /etc/wazuh/credentials.env
 Passwords are generated once. Reinstalling, restarting or upgrading the Wazuh indexer does not change them, and neither does removing this file. To change one afterwards, use the passwords tool, which also ships with the package:
 
 ```bash
-/usr/share/wazuh-indexer/tools/wazuh-passwords-tool.sh -u admin -p <new-password>
+/usr/share/wazuh-indexer/tools/wazuh-passwords-tool.sh -u admin -p
 ```
+
+`-p` takes no value: the tool prompts for the new password, or reads it from standard input when that is not a terminal, for example `printf '%s\n' '<new-password>' | /usr/share/wazuh-indexer/tools/wazuh-passwords-tool.sh -u admin -p`. Without `-p`, the tool generates a random password and saves it to `/etc/wazuh/credentials.env`.
 
 #### Configuring the Wazuh indexer
 
-Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the following values:
+Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the following values.
+
+The package ships a working single-node configuration: one node named `node-1`, listening on all interfaces (`0.0.0.0`). On a single node every step is optional: apply (a) to listen on a specific address, and (b) together with (c) to rename the node. A multi-node cluster needs all five steps, on every node.
 
   a. **`network.host`**: Sets the address of this node for both HTTP and transport traffic. The node will bind to this address and use it as its publish address. Accepts an IP address or a hostname.
-  Use the same node address set in `config.yml` to create the SSL certificates.
+  On a multi-node cluster, use the same node address set in `config.yml` to create the SSL certificates.
 
-  b. **`node.name`**: Name of the Wazuh indexer node as defined in the `config.yml` file. For example, `node-1`.
+  b. **`node.name`**: Name of the Wazuh indexer node as defined in the `config.yml` file. For example, `node-1`. If you change it on a single node, change `cluster.initial_cluster_manager_nodes` to match.
 
-  c. **`cluster.initial_cluster_manager_nodes`**: List of the names of the master-eligible nodes. These names are defined in the `config.yml` file. Uncomment the `node-2` and `config.yml` and `node-3` lines, change the names, or add more lines, according to your `config.yml` definitions.
+  c. **`cluster.initial_cluster_manager_nodes`**: List of the names of the master-eligible nodes. These names are defined in the `config.yml` file. A single node lists only its own `node.name`. For a multi-node cluster, uncomment the `node-2` and `node-3` lines, change the names, or add more lines, according to your `config.yml` definitions.
 
   ```yml
   cluster.initial_cluster_manager_nodes:
@@ -170,13 +180,13 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
   - "10.0.0.3"
   ```
 
-  e. **`plugins.security.nodes_dn`**: List of the Distinguished Names of the certificates of all the Wazuh indexer cluster nodes. The installation writes this node's own Distinguished Name. For a cluster, add one line per remaining node.
+  e. **`plugins.security.nodes_dn`**: List of the Distinguished Names of the certificates of all the Wazuh indexer cluster nodes. The installation writes the Distinguished Name of the certificate the package issued for this node, so a single node needs no change. For a multi-node cluster, list one line per node with the subjects of the certificates you deploy in [Deploying certificates](#deploying-certificates). The certificates tool issues them with the node name from `config.yml` as `CN`, and the Security plugin compares each entry as a string, so keep this order:
 
   ```yml
   plugins.security.nodes_dn:
-  - "CN=node-1,OU=Wazuh,O=Wazuh,L=California,C=US"
-  - "CN=node-2,OU=Wazuh,O=Wazuh,L=California,C=US"
-  - "CN=node-3,OU=Wazuh,O=Wazuh,L=California,C=US"
+  - "C=US,L=California,O=Wazuh,OU=Wazuh,CN=node-1"
+  - "C=US,L=California,O=Wazuh,OU=Wazuh,CN=node-2"
+  - "C=US,L=California,O=Wazuh,OU=Wazuh,CN=node-3"
   ```
 
 #### Deploying certificates
@@ -194,14 +204,22 @@ NODE_NAME=<INDEXER_NODE_NAME>
 ```bash
 mkdir -p /etc/wazuh-indexer/certs
 tar -xf ./wazuh-certificates.tar -C /etc/wazuh-indexer/certs/ ./$NODE_NAME.pem ./$NODE_NAME-key.pem ./admin.pem ./admin-key.pem ./root-ca.pem
-mv -n /etc/wazuh-indexer/certs/$NODE_NAME.pem /etc/wazuh-indexer/certs/indexer.pem
-mv -n /etc/wazuh-indexer/certs/$NODE_NAME-key.pem /etc/wazuh-indexer/certs/indexer-key.pem
+mv -f /etc/wazuh-indexer/certs/$NODE_NAME.pem /etc/wazuh-indexer/certs/indexer.pem
+mv -f /etc/wazuh-indexer/certs/$NODE_NAME-key.pem /etc/wazuh-indexer/certs/indexer-key.pem
 chmod 500 /etc/wazuh-indexer/certs
 chmod 400 /etc/wazuh-indexer/certs/*
 chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
 ```
 
-The Distinguished Names already written into `/etc/wazuh-indexer/opensearch.yml` stay valid, because the certificates tool and the package issue certificates with the same subject format. If you deploy certificates from your own PKI instead, set `plugins.security.nodes_dn` and `plugins.security.authcz.admin_dn` to the subjects of the certificates you deployed; `indexer-security-init.sh` warns when the admin certificate is not among them.
+`mv -f` is required: the package already issued `indexer.pem` and `indexer-key.pem`, and the cluster's pair must replace them.
+
+The certificates tool and the package issue certificates with the same subject format, so the `plugins.security.authcz.admin_dn` the installation wrote into `/etc/wazuh-indexer/opensearch.yml` stays valid. The node Distinguished Name it wrote stays valid only if the host's short name matches the node name in `config.yml`, because the package uses the hostname as `CN` and the certificates tool uses the node name. Make sure `plugins.security.nodes_dn` lists every node, as described in [Configuring the Wazuh indexer](#configuring-the-wazuh-indexer). To print the subject of a certificate in the form these settings expect, run:
+
+```bash
+openssl x509 -noout -subject -nameopt RFC2253 -in /etc/wazuh-indexer/certs/indexer.pem
+```
+
+If you deploy certificates from your own PKI instead, set `plugins.security.nodes_dn` and `plugins.security.authcz.admin_dn` to the subjects of the certificates you deployed; `indexer-security-init.sh` warns when the admin certificate is not among them.
 
 #### Set up Wazuh Indexer in your environment
 
@@ -255,10 +273,10 @@ Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer nod
 
 #### Testing the cluster installation
 
-1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following commands to confirm that the installation is successful.
+1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following commands to confirm that the installation is successful. `$WAZUH_INDEXER_ADMIN_PASSWORD` is the `admin` password from `/etc/wazuh/credentials.env`, which `source /etc/wazuh/credentials.env` loads into a root shell. See [Retrieving the generated credentials](#retrieving-the-generated-credentials).
 
     ```bash
-    curl -k -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD https://$WAZUH_INDEXER_IP_ADDRESS:9200
+    curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://$WAZUH_INDEXER_IP_ADDRESS:9200"
     ```
 
     **Output**
@@ -267,16 +285,17 @@ Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer nod
     {
       "name" : "node-1",
       "cluster_name" : "wazuh-cluster",
-      "cluster_uuid" : "095jEW-oRJSFKLz5wmo5PA",
+      "cluster_uuid" : "lEzYZtwXTYaGiSAdbcqQmQ",
       "version" : {
-        "number" : "7.10.2",
-        "build_type" : "rpm",
-        "build_hash" : "db90a415ff2fd428b4f7b3f800a51dc229287cb4",
-        "build_date" : "2023-06-03T06:24:25.112415503Z",
+        "distribution" : "opensearch",
+        "number" : "3.6.0",
+        "build_type" : "deb",
+        "build_hash" : "1b0a897cd71105595b450b48b591581865f8b46b",
+        "build_date" : "2026-10-01T01:45:08.798733103Z",
         "build_snapshot" : false,
-        "lucene_version" : "9.6.0",
-        "minimum_wire_compatibility_version" : "7.10.0",
-        "minimum_index_compatibility_version" : "7.0.0"
+        "lucene_version" : "10.4.0",
+        "minimum_wire_compatibility_version" : "2.19.0",
+        "minimum_index_compatibility_version" : "2.0.0"
       },
       "tagline" : "The OpenSearch Project: https://opensearch.org/"
     }
@@ -285,5 +304,5 @@ Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer nod
 1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following command to check if the single-node or multi-node cluster is working correctly.
 
     ```bash
-    curl -k -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD https://$WAZUH_INDEXER_IP_ADDRESS:9200/_cat/nodes?v
+    curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://$WAZUH_INDEXER_IP_ADDRESS:9200/_cat/nodes?v"
     ```

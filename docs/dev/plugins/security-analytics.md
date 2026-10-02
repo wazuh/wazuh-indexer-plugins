@@ -8,6 +8,8 @@ The Security Analytics plugin is a fork of the [OpenSearch Security Analytics pl
 
 `WazuhEnrichedFindingService` implements the enrichment pipeline described in the Reference Manual's architecture page.
 
+Its input is the in-memory `Finding` the Alerting plugin publishes for every match: the doc-level monitor fan-out (`TransportDocLevelMonitorFanOutAction.createFindings()`) calls `AlertingPluginInterface.publishFinding()`, `TransportCorrelateFindingAction` receives it as `SUBSCRIBE_FINDINGS_ACTION` and dispatches it to `enrich()`. Publishing does not depend on Alerting storing the finding: the raw `.opensearch-sap-{log_type}-findings-*` indices are only written when `plugins.alerting.alert_finding_enabled` is `true`, which defaults to `false` in the Wazuh fork, so with the shipped defaults the enriched `wazuh-findings-v5-{category}*` documents are the only stored findings.
+
 ### Fire-and-forget execution
 
 `WazuhEnrichedFindingService.enrich()` returns immediately after adding the finding to the internal queue. All network I/O and document assembly happen on async transport threads. Failures are logged at `WARN` level and never surface to the Security Analytics write path.
@@ -26,7 +28,7 @@ Instead of one `GetRequest` per finding, the service fetches all triggering even
 
 Rule metadata (severity level, compliance mappings, MITRE ATT&CK tags) is cached in a `LinkedHashMap` in access-order mode wrapped with `Collections.synchronizedMap`, with an overridden `removeEldestEntry` providing LRU eviction — not a plain `ConcurrentHashMap` (which has no eviction capability). The cache is bounded by `plugins.security_analytics.enriched_findings_rule_cache_max_size` (default `10000`, minimum `0`). Unlike the other enriched-findings settings, this one is **static**: it has no registered settings-update-consumer, so changing it requires a node restart.
 
-On a cache miss, the service issues a `MultiGetRequest` against both the pre-packaged rules index (`opensearch-pre-packaged-rules`) and the custom rules index (`opensearch-custom-rules`). Subsequent findings from the same detector reuse the cached entry, eliminating repeated round-trips.
+On a cache miss, the service issues a `MultiGetRequest` against both the pre-packaged rules index (`.opensearch-sap-pre-packaged-rules-config`, `Rule.PRE_PACKAGED_RULES_INDEX`) and the custom rules index (`.opensearch-sap-custom-rules-config`, `Rule.CUSTOM_RULES_INDEX`). Subsequent findings from the same detector reuse the cached entry, eliminating repeated round-trips.
 
 ### Bulk indexing
 
@@ -47,15 +49,15 @@ Before assembling an enriched document, the service reads `wazuh.integration.cat
 
 ### Document layout
 
-`buildAndIndex` starts from a shallow copy of the triggering event source and overlays the following fields:
+`buildDocAndIndex` starts from a shallow copy of the triggering event source and overlays the following fields:
 
 | Field         | Source                                                                      |
 | ------------- | --------------------------------------------------------------------------- |
 | `@timestamp`  | `@timestamp` of the original triggering event                               |
 | `event.*`     | Pre-existing `event` fields plus `doc_id`, `index`                          |
-| `wazuh.rule`  | Sigma rule metadata (`id`, `title`, `tags`, `sigma_id`, and any of `level`, `status`, `compliance`, `mitre` present in the rule index entry) |
+| `wazuh.rule`  | Sigma rule metadata (`id`, `title`, `tags`, and any of `sigma_id`, `level`, `status`, `compliance`, `mitre` present in the rule index entry) |
 
-Rule metadata is nested under `wazuh.rule`. Because the event's `wazuh` map (which carries `wazuh.integration.*`) is shared with the shallow copy, the service defensively copies it before adding `rule`, so the original event source is never mutated.
+Rule metadata is nested under `wazuh.rule`. `title` and `tags` come from the matched `DocLevelQuery`, not from the rule index entry: the query's tags are the rule's level, its log type (the integration) and then its Sigma tags, so `wazuh.rule.tags` carries all three. `mitre` keeps the per-category layout of `SigmaMitre.toMitreMap()`; subtechniques are never folded into `technique`. Because the event's `wazuh` map (which carries `wazuh.integration.*`) is shared with the shallow copy, the service defensively copies it before adding `rule`, so the original event source is never mutated.
 
 ### Sequence diagram
 
@@ -63,7 +65,7 @@ Rule metadata is nested under `wazuh.rule`. Because the event's `wazuh` map (whi
 sequenceDiagram
     participant A as Wazuh Manager
     participant I as Wazuh Indexer
-    participant SA as Security Analytics
+    participant AL as Alerting (doc-level monitor)
     participant TC as TransportCorrelateFindingAction
     participant WS as WazuhEnrichedFindingService
     participant SI as Source Index
@@ -71,9 +73,9 @@ sequenceDiagram
     participant WF as wazuh-findings-v5-{category}*
 
     A->>I: Ingest event
-    I->>SA: Monitor evaluates event against Sigma rules
-    SA->>SA: Rule matches → create raw finding
-    SA->>TC: SUBSCRIBE_FINDINGS_ACTION
+    I->>AL: Monitor evaluates event against Sigma rules
+    AL->>AL: Rule matches → create raw finding (indexed only if plugins.alerting.alert_finding_enabled)
+    AL->>TC: publishFinding() → SUBSCRIBE_FINDINGS_ACTION
     TC->>WS: enrich(finding)
     WS->>WS: Add to findingsQueue
     WS->>WS: processQueue() drains a batch (up to enrichBatchSize findings)
@@ -89,7 +91,7 @@ sequenceDiagram
             RI-->>WS: Rule metadata
             WS->>WS: Store in ruleMetadataCache
         end
-        WS->>WS: buildAndIndex (assemble enriched document, on GENERIC thread pool)
+        WS->>WS: buildDocAndIndex (assemble enriched document, on GENERIC thread pool)
         WS->>WS: Add to pendingRequests queue
     end
     alt Batch trigger (bulk_size reached)
@@ -149,7 +151,8 @@ WCS fields under `wazuh.case`, all defined in the findings index template:
 - **`wazuh.case.severity`** (`keyword`) — `informational`, `low`, `medium`, `high`, `critical` (lowercase).
 - **`wazuh.case.priority`** (`keyword`) — `low`, `medium`, `high`, `urgent` (lowercase).
 - **`wazuh.case.tlp`** (`keyword`) — `TLP:RED`, `TLP:AMBER`, `TLP:GREEN`, `TLP:CLEAR` (uppercase, `TLP:` prefix — the one enum field that isn't lowercase).
-- **`wazuh.case.comments`** (`nested`, array) — replaces the old single `comment` field. Each entry has `author` (`keyword`), `created_at` (`date`), `updated_at` (`date`), and `comment` (`match_only_text`).
+- **`wazuh.case.created_at`**, **`wazuh.case.updated_at`** (`date`) — case timestamps.
+- **`wazuh.case.comments`** (array of objects) — replaces the old single `comment` field. Each entry has `author` (`keyword`), `created_at` (`date`), `updated_at` (`date`), and `comment` (`match_only_text`). The WCS source declares the field `nested`, but the generated findings template maps it through dynamic templates, so the shipped indices map it as a plain `object`.
 
 These fields are present in the index template but not populated at finding creation time — they are written exclusively through the update endpoint.
 
@@ -163,9 +166,11 @@ These fields are present in the index template but not populated at finding crea
 
 #### Design decisions
 
-1. **Bulk-based**: the endpoint allows up to 50 finding updates per call.
+1. **Bulk-based**: the number of finding updates per call is capped by the dynamic setting `plugins.security_analytics.max_case_management_bulk_size` (`SecurityAnalyticsSettings.MAX_CASE_MANAGEMENT_BULK_SIZE`, default `10`, range 0–100), read from `ClusterSettings` on every request. `0` disables the endpoint.
 
-2. **Partial doc update**: uses `UpdateRequest.doc()` which merges the provided fields into the existing document. Only `wazuh.case` is touched, other finding fields are never modified.
+2. **Partial doc update**: uses `UpdateRequest.doc()` which merges the provided fields into the existing document. Only `wazuh.case` is touched, other finding fields are never modified. Arrays (`tags`, `comments`) are replaced, not appended to.
+
+3. **Schema validation**: `CaseValidator.validateAndNormalize()` checks each `case` object against the WCS fields before the bulk request is built. Unknown keys (in `case`, `case.user` or a comment) and enum values outside the allowed sets are rejected; `status`, `severity` and `priority` are lowercased and `tlp` uppercased in place, so stored values are always in the canonical case that keyword queries must use.
 
 #### Request validation
 
@@ -176,11 +181,13 @@ The handler performs eager validation before building the bulk request:
 | Invalid/missing JSON body | `400`       | `Invalid JSON body: ...`                               |
 | Missing `findings` array  | `400`       | `Request body must contain a "findings" array`         |
 | Empty `findings` array    | `400`       | `Findings array is empty`                              |
-| More than 50 items        | `400`       | `Cannot update more than 50 findings at once`          |
+| Bulk size limit set to `0` | `400`      | `Case management is disabled`                          |
+| More than the limit       | `400`       | `Cannot update more than N findings at once` (N = `max_case_management_bulk_size`) |
 | Element not a JSON object | `400`       | `Element at index N is not a JSON object`              |
 | Missing `_id`             | `400`       | `Element at index N is missing _id`                    |
 | Missing `_index`          | `400`       | `Element at index N is missing _index`                 |
 | Missing/invalid `case`    | `400`       | `Element at index N is missing or invalid case object` |
+| `case` fails `CaseValidator` | `400`    | `Element at index N: <reason>` (e.g. `unknown case field "comment"`) |
 
 Validation errors short-circuit, the first error aborts the entire request.
 
@@ -202,15 +209,15 @@ Validation errors short-circuit, the first error aborts the entire request.
 ```
 
 - On full success: HTTP `200`
-- On partial failure (some docs not found): HTTP `207 MULTI_STATUS`
-- On total bulk failure: HTTP `500`
+- When any item fails (for example, a finding that does not exist), including when every item fails: HTTP `207 MULTI_STATUS`, with each item's own status
+- When the bulk request itself fails: HTTP `500`
 
 #### Registration
 
 The handler is registered in `SecurityAnalyticsPlugin.getRestHandlers()`:
 
 ```java
-new RestUpdateFindingsAction()
+new RestUpdateFindingsAction(clusterSettings)
 ```
 
 ### Testing

@@ -20,4 +20,6 @@ Among these files, Wazuh Indexer uses these particularly to add its own security
 
 - **`roles_mapping.yml`**: Maps users and backend roles to the defined roles. This file specifies which users or backend roles have access to each role.
 
+- **`action_groups.yml`**: Defines named groups of permissions. Wazuh Indexer adds the action groups that name the Content Manager and Setup plugin permissions, listed in [Permissions](permissions.md).
+
 The [Access control](access-control.md) section contains information about the security resources added to the Wazuh Indexer by default.
