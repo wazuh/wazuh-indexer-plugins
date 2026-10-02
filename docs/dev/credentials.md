@@ -52,6 +52,8 @@ Loading the result into the cluster stays a manual step, `indexer-security-init.
 - `--prestart` — from the unit's `ExecStartPre` and from the SysV `start` path. Refuses to start the service when something is unresolved, naming it.
 - `--clear` — takes back everything this component resolved, so a later run resolves from nothing. See [Resolution happens once](#resolution-happens-once).
 
+`-q` / `--quiet` silences the progress lines, and is not a mode. The maintainer scripts pass it so that the install ends with the next steps an operator needs — where the passwords are, how to start and enable the service, and that the security configuration is loaded once from one node — rather than with a list of resolved keys. Anything that could not be resolved still prints.
+
 ## Certificate resolution
 
 Which case applies is decided entirely by what is present, with no mode flag — the presence of a private key beside the trust anchor is the signal, so a host never given one cannot sign:

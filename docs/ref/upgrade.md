@@ -97,9 +97,7 @@ Perform the following steps on any of the Wazuh indexer nodes replacing `$WAZUH_
     **Systemd**
 
     ```bash
-    systemctl daemon-reload
-    systemctl enable wazuh-indexer
-    systemctl start wazuh-indexer
+    systemctl enable --now wazuh-indexer
     ```
 
     **SysV**
