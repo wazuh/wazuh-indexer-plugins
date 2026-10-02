@@ -61,9 +61,7 @@ Perform these steps on the new 5.x host.
 7. Start the service:
 
     ```bash
-    systemctl daemon-reload
-    systemctl enable wazuh-indexer
-    systemctl start wazuh-indexer
+    systemctl enable --now wazuh-indexer
     ```
 
 8. Confirm the node joins the new 5.x cluster:
