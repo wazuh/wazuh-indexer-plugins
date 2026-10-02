@@ -33,6 +33,12 @@ host's credentials into a layer every container shares. The next start resolves 
 `indexer-security-init.sh` keeps no state of its own. It is run by an operator, once, and the
 package never calls it — so there is nothing for it to guard against repeating.
 
+## The password rule
+
+A password, supplied or generated, has 12 to 64 characters from `A-Z a-z 0-9 . , _ + : @ % ^ = ~ -`, with at least one uppercase letter, one lowercase letter, one digit and one symbol. It is the same rule the Server API applies, so one value is accepted in both realms.
+
+`wazuh_password_validate` in the shared library is the only place that checks it. The start-time error that names a rejected key restates the rule, so that an operator can correct the value without reading the library.
+
 ## How a password reaches the cluster
 
 `internal_users.wazuh.yml` ships each account's `hash` as a `${NAME}` placeholder rather than a digest, so the package carries no usable credential. `resolve-credentials.sh` resolves the value, bcrypts it with the security plugin's `hash.sh`, and substitutes the digest in place.
