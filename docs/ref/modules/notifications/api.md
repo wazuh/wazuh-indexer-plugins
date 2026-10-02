@@ -151,7 +151,7 @@ An `active_response` channel is the target of [Active Response](../alerting/inde
     "active_response": {
       "type": "stateful",
       "stateful_timeout": 600,
-      "executable": "firewall-drop",
+      "executable": "block-ip",
       "location": "local"
     }
   }

@@ -68,7 +68,7 @@ Orchestrates synchronization for each catalog consumer type (ruleset, IoCs, vuln
 
 ### Snapshot service
 
-Handles initial content loading. Initializes from either a remote CTI snapshot (when a custom consumer URL is configured) or a local packaged snapshot, then extracts and bulk-indexes content into the appropriate system indices. Performs data enrichment (e.g., converting JSON payloads to YAML for decoders).
+Handles initial content loading. Initializes from the remote CTI snapshot, falling back to the last stable snapshot and then to the local packaged snapshot, then extracts and bulk-indexes content into the appropriate system indices. Performs data enrichment (e.g., converting JSON payloads to YAML for decoders).
 
 ### Update service
 
@@ -120,9 +120,9 @@ Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-i
 ```
 Job scheduler triggers
   → Consumer service checks .wazuh-cti-consumers (offset = 0)
-  → If custom catalog URL is configured: try remote snapshot first
-  → If remote init fails: fallback to local packaged snapshot
-  → If no custom catalog URL: initialize from local packaged snapshot
+  → Resolve the catalog URL: setting → plan → previous sync → packaged manifest
+  → Try the remote snapshot first
+  → If remote init fails: fallback to the stable snapshot, then to the local packaged snapshot
   → Extracts and bulk-indexes into wazuh-threatintel-rules, wazuh-threatintel-decoders, etc.
   → Updates .wazuh-cti-consumers with new offset
   → Ruleset Management service creates detectors using dynamic CTI configuration (max rules per detector configurable, default 50)

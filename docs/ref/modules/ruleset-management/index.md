@@ -88,7 +88,7 @@ A **finding** is a record that a monitored event matched a Sigma detection rule.
 
 Raw findings contain only identifiers — they do not embed the triggering event payload or rule metadata.
 
-Raw findings are not stored by default. They are written to `.opensearch-sap-{integration}-findings-*` only when the Alerting plugin's `plugins.alerting.alert_finding_enabled` setting is `true` (default `false`). Enriched findings, described below, do not depend on this setting.
+Raw findings are not stored by default. They are written to `.opensearch-sap-{integration}-findings-*` only when the Alerting plugin's `plugins.alerting.alert_finding_enabled` setting is `true` (default `false`). Enriched findings, described below, do not depend on this setting. For the same reason, the findings endpoint inherited from upstream (`GET /_plugins/_security_analytics/findings/_search`), which only searches the raw findings indices, returns no results with the default settings: query `wazuh-findings-v5-*` instead.
 
 ### What is an enriched finding?
 

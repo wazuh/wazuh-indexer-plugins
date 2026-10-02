@@ -3,7 +3,7 @@
 
 The Ruleset Management plugin is configured through settings in `opensearch.yml`. All node-scope settings use the `plugins.security_analytics` prefix. Almost every setting is dynamic and can be changed at runtime via the Cluster Settings API.
 
-- **`plugins.security_analytics.alert_finding_enabled`** (Boolean, default `false`) — enable rollover and retention management for the finding history indices.
+- **`plugins.security_analytics.alert_finding_enabled`** (Boolean, default `false`) — enable rollover for the finding history indices. It does not make raw findings be stored; that is the Alerting plugin's `plugins.alerting.alert_finding_enabled`.
 - **`plugins.security_analytics.alert_finding_max_docs`** (Long, default `1000`, minimum `0`) — **Deprecated.** Maximum document count for a finding history index before rollover.
 - **`plugins.security_analytics.alert_finding_rollover_period`** (Time, default `12h`) — how often the finding history rollover job runs.
 - **`plugins.security_analytics.alert_history_enabled`** (Boolean, default `false`) — enable rollover and retention management for the alert history indices.
@@ -58,7 +58,7 @@ plugins.security_analytics.alert_history_max_docs: 1000
 plugins.security_analytics.alert_history_retention_period: 60d
 ```
 
-The same pattern applies to finding history (`plugins.security_analytics.alert_finding_*`, `plugins.security_analytics.finding_history_*`), and correlation history (`plugins.security_analytics.correlation_history_*`). Finding history indices only exist when the Alerting plugin stores raw findings (`plugins.alerting.alert_finding_enabled: true`, default `false`).
+The same pattern applies to finding history (`plugins.security_analytics.alert_finding_*`, `plugins.security_analytics.finding_history_*`), and correlation history (`plugins.security_analytics.correlation_history_*`). Finding history indices only exist when the Alerting plugin stores raw findings (`plugins.alerting.alert_finding_enabled: true`, default `false`). Setting `plugins.security_analytics.alert_finding_enabled` does not make raw findings be stored: it only controls the rollover of finding history indices that already exist.
 
 > `plugins.security_analytics.alert_finding_max_docs` is deprecated. Configure finding history rollover through the other `finding_history_*` settings.
 

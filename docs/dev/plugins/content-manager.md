@@ -62,7 +62,7 @@ stateDiagram-v2
     if_state --> no_state: No
     if_state --> yes_state : yes
 
-    no_state --> initialization : Init from local snapshots
+    no_state --> initialization : Init from the public catalog, packaged snapshot as fallback
     yes_state --> initialization : Init from active plan
     initialization --> [*]
 ```

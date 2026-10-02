@@ -154,7 +154,7 @@ paths:
       description: |
         Returns the subscription status and active plan. For registered instances,
         the plan is fetched from the authenticated CTI endpoint. Otherwise, the
-        public free plan is returned.
+        public plan is returned.
       operationId: getSubscription
       tags:
         - Subscription Management
@@ -758,8 +758,8 @@ paths:
 
         The rule is also synchronized to the Security Analytics Plugin (SAP), where a separate
         SAP document is created with its own auto-generated UUID. The SAP document stores the
-        CTI document UUID in a `document.id` field and the space in a `source` field for
-        cross-reference.
+        CTI document UUID in a `document.id` field and the space in a `space` field (e.g.,
+        `draft`) for cross-reference.
         The rule is validated against the Wazuh engine before being stored.
         The rule is automatically linked to the specified integration.
 
@@ -916,8 +916,8 @@ paths:
 
         The integration is also synchronized to the Security Analytics Plugin (SAP), where a
         separate SAP document is created with its own auto-generated UUID. The SAP document
-        stores the CTI document UUID in a `document.id` field and the space in the `source`
-        field (e.g., "Draft") for cross-reference.
+        stores the CTI document UUID in a `document.id` field and the space in the `space`
+        field (e.g., `draft`) for cross-reference.
         The integration is validated against the Wazuh engine before being stored.
 
         **Required fields in resource:**
@@ -1254,7 +1254,7 @@ paths:
         For each promoted resource, a new SAP document is created in the target space with:
         - A newly generated UUID as the SAP document ID.
         - A `document.id` field storing the original CTI document UUID.
-        - A `source` field indicating the target space (e.g., "Draft", "Test", "Custom").
+        - A `space` field indicating the target space (e.g., `test`, `custom`).
 
         **Rollback on failure**: If any Content Manager index mutation fails during the
         consolidation phase, the endpoint automatically initiates a LIFO (Last-In, First-Out)
@@ -2808,7 +2808,7 @@ components:
               value:
                 message:
                   plan:
-                    name: "Free"
+                    name: "Open"
                     is_public: true
                   is_registered: false
                 status: 200
@@ -2880,7 +2880,7 @@ components:
         - Resource not in draft space (only draft resources can be modified)
         - Resource has dependent resources that must be deleted first
         - Cannot remove decoder as it is set as root decoder
-        - Resource creation limit reached (configurable via `plugins.content_manager.max_<type>` settings; default 100 per type)
+        - Resource creation limit reached (configurable via `plugins.content_manager.max_<type>` settings; default 200 for rules and decoders, 100 for integrations, KVDBs and filters)
       content:
         application/json:
           schema:

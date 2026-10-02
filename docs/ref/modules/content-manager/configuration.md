@@ -183,9 +183,8 @@ plugins.content_manager.catalog.vulnerabilities: "https://api.pre.cloud.wazuh.co
 
 Behavior:
 
-- If a setting is non-empty, Content Manager attempts remote snapshot initialization first.
-- If remote initialization fails, it falls back to the local packaged snapshot when available.
-- If a setting is empty, initialization uses the local packaged snapshot directly.
+- Content Manager attempts remote snapshot initialization first. If a setting is empty, it uses the catalog URL of the subscription plan, the one stored by the previous sync, or, on a fresh install, the one recorded in the packaged snapshot's manifest.
+- If remote initialization fails, it falls back to the last stable snapshot (the last one loaded in full), and then to the local packaged snapshot when available.
 
 #### Tune bulk operations
 
