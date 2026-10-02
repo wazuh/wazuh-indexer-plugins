@@ -229,14 +229,12 @@ Follow the instructions in the [Configuration](../../ref/configuration/index.md)
 
 #### Starting the service
 
-Enable and start the Wazuh indexer service.
+Enable and start the Wazuh indexer service. The installation does not start it, and it does not start at boot until it is enabled. The package reloads the service manager itself, so no `systemctl daemon-reload` is needed here.
 
 ##### Systemd
 
 ```bash
-systemctl daemon-reload
-systemctl enable wazuh-indexer
-systemctl start wazuh-indexer
+systemctl enable --now wazuh-indexer
 ```
 
 ---
