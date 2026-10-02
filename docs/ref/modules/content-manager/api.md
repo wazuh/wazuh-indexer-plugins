@@ -199,7 +199,7 @@ Returns the current subscription status and active plan. For registered instance
 
 > If the CTI Console rejects the stored token with `401` (expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public plan as if the instance were unregistered.
 >
-> Any other failure to fetch the plan, such as a network error, a timeout, a `429` or a `5xx` from the CTI Console, keeps the token: the instance stays registered and the response is a `502`. Content synchronization is not affected either: while the plan can't be fetched, a registered instance keeps synchronizing its current content and is not switched back to the public content.
+> Any other failure to fetch the plan, such as a network error, a timeout, a `429` or a `5xx` from the CTI Console, keeps the token: the instance stays registered and the response is a `502`. Content synchronization follows the same rule. If the plan lookup, or the token exchange that signs the content URLs, fails for any reason other than a rejected token (`401`, or `400 unauthorized_client` from the token exchange), a registered instance keeps its token and its current content. That synchronization pass fails as if the feed were unreachable and is retried, without switching the instance back to the public content.
 
 #### Request
 
