@@ -35,9 +35,9 @@ package never calls it — so there is nothing for it to guard against repeating
 
 ## The password rule
 
-12 to 64 characters from `A-Z a-z 0-9 . , _ + : @ % ^ = ~ -`, with at least one uppercase letter, one lowercase letter, one digit and one symbol. It applies to a supplied password and to a generated one alike, and it is the same rule the Server API applies, so one value is accepted in both realms.
+A password, supplied or generated, has 12 to 64 characters from `A-Z a-z 0-9 . , _ + : @ % ^ = ~ -`, with at least one uppercase letter, one lowercase letter, one digit and one symbol. It is the same rule the Server API applies, so one value is accepted in both realms.
 
-The rule belongs to `wazuh_password_validate` in the shared library, which is the only place that checks it. Anything here that restates it — the start-time error naming a rejected key, for instance — is a copy, and a copy is what goes stale: the library gained the uppercase, lowercase, digit and symbol classes after this feature was written, while the error text still described the earlier letter-and-digit rule, so operators were told to fix something their password already satisfied. Check any such text against the library when it changes.
+`wazuh_password_validate` in the shared library is the only place that checks it. The start-time error that names a rejected key restates the rule, so that an operator can correct the value without reading the library.
 
 ## How a password reaches the cluster
 
