@@ -404,46 +404,51 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * Verifies that log text can be searched by word, which is what ECS maps {@code message} as
-     * {@code match_only_text} for.
+     * Verifies that an event can be found by its complete {@code message}.
      *
-     * <p>It used to be a {@code keyword}, so the whole line was one token and no word-level query
-     * could reach inside it: an analyst could only find an event by a field some decoder happened
-     * to extract. A {@code term} query on the complete value kept working throughout, which is why
-     * this has to assert a {@code match} on a single word instead.
+     * <p>{@code message} is a {@code keyword} (#1599 reverted it from {@code match_only_text}), so
+     * the whole line is a single term: a {@code term} query on the complete value is how it is
+     * matched.
      *
      * @throws IOException if there is an issue with the HTTP request
      * @throws ParseException if there is an issue parsing the response
      */
-    public void testMessageIsSearchableByWord() throws IOException, ParseException {
+    public void testMessageIsSearchableByExactValue() throws IOException, ParseException {
+        String message = "Failed password for invalid user oracle from 198.51.100.9 port 52814 ssh2";
         indexEvent(
-                """
-                {
-                  "@timestamp": "2026-08-05T10:00:00.000Z",
-                  "message": "Failed password for invalid user oracle from 198.51.100.9 port 52814 ssh2",
-                  "process": {"name": "wcs-test-message-word-search"}
-                }
-                """);
+                String.format(
+                        Locale.ROOT,
+                        """
+                        {
+                          "@timestamp": "2026-08-05T10:00:00.000Z",
+                          "message": "%s",
+                          "process": {"name": "wcs-test-message-exact-search"}
+                        }
+                        """,
+                        message));
 
         String body =
                 searchEvents(
-                        """
-                        {
-                          "size": 0,
-                          "query": {
-                            "bool": {
-                              "filter": [
-                                {"term": {"process.name": "wcs-test-message-word-search"}},
-                                {"match": {"message": "Failed password"}}
-                              ]
-                            }
-                          }
-                        }
-                        """);
+                        String.format(
+                                Locale.ROOT,
+                                """
+                                {
+                                  "size": 0,
+                                  "query": {
+                                    "bool": {
+                                      "filter": [
+                                        {"term": {"process.name": "wcs-test-message-exact-search"}},
+                                        {"term": {"message": "%s"}}
+                                      ]
+                                    }
+                                  }
+                                }
+                                """,
+                                message));
 
-        logger.info("message word-search response: {}", body);
+        logger.info("message exact-search response: {}", body);
         assertThat(
-                "a word-level match on message must find the event that carries it",
+                "a term query on the complete message must find the event that carries it",
                 body,
                 containsString("\"value\":1"));
     }
@@ -451,46 +456,51 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
     /**
      * Verifies that a message longer than the old {@code ignore_above: 1024} is indexed.
      *
-     * <p>Under the previous mapping such a message was still returned in {@code _source}, so the
-     * data looked present and was simply unfindable. {@code match_only_text} has no such ceiling.
-     * The asserted word sits past character 1024 on purpose: a shorter probe would pass either way.
+     * <p>Under that mapping such a message was still returned in {@code _source}, so the data looked
+     * present and was simply unfindable. The {@code keyword} mapping now indexes values up to 4096
+     * characters. The message is longer than 1024 characters on purpose: a shorter probe would pass
+     * either way.
      *
      * @throws IOException if there is an issue with the HTTP request
      * @throws ParseException if there is an issue parsing the response
      */
     public void testMessageIsIndexedPastTheOldKeywordLengthCeiling() throws IOException, ParseException {
-        String padding = "padding ".repeat(200); // ~1600 characters before the word that matters
+        // ~1600 characters, past the old 1024 ceiling and within the current 4096 one.
+        String message = "sshd authentication failure " + "padding ".repeat(200) + "wcstestneedle";
         indexEvent(
                 String.format(
                         Locale.ROOT,
                         """
                         {
                           "@timestamp": "2026-08-05T10:00:00.000Z",
-                          "message": "sshd authentication failure %s wcstestneedle",
+                          "message": "%s",
                           "process": {"name": "wcs-test-message-long"}
                         }
                         """,
-                        padding));
+                        message));
 
         String body =
                 searchEvents(
-                        """
-                        {
-                          "size": 0,
-                          "query": {
-                            "bool": {
-                              "filter": [
-                                {"term": {"process.name": "wcs-test-message-long"}},
-                                {"match": {"message": "wcstestneedle"}}
-                              ]
-                            }
-                          }
-                        }
-                        """);
+                        String.format(
+                                Locale.ROOT,
+                                """
+                                {
+                                  "size": 0,
+                                  "query": {
+                                    "bool": {
+                                      "filter": [
+                                        {"term": {"process.name": "wcs-test-message-long"}},
+                                        {"term": {"message": "%s"}}
+                                      ]
+                                    }
+                                  }
+                                }
+                                """,
+                                message));
 
         logger.info("long-message search response: {}", body);
         assertThat(
-                "a word past 1024 characters must still be indexed",
+                "a message past 1024 characters must still be indexed",
                 body,
                 containsString("\"value\":1"));
     }

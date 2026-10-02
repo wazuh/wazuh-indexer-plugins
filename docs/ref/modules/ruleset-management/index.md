@@ -14,7 +14,7 @@ The Ruleset Management plugin runs inside the Wazuh Indexer and operates as an O
 - **Space**: the origin of a piece of content, either **Standard** (CTI-provided) or **Custom** (user-created). A single detector references rules from one space only, see [Detector rule space restriction](#detector-rule-space-restriction).
 - **Finding**: the record that an event matched a rule, carrying the triggering event in full together with the relevant fields of the rule. One is written to `wazuh-findings-v5-{category}*` for every match, and that document is what the Wazuh Dashboard reads and [case management](case-management.md) triages, through status, severity, priority and comments held on it. See [Wazuh enriched findings](#wazuh-enriched-findings) for how it is assembled.
 - **Trigger**: a condition on a detector that decides which findings are escalated, together with the actions that deliver a notification through the [Notifications](../notifications/index.md) plugin.
-- **Alert**: the record created when a trigger condition is met, stored in `.opensearch-sap-{category}-alerts*`.
+- **Alert**: the record created when a trigger condition is met, stored in `.opensearch-sap-{integration}-alerts*`.
 - **Correlation**: an upstream mechanism for linking findings from different integrations through correlation rules. It is not used in 5.0.0: no correlation rules are shipped, and `plugins.security_analytics.auto_correlations_enabled` is `false` by default.
 
 > **Note:** the standard threat detectors Wazuh provides do not include alerting triggers. They record detections as findings; no alert is raised, and no notification channel is called. Triggers and alerts are available to detectors that users create.
@@ -38,9 +38,9 @@ A standard detector accepts one user change and one only: switching `enabled` on
 
 ```bash
 # Disable a detector (as an administrator)
-curl -sk -u admin:<password> -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
+  "https://127.0.0.1:9200/_plugins/_security_analytics/detectors/<detector_id>" \
   -H 'Content-Type: application/json' \
-  "https://localhost:9200/_plugins/_security_analytics/detectors/<detector_id>" \
   --data-binary @detector-with-enabled-false.json
 ```
 
@@ -48,7 +48,7 @@ curl -sk -u admin:<password> -X PUT \
 
 ### Who can switch a detector off
 
-Switching a detector on or off requires `cluster:admin/opensearch/securityanalytics/detector/write`, which no [default role](../../security/access-control.md) holds — out of the box only `all_access` does. `wazuh_readonly` can read detectors (`detector/get`, `detector/search`) but cannot change their state.
+Switching a detector on or off requires `cluster:admin/opensearch/securityanalytics/detector/write`, which no [default role](../../security/access-control.md) holds — out of the box only `all_access` does.
 
 ### The detection gap
 
@@ -77,16 +77,18 @@ A change carried with no authenticated user attached to the request — the Cont
 
 ### What is a finding?
 
-A **finding** is a record that a monitored event matched a Sigma detection rule. Ruleset Management creates one finding per matching event and stores it in the `.opensearch-sap-{category}-findings-*` data stream. Each finding contains:
+A **finding** is a record that a monitored event matched a Sigma detection rule. The detector's monitor creates one raw finding per matching event and hands it to Ruleset Management for enrichment. Each raw finding contains:
 
 - **`id`** — unique finding identifier.
-- **`detector_id`** — the detector that produced the finding.
+- **`monitor_id`** — the monitor of the detector that produced the finding.
 - **`related_doc_ids`** — IDs of the source documents that triggered the match.
 - **`queries`** — the Sigma rule(s) that matched.
 - **`index`** — the source index where the triggering event lives.
 - **`timestamp`** — when the finding was created.
 
 Raw findings contain only identifiers — they do not embed the triggering event payload or rule metadata.
+
+Raw findings are not stored by default. They are written to `.opensearch-sap-{integration}-findings-*` only when the Alerting plugin's `plugins.alerting.alert_finding_enabled` setting is `true` (default `false`). Enriched findings, described below, do not depend on this setting. For the same reason, the findings endpoint inherited from upstream (`GET /_plugins/_security_analytics/findings/_search`), which only searches the raw findings indices, returns no results with the default settings: query `wazuh-findings-v5-*` instead.
 
 ### What is an enriched finding?
 
@@ -105,7 +107,7 @@ The following steps happen for every event that matches a detection rule:
 
 1. A Wazuh Manager sends an event to the Wazuh Indexer. The event is indexed in the monitored data stream.
 2. The Ruleset Management plugin's Alerting monitor evaluates the event against all active Sigma rules for the configured log category.
-3. On a match, Ruleset Management creates a raw finding and queues it for enrichment.
+3. On a match, the monitor creates a raw finding and hands it to Ruleset Management, which queues it for enrichment. The raw finding itself is not stored unless `plugins.alerting.alert_finding_enabled` is `true`.
 4. The enrichment step asynchronously fetches the triggering event source and the matching rule's metadata, assembles the enriched document, and bulk-indexes it into `wazuh-findings-v5-{category}*`.
 
 Enrichment is **fire-and-forget**: it never blocks the Ruleset Management write path and failures are logged without propagating to the caller.

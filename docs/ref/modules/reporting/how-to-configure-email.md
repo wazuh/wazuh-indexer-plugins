@@ -4,9 +4,9 @@ This page walks through configuring an email delivery channel in the Wazuh Dashb
 
 ## Configuring the email notifications channel
 
-In Wazuh Dashboard, go to **Notifications > Channels** and click on **Create channel**:
+In Wazuh Dashboard, go to **Explore > Notifications > Channels** and click on **Create channel**:
 
-![Create Channel](/img/channelCreation.png)
+![Create Channel](../../../img/channelCreation.png)
 
 1. Fill in a name (e.g `Email notifications`).
 2. Select **Email** as **Channel Type**.
@@ -18,15 +18,15 @@ In Wazuh Dashboard, go to **Notifications > Channels** and click on **Create cha
    4. For port, type **1025** (adapt this to your SMTP server settings).
    5. Select **None** as **Encryption method**.
    6. Click on **Create**.
-   ![Create SMTP sender](/img/SMTPSender.png)
+   ![Create SMTP sender](../../../img/SMTPSender.png)
 5. Click on **Create recipient group**.
    1. Fill in a name (e.g `email-notifications-recipient-group`).
    2. On **Emails**, type any email.
    3. Click on **Create**.
-   ![Create recipient group](/img/recipientGroup.png)
+   ![Create recipient group](../../../img/recipientGroup.png)
 
 The fields should now be filled in as follows:
-<img src="/img/channelCreation2.png" alt="Create Channel" width="500"/>
+<img src="../../../img/channelCreation2.png" alt="Create Channel" width="500"/>
 
 6. Click on **Send test message** to validate the configuration, a green message should pop up.
 7. Finally, click on **Create**.
@@ -39,10 +39,10 @@ For more information on how to create reports, please refer to the [OpenSearch d
 
 ### Generate and download a report
 
-To create a new report you must have predefined the report settings. Once the report is configured, you can generate it by clicking the "Generate Report" button. This is only available on "On demand" report definitions as scheduled reports will be generated automatically. The report will be processed and made available for download at the Reports section on Explore -> Report.
+To create a new report you must have predefined the report settings. Once the report is configured, you can generate it by clicking the "Generate Report" button. This is only available on "On demand" report definitions as scheduled reports will be generated automatically. The report will be processed and made available for download at the Reports section on Explore -> Reporting.
 
 You can also create a csv or xlsx report without a report definition by saving a search on Explore -> Discover. Remember to have an available index pattern.
 
 ### Generate a report definition
 
-Before creating a report definition you must have generated and saved a Dashboard, a Visualization, a search or a Notebook. Then you can do so at the Explore -> Reporting section, choosing the intended configuration. This generates PDF/PNG reports or CSV/XLSX reports in case a saved search is selected.
+Before creating a report definition you must have generated and saved a Dashboard, a Visualization or a search. Then you can do so at the Explore -> Reporting section, choosing the intended configuration. This generates PDF/PNG reports or CSV/XLSX reports in case a saved search is selected.

@@ -137,7 +137,6 @@
 - Reduce the IoCs and ruleset memory footprint [(#1740)](https://github.com/wazuh/wazuh-indexer/issues/1740)
 - Reduce snapshot ingestion overhead with partial JSON parsing [(#1351)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1351)
 - Remove maximum values from Content Manager settings [(#1420)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1420)
-- Use the CTI API setting as the base url for the CTI console [(#1584)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1584)
 
 ### Removed
 - Remove plugins not planned for 5.x [(#440)](https://github.com/wazuh/wazuh-indexer-plugins/issues/440)
@@ -195,6 +194,8 @@
 - [BUG] Document that a disabled threat detector produces no findings and that the missed interval is never re-evaluated [(#1531)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1531)
 - [BUG] A rolled-over write index was created outside its own policy, so everything written to it now is unmanaged [(#1533)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1533)
 - [BUG] Document the real ISM retention contract: rollover is volume-driven, so the deletion ages are a floor and low-volume deployments retain data indefinitely [(#1530)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1530)
+- Concurrent CatalogSyncJob runs create a duplicate query index per detector, and nothing removes them [(#1601)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1601)
+- Fix documentation drift found by the 5.0.0 documentation review [(#1609)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1609) [(#1610)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1610) [(#1611)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1611) [(#1612)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1612) [(#1613)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1613) [(#1614)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1614) [(#1615)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1615) [(#1617)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1617) [(#1618)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1618) [(#1619)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1619) [(#1620)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1620) [(#1621)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1621) [(#1622)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1622) [(#1623)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1623) [(#1624)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1624) [(#1625)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1625) [(#1626)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1626) [(#1627)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1627) [(#1628)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1628) [(#1629)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1629) [(#1630)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1630)
 
 ## Prior versions
 - []()

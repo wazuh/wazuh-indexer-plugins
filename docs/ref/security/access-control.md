@@ -1,10 +1,10 @@
-# Access Control
+# Access control
 
 Wazuh Indexer uses the OpenSearch Security plugin to manage access control and security features. This allows you to define users, roles, and permissions for accessing indices and performing actions within the Wazuh Indexer.
 
 > You can find a more detailed overview of the OpenSearch Security plugin in the [OpenSearch documentation](https://docs.opensearch.org/3.6/security/access-control/index/).
 
-## Wazuh default Internal Users
+## Wazuh default internal users
 
 Wazuh defines internal users and roles for the different Wazuh components to handle index management.
 
@@ -13,29 +13,28 @@ These default users and roles definitions are stored in the `internal_users.yml`
 
 ### Users
 
-Two internal users ship with the indexer, each mapped 1:1 to the role of the matching name in `roles_mapping.yml`:
+Three internal users ship with the indexer:
 
-- **`wazuh-manager`** → `wazuh_manager` — service account for the Wazuh Manager: read/write on stateless (events, metrics) indices, read/write/delete on stateful (states) indices, read/write on the agent statistics and configuration indexes, and read on consumers, threat intelligence and active-responses.
-- **`wazuh-readonly`** → `wazuh_readonly` — read-only access to indices, settings, subscriptions and Ruleset Management (detectors, findings, alerts).
+- **`admin`** — superuser, holding `all_access`. Administration goes through this account.
+- **`kibanaserver`** → `dashboard_server` — service account the Wazuh Dashboard authenticates as internally. It is also mapped to the upstream `kibana_server` role.
+- **`wazuh-manager`** → `wazuh_manager` — service account for the Wazuh Manager: read/write on stateless (events, raw events, metrics) indices, read/write/delete on stateful (states) indices and on the agent statistics and configuration indices, and read on settings, consumers, threat intelligence, findings and active-responses.
 
-> **Security note:** The bundled password hashes decode to the username. Change every default password immediately after installation.
+> **Passwords are generated during installation**, one per account, unique to each deployment. No account ships with a password, and none can be authenticated as until the security configuration is loaded. See [Retrieving the generated credentials](../getting-started/installation.md#retrieving-the-generated-credentials).
 
-No administrative persona ships any more: administration goes through the built-in OpenSearch `admin` superuser, which holds `all_access`. To give somebody administrative access without handing them `all_access`, define a role with the permissions that job needs — the permission names available are listed in [Permissions](./permissions.md) — and map it to your own user (see [Defining Users and Roles](./defining-users-and-roles.md)).
-
-There is no dedicated internal user for the `dashboard_server` role below — it is mapped to the built-in OpenSearch `kibanaserver` user, which the Wazuh Dashboard authenticates as internally.
+No administrative persona ships beyond `admin`. To give somebody administrative access without handing them `all_access`, define a role with the permissions that job needs — the permission names available are listed in [Permissions](./permissions.md) — and map it to your own user (see [Defining Users and Roles](./defining-users-and-roles.md)).
 
 Besides the 1:1 roles, `wazuh_ai_assistant` is mapped to **every** authenticated user. It is the only role mapped to more than one account, and exists to attach a Document Level Security query to an index.
 
 ### Roles
 
-Four default roles are defined in `roles.yml`. Each role is self-contained (it grants everything its holder needs on its own) and is `reserved` - it cannot be edited in place. To customize, duplicate the role and edit the copy (see [Defining Users and Roles](./defining-users-and-roles.md)).
+Three default roles are defined in `roles.yml`. Each role is `reserved` - it cannot be edited in place. `wazuh_manager` and `wazuh_ai_assistant` are self-contained, but `dashboard_server` is not the whole of what the Dashboard service account holds: `kibanaserver` is additionally mapped to the upstream `kibana_server` role, which grants the access the Dashboard needs on its own `.kibana*` indices. To customize, duplicate the role and edit the copy (see [Defining Users and Roles](./defining-users-and-roles.md)).
 
 #### `dashboard_server`
 
 Internal service account used by the Wazuh Dashboard to read notification configs and query Wazuh indices on behalf of dashboard users. Mapped to the built-in `kibanaserver` user, not to any `wazuh-*` user.
 
 - **Cluster permissions:** `cluster:admin/opensearch/notifications/configs/get`.
-- **Index permissions:** `read` on `wazuh-*`.
+- **Index permissions:** `read`, `indices:admin/mappings/get` on `wazuh-*`.
 
 #### `wazuh_manager`
 
@@ -44,26 +43,11 @@ Service account used by the Wazuh Manager for data ingestion and content reads.
 - **Cluster permissions:** `cluster_composite_ops`, `indices:data/read/scroll/clear`, `cluster_monitor`.
 - **Index permissions:**
   - `read` on `.wazuh-settings`.
-  - `read` on `.wazuh-cti-consumers`, `wazuh-active-responses*`, `wazuh-threatintel-*`.
-  - `read`, `index` on `wazuh-events-v5-*`, `wazuh-metrics-*`.
+  - `read` on `.wazuh-cti-consumers`, `wazuh-active-responses*`, `wazuh-threatintel-*`, `wazuh-findings-v5-*`.
+  - `read`, `index` on `wazuh-events-v5-*`, `wazuh-events-raw-v5*`, `wazuh-metrics-*`.
   - `read`, `index`, `delete` on `wazuh-states-*`.
-  - `read`, `index` and `delete` on `wazuh-agent-*`.
+  - `read`, `index`, `delete` on `wazuh-agent-*`.
   - `manage_point_in_time` on `.wazuh-threatintel-vulnerabilities*`, `wazuh-threatintel-*`.
-
-#### `wazuh_readonly`
-
-Read-only access across the platform.
-
-- **Cluster permissions:**
-  - Base: `cluster_composite_ops_ro`, `indices:data/read/scroll/clear`, `cluster_monitor`.
-  - AI assistant settings (setup plugin): `plugin:wazuh/ai_assistant/settings/read`.
-  - Content Manager: `subscription/get`, `logtest*`, `version/check`.
-  - Ruleset Management: read-only (upstream `cluster:admin/opensearch/securityanalytics/*` get/search/list actions) plus the Wazuh custom `rules/evaluate`.
-  - Alerting, Anomaly detection, Notifications, Reporting, Index management: **read-only**.
-- **Index permissions:**
-  - `get`, `read`, `indices:admin/aliases/get`, `indices:monitor/*` on `*`, `.kibana*`.
-  - `read` on `.wazuh-settings`.
-  - `read` on `.wazuh-internal-state`.
 
 #### `wazuh_ai_assistant`
 
@@ -82,7 +66,7 @@ That is also what makes the read filter trustworthy: `user` is only a safe thing
 
 Listing sessions and reading a transcript stay direct queries against the data stream, under the DLS filter above — there is no read endpoint, because DLS already scopes reads correctly and OpenSearch already provides search, sorting and pagination.
 
-The per-owner DLS applies to every user, including `admin`
+The per-owner DLS applies to every user, including `admin`.
 
 ## Plugin-internal indices
 
@@ -97,6 +81,8 @@ omits them behaves exactly the same:
 | `.wazuh-cti-consumers` | Content Manager | CTI synchronization state (status, offsets, source URL) per consumer. |
 | `.wazuh-content-manager-jobs` | Content Manager | Job Scheduler metadata for the catalog sync and telemetry ping jobs. |
 
+The one exception among the default roles is `wazuh_manager`, which grants `read` on `.wazuh-cti-consumers` so that the Wazuh Manager can read the synchronization state.
+
 Where such an index has to be touched while serving a user request — the resource-creation lock is
 taken and released inside a create request — the plugin stashes the caller's identity for the
 duration of that operation, so it is authorized as the plugin and not as the user. This is what keeps
@@ -104,10 +90,11 @@ these indices out of every role, including custom roles that hold only `plugin:c
 permissions. The stash is scoped to the internal index: the content operation the request came for is
 still authorized against the user's own index permissions on `wazuh-threatintel-*`.
 
-`.wazuh-internal-state` is deliberately not in this list. It is also written by the plugin in its own
-context, but it is additionally declared as a security-plugin system index
-(`plugins.security.system_indices.indices`), and the roles above grant it explicitly because the
-Setup plugin's AI assistant endpoints read and write it on behalf of users.
+`.wazuh-internal-state` is deliberately not in this list. It is also written by the plugins in their
+own context, but it is additionally declared as a security-plugin system index
+(`plugins.security.system_indices.indices`). No default role grants it either: the Setup plugin's AI
+assistant endpoints read and write it on behalf of users in the plugin's own context, gated by the
+cluster permissions listed in [AI assistant administrative API](#ai-assistant-administrative-api).
 
 ## AI assistant administrative API
 
@@ -121,7 +108,7 @@ The AI assistant's providers configuration, assistant-wide settings and field po
 | `/_plugins/_setup/ai_assistant/providers` | `POST` | `plugin:wazuh/ai_assistant/settings/write` |
 | `/_plugins/_setup/ai_assistant/providers/{id}` | `PUT`, `DELETE` | `plugin:wazuh/ai_assistant/settings/write` |
 
-Among the default roles, `wazuh_readonly` holds the read permission only; `dashboard_server` and `wazuh_manager` hold neither. The write permission is held only by `all_access`.
+No default role holds either permission: `dashboard_server` and `wazuh_manager` hold neither read nor write. Both are held only by `all_access`.
 
 ## Sensitive configuration endpoints
 
@@ -133,5 +120,5 @@ A small set of endpoints modify configuration with a high impact on the platform
 | `/_plugins/_content_manager/update`         | `POST` | `cluster:admin/content_manager/update/trigger` |
 | `/_plugins/_setup/settings`                 | `PUT`  | `plugin:wazuh/settings/write`                  |
 
-1. **RBAC** - each endpoint is gated by the cluster permission above, enforced by the OpenSearch Security plugin. No default role holds these permissions: `dashboard_server`, `wazuh_manager` and `wazuh_readonly` are all excluded, so out of the box only the superuser `admin` (role `all_access`, cluster wildcard `*`) can call them. To delegate any of these actions without granting full superuser, create a dedicated role granting only the permission(s) above and map it to the chosen user.
+1. **RBAC** - each endpoint is gated by the cluster permission above, enforced by the OpenSearch Security plugin. No default role holds these permissions: `dashboard_server` and `wazuh_manager` are both excluded, so out of the box only the superuser `admin` (role `all_access`, cluster wildcard `*`) can call them. To delegate any of these actions without granting full superuser, create a dedicated role granting only the permission(s) above and map it to the chosen user.
 2. **Per-endpoint disable settings** - each endpoint can be disabled independently by setting its node setting to `false`, after which it returns `403 Forbidden` for **every** caller, regardless of role (intended for externally managed deployments such as Wazuh Cloud): `plugins.content_manager.catalog.update_on_demand` (content update trigger), `plugins.content_manager.catalog.policy_update.enabled` (policy updates), and `plugins.setup.settings_update.enabled` (setup settings). See [Protecting sensitive configuration](../modules/content-manager/configuration.md#protecting-sensitive-configuration).

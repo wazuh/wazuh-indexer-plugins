@@ -44,6 +44,7 @@ import java.util.function.UnaryOperator;
 
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -60,7 +61,7 @@ import com.wazuh.contentmanager.utils.Constants;
  * <p>Every write is a read-modify-write on one shared document, so writers are serialized
  * optimistically with {@code ifSeqNo}/{@code ifPrimaryTerm} rather than with a mutex: a conflict
  * re-reads and re-applies the change against the winner's document, bounded by {@link
- * Constants#MAX_USER_OVERRIDES_UPDATE_ATTEMPTS}.
+ * PluginSettings#USER_OVERRIDES_MAX_UPDATE_ATTEMPTS}.
  */
 public class UserOverridesService {
 
@@ -157,7 +158,7 @@ public class UserOverridesService {
             Exception e,
             ActionListener<Void> listener) {
         boolean conflict = ExceptionsHelper.unwrap(e, VersionConflictEngineException.class) != null;
-        if (conflict && attempt < Constants.MAX_USER_OVERRIDES_UPDATE_ATTEMPTS) {
+        if (conflict && attempt < PluginSettings.getInstance().getUserOverridesMaxUpdateAttempts()) {
             log.debug(Constants.D_LOG_USER_OVERRIDES_REGISTRY_CONFLICT, attempt);
             this.tryUpdate(spaceName, mutator, attempt + 1, listener);
             return;

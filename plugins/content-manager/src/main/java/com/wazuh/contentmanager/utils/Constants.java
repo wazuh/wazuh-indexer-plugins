@@ -62,7 +62,7 @@ public class Constants {
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
             "Only 'update' operation is supported for policy.";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
-    public static final String E_400_DUPLICATE_NAME =
+    public static final String E_409_DUPLICATE_NAME =
             "A %s with the name '%s' already exists in the %s space.";
     public static final String E_400_TOO_MANY_INTEGRATIONS =
             "This request would create more than the allowed integrations [%d].";
@@ -106,12 +106,20 @@ public class Constants {
     public static final String E_403_POLICY_UPDATE_DISABLED =
             "Policy updates are disabled on this deployment.";
     public static final String E_500_INTERNAL_SERVER_ERROR = "Internal Server Error.";
+    public static final String E_500_ENGINE_SOCKET_UNAVAILABLE =
+            "Cannot reach the Wazuh Engine: its API socket is not available. "
+                    + "Verify the Engine is running.";
     public static final String E_SECURITY_ANALYTICS_ERROR =
             "Error in Security Analytics."; // Used for both BAD_REQUEST and INTERNAL_SERVER_ERROR
     public static final String E_500_MISSING_DRAFT_POLICY = "Draft policy not found.";
     public static final String E_500_VERSION_NOT_FOUND = "Unable to determine current Wazuh version.";
     public static final String E_500_CTI_UNREACHABLE =
             "Unable to reach the CTI API to check for updates.";
+    public static final String E_500_DETECTOR_GUARD_FAILED =
+            "The promotion was not applied: could not verify that it leaves every running detector "
+                    + "with enabled rules (cause: %s).";
+    public static final String E_DETECTOR_LOOKUP_TRUNCATED =
+            "Found %d enabled detectors, more than the %d that can be checked in one search.";
 
     // Log messages
     public static final String I_LOG_MAX_INTEGRATIONS_REACHED =
@@ -130,11 +138,16 @@ public class Constants {
     public static final String E_LOG_INDEX_NOT_FOUND = "Index [{}] not found.";
     public static final String E_LOG_SAP_SYNC_FAILED = "Failed to sync {} in Security Analytics: {}";
     public static final String E_LOG_OPERATION_FAILED = "Error {} {}: {}";
-    public static final String E_LOG_FAILED_TO = "Failed to {} {} (id={}): {}";
+    public static final String E_LOG_FAILED_TO =
+            "Failed to {} {} (id={}): {}"; // Used for both WARN (4xx) and ERROR (5xx)
     public static final String E_LOG_UNEXPECTED = "Unexpected error {} {} (id={}): {}";
     public static final String E_LOG_MISSING_FIELD = "Missing '{}' field.";
+    public static final String E_LOG_POLICY_DOCUMENT_MISSING =
+            "Policy document missing in the [{}] space. Every space must have one, "
+                    + "so this is a server-side inconsistency, not a client error.";
     public static final String E_LOG_MISSING_OBJECT = "Missing '{}' object.";
-    public static final String W_LOG_VALIDATION_FAILED = "Validation failed: {}";
+    public static final String W_LOG_VALIDATION_FAILED =
+            "Validation failed: {}"; // Used for both WARN (4xx) and ERROR (5xx)
     public static final String W_LOG_OPERATION_FAILED = "{} failed for {}: {}";
     public static final String W_LOG_OPERATION_FAILED_ID = "{} failed for {} [{}]: {}";
     public static final String W_LOG_RESOURCE_NOT_FOUND = "{} [{}] not found.";
@@ -142,6 +155,8 @@ public class Constants {
             "Resource {} [{}] not found in external service, continuing deletion.";
     public static final String W_LOG_DETECTOR_LOOKUP_FAILED =
             "Could not read detectors while validating promotion: {}";
+    public static final String E_LOG_DETECTOR_GUARD_FAILED =
+            "Detector guard failed while validating promotion ({}): {}";
     public static final String D_LOG_SAP_SEND = "Sending {} [{}] with ID [{}] to Security Analytics.";
     public static final String D_LOG_SAP_DELETED = "{} deleted successfully (document.id={}{}).";
     public static final String D_LOG_SAP_DELETE_ASYNC =
@@ -364,6 +379,9 @@ public class Constants {
             "Integration documents could not be read; keeping the detectors phase pending.";
     public static final String E_LOG_DETECTOR_WAIT_INTERRUPTED =
             "Interrupted while waiting for detector sync to complete.";
+    public static final String E_LOG_SAP_DETECTORS_STILL_IN_FLIGHT =
+            "{} detector upserts still running {} s after the sync timeout; ending the pass anyway. A"
+                    + " later pass may upsert the same detectors while they run.";
     public static final String W_LOG_HIT_MISSING_DOCUMENT =
             "Hit [{}] missing 'document' field, skipping";
     public static final String E_LOG_SAP_SYNC_DEGRADED =
@@ -744,13 +762,6 @@ public class Constants {
      */
     public static final String USER_OVERRIDES_DOC_ID = "wazuh-user-overrides";
 
-    /**
-     * How many times a user-overrides registry write is retried on a version conflict before giving
-     * up. The registry is one shared document, so concurrent writers are serialized optimistically:
-     * each conflict re-reads and re-applies, and this bounds the loop.
-     */
-    public static final int MAX_USER_OVERRIDES_UPDATE_ATTEMPTS = 3;
-
     // Consumer types
     public static final String CONSUMER_TYPE_VULNERABILITIES = "cti:catalog:consumer:vulnerabilities";
     public static final String CONSUMER_TYPE_IOCS = "cti:catalog:consumer:iocs";
@@ -927,9 +938,19 @@ public class Constants {
     public static final String OP_REMOVE = "remove";
     public static final String OP_UPDATE = "update";
 
-    // Job Scheduler registration retries
-    public static final int MAX_JOB_SCHEDULE_RETRIES = 3;
-    public static final int JOB_SCHEDULE_RETRY_BACKOFF_SECONDS = 15;
+    /**
+     * The OpenSearch {@code index.max_result_window} default. The searches using it fetch a complete
+     * result set in a single request and have no {@code search_after} or PIT, so this is an
+     * "everything" bound rather than a page size: lowering it would silently truncate them. The
+     * genuinely paginated IoC reconciliation scan uses {@code PluginSettings#SEARCH_PAGE_SIZE}
+     * instead.
+     */
+    public static final int MAX_RESULT_WINDOW = 10_000;
+
+    // Bounds Security Analytics accepts for a detector schedule interval, in minutes: one minute to
+    // one week.
+    public static final int DETECTOR_INTERVAL_MIN_MINUTES = 1;
+    public static final int DETECTOR_INTERVAL_MAX_MINUTES = 60 * 24 * 7;
 
     // Setup plugin readiness marker (written by the Setup plugin once all its
     // index templates, indices and data streams have been created).
@@ -944,9 +965,9 @@ public class Constants {
     // plugins.content_manager.max_{integrations,decoders,rules,kvdbs,filters}, keyed per
     // resource type and space.
     public static final String INDEX_RESOURCE_LOCKS = ".wazuh-content-manager-resource-locks";
-    public static final int MAX_LOCK_ACQUIRE_RETRIES = 20;
-    public static final long LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS = 100;
-    public static final long LOCK_STALE_THRESHOLD_MILLIS = 30_000;
-    public static final String E_503_RESOURCE_LOCK_TIMEOUT =
+    // The retry count, backoff and stale threshold are configurable settings; see
+    // PluginSettings#RESOURCE_LOCK_MAX_RETRIES, PluginSettings#RESOURCE_LOCK_RETRY_BACKOFF_MILLIS
+    // and PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS.
+    public static final String E_429_RESOURCE_LOCK_TIMEOUT =
             "Too many concurrent requests creating this resource. Please retry.";
 }

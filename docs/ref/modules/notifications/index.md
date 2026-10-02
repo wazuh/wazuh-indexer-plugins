@@ -1,10 +1,10 @@
 # Notifications
 
-The Wazuh Indexer Notifications plugin is a specialized component designed to extend the Wazuh Indexer (based on OpenSearch) with multi-channel notification capabilities. It allows the system to send alerts, reports, and messages via **Email** (SMTP/SES), **Slack**, **Microsoft Teams**, **Amazon Chime**, **Amazon SNS**, and **Custom Webhooks**.
+The Wazuh Indexer Notifications plugin is a specialized component designed to extend the Wazuh Indexer (based on OpenSearch) with multi-channel notification capabilities. It allows the system to send alerts, reports, and messages via **Email** (SMTP/SES), **Slack**, **Microsoft Teams**, **Amazon Chime**, **Amazon SNS** and **Custom Webhooks**, and to queue Wazuh **Active Response** executions.
 
 ## Key capabilities
 
-- **Multi-channel delivery:** Send notifications to Slack, Microsoft Teams, Chime, Email (SMTP and AWS SES), AWS SNS, and custom HTTP webhooks.
+- **Multi-channel delivery:** Send notifications to Slack, Microsoft Teams, Chime, Email (SMTP and AWS SES), AWS SNS, custom HTTP webhooks, and Wazuh Active Response.
 - **Unified REST API:** Create, update, delete, and query notification channel configurations through a single API surface at `/_plugins/_notifications/`.
 - **Test notifications:** Validate channel configuration by sending a test message before relying on it for production alerts.
 - **Feature discovery:** Other plugins can query supported notification features dynamically.
@@ -19,9 +19,10 @@ The Wazuh Indexer Notifications plugin is a specialized component designed to ex
 - **`webhook`** (HTTP/HTTPS) — sends a payload to an arbitrary HTTP endpoint with configurable method, headers, and URL.
 - **`email`** (SMTP / AWS SES) — sends email messages. Requires an `smtp_account` or `ses_account` configuration.
 - **`sns`** (AWS SNS SDK) — publishes a message to an Amazon SNS topic.
-- **`smtp_account`** — defines SMTP server connection details (host, port, method, credentials).
+- **`smtp_account`** — defines SMTP server connection details (host, port, method, from address). Its credentials are stored in the keystore, see [Email destination secure settings](configuration.md#email-destination-secure-settings).
 - **`ses_account`** — defines AWS SES sending details (region, role ARN, from address).
 - **`email_group`** — defines a group of email recipients for reuse across email-type channels.
+- **`active_response`** (Wazuh Active Response) — queues an execution request in the `wazuh-active-responses` data stream for the Wazuh Manager to run on agents. [Active Response](../alerting/index.md#active-response) monitors send through this type. See the [Active response example](api.md#active-response-example).
 
 ## Default notification channels
 
@@ -52,8 +53,8 @@ To activate a default channel:
 For example, to configure the Slack channel:
 
 ```bash
-curl -sk -u admin:admin -X PUT \
-  "https://localhost:9200/_plugins/_notifications/configs/default_slack_channel" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
+  "https://127.0.0.1:9200/_plugins/_notifications/configs/default_slack_channel" \
   -H 'Content-Type: application/json' \
   -d '{
     "config": {

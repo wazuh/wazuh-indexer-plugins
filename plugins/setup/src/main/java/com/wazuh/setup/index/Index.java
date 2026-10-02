@@ -55,8 +55,14 @@ public abstract class Index implements IndexInitializer {
     protected String index;
     protected String template;
 
-    boolean retry_index_creation;
-    boolean retry_template_creation;
+    /**
+     * Re-attempts already spent on index and index-template creation. Each is compared against {@code
+     * plugins.setup.max_retries} at failure time rather than captured up front, because the cluster
+     * service these settings come from is injected after construction.
+     */
+    int indexCreationAttempts;
+
+    int templateCreationAttempts;
 
     /**
      * Constructor.
@@ -68,8 +74,8 @@ public abstract class Index implements IndexInitializer {
         this.index = index;
         this.template = template;
 
-        this.retry_index_creation = true;
-        this.retry_template_creation = true;
+        this.indexCreationAttempts = 0;
+        this.templateCreationAttempts = 0;
     }
 
     /**
@@ -147,12 +153,13 @@ public abstract class Index implements IndexInitializer {
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
             // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
-            if (!this.retry_index_creation) {
+            if (this.indexCreationAttempts
+                    >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error("Initialization of index [{}] finally failed. The node will shut down.", index);
                 throw e;
             }
             log.warn("Operation to create the index [{}] timed out. Retrying...", index);
-            this.retry_index_creation = false;
+            this.indexCreationAttempts++;
             this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(index);
         }
@@ -202,14 +209,15 @@ public abstract class Index implements IndexInitializer {
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
             // Exit condition. Re-attempt to create the index template also failed. Original exception is
             // rethrown.
-            if (!this.retry_template_creation) {
+            if (this.templateCreationAttempts
+                    >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error(
                         "Initialization of index template [{}] finally failed. The node will shut down.",
                         template);
                 throw e;
             }
             log.warn("Operation to create the index template [{}] timed out. Retrying...", template);
-            this.retry_template_creation = false;
+            this.templateCreationAttempts++;
             this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createTemplate(template);
         }

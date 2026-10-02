@@ -14,4 +14,4 @@
       type: long
       level: custom
       description: >
-        Transmit queue length.---
+        Transmit queue length.
