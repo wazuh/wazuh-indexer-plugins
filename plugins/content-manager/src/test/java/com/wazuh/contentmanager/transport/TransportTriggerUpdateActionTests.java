@@ -37,12 +37,14 @@ import java.util.concurrent.ExecutorService;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.TriggerUpdateRequest;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.Mockito.*;
 
@@ -75,8 +77,20 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
         instance.set(null, null);
     }
 
+    /** Makes the mocked job report {@code started} to every trigger. */
+    @SuppressWarnings("unchecked")
+    private void stubTrigger(boolean started) {
+        doAnswer(
+                        invocation -> {
+                            ((ActionListener<Boolean>) invocation.getArgument(0)).onResponse(started);
+                            return null;
+                        })
+                .when(this.catalogSyncJob)
+                .trigger(any(ActionListener.class));
+    }
+
     public void testDoExecute_Accepted() {
-        when(this.catalogSyncJob.isRunning()).thenReturn(false);
+        this.stubTrigger(true);
         TriggerUpdateRequest request = new TriggerUpdateRequest();
 
         @SuppressWarnings("unchecked")
@@ -93,11 +107,12 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                                             response.getMessage());
                                     return true;
                                 }));
-        verify(this.catalogSyncJob, times(1)).trigger();
+        verify(this.catalogSyncJob, times(1)).trigger(any(ActionListener.class));
     }
 
+    /** A pass running on this or any other node answers 409. */
     public void testDoExecute_Conflict() {
-        when(this.catalogSyncJob.isRunning()).thenReturn(true);
+        this.stubTrigger(false);
         TriggerUpdateRequest request = new TriggerUpdateRequest();
 
         @SuppressWarnings("unchecked")
@@ -113,11 +128,12 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                                             "A content update is already in progress.", response.getMessage());
                                     return true;
                                 }));
-        verify(this.catalogSyncJob, never()).trigger();
     }
 
     public void testDoExecute_Exception() {
-        when(this.catalogSyncJob.isRunning()).thenThrow(new RuntimeException("Unexpected failure"));
+        doThrow(new RuntimeException("Unexpected failure"))
+                .when(this.catalogSyncJob)
+                .trigger(any(ActionListener.class));
         TriggerUpdateRequest request = new TriggerUpdateRequest();
 
         @SuppressWarnings("unchecked")
@@ -129,7 +145,7 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                         argThat(
                                 response -> {
                                     Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
-                                    Assert.assertEquals("Unexpected failure", response.getMessage());
+                                    Assert.assertEquals(Constants.E_500_INTERNAL_SERVER_ERROR, response.getMessage());
                                     return true;
                                 }));
     }
@@ -140,10 +156,19 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
      * stubbed {@code isRunning()} return value. A never-running executor keeps the first triggered
      * pass "in flight" so the second REST-level request is deterministically rejected.
      */
+    @SuppressWarnings("unchecked")
     public void testDoExecute_concurrentRequests_secondIsRejectedByRealSemaphore() throws Exception {
         ExecutorService neverRunsExecutor = mock(ExecutorService.class);
         ThreadPool threadPool = mock(ThreadPool.class);
         when(threadPool.generic()).thenReturn(neverRunsExecutor);
+        ResourceLockService resourceLockService = mock(ResourceLockService.class);
+        doAnswer(
+                        invocation -> {
+                            ((ActionListener<Boolean>) invocation.getArgument(1)).onResponse(true);
+                            return null;
+                        })
+                .when(resourceLockService)
+                .tryAcquireOnce(anyString(), any(ActionListener.class));
 
         CatalogSyncJob realCatalogSyncJob =
                 new CatalogSyncJob(
@@ -154,7 +179,8 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                         mock(EngineService.class),
                         mock(SpaceService.class),
                         mock(SecurityAnalyticsService.class),
-                        mock(UserOverridesService.class));
+                        mock(UserOverridesService.class),
+                        resourceLockService);
         TransportTriggerUpdateAction realAction =
                 new TransportTriggerUpdateAction(
                         mock(TransportService.class), mock(ActionFilters.class), realCatalogSyncJob);

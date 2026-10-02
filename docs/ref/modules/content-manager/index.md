@@ -18,7 +18,7 @@ The Content Manager synchronizes three categories of detection content from the 
 - **IoC feed** — Indicators of Compromise (IoC) for threat detection enrichment.
 - **CVE feed** — Common Vulnerabilities and Exposures (CVE) data for vulnerability detection. CVE entries are only added or updated, never removed.
 
-On first start, the plugin initializes from a snapshot. If a custom CTI catalog URL is configured, it downloads the snapshot from that source; otherwise it uses the snapshot bundled with the Wazuh Indexer package, so detection content is available immediately even without network access.
+On first start, the plugin initializes from a snapshot. It first downloads the latest snapshot from the Wazuh CTI API, using the configured catalog URL or, when none is set, the one of the subscription plan, the one stored by the previous sync, or the one recorded in the snapshot bundled with the Wazuh Indexer package. If the download fails, it loads the bundled snapshot instead, so detection content is available immediately even without network access.
 
 Once initialized, the plugin keeps content current automatically. A sync check runs at startup and again on a regular schedule — every 60 minutes by default. Each check fetches only the changes since the last sync: new or updated resources are added, removed resources are deleted. If the local content cannot be reconciled with the remote state, the plugin recovers by re-downloading the latest snapshot.
 
@@ -63,7 +63,7 @@ Content flows through spaces in a promotion chain: **Draft → Test → Custom**
 The routing **policy** defines how the Wazuh Engine processes incoming events — which integrations are active and in what order. The Content Manager provides an API to update the draft policy:
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/policy/draft" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -141,11 +141,11 @@ For the alias-backed blue/green storage details and the exact hidden/alias statu
 
 ## Wazuh Cloud subscription
 
-To synchronize content from the CTI API, the Wazuh Indexer requires a valid CTI access token. The token is registered via the REST API:
+To synchronize the content of a subscription plan from the CTI API, the Wazuh Indexer requires a valid CTI access token. The token is registered via the REST API:
 
 1. **Store credentials** by sending the CTI access token via `POST /_plugins/_content_manager/subscription`. The token is persisted in the `.wazuh-internal-state` hidden index and loaded into memory.
 2. The Content Manager uses the in-memory token for all CTI API requests.
-3. Without a registered token, sync operations return a `404 Token not found` error.
+3. Without a registered token, the instance synchronizes the public content: `GET /_plugins/_content_manager/subscription` reports the public plan and `"is_registered": false`.
 
 See [Subscription management](api.md#store-cti-credentials) in the API reference.
 

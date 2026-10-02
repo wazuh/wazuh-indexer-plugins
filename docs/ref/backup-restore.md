@@ -1,4 +1,4 @@
-# Backup and restore
+# Back up and restore
 
 In this section you can find instructions on how to create and restore a backup of your Wazuh Indexer key files, preserving file permissions, ownership, and path. Later, you can move this folder contents back to the corresponding location to restore your certificates and configurations. Backing up these files is useful in cases such as moving your Wazuh installation to another system.
 
@@ -12,7 +12,7 @@ To create a backup of the Wazuh indexer, follow these steps. Repeat them on ever
 
 ### Preparing the backup
 
-1. Backup the existing Wazuh indexer security configuration files.
+1. Back up the existing Wazuh indexer security configuration files.
 
     ```bash
     /usr/share/wazuh-indexer/bin/indexer-security-init.sh --options "-backup /etc/wazuh-indexer/opensearch-security -icl -nhnv"
@@ -51,7 +51,13 @@ rsync -aREz \
 /usr/lib/sysctl.d/wazuh-indexer.conf $backup_folder
 ```
 
-Compress the files and transfer them to the new server:
+If the node has a `/etc/wazuh/ca/` directory, back it up as well. It holds the certificate authority that signed the node's certificates, including its private key when the package created it:
+
+```bash
+rsync -aREz /etc/wazuh/ca/ $backup_folder
+```
+
+Compress the files and transfer them to the new server. The archive contains private keys, so store and transfer it securely:
 
 ```bash
 tar -cvzf wazuh-indexer-backup.tar.gz $backup_folder
@@ -67,7 +73,7 @@ This guide explains how to restore a backup of your configuration files.
 
 >**Note**: For a multi-node setup, there should be a backup file for each node within the cluster. You need root user privileges to execute the commands below.
 
-#### Preparing the data restoration
+### Preparing the data restoration
 
 1. In the new node, move the compressed backup file to the root `/` directory:
 
@@ -76,16 +82,18 @@ This guide explains how to restore a backup of your configuration files.
     cd /
     ```
 
-2. Decompress the backup files and change the current working directory to the directory based on the date and time of the backup files:
+2. Decompress the backup files and change the current working directory to the directory based on the date and time of the backup files. Replace `<DATE_TIME>` with the date and time in the name of the backup folder:
 
     ```bash
     tar -xzvf wazuh-indexer-backup.tar.gz
-    cd $backup_folder
+    cd ~/wazuh_files_backup/<DATE_TIME>
     ```
 
-#### Restoring Wazuh indexer files
+### Restoring Wazuh indexer files
 
 Perform the following steps to restore the Wazuh indexer files on the new server.
+
+> **Note**: The restored `opensearch.yml` binds the node to the old server's address, and the restored certificates were issued for the old server's hostname and IP addresses, both recorded in `host-info.txt`. This procedure assumes the new server takes them over.
 
 1. Stop the Wazuh indexer to prevent any modifications to the Wazuh indexer files during the restoration process:
 
@@ -96,23 +104,26 @@ Perform the following steps to restore the Wazuh indexer files on the new server
 2. Restore the Wazuh indexer configuration files and change the file permissions and ownership accordingly:
 
     ```bash
-    cp etc/wazuh-indexer/jvm.options /etc/wazuh-indexer/jvm.options
-    cp -r etc/wazuh-indexer/jvm.options.d/ /etc/wazuh-indexer/jvm.options.d/
-    cp etc/wazuh-indexer/log4j2.properties /etc/wazuh-indexer/log4j2.properties
-    cp etc/wazuh-indexer/opensearch.keystore /etc/wazuh-indexer/opensearch.keystore
-    cp -r etc/wazuh-indexer/wazuh-indexer-reports-scheduler/ /etc/wazuh-indexer/wazuh-indexer-reports-scheduler/
-    cp -r etc/wazuh-indexer/wazuh-indexer-notifications/ /etc/wazuh-indexer/wazuh-indexer-notifications/
-    cp -r etc/wazuh-indexer/wazuh-indexer-notifications-core/ /etc/wazuh-indexer/wazuh-indexer-notifications-core/
-    cp usr/lib/sysctl.d/wazuh-indexer.conf /usr/lib/sysctl.d/wazuh-indexer.conf
+    cp -rp etc/wazuh-indexer/. /etc/wazuh-indexer/
+    cp -p usr/lib/sysctl.d/wazuh-indexer.conf /usr/lib/sysctl.d/wazuh-indexer.conf
 
-    chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/jvm.options
-    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/jvm.options.d
-    chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/log4j2.properties
-    chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
-    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-reports-scheduler/
-    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-notifications/
-    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/wazuh-indexer-notifications-core/
-    chown wazuh-indexer:wazuh-indexer /usr/lib/sysctl.d/wazuh-indexer.conf
+    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer
+    chmod 500 /etc/wazuh-indexer/certs
+    chmod 400 /etc/wazuh-indexer/certs/*
+    chown root:root /usr/lib/sysctl.d/wazuh-indexer.conf
+    ```
+
+    The first command copies everything the backup saved under `/etc/wazuh-indexer/` over the existing files: the certificates, `opensearch.yml`, the JVM options, `log4j2.properties`, the keystore, the security configuration and the plugin configuration directories. Copying the contents of the directory (`etc/wazuh-indexer/.`) matters: the package already created these directories on the new server, and `cp -r` of a directory onto an existing one nests the copy inside it (`certs/certs`), where the Wazuh indexer never reads it.
+
+    > **Note:** the sysctl drop-in stays `root`-owned, as the package ships it. It is applied by
+    > `systemd-sysctl` as root, so a copy the service account can edit would let that account set
+    > kernel parameters.
+
+    If the backup contains `etc/wazuh/ca/`, restore it too, so that the certificate authority on the new server is the one that signed the restored certificates:
+
+    ```bash
+    cp -rp etc/wazuh/ca/. /etc/wazuh/ca/
+    chown -R root:root /etc/wazuh/ca
     ```
 
 3. Start the Wazuh indexer service:
@@ -121,9 +132,19 @@ Perform the following steps to restore the Wazuh indexer files on the new server
     systemctl start wazuh-indexer
     ```
 
-4. Clear the backup files to free up space:
+4. Load the restored security configuration into the cluster. Until you do, the restored files under `/etc/wazuh-indexer/opensearch-security/` are not used: the cluster keeps the users, roles and role mappings it already had.
 
     ```bash
-    rm -rf $backup_folder
-    rm -rf /wazuh-indexer-backup.tar.gz
+    /usr/share/wazuh-indexer/bin/indexer-security-init.sh
+    ```
+
+    In a multi-node cluster, run it once, on any node, after every node has been restored and started.
+
+    > **Note**: From this point on, the internal users have the passwords they had on the old server. If `/etc/wazuh/credentials.env` exists on the new server, the `WAZUH_INDEXER_*` passwords it lists are the ones generated when the package was installed there, and no longer work. The Wazuh Manager and the Wazuh Dashboard read this file when they are installed, so replace those values with the old server's passwords before installing either of them on this server.
+
+5. Clear the backup files to free up space:
+
+    ```bash
+    rm -rf ~/wazuh_files_backup/<DATE_TIME>
+    rm -f /wazuh-indexer-backup.tar.gz
     ```

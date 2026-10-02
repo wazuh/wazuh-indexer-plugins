@@ -1,12 +1,15 @@
 # Permissions
 
-This page lists the permissions registered by the Wazuh Indexer plugins that are referenced by the [default roles](./access-control.md). Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual `cluster:admin/content_manager/*` transport actions registered by the plugin; the Setup and Ruleset Management entries are raw cluster actions.
+This page lists the permissions registered by the Wazuh Indexer plugins, to grant in the roles you define. The [default roles](./access-control.md) use only a few of them. Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual transport actions registered by the plugin: `cluster:admin/content_manager/*` for the actions that change state, and `cluster:monitor/content_manager/*` for the read-only ones (subscription get, logtest, promote get and version check); the Setup entries are raw cluster actions, each also exposed as an action group; the Ruleset Management entries are raw cluster actions.
 
-### Setup plugin permissions
+## Setup plugin permissions
 
 - `cluster:admin/setup/settings/update` — update the Wazuh settings (`PUT /_plugins/_setup/settings`), exposed as the action group `plugin:wazuh/settings/write`
+- `cluster:admin/ai_assistant/session/write` — create, update and delete the caller's own AI assistant sessions (`POST /_plugins/_setup/ai_assistant/sessions`, `PUT`, `PATCH` and `DELETE /_plugins/_setup/ai_assistant/sessions/{id}`), exposed as the action group `plugin:wazuh/ai_assistant/session/write`. Granted to every user by the default `wazuh_ai_assistant` role.
+- `cluster:admin/ai_assistant/settings/read` — read the AI assistant's providers, settings and field policy (`GET /_plugins/_setup/ai_assistant/settings`, `GET /_plugins/_setup/ai_assistant/providers`), exposed as the action group `plugin:wazuh/ai_assistant/settings/read`
+- `cluster:admin/ai_assistant/settings/write` — write the AI assistant's providers, settings and field policy (`PUT /_plugins/_setup/ai_assistant/settings`, `POST /_plugins/_setup/ai_assistant/providers`, `PUT` and `DELETE /_plugins/_setup/ai_assistant/providers/{id}`), exposed as the action group `plugin:wazuh/ai_assistant/settings/write`
 
-### Content Manager plugin permissions
+## Content Manager plugin permissions
 
 Each resource exposes `create`, `update` and `delete`, plus a `*` action group that aggregates the three:
 
@@ -24,12 +27,15 @@ Other Content Manager permissions:
 - `plugin:content_manager/subscription/post` — create/update the CTI subscription. Also the permission evaluated by `POST /_plugins/_content_manager/subscription?perform_permission_check=true`, which reports whether the caller holds it instead of registering.
 - `plugin:content_manager/subscription/delete` — delete the CTI subscription
 - `plugin:content_manager/promote/get` — preview a promotion diff
-- `plugin:content_manager/promote/post` — execute a space promotion (and `plugin:content_manager/promote/*`)
-- `plugin:content_manager/logtest`, `plugin:content_manager/logtest/detection`, `plugin:content_manager/logtest/normalization` (and `plugin:content_manager/logtest/*`)
+- `plugin:content_manager/promote/post` — execute a space promotion
+- `plugin:content_manager/promote/*` — groups `promote/get` and `promote/post`
+- `plugin:content_manager/logtest` — run the combined logtest (`POST /_plugins/_content_manager/logtest`). Also grants `cluster:admin/wazuh/securityanalytics/rules/evaluate`, which the logtest needs downstream.
+- `plugin:content_manager/logtest/detection`, `plugin:content_manager/logtest/normalization` — run each logtest phase on its own (`POST /_plugins/_content_manager/logtest/detection`, `POST /_plugins/_content_manager/logtest/normalization`). `logtest/detection` also grants `cluster:admin/wazuh/securityanalytics/rules/evaluate`; `logtest/normalization` does not need it.
+- `plugin:content_manager/logtest/*` — groups `logtest/detection` and `logtest/normalization`, and through `logtest/detection` also `cluster:admin/wazuh/securityanalytics/rules/evaluate`; it does not grant the combined `POST /_plugins/_content_manager/logtest`
 - `plugin:content_manager/space/delete` — delete a space
 - `plugin:content_manager/version/check` — check the catalog version
 
-### Ruleset Management plugin permissions
+## Ruleset Management plugin permissions
 
 Wazuh custom actions:
 
@@ -45,6 +51,6 @@ Wazuh custom actions:
 - `cluster:admin/wazuh/securityanalytics/rules/evaluate`
 - `cluster:admin/wazuh/securityanalytics/space/delete`
 
-The default roles also grant the upstream OpenSearch Security Analytics actions (`cluster:admin/opensearch/securityanalytics/*`): the read-only (`/get`, `/search`) subset, granted to `wazuh_readonly`. The full `/*` set is held only by `all_access`.
+No default role grants the upstream OpenSearch Security Analytics actions (`cluster:admin/opensearch/securityanalytics/*`); the full `/*` set is held only by `all_access`.
 
 > **Note:** `cluster:admin/opensearch/securityanalytics/detector/write` is the permission that switches a detector on or off, and no default role holds it — out of the box only `all_access` does. Disabling a detector stops detection for its integration and the interval missed is never re-evaluated — see [Enabling and disabling detectors](../modules/ruleset-management/index.md#enabling-and-disabling-detectors).

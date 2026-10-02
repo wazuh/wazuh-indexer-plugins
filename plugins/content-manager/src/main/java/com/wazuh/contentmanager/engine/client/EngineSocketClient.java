@@ -40,6 +40,7 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
@@ -50,8 +51,6 @@ import com.wazuh.contentmanager.utils.Constants;
  */
 public class EngineSocketClient {
     private static final Logger logger = LogManager.getLogger(EngineSocketClient.class);
-    private static final String DEFAULT_SOCKET_PATH =
-            "/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock";
     private static final int BUFFER_SIZE = 8192;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -59,7 +58,7 @@ public class EngineSocketClient {
 
     /** Creates a EngineSocketClient with the default socket path. */
     public EngineSocketClient() {
-        this(DEFAULT_SOCKET_PATH);
+        this(PluginSettings.getInstance().getEngineSocketPath());
     }
 
     /**
@@ -86,7 +85,7 @@ public class EngineSocketClient {
         if (!Files.exists(socketFile)) {
             logger.error(Constants.E_LOG_ENGINE_SOCKET_UNAVAILABLE);
             logger.debug(Constants.D_LOG_ENGINE_SOCKET_NOT_FOUND, this.socketPath);
-            return new RestResponse("Socket file not found at " + this.socketPath, 500);
+            return new RestResponse(Constants.E_500_ENGINE_SOCKET_UNAVAILABLE, 500);
         }
 
         try {

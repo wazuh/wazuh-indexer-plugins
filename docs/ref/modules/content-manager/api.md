@@ -110,7 +110,7 @@ Stores the provided CTI access token in the `.wazuh-internal-state` hidden index
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/subscription" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -122,7 +122,7 @@ curl -sk -u admin:admin -X POST \
 
 ```json
 {
-  "message": "Credentials received",
+  "message": "Access token received successfully.",
   "status": 201
 }
 ```
@@ -160,7 +160,7 @@ None. The body is not read in this mode, and `access_token` is not required.
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/subscription?perform_permission_check=true"
 ```
 
@@ -195,9 +195,9 @@ The response fields are produced by the security plugin and are therefore camelC
 
 ### Get CTI subscription status
 
-Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public free plan is returned.
+Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public plan is returned.
 
-> If the stored token is rejected by the CTI API (e.g. expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public free plan as if the instance were unregistered.
+> If the stored token is rejected by the CTI API (e.g. expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public plan as if the instance were unregistered.
 
 #### Request
 
@@ -207,7 +207,7 @@ Returns the current subscription status and active plan. For registered instance
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X GET \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
   "https://127.0.0.1:9200/_plugins/_content_manager/subscription"
 ```
 
@@ -232,7 +232,7 @@ curl -sk -u admin:admin -X GET \
 {
   "message": {
     "plan": {
-      "name": "Free",
+      "name": "Open",
       "is_public": true
     },
     "is_registered": false
@@ -260,7 +260,7 @@ Clears the stored CTI access token document from the credentials index and clear
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/subscription"
 ```
 
@@ -284,7 +284,7 @@ curl -sk -u admin:admin -X DELETE \
 
 ### Trigger manual sync
 
-Triggers an immediate content synchronization with the CTI API. Requires a valid subscription.
+Triggers an immediate content synchronization with the CTI API. A registered instance synchronizes the content of its subscription plan; an unregistered one synchronizes the public content.
 
 #### Request
 
@@ -294,7 +294,7 @@ Triggers an immediate content synchronization with the CTI API. Requires a valid
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/update"
 ```
 
@@ -304,15 +304,6 @@ curl -sk -u admin:admin -X POST \
 {
   "message": "The update request has been accepted for processing.",
   "status": 202
-}
-```
-
-#### Example response (no credentials)
-
-```json
-{
-  "message": "Token not found. Please create a subscription before attempting to update.",
-  "status": 404
 }
 ```
 
@@ -328,7 +319,7 @@ curl -sk -u admin:admin -X POST \
 #### Status codes
 
 - **202** — update request accepted for processing.
-- **404** — no access token registered.
+- **403** — on-demand updates are disabled (`plugins.content_manager.catalog.update_on_demand: false`); returned for every caller, regardless of role.
 - **409** — a content update is already in progress.
 - **500** — internal error during sync.
 
@@ -360,7 +351,7 @@ Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is pr
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/logtest" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -469,7 +460,7 @@ curl -sk -u admin:admin -X POST \
 #### Example request (normalization only, no integration)
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/logtest" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -553,7 +544,7 @@ Sends a log event to the Wazuh Engine for decoding and normalization without per
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/logtest/normalization" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -649,7 +640,7 @@ Use this after obtaining a normalized event from the `/logtest/normalization` en
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/logtest/detection" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -724,7 +715,7 @@ curl -sk -u admin:admin -X POST \
     "status": "success",
     "rules_evaluated": 0,
     "rules_matched": 0,
-    "matches": [],
+    "matches": []
   }
 }
 ```
@@ -798,7 +789,7 @@ Fields within `resource.metadata`:
 #### Example request (draft space)
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/policy/draft" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -828,7 +819,7 @@ curl -sk -u admin:admin -X PUT \
 #### Example request (standard space)
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/policy/standard" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -874,7 +865,7 @@ Rules follow the Sigma format with Wazuh extensions. See [Sigma Rules](../rulese
 
 Creates a new detection rule in the draft space. The rule is linked to the specified parent integration and validated by the Ruleset Management plugin.
 
-The rule is also synchronized to Ruleset Management, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
+The rule is also synchronized to Ruleset Management, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `space` field (e.g., `draft`) for cross-reference.
 
 #### Request
 
@@ -911,7 +902,7 @@ Fields within `resource.metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/rules" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -972,7 +963,8 @@ The `message` field contains the UUID of the created rule.
 #### Status codes
 
 - **201** — rule created.
-- **400** — missing fields, duplicate title, integration not in draft space, validation failure, or `max_rules` limit reached (default: 100).
+- **400** — missing fields, integration not in draft space, validation failure, or `max_rules` limit reached (default: 200).
+- **409** — a rule with the same title already exists in the space.
 - **500** — internal error or Ruleset Management unavailable.
 
 ---
@@ -997,7 +989,7 @@ Updates an existing rule in the draft space. Unlike on create, `detection` and `
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/rules/6e1c43f1-f09b-4cec-bb59-00e3a52b7930" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1040,6 +1032,7 @@ curl -sk -u admin:admin -X PUT \
 - **200** — rule updated.
 - **400** — invalid request, not in draft space, or validation failure.
 - **404** — rule not found.
+- **409** — the new title is already used by another rule in the space.
 - **500** — internal error.
 
 ---
@@ -1060,7 +1053,7 @@ Deletes a rule from the draft space. The rule is also removed from any integrati
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/rules/6e1c43f1-f09b-4cec-bb59-00e3a52b7930"
 ```
 
@@ -1121,7 +1114,7 @@ Fields within `metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/decoders" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1174,7 +1167,7 @@ The `message` field contains the UUID of the created decoder (prefixed with `d_`
 #### Example request (YAML)
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/decoders" \
   -H 'Content-Type: application/yaml' \
   --data-binary '---
@@ -1205,7 +1198,7 @@ resource:
 #### Status codes
 
 - **201** — decoder created.
-- **400** — missing `integration` field, integration not in draft space, Engine validation failure, or `max_decoders` limit reached (see [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field) if the failure mentions an unrecognized WCS field).
+- **400** — missing `integration` field, integration not in draft space, Engine validation failure, or `max_decoders` limit reached (default: 200). See [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field) if the failure mentions an unrecognized WCS field.
 - **500** — Engine unavailable or internal error.
 
 ---
@@ -1230,7 +1223,7 @@ Updates an existing decoder in the draft space. The decoder is re-validated agai
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/decoders/bb6d0245-8c1d-42d1-8edb-4e0907cf45e0" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1274,7 +1267,7 @@ curl -sk -u admin:admin -X PUT \
 - **200** — decoder updated.
 - **400** — invalid request, not in draft space, or Engine validation failure.
 - **404** — decoder not found.
-- **500** — internal error.
+- **500** — Engine unavailable or internal error.
 
 ---
 
@@ -1294,7 +1287,7 @@ Deletes a decoder from the draft space. The decoder is also removed from any int
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/decoders/acbdba85-09c4-45a0-a487-61c8eeec58e6"
 ```
 
@@ -1359,7 +1352,7 @@ Fields within `metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/filters" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1392,7 +1385,7 @@ The `message` field contains the UUID of the created filter (prefixed with `f_`)
 #### Example request (YAML)
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/filters" \
   -H 'Content-Type: application/yaml' \
   --data-binary '---
@@ -1440,7 +1433,7 @@ Updates an existing filter in the draft or standard space. The filter is re-vali
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/filters/a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1473,7 +1466,7 @@ curl -sk -u admin:admin -X PUT \
 - **200** — filter updated.
 - **400** — invalid request, invalid space, or Engine validation failure.
 - **404** — filter not found.
-- **500** — internal error.
+- **500** — Engine unavailable or internal error.
 
 ---
 
@@ -1493,7 +1486,7 @@ Deletes a filter from the draft or standard space. The filter is also removed fr
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/filters/a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6"
 ```
 
@@ -1520,7 +1513,7 @@ curl -sk -u admin:admin -X DELETE \
 
 Creates a new integration in the draft space. An integration is a logical grouping of related rules, decoders, and KVDBs. The integration is validated against the Engine and registered with the Ruleset Management plugin.
 
-The integration is also synchronized to Ruleset Management, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `source` field (e.g., "Draft") for cross-reference.
+The integration is also synchronized to Ruleset Management, where a separate document is created with its own auto-generated UUID. That document stores the CTI document UUID in a `document.id` field and the space in a `space` field (e.g., `draft`) for cross-reference.
 
 #### Request
 
@@ -1551,7 +1544,7 @@ Fields within `resource.metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/integrations" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1585,7 +1578,8 @@ The `message` field contains the UUID of the created integration.
 #### Status codes
 
 - **201** — integration created.
-- **400** — missing required fields (`title`, `author`, `category`), duplicate title, validation failure, or `max_integrations` limit reached (default: 100).
+- **400** — missing required fields (`title`, `author`, `category`), validation failure, or `max_integrations` limit reached (default: 100).
+- **409** — an integration with the same title already exists in the space.
 - **500** — internal error or Ruleset Management/Engine unavailable.
 
 ---
@@ -1628,7 +1622,7 @@ Fields within `resource.metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/integrations/94e5a2af-505e-4164-ab62-576a71873308" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1661,9 +1655,10 @@ curl -sk -u admin:admin -X PUT \
 #### Status codes
 
 - **200** — integration updated.
-- **400** — invalid request, missing required fields, not in draft space, or duplicate title.
+- **400** — invalid request, missing required fields, or not in draft space.
 - **404** — integration not found.
-- **500** — internal error.
+- **409** — the new title is already used by another integration in the space.
+- **500** — internal error or Ruleset Management/Engine unavailable.
 
 ---
 
@@ -1683,7 +1678,7 @@ Deletes an integration from the draft space. The integration must have no attach
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/integrations/94e5a2af-505e-4164-ab62-576a71873308"
 ```
 
@@ -1748,7 +1743,7 @@ Fields within `resource.metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1796,7 +1791,7 @@ The `message` field contains the UUID of the created KVDB.
 #### Example request (YAML)
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs" \
   -H 'Content-Type: application/yaml' \
   --data-binary '---
@@ -1831,7 +1826,7 @@ resource:
 
 - **201** — KVDB created.
 - **400** — missing `integration` or required resource fields, integration not in draft space, or `max_kvdbs` limit reached (default: 100).
-- **500** — internal error.
+- **500** — Engine unavailable or internal error.
 
 ---
 
@@ -1870,7 +1865,7 @@ Fields within `resource.metadata`:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs/9d4ec6d5-8e30-4ea3-be05-957968c02dae" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -1917,7 +1912,7 @@ curl -sk -u admin:admin -X PUT \
 - **200** — KVDB updated.
 - **400** — invalid request, missing required fields, or not in draft space.
 - **404** — KVDB not found.
-- **500** — internal error.
+- **500** — Engine unavailable or internal error.
 
 ---
 
@@ -1937,7 +1932,7 @@ Deletes a KVDB from the draft space. The KVDB is also removed from any integrati
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/kvdbs/9d4ec6d5-8e30-4ea3-be05-957968c02dae"
 ```
 
@@ -1976,7 +1971,7 @@ Returns a preview of changes that would be applied when promoting from the speci
 #### Example request
 
 ```bash
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
   "https://127.0.0.1:9200/_plugins/_content_manager/promote?space=draft"
 ```
 
@@ -2026,12 +2021,12 @@ The response lists changes grouped by content type. Each change includes:
 
 Promotes content from the source space to the next space in the promotion chain (Draft → Test → Custom). The request body must include the source space and the changes to apply (typically obtained from the preview endpoint).
 
-For Draft → Test promotions, the changeset is forwarded to the local Wazuh Engine for validation only when it includes decoders, kvdbs, or filters. Promotions limited to integrations, rules, or the policy skip the engine call entirely. Test → Custom promotions never invoke the engine.
+Both promotion targets (`test` and `custom`) are validated by the local Wazuh Engine. The Engine is called when the changeset includes decoders, kvdbs, or filters, and also when it does not but the target space already holds engine resources; a changeset limited to integrations, rules, or the policy against an empty target space skips the call.
 
 In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Ruleset Management plugin. For each promoted resource, a new document is created in the target space with:
 - A newly generated UUID as the primary ID.
 - A `document.id` field storing the original CTI document UUID for cross-reference.
-- A `source` field indicating the target space (e.g., "Test", "Custom").
+- A `space` field indicating the target space (e.g., `test`, `custom`).
 
 New resources (add operations) use `POST` to create these documents; existing resources (update operations) use `PUT` to update them in-place.
 
@@ -2062,7 +2057,7 @@ The `changes` object contains arrays for each content type (`policy`, `integrati
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/promote" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -2105,8 +2100,9 @@ curl -sk -u admin:admin -X POST \
 #### Status codes
 
 - **200** — promotion successful.
-- **400** — invalid request body or missing `space` field.
-- **500** — Engine communication error or validation failure.
+- **400** — invalid request body, missing `space` field, or Engine validation failure.
+- **409** — a promoted resource already exists in the target space (use an `update` operation instead).
+- **500** — Engine communication error or internal error.
 
 ---
 
@@ -2117,7 +2113,7 @@ curl -sk -u admin:admin -X POST \
 Resets a user space (`draft`) to its initial state.
 
 When resetting the `draft` space, this operation will:
-- Remove all documents (integrations, rules, decoders, kvdbs) that belong to the given space.
+- Remove all documents (integrations, rules, decoders, kvdbs, filters, and the space's policy document) that belong to the given space.
 - Re-generate the default policy for the given space.
 
 > **Note**: Only the `draft` space can be reset.
@@ -2134,7 +2130,7 @@ When resetting the `draft` space, this operation will:
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_content_manager/space/draft"
 ```
 
@@ -2169,7 +2165,7 @@ Returns whether there are newer versions of Wazuh available for download. The en
 #### Example request
 
 ```bash
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
   "https://127.0.0.1:9200/_plugins/_content_manager/version/check"
 ```
 

@@ -23,7 +23,7 @@ Persists configuration settings to the `.wazuh-settings` index. Currently, it su
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_setup/settings" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -126,7 +126,7 @@ before being parsed.
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_setup/ai_assistant/sessions" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -183,7 +183,7 @@ over from the stored session; `updated_at` is re-stamped.
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   "https://127.0.0.1:9200/_plugins/_setup/ai_assistant/sessions/8itvhqABtpJqXy3PWi31" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -234,7 +234,7 @@ and not the transcript.
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X PATCH \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PATCH \
   "https://127.0.0.1:9200/_plugins/_setup/ai_assistant/sessions/8itvhqABtpJqXy3PWi31" \
   -H 'Content-Type: application/json' \
   -d '{ "title": "Agent 003 connectivity" }'
@@ -275,7 +275,7 @@ Ownership is checked against the stored session first; one belonging to another 
 #### Example request
 
 ```bash
-curl -sk -u admin:admin -X DELETE \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
   "https://127.0.0.1:9200/_plugins/_setup/ai_assistant/sessions/8itvhqABtpJqXy3PWi31"
 ```
 

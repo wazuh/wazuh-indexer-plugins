@@ -14,10 +14,12 @@ Modifying these files directly is not recommended. Instead, use the Wazuh Dashbo
 
 Among these files, Wazuh Indexer uses these particularly to add its own security resources:
 
-- **`internal_users.yml`**: Defines the internal users for the Wazuh Indexer. Each user has a hashed password, reserved status, backend roles, and a description.
+- **`internal_users.yml`**: Defines the internal users for the Wazuh Indexer. Each user has a hashed password, reserved status, backend roles, and a description. The hashes are generated during installation and are unique to each deployment.
 
 - **`roles.yml`**: Defines the roles and their permissions within the Wazuh Indexer. Each role specifies the cluster permissions, index permissions, and tenant permissions.
 
 - **`roles_mapping.yml`**: Maps users and backend roles to the defined roles. This file specifies which users or backend roles have access to each role.
+
+- **`action_groups.yml`**: Defines named groups of permissions. Wazuh Indexer adds the action groups that name the Content Manager and Setup plugin permissions, listed in [Permissions](permissions.md).
 
 The [Access control](access-control.md) section contains information about the security resources added to the Wazuh Indexer by default.

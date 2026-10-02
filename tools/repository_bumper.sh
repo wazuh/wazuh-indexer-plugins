@@ -3,8 +3,8 @@
 # =========================
 # Repository Bumper Script
 # =========================
-# Updates VERSION.json for a new version release, syncs the hardcoded version
-# fallback in each plugin's build.gradle to match, then (depending on flags)
+# Updates VERSION.json for a new version release, checks that every plugin's
+# build.gradle still resolves its version from it, then (depending on flags)
 # reinitializes CHANGELOG.md and pins workflow references to the right branch/tag.
 #
 # Usage: repository_bumper.sh --version VERSION --stage STAGE [--tag] [--set-as-main]
@@ -132,32 +132,36 @@ function update_version_file() {
 }
 
 # ====
-# Sync the hardcoded version fallback in each plugin's build.gradle to the release
-# version. build.gradle resolves the build version from the `version` system
-# property and falls back to a hardcoded default when it is not passed (e.g. a bare
-# `./gradlew` with no -Dversion). Keeping that default equal to VERSION.json stops
-# it drifting behind the real version. This repo has one build.gradle per plugin
-# (plugins/setup, plugins/content-manager), each with its own fallback.
-# Arguments:
-#   $1 - version
+# Assert no plugin build.gradle reintroduces a hardcoded version fallback.
+# build.gradle resolves the build version from the `version` system property and
+# falls back to reading VERSION.json when it is not passed (e.g. a bare `./gradlew`
+# with no -Dversion), so VERSION.json is the single source of truth and there is
+# nothing for this script to sync. A hardcoded literal coming back means the
+# fallback can drift behind VERSION.json again, so fail rather than warn. This repo
+# has one build.gradle per plugin (plugins/setup, plugins/content-manager).
 # ====
-function update_build_gradle_version() {
-    local version="$1"
+function check_build_gradle_version() {
     local files=("plugins/setup/build.gradle" "plugins/content-manager/build.gradle")
     local file
+    local failed=""
 
     for file in "${files[@]}"; do
         if [[ ! -f "$file" ]]; then
-            log "Warning: $file not found; skipping build.gradle version sync."
+            log "Warning: $file not found; skipping build.gradle version check."
             continue
         fi
-        if ! grep -qE 'System\.getProperty\("version", "[0-9]+\.[0-9]+\.[0-9]+"\)' "$file"; then
-            log "Warning: hardcoded 'version' fallback not found in $file; skipping sync."
-            continue
+        if grep -qE 'System\.getProperty\("version", *"[0-9]+\.[0-9]+\.[0-9]+"\)' "$file"; then
+            log "Error: $file reintroduces a hardcoded version fallback;" \
+                "it must resolve the version from VERSION.json."
+            failed="yes"
         fi
-        sed -i -E "s/(System\.getProperty\(\"version\", \")[0-9]+\.[0-9]+\.[0-9]+(\"\))/\1${version}\2/" "$file"
-        log "Synced $file hardcoded version fallback to $version"
     done
+
+    if [[ -n "$failed" ]]; then
+        exit 1
+    fi
+
+    log "Verified every plugin build.gradle resolves the version from VERSION.json."
 }
 
 # ====
@@ -221,12 +225,12 @@ function main() {
     navigate_to_project_root
     check_jq_installed
     validate_inputs "$arg_version" "$arg_stage"
+    check_build_gradle_version
 
     local old_version
     old_version="$(current_version)"
 
     update_version_file "$arg_version" "$arg_stage"
-    update_build_gradle_version "$arg_version"
 
     if [[ "$arg_version" != "$old_version" ]]; then
         log "Version changed: $old_version -> $arg_version"

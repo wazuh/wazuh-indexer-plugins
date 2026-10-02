@@ -24,10 +24,12 @@ import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ContextPreservingActionListener;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -71,6 +73,11 @@ import com.wazuh.contentmanager.utils.Constants;
  * <p>The stash covers the lock index only: the listener passed to {@link #acquire(String, String,
  * ActionListener)} is invoked with the caller's context restored, so the resource creation it goes
  * on to perform is still authorized as the REST user.
+ *
+ * <p>The same index also holds named, long-held locks for work that must run on one node at a time
+ * across the cluster, such as the catalog sync: see {@link #tryAcquireOnce(String,
+ * ActionListener)}, {@link #renew(String)} and {@link #release(String, Runnable)}. Each lock is its
+ * own document, so a named lock never blocks a resource-creation lock, nor the other way round.
  */
 public class ResourceLockService {
     private static final Logger log = LogManager.getLogger(ResourceLockService.class);
@@ -158,7 +165,7 @@ public class ResourceLockService {
      * @param resourceType The resource type (e.g. "rule", "filter").
      * @param space The space the resource is being created in.
      * @param listener Notified with the lock document ID on success, or an {@link IOException} if the
-     *     lock could not be acquired after {@link Constants#MAX_LOCK_ACQUIRE_RETRIES} attempts.
+     *     lock could not be acquired after {@link PluginSettings#RESOURCE_LOCK_MAX_RETRIES} attempts.
      */
     public void acquire(String resourceType, String space, ActionListener<String> listener) {
         // Only the lock index is touched as the plugin. The caller's continuation creates the actual
@@ -183,9 +190,9 @@ public class ResourceLockService {
             String space,
             int attempt,
             ActionListener<String> listener) {
-        if (attempt > Constants.MAX_LOCK_ACQUIRE_RETRIES) {
+        if (attempt > PluginSettings.getInstance().getResourceLockMaxRetries()) {
             listener.onFailure(
-                    new IOException(
+                    new ResourceLockTimeoutException(
                             "Timed out waiting for the resource-creation lock on ["
                                     + resourceType
                                     + "/"
@@ -194,16 +201,9 @@ public class ResourceLockService {
             return;
         }
 
-        IndexRequest request =
-                new IndexRequest(Constants.INDEX_RESOURCE_LOCKS)
-                        .id(lockId)
-                        .source(Map.of(ACQUIRED_AT_FIELD, Instant.now().toEpochMilli()))
-                        .opType(DocWriteRequest.OpType.CREATE)
-                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-
         try (ThreadContext.StoredContext ignored = this.stashContext()) {
             this.client.index(
-                    request,
+                    lockRequest(lockId),
                     ActionListener.wrap(
                             response -> listener.onResponse(lockId),
                             e -> {
@@ -223,7 +223,8 @@ public class ResourceLockService {
                                                                         this.tryAcquire(
                                                                                 lockId, resourceType, space, attempt + 1, listener),
                                                                 TimeValue.timeValueMillis(
-                                                                        Constants.LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS),
+                                                                        PluginSettings.getInstance()
+                                                                                .getResourceLockRetryBackoffMillis()),
                                                                 ThreadPool.Names.GENERIC);
                                                     }
                                                 },
@@ -233,39 +234,138 @@ public class ResourceLockService {
                                                                         this.tryAcquire(
                                                                                 lockId, resourceType, space, attempt + 1, listener),
                                                                 TimeValue.timeValueMillis(
-                                                                        Constants.LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS),
+                                                                        PluginSettings.getInstance()
+                                                                                .getResourceLockRetryBackoffMillis()),
                                                                 ThreadPool.Names.GENERIC)));
                             }));
         }
     }
 
     /**
+     * Tries once to take a named lock, without the retry budget of {@link #acquire(String, String,
+     * ActionListener)}: a lock held by someone else is reported as not acquired straight away, unless
+     * it is stale, in which case it is stolen and taken. Meant for work that can run for longer than
+     * {@link PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS}; the holder keeps the lock by
+     * calling {@link #renew(String)} more often than that, and a holder that dies stops renewing, so
+     * the lock goes stale and the next caller takes it over.
+     *
+     * @param lockId The lock document ID. The caller owns the name.
+     * @param listener Notified with {@code true} if this caller now holds the lock, {@code false} if
+     *     another caller holds it, or a failure if the lock index could not be reached.
+     */
+    public void tryAcquireOnce(String lockId, ActionListener<Boolean> listener) {
+        ActionListener<Boolean> callerContextListener =
+                ContextPreservingActionListener.wrapPreservingContext(
+                        listener, this.threadPool.getThreadContext());
+        this.ensureIndexExists(
+                ActionListener.wrap(
+                        v -> this.createLockDocument(lockId, true, callerContextListener),
+                        callerContextListener::onFailure));
+    }
+
+    private void createLockDocument(
+            String lockId, boolean stealIfStale, ActionListener<Boolean> listener) {
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            this.client.index(
+                    lockRequest(lockId),
+                    ActionListener.wrap(
+                            response -> listener.onResponse(true),
+                            e -> {
+                                if (ExceptionsHelper.unwrap(e, VersionConflictEngineException.class) == null) {
+                                    listener.onFailure(e);
+                                    return;
+                                }
+                                if (!stealIfStale) {
+                                    listener.onResponse(false);
+                                    return;
+                                }
+                                // stealIfStale never fails, it resolves every error to false.
+                                this.stealIfStale(
+                                        lockId,
+                                        ActionListener.wrap(
+                                                stolen -> {
+                                                    if (stolen) {
+                                                        this.createLockDocument(lockId, false, listener);
+                                                    } else {
+                                                        listener.onResponse(false);
+                                                    }
+                                                },
+                                                listener::onFailure));
+                            }));
+        }
+    }
+
+    /**
+     * Refreshes the acquisition time of a lock taken with {@link #tryAcquireOnce(String,
+     * ActionListener)}, so it is not considered stale while its holder is still working. Only updates
+     * an existing document, never creates one. Failures are logged and swallowed.
+     *
+     * @param lockId The lock document ID.
+     */
+    public void renew(String lockId) {
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            this.client.update(
+                    new UpdateRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
+                            .doc(Map.of(ACQUIRED_AT_FIELD, Instant.now().toEpochMilli())),
+                    ActionListener.wrap(
+                            response -> {},
+                            e -> log.warn("Failed to renew lock [{}]: {}", lockId, e.getMessage())));
+        }
+    }
+
+    /**
      * Releases a previously acquired lock. Failures are logged and swallowed so a release problem
      * never surfaces as a resource-creation failure; a lock older than {@link
-     * Constants#LOCK_STALE_THRESHOLD_MILLIS} is stolen by the next caller regardless.
+     * PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS} is stolen by the next caller regardless.
      *
      * @param lockId The lock document ID returned by {@link #acquire(String, String,
      *     ActionListener)}.
      */
     public void release(String lockId) {
+        this.release(lockId, () -> {});
+    }
+
+    /**
+     * Releases a previously acquired lock and runs {@code onReleased} once the delete has completed,
+     * whatever its outcome. Lets a caller that takes the same lock again right away wait for the
+     * document to be gone, instead of finding it still there. Failures are logged and swallowed.
+     *
+     * @param lockId The lock document ID.
+     * @param onReleased Run exactly once, after the delete succeeded or failed.
+     */
+    public void release(String lockId, Runnable onReleased) {
         try (ThreadContext.StoredContext ignored = this.stashContext()) {
             this.client.delete(
                     new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
                             .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
-                    ActionListener.wrap(
-                            response -> {},
-                            e ->
-                                    log.warn(
-                                            "Failed to release resource-creation lock [{}]: {}",
-                                            lockId,
-                                            e.getMessage())));
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(DeleteResponse response) {
+                            onReleased.run();
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            log.warn("Failed to release lock [{}]: {}", lockId, e.getMessage());
+                            onReleased.run();
+                        }
+                    });
         }
+    }
+
+    private static IndexRequest lockRequest(String lockId) {
+        return new IndexRequest(Constants.INDEX_RESOURCE_LOCKS)
+                .id(lockId)
+                .source(Map.of(ACQUIRED_AT_FIELD, Instant.now().toEpochMilli()))
+                .opType(DocWriteRequest.OpType.CREATE)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     }
 
     /**
      * Deletes the lock document if it was acquired more than {@link
-     * Constants#LOCK_STALE_THRESHOLD_MILLIS} ago, guarding against a lock orphaned by a crashed node.
-     * Never calls {@link ActionListener#onFailure}; all errors resolve to {@code onResponse(false)}.
+     * PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS} ago, guarding against a lock orphaned by a
+     * crashed node. Never calls {@link ActionListener#onFailure}; all errors resolve to {@code
+     * onResponse(false)}.
      *
      * @param lockId The lock document ID.
      * @param listener Notified with {@code true} if the stale lock was stolen (deleted) and the
@@ -286,12 +386,13 @@ public class ResourceLockService {
                                 long acquiredAtMillis =
                                         acquiredAt instanceof Number ? ((Number) acquiredAt).longValue() : 0L;
                                 if (Instant.now().toEpochMilli() - acquiredAtMillis
-                                        <= Constants.LOCK_STALE_THRESHOLD_MILLIS) {
+                                        <= PluginSettings.getInstance().getResourceLockStaleThresholdMillis()) {
                                     listener.onResponse(false);
                                     return;
                                 }
                                 log.warn("Stealing stale resource-creation lock [{}].", lockId);
-                                this.deleteStaleLock(lockId, listener);
+                                this.deleteStaleLock(
+                                        lockId, response.getSeqNo(), response.getPrimaryTerm(), listener);
                             },
                             e -> {
                                 log.warn(
@@ -303,18 +404,34 @@ public class ResourceLockService {
         }
     }
 
-    private void deleteStaleLock(String lockId, ActionListener<Boolean> listener) {
+    /**
+     * Deletes a lock found stale, only while it is still the version that was read as stale. Two
+     * callers that see the same stale lock would otherwise both delete it: the second delete would
+     * remove the fresh lock the first had just created in its place, and both would hold the lock.
+     */
+    private void deleteStaleLock(
+            String lockId, long seqNo, long primaryTerm, ActionListener<Boolean> listener) {
+        DeleteRequest request =
+                new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        // A version the GET did not report leaves the delete unconditional, as it was before.
+        if (seqNo >= 0 && primaryTerm > 0) {
+            request.setIfSeqNo(seqNo).setIfPrimaryTerm(primaryTerm);
+        }
         try (ThreadContext.StoredContext ignored = this.stashContext()) {
             this.client.delete(
-                    new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
-                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
+                    request,
                     ActionListener.wrap(
                             deleteResponse -> listener.onResponse(true),
                             e -> {
-                                log.warn(
-                                        "Failed to steal stale resource-creation lock" + " [{}]: {}",
-                                        lockId,
-                                        e.getMessage());
+                                if (ExceptionsHelper.unwrap(e, VersionConflictEngineException.class) != null) {
+                                    log.debug("Stale lock [{}] was taken over by another caller first.", lockId);
+                                } else {
+                                    log.warn(
+                                            "Failed to steal stale resource-creation lock" + " [{}]: {}",
+                                            lockId,
+                                            e.getMessage());
+                                }
                                 listener.onResponse(false);
                             }));
         }

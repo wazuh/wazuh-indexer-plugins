@@ -631,8 +631,8 @@ Against a deployed cluster, the alias must resolve to the `-a` index and its fie
 aggregatable:
 
 ```bash
-curl -sk -u admin:admin 'https://localhost:9200/_alias/wazuh-threatintel-*'
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD 'https://localhost:9200/_alias/wazuh-threatintel-*'
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
   'https://localhost:9200/wazuh-threatintel-enrichments/_field_caps?fields=document.type'
 ```
 

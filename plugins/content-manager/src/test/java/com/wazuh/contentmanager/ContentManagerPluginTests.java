@@ -143,7 +143,9 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
-    /** Tests that catalogSyncJob.trigger() is called when update_on_start is true (default). */
+    /**
+     * Tests that catalogSyncJob.triggerOnStartup() is called when update_on_start is true (default).
+     */
     public void testOnNodeStartedTriggerEnabled() {
         Settings settings =
                 Settings.builder().put("plugins.content_manager.catalog.update_on_start", true).build();
@@ -152,10 +154,10 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.plugin.onNodeStarted(this.discoveryNode);
         this.simulateClusterManagerElection();
 
-        verify(this.catalogSyncJob).trigger();
+        verify(this.catalogSyncJob).triggerOnStartup();
     }
 
-    /** Tests that catalogSyncJob.trigger() is NOT called when update_on_start is false. */
+    /** Tests that catalogSyncJob.triggerOnStartup() is NOT called when update_on_start is false. */
     public void testOnNodeStartedTriggerDisabled() {
         Settings settings =
                 Settings.builder()
@@ -167,7 +169,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         this.plugin.onNodeStarted(this.discoveryNode);
         this.simulateClusterManagerElection();
 
-        verify(this.catalogSyncJob, never()).trigger();
+        verify(this.catalogSyncJob, never()).triggerOnStartup();
     }
 
     /**
@@ -219,7 +221,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
 
         this.invokePrivateIntMethod("scheduleTelemetryPingJob", 0);
 
-        long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
+        long expectedDelay = (long) PluginSettings.getInstance().getJobScheduleRetryBackoffSeconds();
         verify(this.threadPool)
                 .schedule(
                         any(Runnable.class),
@@ -229,7 +231,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
 
     /**
      * Tests that once the retry budget is exhausted, no further retry is scheduled. The private
-     * method is invoked with {@code attempt == MAX_JOB_SCHEDULE_RETRIES} so the catch branch lands on
+     * method is invoked with {@code attempt == job_schedule.max_retries} so the catch branch lands on
      * the "give up" path.
      */
     public void testTelemetryGiveUpAfterMaxRetries() throws Exception {
@@ -237,7 +239,8 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                 Settings.builder().put("plugins.content_manager.telemetry.enabled", true).build();
         PluginSettings.getInstance(settings);
 
-        this.invokePrivateIntMethod("scheduleTelemetryPingJob", Constants.MAX_JOB_SCHEDULE_RETRIES);
+        this.invokePrivateIntMethod(
+                "scheduleTelemetryPingJob", PluginSettings.getInstance().getJobScheduleMaxRetries());
 
         verify(this.threadPool, never())
                 .schedule(any(Runnable.class), any(TimeValue.class), anyString());
@@ -252,7 +255,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
 
         this.invokePrivateIntMethod("scheduleCatalogSyncJob", 0);
 
-        long expectedDelay = (long) Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
+        long expectedDelay = (long) PluginSettings.getInstance().getJobScheduleRetryBackoffSeconds();
         verify(this.threadPool)
                 .schedule(
                         any(Runnable.class),
@@ -339,7 +342,9 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         verify(this.clusterService).removeListener(captor.getValue());
     }
 
-    /** Tests that catalogSyncJob.trigger() is NOT called when the node is not elected leader. */
+    /**
+     * Tests that catalogSyncJob.triggerOnStartup() is NOT called when the node is not elected leader.
+     */
     public void testOnNodeStartedNonClusterManager() {
         Settings settings =
                 Settings.builder().put("plugins.content_manager.catalog.update_on_start", true).build();
@@ -347,7 +352,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
 
         this.plugin.onNodeStarted(this.discoveryNode);
 
-        verify(this.catalogSyncJob, never()).trigger();
+        verify(this.catalogSyncJob, never()).triggerOnStartup();
     }
 
     /**

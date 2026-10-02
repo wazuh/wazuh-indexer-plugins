@@ -26,7 +26,7 @@ The detail of the fields can be found in the csv file [Fields](fields.csv).
 | `api_key` | keyword | custom | Encrypted API key used to authenticate against the provider. *(provider docs)* |
 | `is_default` | boolean | custom | Whether this provider is the one used by default. *(provider docs)* |
 | `privacy_default_on` | boolean | custom | Whether privacy mode is enabled by default for new conversations. *(settings doc)* |
-| `privacy_default_per_provider` | object | custom | Per-provider override of the default privacy mode. *(settings doc)* |
+| `privacy_default_per_provider` | flat_object | custom | Per-provider override of the default privacy mode. *(settings doc)* |
 | `user_can_override` | boolean | custom | Whether users may override the default privacy setting. *(settings doc)* |
 | `field_policy.field` | keyword | custom | Fully qualified name of the event field this policy entry applies to. *(settings doc)* |
 | `field_policy.action` | keyword | custom | Whether the field is sent to the AI provider verbatim (`allow`) or anonymized first (`anonymize`). *(settings doc)* |

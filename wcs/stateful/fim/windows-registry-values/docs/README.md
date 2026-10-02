@@ -22,7 +22,7 @@ The detail of the fields can be found in csv file [States FIM registries Fields]
 | agent_ip          | string | IP address of the agent.                            | wazuh.agent.host.ip           | TRUE   |
 | agent_name        | string | Name assigned to the agent.                         | wazuh.agent.name              |        |
 | agent_version     | string | Version of the agent software, e.g., "v4.10.2".     | wazuh.agent.version           |        |
-| arch/architecture | string | Registry architecture type, e.g., "[x86]", "[x64]". | wazuh.agent.host.architecture | TRUE   |
+| arch/architecture | string | Agent host OS architecture, e.g., "x86_64".         | wazuh.agent.host.architecture | TRUE   |
 | cluster_name      | string | Wazuh cluster name                                  | wazuh.cluster.name            | TRUE   |
 | cluster_node      | string | Wazuh cluster node                                  | wazuh.cluster.node            | TRUE   |
 | architecture      | string | Architecture associated with the entity             | registry.architecture         | TRUE   |
@@ -36,4 +36,4 @@ The detail of the fields can be found in csv file [States FIM registries Fields]
 | size              | long   | Size of the file or registry value (in bytes).      | registry.size                 | TRUE   |
 | name/value        | string | Name of the registry value.                         | registry.value                |        |
 | value_type        | string | Type of the registry value, e.g., "REG_SZ".         | registry.data.type            |        |
-| checksum          | string | SHA1 hash of the file.                              | checksum.hash.sha1            | TRUE   |
+| checksum          | string | SHA1 checksum of the data collected by the agent.   | checksum.hash.sha1            | TRUE   |

@@ -83,7 +83,7 @@ stating plainly:
 You can confirm what a given backing index is doing:
 
 ```bash
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
   'https://localhost:9200/_plugins/_ism/explain/.ds-wazuh-events-v5-security-000001?pretty'
 ```
 
@@ -121,7 +121,7 @@ as the shipped policy at `priority: 1`, so it wins over the shipped policy (`pri
 newly created backing indices:
 
 ```bash
-curl -sk -u admin:admin -X PUT \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   'https://localhost:9200/_plugins/_ism/policies/custom-events-24h-ceiling' \
   -H 'Content-Type: application/json' -d '{
   "policy": {
@@ -170,7 +170,7 @@ curl -sk -u admin:admin -X PUT \
 created from now on; existing ones keep the policy they were registered with:
 
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   'https://localhost:9200/_plugins/_ism/change_policy/.ds-wazuh-events-v5-*' \
   -H 'Content-Type: application/json' -d '{"policy_id": "custom-events-24h-ceiling"}'
 ```
@@ -180,7 +180,7 @@ response reports the indices it queued, not indices it changed. The switch happe
 index's next ISM run, roughly a minute later. Confirm before going further:
 
 ```bash
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
   'https://localhost:9200/_plugins/_ism/explain/.ds-wazuh-events-v5-*?pretty'
 ```
 

@@ -68,7 +68,7 @@
   - Replace and remove deprecated settings — configurations carried over from 4.x are no longer valid [#475](https://github.com/wazuh/wazuh-indexer-plugins/issues/475).
   - Update to JDK 25 [#1341](https://github.com/wazuh/wazuh-indexer/issues/1341).
 - Migration of the Wazuh Common Schema from the `wazuh-indexer` repository to the `wazuh-indexer-plugins` repository. Folder renamed to `wcs` [#879](https://github.com/wazuh/wazuh-indexer-plugins/issues/879).
-- Supported operating systems updated for 5.0.0: Red Hat 9/10, Ubuntu 22.04/24.04, and Amazon Linux 2023 (x86_64 and aarch64). Earlier distributions supported in 4.x are no longer covered.
+- Supported operating systems updated for 5.0.0: Red Hat 9/10, Ubuntu 24.04/26.04, and Amazon Linux 2023 (x86_64 and aarch64). Earlier distributions supported in 4.x are no longer covered.
 
 
 <!-- Links -->

@@ -153,8 +153,11 @@ jobs:
           set -euo pipefail
           # Delete all indices via API (keeps cluster state consistent, unlike rm -rf on the data dir).
           curl -s -X DELETE "${BASE_URL}/*?expand_wildcards=open,hidden&allow_no_indices=true" || true
+          # Every docker exec below runs as root. The product tree is root-owned and
+          # only readable by the service account, so the plugin CLI cannot create its
+          # staging files there. The package installs plugins as root too.
           plugin_bin=/usr/share/wazuh-indexer/bin/opensearch-plugin
-          exec_plugin="docker exec -e OPENSEARCH_PATH_CONF=/usr/share/wazuh-indexer/config wazuh-indexer ${plugin_bin}"
+          exec_plugin="docker exec -u root -e OPENSEARCH_PATH_CONF=/usr/share/wazuh-indexer/config wazuh-indexer ${plugin_bin}"
           cm_zip=$(ls pkg/wazuh-indexer-content-manager-*.zip | head -1)
           setup_zip=$(ls pkg/wazuh-indexer-setup-*.zip | head -1)
           echo "Installing ${setup_zip} and ${cm_zip}"
@@ -169,10 +172,10 @@ jobs:
           $exec_plugin install -b file:///tmp/content-manager.zip
           docker cp VERSION.json wazuh-indexer:/usr/share/wazuh-indexer/VERSION.json
           cfg=/usr/share/wazuh-indexer/config/opensearch.yml
-          docker exec wazuh-indexer sh -c \
+          docker exec -u root wazuh-indexer sh -c \
             "grep -q '^plugins.security.disabled' ${cfg} || printf '\nplugins.security.disabled: true\n' >> ${cfg}"
           # Wipe stale engine data (mirrors push.sh --cleanup).
-          docker exec wazuh-indexer sh -c "\
+          docker exec -u root wazuh-indexer sh -c "\
             rm -rf /usr/share/wazuh-indexer/engine/data/content \
                    /usr/share/wazuh-indexer/engine/data/kvdb-ioc \
                    /usr/share/wazuh-indexer/engine/data/outputs \
@@ -182,7 +185,7 @@ jobs:
                    /usr/share/wazuh-indexer/engine/data/store/router \
                    /usr/share/wazuh-indexer/engine/data/iocs.ndjson"
           # Place pre-downloaded CTI snapshots so the plugin loads them on startup.
-          docker exec wazuh-indexer rm -rf /usr/share/wazuh-indexer/plugins/wazuh-indexer-content-manager/snapshots
+          docker exec -u root wazuh-indexer rm -rf /usr/share/wazuh-indexer/plugins/wazuh-indexer-content-manager/snapshots
           docker cp ./snapshots wazuh-indexer:/usr/share/wazuh-indexer/plugins/wazuh-indexer-content-manager/snapshots
           docker restart wazuh-indexer
 
