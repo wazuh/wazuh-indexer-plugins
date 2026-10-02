@@ -93,47 +93,62 @@ public class ContentIndex {
     /** The second physical suffix, used as the shadow slot during blue/green swaps. */
     public static final String SUFFIX_B = "-b";
 
-    /**
-     * How persistently a failed operation is worth re-submitting, and on what schedule
-     */
+    /** How persistently a failed operation is worth re-submitting, and on what schedule */
     private enum RetryPolicy {
         /**
          * The cluster shed the operation under load: a circuit breaker trip, an indexing-pressure
          * rejection, or a 429/503. Pressure clears in seconds, so a short budget is enough.
          */
-        SHED(3, 1_000, 30_000, "shed", "the cluster was still shedding"),
+        SHED("shed", "the cluster was still shedding"),
 
         /**
          * A transient cluster-topology change: an index recreated mid-load, a shard left unavailable,
          * or the node holding it leaving. A rolling restart takes tens of seconds per node, so this
          * budget has to outlast one full cluster restart.
          */
-        TOPOLOGY(5, 5_000, 30_000, "deferred", "the cluster had not settled");
+        TOPOLOGY("deferred", "the cluster had not settled");
 
-        private final int maxRetries;
-        private final long initialBackoffMs;
-        private final long maxBackoffMs;
         private final String verb;
         private final String unsettledPhrase;
 
-        RetryPolicy(
-                int maxRetries,
-                long initialBackoffMs,
-                long maxBackoffMs,
-                String verb,
-                String unsettledPhrase) {
-            this.maxRetries = maxRetries;
-            this.initialBackoffMs = initialBackoffMs;
-            this.maxBackoffMs = maxBackoffMs;
+        RetryPolicy(String verb, String unsettledPhrase) {
             this.verb = verb;
             this.unsettledPhrase = unsettledPhrase;
         }
 
-        /** The delay before the retry that follows the given zero-based attempt. */
-        long backoffMs(int attempt) {
-            long backoff = this.initialBackoffMs;
+        /**
+         * The retry budget for this policy. Read per decision rather than captured once, so that
+         * widening the budget on a cluster whose restarts outlast the default takes effect on the sync
+         * already in progress.
+         *
+         * @param settings The plugin settings to read the budget from.
+         * @return The maximum number of re-submissions.
+         */
+        int maxRetries(PluginSettings settings) {
+            return this == SHED ? settings.getBulkShedMaxRetries() : settings.getBulkTopologyMaxRetries();
+        }
+
+        /**
+         * The delay before the retry that follows the given zero-based attempt.
+         *
+         * @param attempt The zero-based attempt that just failed.
+         * @param settings The plugin settings to read the backoff schedule from.
+         * @return The delay, in milliseconds.
+         */
+        long backoffMs(int attempt, PluginSettings settings) {
+            long backoff =
+                    this == SHED
+                            ? settings.getBulkShedInitialBackoffMillis()
+                            : settings.getBulkTopologyInitialBackoffMillis();
+            long ceiling =
+                    this == SHED
+                            ? settings.getBulkShedMaxBackoffMillis()
+                            : settings.getBulkTopologyMaxBackoffMillis();
+            // A ceiling configured below the initial delay clamps it, rather than letting the first
+            // retry ignore the ceiling that every later one honors.
+            backoff = Math.min(backoff, ceiling);
             for (int i = 0; i < attempt; i++) {
-                backoff = Math.min(backoff * 2, this.maxBackoffMs);
+                backoff = Math.min(backoff * 2, ceiling);
             }
             return backoff;
         }
@@ -152,9 +167,6 @@ public class ContentIndex {
             return a == TOPOLOGY || b == TOPOLOGY ? TOPOLOGY : SHED;
         }
     }
-
-    /** Maximum number of UPDATE offsets to batch into a single MultiGet + BulkRequest. */
-    public static final int UPDATE_SUB_BATCH_SIZE = 50;
 
     /** Describes a single document update: the document ID, patch operations, and CTI offset. */
     public record UpdateTask(String id, List<Operation> operations, long offset) {}
@@ -711,7 +723,8 @@ public class ContentIndex {
             }
 
             int deferred = retryRequest.numberOfActions();
-            if (attempt >= policy.maxRetries) {
+            int maxRetries = policy.maxRetries(this.pluginSettings);
+            if (attempt >= maxRetries) {
                 throw new IOException(
                         "Bulk update "
                                 + policy.verb
@@ -720,19 +733,19 @@ public class ContentIndex {
                                 + " document(s) and "
                                 + policy.unsettledPhrase
                                 + " after "
-                                + policy.maxRetries
+                                + maxRetries
                                 + " retries. Last failure: "
                                 + lastRetryableFailure);
             }
 
-            long backoffMs = policy.backoffMs(attempt);
+            long backoffMs = policy.backoffMs(attempt, this.pluginSettings);
             log.warn(
                     policy == RetryPolicy.SHED
                             ? Constants.W_LOG_BULK_UPDATE_RETRY_SCHEDULED
                             : Constants.W_LOG_BULK_UPDATE_RETRY_TOPOLOGY,
                     deferred,
                     attempt + 1,
-                    policy.maxRetries,
+                    maxRetries,
                     backoffMs);
             Thread.sleep(backoffMs);
             pending = retryRequest;
@@ -970,22 +983,23 @@ public class ContentIndex {
     private void retryOrDrop(
             BulkRequest retryRequest, int attempt, RetryPolicy policy, String failureMessage) {
         int pending = retryRequest.numberOfActions();
+        int maxRetries = policy.maxRetries(this.pluginSettings);
 
-        if (attempt >= policy.maxRetries) {
+        if (attempt >= maxRetries) {
             this.droppedDocuments.addAndGet(pending);
-            log.error(Constants.E_LOG_BULK_RETRIES_EXHAUSTED, pending, policy.maxRetries, failureMessage);
+            log.error(Constants.E_LOG_BULK_RETRIES_EXHAUSTED, pending, maxRetries, failureMessage);
             this.semaphore.release();
             return;
         }
 
-        long backoffMs = policy.backoffMs(attempt);
+        long backoffMs = policy.backoffMs(attempt, this.pluginSettings);
         log.warn(
                 policy == RetryPolicy.SHED
                         ? Constants.W_LOG_BULK_RETRY_SCHEDULED
                         : Constants.W_LOG_BULK_RETRY_TOPOLOGY,
                 pending,
                 attempt + 1,
-                policy.maxRetries,
+                maxRetries,
                 backoffMs);
 
         try {
@@ -1024,17 +1038,20 @@ public class ContentIndex {
                 return call.run();
             } catch (Exception e) {
                 RetryPolicy policy = retryPolicyFor(e);
-                if (policy == null || attempt >= policy.maxRetries) {
+                // Read the budget once per attempt, so the guard and the line that reports it cannot
+                // disagree if the setting is updated between them.
+                int maxRetries = policy == null ? 0 : policy.maxRetries(this.pluginSettings);
+                if (policy == null || attempt >= maxRetries) {
                     throw e;
                 }
-                long backoffMs = policy.backoffMs(attempt);
+                long backoffMs = policy.backoffMs(attempt, this.pluginSettings);
                 log.warn(
                         policy == RetryPolicy.SHED
                                 ? Constants.W_LOG_SHED_CALL_RETRY_SCHEDULED
                                 : Constants.W_LOG_TRANSIENT_CALL_RETRY_SCHEDULED,
                         description,
                         attempt + 1,
-                        policy.maxRetries,
+                        maxRetries,
                         backoffMs);
                 Thread.sleep(backoffMs);
             }

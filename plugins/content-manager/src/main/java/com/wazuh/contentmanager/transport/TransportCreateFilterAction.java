@@ -161,10 +161,7 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
             String id, JsonNode resource, ActionListener<RestResponse> listener) {
         RestResponse engineValidation = this.engine.validateResource(Constants.KEY_FILTER, resource);
         if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-            listener.onResponse(
-                    new RestResponse(
-                            Constants.E_400_ENGINE_VALIDATION_FAILED + engineValidation.getMessage(),
-                            RestStatus.BAD_REQUEST.getStatus()));
+            listener.onResponse(TransportActionHelper.fromEngineValidation(engineValidation));
             return;
         }
         listener.onResponse(null);

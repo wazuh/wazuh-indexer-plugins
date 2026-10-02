@@ -112,14 +112,15 @@ public class StreamIndex extends WazuhIndex {
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index template {} already exists. Skipping.", templateName);
         } catch (Exception e) {
-            if (!this.retry_template_creation) {
+            if (this.templateCreationAttempts
+                    >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error(
                         "Initialization of index template [{}] finally failed. The node will shut down.",
                         templateName);
                 throw e;
             }
             log.warn("Operation to create the index template [{}] timed out. Retrying...", templateName);
-            this.retry_template_creation = false;
+            this.templateCreationAttempts++;
             this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createTemplate(template);
         }
@@ -141,13 +142,14 @@ public class StreamIndex extends WazuhIndex {
             // TimeoutException may be raised by actionGet(), but we cannot catch that one.
             // Exit condition. Re-attempt to create the data stream also failed. Original exception is
             // rethrown.
-            if (!this.retry_index_creation) {
+            if (this.indexCreationAttempts
+                    >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error(
                         "Initialization of data stream [{}] finally failed. The node will shut down.", index);
                 throw e;
             }
             log.warn("Operation to create the data stream [{}] timed out. Retrying...", index);
-            this.retry_index_creation = false;
+            this.indexCreationAttempts++;
             this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(index);
         }

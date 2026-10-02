@@ -18,7 +18,6 @@ package com.wazuh.contentmanager.transport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -39,7 +38,9 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
 
 public class TransportDeleteSpaceAction
@@ -123,25 +124,17 @@ public class TransportDeleteSpaceAction
 
     private void respondWithError(
             ActionListener<MessageStatusResponse> listener, Space space, Exception e) {
-        OpenSearchSecurityException secEx = extractSecurityException(e);
-        if (secEx != null) {
-            listener.onResponse(new MessageStatusResponse(secEx.getMessage(), secEx.status()));
+        RestResponse classified = TransportActionHelper.classifyException(e);
+        if (classified != null) {
+            log.warn("Failed to reset space [{}]: {}", space, classified.getMessage());
+            listener.onResponse(
+                    new MessageStatusResponse(
+                            classified.getMessage(), RestStatus.fromCode(classified.getStatus())));
             return;
         }
         log.error("Failed to reset space [{}]: {}", space, e.getMessage());
         listener.onResponse(
                 new MessageStatusResponse(
-                        "Internal Server Error: " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
-    }
-
-    private static OpenSearchSecurityException extractSecurityException(Throwable throwable) {
-        Throwable cause = throwable;
-        while (cause != null) {
-            if (cause instanceof OpenSearchSecurityException) {
-                return (OpenSearchSecurityException) cause;
-            }
-            cause = cause.getCause();
-        }
-        return null;
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
     }
 }

@@ -102,6 +102,57 @@ public class PluginSettings {
     private static final int DEFAULT_CLIENT_MAX_RETRIES = 3;
     private static final int DEFAULT_CLIENT_RETRY_BACKOFF_BASE_SECONDS = 30;
 
+    // Defaults for the bulk retry policies in ContentIndex. A shed operation (circuit breaker trip,
+    // indexing-pressure rejection, 429/503) sees pressure clear in seconds, so a short budget is
+    // enough. A topology change (index recreated mid-load, shard left unavailable, node leaving)
+    // has to outlast one full rolling restart, which scales with the size of the cluster.
+    private static final int DEFAULT_BULK_SHED_MAX_RETRIES = 3;
+    private static final long DEFAULT_BULK_SHED_INITIAL_BACKOFF_MILLIS = 1_000;
+    private static final long DEFAULT_BULK_SHED_MAX_BACKOFF_MILLIS = 30_000;
+    private static final int DEFAULT_BULK_TOPOLOGY_MAX_RETRIES = 5;
+    private static final long DEFAULT_BULK_TOPOLOGY_INITIAL_BACKOFF_MILLIS = 5_000;
+    private static final long DEFAULT_BULK_TOPOLOGY_MAX_BACKOFF_MILLIS = 30_000;
+
+    // Defaults for the job-scheduler registration retry loop in ContentManagerPlugin, which uses
+    // linear backoff (delay for attempt n is base * n).
+    private static final int DEFAULT_JOB_SCHEDULE_MAX_RETRIES = 3;
+    private static final int DEFAULT_JOB_SCHEDULE_RETRY_BACKOFF_SECONDS = 15;
+
+    // Defaults for the resource-creation lock in ResourceLockService, which serializes the
+    // count-then-create sequence enforcing the max_{integrations,decoders,rules,kvdbs,filters}
+    // limits.
+    private static final int DEFAULT_RESOURCE_LOCK_MAX_RETRIES = 20;
+    private static final long DEFAULT_RESOURCE_LOCK_RETRY_BACKOFF_MILLIS = 100;
+    private static final long DEFAULT_RESOURCE_LOCK_STALE_THRESHOLD_MILLIS = 30_000;
+
+    // Defaults for the optimistic-concurrency retry loops on shared documents: the single
+    // user-overrides registry document, and integration documents updated on resource link/unlink.
+    private static final int DEFAULT_USER_OVERRIDES_MAX_UPDATE_ATTEMPTS = 3;
+    private static final int DEFAULT_INTEGRATION_MAX_UPDATE_ATTEMPTS = 5;
+
+    // Request timeout for the CTI Console client, in seconds.
+    private static final int DEFAULT_CTI_CONSOLE_TIMEOUT = 5;
+
+    // Defaults for the Engine integration: the single-flight guard on a content reload, the grace
+    // period before a read-not-ready deferral is escalated to a warning, and the Unix socket the
+    // Engine listens on.
+    private static final int DEFAULT_ENGINE_RELOAD_TIMEOUT_MINUTES = 10;
+    private static final int DEFAULT_ENGINE_NOT_READY_GRACE_MINUTES = 5;
+    private static final String DEFAULT_ENGINE_SOCKET_PATH =
+            "/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock";
+
+    // Defaults for the Security Analytics synchronization waits in ConsumerRulesetService, and for
+    // the detector schedule interval applied when the CTI document does not carry one.
+    private static final int DEFAULT_SA_SYNC_TIMEOUT_SECONDS = 60;
+    private static final int DEFAULT_SA_DETECTOR_TIMEOUT_SECONDS = 30;
+    private static final int DEFAULT_SA_CLEANUP_TIMEOUT_SECONDS = 120;
+    private static final int DEFAULT_SA_DETECTOR_INTERVAL = 2;
+
+    // Defaults for batching and paging during catalog synchronization.
+    private static final int DEFAULT_UPDATE_SUB_BATCH_SIZE = 50;
+    private static final int DEFAULT_OFFSET_FLUSH_INTERVAL = 10;
+    private static final int DEFAULT_SEARCH_PAGE_SIZE = 10_000;
+
     private static final Pattern CATALOG_URI_PATTERN =
             Pattern.compile(".*/catalog/contexts/([^/]+)/consumers/([^/?#]+)(?:[/?#].*)?$");
 
@@ -118,6 +169,18 @@ public class PluginSettings {
                     CTI_URL,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
+
+    /**
+     * Request timeout, in seconds, for CTI Console calls (instance registration, plans, token
+     * exchange). The catalog client has its own timeout in {@link #CLIENT_TIMEOUT}.
+     */
+    public static final Setting<Integer> CTI_CONSOLE_TIMEOUT =
+            Setting.intSetting(
+                    "plugins.content_manager.cti.console.timeout",
+                    DEFAULT_CTI_CONSOLE_TIMEOUT,
+                    1,
+                    120,
+                    Setting.Property.NodeScope);
 
     /**
      * The maximum number of elements that are included in a bulk request during the initialization
@@ -433,7 +496,291 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);
 
+    /**
+     * Maximum number of times a bulk operation the cluster shed under load (circuit breaker trip,
+     * indexing-pressure rejection, 429/503) is re-submitted before its documents are counted as
+     * dropped. Dynamic: pressure that outlasts the default budget is discovered during an incident,
+     * not at configuration time.
+     */
+    public static final Setting<Integer> BULK_SHED_MAX_RETRIES =
+            Setting.intSetting(
+                    "plugins.content_manager.bulk.retry.shed.max_retries",
+                    DEFAULT_BULK_SHED_MAX_RETRIES,
+                    0,
+                    10,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Delay, in milliseconds, before the first re-submission of a shed bulk operation. Each
+     * subsequent retry doubles it, capped at {@link #BULK_SHED_MAX_BACKOFF_MILLIS}.
+     */
+    public static final Setting<Long> BULK_SHED_INITIAL_BACKOFF_MILLIS =
+            Setting.longSetting(
+                    "plugins.content_manager.bulk.retry.shed.initial_backoff_millis",
+                    DEFAULT_BULK_SHED_INITIAL_BACKOFF_MILLIS,
+                    100,
+                    60_000,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /** Ceiling, in milliseconds, for the exponential backoff between shed bulk re-submissions. */
+    public static final Setting<Long> BULK_SHED_MAX_BACKOFF_MILLIS =
+            Setting.longSetting(
+                    "plugins.content_manager.bulk.retry.shed.max_backoff_millis",
+                    DEFAULT_BULK_SHED_MAX_BACKOFF_MILLIS,
+                    100,
+                    60_000,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Maximum number of times a bulk operation deferred by a transient cluster-topology change (an
+     * index recreated mid-load, a shard left unavailable, the node holding it leaving) is
+     * re-submitted before its documents are counted as dropped. The default budget was sized to
+     * outlast one rolling restart; raise it on clusters where a restart takes longer.
+     */
+    public static final Setting<Integer> BULK_TOPOLOGY_MAX_RETRIES =
+            Setting.intSetting(
+                    "plugins.content_manager.bulk.retry.topology.max_retries",
+                    DEFAULT_BULK_TOPOLOGY_MAX_RETRIES,
+                    0,
+                    10,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Delay, in milliseconds, before the first re-submission of a topology-deferred bulk operation.
+     * Each subsequent retry doubles it, capped at {@link #BULK_TOPOLOGY_MAX_BACKOFF_MILLIS}.
+     */
+    public static final Setting<Long> BULK_TOPOLOGY_INITIAL_BACKOFF_MILLIS =
+            Setting.longSetting(
+                    "plugins.content_manager.bulk.retry.topology.initial_backoff_millis",
+                    DEFAULT_BULK_TOPOLOGY_INITIAL_BACKOFF_MILLIS,
+                    100,
+                    60_000,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Ceiling, in milliseconds, for the exponential backoff between topology-deferred bulk
+     * re-submissions.
+     */
+    public static final Setting<Long> BULK_TOPOLOGY_MAX_BACKOFF_MILLIS =
+            Setting.longSetting(
+                    "plugins.content_manager.bulk.retry.topology.max_backoff_millis",
+                    DEFAULT_BULK_TOPOLOGY_MAX_BACKOFF_MILLIS,
+                    100,
+                    60_000,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Maximum number of attempts to register a periodic job with the job scheduler before giving up
+     * and logging an error.
+     */
+    public static final Setting<Integer> JOB_SCHEDULE_MAX_RETRIES =
+            Setting.intSetting(
+                    "plugins.content_manager.job_schedule.max_retries",
+                    DEFAULT_JOB_SCHEDULE_MAX_RETRIES,
+                    0,
+                    10,
+                    Setting.Property.NodeScope);
+
+    /**
+     * Base delay, in seconds, for the linear backoff between job-registration attempts (delay before
+     * attempt {@code n} is {@code base * n}).
+     */
+    public static final Setting<Integer> JOB_SCHEDULE_RETRY_BACKOFF_SECONDS =
+            Setting.intSetting(
+                    "plugins.content_manager.job_schedule.retry_backoff_seconds",
+                    DEFAULT_JOB_SCHEDULE_RETRY_BACKOFF_SECONDS,
+                    1,
+                    300,
+                    Setting.Property.NodeScope);
+
+    /**
+     * Maximum number of attempts to acquire the resource-creation lock before the request is rejected
+     * with {@code 503 SERVICE_UNAVAILABLE}.
+     */
+    public static final Setting<Integer> RESOURCE_LOCK_MAX_RETRIES =
+            Setting.intSetting(
+                    "plugins.content_manager.resource_lock.max_retries",
+                    DEFAULT_RESOURCE_LOCK_MAX_RETRIES,
+                    1,
+                    100,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /** Delay, in milliseconds, between resource-creation lock acquisition attempts. */
+    public static final Setting<Long> RESOURCE_LOCK_RETRY_BACKOFF_MILLIS =
+            Setting.longSetting(
+                    "plugins.content_manager.resource_lock.retry_backoff_millis",
+                    DEFAULT_RESOURCE_LOCK_RETRY_BACKOFF_MILLIS,
+                    10,
+                    10_000,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Age, in milliseconds, past which a held resource-creation lock is treated as orphaned by a
+     * crashed node and stolen by the next caller.
+     */
+    public static final Setting<Long> RESOURCE_LOCK_STALE_THRESHOLD_MILLIS =
+            Setting.longSetting(
+                    "plugins.content_manager.resource_lock.stale_threshold_millis",
+                    DEFAULT_RESOURCE_LOCK_STALE_THRESHOLD_MILLIS,
+                    5_000,
+                    600_000,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Maximum number of attempts to write the shared user-overrides registry document before giving
+     * up. The registry is one document, so concurrent writers are serialized optimistically and each
+     * version conflict re-reads and re-applies.
+     */
+    public static final Setting<Integer> USER_OVERRIDES_MAX_UPDATE_ATTEMPTS =
+            Setting.intSetting(
+                    "plugins.content_manager.user_overrides.max_update_attempts",
+                    DEFAULT_USER_OVERRIDES_MAX_UPDATE_ATTEMPTS,
+                    1,
+                    20,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Maximum number of attempts to update an integration document on a version conflict, when
+     * linking or unlinking a resource, before the operation fails.
+     */
+    public static final Setting<Integer> INTEGRATION_MAX_UPDATE_ATTEMPTS =
+            Setting.intSetting(
+                    "plugins.content_manager.integration.max_update_attempts",
+                    DEFAULT_INTEGRATION_MAX_UPDATE_ATTEMPTS,
+                    1,
+                    20,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Upper bound, in minutes, on how long a single Engine content reload may stay in flight. It
+     * guards against a lost callback wedging the single-flight guard forever.
+     */
+    public static final Setting<Integer> ENGINE_RELOAD_TIMEOUT_MINUTES =
+            Setting.intSetting(
+                    "plugins.content_manager.engine.reload_timeout_minutes",
+                    DEFAULT_ENGINE_RELOAD_TIMEOUT_MINUTES,
+                    1,
+                    1440,
+                    Setting.Property.NodeScope);
+
+    /**
+     * How long, in minutes, the content indices may stay unable to serve reads before the deferral is
+     * escalated from a debug line to a warning.
+     */
+    public static final Setting<Integer> ENGINE_NOT_READY_GRACE_MINUTES =
+            Setting.intSetting(
+                    "plugins.content_manager.engine.not_ready_grace_minutes",
+                    DEFAULT_ENGINE_NOT_READY_GRACE_MINUTES,
+                    1,
+                    1440,
+                    Setting.Property.NodeScope);
+
+    /** Filesystem path of the Unix domain socket the Engine API listens on. */
+    public static final Setting<String> ENGINE_SOCKET_PATH =
+            Setting.simpleString(
+                    "plugins.content_manager.engine.socket_path",
+                    DEFAULT_ENGINE_SOCKET_PATH,
+                    Setting.Property.NodeScope);
+
+    /**
+     * How long, in seconds, a Security Analytics bulk synchronization step (uploading rules or
+     * integrations) may run before it is abandoned and the pass reported as unsuccessful.
+     */
+    public static final Setting<Integer> SA_SYNC_TIMEOUT_SECONDS =
+            Setting.intSetting(
+                    "plugins.content_manager.security_analytics.sync_timeout_seconds",
+                    DEFAULT_SA_SYNC_TIMEOUT_SECONDS,
+                    1,
+                    3600,
+                    Setting.Property.NodeScope);
+
+    /** How long, in seconds, to wait for the first detector creation to complete. */
+    public static final Setting<Integer> SA_DETECTOR_TIMEOUT_SECONDS =
+            Setting.intSetting(
+                    "plugins.content_manager.security_analytics.detector_timeout_seconds",
+                    DEFAULT_SA_DETECTOR_TIMEOUT_SECONDS,
+                    1,
+                    3600,
+                    Setting.Property.NodeScope);
+
+    /**
+     * How long, in seconds, to wait for the deletion of stale Security Analytics rules and
+     * integrations after a content swap.
+     */
+    public static final Setting<Integer> SA_CLEANUP_TIMEOUT_SECONDS =
+            Setting.intSetting(
+                    "plugins.content_manager.security_analytics.cleanup_timeout_seconds",
+                    DEFAULT_SA_CLEANUP_TIMEOUT_SECONDS,
+                    120,
+                    3600,
+                    Setting.Property.NodeScope);
+
+    /**
+     * Detector schedule interval, in minutes, applied when the CTI integration document does not
+     * specify one, or specifies one outside the bounds Security Analytics accepts.
+     */
+    public static final Setting<Integer> SA_DETECTOR_INTERVAL =
+            Setting.intSetting(
+                    "plugins.content_manager.security_analytics.detector_interval",
+                    DEFAULT_SA_DETECTOR_INTERVAL,
+                    Constants.DETECTOR_INTERVAL_MIN_MINUTES,
+                    Constants.DETECTOR_INTERVAL_MAX_MINUTES,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Dynamic);
+
+    /**
+     * Maximum number of UPDATE offsets batched into a single MultiGet + BulkRequest while applying a
+     * catalog changeset.
+     */
+    public static final Setting<Integer> UPDATE_SUB_BATCH_SIZE =
+            Setting.intSetting(
+                    "plugins.content_manager.update_sub_batch_size",
+                    DEFAULT_UPDATE_SUB_BATCH_SIZE,
+                    1,
+                    1000,
+                    Setting.Property.NodeScope);
+
+    /**
+     * How many batches (changeset application) or bulks (snapshot load) are processed between
+     * consumer-offset checkpoints. A smaller value narrows the window of work replayed after a crash,
+     * at the cost of more writes to the consumer-state document.
+     */
+    public static final Setting<Integer> OFFSET_FLUSH_INTERVAL =
+            Setting.intSetting(
+                    "plugins.content_manager.offset_flush_interval",
+                    DEFAULT_OFFSET_FLUSH_INTERVAL,
+                    1,
+                    1000,
+                    Setting.Property.NodeScope);
+
+    /**
+     * Page size for the IoC reconciliation scan, the one genuinely paginated search in the plugin
+     * (PIT + {@code search_after}). Lowering it means more round trips over the same documents, not
+     * fewer documents. The remaining bulk reads fetch a complete set in one request and are bounded
+     * by {@link Constants#MAX_RESULT_WINDOW}, which is not configurable because lowering it would
+     * silently truncate them.
+     */
+    public static final Setting<Integer> SEARCH_PAGE_SIZE =
+            Setting.intSetting(
+                    "plugins.content_manager.search_page_size",
+                    DEFAULT_SEARCH_PAGE_SIZE,
+                    100,
+                    10_000,
+                    Setting.Property.NodeScope);
+
     private final String ctiBaseUrl;
+    private final int ctiConsoleTimeout;
     private final int maximumItemsPerBulk;
     private final long maximumBulkBytes;
     private volatile long logtestMaxBodyBytes;
@@ -461,6 +808,29 @@ public class PluginSettings {
     private volatile int maxRules;
     private volatile int maxKvdbs;
     private volatile int maxFilters;
+    private volatile int bulkShedMaxRetries;
+    private volatile long bulkShedInitialBackoffMillis;
+    private volatile long bulkShedMaxBackoffMillis;
+    private volatile int bulkTopologyMaxRetries;
+    private volatile long bulkTopologyInitialBackoffMillis;
+    private volatile long bulkTopologyMaxBackoffMillis;
+    private final int jobScheduleMaxRetries;
+    private final int jobScheduleRetryBackoffSeconds;
+    private volatile int resourceLockMaxRetries;
+    private volatile long resourceLockRetryBackoffMillis;
+    private volatile long resourceLockStaleThresholdMillis;
+    private volatile int userOverridesMaxUpdateAttempts;
+    private volatile int integrationMaxUpdateAttempts;
+    private final int engineReloadTimeoutMinutes;
+    private final int engineNotReadyGraceMinutes;
+    private final String engineSocketPath;
+    private final int saSyncTimeoutSeconds;
+    private final int saDetectorTimeoutSeconds;
+    private final int saCleanupTimeoutSeconds;
+    private volatile int saDetectorInterval;
+    private final int updateSubBatchSize;
+    private final int offsetFlushInterval;
+    private final int searchPageSize;
     private volatile String accessToken;
     private volatile String clusterUUID;
     private String version;
@@ -499,6 +869,30 @@ public class PluginSettings {
         this.maxRules = MAX_RULES.get(settings);
         this.maxKvdbs = MAX_KVDBS.get(settings);
         this.maxFilters = MAX_FILTERS.get(settings);
+        this.bulkShedMaxRetries = BULK_SHED_MAX_RETRIES.get(settings);
+        this.bulkShedInitialBackoffMillis = BULK_SHED_INITIAL_BACKOFF_MILLIS.get(settings);
+        this.bulkShedMaxBackoffMillis = BULK_SHED_MAX_BACKOFF_MILLIS.get(settings);
+        this.bulkTopologyMaxRetries = BULK_TOPOLOGY_MAX_RETRIES.get(settings);
+        this.bulkTopologyInitialBackoffMillis = BULK_TOPOLOGY_INITIAL_BACKOFF_MILLIS.get(settings);
+        this.bulkTopologyMaxBackoffMillis = BULK_TOPOLOGY_MAX_BACKOFF_MILLIS.get(settings);
+        this.jobScheduleMaxRetries = JOB_SCHEDULE_MAX_RETRIES.get(settings);
+        this.jobScheduleRetryBackoffSeconds = JOB_SCHEDULE_RETRY_BACKOFF_SECONDS.get(settings);
+        this.resourceLockMaxRetries = RESOURCE_LOCK_MAX_RETRIES.get(settings);
+        this.resourceLockRetryBackoffMillis = RESOURCE_LOCK_RETRY_BACKOFF_MILLIS.get(settings);
+        this.resourceLockStaleThresholdMillis = RESOURCE_LOCK_STALE_THRESHOLD_MILLIS.get(settings);
+        this.userOverridesMaxUpdateAttempts = USER_OVERRIDES_MAX_UPDATE_ATTEMPTS.get(settings);
+        this.integrationMaxUpdateAttempts = INTEGRATION_MAX_UPDATE_ATTEMPTS.get(settings);
+        this.ctiConsoleTimeout = CTI_CONSOLE_TIMEOUT.get(settings);
+        this.engineReloadTimeoutMinutes = ENGINE_RELOAD_TIMEOUT_MINUTES.get(settings);
+        this.engineNotReadyGraceMinutes = ENGINE_NOT_READY_GRACE_MINUTES.get(settings);
+        this.engineSocketPath = ENGINE_SOCKET_PATH.get(settings);
+        this.saSyncTimeoutSeconds = SA_SYNC_TIMEOUT_SECONDS.get(settings);
+        this.saDetectorTimeoutSeconds = SA_DETECTOR_TIMEOUT_SECONDS.get(settings);
+        this.saCleanupTimeoutSeconds = SA_CLEANUP_TIMEOUT_SECONDS.get(settings);
+        this.saDetectorInterval = SA_DETECTOR_INTERVAL.get(settings);
+        this.updateSubBatchSize = UPDATE_SUB_BATCH_SIZE.get(settings);
+        this.offsetFlushInterval = OFFSET_FLUSH_INTERVAL.get(settings);
+        this.searchPageSize = SEARCH_PAGE_SIZE.get(settings);
         log.debug("Settings loaded: {}", this.toString());
     }
 
@@ -916,6 +1310,347 @@ public class PluginSettings {
      */
     public int getClientRetryBackoffBaseSeconds() {
         return this.clientRetryBackoffBaseSeconds;
+    }
+
+    /**
+     * Retrieves the maximum number of re-submissions of a bulk operation the cluster shed under load.
+     *
+     * @return the maximum number of retries.
+     */
+    public int getBulkShedMaxRetries() {
+        return this.bulkShedMaxRetries;
+    }
+
+    /**
+     * Updates the shed bulk retry budget. Invoked by the cluster-settings update consumer registered
+     * for {@link #BULK_SHED_MAX_RETRIES}.
+     *
+     * @param bulkShedMaxRetries the new maximum number of retries.
+     */
+    public void setBulkShedMaxRetries(int bulkShedMaxRetries) {
+        this.bulkShedMaxRetries = bulkShedMaxRetries;
+    }
+
+    /**
+     * Retrieves the initial backoff, in milliseconds, between shed bulk re-submissions.
+     *
+     * @return the initial backoff in milliseconds.
+     */
+    public long getBulkShedInitialBackoffMillis() {
+        return this.bulkShedInitialBackoffMillis;
+    }
+
+    /**
+     * Updates the initial shed bulk backoff. Invoked by the cluster-settings update consumer
+     * registered for {@link #BULK_SHED_INITIAL_BACKOFF_MILLIS}.
+     *
+     * @param bulkShedInitialBackoffMillis the new initial backoff in milliseconds.
+     */
+    public void setBulkShedInitialBackoffMillis(long bulkShedInitialBackoffMillis) {
+        this.bulkShedInitialBackoffMillis = bulkShedInitialBackoffMillis;
+    }
+
+    /**
+     * Retrieves the backoff ceiling, in milliseconds, for shed bulk re-submissions.
+     *
+     * @return the maximum backoff in milliseconds.
+     */
+    public long getBulkShedMaxBackoffMillis() {
+        return this.bulkShedMaxBackoffMillis;
+    }
+
+    /**
+     * Updates the shed bulk backoff ceiling. Invoked by the cluster-settings update consumer
+     * registered for {@link #BULK_SHED_MAX_BACKOFF_MILLIS}.
+     *
+     * @param bulkShedMaxBackoffMillis the new maximum backoff in milliseconds.
+     */
+    public void setBulkShedMaxBackoffMillis(long bulkShedMaxBackoffMillis) {
+        this.bulkShedMaxBackoffMillis = bulkShedMaxBackoffMillis;
+    }
+
+    /**
+     * Retrieves the maximum number of re-submissions of a bulk operation deferred by a transient
+     * cluster-topology change.
+     *
+     * @return the maximum number of retries.
+     */
+    public int getBulkTopologyMaxRetries() {
+        return this.bulkTopologyMaxRetries;
+    }
+
+    /**
+     * Updates the topology bulk retry budget. Invoked by the cluster-settings update consumer
+     * registered for {@link #BULK_TOPOLOGY_MAX_RETRIES}.
+     *
+     * @param bulkTopologyMaxRetries the new maximum number of retries.
+     */
+    public void setBulkTopologyMaxRetries(int bulkTopologyMaxRetries) {
+        this.bulkTopologyMaxRetries = bulkTopologyMaxRetries;
+    }
+
+    /**
+     * Retrieves the initial backoff, in milliseconds, between topology-deferred bulk re-submissions.
+     *
+     * @return the initial backoff in milliseconds.
+     */
+    public long getBulkTopologyInitialBackoffMillis() {
+        return this.bulkTopologyInitialBackoffMillis;
+    }
+
+    /**
+     * Updates the initial topology bulk backoff. Invoked by the cluster-settings update consumer
+     * registered for {@link #BULK_TOPOLOGY_INITIAL_BACKOFF_MILLIS}.
+     *
+     * @param bulkTopologyInitialBackoffMillis the new initial backoff in milliseconds.
+     */
+    public void setBulkTopologyInitialBackoffMillis(long bulkTopologyInitialBackoffMillis) {
+        this.bulkTopologyInitialBackoffMillis = bulkTopologyInitialBackoffMillis;
+    }
+
+    /**
+     * Retrieves the backoff ceiling, in milliseconds, for topology-deferred bulk re-submissions.
+     *
+     * @return the maximum backoff in milliseconds.
+     */
+    public long getBulkTopologyMaxBackoffMillis() {
+        return this.bulkTopologyMaxBackoffMillis;
+    }
+
+    /**
+     * Updates the topology bulk backoff ceiling. Invoked by the cluster-settings update consumer
+     * registered for {@link #BULK_TOPOLOGY_MAX_BACKOFF_MILLIS}.
+     *
+     * @param bulkTopologyMaxBackoffMillis the new maximum backoff in milliseconds.
+     */
+    public void setBulkTopologyMaxBackoffMillis(long bulkTopologyMaxBackoffMillis) {
+        this.bulkTopologyMaxBackoffMillis = bulkTopologyMaxBackoffMillis;
+    }
+
+    /**
+     * Retrieves the maximum number of job-scheduler registration attempts.
+     *
+     * @return the maximum number of retries.
+     */
+    public int getJobScheduleMaxRetries() {
+        return this.jobScheduleMaxRetries;
+    }
+
+    /**
+     * Retrieves the base delay, in seconds, for the linear backoff between job-registration attempts.
+     *
+     * @return the base backoff delay in seconds.
+     */
+    public int getJobScheduleRetryBackoffSeconds() {
+        return this.jobScheduleRetryBackoffSeconds;
+    }
+
+    /**
+     * Retrieves the maximum number of resource-creation lock acquisition attempts.
+     *
+     * @return the maximum number of retries.
+     */
+    public int getResourceLockMaxRetries() {
+        return this.resourceLockMaxRetries;
+    }
+
+    /**
+     * Updates the resource-lock retry budget. Invoked by the cluster-settings update consumer
+     * registered for {@link #RESOURCE_LOCK_MAX_RETRIES}.
+     *
+     * @param resourceLockMaxRetries the new maximum number of retries.
+     */
+    public void setResourceLockMaxRetries(int resourceLockMaxRetries) {
+        this.resourceLockMaxRetries = resourceLockMaxRetries;
+    }
+
+    /**
+     * Retrieves the delay, in milliseconds, between resource-creation lock acquisition attempts.
+     *
+     * @return the backoff delay in milliseconds.
+     */
+    public long getResourceLockRetryBackoffMillis() {
+        return this.resourceLockRetryBackoffMillis;
+    }
+
+    /**
+     * Updates the resource-lock retry backoff. Invoked by the cluster-settings update consumer
+     * registered for {@link #RESOURCE_LOCK_RETRY_BACKOFF_MILLIS}.
+     *
+     * @param resourceLockRetryBackoffMillis the new backoff delay in milliseconds.
+     */
+    public void setResourceLockRetryBackoffMillis(long resourceLockRetryBackoffMillis) {
+        this.resourceLockRetryBackoffMillis = resourceLockRetryBackoffMillis;
+    }
+
+    /**
+     * Retrieves the age, in milliseconds, past which a held resource-creation lock is treated as
+     * stale.
+     *
+     * @return the stale threshold in milliseconds.
+     */
+    public long getResourceLockStaleThresholdMillis() {
+        return this.resourceLockStaleThresholdMillis;
+    }
+
+    /**
+     * Updates the resource-lock stale threshold. Invoked by the cluster-settings update consumer
+     * registered for {@link #RESOURCE_LOCK_STALE_THRESHOLD_MILLIS}.
+     *
+     * @param resourceLockStaleThresholdMillis the new stale threshold in milliseconds.
+     */
+    public void setResourceLockStaleThresholdMillis(long resourceLockStaleThresholdMillis) {
+        this.resourceLockStaleThresholdMillis = resourceLockStaleThresholdMillis;
+    }
+
+    /**
+     * Retrieves the maximum number of attempts to write the user-overrides registry document.
+     *
+     * @return the maximum number of attempts.
+     */
+    public int getUserOverridesMaxUpdateAttempts() {
+        return this.userOverridesMaxUpdateAttempts;
+    }
+
+    /**
+     * Updates the user-overrides write budget. Invoked by the cluster-settings update consumer
+     * registered for {@link #USER_OVERRIDES_MAX_UPDATE_ATTEMPTS}.
+     *
+     * @param userOverridesMaxUpdateAttempts the new maximum number of attempts.
+     */
+    public void setUserOverridesMaxUpdateAttempts(int userOverridesMaxUpdateAttempts) {
+        this.userOverridesMaxUpdateAttempts = userOverridesMaxUpdateAttempts;
+    }
+
+    /**
+     * Retrieves the maximum number of attempts to update an integration document on a version
+     * conflict.
+     *
+     * @return the maximum number of attempts.
+     */
+    public int getIntegrationMaxUpdateAttempts() {
+        return this.integrationMaxUpdateAttempts;
+    }
+
+    /**
+     * Updates the integration write budget. Invoked by the cluster-settings update consumer
+     * registered for {@link #INTEGRATION_MAX_UPDATE_ATTEMPTS}.
+     *
+     * @param integrationMaxUpdateAttempts the new maximum number of attempts.
+     */
+    public void setIntegrationMaxUpdateAttempts(int integrationMaxUpdateAttempts) {
+        this.integrationMaxUpdateAttempts = integrationMaxUpdateAttempts;
+    }
+
+    /**
+     * Retrieves the request timeout, in seconds, for CTI Console calls.
+     *
+     * @return the timeout in seconds.
+     */
+    public int getCtiConsoleTimeout() {
+        return this.ctiConsoleTimeout;
+    }
+
+    /**
+     * Retrieves the upper bound, in minutes, on a single Engine content reload.
+     *
+     * @return the reload timeout in minutes.
+     */
+    public int getEngineReloadTimeoutMinutes() {
+        return this.engineReloadTimeoutMinutes;
+    }
+
+    /**
+     * Retrieves the grace period, in minutes, before a content-not-ready deferral is escalated to a
+     * warning.
+     *
+     * @return the grace period in minutes.
+     */
+    public int getEngineNotReadyGraceMinutes() {
+        return this.engineNotReadyGraceMinutes;
+    }
+
+    /**
+     * Retrieves the filesystem path of the Engine API Unix domain socket.
+     *
+     * @return the socket path.
+     */
+    public String getEngineSocketPath() {
+        return this.engineSocketPath;
+    }
+
+    /**
+     * Retrieves the timeout, in seconds, for a Security Analytics bulk synchronization step.
+     *
+     * @return the timeout in seconds.
+     */
+    public int getSaSyncTimeoutSeconds() {
+        return this.saSyncTimeoutSeconds;
+    }
+
+    /**
+     * Retrieves the timeout, in seconds, for the first detector creation.
+     *
+     * @return the timeout in seconds.
+     */
+    public int getSaDetectorTimeoutSeconds() {
+        return this.saDetectorTimeoutSeconds;
+    }
+
+    /**
+     * Retrieves the timeout, in seconds, for deleting stale Security Analytics resources.
+     *
+     * @return the timeout in seconds.
+     */
+    public int getSaCleanupTimeoutSeconds() {
+        return this.saCleanupTimeoutSeconds;
+    }
+
+    /**
+     * Retrieves the detector schedule interval, in minutes, used when the CTI document does not carry
+     * a usable one.
+     *
+     * @return the detector interval in minutes.
+     */
+    public int getSaDetectorInterval() {
+        return this.saDetectorInterval;
+    }
+
+    /**
+     * Updates the default detector interval. Invoked by the cluster-settings update consumer
+     * registered for {@link #SA_DETECTOR_INTERVAL}.
+     *
+     * @param saDetectorInterval the new detector interval in minutes.
+     */
+    public void setSaDetectorInterval(int saDetectorInterval) {
+        this.saDetectorInterval = saDetectorInterval;
+    }
+
+    /**
+     * Retrieves the maximum number of UPDATE offsets batched into a single MultiGet + BulkRequest.
+     *
+     * @return the sub-batch size.
+     */
+    public int getUpdateSubBatchSize() {
+        return this.updateSubBatchSize;
+    }
+
+    /**
+     * Retrieves how many batches or bulks are processed between consumer-offset checkpoints.
+     *
+     * @return the flush interval.
+     */
+    public int getOffsetFlushInterval() {
+        return this.offsetFlushInterval;
+    }
+
+    /**
+     * Retrieves the page size used by the internal paginated content searches.
+     *
+     * @return the search page size.
+     */
+    public int getSearchPageSize() {
+        return this.searchPageSize;
     }
 
     @Override

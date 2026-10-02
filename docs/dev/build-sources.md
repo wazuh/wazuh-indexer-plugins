@@ -49,7 +49,7 @@ This is useful for checking that your code changes compile correctly before runn
 
 ### JDK version mismatch
 
-The project requires a specific JDK version (currently JDK 24, Eclipse Temurin). If you see compilation errors related to Java version, check:
+The project is built and tested with JDK 25 (Eclipse Temurin — the `bundled_jdk` in `wazuh-indexer/gradle/libs.versions.toml`), and the build refuses to run on anything older than JDK 21. If you see compilation errors related to Java version, check:
 
 ```bash
 java --version

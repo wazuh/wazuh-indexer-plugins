@@ -13,7 +13,6 @@ The fields are based on:
 Based on ECS:
 - [Base Fields](https://www.elastic.co/guide/en/ecs/current/ecs-base.html) — `@timestamp`
 - [Event Fields](https://www.elastic.co/guide/en/ecs/current/ecs-event.html) — `event.module`
-- [Network Fields](https://www.elastic.co/guide/en/ecs/current/ecs-network.html) — `network.egress.bytes`, `network.ingress.bytes`
 
 The detail of the fields can be found in the csv file [Fields](fields.csv).
 
@@ -32,15 +31,18 @@ The detail of the fields can be found in the csv file [Fields](fields.csv).
 | `queue.capacity` | integer | custom | Maximum size in bytes configured for the received-message queue, where `0` means unlimited. |
 | `tcp.sessions` | integer | custom | Current number of active TCP sessions. |
 | `discarded.total` | long | custom | Cumulative number of discarded messages. |
-| `events.total` | long | custom | Cumulative number of events forwarded to downstream components. |
+| `events.total` | long | custom | Cumulative number of agent events accepted and queued for delivery to wazuh-analysisd. |
+| `events.failed.total` | long | custom | Cumulative number of agent events that could not be delivered to wazuh-analysisd. |
 | `messages.total` | long | custom | Cumulative number of control messages received. |
 | `messages.control.dropped_on_close.total` | long | custom | Cumulative number of messages dropped when the agent connection closed. |
 | `messages.control.usage` | float | custom | Current number of messages held in the control message queue (absolute count, not a ratio). |
 | `messages.control.received.total` | long | custom | Cumulative number of control messages inserted into the control queue. |
 | `messages.control.replaced.total` | long | custom | Cumulative number of control messages replaced in the queue. |
 | `messages.control.processed.total` | long | custom | Cumulative number of control messages processed from the queue. |
-| `network.egress.bytes` | long | core | Cumulative number of bytes sent. |
-| `network.ingress.bytes` | long | core | Cumulative number of bytes received. |
+| `messages.states.total` | long | custom | Cumulative number of inventory-synchronization messages forwarded to the inventory-states router. |
+| `messages.upgrades.total` | long | custom | Cumulative number of upgrade-acknowledgement messages forwarded to the upgrade notifications router. |
+| `network.egress.bytes` | long | custom | Cumulative number of bytes sent. |
+| `network.ingress.bytes` | long | custom | Cumulative number of bytes received. |
 | `wazuh.cluster.name` | keyword | custom | Wazuh cluster name. |
 | `wazuh.cluster.node` | keyword | custom | Wazuh cluster node name. |
 | `wazuh.schema.version` | keyword | custom | Wazuh schema version. |

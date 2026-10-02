@@ -2,7 +2,7 @@
 
 ## Enrichment pipeline
 
-When a Sigma rule matches an event, Ruleset Management writes a raw finding, and an asynchronous enrichment step fetches the triggering event and the matching rule's metadata, assembles an enriched document, and bulk-indexes it into `wazuh-findings-v5-{category}*`.
+When a Sigma rule matches an event, the detector's monitor creates a raw finding and hands it to Ruleset Management in memory. An asynchronous enrichment step then fetches the triggering event and the matching rule's metadata, assembles an enriched document, and bulk-indexes it into `wazuh-findings-v5-{category}*`. The enrichment never reads raw findings back from an index, so it works whether or not they are stored (see [What is a finding?](index.md#what-is-a-finding)).
 
 The complete flow is shown in the sequence diagram below:
 
@@ -17,7 +17,7 @@ sequenceDiagram
 
     A->>I: Ingest event
     I->>RM: Monitor evaluates event against Sigma rules
-    RM->>RM: Rule matches → create raw finding
+    RM->>RM: Rule matches → create raw finding (in memory)
     RM->>RM: Queue finding for enrichment
     RM->>SI: Fetch triggering event by document ID
     SI-->>RM: Event source
@@ -37,7 +37,7 @@ sequenceDiagram
     end
 ```
 
-Enrichment is fire-and-forget: it never blocks the write path for the raw finding, and failures are logged without propagating to the caller. Concurrency is bounded so that heavy finding volume can't overload the transport layer; findings that arrive while the concurrency limit is reached are queued and processed as capacity frees up.
+Enrichment is fire-and-forget: it never blocks the monitor run that produced the raw finding, and failures are logged without propagating to the caller. Concurrency is bounded so that heavy finding volume can't overload the transport layer; findings that arrive while the concurrency limit is reached are queued and processed as capacity frees up.
 
 ## Detector provisioning
 
@@ -65,7 +65,7 @@ See [Configuration](configuration.md) for the settings that control batch size, 
 
 | Index                                       | Description                                                  |
 | -------------------------------------------- | ------------------------------------------------------------ |
-| `.opensearch-sap-{category}-findings-*`     | Raw findings written by the Ruleset Management plugin        |
+| `.opensearch-sap-{integration}-findings-*`  | Raw findings. Only created when `plugins.alerting.alert_finding_enabled` is `true` (default `false`) |
 | `.opensearch-sap-pre-packaged-rules-config` | Wazuh-provided Sigma rules; source for rule metadata         |
 | `.opensearch-sap-custom-rules-config`       | User-created custom rules; fallback source for rule metadata |
 | `.opensearch-sap-log-types-config`          | Log types. Every integration is registered as one, which is why a rule's `logsource.product` names its integration — see [Rules](rules.md#product) |
@@ -77,7 +77,6 @@ See [Configuration](configuration.md) for the settings that control batch size, 
 Access to Ruleset Management is governed by the [default Wazuh roles](../../security/access-control.md). The plugin authorizes requests against two action namespaces: the Wazuh custom actions `cluster:admin/wazuh/securityanalytics/*` and the upstream OpenSearch actions `cluster:admin/opensearch/securityanalytics/*` (see [Permissions](../../security/permissions.md)).
 
 - **`all_access`** — full access: create/update/delete detectors, rules, integrations, and correlations; read findings and alerts.
-- **`wazuh_readonly`** — read-only: get/search detectors, rules, findings, alerts, mappings, correlations, and threat intel; `rules/evaluate`.
-- **`wazuh_manager`** — no access.
+- **`wazuh_manager`** — no access to the Ruleset Management API. The role can read the enriched findings in `wazuh-findings-v5-*`, but not create, update or delete any Ruleset Management resource.
 
 No default Wazuh role grants write access; to allow it without granting `all_access`, define a role with the actions above and map it to the user.

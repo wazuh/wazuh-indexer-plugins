@@ -24,7 +24,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActionFilter;
@@ -250,7 +249,8 @@ public class ContentManagerPlugin extends Plugin
                         this.engine,
                         this.spaceService,
                         this.securityAnalyticsService,
-                        this.userOverridesService);
+                        this.userOverridesService,
+                        this.resourceLockService);
 
         // Initialize TelemetryPingJob
         this.telemetryPingJob =
@@ -303,6 +303,67 @@ public class ContentManagerPlugin extends Plugin
                 .addSettingsUpdateConsumer(
                         PluginSettings.LOGTEST_MAX_BODY_BYTES,
                         v -> PluginSettings.getInstance().setLogtestMaxBodyBytes(v));
+        // Register cluster settings consumers for bulk operation and resource lock parameters
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.BULK_SHED_MAX_RETRIES,
+                        v -> PluginSettings.getInstance().setBulkShedMaxRetries(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.BULK_SHED_INITIAL_BACKOFF_MILLIS,
+                        v -> PluginSettings.getInstance().setBulkShedInitialBackoffMillis(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.BULK_SHED_MAX_BACKOFF_MILLIS,
+                        v -> PluginSettings.getInstance().setBulkShedMaxBackoffMillis(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.BULK_TOPOLOGY_MAX_RETRIES,
+                        v -> PluginSettings.getInstance().setBulkTopologyMaxRetries(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.BULK_TOPOLOGY_INITIAL_BACKOFF_MILLIS,
+                        v -> PluginSettings.getInstance().setBulkTopologyInitialBackoffMillis(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.BULK_TOPOLOGY_MAX_BACKOFF_MILLIS,
+                        v -> PluginSettings.getInstance().setBulkTopologyMaxBackoffMillis(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.RESOURCE_LOCK_MAX_RETRIES,
+                        v -> PluginSettings.getInstance().setResourceLockMaxRetries(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.RESOURCE_LOCK_RETRY_BACKOFF_MILLIS,
+                        v -> PluginSettings.getInstance().setResourceLockRetryBackoffMillis(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.RESOURCE_LOCK_STALE_THRESHOLD_MILLIS,
+                        v -> PluginSettings.getInstance().setResourceLockStaleThresholdMillis(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.USER_OVERRIDES_MAX_UPDATE_ATTEMPTS,
+                        v -> PluginSettings.getInstance().setUserOverridesMaxUpdateAttempts(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.INTEGRATION_MAX_UPDATE_ATTEMPTS,
+                        v -> PluginSettings.getInstance().setIntegrationMaxUpdateAttempts(v));
+        clusterService
+                .getClusterSettings()
+                .addSettingsUpdateConsumer(
+                        PluginSettings.SA_DETECTOR_INTERVAL,
+                        v -> PluginSettings.getInstance().setSaDetectorInterval(v));
 
         return List.of(
                 this.subscriptionService,
@@ -384,7 +445,7 @@ public class ContentManagerPlugin extends Plugin
                                         }
 
                                         // 3. Initialize
-                                        ContentManagerPlugin.this.catalogSyncJob.trigger();
+                                        ContentManagerPlugin.this.catalogSyncJob.triggerOnStartup();
                                     } else {
                                         log.debug(Constants.D_LOG_SKIP_CATALOG_SYNC_TRIGGER);
                                     }
@@ -597,7 +658,7 @@ public class ContentManagerPlugin extends Plugin
                 // Credentials index is not a system index — wipe any stored token to prevent
                 // unprotected access and ensure the environment falls back to unregistered mode.
                 if (this.awaitResult(this.credentialsIndex::exists)) {
-                    this.<DeleteResponse>awaitResult(this.credentialsIndex::deleteDocument);
+                    this.awaitResult(this.credentialsIndex::deleteDocument);
                     log.warn(Constants.W_LOG_ACCESS_TOKEN_DELETED_UNPROTECTED);
                 }
                 PluginSettings.getInstance().setAccessToken(null);
@@ -779,7 +840,7 @@ public class ContentManagerPlugin extends Plugin
      * not exist.
      *
      * <p>On startup the jobs index may not be ready yet; this method retries with a linear backoff up
-     * to {@link Constants#MAX_JOB_SCHEDULE_RETRIES} times before giving up.
+     * to {@link PluginSettings#JOB_SCHEDULE_MAX_RETRIES} times before giving up.
      */
     private void scheduleCatalogSyncJob() {
         this.scheduleCatalogSyncJob(0);
@@ -871,11 +932,15 @@ public class ContentManagerPlugin extends Plugin
      * @throws IOException if the job document cannot be serialized.
      */
     private void writeCatalogSyncJob(boolean enabled, int intervalMinutes) throws IOException {
+        // Start one interval from now, not now. The job runs on whichever node holds the job index,
+        // and IntervalSchedule fires straight away on a node whose clock is behind the start time,
+        // right on top of the startup sync the cluster manager has just triggered.
+        Instant start = Instant.now().plus(intervalMinutes, ChronoUnit.MINUTES);
         ContentJobParameter job =
                 new ContentJobParameter(
                         "Catalog Sync Periodic Task",
                         CatalogSyncJob.JOB_TYPE,
-                        new IntervalSchedule(Instant.now(), intervalMinutes, ChronoUnit.MINUTES),
+                        new IntervalSchedule(start, intervalMinutes, ChronoUnit.MINUTES),
                         enabled,
                         Instant.now(),
                         Instant.now());
@@ -911,25 +976,22 @@ public class ContentManagerPlugin extends Plugin
 
     /**
      * Reschedules a failed operation on the generic thread pool with a linear backoff. Stops after
-     * {@link Constants#MAX_JOB_SCHEDULE_RETRIES} attempts and logs an error.
+     * {@link PluginSettings#JOB_SCHEDULE_MAX_RETRIES} attempts and logs an error.
      *
      * @param taskName human-readable name used in log messages.
      * @param attempt zero-based attempt counter of the call that just failed.
      * @param retryAction callback that re-runs the operation with the given attempt index.
      */
     private void retryWithBackoff(String taskName, int attempt, IntConsumer retryAction) {
+        PluginSettings settings = PluginSettings.getInstance();
+        int maxRetries = settings.getJobScheduleMaxRetries();
         int nextAttempt = attempt + 1;
-        if (nextAttempt > Constants.MAX_JOB_SCHEDULE_RETRIES) {
-            log.error(Constants.E_LOG_JOB_SCHEDULE_GIVE_UP, taskName, Constants.MAX_JOB_SCHEDULE_RETRIES);
+        if (nextAttempt > maxRetries) {
+            log.error(Constants.E_LOG_JOB_SCHEDULE_GIVE_UP, taskName, maxRetries);
             return;
         }
-        long delaySeconds = (long) nextAttempt * Constants.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS;
-        log.info(
-                Constants.I_LOG_JOB_SCHEDULE_RETRY,
-                taskName,
-                nextAttempt,
-                Constants.MAX_JOB_SCHEDULE_RETRIES,
-                delaySeconds);
+        long delaySeconds = (long) nextAttempt * settings.getJobScheduleRetryBackoffSeconds();
+        log.info(Constants.I_LOG_JOB_SCHEDULE_RETRY, taskName, nextAttempt, maxRetries, delaySeconds);
         this.threadPool.schedule(
                 () -> retryAction.accept(nextAttempt),
                 TimeValue.timeValueSeconds(delaySeconds),
@@ -943,7 +1005,7 @@ public class ContentManagerPlugin extends Plugin
      * registration succeeds. If the document already exists, the scheduler owns subsequent fires.
      *
      * <p>On startup the jobs index or the cluster may not be ready yet; this method retries with a
-     * linear backoff up to {@link Constants#MAX_JOB_SCHEDULE_RETRIES} times before giving up.
+     * linear backoff up to {@link PluginSettings#JOB_SCHEDULE_MAX_RETRIES} times before giving up.
      */
     private void scheduleTelemetryPingJob() {
         this.scheduleTelemetryPingJob(0);
@@ -1075,6 +1137,7 @@ public class ContentManagerPlugin extends Plugin
         return Arrays.asList(
                 PluginSettings.CLIENT_TIMEOUT,
                 PluginSettings.CTI_API_URL,
+                PluginSettings.CTI_CONSOLE_TIMEOUT,
                 PluginSettings.MAX_CONCURRENT_BULKS,
                 PluginSettings.MAX_ITEMS_PER_BULK,
                 PluginSettings.MAX_BULK_BYTES,
@@ -1100,7 +1163,30 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.SETUP_WAIT_MAX_RETRIES,
                 PluginSettings.SETUP_WAIT_BACKOFF_BASE_SECONDS,
                 PluginSettings.CLIENT_MAX_RETRIES,
-                PluginSettings.CLIENT_RETRY_BACKOFF_BASE_SECONDS);
+                PluginSettings.CLIENT_RETRY_BACKOFF_BASE_SECONDS,
+                PluginSettings.BULK_SHED_MAX_RETRIES,
+                PluginSettings.BULK_SHED_INITIAL_BACKOFF_MILLIS,
+                PluginSettings.BULK_SHED_MAX_BACKOFF_MILLIS,
+                PluginSettings.BULK_TOPOLOGY_MAX_RETRIES,
+                PluginSettings.BULK_TOPOLOGY_INITIAL_BACKOFF_MILLIS,
+                PluginSettings.BULK_TOPOLOGY_MAX_BACKOFF_MILLIS,
+                PluginSettings.JOB_SCHEDULE_MAX_RETRIES,
+                PluginSettings.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS,
+                PluginSettings.RESOURCE_LOCK_MAX_RETRIES,
+                PluginSettings.RESOURCE_LOCK_RETRY_BACKOFF_MILLIS,
+                PluginSettings.RESOURCE_LOCK_STALE_THRESHOLD_MILLIS,
+                PluginSettings.USER_OVERRIDES_MAX_UPDATE_ATTEMPTS,
+                PluginSettings.INTEGRATION_MAX_UPDATE_ATTEMPTS,
+                PluginSettings.ENGINE_RELOAD_TIMEOUT_MINUTES,
+                PluginSettings.ENGINE_NOT_READY_GRACE_MINUTES,
+                PluginSettings.ENGINE_SOCKET_PATH,
+                PluginSettings.SA_SYNC_TIMEOUT_SECONDS,
+                PluginSettings.SA_DETECTOR_TIMEOUT_SECONDS,
+                PluginSettings.SA_CLEANUP_TIMEOUT_SECONDS,
+                PluginSettings.SA_DETECTOR_INTERVAL,
+                PluginSettings.UPDATE_SUB_BATCH_SIZE,
+                PluginSettings.OFFSET_FLUSH_INTERVAL,
+                PluginSettings.SEARCH_PAGE_SIZE);
     }
 
     @Override
@@ -1124,8 +1210,8 @@ public class ContentManagerPlugin extends Plugin
                 new AbstractModule() {
                     @Override
                     protected void configure() {
-                        bind(EngineService.class).toProvider(() -> ContentManagerPlugin.this.engine);
-                        bind(SecurityAnalyticsService.class)
+                        this.bind(EngineService.class).toProvider(() -> ContentManagerPlugin.this.engine);
+                        this.bind(SecurityAnalyticsService.class)
                                 .toProvider(() -> ContentManagerPlugin.this.securityAnalyticsService);
                     }
                 });
