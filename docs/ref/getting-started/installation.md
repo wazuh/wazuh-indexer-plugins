@@ -103,6 +103,26 @@ yum install coreutils diffutils hostname iproute openssl procps-ng util-linux
 apt-get install debconf adduser procps diffutils iproute2 openssl
 ```
 
+#### Supplying your own passwords
+
+The installation generates a password for each internal user, but only for the users it does not already find a password for. To choose them yourself, write them to `/etc/wazuh/credentials.env` before installing the package.
+
+That file holds every password in the deployment, so it and its directory are root-only, and the installation refuses to read them otherwise:
+
+```bash
+install -d -m 0700 -o root -g root /etc/wazuh
+cat > /etc/wazuh/credentials.env <<'EOF'
+WAZUH_INDEXER_ADMIN_PASSWORD='<admin-password>'
+WAZUH_INDEXER_KIBANASERVER_PASSWORD='<kibanaserver-password>'
+WAZUH_INDEXER_MANAGER_PASSWORD='<wazuh-manager-password>'
+EOF
+chmod 600 /etc/wazuh/credentials.env
+```
+
+Set as many or as few as you like: any key you leave out is generated. Each password must have 12 to 64 characters from `A-Z a-z 0-9 . , _ + : @ % ^ = ~ -`, with at least one uppercase letter, one lowercase letter, one digit and one symbol. A value that does not meet the rule is never replaced silently — the service refuses to start and names the key in its log.
+
+The installation records what it read in a block of its own at the end of the file, so a password you supplied appears twice: once as you wrote it, and once in that block. The block is what the other components read.
+
 #### Installing the Wazuh indexer package
 
 ##### rpm
@@ -119,7 +139,7 @@ dpkg -i wazuh-indexer-<VERSION>.deb
 
 #### Retrieving the generated credentials
 
-The installation generates one password per internal user and writes them to `/etc/wazuh/credentials.env`, readable only by root:
+The installation writes one password per internal user to `/etc/wazuh/credentials.env`, readable only by root — the ones it generated, and the ones it was given:
 
 ```bash
 cat /etc/wazuh/credentials.env
@@ -143,7 +163,7 @@ Passwords are generated once. Reinstalling, restarting or upgrading the Wazuh in
 /usr/share/wazuh-indexer/tools/wazuh-passwords-tool.sh -u admin -p
 ```
 
-A password must have 12 to 64 characters from `A-Z a-z 0-9 . , _ + : @ % ^ = ~ -`, with at least one uppercase letter, one lowercase letter, one digit and one symbol.
+A new password must meet the same rule as a supplied one — see [Supplying your own passwords](#supplying-your-own-passwords).
 
 When the standard input is not a terminal the tool reads the password from it instead of prompting, which is how a script sets one:
 
