@@ -197,7 +197,9 @@ The response fields are produced by the security plugin and are therefore camelC
 
 Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public plan is returned.
 
-> If the stored token is rejected by the CTI API (e.g. expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public plan as if the instance were unregistered.
+> If the CTI Console rejects the stored token with `401` (expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public plan as if the instance were unregistered.
+>
+> Any other failure to fetch the plan, such as a network error, a timeout, a `429` or a `5xx` from the CTI Console, keeps the token: the instance stays registered and the response is a `502`. Content synchronization is not affected either: while the plan can't be fetched, a registered instance keeps synchronizing its current content and is not switched back to the public content.
 
 #### Request
 
@@ -241,10 +243,20 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
 }
 ```
 
+#### Example response (plan unavailable)
+
+```json
+{
+  "message": "Unable to retrieve the subscription plan from the CTI Console. The registration is unchanged; try again later.",
+  "status": 502
+}
+```
+
 #### Status codes
 
 - **200** — subscription status returned successfully.
 - **500** — internal error.
+- **502** — the instance is registered but its plan could not be fetched from the CTI Console. The stored token is kept; retry later.
 
 ---
 
