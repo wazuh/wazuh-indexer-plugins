@@ -137,10 +137,18 @@ The Wazuh Manager and the Wazuh Dashboard read this file when **they** are insta
 rm /etc/wazuh/credentials.env
 ```
 
-Passwords are generated once. Reinstalling, restarting or upgrading the Wazuh indexer does not change them, and neither does removing this file. To change one afterwards, use the passwords tool, which also ships with the package:
+Passwords are generated once. Reinstalling, restarting or upgrading the Wazuh indexer does not change them, and neither does removing this file. To change one afterwards, use the passwords tool, which also ships with the package. It prompts for the new password twice and echoes nothing, so the password does not reach your shell history:
 
 ```bash
-/usr/share/wazuh-indexer/tools/wazuh-passwords-tool.sh -u admin -p <new-password>
+/usr/share/wazuh-indexer/tools/wazuh-passwords-tool.sh -u admin -p
+```
+
+A password must have 12 to 64 characters from `A-Z a-z 0-9 . , _ + : @ % ^ = ~ -`, with at least one uppercase letter, one lowercase letter, one digit and one symbol.
+
+When the standard input is not a terminal the tool reads the password from it instead of prompting, which is how a script sets one:
+
+```bash
+printf '%s' '<new-password>' | /usr/share/wazuh-indexer/tools/wazuh-passwords-tool.sh -u admin -p
 ```
 
 #### Configuring the Wazuh indexer
