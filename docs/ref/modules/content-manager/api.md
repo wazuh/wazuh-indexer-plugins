@@ -122,7 +122,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 
 ```json
 {
-  "message": "Credentials received",
+  "message": "Access token received successfully.",
   "status": 201
 }
 ```
@@ -2021,7 +2021,7 @@ The response lists changes grouped by content type. Each change includes:
 
 Promotes content from the source space to the next space in the promotion chain (Draft → Test → Custom). The request body must include the source space and the changes to apply (typically obtained from the preview endpoint).
 
-For Draft → Test promotions, the changeset is forwarded to the local Wazuh Engine for validation only when it includes decoders, kvdbs, or filters. Promotions limited to integrations, rules, or the policy skip the engine call entirely. Test → Custom promotions never invoke the engine.
+Both promotion targets (`test` and `custom`) are validated by the local Wazuh Engine. The Engine is called when the changeset includes decoders, kvdbs, or filters, and also when it does not but the target space already holds engine resources; a changeset limited to integrations, rules, or the policy against an empty target space skips the call.
 
 In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Ruleset Management plugin. For each promoted resource, a new document is created in the target space with:
 - A newly generated UUID as the primary ID.
@@ -2113,7 +2113,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 Resets a user space (`draft`) to its initial state.
 
 When resetting the `draft` space, this operation will:
-- Remove all documents (integrations, rules, decoders, kvdbs) that belong to the given space.
+- Remove all documents (integrations, rules, decoders, kvdbs, filters, and the space's policy document) that belong to the given space.
 - Re-generate the default policy for the given space.
 
 > **Note**: Only the `draft` space can be reset.

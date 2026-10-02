@@ -187,9 +187,9 @@ GET /promote?space=draft
 
 POST /promote
   → Capture pre-promotion snapshots of target-space resources
-  → Engine validates configuration (draft → test only, and only when the
-    changeset includes decoders, kvdbs, or filters — promotions limited to
-    integrations, rules, or the policy skip the engine call)
+  → Engine validates configuration (both draft → test and test → custom, when
+    the changeset includes decoders, kvdbs, or filters, and also when it does
+    not but the target space already holds engine resources)
   → Consolidate changes to Content Manager indices (tracked for rollback)
       → Apply adds/updates: policy, integrations, kvdbs, decoders, filters, rules
       → Apply deletes: integrations, kvdbs, decoders, filters, rules

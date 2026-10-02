@@ -291,7 +291,7 @@ Retrieves notification configurations with filtering, sorting, and pagination.
 - **`query`** (String) — search across all keyword and text filter fields.
 - **`text_query`** (String) — search across text filter fields only.
 
-Text filters also accept a `.keyword` suffix for an exact match, for example `name.keyword` or `active_response.executable.keyword`.
+Text filters also accept a `.keyword` suffix for an exact match, for example `name.keyword` or `active_response.executable.keyword`. The two `recipient_list.recipient` filters are the exception: they accept only the text form.
 
 #### Example
 

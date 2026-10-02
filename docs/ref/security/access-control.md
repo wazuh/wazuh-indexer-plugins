@@ -27,7 +27,7 @@ Besides the 1:1 roles, `wazuh_ai_assistant` is mapped to **every** authenticated
 
 ### Roles
 
-Three default roles are defined in `roles.yml`. Each role is self-contained (it grants everything its holder needs on its own) and is `reserved` - it cannot be edited in place. To customize, duplicate the role and edit the copy (see [Defining Users and Roles](./defining-users-and-roles.md)).
+Three default roles are defined in `roles.yml`. Each role is `reserved` - it cannot be edited in place. `wazuh_manager` and `wazuh_ai_assistant` are self-contained, but `dashboard_server` is not the whole of what the Dashboard service account holds: `kibanaserver` is additionally mapped to the upstream `kibana_server` role, which grants the access the Dashboard needs on its own `.kibana*` indices. To customize, duplicate the role and edit the copy (see [Defining Users and Roles](./defining-users-and-roles.md)).
 
 #### `dashboard_server`
 

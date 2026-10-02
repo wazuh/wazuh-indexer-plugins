@@ -1350,7 +1350,7 @@ paths:
         Resets a user space (draft) to its initial state.
 
         This operation will:
-        - Remove all documents (integrations, rules, decoders, kvdbs) belonging to the given space.
+        - Remove all documents (integrations, rules, decoders, kvdbs, filters, and the space's policy document) belonging to the given space.
         - Re-generate the default policy for the given space.
 
       operationId: deleteSpace

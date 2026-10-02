@@ -32,7 +32,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   }'
 ```
 
-A successful registration returns `{"message":"Credentials received","status":201}`. The token is persisted in `.wazuh-internal-state` and loaded into memory immediately.
+A successful registration returns `{"message":"Access token received successfully.","status":201}`. The token is persisted in `.wazuh-internal-state` and loaded into memory immediately.
 
 ### Sync not running
 

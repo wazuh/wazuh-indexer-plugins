@@ -18,7 +18,7 @@ The Content Manager synchronizes three categories of detection content from the 
 - **IoC feed** — Indicators of Compromise (IoC) for threat detection enrichment.
 - **CVE feed** — Common Vulnerabilities and Exposures (CVE) data for vulnerability detection. CVE entries are only added or updated, never removed.
 
-On first start, the plugin initializes from a snapshot. It first downloads the latest snapshot from the Wazuh CTI API, using the configured catalog URL or, when none is set, the one of the subscription plan or the one recorded in the snapshot bundled with the Wazuh Indexer package. If the download fails, it loads the bundled snapshot instead, so detection content is available immediately even without network access.
+On first start, the plugin initializes from a snapshot. It first downloads the latest snapshot from the Wazuh CTI API, using the configured catalog URL or, when none is set, the one of the subscription plan, the one stored by the previous sync, or the one recorded in the snapshot bundled with the Wazuh Indexer package. If the download fails, it loads the bundled snapshot instead, so detection content is available immediately even without network access.
 
 Once initialized, the plugin keeps content current automatically. A sync check runs at startup and again on a regular schedule — every 60 minutes by default. Each check fetches only the changes since the last sync: new or updated resources are added, removed resources are deleted. If the local content cannot be reconciled with the remote state, the plugin recovers by re-downloading the latest snapshot.
 
