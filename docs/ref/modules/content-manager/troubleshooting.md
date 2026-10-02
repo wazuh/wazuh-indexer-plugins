@@ -4,7 +4,7 @@ Common issues and diagnostic procedures for the Content Manager plugin.
 
 ## Common errors
 
-### "Error communicating with Engine socket: Connection refused"
+### "Cannot reach the Wazuh Engine: its API socket is not available"
 
 The Wazuh Engine is not running or the Unix socket is not accessible.
 
@@ -16,15 +16,15 @@ Resolution:
 
 2. Ensure the Wazuh Indexer process has permission to access the socket file.
 
-### "Token not found"
+### Subscription content is not synchronized
 
-No CTI access token has been registered. The Content Manager cannot sync content without a valid token.
+No CTI access token has been registered, so the instance synchronizes only the public content. `GET /_plugins/_content_manager/subscription` reports `"is_registered": false` in this state.
 
 #### Resolution
 
 Register credentials by posting the CTI access token:
 ```bash
-curl -sk -u admin:admin -X POST \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_plugins/_content_manager/subscription" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -32,7 +32,7 @@ curl -sk -u admin:admin -X POST \
   }'
 ```
 
-A successful registration returns `{"message":"Credentials received","status":201}`. The token is persisted in `.wazuh-internal-state` and loaded into memory immediately.
+A successful registration returns `{"message":"Access token received successfully.","status":201}`. The token is persisted in `.wazuh-internal-state` and loaded into memory immediately.
 
 ### Sync not running
 
@@ -42,7 +42,7 @@ Content is not being updated despite having a valid subscription.
 
 1. Check consumer state and offsets:
    ```bash
-   curl -sk -u admin:admin \
+   curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
      "https://127.0.0.1:9200/.wazuh-cti-consumers/_search?pretty"
    ```
 
@@ -50,7 +50,7 @@ Content is not being updated despite having a valid subscription.
 
 2. Check the sync job is registered and enabled:
    ```bash
-   curl -sk -u admin:admin \
+   curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
      "https://127.0.0.1:9200/.wazuh-content-manager-jobs/_search?pretty"
    ```
 
@@ -63,7 +63,7 @@ Content is not being updated despite having a valid subscription.
 
    It is also dynamic, and a value set through the Cluster Settings API overrides `opensearch.yml`, so check there too:
    ```bash
-   curl -sk -u admin:admin \
+   curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
      "https://127.0.0.1:9200/_cluster/settings?pretty"
    ```
 
@@ -74,7 +74,7 @@ Content is not being updated despite having a valid subscription.
 
 4. Trigger a manual sync to test:
    ```bash
-   curl -sk -u admin:admin -X POST \
+   curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
      "https://127.0.0.1:9200/_plugins/_content_manager/update"
    ```
 
@@ -159,18 +159,18 @@ Note that the index is hidden and has no alias, so its absence cannot be confirm
 1. Confirm whether the index exists:
 
    ```bash
-   curl -k -u user:pass "https://localhost:9200/_cat/indices/.wazuh-content-manager-resource-locks?expand_wildcards=all&v"
+   curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://127.0.0.1:9200/_cat/indices/.wazuh-content-manager-resource-locks?expand_wildcards=all&v"
    ```
 
 2. If it is missing, restart the node — the plugin recreates it during initialization — and check the
    startup log for the reason it failed the first time (a red cluster or a node still joining are the
    usual causes).
 3. If a restart is not an option, create it manually with an account that holds
-   `indices:admin/create` (for example via the admin certificate). Only the `acquired_at` field is
+   `indices:admin/create` (for example `admin`, as below). Only the `acquired_at` field is
    needed:
 
    ```bash
-   curl -k -u admin:pass -X PUT "https://localhost:9200/.wazuh-content-manager-resource-locks" \
+   curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/.wazuh-content-manager-resource-locks" \
      -H 'Content-Type: application/json' -d '{
        "settings": { "index": { "number_of_replicas": 0, "auto_expand_replicas": "0-1", "hidden": true, "refresh_interval": "-1" } },
        "mappings": { "dynamic": "strict", "properties": { "acquired_at": { "type": "long" } } }
@@ -188,7 +188,7 @@ Note that the index is hidden and has no alias, so its absence cannot be confirm
 View synchronization state for all content contexts:
 
 ```bash
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
   "https://127.0.0.1:9200/.wazuh-cti-consumers/_search?pretty"
 ```
 
@@ -230,7 +230,7 @@ Example output:
 View the periodic sync job configuration:
 
 ```bash
-curl -sk -u admin:admin \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
   "https://127.0.0.1:9200/.wazuh-content-manager-jobs/_search?pretty"
 ```
 
@@ -240,19 +240,19 @@ Check how many rules, decoders, etc. have been indexed:
 
 ```bash
 # Rules
-curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-rules/_count?pretty"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://127.0.0.1:9200/wazuh-threatintel-rules/_count?pretty"
 
 # Decoders
-curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-decoders/_count?pretty"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://127.0.0.1:9200/wazuh-threatintel-decoders/_count?pretty"
 
 # Integrations
-curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-integrations/_count?pretty"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://127.0.0.1:9200/wazuh-threatintel-integrations/_count?pretty"
 
 # KVDBs
-curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-kvdbs/_count?pretty"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://127.0.0.1:9200/wazuh-threatintel-kvdbs/_count?pretty"
 
 # IoCs
-curl -sk -u admin:admin "https://127.0.0.1:9200/wazuh-threatintel-enrichments/_count?pretty"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://127.0.0.1:9200/wazuh-threatintel-enrichments/_count?pretty"
 ```
 
 ## Job scheduling on startup
@@ -264,9 +264,9 @@ INFO   ... Failed to schedule Telemetry Ping Job: Index .wazuh-content-manager-j
 INFO   ... Retrying Telemetry Ping Job (attempt 1/3) in 15s.
 ```
 
-The plugin automatically retries each registration up to 3 times with a linear backoff (15 s, 30 s, 45 s). Each attempt logs the failure reason and the scheduled retry delay at `INFO` — these are expected during startup and do not require action.
+The plugin automatically retries each registration up to `plugins.content_manager.job_schedule.max_retries` times (default 3) with a linear backoff of `plugins.content_manager.job_schedule.retry_backoff_seconds` × attempt (default 15 s, so 15 s, 30 s, 45 s). Each attempt logs the failure reason and the scheduled retry delay at `INFO` — these are expected during startup and do not require action.
 
-If all retries fail, the plugin logs `ERROR ... Giving up scheduling <job> after 3 attempts.` and the job will only be retried on the next node start. A persistent failure usually indicates the cluster cannot allocate shards — check cluster health with `GET _cluster/health` and verify index allocation settings.
+If all retries fail, the plugin logs `ERROR ... Giving up scheduling <job> after N attempts.` and the job will only be retried on the next node start. Raising `plugins.content_manager.job_schedule.max_retries` gives a slow-starting cluster more room. A persistent failure usually indicates the cluster cannot allocate shards — check cluster health with `GET _cluster/health` and verify index allocation settings.
 
 ## Log monitoring
 
@@ -296,12 +296,14 @@ grep -i "ERROR.*content.manager" \
 
 ## Resetting content
 
-To force a full re-sync from snapshot, delete the consumer state document and restart the indexer:
+To force a full re-sync from snapshot, delete the consumer state documents and restart the indexer:
 
 ```bash
 # Delete consumer state (forces snapshot on next sync)
-curl -sk -u admin:admin -X DELETE \
-  "https://127.0.0.1:9200/.wazuh-cti-consumers/_doc/*"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  "https://127.0.0.1:9200/.wazuh-cti-consumers/_delete_by_query?refresh=true" \
+  -H 'Content-Type: application/json' \
+  -d '{"query": {"match_all": {}}}'
 
 # Restart indexer to trigger sync
 systemctl restart wazuh-indexer

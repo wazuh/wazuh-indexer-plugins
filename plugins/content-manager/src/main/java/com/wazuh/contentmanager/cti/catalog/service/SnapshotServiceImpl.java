@@ -67,8 +67,6 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final ObjectMapper mapper;
     private final Path stablePath;
 
-    private static final int FLUSH_EVERY_N_BULKS = 10;
-
     /** The maximum offset encountered while processing snapshot files. */
     private long maxOffsetSeen;
 
@@ -353,7 +351,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                         docCount = 0;
                         bulkCount++;
 
-                        if (bulkCount % FLUSH_EVERY_N_BULKS == 0) {
+                        if (bulkCount % this.pluginSettings.getOffsetFlushInterval() == 0) {
                             try {
                                 executorIndex.waitForPendingUpdates();
                             } catch (InterruptedException e) {

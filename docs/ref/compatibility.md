@@ -8,7 +8,7 @@ For 5.0.0 and above, we support the operating system versions and architectures 
 | Name         | Version      | Architecture    |
 | ------------ | ------------ | --------------- |
 | Red Hat      | 9, 10        | x86_64, aarch64 |
-| Ubuntu       | 26.04, 24.04 | x86_64, aarch64 |
+| Ubuntu       | 24.04, 26.04 | x86_64, aarch64 |
 | Amazon Linux | 2023         | x86_64, aarch64 |
 
 ## OpenSearch

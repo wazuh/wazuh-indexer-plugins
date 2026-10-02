@@ -125,10 +125,7 @@ public class TransportCreateKvdbAction extends AbstractTransportCreateAction {
             ActionListener<RestResponse> listener) {
         RestResponse engineValidation = this.engine.validateResource(Constants.KEY_KVDB, resource);
         if (engineValidation.getStatus() != RestStatus.OK.getStatus()) {
-            listener.onResponse(
-                    new RestResponse(
-                            Constants.E_400_ENGINE_VALIDATION_FAILED + " " + engineValidation.getMessage(),
-                            RestStatus.BAD_REQUEST.getStatus()));
+            listener.onResponse(TransportActionHelper.fromEngineValidation(engineValidation));
             return;
         }
         listener.onResponse(null);

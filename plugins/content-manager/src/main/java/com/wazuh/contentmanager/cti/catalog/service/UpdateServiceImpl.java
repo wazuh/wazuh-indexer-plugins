@@ -47,7 +47,6 @@ import com.wazuh.contentmanager.utils.Constants;
 /** Service responsible for keeping the catalog content up-to-date. */
 public class UpdateServiceImpl extends AbstractService implements UpdateService {
     private static final Logger log = LogManager.getLogger(UpdateServiceImpl.class);
-    private static final int FLUSH_EVERY_N_BATCHES = 10;
 
     private final ConsumersIndex consumersIndex;
     private final Map<String, ContentIndex> indices;
@@ -157,7 +156,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             updateBatch.add(
                                     new ContentIndex.UpdateTask(
                                             offset.getResource(), offset.getOperations(), offset.getOffset()));
-                            if (updateBatch.size() >= ContentIndex.UPDATE_SUB_BATCH_SIZE) {
+                            if (updateBatch.size() >= PluginSettings.getInstance().getUpdateSubBatchSize()) {
                                 lastAppliedOffset = this.singleIndex.batchUpdate(updateBatch);
                                 updateBatch.clear();
                             }
@@ -222,7 +221,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                         true);
 
                 batchCount++;
-                if (batchCount % FLUSH_EVERY_N_BATCHES == 0) {
+                if (batchCount % PluginSettings.getInstance().getOffsetFlushInterval() == 0) {
                     for (ContentIndex idx : this.indices.values()) {
                         idx.flush();
                     }

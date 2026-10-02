@@ -35,7 +35,7 @@ class TestIntegrationLifecycle:
 
     def test_create_duplicate_title_rejected(self, client, integration):
         resp = client.post(C.INTEGRATIONS, json=P.make_integration(title=integration["title"]))
-        assert resp.status_code == 400, resp.text
+        assert resp.status_code == 409, resp.text
         assert "already exists" in resp.text
 
     def test_create_missing_title_rejected(self, client, reset_draft):

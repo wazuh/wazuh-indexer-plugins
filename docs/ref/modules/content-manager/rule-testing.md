@@ -29,8 +29,8 @@ Logtest supports the `test`, `standard`, and `custom` spaces. Use `test` for val
 An integration groups related decoders, rules, and KVDBs together. Start by creating one:
 
 ```bash
-curl -sk -u admin:admin -X POST \
-  "https://localhost:9200/_plugins/_content_manager/integrations" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/integrations" \
   -H 'Content-Type: application/json' \
   -d '{
     "resource": {
@@ -67,8 +67,8 @@ Save this ID — you'll need it for creating rules and running logtest.
 Decoders tell the Engine how to parse and normalize raw log events. Link a decoder to your integration:
 
 ```bash
-curl -sk -u admin:admin -X POST \
-  "https://localhost:9200/_plugins/_content_manager/decoders" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/decoders" \
   -H 'Content-Type: application/json' \
   -d '{
     "integration": "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509",
@@ -106,8 +106,8 @@ Rules use the [Sigma format](../ruleset-management/rules.md) to define detection
 `logsource.product` must repeat the parent integration's `metadata.title` exactly — `ssh-brute-force` here — otherwise the rule is rejected. `status` and `level` are required too, and each accepts a closed set of values (see [Create rule](api.md#create-rule)).
 
 ```bash
-curl -sk -u admin:admin -X POST \
-  "https://localhost:9200/_plugins/_content_manager/rules" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/rules" \
   -H 'Content-Type: application/json' \
   -d '{
     "integration": "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509",
@@ -157,12 +157,12 @@ Before running logtest, your content must be in the **test** space.
 
 ```bash
 # 1. Preview what will be promoted
-curl -sk -u admin:admin \
-  "https://localhost:9200/_plugins/_content_manager/promote?space=draft"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
+  "https://127.0.0.1:9200/_plugins/_content_manager/promote?space=draft"
 
 # 2. Execute the promotion, passing back the changes the preview reported
-curl -sk -u admin:admin -X POST \
-  "https://localhost:9200/_plugins/_content_manager/promote" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/promote" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "draft",
@@ -188,8 +188,8 @@ curl -sk -u admin:admin -X POST \
 Send a sample event to validate your detection pipeline:
 
 ```bash
-curl -sk -u admin:admin -X POST \
-  "https://localhost:9200/_plugins/_content_manager/logtest" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/logtest" \
   -H 'Content-Type: application/json' \
   -d '{
     "integration": "a0b448c8-3d3c-47d4-b7b9-cbc3c175f509",
@@ -280,12 +280,12 @@ Once your rules are validated, promote from test to custom for production use:
 
 ```bash
 # Preview
-curl -sk -u admin:admin \
-  "https://localhost:9200/_plugins/_content_manager/promote?space=test"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
+  "https://127.0.0.1:9200/_plugins/_content_manager/promote?space=test"
 
 # Execute, passing back the changes the preview reported
-curl -sk -u admin:admin -X POST \
-  "https://localhost:9200/_plugins/_content_manager/promote" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/promote" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "test",
@@ -346,8 +346,8 @@ In addition to the combined logtest endpoint, you can run normalization and dete
 ### Normalization only
 
 ```bash
-curl -sk -u admin:admin -X POST \
-  "https://localhost:9200/_plugins/_content_manager/logtest/normalization" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/logtest/normalization" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "test",
@@ -384,8 +384,8 @@ The response contains only the Engine's normalized output (no detection section)
 Take the normalized event (the `output` object from normalization) and pass it as `input` along with the integration ID:
 
 ```bash
-curl -sk -u admin:admin -X POST \
-  "https://localhost:9200/_plugins/_content_manager/logtest/detection" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/logtest/detection" \
   -H 'Content-Type: application/json' \
   -d '{
     "space": "test",

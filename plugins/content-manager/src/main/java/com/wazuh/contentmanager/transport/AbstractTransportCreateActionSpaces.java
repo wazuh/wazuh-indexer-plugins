@@ -22,8 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchException;
-import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -49,6 +48,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
+import com.wazuh.contentmanager.cti.catalog.service.ResourceLockTimeoutException;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -263,13 +263,17 @@ public abstract class AbstractTransportCreateActionSpaces
                                             e -> respondWithError(lockReleasingListener, e)));
                         },
                         e -> {
-                            log.warn(
-                                    "Failed to acquire resource-creation lock for [{}]: {}",
-                                    this.getResourceType(),
-                                    e.getMessage());
-                            listener.onResponse(
-                                    new ContentResponse(
-                                            Constants.E_503_RESOURCE_LOCK_TIMEOUT, RestStatus.TOO_MANY_REQUESTS));
+                            if (ExceptionsHelper.unwrap(e, ResourceLockTimeoutException.class) != null) {
+                                log.warn(
+                                        "Failed to acquire resource-creation lock for [{}]: {}",
+                                        this.getResourceType(),
+                                        e.getMessage());
+                                listener.onResponse(
+                                        new ContentResponse(
+                                                Constants.E_429_RESOURCE_LOCK_TIMEOUT, RestStatus.TOO_MANY_REQUESTS));
+                                return;
+                            }
+                            respondWithError(listener, e);
                         }));
     }
 
@@ -301,12 +305,21 @@ public abstract class AbstractTransportCreateActionSpaces
                 ActionListener.wrap(
                         syncError -> {
                             if (syncError != null) {
-                                log.error(
-                                        Constants.E_LOG_FAILED_TO,
-                                        "sync",
-                                        this.getResourceType(),
-                                        id,
-                                        "with external services. Reason: " + syncError.getMessage());
+                                if (syncError.getStatus() < 500) {
+                                    log.warn(
+                                            Constants.E_LOG_FAILED_TO,
+                                            "sync",
+                                            this.getResourceType(),
+                                            id,
+                                            "with external services. Reason: " + syncError.getMessage());
+                                } else {
+                                    log.error(
+                                            Constants.E_LOG_FAILED_TO,
+                                            "sync",
+                                            this.getResourceType(),
+                                            id,
+                                            "with external services. Reason: " + syncError.getMessage());
+                                }
                                 respond(lockReleasingListener, syncError);
                                 return;
                             }
@@ -448,14 +461,16 @@ public abstract class AbstractTransportCreateActionSpaces
     }
 
     private void respondWithError(ActionListener<ContentResponse> listener, Exception e) {
-        OpenSearchSecurityException secEx = TransportActionHelper.extractSecurityException(e);
-        if (secEx != null) {
-            listener.onResponse(new ContentResponse(secEx.getMessage(), secEx.status()));
-            return;
-        }
-        OpenSearchException osEx = TransportActionHelper.extractOpenSearchException(e);
-        if (osEx != null) {
-            listener.onResponse(new ContentResponse(osEx.getMessage(), osEx.status()));
+        RestResponse classified = TransportActionHelper.classifyException(e);
+        if (classified != null) {
+            log.warn(
+                    Constants.W_LOG_OPERATION_FAILED,
+                    "Creating",
+                    this.getResourceType(),
+                    classified.getMessage());
+            listener.onResponse(
+                    new ContentResponse(
+                            classified.getMessage(), RestStatus.fromCode(classified.getStatus())));
             return;
         }
         log.error(
@@ -465,7 +480,7 @@ public abstract class AbstractTransportCreateActionSpaces
                 "Reason: " + e.getMessage());
         listener.onResponse(
                 new ContentResponse(
-                        "Internal Server Error. " + e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR));
+                        Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
     }
 
     protected String getCurrentDate() {

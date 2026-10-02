@@ -58,7 +58,8 @@
           }
         },
         "message": {
-          "type": "match_only_text"
+          "ignore_above": 4096,
+          "type": "keyword"
         },
         "network": {
           "properties": {

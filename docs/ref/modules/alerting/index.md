@@ -10,21 +10,21 @@ The plugin is a fork of the [OpenSearch Alerting plugin](https://docs.opensearch
 - **Flexible triggers:** Define conditions using the full OpenSearch query DSL, aggregation results, or per-document matching with percolate queries.
 - **Notification actions:** When a trigger fires, send alerts through any channel configured in the Notifications plugin — Slack, Microsoft Teams, email, custom webhooks, PagerDuty, and more.
 - **Workflows:** Chain multiple monitors into composite workflows for complex detection scenarios.
-- **Alert lifecycle management:** Track alerts through Active, Acknowledged, Completed, and Error states. Add comments to alerts for collaboration.
-- **RBAC integration:** Access to monitors, alerts, and destinations is governed by the Security plugin with backend-role–based filtering.
+- **Alert lifecycle management:** Track alerts through Active, Acknowledged, Completed, and Error states. Add comments to alerts for collaboration once comments are enabled with `plugins.alerting.comments_enabled` (off by default).
+- **RBAC integration:** Access to monitors, alerts, and destinations is governed by the Security plugin, with optional backend-role–based filtering (`plugins.alerting.filter_by_backend_roles`, off by default).
 - **Cross-cluster monitoring:** Monitor indices on remote clusters connected via cross-cluster search.
 - **REST API:** Full programmatic control over monitors, workflows, alerts, findings, and comments. See [API Reference](api.md).
 - **Dashboard UI:** Create, manage, and monitor alerts through the Wazuh Dashboard interface.
 
 ## Limits
 
-- **Maximum monitors:** Users can create up to 10 custom monitors. This limit applies to all monitor types.
+- **Maximum monitors:** Users can create up to 10 custom monitors. This limit applies to all monitor types. Monitors created by [Ruleset Management](../ruleset-management/index.md) detectors don't count toward it. Change it with [`plugins.alerting.monitor.max_monitors`](configuration.md#monitor-settings).
 
 ## Wazuh integration points
 
 ### Ruleset Management
 
-The [Ruleset Management](../ruleset-management/index.md) plugin uses alerting monitors to evaluate incoming events against Sigma detection rules. The alerting monitor drives the detection loop, periodically querying new events and running them through the configured detectors, and creating a finding for every event that matches a rule
+The [Ruleset Management](../ruleset-management/index.md) plugin uses alerting monitors to evaluate incoming events against Sigma detection rules. The alerting monitor drives the detection loop, periodically querying new events and running them through the configured detectors, and creating a finding for every event that matches a rule.
 
 ### Notifications
 
@@ -35,10 +35,13 @@ Alerting actions route through the [Notifications](../notifications/index.md) pl
 The Alerting plugin includes a Wazuh-specific **Active Response monitor type** that extends document-level monitoring for automated response workflows. This monitor type has specific constraints:
 
 - **Indices:** Must target indices matching the `wazuh-findings-v5-*` prefix.
-- **Schedule:** Maximum interval of 1 minute (60,000 ms).
+- **Schedule:** Interval schedules only (cron schedules are rejected), with a maximum interval of 1 minute (60,000 ms).
 - **Triggers:** Only `DocumentLevelTrigger` is supported.
+- **Actions:** Only the `per_alert` action execution scope is accepted. An action without an `action_execution_policy` defaults to `per_alert`.
 
-When an Active Response monitor triggers, it writes execution requests to the `wazuh-active-responses` data stream. The Wazuh Manager retrieves documents from this data stream to distribute and execute Active Response actions on agents. Each document references the source event that triggered the response.
+When an Active Response monitor triggers, its actions send execution requests through an [`active_response` notification channel](../notifications/index.md), which writes them to the `wazuh-active-responses` data stream in batches. The Wazuh Manager retrieves documents from this data stream to distribute and execute Active Response actions on agents. Each document references the source event that triggered the response.
+
+Each matched event produces its own request, however many events a single run matches. The [`plugins.alerting.max_actionable_alert_count`](configuration.md#alert-history-settings) limit does not apply to Active Response monitors, and a run that ends with an error still sends one request per matched event, logging a `WARN` message.
 
 ## Dependencies
 

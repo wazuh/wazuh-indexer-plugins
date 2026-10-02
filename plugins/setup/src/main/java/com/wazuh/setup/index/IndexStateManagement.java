@@ -88,10 +88,16 @@ public class IndexStateManagement extends Index {
 
     /**
      * Creates every ISM policy added to {@link #policies} by passing it to {@link
-     * #indexPolicy(String)}.
+     * #indexPolicy(String)}. Each policy starts with a fresh retry budget. The counter is reset here
+     * rather than in {@link #indexPolicy(String)} because that method retries by calling itself, so a
+     * reset there would run on every retry and the budget would never run out.
      */
     private void createPolicies() {
-        this.policies.forEach(this::indexPolicy);
+        this.policies.forEach(
+                policy -> {
+                    this.indexCreationAttempts = 0;
+                    this.indexPolicy(policy);
+                });
     }
 
     /**
@@ -120,12 +126,13 @@ public class IndexStateManagement extends Index {
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
             // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
-            if (!this.retry_index_creation) {
+            if (this.indexCreationAttempts
+                    >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error("Initialization of policy [{}] finally failed. The node will shut down.", policy);
                 throw e;
             }
             log.warn("Operation to create the policy [{}] timed out. Retrying...", policy);
-            this.retry_index_creation = false;
+            this.indexCreationAttempts++;
             this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.indexPolicy(policy);
         }
@@ -204,12 +211,13 @@ public class IndexStateManagement extends Index {
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
             // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
-            if (!this.retry_index_creation) {
+            if (this.indexCreationAttempts
+                    >= PluginSettings.getMaxRetries(this.clusterService.getSettings())) {
                 log.error("Initialization of index [{}] finally failed. The node will shut down.", index);
                 throw e;
             }
             log.warn("Operation to create the index [{}] timed out. Retrying...", index);
-            this.retry_index_creation = false;
+            this.indexCreationAttempts++;
             this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(index);
         }
@@ -229,7 +237,6 @@ public class IndexStateManagement extends Index {
                 .execute()
                 .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
 
-        this.retry_index_creation = true; // Re-used variable to retry initialization of ISM policies.
         this.createPolicies();
     }
 }

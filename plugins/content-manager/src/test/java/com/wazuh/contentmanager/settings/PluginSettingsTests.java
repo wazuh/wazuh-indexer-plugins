@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.settings;
 
 import org.opensearch.common.SuppressForbidden;
+import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
@@ -24,6 +25,7 @@ import org.junit.Assert;
 import org.junit.Before;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -447,6 +449,268 @@ public class PluginSettingsTests extends OpenSearchTestCase {
             Assert.assertEquals(Integer.valueOf(120), pluginSettings.getCatalogSyncInterval());
         } finally {
             pluginSettings.setCatalogSyncInterval(original);
+        }
+    }
+
+    /**
+     * The central guarantee of the constants-to-settings migration: every promoted setting defaults
+     * to exactly the value that used to be compiled in, so an untouched opensearch.yml behaves as the
+     * previous release did. The literals below are the constants as they stood before the promotion;
+     * they are written out rather than referenced so that changing a default in PluginSettings cannot
+     * silently satisfy this test.
+     */
+    public void testPromotedDefaultsMatchPreviousHardcodedValues() {
+        PluginSettings s = PluginSettings.getInstance(Settings.EMPTY);
+
+        // ContentIndex.RetryPolicy.SHED(3, 1_000, 30_000)
+        Assert.assertEquals(3, s.getBulkShedMaxRetries());
+        Assert.assertEquals(1_000L, s.getBulkShedInitialBackoffMillis());
+        Assert.assertEquals(30_000L, s.getBulkShedMaxBackoffMillis());
+        // ContentIndex.RetryPolicy.TOPOLOGY(5, 5_000, 30_000)
+        Assert.assertEquals(5, s.getBulkTopologyMaxRetries());
+        Assert.assertEquals(5_000L, s.getBulkTopologyInitialBackoffMillis());
+        Assert.assertEquals(30_000L, s.getBulkTopologyMaxBackoffMillis());
+        // Constants.MAX_JOB_SCHEDULE_RETRIES / JOB_SCHEDULE_RETRY_BACKOFF_SECONDS
+        Assert.assertEquals(3, s.getJobScheduleMaxRetries());
+        Assert.assertEquals(15, s.getJobScheduleRetryBackoffSeconds());
+        // Constants.MAX_LOCK_ACQUIRE_RETRIES / LOCK_ACQUIRE_RETRY_BACKOFF_MILLIS /
+        // LOCK_STALE_THRESHOLD_MILLIS
+        Assert.assertEquals(20, s.getResourceLockMaxRetries());
+        Assert.assertEquals(100L, s.getResourceLockRetryBackoffMillis());
+        Assert.assertEquals(30_000L, s.getResourceLockStaleThresholdMillis());
+        // Constants.MAX_USER_OVERRIDES_UPDATE_ATTEMPTS / IntegrationService.MAX_RETRIES
+        Assert.assertEquals(3, s.getUserOverridesMaxUpdateAttempts());
+        Assert.assertEquals(5, s.getIntegrationMaxUpdateAttempts());
+        // cti.console.client.ApiClient TIMEOUT. The Console endpoints resolve against
+        // CTI_API_URL since #1589, and that setting carries the /api/v1 prefix — the bare paths
+        // in ApiClient are appended to it.
+        Assert.assertEquals("https://api.pre.cloud.wazuh.com/api/v1", s.getCtiBaseUrl());
+        Assert.assertEquals(5, s.getCtiConsoleTimeout());
+        // EngineContentLoader RELOAD_TIMEOUT / NOT_READY_GRACE, EngineSocketClient socket path
+        Assert.assertEquals(10, s.getEngineReloadTimeoutMinutes());
+        Assert.assertEquals(5, s.getEngineNotReadyGraceMinutes());
+        Assert.assertEquals(
+                "/usr/share/wazuh-indexer/engine/sockets/engine-api-http.sock", s.getEngineSocketPath());
+        // ConsumerRulesetService latch waits, SecurityAnalyticsServiceImpl DEFAULT_INTERVAL
+        Assert.assertEquals(60, s.getSaSyncTimeoutSeconds());
+        Assert.assertEquals(30, s.getSaDetectorTimeoutSeconds());
+        Assert.assertEquals(120, s.getSaCleanupTimeoutSeconds());
+        Assert.assertEquals(2, s.getSaDetectorInterval());
+        // ContentIndex.UPDATE_SUB_BATCH_SIZE, FLUSH_EVERY_N_BATCHES / FLUSH_EVERY_N_BULKS,
+        // DetectorLookupService.MAX_RESULTS / ConsumerIocService.SEARCH_PAGE_SIZE
+        Assert.assertEquals(50, s.getUpdateSubBatchSize());
+        Assert.assertEquals(10, s.getOffsetFlushInterval());
+        Assert.assertEquals(10_000, s.getSearchPageSize());
+    }
+
+    /**
+     * The bulk retry budgets are the knob an operator reaches for mid-incident, so they must be
+     * updatable through the cluster settings API rather than only through opensearch.yml.
+     */
+    public void testBulkRetrySettingsAreDynamic() {
+        Assert.assertTrue(PluginSettings.BULK_SHED_MAX_RETRIES.isDynamic());
+        Assert.assertTrue(PluginSettings.BULK_SHED_INITIAL_BACKOFF_MILLIS.isDynamic());
+        Assert.assertTrue(PluginSettings.BULK_SHED_MAX_BACKOFF_MILLIS.isDynamic());
+        Assert.assertTrue(PluginSettings.BULK_TOPOLOGY_MAX_RETRIES.isDynamic());
+        Assert.assertTrue(PluginSettings.BULK_TOPOLOGY_INITIAL_BACKOFF_MILLIS.isDynamic());
+        Assert.assertTrue(PluginSettings.BULK_TOPOLOGY_MAX_BACKOFF_MILLIS.isDynamic());
+        Assert.assertTrue(PluginSettings.RESOURCE_LOCK_MAX_RETRIES.isDynamic());
+        Assert.assertTrue(PluginSettings.RESOURCE_LOCK_RETRY_BACKOFF_MILLIS.isDynamic());
+        Assert.assertTrue(PluginSettings.RESOURCE_LOCK_STALE_THRESHOLD_MILLIS.isDynamic());
+        Assert.assertTrue(PluginSettings.USER_OVERRIDES_MAX_UPDATE_ATTEMPTS.isDynamic());
+        Assert.assertTrue(PluginSettings.INTEGRATION_MAX_UPDATE_ATTEMPTS.isDynamic());
+        Assert.assertTrue(PluginSettings.SA_DETECTOR_INTERVAL.isDynamic());
+    }
+
+    /** Values supplied in the node configuration must win over the defaults. */
+    public void testPromotedSettingsReadCustomValues() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.bulk.retry.topology.max_retries", 9)
+                        .put("plugins.content_manager.bulk.retry.topology.initial_backoff_millis", 10_000L)
+                        .put("plugins.content_manager.cti.api", "https://api.cloud.wazuh.com/api/v1")
+                        .put("plugins.content_manager.cti.console.timeout", 30)
+                        .put("plugins.content_manager.engine.socket_path", "/tmp/engine.sock")
+                        .put("plugins.content_manager.search_page_size", 500)
+                        .put("plugins.content_manager.offset_flush_interval", 1)
+                        .build();
+        PluginSettings s = PluginSettings.getInstance(settings);
+
+        Assert.assertEquals(9, s.getBulkTopologyMaxRetries());
+        Assert.assertEquals(10_000L, s.getBulkTopologyInitialBackoffMillis());
+        Assert.assertEquals("https://api.cloud.wazuh.com/api/v1", s.getCtiBaseUrl());
+        Assert.assertEquals(30, s.getCtiConsoleTimeout());
+        Assert.assertEquals("/tmp/engine.sock", s.getEngineSocketPath());
+        Assert.assertEquals(500, s.getSearchPageSize());
+        Assert.assertEquals(1, s.getOffsetFlushInterval());
+    }
+
+    /** A retry budget below its minimum is rejected rather than silently clamped. */
+    public void testBulkRetriesBelowMinThrows() {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.bulk.retry.shed.max_retries", -1).build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /** A retry budget above its maximum is rejected, so a typo cannot produce an endless loop. */
+    public void testBulkRetriesAboveMaxThrows() {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.bulk.retry.shed.max_retries", 11).build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /**
+     * The retry budget and the backoff ceiling multiply: the worst case a configuration can produce
+     * is {@code max_retries × max_backoff_millis}, because the initial delay is clamped to the
+     * ceiling. Two of the three retry paths block a shared GENERIC thread on {@code Thread.sleep}, so
+     * the maxima are bounded to keep that worst case near ten minutes rather than the hours a wider
+     * range would allow. Ranges can be widened after release but not narrowed, so these assertions
+     * exist to make a future widening a deliberate act.
+     */
+    public void testBulkRetryWorstCaseIsBounded() throws Exception {
+        Settings maxed =
+                Settings.builder()
+                        .put("plugins.content_manager.bulk.retry.topology.max_retries", 10)
+                        .put("plugins.content_manager.bulk.retry.topology.max_backoff_millis", 60_000L)
+                        .build();
+        PluginSettings s = PluginSettings.getInstance(maxed);
+
+        long worstCaseMillis =
+                (long) s.getBulkTopologyMaxRetries() * s.getBulkTopologyMaxBackoffMillis();
+        Assert.assertEquals(
+                "worst-case blocking retry time must stay at 10 minutes",
+                TimeUnit.MINUTES.toMillis(10),
+                worstCaseMillis);
+
+        // getInstance() caches, so each rejection needs a fresh singleton or the settings are never
+        // parsed and the assertion passes vacuously.
+        PluginSettingsTests.clearInstance();
+        Settings tooManyRetries =
+                Settings.builder()
+                        .put("plugins.content_manager.bulk.retry.topology.max_retries", 11)
+                        .build();
+        Assert.assertThrows(
+                IllegalArgumentException.class, () -> PluginSettings.getInstance(tooManyRetries));
+
+        PluginSettingsTests.clearInstance();
+        Settings backoffTooLong =
+                Settings.builder()
+                        .put("plugins.content_manager.bulk.retry.topology.max_backoff_millis", 60_001L)
+                        .build();
+        Assert.assertThrows(
+                IllegalArgumentException.class, () -> PluginSettings.getInstance(backoffTooLong));
+    }
+
+    /**
+     * The lock holder never renews {@code acquired_at}, so a staleness threshold below the worst-case
+     * resource-creation time makes every concurrent request steal the lock and the mutex stops
+     * working. The floor keeps that unreachable by configuration.
+     */
+    public void testResourceLockStaleThresholdBelowFloorThrows() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.resource_lock.stale_threshold_millis", 4_999L)
+                        .build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /**
+     * {@code deleteStaleResources} discards its {@code await()} result, so a timeout there leaves
+     * stale Security Analytics resources behind without retrying them. That is pre-existing and not
+     * fixed here, but the floor keeps it exactly as reachable as it is today rather than letting a
+     * configuration make it routine.
+     */
+    public void testSaCleanupTimeoutBelowDefaultThrows() {
+        Settings settings =
+                Settings.builder()
+                        .put("plugins.content_manager.security_analytics.cleanup_timeout_seconds", 119)
+                        .build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /** A page size above the OpenSearch index.max_result_window default is rejected. */
+    public void testSearchPageSizeAboveMaxThrows() {
+        Settings settings =
+                Settings.builder().put("plugins.content_manager.search_page_size", 10_001).build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(settings));
+    }
+
+    /**
+     * A detector interval outside the bounds Security Analytics accepts is rejected at configuration
+     * time rather than producing detectors the plugin will refuse.
+     */
+    public void testDetectorIntervalOutOfBoundsThrows() {
+        Settings tooSmall =
+                Settings.builder()
+                        .put(
+                                "plugins.content_manager.security_analytics.detector_interval",
+                                Constants.DETECTOR_INTERVAL_MIN_MINUTES - 1)
+                        .build();
+        Assert.assertThrows(IllegalArgumentException.class, () -> PluginSettings.getInstance(tooSmall));
+    }
+
+    /** The dynamic retry-budget setters must be readable back through their getters. */
+    public void testSetAndGetBulkRetryBudgets() {
+        PluginSettings s = PluginSettings.getInstance(Settings.EMPTY);
+
+        s.setBulkShedMaxRetries(7);
+        s.setBulkShedInitialBackoffMillis(2_500L);
+        s.setBulkShedMaxBackoffMillis(45_000L);
+        s.setBulkTopologyMaxRetries(9);
+        s.setBulkTopologyInitialBackoffMillis(7_500L);
+        s.setBulkTopologyMaxBackoffMillis(60_000L);
+
+        Assert.assertEquals(7, s.getBulkShedMaxRetries());
+        Assert.assertEquals(2_500L, s.getBulkShedInitialBackoffMillis());
+        Assert.assertEquals(45_000L, s.getBulkShedMaxBackoffMillis());
+        Assert.assertEquals(9, s.getBulkTopologyMaxRetries());
+        Assert.assertEquals(7_500L, s.getBulkTopologyInitialBackoffMillis());
+        Assert.assertEquals(60_000L, s.getBulkTopologyMaxBackoffMillis());
+    }
+
+    /**
+     * The promoted settings are tuning knobs, not secrets, and must stay readable through the cluster
+     * settings API.
+     *
+     * <p>{@code Setting.Property.Filtered} is not a display hint: {@code
+     * SettingsFilter#filterSettings} calls {@code builder.remove(pattern)}, and {@code
+     * RestClusterGetSettingsAction} applies that filter to the {@code include_defaults} branch too,
+     * so a filtered setting disappears from {@code GET _cluster/settings?include_defaults=true}
+     * entirely. It also suppresses the offending value in validation errors — {@code Setting} builds
+     * them as {@code "Failed to parse value" + (isFiltered() ? "" : " [" + value + "]")} — so an
+     * operator who fat-fingers a page size is told only that the setting is wrong, not what they
+     * typed. Neither is acceptable for a page size, a batch size or a socket path.
+     */
+    public void testPromotedSettingsAreNotFiltered() {
+        Setting<?>[] promoted = {
+            PluginSettings.BULK_SHED_MAX_RETRIES,
+            PluginSettings.BULK_SHED_INITIAL_BACKOFF_MILLIS,
+            PluginSettings.BULK_SHED_MAX_BACKOFF_MILLIS,
+            PluginSettings.BULK_TOPOLOGY_MAX_RETRIES,
+            PluginSettings.BULK_TOPOLOGY_INITIAL_BACKOFF_MILLIS,
+            PluginSettings.BULK_TOPOLOGY_MAX_BACKOFF_MILLIS,
+            PluginSettings.JOB_SCHEDULE_MAX_RETRIES,
+            PluginSettings.JOB_SCHEDULE_RETRY_BACKOFF_SECONDS,
+            PluginSettings.RESOURCE_LOCK_MAX_RETRIES,
+            PluginSettings.RESOURCE_LOCK_RETRY_BACKOFF_MILLIS,
+            PluginSettings.RESOURCE_LOCK_STALE_THRESHOLD_MILLIS,
+            PluginSettings.USER_OVERRIDES_MAX_UPDATE_ATTEMPTS,
+            PluginSettings.INTEGRATION_MAX_UPDATE_ATTEMPTS,
+            PluginSettings.CTI_CONSOLE_TIMEOUT,
+            PluginSettings.ENGINE_RELOAD_TIMEOUT_MINUTES,
+            PluginSettings.ENGINE_NOT_READY_GRACE_MINUTES,
+            PluginSettings.ENGINE_SOCKET_PATH,
+            PluginSettings.SA_SYNC_TIMEOUT_SECONDS,
+            PluginSettings.SA_DETECTOR_TIMEOUT_SECONDS,
+            PluginSettings.SA_CLEANUP_TIMEOUT_SECONDS,
+            PluginSettings.SA_DETECTOR_INTERVAL,
+            PluginSettings.UPDATE_SUB_BATCH_SIZE,
+            PluginSettings.OFFSET_FLUSH_INTERVAL,
+            PluginSettings.SEARCH_PAGE_SIZE,
+        };
+        for (Setting<?> setting : promoted) {
+            Assert.assertFalse(
+                    setting.getKey() + " must stay visible in GET _cluster/settings", setting.isFiltered());
         }
     }
 }
