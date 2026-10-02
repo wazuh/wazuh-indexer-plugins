@@ -18,7 +18,7 @@ Exposes HTTP endpoints under `/_plugins/_content_manager/` for:
 
 ### Credentials store
 
-Manages the CTI access token used for all CTI API requests. The token is submitted via `POST /subscription`, persisted in the `.wazuh-internal-state` hidden index, and cached in memory. On node startup, the token is loaded from the index into memory. Without a registered token, sync and update operations are rejected.
+Manages the CTI access token used for all CTI API requests. The token is submitted via `POST /subscription`, persisted in the `.wazuh-internal-state` hidden index, and cached in memory. On node startup, the token is loaded from the index into memory. Without a registered token, sync and update operations download the public content instead of the subscription plan's.
 
 All HTTP clients that communicate with CTI services send a custom `User-Agent` header in the format `Wazuh Indexer <version>` (e.g., `Wazuh Indexer 5.0.0`), and an `Accept-Encoding: gzip` header so responses are transferred compressed. This applies to the Catalog API client, Snapshot client, and Telemetry client.
 
@@ -68,7 +68,7 @@ Orchestrates synchronization for each catalog consumer type (ruleset, IoCs, vuln
 
 ### Snapshot service
 
-Handles initial content loading. Initializes from either a remote CTI snapshot (when a custom consumer URL is configured) or a local packaged snapshot, then extracts and bulk-indexes content into the appropriate system indices. Performs data enrichment (e.g., converting JSON payloads to YAML for decoders).
+Handles initial content loading. Initializes from the remote CTI snapshot, falling back to the last stable snapshot and then to the local packaged snapshot, then extracts and bulk-indexes content into the appropriate system indices. Performs data enrichment (e.g., converting JSON payloads to YAML for decoders).
 
 ### Update service
 
@@ -80,7 +80,7 @@ Interfaces with the Ruleset Management plugin. Creates, updates, and deletes Rul
 
 **Dynamic configuration**: instead of using hardcoded defaults, the service extracts the enabled state, interval, and source index patterns directly from the CTI integration payload. This allows CTI to control detector behavior dynamically.
 
-**Document ID model**: Ruleset Management documents use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs. Each Ruleset Management document stores the UUID of the original CTI document and the space it belongs to (draft, test, custom, or standard), so the same CTI resource can exist across multiple spaces without ID collisions.
+**Document ID model**: Ruleset Management documents for the draft, test and custom spaces use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs; standard-space documents keep the CTI document UUID. Each Ruleset Management document stores the UUID of the original CTI document and the space it belongs to (draft, test, custom, or standard), so the same CTI resource can exist across multiple spaces without ID collisions.
 
 > **Note:** Ruleset Management enforces a configurable maximum number of rules per detector (`plugins.security_analytics.max_rules_per_detector`, default `50`). If an integration has more enabled rules than the configured limit, the detector creation or update request will be rejected. See [Ruleset Management — Detector constraints](../ruleset-management/index.md#detector-constraints) for details.
 
@@ -120,9 +120,9 @@ Communicates with the Wazuh Engine via Unix domain socket at `/usr/share/wazuh-i
 ```
 Job scheduler triggers
   → Consumer service checks .wazuh-cti-consumers (offset = 0)
-  → If custom catalog URL is configured: try remote snapshot first
-  → If remote init fails: fallback to local packaged snapshot
-  → If no custom catalog URL: initialize from local packaged snapshot
+  → Resolve the catalog URL: setting → plan → previous sync → packaged manifest
+  → Try the remote snapshot first
+  → If remote init fails: fallback to the stable snapshot, then to the local packaged snapshot
   → Extracts and bulk-indexes into wazuh-threatintel-rules, wazuh-threatintel-decoders, etc.
   → Updates .wazuh-cti-consumers with new offset
   → Ruleset Management service creates detectors using dynamic CTI configuration (max rules per detector configurable, default 50)
@@ -187,9 +187,9 @@ GET /promote?space=draft
 
 POST /promote
   → Capture pre-promotion snapshots of target-space resources
-  → Engine validates configuration (draft → test only, and only when the
-    changeset includes decoders, kvdbs, or filters — promotions limited to
-    integrations, rules, or the policy skip the engine call)
+  → Engine validates configuration (both draft → test and test → custom, when
+    the changeset includes decoders, kvdbs, or filters, and also when it does
+    not but the target space already holds engine resources)
   → Consolidate changes to Content Manager indices (tracked for rollback)
       → Apply adds/updates: policy, integrations, kvdbs, decoders, filters, rules
       → Apply deletes: integrations, kvdbs, decoders, filters, rules
@@ -250,7 +250,7 @@ Consolidation fails at step N
 
 ## Plan change handling (blue/green swap)
 
-When a subscription plan changes (e.g., free → pro, or vice versa), all downloaded content must be replaced with the content matching the new plan. The Content Manager uses a **blue/green index swap** to perform this replacement without any user-visible downtime.
+When a subscription plan changes (e.g., from the public plan to a paid one, or vice versa), all downloaded content must be replaced with the content matching the new plan. The Content Manager uses a **blue/green index swap** to perform this replacement without any user-visible downtime.
 
 ### How it works
 
@@ -274,19 +274,34 @@ Each content index (e.g., `wazuh-threatintel-rules`) is backed by an **alias**. 
 
 Only one physical index is live at a time. The other is reserved as the staging slot for the next plan-change swap. Administrators and users should always address indices by their alias name — the physical suffix is an internal implementation detail.
 
-Each content index stores documents from all spaces. Documents are differentiated by internal metadata fields that indicate their space membership. The document `_id` is a UUID assigned at creation time.
+Each content index stores documents from all spaces. The resource itself is held under `document`; `space.name` records the space the document belongs to and `hash.sha256` the SHA-256 of `document`. Content synchronized from Wazuh CTI also carries the catalog `offset` it was last changed at. The document `_id` is a UUID assigned at creation time.
 
-Example document structure in `wazuh-threatintel-rules`:
+Example document structure in `wazuh-threatintel-rules` (the rule body under `document` is abbreviated):
 
 ```json
 {
   "_index": "wazuh-threatintel-rules-a",
-  "_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "_id": "a1b2c3d4-e5f6-4890-abcd-ef1234567890",
   "_source": {
-    "title": "SSH brute force attempt",
-    "integration": "openssh",
-    "space.name": "draft",
-    ...
+    "document": {
+      "id": "a1b2c3d4-e5f6-4890-abcd-ef1234567890",
+      "metadata": {
+        "title": "SSH brute force attempt",
+        "author": "Security Team"
+      },
+      "logsource": {
+        "product": "ssh-brute-force"
+      },
+      "level": "medium",
+      "status": "experimental",
+      "enabled": true
+    },
+    "hash": {
+      "sha256": "fca6ddd52f26c96955c1f7d28ebe0d0b220f74153e9ed07f19439f52590018c7"
+    },
+    "space": {
+      "name": "draft"
+    }
   }
 }
 ```

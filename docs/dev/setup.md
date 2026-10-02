@@ -8,7 +8,7 @@ Install and configure Git (SSH keys, commits and tags signing, user and email).
 2. [Set your email address](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address).
 3. Generate an [SSH key](https://git-scm.com/book/en/v2/Git-on-the-Server-Generating-Your-SSH-Public-Key).
 4. Add the public key to your [GitHub account](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account) for authentication and signing.
-5. [Configure Git to sign commits with your SSH key](https://docs.gitlab.com/ee/user/project/repository/signed_commits/ssh.html#configure-git-to-sign-commits-with-your-ssh-key).
+5. [Configure Git to sign commits with your SSH key](https://docs.gitlab.com/user/project/repository/signed_commits/ssh/#configure-git-to-sign-commits-and-tags-with-your-ssh-key).
 
 ## 2. Repositories
 
@@ -80,12 +80,12 @@ Prepare your IDE:
 
 When you open a Java project for the first time, IntelliJ will ask you to install the appropriate JDK for the project.
 
-Using IDEA, install a JDK following [this guide](https://www.jetbrains.com/help/idea/sdk.html#add_global_sdk). The version to install must match the JDK version used by the Indexer (check `wazuh-indexer/gradle/libs.versions.toml`).
+Using IDEA, install a JDK following [this guide](https://www.jetbrains.com/help/idea/sdk.html#add_global_sdk). The version to install must match the JDK version used by the Indexer, currently Eclipse Temurin 25 (check `bundled_jdk` in `wazuh-indexer/gradle/libs.versions.toml`).
 
-Once the JDK is installed, configure it as the default system-wide Java installation using `update-alternatives`:
+Once the JDK is installed, configure it as the default system-wide Java installation using `update-alternatives`. IntelliJ installs JDKs under `~/.jdks/`; adjust the path to the version you installed:
 
 ```bash
-sudo update-alternatives --install /usr/bin/java java /home/$USER/.jdks/temurin-21.0.9/bin/java 0
+sudo update-alternatives --install /usr/bin/java java /home/$USER/.jdks/temurin-25.0.2/bin/java 0
 ```
 
 Check Java is correctly configured:
@@ -99,16 +99,16 @@ If you need to install or switch JDK versions, use `sudo update-alternatives --c
 Set the **JAVA_HOME** and **PATH** environment variables by adding these lines to your shell RC file (`.bashrc`, `.zshrc`, etc.):
 
 ```bash
-export JAVA_HOME=/usr/lib/jvm/temurin-24-jdk-amd64
-export PATH=$PATH:/usr/lib/jvm/temurin-24-jdk-amd64/bin
+export JAVA_HOME=/home/$USER/.jdks/temurin-25.0.2
+export PATH=$PATH:$JAVA_HOME/bin
 ```
 
 After that, restart your shell or run `source ~/.zshrc` (or similar) to apply the changes. Verify with `java --version`.
 
-> **Tip:** [SDKMAN](https://sdkman.io/) is a convenient tool for managing multiple JDK versions:
+> **Tip:** [SDKMAN](https://sdkman.io/) is a convenient tool for managing multiple JDK versions. Its identifiers carry the full patch version, so run `sdk list java` to find the current Temurin 25 identifier:
 > ```bash
-> sdk install java 24-tem
-> sdk use java 24-tem
+> sdk install java 25.0.4-tem
+> sdk use java 25.0.4-tem
 > ```
 
 ## 6. Docker (optional)

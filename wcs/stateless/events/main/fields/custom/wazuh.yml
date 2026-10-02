@@ -103,20 +103,20 @@
       type: keyword
       level: custom
       description: >
-        Current status of the case. One of ACTIVE, ACKNOWLEDGED, COMPLETED, ERROR, DELETED, AUDIT.
-      example: "ACTIVE"
+        Current status of the case. One of active, acknowledged, completed, error, deleted, audit.
+      example: "active"
     - name: case.severity
       type: keyword
       level: custom
       description: >
-        Severity of the case. One of INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL.
-      example: "MEDIUM"
+        Severity of the case. One of informational, low, medium, high, critical.
+      example: "medium"
     - name: case.priority
       type: keyword
       level: custom
       description: >
-        Priority of the case. One of LOW, MEDIUM, HIGH, URGENT.
-      example: "MEDIUM"
+        Priority of the case. One of low, medium, high, urgent.
+      example: "medium"
     - name: case.tlp
       type: keyword
       level: custom

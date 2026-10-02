@@ -4,7 +4,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,destination,destination.ip,ip,core,,,IP address of the destination.
 9.1.0,true,destination,destination.port,long,core,,,Port of the destination.
 9.1.0,true,file,file.inode,keyword,extended,,256383,Inode representing the file in the filesystem.
-9.1.0,true,host,host.network.egress.queue,long,custom,,,Transmit queue length.---
+9.1.0,true,host,host.network.egress.queue,long,custom,,,Transmit queue length.
 9.1.0,true,host,host.network.ingress.queue,long,custom,,,Receive queue length.
 9.1.0,true,interface,interface.state,keyword,custom,,,State of the network interface.
 9.1.0,true,network,network.transport,keyword,core,,tcp,Protocol Name corresponding to the field `iana_number`.
