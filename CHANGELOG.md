@@ -214,7 +214,6 @@
 - Fix repeated policy retrieval errors while shards initialize at startup [(#1881)](https://github.com/wazuh/wazuh-indexer/issues/1881)
 - Fix CTI requests not validating TLS certificates <!-- [(#1548)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1548) -->
 - Fix CTI registration starting before the caller's permissions are checked <!-- [(#1547)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1547) -->
-- Fix transient CTI Console failures unregistering the instance [(#1638)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1638)
 - Fix resources not being removed from Security Analytics [(#973)](https://github.com/wazuh/wazuh-indexer-plugins/issues/973)
 - Fix content being sent to Security Analytics after a failed content update [(#1256)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1256)
 - Fix failed Security Analytics syncs not being retried [(#1487)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1487) [(#1914)](https://github.com/wazuh/wazuh-indexer/issues/1914)
