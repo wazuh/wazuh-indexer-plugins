@@ -36,7 +36,7 @@ A successful registration returns `{"message":"Access token received successfull
 
 ### "Unable to retrieve the subscription plan from the CTI Console"
 
-`GET /_plugins/_content_manager/subscription` answers `502` with this message when the instance is registered but its plan can't be fetched from the CTI Console: the Console is unreachable, the request timed out, or the Console answered `429` or `5xx`. The stored token is kept, so the instance stays registered and keeps its current content. The node log shows the cause in a `Could not retrieve the subscription plan from the CTI Console` warning. The same kind of outage during a synchronization logs `Token exchange failed for resource [...] (...). The access token is kept.` or `Keeping the current data source.`, and the pass is retried.
+`GET /_plugins/_content_manager/subscription` answers `502` with this message when the instance is registered but its plan can't be fetched from the CTI Console: the Console is unreachable, the request timed out, or the Console answered `429` or `5xx`. The stored token is kept, so the instance stays registered and keeps its current content. The node log shows the cause in a `Could not retrieve the subscription plan from the CTI Console` warning. The same kind of outage during a synchronization logs `Token exchange failed for resource [...] (...). The access token is kept.` (that pass is retried) or `Keeping the current data source.` (the pass carries on with the current content).
 
 #### Resolution
 
