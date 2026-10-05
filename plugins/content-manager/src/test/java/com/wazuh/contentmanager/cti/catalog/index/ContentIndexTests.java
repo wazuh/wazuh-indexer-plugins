@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -49,6 +51,7 @@ import org.opensearch.core.common.breaker.CircuitBreakingException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.node.NodeClosedException;
+import org.opensearch.test.BouncyCastleThreadFilter;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -62,6 +65,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
+import com.wazuh.contentmanager.cti.catalog.utils.JsonPatchThreadsFilter;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
@@ -85,6 +89,7 @@ import static org.mockito.Mockito.when;
  * operations for incremental updates, and proper interaction with OpenSearch indices. Mock objects
  * simulate OpenSearch client behavior to enable testing without a live cluster.
  */
+@ThreadLeakFilters(filters = {BouncyCastleThreadFilter.class, JsonPatchThreadsFilter.class})
 public class ContentIndexTests extends OpenSearchTestCase {
 
     private ContentIndex contentIndex;
@@ -619,6 +624,149 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertEquals(101L, result);
         verify(this.client).multiGet(any(MultiGetRequest.class));
         verify(this.client, times(0)).bulk(any(BulkRequest.class));
+    }
+
+    /** Stubs the MultiGet that opens batchUpdate with one stored source per distinct document. */
+    private void stubMultiGetSources(String... sources) {
+        MultiGetItemResponse[] items = new MultiGetItemResponse[sources.length];
+        for (int i = 0; i < sources.length; i++) {
+            GetResponse getResp = mock(GetResponse.class);
+            when(getResp.isExists()).thenReturn(true);
+            when(getResp.getSourceAsString()).thenReturn(sources[i]);
+            MultiGetItemResponse item = mock(MultiGetItemResponse.class);
+            when(item.isFailed()).thenReturn(false);
+            when(item.getResponse()).thenReturn(getResp);
+            items[i] = item;
+        }
+        MultiGetResponse mgetResponse = mock(MultiGetResponse.class);
+        when(mgetResponse.getResponses()).thenReturn(items);
+        PlainActionFuture<MultiGetResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(mgetResponse);
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(future);
+    }
+
+    private JsonNode indexedSource(BulkRequest bulk, int item) throws IOException {
+        return this.mapper.readTree(((IndexRequest) bulk.requests().get(item)).source().utf8ToString());
+    }
+
+    /**
+     * Two changes of the same document in one batch (issue #1632): the second applies on top of the
+     * first instead of on the version fetched before the batch, and the document is fetched and
+     * indexed once, with its last offset.
+     */
+    public void testBatchUpdate_SameDocumentTwice_AppliesChangesInOrder() throws Exception {
+        this.stubMultiGetSources(
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"tags\":[\"a\"]}}",
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R2\",\"title\":\"Rule 2\"}}");
+        List<BulkRequest> sent =
+                this.stubSyncBulkResponses(bulkResponseWith(successItem(0), successItem(1)));
+
+        long result =
+                this.contentIndex.batchUpdate(
+                        List.of(
+                                new ContentIndex.UpdateTask(
+                                        "R1", List.of(new Operation("add", "/document/tags/1", null, "b")), 101L),
+                                new ContentIndex.UpdateTask(
+                                        "R2",
+                                        List.of(new Operation("replace", "/document/title", null, "Updated")),
+                                        102L),
+                                new ContentIndex.UpdateTask(
+                                        "R1", List.of(new Operation("add", "/document/tags/2", null, "c")), 103L)));
+
+        Assert.assertEquals(103L, result);
+        ArgumentCaptor<MultiGetRequest> mget = ArgumentCaptor.forClass(MultiGetRequest.class);
+        verify(this.client).multiGet(mget.capture());
+        Assert.assertEquals(2, mget.getValue().getItems().size());
+
+        Assert.assertEquals(1, sent.size());
+        Assert.assertEquals(2, sent.get(0).numberOfActions());
+        // R1 is indexed after its last change, so after R2.
+        Assert.assertEquals("R2", sent.get(0).requests().get(0).id());
+        Assert.assertEquals("R1", sent.get(0).requests().get(1).id());
+        JsonNode r1 = this.indexedSource(sent.get(0), 1);
+        Assert.assertEquals(
+                this.mapper.readTree("[\"a\",\"b\",\"c\"]"), r1.get("document").get("tags"));
+        Assert.assertEquals(103L, r1.get("offset").asLong());
+    }
+
+    /**
+     * A change that does not fit its document fails the batch with that change's offset and document,
+     * not the last task's, and nothing is indexed.
+     */
+    public void testBatchUpdate_PatchFailureReportsTheFailingChange() throws Exception {
+        this.stubMultiGetSources(
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"}}",
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R2\",\"title\":\"Rule 2\"}}");
+        List<BulkRequest> sent = this.stubSyncBulkResponses(bulkResponseWith(successItem(0)));
+
+        ContentIndex.PatchException e =
+                expectThrows(
+                        ContentIndex.PatchException.class,
+                        () ->
+                                this.contentIndex.batchUpdate(
+                                        List.of(
+                                                new ContentIndex.UpdateTask(
+                                                        "R1",
+                                                        List.of(new Operation("replace", "/document/title", null, "U")),
+                                                        101L),
+                                                new ContentIndex.UpdateTask(
+                                                        "R2",
+                                                        List.of(new Operation("add", "/document/missing/child", null, "x")),
+                                                        102L),
+                                                new ContentIndex.UpdateTask(
+                                                        "R1",
+                                                        List.of(new Operation("replace", "/document/title", null, "V")),
+                                                        103L))));
+
+        Assert.assertEquals("R2", e.getId());
+        Assert.assertEquals(Long.valueOf(102L), e.getOffset());
+        Assert.assertEquals(
+                "operation 0 (add /document/missing/child): parent of node to add does not exist",
+                e.getMessage());
+        Assert.assertTrue(sent.isEmpty());
+    }
+
+    /** A change at or below the stored offset is already in the document and is skipped. */
+    public void testBatchUpdate_SkipsChangesOlderThanTheStoredOffset() throws Exception {
+        this.stubMultiGetSources(
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"},\"offset\":105}");
+
+        long result =
+                this.contentIndex.batchUpdate(
+                        List.of(
+                                new ContentIndex.UpdateTask(
+                                        "R1",
+                                        // Would fail if applied: the document has no "missing" field.
+                                        List.of(new Operation("remove", "/document/missing", null, null)),
+                                        101L)));
+
+        Assert.assertEquals(101L, result);
+        verify(this.client, times(0)).bulk(any(BulkRequest.class));
+    }
+
+    /**
+     * A CVE change patches the CTI content under {@code document}, and the stored document keeps the
+     * {@code type} and {@code offset} at its root, as a snapshot load stores them.
+     */
+    public void testBatchUpdate_CveKeepsTypeAtRoot() throws Exception {
+        ContentIndex cveIndex = new ContentIndex(this.client, Constants.INDEX_CVES, MAPPINGS_PATH);
+        this.stubMultiGetSources(
+                "{\"document\":{\"cveMetadata\":{\"cveId\":\"CVE-2026-0001\",\"state\":\"PUBLISHED\"}},"
+                        + "\"offset\":900,\"type\":\"CVE\"}");
+        List<BulkRequest> sent = this.stubSyncBulkResponses(bulkResponseWith(successItem(0)));
+
+        cveIndex.batchUpdate(
+                List.of(
+                        new ContentIndex.UpdateTask(
+                                "CVE-2026-0001",
+                                List.of(new Operation("replace", "/cveMetadata/state", null, "REJECTED")),
+                                1001L)));
+
+        Assert.assertEquals(
+                this.mapper.readTree(
+                        "{\"document\":{\"cveMetadata\":{\"cveId\":\"CVE-2026-0001\",\"state\":\"REJECTED\"}},"
+                                + "\"offset\":1001,\"type\":\"CVE\"}"),
+                this.indexedSource(sent.get(0), 0));
     }
 
     /** Test that update retries on CircuitBreakingException from GET and succeeds. */

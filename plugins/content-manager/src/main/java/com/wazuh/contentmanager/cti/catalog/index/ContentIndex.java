@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import com.github.fge.jsonpatch.JsonPatchException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteRequest;
@@ -67,7 +69,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -170,6 +177,49 @@ public class ContentIndex {
 
     /** Describes a single document update: the document ID, patch operations, and CTI offset. */
     public record UpdateTask(String id, List<Operation> operations, long offset) {}
+
+    /**
+     * Thrown when the operations of a CTI change cannot be applied to the stored document, typically
+     * because the document does not match the version the change was computed against. Carries the
+     * change that failed, so callers can report it rather than the change that was being processed
+     * when a batch was flushed.
+     */
+    public static class PatchException extends Exception {
+        private final String id;
+        private final Long offset;
+
+        /**
+         * Constructs a new PatchException.
+         *
+         * @param id The ID of the document the change targets.
+         * @param offset The CTI offset of the change, or null if unknown.
+         * @param message Why the change could not be applied.
+         * @param cause The underlying failure, or null.
+         */
+        public PatchException(String id, Long offset, String message, Throwable cause) {
+            super(message, cause);
+            this.id = id;
+            this.offset = offset;
+        }
+
+        /**
+         * Gets the ID of the document the change targets.
+         *
+         * @return The document ID.
+         */
+        public String getId() {
+            return this.id;
+        }
+
+        /**
+         * Gets the CTI offset of the change.
+         *
+         * @return The offset, or null if unknown.
+         */
+        public Long getOffset() {
+            return this.offset;
+        }
+    }
 
     /** A synchronous call to the cluster that may fail with a checked exception. */
     @FunctionalInterface
@@ -552,112 +602,140 @@ public class ContentIndex {
             throw new IOException("Document [" + id + "] not found for update.");
         }
 
-        // 2. Patch
+        // 2. Patch and process
         ObjectNode currentDoc = (ObjectNode) MAPPER.readTree(response.getSourceAsString());
+        String processedJson = this.patch(id, currentDoc, operations, offset);
 
-        // Resources from the VD feed do not contain a "document" object, so we need to patch the root
-        // document instead of the "document" node.
-        if (this.indexName.equals(Constants.INDEX_CVES)) {
-            currentDoc = (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT);
-            if (currentDoc == null) {
-                throw new IOException(
-                        "Document [" + id + "] is missing the '" + Constants.KEY_DOCUMENT + "' field.");
-            }
-        }
-
-        for (Operation op : operations) {
-            JsonNode opJson = MAPPER.valueToTree(op);
-            JsonPatch.applyOperation(currentDoc, opJson);
-        }
-
-        // 2.5. Inject offset if provided
-        if (offset != null) {
-            currentDoc.put(Constants.KEY_OFFSET, offset);
-        }
-
-        // 3. Process
-        String processedJson = this.processPayloadToString(currentDoc);
-
-        // 4. Index
+        // 3. Index
         IndexRequest request =
                 new IndexRequest(this.getWriteIndex()).id(id).source(processedJson, XContentType.JSON);
         this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**
+     * Applies the operations of one CTI change to a stored document.
+     *
+     * <p>CVE changes are relative to the CTI content, which the index keeps under {@code document},
+     * so they patch that node, and the {@code type} kept next to it is carried over.
+     *
+     * @param id The ID of the document.
+     * @param stored The document as stored in the index.
+     * @param operations The operations of the change.
+     * @param offset The CTI offset to store on the document, or null to leave it out.
+     * @return The patched document, processed and serialized for indexing.
+     * @throws PatchException If the operations cannot be applied to the document.
+     * @throws IOException If a CVE document has no {@code document} field.
+     */
+    private String patch(String id, ObjectNode stored, List<Operation> operations, Long offset)
+            throws PatchException, IOException {
+        boolean isCve = this.indexName.equals(Constants.INDEX_CVES);
+        JsonNode content = isCve ? stored.get(Constants.KEY_DOCUMENT) : stored;
+        if (content == null || !content.isObject()) {
+            throw new IOException(
+                    "Document [" + id + "] is missing the '" + Constants.KEY_DOCUMENT + "' field.");
+        }
+
+        JsonNode result;
+        try {
+            result = JsonPatch.apply(content, operations);
+        } catch (JsonPatchException e) {
+            throw new PatchException(id, offset, e.getMessage(), e);
+        }
+        if (!result.isObject()) {
+            throw new PatchException(id, offset, "the patched document is not a JSON object", null);
+        }
+
+        ObjectNode patched = (ObjectNode) result;
+        if (offset != null) {
+            patched.put(Constants.KEY_OFFSET, offset);
+        }
+        // Cve.fromPayload moves both back to the root, as it does for the CTI payloads.
+        if (isCve && stored.hasNonNull(Constants.KEY_TYPE)) {
+            patched.set(Constants.KEY_TYPE, stored.get(Constants.KEY_TYPE));
+        }
+        return this.processPayloadToString(patched);
+    }
+
+    /**
      * Applies a batch of update tasks using a single MultiGet + BulkRequest round-trip pair.
-     * Documents whose stored offset already matches the target offset are skipped (idempotency guard
-     * for partial-failure retries).
+     *
+     * <p>A batch can hold several changes of the same document, since CTI publishes successive
+     * versions of a resource back to back. Each document is fetched and indexed once, and each of its
+     * changes is applied on top of the previous one, not on the version fetched before the batch.
+     * Changes a document already holds, because its stored offset is at or past theirs, are skipped
+     * (idempotency guard for partial-failure retries).
      *
      * @param tasks The update tasks to apply. Must not be empty.
      * @return The offset of the last successfully applied task.
+     * @throws PatchException If the operations of a task cannot be applied to its document. Nothing
+     *     from the batch is indexed, unless the size limit already flushed part of it.
      * @throws Exception If fetching or indexing fails.
      */
     public long batchUpdate(List<UpdateTask> tasks) throws Exception {
         long timeout = this.pluginSettings.getClientTimeout();
         long maxBytes = this.pluginSettings.getMaxBulkBytes();
 
-        // 1. MultiGet all documents, excluding the derived yaml field to reduce allocation
+        // The position of each document's last change, keyed in first-seen order.
+        Map<String, Integer> lastTaskOf = new LinkedHashMap<>();
+        for (int i = 0; i < tasks.size(); i++) {
+            lastTaskOf.put(tasks.get(i).id(), i);
+        }
+        List<String> ids = new ArrayList<>(lastTaskOf.keySet());
+
+        // 1. MultiGet each document once, excluding the derived yaml field to reduce allocation
         FetchSourceContext excludeYaml =
                 new FetchSourceContext(true, new String[0], new String[] {Constants.KEY_YAML});
         MultiGetRequest mgetRequest = new MultiGetRequest();
-        for (UpdateTask task : tasks) {
-            mgetRequest.add(
-                    new MultiGetRequest.Item(this.indexName, task.id()).fetchSourceContext(excludeYaml));
+        for (String id : ids) {
+            mgetRequest.add(new MultiGetRequest.Item(this.indexName, id).fetchSourceContext(excludeYaml));
         }
         MultiGetResponse mgetResponse =
                 this.retryTransient(
-                        "multi-get of " + tasks.size() + " document(s)",
+                        "multi-get of " + ids.size() + " document(s)",
                         () -> this.client.multiGet(mgetRequest).get(timeout, TimeUnit.SECONDS));
         MultiGetItemResponse[] responses = mgetResponse.getResponses();
 
-        // 2. Stream: patch each document and flush when size limit is reached
-        BulkRequest bulkRequest = new BulkRequest();
-        boolean isCve = this.indexName.equals(Constants.INDEX_CVES);
-
-        for (int i = 0; i < tasks.size(); i++) {
-            UpdateTask task = tasks.get(i);
+        // The current version of each document: as fetched, then as patched by the batch so far.
+        Map<String, String> sources = new HashMap<>();
+        for (int i = 0; i < ids.size(); i++) {
+            String id = ids.get(i);
             MultiGetItemResponse item = responses[i];
-
             if (item.isFailed()) {
                 throw new IOException(
-                        "MultiGet failed for document [" + task.id() + "]: " + item.getFailure().getMessage());
+                        "MultiGet failed for document [" + id + "]: " + item.getFailure().getMessage());
             }
             GetResponse getResp = item.getResponse();
             if (!getResp.isExists()) {
-                throw new IOException("Document [" + task.id() + "] not found for update.");
+                throw new IOException("Document [" + id + "] not found for update.");
+            }
+            sources.put(id, getResp.getSourceAsString());
+        }
+
+        // 2. Stream: patch each document, index it after its last change, and flush when the size
+        // limit is reached
+        Set<String> patched = new HashSet<>();
+        BulkRequest bulkRequest = new BulkRequest();
+        for (int i = 0; i < tasks.size(); i++) {
+            UpdateTask task = tasks.get(i);
+            ObjectNode currentDoc = (ObjectNode) MAPPER.readTree(sources.get(task.id()));
+
+            // Idempotency guard: skip changes the document already holds
+            if (!currentDoc.has(Constants.KEY_OFFSET)
+                    || currentDoc.get(Constants.KEY_OFFSET).asLong() < task.offset()) {
+                sources.put(task.id(), this.patch(task.id(), currentDoc, task.operations(), task.offset()));
+                patched.add(task.id());
             }
 
-            ObjectNode currentDoc = (ObjectNode) MAPPER.readTree(getResp.getSourceAsString());
+            if (lastTaskOf.get(task.id()) == i && patched.contains(task.id())) {
+                bulkRequest.add(
+                        new IndexRequest(this.getWriteIndex())
+                                .id(task.id())
+                                .source(sources.remove(task.id()), XContentType.JSON));
 
-            // Idempotency guard: skip if already at this offset
-            if (currentDoc.has(Constants.KEY_OFFSET)
-                    && currentDoc.get(Constants.KEY_OFFSET).asLong() == task.offset()) {
-                continue;
-            }
-
-            ObjectNode patchTarget =
-                    isCve ? (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT) : currentDoc;
-            if (patchTarget == null) {
-                throw new IOException(
-                        "Document [" + task.id() + "] is missing the '" + Constants.KEY_DOCUMENT + "' field.");
-            }
-
-            for (Operation op : task.operations()) {
-                JsonNode opJson = MAPPER.valueToTree(op);
-                JsonPatch.applyOperation(patchTarget, opJson);
-            }
-            patchTarget.put(Constants.KEY_OFFSET, task.offset());
-
-            String processedJson = this.processPayloadToString(patchTarget);
-            bulkRequest.add(
-                    new IndexRequest(this.getWriteIndex())
-                            .id(task.id())
-                            .source(processedJson, XContentType.JSON));
-
-            if (bulkRequest.estimatedSizeInBytes() >= maxBytes) {
-                this.executeBulkUpdate(bulkRequest, timeout);
-                bulkRequest = new BulkRequest();
+                if (bulkRequest.estimatedSizeInBytes() >= maxBytes) {
+                    this.executeBulkUpdate(bulkRequest, timeout);
+                    bulkRequest = new BulkRequest();
+                }
             }
         }
 
