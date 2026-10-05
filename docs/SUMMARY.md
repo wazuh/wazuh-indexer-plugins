@@ -28,7 +28,7 @@
   - [Performance tuning](dev/skills/perf-tuning.md)
 
 # Reference manual
-- [Introduction]()
+- [Introduction](ref/index.md)
   - [Description](ref/description.md)
   - [Architecture](ref/architecture.md)
   - [Compatibility](ref/compatibility.md)
