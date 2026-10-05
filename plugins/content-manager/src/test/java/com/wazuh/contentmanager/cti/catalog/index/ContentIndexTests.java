@@ -726,6 +726,33 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertTrue(sent.isEmpty());
     }
 
+    /**
+     * A change to a document that does not exist is a content error too: it fails with the first
+     * change of that document, and nothing is indexed.
+     */
+    public void testBatchUpdate_MissingDocumentReportsItsFirstChange() throws Exception {
+        GetResponse missing = mock(GetResponse.class);
+        when(missing.isExists()).thenReturn(false);
+        MultiGetItemResponse item = mock(MultiGetItemResponse.class);
+        when(item.isFailed()).thenReturn(false);
+        when(item.getResponse()).thenReturn(missing);
+        MultiGetResponse mgetResponse = mock(MultiGetResponse.class);
+        when(mgetResponse.getResponses()).thenReturn(new MultiGetItemResponse[] {item});
+        PlainActionFuture<MultiGetResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(mgetResponse);
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(future);
+
+        ContentIndex.PatchException e =
+                expectThrows(
+                        ContentIndex.PatchException.class,
+                        () -> this.contentIndex.batchUpdate(updateTasks("R1", "R1")));
+
+        Assert.assertEquals("R1", e.getId());
+        Assert.assertEquals(Long.valueOf(100L), e.getOffset());
+        Assert.assertEquals("the document was not found", e.getMessage());
+        verify(this.client, times(0)).bulk(any(BulkRequest.class));
+    }
+
     /** A change at or below the stored offset is already in the document and is skipped. */
     public void testBatchUpdate_SkipsChangesOlderThanTheStoredOffset() throws Exception {
         this.stubMultiGetSources(

@@ -675,6 +675,8 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 
 If a critical error or data corruption is detected, the system resets `local_offset` to 0, triggering a full snapshot re-initialization on the next run.
 
+A change that cannot be applied to the stored content (its patch does not fit, or the document is missing) fails as a `ContentIndex.PatchException`, which carries the change's offset and resource. Retrying it fails the same way, so `AbstractConsumerService` handles it in the same pass: when the latest remote snapshot's offset is at or past the failing offset, it resets the consumer to offset 0, clears the content, loads that snapshot and applies the remaining changes from the snapshot's offset. When the snapshot is older, loading it would not get past the change, so the failure propagates and later runs retry until CTI publishes a snapshot that includes it. Each snapshot is therefore loaded at most once per failure, never on every run. Any other failure (CTI unreachable, cluster errors) propagates as before and resumes from the last checkpoint.
+
 ---
 
 ## Configuration settings

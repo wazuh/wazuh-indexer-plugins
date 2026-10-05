@@ -799,32 +799,7 @@ public abstract class AbstractConsumerService {
                 if (hasEffectiveCatalog
                         && remoteConsumer != null
                         && remoteConsumer.getSnapshotLink() != null) {
-                    // Ruleset snapshots also affect Security Analytics/Space resources; other catalogs only
-                    // clear indices.
-                    if (this.isRulesetConsumer()) {
-                        try {
-                            SecurityAnalyticsService securityAnalyticsService =
-                                    new SecurityAnalyticsServiceImpl(this.client);
-                            CompletableFuture<Void> sapFuture = new CompletableFuture<>();
-                            securityAnalyticsService.deleteSpaceResources(
-                                    Space.STANDARD,
-                                    ActionListener.wrap(
-                                            r -> sapFuture.complete(null), sapFuture::completeExceptionally));
-                            sapFuture.get(60, TimeUnit.SECONDS);
-
-                            SpaceService spaceService = new SpaceService(this.client);
-                            CompletableFuture<Void> spaceFuture = new CompletableFuture<>();
-                            spaceService.deleteSpaceResources(
-                                    Space.STANDARD,
-                                    ActionListener.wrap(
-                                            r -> spaceFuture.complete(null), spaceFuture::completeExceptionally));
-                            spaceFuture.get(60, TimeUnit.SECONDS);
-                        } catch (Exception e) {
-                            log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
-                        }
-                    } else {
-                        indicesMap.values().forEach(ContentIndex::clear);
-                    }
+                    this.clearContentForSnapshot(consumerType, indicesMap);
 
                     log.debug(Constants.D_LOG_SNAPSHOT_INIT_CUSTOM_URL, catalogUri);
                     boolean remoteSuccess = snapshotService.initialize(remoteConsumer);
@@ -949,16 +924,32 @@ public abstract class AbstractConsumerService {
                             consumerType,
                             remoteConsumer.getOffset());
                 } else {
-                    updated =
-                            this.performIncrementalUpdate(
-                                    context,
-                                    consumer,
-                                    consumerType,
-                                    catalogUri,
-                                    urlResolver,
-                                    indicesMap,
-                                    currentOffset,
-                                    remoteConsumer.getOffset());
+                    try {
+                        updated =
+                                this.performIncrementalUpdate(
+                                        context,
+                                        consumer,
+                                        consumerType,
+                                        catalogUri,
+                                        urlResolver,
+                                        indicesMap,
+                                        currentOffset,
+                                        remoteConsumer.getOffset());
+                    } catch (RuntimeException e) {
+                        if (!this.updateFromSnapshotAfterFailure(
+                                e,
+                                context,
+                                consumer,
+                                consumerType,
+                                catalogUri,
+                                urlResolver,
+                                indicesMap,
+                                remoteConsumer,
+                                snapshotsDir)) {
+                            throw e;
+                        }
+                        updated = true;
+                    }
                 }
             }
             return new SyncResult(updated, feedUnreachable, false);
@@ -967,6 +958,146 @@ public abstract class AbstractConsumerService {
                 tokenExchangeService.close();
             }
         }
+    }
+
+    /**
+     * Recovers from an incremental update that stopped on a change that cannot be applied to the
+     * stored content, such as a patch whose target does not exist. That change fails the same way on
+     * every pass, so retrying it leaves the consumer stuck. When the latest remote snapshot already
+     * includes the change, the content is reloaded from that snapshot, which holds the result of the
+     * change, and the remaining changes are applied from the snapshot's offset. Otherwise loading the
+     * snapshot cannot get past the change, so the failure stands and a later pass retries, once CTI
+     * publishes a newer snapshot.
+     *
+     * <p>Like a first-time initialization, the consumer is reset to offset 0 before its content is
+     * cleared, so a snapshot that then fails to load is retried from scratch on the next pass.
+     *
+     * @param failure The failure of the incremental update.
+     * @param context The CTI context name.
+     * @param consumer The CTI consumer name.
+     * @param consumerType The consumer type identifier.
+     * @param catalogUri The effective catalog URI.
+     * @param urlResolver The URL resolver for API requests.
+     * @param indicesMap The content indices keyed by type.
+     * @param remoteConsumer The remote consumer, with the latest snapshot.
+     * @param snapshotsDir The plugin's local snapshots directory, or {@code null}.
+     * @return {@code true} if the content was updated from the snapshot, {@code false} if the failure
+     *     must propagate.
+     */
+    private boolean updateFromSnapshotAfterFailure(
+            RuntimeException failure,
+            String context,
+            String consumer,
+            String consumerType,
+            String catalogUri,
+            ResourceUrlResolver urlResolver,
+            Map<String, ContentIndex> indicesMap,
+            RemoteConsumer remoteConsumer,
+            Path snapshotsDir) {
+        ContentIndex.PatchException patchFailure =
+                findCause(failure, ContentIndex.PatchException.class);
+        if (patchFailure == null || patchFailure.getOffset() == null) {
+            return false;
+        }
+        long failedOffset = patchFailure.getOffset();
+        long snapshotOffset = remoteConsumer.getSnapshotOffset();
+        String snapshotLink = remoteConsumer.getSnapshotLink();
+        if (snapshotLink == null || snapshotLink.isBlank() || snapshotOffset < failedOffset) {
+            log.warn(
+                    Constants.W_LOG_SNAPSHOT_DOES_NOT_INCLUDE_FAILED_OFFSET,
+                    failedOffset,
+                    consumerType,
+                    snapshotOffset);
+            return false;
+        }
+
+        log.warn(
+                Constants.W_LOG_UPDATE_FROM_SNAPSHOT_AFTER_FAILURE,
+                failedOffset,
+                consumerType,
+                snapshotOffset);
+        this.writeInitialConsumer(remoteConsumer, null, catalogUri, consumerType);
+        this.clearContentForSnapshot(consumerType, indicesMap);
+        SnapshotServiceImpl snapshotService =
+                this.snapshotServiceOverride != null
+                        ? this.snapshotServiceOverride
+                        : new SnapshotServiceImpl(
+                                consumerType,
+                                indicesMap,
+                                this.consumersIndex,
+                                this.environment,
+                                urlResolver,
+                                snapshotsDir,
+                                this.getSnapshotFilename());
+        if (!snapshotService.initialize(remoteConsumer)) {
+            log.error(Constants.E_LOG_UPDATE_FROM_SNAPSHOT_FAILED, consumerType, failedOffset);
+            return false;
+        }
+        if (snapshotsDir != null) {
+            this.broadcastSnapshotPromote(this.getSnapshotFilename());
+        }
+        if (snapshotOffset < remoteConsumer.getOffset()) {
+            this.performIncrementalUpdate(
+                    context,
+                    consumer,
+                    consumerType,
+                    catalogUri,
+                    urlResolver,
+                    indicesMap,
+                    snapshotOffset,
+                    remoteConsumer.getOffset());
+        }
+        return true;
+    }
+
+    /**
+     * Removes the content a snapshot is about to replace. Ruleset snapshots also affect the Security
+     * Analytics and space resources of the standard space; other catalogs only clear their indices.
+     *
+     * @param consumerType The consumer type identifier.
+     * @param indicesMap The content indices keyed by type.
+     */
+    private void clearContentForSnapshot(String consumerType, Map<String, ContentIndex> indicesMap) {
+        if (this.isRulesetConsumer()) {
+            try {
+                SecurityAnalyticsService securityAnalyticsService =
+                        new SecurityAnalyticsServiceImpl(this.client);
+                CompletableFuture<Void> sapFuture = new CompletableFuture<>();
+                securityAnalyticsService.deleteSpaceResources(
+                        Space.STANDARD,
+                        ActionListener.wrap(r -> sapFuture.complete(null), sapFuture::completeExceptionally));
+                sapFuture.get(60, TimeUnit.SECONDS);
+
+                SpaceService spaceService = new SpaceService(this.client);
+                CompletableFuture<Void> spaceFuture = new CompletableFuture<>();
+                spaceService.deleteSpaceResources(
+                        Space.STANDARD,
+                        ActionListener.wrap(
+                                r -> spaceFuture.complete(null), spaceFuture::completeExceptionally));
+                spaceFuture.get(60, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
+            }
+        } else {
+            indicesMap.values().forEach(ContentIndex::clear);
+        }
+    }
+
+    /**
+     * Returns the first throwable of the given type in a cause chain.
+     *
+     * @param throwable The throwable to inspect.
+     * @param type The type to look for.
+     * @param <T> The type to look for.
+     * @return The first match, or {@code null} if there is none.
+     */
+    private static <T extends Throwable> T findCause(Throwable throwable, Class<T> type) {
+        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
+            if (type.isInstance(cause)) {
+                return type.cast(cause);
+            }
+        }
+        return null;
     }
 
     /**
@@ -986,7 +1117,8 @@ public abstract class AbstractConsumerService {
      * @param toOffset The offset to update to (inclusive).
      * @return {@code true} if changes were applied.
      */
-    private boolean performIncrementalUpdate(
+    // Package-private so tests can replace the calls to CTI.
+    boolean performIncrementalUpdate(
             String context,
             String consumer,
             String consumerType,

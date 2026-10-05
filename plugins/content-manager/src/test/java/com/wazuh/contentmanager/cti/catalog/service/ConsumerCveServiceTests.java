@@ -38,10 +38,14 @@ import org.junit.Before;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -419,5 +423,144 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         }
         verify(this.snapshotService, never()).initialize(any(RemoteConsumer.class));
         verify(this.snapshotService, never()).initialize(any(Path.class), any());
+    }
+
+    // ---------------------------------------------------------------------
+    // An offset that cannot be applied falls back to a snapshot (#1633).
+    // ---------------------------------------------------------------------
+
+    private static final String VD_CATALOG_URI =
+            "https://cti.example/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5";
+
+    /** A ConsumerCveService whose incremental updates are scripted instead of calling CTI. */
+    private static class ScriptedConsumerCveService extends TestableConsumerCveService {
+        final List<long[]> incrementalUpdates = new ArrayList<>();
+        private final RuntimeException firstFailure;
+
+        ScriptedConsumerCveService(
+                Client client,
+                ConsumersIndex consumersIndex,
+                Environment environment,
+                RuntimeException firstFailure) {
+            super(client, consumersIndex, environment);
+            this.firstFailure = firstFailure;
+        }
+
+        @Override
+        boolean performIncrementalUpdate(
+                String context,
+                String consumer,
+                String consumerType,
+                String catalogUri,
+                ResourceUrlResolver urlResolver,
+                Map<String, ContentIndex> indicesMap,
+                long fromOffset,
+                long toOffset) {
+            this.incrementalUpdates.add(new long[] {fromOffset, toOffset});
+            if (this.incrementalUpdates.size() == 1) {
+                throw this.firstFailure;
+            }
+            return true;
+        }
+    }
+
+    /** The failure UpdateServiceImpl reports when offset 1030 cannot be applied. */
+    private static RuntimeException patchFailureAt(long offset) {
+        return new RuntimeException(
+                "Update failed for consumer [cti:catalog:consumer:vulnerabilities]",
+                new ContentIndex.PatchException(
+                        "CVE-2026-90029", offset, "operation 0 (remove /x): no such path", null));
+    }
+
+    /**
+     * A consumer at offset 1000 whose next incremental update fails as given, against a remote head
+     * at 1060 whose latest snapshot is at the given offset.
+     */
+    private ScriptedConsumerCveService consumerStuckAt1000(
+            long snapshotOffset, RuntimeException failure, RemoteConsumer remoteConsumer)
+            throws Exception {
+        ConsumerCveServiceTests.clearPluginSettings();
+        PluginSettings.getInstance(
+                Settings.builder()
+                        .put("plugins.content_manager.catalog.vulnerabilities", VD_CATALOG_URI)
+                        .build());
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        when(this.consumerService.getLocalConsumer())
+                .thenReturn(
+                        new LocalConsumer(
+                                "t1-vulnerabilities-5",
+                                "public-vulnerabilities-5",
+                                "cti:catalog:consumer:vulnerabilities",
+                                VD_CATALOG_URI,
+                                true,
+                                LocalConsumer.Status.FAILED,
+                                1000,
+                                1050));
+        when(this.consumerService.getRemoteConsumer()).thenReturn(remoteConsumer);
+        when(remoteConsumer.getSnapshotLink()).thenReturn("https://cti.example/store/snapshot.zip");
+        when(remoteConsumer.getSnapshotOffset()).thenReturn(snapshotOffset);
+        when(remoteConsumer.getOffset()).thenReturn(1060L);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:vulnerabilities"))
+                .thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(false);
+        when(this.snapshotService.initialize(eq(remoteConsumer))).thenReturn(true);
+
+        ScriptedConsumerCveService service =
+                new ScriptedConsumerCveService(this.client, this.consumersIndex, this.environment, failure);
+        service.setConsumerService(this.consumerService);
+        service.setSnapshotService(this.snapshotService);
+        return service;
+    }
+
+    /**
+     * An offset that cannot be applied, with a snapshot that includes it: the same pass resets the
+     * consumer, loads the snapshot and applies the remaining changes from the snapshot's offset.
+     */
+    public void testPatchFailureUpdatesFromSnapshotThatIncludesTheOffset() throws Exception {
+        RemoteConsumer remoteConsumer = mock(RemoteConsumer.class);
+        ScriptedConsumerCveService service =
+                this.consumerStuckAt1000(1050L, patchFailureAt(1030L), remoteConsumer);
+
+        boolean needsRetry = service.synchronize();
+
+        assertFalse(needsRetry);
+        verify(this.snapshotService).initialize(eq(remoteConsumer));
+        assertEquals(2, service.incrementalUpdates.size());
+        assertArrayEquals(new long[] {1000, 1060}, service.incrementalUpdates.get(0));
+        assertArrayEquals(new long[] {1050, 1060}, service.incrementalUpdates.get(1));
+        // Reset to 0 before the content is cleared, as a first-time initialization does.
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(captor.capture());
+        assertEquals(0, captor.getValue().getLocalOffset());
+        assertEquals(1060, captor.getValue().getRemoteOffset());
+    }
+
+    /**
+     * An offset that cannot be applied, with a snapshot older than it: loading the snapshot would not
+     * get past the offset, so it is not downloaded and the failure propagates.
+     */
+    public void testPatchFailureWithOlderSnapshotDoesNotLoadIt() throws Exception {
+        RemoteConsumer remoteConsumer = mock(RemoteConsumer.class);
+        ScriptedConsumerCveService service =
+                this.consumerStuckAt1000(1000L, patchFailureAt(1030L), remoteConsumer);
+
+        expectThrows(RuntimeException.class, service::synchronize);
+
+        verify(this.snapshotService, never()).initialize(any(RemoteConsumer.class));
+        assertEquals(1, service.incrementalUpdates.size());
+    }
+
+    /** Any other failure, here a CTI error, propagates without touching the content. */
+    public void testNonPatchFailureDoesNotLoadSnapshot() throws Exception {
+        RemoteConsumer remoteConsumer = mock(RemoteConsumer.class);
+        ScriptedConsumerCveService service =
+                this.consumerStuckAt1000(
+                        1050L, new RuntimeException("Failed to fetch changes (HTTP 500)"), remoteConsumer);
+
+        expectThrows(RuntimeException.class, service::synchronize);
+
+        verify(this.snapshotService, never()).initialize(any(RemoteConsumer.class));
+        assertEquals(1, service.incrementalUpdates.size());
     }
 }

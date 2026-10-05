@@ -473,6 +473,14 @@ public class Constants {
     public static final String I_LOG_UPDATE_CONSUMER_SUCCESS =
             "Successfully updated consumer [{}] to offset [{}]";
     public static final String E_LOG_UPDATE_FAILED = "Error during content update: {}";
+    public static final String W_LOG_UPDATE_FROM_SNAPSHOT_AFTER_FAILURE =
+            "Offset [{}] of consumer [{}] cannot be applied to the stored content."
+                    + " Updating from the snapshot at offset [{}], which includes it.";
+    public static final String W_LOG_SNAPSHOT_DOES_NOT_INCLUDE_FAILED_OFFSET =
+            "Offset [{}] of consumer [{}] cannot be applied to the stored content, and the latest"
+                    + " snapshot (offset [{}]) does not include it. It will be retried on the next run.";
+    public static final String E_LOG_UPDATE_FROM_SNAPSHOT_FAILED =
+            "Failed to update consumer [{}] from the snapshot after offset [{}] could not be applied.";
     public static final String W_LOG_UPDATE_NO_INDEX_FOR_TYPE = "No index mapped for type [{}]";
     public static final String D_LOG_UPDATE_SKIP_CVE_DELETE =
             "Skipping DELETE for CVE resource [{}] (CVE removals are not applied).";

@@ -179,10 +179,11 @@ public class ContentIndex {
     public record UpdateTask(String id, List<Operation> operations, long offset) {}
 
     /**
-     * Thrown when the operations of a CTI change cannot be applied to the stored document, typically
-     * because the document does not match the version the change was computed against. Carries the
-     * change that failed, so callers can report it rather than the change that was being processed
-     * when a batch was flushed.
+     * Thrown when a CTI change cannot be applied to the stored content: its operations do not fit the
+     * stored document, typically because the document does not match the version the change was
+     * computed against, or the document does not exist. Carries the change that failed, so callers
+     * can report it rather than the change that was being processed when a batch was flushed, and can
+     * tell it from a transient failure: retrying the change fails the same way.
      */
     public static class PatchException extends Exception {
         private final String id;
@@ -599,7 +600,7 @@ public class ContentIndex {
                         .get(new GetRequest(this.indexName, id).fetchSourceContext(excludeYaml))
                         .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         if (!response.isExists()) {
-            throw new IOException("Document [" + id + "] not found for update.");
+            throw new PatchException(id, offset, "the document was not found", null);
         }
 
         // 2. Patch and process
@@ -667,8 +668,8 @@ public class ContentIndex {
      *
      * @param tasks The update tasks to apply. Must not be empty.
      * @return The offset of the last successfully applied task.
-     * @throws PatchException If the operations of a task cannot be applied to its document. Nothing
-     *     from the batch is indexed, unless the size limit already flushed part of it.
+     * @throws PatchException If a task's document does not exist or its operations cannot be applied
+     *     to it. Nothing from the batch is indexed, unless the size limit already flushed part of it.
      * @throws Exception If fetching or indexing fails.
      */
     public long batchUpdate(List<UpdateTask> tasks) throws Exception {
@@ -706,7 +707,9 @@ public class ContentIndex {
             }
             GetResponse getResp = item.getResponse();
             if (!getResp.isExists()) {
-                throw new IOException("Document [" + id + "] not found for update.");
+                long offset =
+                        tasks.stream().filter(t -> t.id().equals(id)).findFirst().orElseThrow().offset();
+                throw new PatchException(id, offset, "the document was not found", null);
             }
             sources.put(id, getResp.getSourceAsString());
         }
