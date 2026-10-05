@@ -314,7 +314,7 @@ Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer nod
 
 #### Testing the cluster installation
 
-1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following commands to confirm that the installation is successful. `$WAZUH_INDEXER_ADMIN_PASSWORD` is the `admin` password from `/etc/wazuh/credentials.env`. Load it with `WAZUH_INDEXER_ADMIN_PASSWORD=$(sudo grep '^WAZUH_INDEXER_ADMIN_PASSWORD=' /etc/wazuh/credentials.env | cut -d= -f2-)`.
+1. Replace `$WAZUH_INDEXER_IP_ADDRESS` and run the following commands to confirm that the installation is successful. `$WAZUH_INDEXER_ADMIN_PASSWORD` is the `admin` password from `/etc/wazuh/credentials.env`. Load it with `WAZUH_INDEXER_ADMIN_PASSWORD=$(sudo grep '^WAZUH_INDEXER_ADMIN_PASSWORD=' /etc/wazuh/credentials.env | cut -d= -f2- | tail -n 1)`.
 
     ```bash
     curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://$WAZUH_INDEXER_IP_ADDRESS:9200"
