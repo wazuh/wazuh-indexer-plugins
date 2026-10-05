@@ -7,10 +7,9 @@ This section contains the Wazuh Indexer reference manual, composed by installati
 API examples authenticate as `admin` with `$WAZUH_INDEXER_ADMIN_PASSWORD`. That password is generated during installation and is unique to each deployment, so load it into your shell before running them:
 
 ```bash
-eval "$(sudo cat /etc/wazuh/credentials.env)"
+WAZUH_INDEXER_ADMIN_PASSWORD=$(sudo grep '^WAZUH_INDEXER_ADMIN_PASSWORD=' /etc/wazuh/credentials.env | cut -d= -f2- | tail -n 1)
 ```
 
-`source` cannot read the file directly: it is `0600 root:root`, and `source` is a shell builtin, so
-`sudo` cannot run it. Run the examples as root instead if you prefer.
+The file can hold the same key twice — once as an operator wrote it, once in the block the packages manage — so the last match is the one in use.
 
 If you have already removed that file, as recommended once every component is installed, substitute the password directly. See [Retrieving the generated credentials](./getting-started/installation.md#retrieving-the-generated-credentials).
