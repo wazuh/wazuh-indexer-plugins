@@ -50,8 +50,10 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.console.model.Feature;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
+import com.wazuh.contentmanager.cti.console.service.TokenRejectedException;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.transport.TransportPromoteSnapshotAction;
 import com.wazuh.contentmanager.utils.Constants;
@@ -559,7 +561,16 @@ public abstract class AbstractConsumerService {
         //   4. the manifest entry's `resource` (auto-recovery on the first sync after the local
         //      snapshot was consumed/deleted, when no doc exists yet).
         String settingCatalogUri = this.getCustomCatalogUri();
-        String planResource = this.resolvePlanResource(consumerType);
+        // A registered instance whose plan could not be fetched has an unknown plan, not a free one:
+        // it keeps its current data source and must not be downgraded below.
+        String planResource = null;
+        boolean planUnknown = false;
+        try {
+            planResource = this.resolvePlanResource(consumerType);
+        } catch (CtiConsoleUnavailableException e) {
+            log.warn(Constants.W_LOG_PLAN_RESOURCE_RESOLVE_FAILED, consumerType, e.getMessage());
+            planUnknown = true;
+        }
         String existingResource = this.readExistingConsumerResource(consumerType);
         String manifestResource =
                 (manifestEntry != null
@@ -586,9 +597,11 @@ public abstract class AbstractConsumerService {
         //
         // Two cases trigger a swap:
         //   1. Upgrade: planResource is non-null and differs from existingResource.
-        //   2. Downgrade: environment is unregistered (planResource is null), but
-        //      existingResource differs from the manifest resource (free/default).
-        //      This means we were on a paid plan and need to swap back to free content.
+        //   2. Downgrade: the environment has no plan resource (unregistered, token rejected, or the
+        //      plan has no feature for this consumer), but existingResource differs from the
+        //      manifest resource (free/default). This means we were on a paid plan and need to swap
+        //      back to free content. Never taken when the plan lookup failed (planUnknown): a CTI
+        //      outage must not downgrade a paying instance.
         boolean shadowSwapRequired = false;
         String swapTargetResource = null;
         if (planResource != null
@@ -601,7 +614,8 @@ public abstract class AbstractConsumerService {
             shadowSwapRequired = true;
             swapTargetResource = planResource;
             catalogUri = planResource;
-        } else if ((planResource == null || planResource.isBlank())
+        } else if (!planUnknown
+                && (planResource == null || planResource.isBlank())
                 && existingResource != null
                 && !existingResource.isBlank()
                 && !manifestResource.isBlank()
@@ -1230,40 +1244,49 @@ public abstract class AbstractConsumerService {
      *
      * @param consumerType the consumer type to look up (e.g., {@code
      *     "cti:catalog:consumer:ruleset"}).
-     * @return the feature's resource URL, or {@code null} if not registered or no matching feature.
+     * @return the feature's resource URL, or {@code null} if not registered, the CTI Console rejected
+     *     the token, or the plan has no matching feature.
+     * @throws CtiConsoleUnavailableException if the plan of a registered environment could not be
+     *     fetched, so whether it provides a resource is unknown.
      */
-    private String resolvePlanResource(String consumerType) {
+    private String resolvePlanResource(String consumerType) throws CtiConsoleUnavailableException {
         if (!PluginSettings.getInstance().isRegistered()) {
             return null;
         }
+        Plan plan;
+        PlansServiceImpl plansService = null;
         try {
-            PlansServiceImpl plansService = new PlansServiceImpl();
-            try {
-                Plan plan =
-                        plansService.getMyPlan(
-                                new Token(PluginSettings.getInstance().getAccessToken(), "Bearer"));
-                if (plan == null) {
-                    log.debug(Constants.D_LOG_NO_PLAN_RETURNED);
-                    return null;
-                }
-                Feature feature = plan.getFeature(consumerType);
-                if (feature == null) {
-                    log.debug(Constants.D_LOG_NO_FEATURE_FOR_CONSUMER, consumerType, plan.getName());
-                    return null;
-                }
-                log.debug(
-                        Constants.D_LOG_PLAN_PROVIDES_RESOURCE,
-                        plan.getName(),
-                        feature.getResource(),
-                        consumerType);
-                return feature.getResource();
-            } finally {
+            plansService = new PlansServiceImpl();
+            plan =
+                    plansService.getMyPlan(
+                            new Token(PluginSettings.getInstance().getAccessToken(), "Bearer"));
+        } catch (TokenRejectedException e) {
+            log.debug(Constants.D_LOG_PLAN_TOKEN_REJECTED, consumerType);
+            return null;
+        } catch (CtiConsoleUnavailableException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CtiConsoleUnavailableException(e.getMessage(), e);
+        } finally {
+            if (plansService != null) {
                 plansService.close();
             }
-        } catch (Exception e) {
-            log.warn(Constants.W_LOG_PLAN_RESOURCE_RESOLVE_FAILED, consumerType, e.getMessage());
+        }
+        if (plan == null) {
+            log.debug(Constants.D_LOG_NO_PLAN_RETURNED);
             return null;
         }
+        Feature feature = plan.getFeature(consumerType);
+        if (feature == null) {
+            log.debug(Constants.D_LOG_NO_FEATURE_FOR_CONSUMER, consumerType, plan.getName());
+            return null;
+        }
+        log.debug(
+                Constants.D_LOG_PLAN_PROVIDES_RESOURCE,
+                plan.getName(),
+                feature.getResource(),
+                consumerType);
+        return feature.getResource();
     }
 
     /**

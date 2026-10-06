@@ -24,6 +24,7 @@ import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
+import com.wazuh.contentmanager.cti.console.service.TokenRejectedException;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -57,40 +58,45 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         this.getAccessToken(
                 ActionListener.wrap(
                         accessToken -> {
-                            if (accessToken != null) {
-                                this.plansService.getMyPlan(
-                                        new Token(accessToken, "Bearer"),
-                                        ActionListener.wrap(
-                                                plan -> {
-                                                    if (plan != null) {
-                                                        listener.onResponse(plan);
-                                                        return;
-                                                    }
-                                                    log.info(Constants.I_LOG_ACCESS_TOKEN_EXPIRED_OR_INVALID);
-                                                    this.credentialsIndex.deleteDocument(
-                                                            ActionListener.wrap(
-                                                                    deleteResponse -> {
-                                                                        PluginSettings.getInstance().setAccessToken(null);
-                                                                        this.plansService.getPlan(listener);
-                                                                    },
-                                                                    e -> {
-                                                                        log.warn(
-                                                                                "Failed to delete"
-                                                                                        + " invalid"
-                                                                                        + " credentials"
-                                                                                        + " document:"
-                                                                                        + " {}",
-                                                                                e.getMessage());
-                                                                        PluginSettings.getInstance().setAccessToken(null);
-                                                                        this.plansService.getPlan(listener);
-                                                                    }));
-                                                },
-                                                listener::onFailure));
-                            } else {
+                            if (accessToken == null) {
                                 this.plansService.getPlan(listener);
+                                return;
                             }
+                            this.plansService.getMyPlan(
+                                    new Token(accessToken, "Bearer"),
+                                    ActionListener.wrap(
+                                            listener::onResponse,
+                                            e -> {
+                                                if (e instanceof TokenRejectedException) {
+                                                    this.clearCredentialsAndGetPublicPlan(listener);
+                                                    return;
+                                                }
+                                                // Anything but a rejection says nothing about the token:
+                                                // keep it and let the caller report the failure.
+                                                log.warn(Constants.W_LOG_PLAN_LOOKUP_FAILED_TOKEN_KEPT, e.getMessage());
+                                                listener.onFailure(e);
+                                            }));
                         },
                         listener::onFailure));
+    }
+
+    /**
+     * Deletes the credentials document and clears the in-memory token after the CTI Console rejected
+     * the token, then answers with the public plan.
+     */
+    private void clearCredentialsAndGetPublicPlan(ActionListener<Plan> listener) {
+        log.info(Constants.I_LOG_ACCESS_TOKEN_EXPIRED_OR_INVALID);
+        this.credentialsIndex.deleteDocument(
+                ActionListener.wrap(
+                        deleteResponse -> {
+                            PluginSettings.getInstance().setAccessToken(null);
+                            this.plansService.getPlan(listener);
+                        },
+                        e -> {
+                            log.warn("Failed to delete invalid credentials document: {}", e.getMessage());
+                            PluginSettings.getInstance().setAccessToken(null);
+                            this.plansService.getPlan(listener);
+                        }));
     }
 
     private void getAccessToken(ActionListener<String> listener) {
