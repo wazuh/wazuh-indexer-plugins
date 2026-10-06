@@ -372,6 +372,21 @@ public class ContentIndex {
      */
     public CreateIndexResponse createIndex()
             throws ExecutionException, InterruptedException, TimeoutException {
+        return this.createIndex(this.physicalName);
+    }
+
+    /**
+     * Creates the given physical index with the configured mappings and settings, and assigns the
+     * public alias to it.
+     *
+     * @param physicalName The physical index to create.
+     * @return The response from the create index operation, or null if mappings could not be read.
+     * @throws ExecutionException If the client execution fails.
+     * @throws InterruptedException If the thread is interrupted while waiting.
+     * @throws TimeoutException If the operation exceeds the client timeout setting.
+     */
+    private CreateIndexResponse createIndex(String physicalName)
+            throws ExecutionException, InterruptedException, TimeoutException {
         if (this.mappingsPath == null) {
             log.error(Constants.E_LOG_CREATE_INDEX_NO_MAPPINGS, this.indexName);
             return null;
@@ -393,7 +408,7 @@ public class ContentIndex {
         }
 
         CreateIndexRequest request =
-                new CreateIndexRequest().index(this.physicalName).mapping(mappings).settings(settings);
+                new CreateIndexRequest().index(physicalName).mapping(mappings).settings(settings);
 
         CreateIndexResponse response =
                 this.client
@@ -408,7 +423,7 @@ public class ContentIndex {
                     new IndicesAliasesRequest()
                             .addAliasAction(
                                     IndicesAliasesRequest.AliasActions.add()
-                                            .index(this.physicalName)
+                                            .index(physicalName)
                                             .alias(this.indexName)
                                             .writeIndex(true));
             this.client
@@ -416,7 +431,7 @@ public class ContentIndex {
                     .indices()
                     .aliases(aliasRequest)
                     .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            log.debug(Constants.D_LOG_INDEX_CREATED_WITH_ALIAS, this.physicalName, this.indexName);
+            log.debug(Constants.D_LOG_INDEX_CREATED_WITH_ALIAS, physicalName, this.indexName);
         }
 
         return response;
@@ -1241,8 +1256,8 @@ public class ContentIndex {
     }
 
     /**
-     * Deletes all documents in the index by deleting the physical index and recreating it with the
-     * alias.
+     * Deletes all documents in the index by deleting the physical index the alias points at and
+     * recreating it, under the same name, with the alias.
      */
     public void clear() {
         if (this.mappingsPath == null) {
@@ -1250,15 +1265,32 @@ public class ContentIndex {
             return;
         }
         try {
-            boolean exists =
-                    this.client.admin().indices().prepareExists(this.physicalName).get().isExists();
+            String target = this.isShadow ? this.physicalName : this.livePhysicalName();
+            boolean exists = this.client.admin().indices().prepareExists(target).get().isExists();
             if (exists) {
-                this.client.admin().indices().prepareDelete(this.physicalName).get();
+                this.client.admin().indices().prepareDelete(target).get();
             }
-            this.createIndex();
-            log.debug(Constants.D_LOG_INDEX_WIPED_RECREATED, this.indexName, this.physicalName);
+            this.createIndex(target);
+            log.debug(Constants.D_LOG_INDEX_WIPED_RECREATED, this.indexName, target);
         } catch (Exception e) {
             log.error(Constants.E_LOG_CLEAR_INDEX_FAILED, this.indexName, e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the physical index the public alias points at. After a blue/green swap that is the
+     * other slot, not the default one this instance was built with, and recreating the default one
+     * instead would leave the alias with two write indices.
+     *
+     * @return The live physical index, or the default one if the alias does not resolve to exactly
+     *     one other index.
+     */
+    private String livePhysicalName() {
+        try {
+            String live = IndexSwapHelper.resolveLivePhysicalName(this.client, this.indexName);
+            return live.equals(this.indexName) ? this.physicalName : live;
+        } catch (Exception e) {
+            return this.physicalName;
         }
     }
 

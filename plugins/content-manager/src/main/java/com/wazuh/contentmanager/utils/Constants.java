@@ -602,6 +602,8 @@ public class Constants {
             "Failed to process payload via models: {}";
     public static final String D_LOG_SHADOW_INDEX_CREATED_FOR_ALIAS =
             "Created staging index [{}] for alias [{}].";
+    public static final String W_LOG_STALE_SHADOW_INDEX_DELETED =
+            "Deleting leftover staging index [{}], which alias [{}] does not point at.";
     public static final String D_LOG_REINDEX_USER_CONTENT_START =
             "Copying custom content from [{}] to [{}].";
     public static final String D_LOG_REINDEX_USER_CONTENT_COMPLETE =

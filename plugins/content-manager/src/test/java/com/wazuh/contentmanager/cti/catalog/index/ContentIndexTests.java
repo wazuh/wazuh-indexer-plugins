@@ -29,6 +29,8 @@ import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.UnavailableShardsException;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
@@ -102,6 +104,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
     private static final String INDEX_NAME = ".test-index";
     private static final String MAPPINGS_PATH = "/mappings/test-mapping.json";
+    // A mappings resource that exists, for the tests that create an index.
+    private static final String RULES_MAPPINGS_PATH = "/mappings/cti-rules-mappings.json";
 
     @Before
     @Override
@@ -794,6 +798,51 @@ public class ContentIndexTests extends OpenSearchTestCase {
                         "{\"document\":{\"cveMetadata\":{\"cveId\":\"CVE-2026-0001\",\"state\":\"REJECTED\"}},"
                                 + "\"offset\":1001,\"type\":\"CVE\"}"),
                 this.indexedSource(sent.get(0), 0));
+    }
+
+    /**
+     * After a blue/green swap the alias points at the "-b" slot: clearing deletes and recreates that
+     * index, not the default "-a" one, which would leave the alias with two write indices.
+     */
+    public void testClear_RecreatesTheIndexBehindTheAlias() throws Exception {
+        ContentIndex index = new ContentIndex(this.client, "test-alias", RULES_MAPPINGS_PATH);
+        when(this.client
+                        .admin()
+                        .indices()
+                        .prepareGetIndex()
+                        .setIndices("test-alias")
+                        .get()
+                        .getIndices())
+                .thenReturn(new String[] {"test-alias-b"});
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        when(this.client.admin().indices().prepareDelete(anyString()))
+                .thenReturn(mock(DeleteIndexRequestBuilder.class));
+
+        index.clear();
+
+        verify(this.client.admin().indices()).prepareDelete("test-alias-b");
+        verify(this.client.admin().indices(), times(0)).prepareDelete("test-alias-a");
+        ArgumentCaptor<CreateIndexRequest> created = ArgumentCaptor.forClass(CreateIndexRequest.class);
+        verify(this.client.admin().indices()).create(created.capture());
+        Assert.assertEquals("test-alias-b", created.getValue().index());
+    }
+
+    /** Without an alias to resolve, clearing recreates the default "-a" slot. */
+    public void testClear_DefaultsToTheFirstSlotWithoutAlias() throws Exception {
+        ContentIndex index = new ContentIndex(this.client, "test-alias", RULES_MAPPINGS_PATH);
+        when(this.client.admin().indices().prepareGetIndex().setIndices("test-alias").get())
+                .thenThrow(new IndexNotFoundException("test-alias"));
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(false);
+        when(this.client.admin().indices().prepareDelete(anyString()))
+                .thenReturn(mock(DeleteIndexRequestBuilder.class));
+
+        index.clear();
+
+        ArgumentCaptor<CreateIndexRequest> created = ArgumentCaptor.forClass(CreateIndexRequest.class);
+        verify(this.client.admin().indices()).create(created.capture());
+        Assert.assertEquals("test-alias-a", created.getValue().index());
     }
 
     /** Test that update retries on CircuitBreakingException from GET and succeeds. */
