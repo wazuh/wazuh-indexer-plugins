@@ -37,7 +37,7 @@ A purge never deletes indexed data. It manages the package's own directories, an
 
 Before it removes the `wazuh-indexer` user and group, the purge makes `root` the owner of what the Wazuh indexer left in these directories, and closes each directory to everyone but `root`. The files inside keep their permissions. The user's ID is then free for the system to give to another account, but that account cannot read anything left there.
 
-The purge lists every directory it kept:
+The purge lists every directory it kept that still holds files:
 
 ```
 Kept /var/lib/wazuh-indexer, now owned by root. Reinstalling wazuh-indexer takes it back.
@@ -76,7 +76,7 @@ Leave a snapshot repository that other nodes still use as it is.
 
 ### Credentials and certificates
 
-The purge removes the Wazuh indexer's passwords from `/etc/wazuh/credentials.env` (see [Retrieving the generated credentials](getting-started/installation.md#retrieving-the-generated-credentials)) and leaves the other components' passwords in place. When no component's passwords are left, it also removes the root CA from `/etc/wazuh/ca/`, together with the node and admin certificates the Wazuh indexer issued from it in `/etc/wazuh-indexer/certs/`. Certificates that CA did not issue, such as your own, are kept.
+The purge removes the Wazuh indexer's passwords from `/etc/wazuh/credentials.env` (see [Retrieving the generated credentials](getting-started/installation.md#retrieving-the-generated-credentials)) and leaves the other components' passwords in place. When no component's passwords are left, it also removes the root certificate authority (CA) from `/etc/wazuh/ca/`, together with the node and admin certificates the Wazuh indexer issued from it in `/etc/wazuh-indexer/certs/`. Certificates that CA did not issue, such as your own, are kept.
 
 ## Reinstalling after a purge
 
@@ -89,9 +89,12 @@ resolve-credentials: the certificate pair in /etc/wazuh-indexer/certs was not is
 resolve-credentials:         stage the CA that issued it, or remove the pair so that this node issues a new one
 ```
 
-Stage the `root-ca.pem` that issued the pair, or remove the pair so that the node issues a new one, then start the service.
+Stage the CA that issued the pair, or remove the pair so that the node issues a new one, then start the service. There are two places to stage it:
 
-A directory outside them is not given back. Set it in `opensearch.yml` again, then give it to the new user:
+- Beside the pair, as `/etc/wazuh-indexer/certs/root-ca.pem`, when `/etc/wazuh/ca/` is empty. This can be the CA that issued the pair directly, even if it is not a root CA.
+- In `/etc/wazuh/ca/`, as `root-ca.pem`, shared with the other Wazuh components on this host. It must be a self-signed root CA, the directory must be owned by `root:root` with mode `700`, and the file owned by `root:root` with mode `644`.
+
+A directory outside the four the package manages is not given back. Set it in `opensearch.yml` again, then give it to the new user:
 
 ```bash
 chown -R wazuh-indexer:wazuh-indexer /srv/indexer-data
