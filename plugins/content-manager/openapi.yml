@@ -155,6 +155,11 @@ paths:
         Returns the subscription status and active plan. For registered instances,
         the plan is fetched from the authenticated CTI endpoint. Otherwise, the
         public plan is returned.
+
+        The stored credentials are deleted only when the CTI Console rejects the token
+        with `401` (expired or revoked); the response then falls back to the public plan.
+        Any other failure to fetch the plan (network error, timeout, `429`, `5xx`, an
+        unusable response) keeps the token and returns `502`.
       operationId: getSubscription
       tags:
         - Subscription Management
@@ -165,6 +170,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/SubscriptionPlanUnavailable"
 
     delete:
       summary: Delete CTI Credentials
@@ -2812,6 +2819,22 @@ components:
                     is_public: true
                   is_registered: false
                 status: 200
+
+    SubscriptionPlanUnavailable:
+      description: |
+        Bad Gateway - The plan of a registered instance could not be fetched from the
+        CTI Console (network error, timeout, `429`, `5xx`, or an unusable response).
+        The stored token is kept and the instance stays registered; retry later.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            plan_unavailable:
+              summary: CTI Console unreachable
+              value:
+                message: "Unable to retrieve the subscription plan from the CTI Console. The registration is unchanged; try again later."
+                status: 502
 
     CredentialsRemoved:
       description: OK - Credentials removed successfully.

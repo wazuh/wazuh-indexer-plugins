@@ -34,6 +34,7 @@ import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -176,9 +177,10 @@ public class ApiClient implements AutoCloseable {
      * @throws ExecutionException If the computation threw an exception.
      * @throws InterruptedException If the current thread was interrupted while waiting.
      * @throws TimeoutException If the wait timed out.
+     * @throws IOException If the resource URL cannot be resolved (e.g. the token exchange failed).
      */
     public SimpleHttpResponse getConsumer(String consumerUri)
-            throws ExecutionException, InterruptedException, TimeoutException {
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
         String uri = this.urlResolver.resolve(this.buildConsumerURI(consumerUri));
         SimpleHttpRequest request =
                 SimpleRequestBuilder.get(uri)
@@ -197,9 +199,10 @@ public class ApiClient implements AutoCloseable {
      * @throws ExecutionException If the computation threw an exception.
      * @throws InterruptedException If the current thread was interrupted while waiting.
      * @throws TimeoutException If the wait timed out.
+     * @throws IOException If the resource URL cannot be resolved (e.g. the token exchange failed).
      */
     public SimpleHttpResponse getChanges(String consumerUri, long fromOffset, long toOffset)
-            throws ExecutionException, InterruptedException, TimeoutException {
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
         String uri =
                 this.urlResolver.resolve(
                         this.buildConsumerURI(consumerUri)
@@ -233,9 +236,10 @@ public class ApiClient implements AutoCloseable {
      * @throws ExecutionException If the computation threw an exception.
      * @throws InterruptedException If the current thread was interrupted while waiting.
      * @throws TimeoutException If the wait timed out.
+     * @throws IOException If the resource URL cannot be resolved (e.g. the token exchange failed).
      */
     public SimpleHttpResponse getReleaseUpdates(String tag)
-            throws ExecutionException, InterruptedException, TimeoutException {
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
         String uri = this.urlResolver.resolve(this.buildReleasesUpdatesURI(tag));
         SimpleHttpRequest request =
                 SimpleRequestBuilder.get(uri)

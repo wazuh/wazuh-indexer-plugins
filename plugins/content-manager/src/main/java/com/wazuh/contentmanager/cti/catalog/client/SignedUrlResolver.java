@@ -19,15 +19,19 @@ package com.wazuh.contentmanager.cti.catalog.client;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeService;
+import com.wazuh.contentmanager.cti.console.service.TokenRejectedException;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
  * A URL resolver for registered environments. Exchanges the original resource URL for a temporary
  * HMAC-signed URL via the CTI Console token exchange endpoint.
  *
- * <p>If the token exchange fails (e.g., the instance was deregistered), the in-memory access token
- * is cleared and the original URL is returned as a fallback.
+ * <p>If the CTI Console rejects the access token (e.g. the instance was deregistered), the
+ * in-memory access token is cleared and the original URL is returned as a fallback. Any other
+ * exchange failure keeps the token and fails the resolution, so the request fails like an
+ * unreachable feed and is retried, instead of running unsigned or as an unregistered instance.
  */
 public class SignedUrlResolver implements ResourceUrlResolver {
     private static final Logger log = LogManager.getLogger(SignedUrlResolver.class);
@@ -47,19 +51,31 @@ public class SignedUrlResolver implements ResourceUrlResolver {
     }
 
     @Override
-    public String resolve(String originalUrl) {
+    public String resolve(String originalUrl) throws CtiConsoleUnavailableException {
         log.info("Resolving signed URL for resource [{}]", originalUrl);
-        String signedUrl = this.tokenExchangeService.getResourceToken(originalUrl, this.accessToken);
-        if (signedUrl != null) {
-            log.info("Successfully obtained signed URL for resource [{}]", originalUrl);
-            return signedUrl;
+        String signedUrl;
+        try {
+            signedUrl = this.tokenExchangeService.getResourceToken(originalUrl, this.accessToken);
+        } catch (TokenRejectedException e) {
+            log.warn(
+                    "Token exchange rejected for resource [{}]. Clearing access token and falling back to plain URL.",
+                    originalUrl);
+            PluginSettings.getInstance().setAccessToken(null);
+            return originalUrl;
+        } catch (CtiConsoleUnavailableException e) {
+            log.warn(
+                    "Token exchange failed for resource [{}] ({}). The access token is kept.",
+                    originalUrl,
+                    e.getMessage());
+            throw e;
         }
-
-        log.warn(
-                "Token exchange failed for resource [{}]. Clearing access token and falling back to plain URL.",
-                originalUrl);
-        PluginSettings.getInstance().setAccessToken(null);
-        return originalUrl;
+        if (signedUrl == null) {
+            // Empty input, or the Console declined to sign this resource: not a token problem.
+            log.warn("No signed URL for resource [{}]; using the plain URL.", originalUrl);
+            return originalUrl;
+        }
+        log.info("Successfully obtained signed URL for resource [{}]", originalUrl);
+        return signedUrl;
     }
 
     /**
