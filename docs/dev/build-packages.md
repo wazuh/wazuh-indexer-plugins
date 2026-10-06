@@ -9,7 +9,7 @@ Wazuh Indexer supports any of these combinations:
 
 Windows is currently not supported.
 
-> For more information navigate to the [compatibility section](/ref/compatibility.html).
+> For more information navigate to the [compatibility section](../ref/compatibility.md).
 
 Before you get started, make sure to clean your environment by running `./gradlew clean` on the **root level** of the `wazuh-indexer` repository.
 

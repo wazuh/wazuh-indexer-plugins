@@ -97,7 +97,7 @@ role-write:
 ```
 
 OpenSearch's reference:
-- [roles_mapping.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#roles_mappingymll)
+- [roles_mapping.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#roles_mappingyml)
 
 ## Testing the configuration
 

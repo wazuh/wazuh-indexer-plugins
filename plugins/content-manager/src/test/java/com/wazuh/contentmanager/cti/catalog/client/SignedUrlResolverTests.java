@@ -22,15 +22,17 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeService;
+import com.wazuh.contentmanager.cti.console.service.TokenRejectedException;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.settings.PluginSettingsTests;
 
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for {@link SignedUrlResolver}. Verifies correct HMAC-signed URL resolution and
- * fallback behavior when token exchange fails.
+ * Unit tests for {@link SignedUrlResolver}. Verifies correct HMAC-signed URL resolution, the
+ * fallback when the token is rejected, and that transient exchange failures keep the token.
  */
 public class SignedUrlResolverTests extends OpenSearchTestCase {
 
@@ -61,7 +63,7 @@ public class SignedUrlResolverTests extends OpenSearchTestCase {
     }
 
     /** Tests that resolve returns the signed URL when token exchange succeeds. */
-    public void testResolveReturnsSignedUrl() {
+    public void testResolveReturnsSignedUrl() throws Exception {
         when(this.mockTokenExchangeService.getResourceToken(ORIGINAL_URL, ACCESS_TOKEN))
                 .thenReturn(SIGNED_URL);
 
@@ -72,35 +74,58 @@ public class SignedUrlResolverTests extends OpenSearchTestCase {
         verify(this.mockTokenExchangeService).getResourceToken(ORIGINAL_URL, ACCESS_TOKEN);
     }
 
-    /** Tests that resolve falls back to the original URL when token exchange returns null. */
-    public void testResolveFallsBackToOriginalUrlOnFailure() {
+    /**
+     * Tests that a rejected token (401) clears the in-memory access token and falls back to the
+     * original URL.
+     */
+    public void testResolveClearsAccessTokenWhenTokenRejected() throws Exception {
         when(this.mockTokenExchangeService.getResourceToken(ORIGINAL_URL, ACCESS_TOKEN))
-                .thenReturn(null);
+                .thenThrow(new TokenRejectedException("401"));
 
-        SignedUrlResolver resolver = new SignedUrlResolver(this.mockTokenExchangeService, ACCESS_TOKEN);
-        String result = resolver.resolve(ORIGINAL_URL);
-
-        Assert.assertEquals(ORIGINAL_URL, result);
-    }
-
-    /** Tests that the in-memory access token is cleared when token exchange fails. */
-    public void testResolveClearsAccessTokenOnFailure() {
-        when(this.mockTokenExchangeService.getResourceToken(ORIGINAL_URL, ACCESS_TOKEN))
-                .thenReturn(null);
-
-        // Verify token is set before the call
         Assert.assertEquals(ACCESS_TOKEN, PluginSettings.getInstance().getAccessToken());
 
         SignedUrlResolver resolver = new SignedUrlResolver(this.mockTokenExchangeService, ACCESS_TOKEN);
-        resolver.resolve(ORIGINAL_URL);
+        Assert.assertEquals(ORIGINAL_URL, resolver.resolve(ORIGINAL_URL));
 
-        // Token should be cleared after failure
         Assert.assertNull(PluginSettings.getInstance().getAccessToken());
         Assert.assertFalse(PluginSettings.getInstance().isRegistered());
     }
 
+    /**
+     * Tests that a transient exchange failure (5xx, 429, timeout) keeps the in-memory token and fails
+     * the resolution instead of falling back to the unsigned URL, so the instance stays registered.
+     */
+    public void testResolveKeepsAccessTokenOnTransientFailure() throws Exception {
+        CtiConsoleUnavailableException failure =
+                new CtiConsoleUnavailableException(
+                        "The CTI Console answered status 503 to the token exchange.");
+        when(this.mockTokenExchangeService.getResourceToken(ORIGINAL_URL, ACCESS_TOKEN))
+                .thenThrow(failure);
+
+        SignedUrlResolver resolver = new SignedUrlResolver(this.mockTokenExchangeService, ACCESS_TOKEN);
+        Assert.assertSame(
+                failure,
+                expectThrows(CtiConsoleUnavailableException.class, () -> resolver.resolve(ORIGINAL_URL)));
+
+        Assert.assertEquals(ACCESS_TOKEN, PluginSettings.getInstance().getAccessToken());
+        Assert.assertTrue(PluginSettings.getInstance().isRegistered());
+    }
+
+    /**
+     * Tests that a null signed URL (invalid input) falls back to the original URL, keeping the token.
+     */
+    public void testResolveFallsBackToOriginalUrlOnNull() throws Exception {
+        when(this.mockTokenExchangeService.getResourceToken(ORIGINAL_URL, ACCESS_TOKEN))
+                .thenReturn(null);
+
+        SignedUrlResolver resolver = new SignedUrlResolver(this.mockTokenExchangeService, ACCESS_TOKEN);
+
+        Assert.assertEquals(ORIGINAL_URL, resolver.resolve(ORIGINAL_URL));
+        Assert.assertEquals(ACCESS_TOKEN, PluginSettings.getInstance().getAccessToken());
+    }
+
     /** Tests that the token exchange service is called with the correct arguments. */
-    public void testResolvePassesCorrectArguments() {
+    public void testResolvePassesCorrectArguments() throws Exception {
         when(this.mockTokenExchangeService.getResourceToken(anyString(), anyString()))
                 .thenReturn(SIGNED_URL);
 
@@ -111,7 +136,7 @@ public class SignedUrlResolverTests extends OpenSearchTestCase {
     }
 
     /** Tests that multiple consecutive calls each invoke the token exchange service independently. */
-    public void testResolveCalledMultipleTimes() {
+    public void testResolveCalledMultipleTimes() throws Exception {
         String url1 = "https://cti.wazuh.com/resource/1";
         String url2 = "https://cti.wazuh.com/resource/2";
         String signed1 = "https://cti.wazuh.com/resource/1?verify=abc";
@@ -128,10 +153,11 @@ public class SignedUrlResolverTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests that after one failure clears the token, a subsequent resolve still falls back correctly.
+     * Tests that after a rejection clears the token, a subsequent resolve still falls back correctly.
      */
-    public void testResolveAfterTokenCleared() {
-        when(this.mockTokenExchangeService.getResourceToken(anyString(), anyString())).thenReturn(null);
+    public void testResolveAfterTokenCleared() throws Exception {
+        when(this.mockTokenExchangeService.getResourceToken(anyString(), anyString()))
+                .thenThrow(new TokenRejectedException("401"));
 
         SignedUrlResolver resolver = new SignedUrlResolver(this.mockTokenExchangeService, ACCESS_TOKEN);
 

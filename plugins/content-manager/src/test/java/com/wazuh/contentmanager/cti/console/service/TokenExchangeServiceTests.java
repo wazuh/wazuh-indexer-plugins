@@ -77,8 +77,7 @@ public class TokenExchangeServiceTests extends OpenSearchTestCase {
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    public void testGetResourceTokenSuccess()
-            throws ExecutionException, InterruptedException, TimeoutException {
+    public void testGetResourceTokenSuccess() throws Exception {
         String response =
                 "{\"access_token\": \"https://localhost:8443/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF\", \"issued_token_type\": \"urn:wazuh:params:oauth:token-type:signed_url\", \"expires_in\": 300}";
         when(this.mockClient.getResourceToken(any(Token.class), anyString()))
@@ -93,51 +92,96 @@ public class TokenExchangeServiceTests extends OpenSearchTestCase {
     }
 
     /**
-     * Possible failures - CTI replies with an error - CTI unreachable In these cases, the method is
-     * expected to return null.
+     * Failures that say nothing about the token (a 400 without a known OAuth error, another error
+     * status, no answer, a timeout, an unusable body) raise {@link CtiConsoleUnavailableException},
+     * so the caller keeps the token.
      *
-     * @throws ExecutionException ignored
-     * @throws InterruptedException ignored
-     * @throws TimeoutException ignored
+     * @throws Exception ignored
      */
-    public void testGetResourceTokenFailure()
-            throws ExecutionException, InterruptedException, TimeoutException {
-        String signedUrl;
-        String response =
-                "{\"error\": \"invalid_target\", \"error_description\": \"The resource parameter refers to an invalid endpoint\"}";
+    public void testGetResourceTokenFailure() throws Exception {
+        String[][] cases = {
+            {"400", "{\"error\": \"server_error\"}"},
+            {"400", "not json"},
+            {"403", "{\"error\": \"access_denied\"}"},
+            {"429", "{}"},
+            {"500", "{}"},
+            {"503", "{\"error\": \"unauthorized_client\"}"}
+        };
+        for (String[] c : cases) {
+            this.stubExchange(Integer.parseInt(c[0]), c[1]);
+            CtiConsoleUnavailableException e =
+                    expectThrows(
+                            CtiConsoleUnavailableException.class,
+                            () -> this.tokenExchangeService.getResourceToken("anyResource", "anyAccessToken"));
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(c[0]));
+        }
 
-        // When CTI replies with an error code, result must be null
-        when(this.mockClient.getResourceToken(any(Token.class), anyString()))
-                .thenReturn(
-                        SimpleHttpResponse.create(
-                                400, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
-        signedUrl = this.tokenExchangeService.getResourceToken("anyResource", "anyAccessToken");
-        Assert.assertNull(signedUrl);
+        for (String body : new String[] {"not json", "{}"}) {
+            this.stubExchange(200, body);
+            expectThrows(
+                    CtiConsoleUnavailableException.class,
+                    () -> this.tokenExchangeService.getResourceToken("anyResource", "anyAccessToken"));
+        }
 
-        // When CTI does not reply, result must be null
         when(this.mockClient.getResourceToken(any(Token.class), anyString()))
-                .thenThrow(ExecutionException.class);
-        signedUrl = this.tokenExchangeService.getResourceToken("anyResource", "anyAccessToken");
-        Assert.assertNull(signedUrl);
+                .thenThrow(new ExecutionException(new java.net.ConnectException("Connection refused")))
+                .thenThrow(new TimeoutException("5 SECONDS"));
+        expectThrows(
+                CtiConsoleUnavailableException.class,
+                () -> this.tokenExchangeService.getResourceToken("anyResource", "anyAccessToken"));
+        CtiConsoleUnavailableException timeout =
+                expectThrows(
+                        CtiConsoleUnavailableException.class,
+                        () -> this.tokenExchangeService.getResourceToken("anyResource", "anyAccessToken"));
+        Assert.assertTrue(timeout.getCause() instanceof TimeoutException);
     }
 
     /**
-     * When the server returns 401 (unauthorized), the method must return null.
+     * The exchange reports an invalid, expired or revoked token as 400 {@code unauthorized_client}; a
+     * 401 is accepted too. Both are a rejected token.
      *
-     * @throws ExecutionException ignored
-     * @throws InterruptedException ignored
-     * @throws TimeoutException ignored
+     * @throws Exception ignored
      */
-    public void testGetResourceTokenUnauthorized()
-            throws ExecutionException, InterruptedException, TimeoutException {
+    public void testGetResourceTokenUnauthorized() throws Exception {
         String response =
                 "{\"error\": \"unauthorized_client\", \"error_description\": \"The provided token is invalid or expired\"}";
+        for (int status : new int[] {400, 401}) {
+            this.stubExchange(status, response);
+            expectThrows(
+                    TokenRejectedException.class,
+                    () -> this.tokenExchangeService.getResourceToken("anyResource", "anyAccessToken"));
+        }
+    }
+
+    /**
+     * A 400 {@code invalid_target} or {@code invalid_request} means the Console does not sign this
+     * resource. That says nothing about the token: null, so the caller uses the plain URL.
+     *
+     * @throws Exception ignored
+     */
+    public void testGetResourceTokenDeclined() throws Exception {
+        for (String error : new String[] {"invalid_target", "invalid_request"}) {
+            this.stubExchange(400, "{\"error\": \"" + error + "\", \"error_description\": \"declined\"}");
+            Assert.assertNull(
+                    this.tokenExchangeService.getResourceToken("anyResource", "anyAccessToken"));
+        }
+    }
+
+    private void stubExchange(int status, String body) throws Exception {
         when(this.mockClient.getResourceToken(any(Token.class), anyString()))
                 .thenReturn(
                         SimpleHttpResponse.create(
-                                401, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+                                status, body.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+    }
 
-        String signedUrl = this.tokenExchangeService.getResourceToken("anyResource", "anyAccessToken");
-        Assert.assertNull(signedUrl);
+    /**
+     * A null or empty resource or token is not sent and returns null.
+     *
+     * @throws Exception ignored
+     */
+    public void testGetResourceTokenInvalidArguments() throws Exception {
+        Assert.assertNull(this.tokenExchangeService.getResourceToken(null, "anyAccessToken"));
+        Assert.assertNull(this.tokenExchangeService.getResourceToken("anyResource", ""));
+        verify(this.mockClient, never()).getResourceToken(any(Token.class), anyString());
     }
 }

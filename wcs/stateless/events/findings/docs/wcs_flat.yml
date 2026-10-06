@@ -25728,38 +25728,38 @@ wazuh.case.description:
   type: match_only_text
 wazuh.case.priority:
   dashed_name: wazuh-case-priority
-  description: Priority of the case. One of LOW, MEDIUM, HIGH, URGENT.
-  example: MEDIUM
+  description: Priority of the case. One of low, medium, high, urgent.
+  example: medium
   flat_name: wazuh.case.priority
   ignore_above: 4096
   level: custom
   name: case.priority
   normalize: []
-  short: Priority of the case. One of LOW, MEDIUM, HIGH, URGENT.
+  short: Priority of the case. One of low, medium, high, urgent.
   type: keyword
 wazuh.case.severity:
   dashed_name: wazuh-case-severity
-  description: Severity of the case. One of INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL.
-  example: MEDIUM
+  description: Severity of the case. One of informational, low, medium, high, critical.
+  example: medium
   flat_name: wazuh.case.severity
   ignore_above: 4096
   level: custom
   name: case.severity
   normalize: []
-  short: Severity of the case. One of INFORMATIONAL, LOW, MEDIUM, HIGH, CRITICAL.
+  short: Severity of the case. One of informational, low, medium, high, critical.
   type: keyword
 wazuh.case.status:
   dashed_name: wazuh-case-status
-  description: Current status of the case. One of ACTIVE, ACKNOWLEDGED, COMPLETED,
-    ERROR, DELETED, AUDIT.
-  example: ACTIVE
+  description: Current status of the case. One of active, acknowledged, completed,
+    error, deleted, audit.
+  example: active
   flat_name: wazuh.case.status
   ignore_above: 4096
   level: custom
   name: case.status
   normalize: []
-  short: Current status of the case. One of ACTIVE, ACKNOWLEDGED, COMPLETED, ERROR,
-    DELETED, AUDIT.
+  short: Current status of the case. One of active, acknowledged, completed, error,
+    deleted, audit.
   type: keyword
 wazuh.case.tags:
   dashed_name: wazuh-case-tags

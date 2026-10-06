@@ -32,7 +32,7 @@ fixed vs. what was intentionally deferred.
 - **Style guide**: `.claude/skills/docs-review/STYLE_GUIDE.md`, checked into
   this repo alongside this skill. Produced from a prior run of this skill's
   findings; defines the actual rules — heading case, terminology,
-  register-per-track, table-vs-list, versioning caveats, etc. When this
+  register-per-track, table-vs-list, versioning, etc. When this
   skill's style/consistency pass (step 4) finds something, check it against
   the style guide first: if the guide already has a rule, this is a plain
   violation to report; if it doesn't, that's a signal the guide needs a new

@@ -15,6 +15,7 @@ The detail of the fields can be found in the csv file [Fields](fields.csv).
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
 | `type_hashes` | object | custom | Dynamic object containing the hash values for each IoC type. |
+| `offset` | unsigned_long | custom | CTI offset at which the IoC document was delivered. |
 | `document.id` | keyword | custom | Unique identifier for the IoC document. |
 | `document.name` | keyword | custom | Name or label assigned to the IoC. |
 | `document.type` | keyword | custom | Type or category of the IoC (IP address, domain, file hash, URL...). |

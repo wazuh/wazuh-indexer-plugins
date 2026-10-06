@@ -154,7 +154,12 @@ paths:
       description: |
         Returns the subscription status and active plan. For registered instances,
         the plan is fetched from the authenticated CTI endpoint. Otherwise, the
-        public free plan is returned.
+        public plan is returned.
+
+        The stored credentials are deleted only when the CTI Console rejects the token
+        with `401` (expired or revoked); the response then falls back to the public plan.
+        Any other failure to fetch the plan (network error, timeout, `429`, `5xx`, an
+        unusable response) keeps the token and returns `502`.
       operationId: getSubscription
       tags:
         - Subscription Management
@@ -165,6 +170,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/SubscriptionPlanUnavailable"
 
     delete:
       summary: Delete CTI Credentials
@@ -758,8 +765,8 @@ paths:
 
         The rule is also synchronized to the Security Analytics Plugin (SAP), where a separate
         SAP document is created with its own auto-generated UUID. The SAP document stores the
-        CTI document UUID in a `document.id` field and the space in a `source` field for
-        cross-reference.
+        CTI document UUID in a `document.id` field and the space in a `space` field (e.g.,
+        `draft`) for cross-reference.
         The rule is validated against the Wazuh engine before being stored.
         The rule is automatically linked to the specified integration.
 
@@ -916,8 +923,8 @@ paths:
 
         The integration is also synchronized to the Security Analytics Plugin (SAP), where a
         separate SAP document is created with its own auto-generated UUID. The SAP document
-        stores the CTI document UUID in a `document.id` field and the space in the `source`
-        field (e.g., "Draft") for cross-reference.
+        stores the CTI document UUID in a `document.id` field and the space in the `space`
+        field (e.g., `draft`) for cross-reference.
         The integration is validated against the Wazuh engine before being stored.
 
         **Required fields in resource:**
@@ -1254,7 +1261,7 @@ paths:
         For each promoted resource, a new SAP document is created in the target space with:
         - A newly generated UUID as the SAP document ID.
         - A `document.id` field storing the original CTI document UUID.
-        - A `source` field indicating the target space (e.g., "Draft", "Test", "Custom").
+        - A `space` field indicating the target space (e.g., `test`, `custom`).
 
         **Rollback on failure**: If any Content Manager index mutation fails during the
         consolidation phase, the endpoint automatically initiates a LIFO (Last-In, First-Out)
@@ -1350,7 +1357,7 @@ paths:
         Resets a user space (draft) to its initial state.
 
         This operation will:
-        - Remove all documents (integrations, rules, decoders, kvdbs) belonging to the given space.
+        - Remove all documents (integrations, rules, decoders, kvdbs, filters, and the space's policy document) belonging to the given space.
         - Re-generate the default policy for the given space.
 
       operationId: deleteSpace
@@ -2808,10 +2815,26 @@ components:
               value:
                 message:
                   plan:
-                    name: "Free"
+                    name: "Open"
                     is_public: true
                   is_registered: false
                 status: 200
+
+    SubscriptionPlanUnavailable:
+      description: |
+        Bad Gateway - The plan of a registered instance could not be fetched from the
+        CTI Console (network error, timeout, `429`, `5xx`, or an unusable response).
+        The stored token is kept and the instance stays registered; retry later.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            plan_unavailable:
+              summary: CTI Console unreachable
+              value:
+                message: "Unable to retrieve the subscription plan from the CTI Console. The registration is unchanged; try again later."
+                status: 502
 
     CredentialsRemoved:
       description: OK - Credentials removed successfully.
@@ -2880,7 +2903,7 @@ components:
         - Resource not in draft space (only draft resources can be modified)
         - Resource has dependent resources that must be deleted first
         - Cannot remove decoder as it is set as root decoder
-        - Resource creation limit reached (configurable via `plugins.content_manager.max_<type>` settings; default 100 per type)
+        - Resource creation limit reached (configurable via `plugins.content_manager.max_<type>` settings; default 200 for rules and decoders, 100 for integrations, KVDBs and filters)
       content:
         application/json:
           schema:

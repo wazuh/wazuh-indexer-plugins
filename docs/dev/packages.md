@@ -25,6 +25,7 @@ repository, and every path on this page is relative to it: the build tooling is 
     - [Further reading](#further-reading)
   - [Credential and TLS resolution](#credential-and-tls-resolution)
     - [Resolution happens once](#resolution-happens-once)
+    - [The password rule](#the-password-rule)
     - [How a password reaches the cluster](#how-a-password-reaches-the-cluster)
     - [Resolver modes](#resolver-modes)
     - [Certificate resolution](#certificate-resolution)
@@ -343,6 +344,12 @@ host's credentials into a layer every container shares. The next start resolves 
 `indexer-security-init.sh` keeps no state of its own. It is run by an operator, once, and the
 package never calls it — so there is nothing for it to guard against repeating.
 
+### The password rule
+
+A password, supplied or generated, has 12 to 64 characters from `A-Z a-z 0-9 . , _ + : @ % ^ = ~ -`, with at least one uppercase letter, one lowercase letter, one digit and one symbol. It is the same rule the Server API applies, so one value is accepted in both realms.
+
+`wazuh_password_validate` in the shared library is the only place that checks it. The start-time error that names a rejected key restates the rule, so that an operator can correct the value without reading the library.
+
 ### How a password reaches the cluster
 
 `internal_users.wazuh.yml` ships each account's `hash` as a `${NAME}` placeholder rather than a digest, so the package carries no usable credential. `resolve-credentials.sh` resolves the value, bcrypts it with the Security plugin's `hash.sh`, and substitutes the digest in place.
@@ -361,6 +368,8 @@ Loading the result into the cluster stays a manual step, `indexer-security-init.
 - `--upgrade` — from `postinst` / `%post` on an upgrade. Fills in only what this host never had.
 - `--prestart` — from the unit's `ExecStartPre` and from the SysV `start` path. Refuses to start the service when something is unresolved, naming it.
 - `--clear` — takes back everything this component resolved, so a later run resolves from nothing. Nothing in the package calls it; see [Resolution happens once](#resolution-happens-once).
+
+`-q` / `--quiet` silences the progress lines, and is not a mode. The maintainer scripts pass it so that the install ends with the next steps an operator needs — where the passwords are, how to start and enable the service, and that the security configuration is loaded once from one node — rather than with a list of resolved keys. Anything that could not be resolved still prints.
 
 ### Certificate resolution
 
