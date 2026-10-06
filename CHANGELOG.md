@@ -159,6 +159,7 @@
 - Update the Wazuh Indexer documentation [(#846)](https://github.com/wazuh/wazuh-indexer-plugins/issues/846) [(#1012)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1012)
 - Update build, installation and offline installation documentation [(#1546)](https://github.com/wazuh/wazuh-indexer/issues/1546) [(#1571)](https://github.com/wazuh/wazuh-indexer/issues/1571)
 - Rename Security Analytics to Ruleset Management in the Reference Manual and update the MITRE fields documentation [(#1540)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1540) [(#1541)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1541) [(#319)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/319)
+- Include the consumer name in the snapshot download log messages [(#1635)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1635)
 - (operational) Add version to the GH Workflow names [(#1122)](https://github.com/wazuh/wazuh-indexer/issues/1122)
 - (operational) Update GitHub Actions to the latest version available [(#1129)](https://github.com/wazuh/wazuh-indexer/issues/1129)
 - (operational) Track GitHub Actions version updates with Dependabot [(#1191)](https://github.com/wazuh/wazuh-indexer/issues/1191)

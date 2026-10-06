@@ -395,7 +395,16 @@ public class Constants {
             "Snapshot URL is empty. Skipping initialization.";
     public static final String D_LOG_SNAPSHOT_INIT_START =
             "Starting snapshot initialization for [{}]";
-    public static final String E_LOG_SNAPSHOT_DOWNLOAD_FAILED = "Failed to download snapshot from {}";
+    public static final String E_LOG_SNAPSHOT_DOWNLOAD_FAILED =
+            "Failed to download snapshot for consumer [{}] from [{}]";
+    public static final String I_LOG_SNAPSHOT_DOWNLOAD_STARTED =
+            "Starting snapshot download for consumer [{}] from [{}]";
+    public static final String I_LOG_SNAPSHOT_DOWNLOADED =
+            "Snapshot for consumer [{}] downloaded to [{}]";
+    public static final String E_LOG_SNAPSHOT_DOWNLOAD_HTTP_STATUS =
+            "Failed to download snapshot for consumer [{}], received HTTP status code: {}";
+    public static final String E_LOG_SNAPSHOT_DOWNLOAD_EMPTY_RESPONSE =
+            "Failed to download snapshot for consumer [{}], empty response entity.";
     public static final String D_LOG_SNAPSHOT_WAIT_PENDING_BULK =
             "Waiting for pending bulk updates to finish...";
     public static final String E_LOG_SNAPSHOT_PROCESS_FAILED = "Error processing snapshot: {}";
