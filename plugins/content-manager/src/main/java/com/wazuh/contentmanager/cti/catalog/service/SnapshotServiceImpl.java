@@ -195,9 +195,9 @@ public class SnapshotServiceImpl implements SnapshotService {
             success = true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, this.consumerType, e.getMessage());
         } catch (Exception e) {
-            log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, this.consumerType, e.getMessage());
         }
 
         if (success) {
@@ -454,10 +454,10 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, this.consumerType, e.getMessage());
             return false;
         } catch (Exception e) {
-            log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, this.consumerType, e.getMessage());
             return false;
         }
 

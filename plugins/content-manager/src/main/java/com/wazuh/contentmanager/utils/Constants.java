@@ -407,7 +407,8 @@ public class Constants {
             "Failed to download snapshot for consumer [{}], empty response entity.";
     public static final String D_LOG_SNAPSHOT_WAIT_PENDING_BULK =
             "Waiting for pending bulk updates to finish...";
-    public static final String E_LOG_SNAPSHOT_PROCESS_FAILED = "Error processing snapshot: {}";
+    public static final String E_LOG_SNAPSHOT_PROCESS_FAILED =
+            "Error processing snapshot for consumer [{}]: {}";
 
     // Log messages - user overrides registry (UserOverridesService)
     public static final String E_LOG_USER_OVERRIDES_REGISTRY_READ_FAILED =
@@ -444,7 +445,7 @@ public class Constants {
     public static final String D_LOG_SNAPSHOT_LOCAL_INIT_START =
             "Starting local snapshot initialization for [{}] from [{}]";
     public static final String E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED =
-            "Error processing local snapshot: {}";
+            "Error processing local snapshot for consumer [{}]: {}";
     public static final String W_LOG_SNAPSHOT_CONSUMER_DOC_MISSING =
             "Consumer [{}] record not found after loading the snapshot; skipping local offset update.";
     public static final String E_LOG_SNAPSHOT_CONSUMER_STATE_UPDATE_FAILED =
@@ -483,13 +484,19 @@ public class Constants {
             "Successfully updated consumer [{}] to offset [{}]";
     public static final String E_LOG_UPDATE_FAILED = "Error during content update: {}";
     public static final String W_LOG_UPDATE_FROM_SNAPSHOT_AFTER_FAILURE =
-            "Offset [{}] of consumer [{}] cannot be applied to the stored content."
-                    + " Updating from the snapshot at offset [{}], which includes it.";
-    public static final String W_LOG_SNAPSHOT_DOES_NOT_INCLUDE_FAILED_OFFSET =
-            "Offset [{}] of consumer [{}] cannot be applied to the stored content, and the latest"
-                    + " snapshot (offset [{}]) does not include it. It will be retried on the next run.";
+            "Offset [{}] of consumer [{}] cannot be applied to the stored content. Rebuilding the"
+                    + " content from the snapshot at offset [{}], newer than the local offset [{}].";
+    public static final String W_LOG_NO_NEWER_SNAPSHOT_FOR_FAILED_OFFSET =
+            "Offset [{}] of consumer [{}] cannot be applied to the stored content, and there is no"
+                    + " snapshot newer than the local offset [{}] (latest snapshot: [{}]). It will be"
+                    + " retried on the next run.";
     public static final String E_LOG_UPDATE_FROM_SNAPSHOT_FAILED =
-            "Failed to update consumer [{}] from the snapshot after offset [{}] could not be applied.";
+            "Failed to rebuild the content of consumer [{}] from the snapshot after offset [{}] could"
+                    + " not be applied. The current content is kept.";
+    public static final String I_LOG_CONTENT_RELOADED_FROM_SNAPSHOT =
+            "Content of consumer [{}] rebuilt from the snapshot at offset [{}].";
+    public static final String D_LOG_UPDATE_CHANGE_ALREADY_APPLIED =
+            "Skipping offset [{}] for [{}]: the document is already at offset [{}].";
     public static final String W_LOG_UPDATE_NO_INDEX_FOR_TYPE = "No index mapped for type [{}]";
     public static final String D_LOG_UPDATE_SKIP_CVE_DELETE =
             "Skipping DELETE for CVE resource [{}] (CVE removals are not applied).";

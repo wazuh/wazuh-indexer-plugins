@@ -708,6 +708,7 @@ public abstract class AbstractConsumerService {
                         urlResolver)) {
                     return new SyncResult(false, feedUnreachable, false);
                 }
+                log.info(Constants.I_LOG_CONTENT_UPDATED_NEW_SOURCE, consumerType);
                 // The swapped snapshot only carries data up to its snapshot offset. Close the gap to
                 // the remote head in the same pass; otherwise the consumer would be reported as READY
                 // while trailing the remote offset (local_offset < remote_offset) until the next sync.
@@ -799,7 +800,32 @@ public abstract class AbstractConsumerService {
                 if (hasEffectiveCatalog
                         && remoteConsumer != null
                         && remoteConsumer.getSnapshotLink() != null) {
-                    this.clearContentForSnapshot(consumerType, indicesMap);
+                    // Ruleset snapshots also affect Security Analytics/Space resources; other catalogs only
+                    // clear indices.
+                    if (this.isRulesetConsumer()) {
+                        try {
+                            SecurityAnalyticsService securityAnalyticsService =
+                                    new SecurityAnalyticsServiceImpl(this.client);
+                            CompletableFuture<Void> sapFuture = new CompletableFuture<>();
+                            securityAnalyticsService.deleteSpaceResources(
+                                    Space.STANDARD,
+                                    ActionListener.wrap(
+                                            r -> sapFuture.complete(null), sapFuture::completeExceptionally));
+                            sapFuture.get(60, TimeUnit.SECONDS);
+
+                            SpaceService spaceService = new SpaceService(this.client);
+                            CompletableFuture<Void> spaceFuture = new CompletableFuture<>();
+                            spaceService.deleteSpaceResources(
+                                    Space.STANDARD,
+                                    ActionListener.wrap(
+                                            r -> spaceFuture.complete(null), spaceFuture::completeExceptionally));
+                            spaceFuture.get(60, TimeUnit.SECONDS);
+                        } catch (Exception e) {
+                            log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
+                        }
+                    } else {
+                        indicesMap.values().forEach(ContentIndex::clear);
+                    }
 
                     log.debug(Constants.D_LOG_SNAPSHOT_INIT_CUSTOM_URL, catalogUri);
                     boolean remoteSuccess = snapshotService.initialize(remoteConsumer);
@@ -945,7 +971,7 @@ public abstract class AbstractConsumerService {
                                 urlResolver,
                                 indicesMap,
                                 remoteConsumer,
-                                snapshotsDir)) {
+                                currentOffset)) {
                             throw e;
                         }
                         updated = true;
@@ -962,15 +988,20 @@ public abstract class AbstractConsumerService {
 
     /**
      * Recovers from an incremental update that stopped on a change that cannot be applied to the
-     * stored content, such as a patch whose target does not exist. That change fails the same way on
-     * every pass, so retrying it leaves the consumer stuck. When the latest remote snapshot already
-     * includes the change, the content is reloaded from that snapshot, which holds the result of the
-     * change, and the remaining changes are applied from the snapshot's offset. Otherwise loading the
-     * snapshot cannot get past the change, so the failure stands and a later pass retries, once CTI
-     * publishes a newer snapshot.
+     * stored content, such as a patch whose target does not exist or an update of a missing document.
+     * That change fails the same way on every pass, so retrying it leaves the consumer stuck. If CTI
+     * has a snapshot newer than the consumer's local offset, the content is rebuilt from it and the
+     * remaining changes are applied from the snapshot's offset. A snapshot at or past the failing
+     * offset already holds the change's result; an older one still rebuilds stored content that
+     * diverged from CTI, which is what usually makes a valid change fail.
      *
-     * <p>Like a first-time initialization, the consumer is reset to offset 0 before its content is
-     * cleared, so a snapshot that then fails to load is retried from scratch on the next pass.
+     * <p>The snapshot is loaded through {@link #performShadowSwap}: into hidden staging indices, with
+     * an atomic alias swap only once it has loaded, so the current content stays available while the
+     * snapshot loads and is kept as it is if the snapshot cannot be loaded.
+     *
+     * <p>A given snapshot is used at most once: after it is loaded the local offset is at or past it,
+     * so the same failure does not reload it on the next pass. Until CTI publishes a newer one, the
+     * failure stands and later passes retry the change.
      *
      * @param failure The failure of the incremental update.
      * @param context The CTI context name.
@@ -980,7 +1011,7 @@ public abstract class AbstractConsumerService {
      * @param urlResolver The URL resolver for API requests.
      * @param indicesMap The content indices keyed by type.
      * @param remoteConsumer The remote consumer, with the latest snapshot.
-     * @param snapshotsDir The plugin's local snapshots directory, or {@code null}.
+     * @param fromOffset The offset the failed update started from.
      * @return {@code true} if the content was updated from the snapshot, {@code false} if the failure
      *     must propagate.
      */
@@ -993,20 +1024,23 @@ public abstract class AbstractConsumerService {
             ResourceUrlResolver urlResolver,
             Map<String, ContentIndex> indicesMap,
             RemoteConsumer remoteConsumer,
-            Path snapshotsDir) {
+            long fromOffset) {
         ContentIndex.PatchException patchFailure =
                 findCause(failure, ContentIndex.PatchException.class);
         if (patchFailure == null || patchFailure.getOffset() == null) {
             return false;
         }
         long failedOffset = patchFailure.getOffset();
+        // The failed update may have checkpointed changes past the offset it started from.
+        long localOffset = Math.max(fromOffset, this.readLocalOffset(consumerType));
         long snapshotOffset = remoteConsumer.getSnapshotOffset();
         String snapshotLink = remoteConsumer.getSnapshotLink();
-        if (snapshotLink == null || snapshotLink.isBlank() || snapshotOffset < failedOffset) {
+        if (snapshotLink == null || snapshotLink.isBlank() || snapshotOffset <= localOffset) {
             log.warn(
-                    Constants.W_LOG_SNAPSHOT_DOES_NOT_INCLUDE_FAILED_OFFSET,
+                    Constants.W_LOG_NO_NEWER_SNAPSHOT_FOR_FAILED_OFFSET,
                     failedOffset,
                     consumerType,
+                    localOffset,
                     snapshotOffset);
             return false;
         }
@@ -1015,27 +1049,14 @@ public abstract class AbstractConsumerService {
                 Constants.W_LOG_UPDATE_FROM_SNAPSHOT_AFTER_FAILURE,
                 failedOffset,
                 consumerType,
-                snapshotOffset);
-        this.writeInitialConsumer(remoteConsumer, null, catalogUri, consumerType);
-        this.clearContentForSnapshot(consumerType, indicesMap);
-        SnapshotServiceImpl snapshotService =
-                this.snapshotServiceOverride != null
-                        ? this.snapshotServiceOverride
-                        : new SnapshotServiceImpl(
-                                consumerType,
-                                indicesMap,
-                                this.consumersIndex,
-                                this.environment,
-                                urlResolver,
-                                snapshotsDir,
-                                this.getSnapshotFilename());
-        if (!snapshotService.initialize(remoteConsumer)) {
+                snapshotOffset,
+                localOffset);
+        if (!this.performShadowSwap(
+                consumerType, catalogUri, catalogUri, indicesMap, remoteConsumer, urlResolver)) {
             log.error(Constants.E_LOG_UPDATE_FROM_SNAPSHOT_FAILED, consumerType, failedOffset);
             return false;
         }
-        if (snapshotsDir != null) {
-            this.broadcastSnapshotPromote(this.getSnapshotFilename());
-        }
+        log.info(Constants.I_LOG_CONTENT_RELOADED_FROM_SNAPSHOT, consumerType, snapshotOffset);
         if (snapshotOffset < remoteConsumer.getOffset()) {
             this.performIncrementalUpdate(
                     context,
@@ -1051,35 +1072,21 @@ public abstract class AbstractConsumerService {
     }
 
     /**
-     * Removes the content a snapshot is about to replace. Ruleset snapshots also affect the Security
-     * Analytics and space resources of the standard space; other catalogs only clear their indices.
+     * Reads the local offset persisted in the consumer document.
      *
      * @param consumerType The consumer type identifier.
-     * @param indicesMap The content indices keyed by type.
+     * @return The local offset, or 0 if the document is absent or unreadable.
      */
-    private void clearContentForSnapshot(String consumerType, Map<String, ContentIndex> indicesMap) {
-        if (this.isRulesetConsumer()) {
-            try {
-                SecurityAnalyticsService securityAnalyticsService =
-                        new SecurityAnalyticsServiceImpl(this.client);
-                CompletableFuture<Void> sapFuture = new CompletableFuture<>();
-                securityAnalyticsService.deleteSpaceResources(
-                        Space.STANDARD,
-                        ActionListener.wrap(r -> sapFuture.complete(null), sapFuture::completeExceptionally));
-                sapFuture.get(60, TimeUnit.SECONDS);
-
-                SpaceService spaceService = new SpaceService(this.client);
-                CompletableFuture<Void> spaceFuture = new CompletableFuture<>();
-                spaceService.deleteSpaceResources(
-                        Space.STANDARD,
-                        ActionListener.wrap(
-                                r -> spaceFuture.complete(null), spaceFuture::completeExceptionally));
-                spaceFuture.get(60, TimeUnit.SECONDS);
-            } catch (Exception e) {
-                log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
+    private long readLocalOffset(String consumerType) {
+        try {
+            GetResponse response = this.consumersIndex.getConsumer(consumerType);
+            if (response == null || !response.isExists()) {
+                return 0;
             }
-        } else {
-            indicesMap.values().forEach(ContentIndex::clear);
+            return MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class).getLocalOffset();
+        } catch (Exception e) {
+            log.debug(Constants.D_LOG_CONSUMER_RESOURCE_READ_FAILED, consumerType, e.getMessage());
+            return 0;
         }
     }
 
@@ -1275,7 +1282,8 @@ public abstract class AbstractConsumerService {
      * @param urlResolver The URL resolver for downloading content.
      * @return {@code true} if the swap completed successfully, {@code false} on failure.
      */
-    private boolean performShadowSwap(
+    // Package-private so tests can replace the swap.
+    boolean performShadowSwap(
             String consumerType,
             String catalogUri,
             String planResource,
@@ -1389,7 +1397,6 @@ public abstract class AbstractConsumerService {
             log.warn(Constants.W_LOG_OLD_INDICES_DELETE_FAILED, consumerType, e.getMessage());
         }
 
-        log.info(Constants.I_LOG_CONTENT_UPDATED_NEW_SOURCE, consumerType);
         this.shadowSwapPerformed = true;
         return true;
     }

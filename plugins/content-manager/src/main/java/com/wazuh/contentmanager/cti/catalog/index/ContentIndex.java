@@ -665,9 +665,16 @@ public class ContentIndex {
         if (offset != null) {
             patched.put(Constants.KEY_OFFSET, offset);
         }
-        // Cve.fromPayload moves both back to the root, as it does for the CTI payloads.
-        if (isCve && stored.hasNonNull(Constants.KEY_TYPE)) {
-            patched.set(Constants.KEY_TYPE, stored.get(Constants.KEY_TYPE));
+        // Cve.fromPayload moves both back to the root, as it does for the CTI payloads. A document
+        // that lost its type to an earlier update gets it back from its ID.
+        if (isCve) {
+            String type =
+                    stored.hasNonNull(Constants.KEY_TYPE)
+                            ? stored.get(Constants.KEY_TYPE).asText()
+                            : Cve.deriveType(id);
+            if (type != null) {
+                patched.put(Constants.KEY_TYPE, type);
+            }
         }
         return this.processPayloadToString(patched);
     }
@@ -737,11 +744,17 @@ public class ContentIndex {
             UpdateTask task = tasks.get(i);
             ObjectNode currentDoc = (ObjectNode) MAPPER.readTree(sources.get(task.id()));
 
-            // Idempotency guard: skip changes the document already holds
-            if (!currentDoc.has(Constants.KEY_OFFSET)
-                    || currentDoc.get(Constants.KEY_OFFSET).asLong() < task.offset()) {
+            // Idempotency guard: skip changes the document already holds, e.g. when a sub-batch that
+            // failed after a size-limit flush is retried. Document offsets are comparable with the
+            // consumer's because every snapshot load replaces the whole index.
+            long storedOffset =
+                    currentDoc.has(Constants.KEY_OFFSET) ? currentDoc.get(Constants.KEY_OFFSET).asLong() : -1;
+            if (storedOffset < task.offset()) {
                 sources.put(task.id(), this.patch(task.id(), currentDoc, task.operations(), task.offset()));
                 patched.add(task.id());
+            } else {
+                log.debug(
+                        Constants.D_LOG_UPDATE_CHANGE_ALREADY_APPLIED, task.offset(), task.id(), storedOffset);
             }
 
             if (lastTaskOf.get(task.id()) == i && patched.contains(task.id())) {

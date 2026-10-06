@@ -800,6 +800,66 @@ public class ContentIndexTests extends OpenSearchTestCase {
                 this.indexedSource(sent.get(0), 0));
     }
 
+    /** A CVE that lost its {@code type} to an earlier update gets it back from its ID. */
+    public void testBatchUpdate_CveWithoutTypeGetsItFromItsId() throws Exception {
+        ContentIndex cveIndex = new ContentIndex(this.client, Constants.INDEX_CVES, MAPPINGS_PATH);
+        this.stubMultiGetSources(
+                "{\"document\":{\"cveMetadata\":{\"state\":\"PUBLISHED\"}},\"offset\":900}");
+        List<BulkRequest> sent = this.stubSyncBulkResponses(bulkResponseWith(successItem(0)));
+
+        cveIndex.batchUpdate(
+                List.of(
+                        new ContentIndex.UpdateTask(
+                                "TID-0001",
+                                List.of(new Operation("replace", "/cveMetadata/state", null, "REJECTED")),
+                                1001L)));
+
+        Assert.assertEquals("TID", this.indexedSource(sent.get(0), 0).get("type").asText());
+    }
+
+    /**
+     * Documents whose last change is done are written when the bulk reaches the size limit, before a
+     * later change of the batch fails; the retry then skips them through the offset guard.
+     */
+    public void testBatchUpdate_FlushesFinishedDocumentsBeforeALaterFailure() throws Exception {
+        PluginSettings.resetForTesting();
+        PluginSettings.getInstance(
+                Settings.builder().put("plugins.content_manager.max_bulk_bytes", 1024 * 1024).build());
+        try {
+            ContentIndex index = new ContentIndex(this.client, INDEX_NAME, MAPPINGS_PATH);
+            String big = "x".repeat(1100 * 1024);
+            this.stubMultiGetSources(
+                    "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"blob\":\"" + big + "\"}}",
+                    "{\"type\":\"rule\",\"document\":{\"id\":\"R2\",\"blob\":\"" + big + "\"}}",
+                    "{\"type\":\"rule\",\"document\":{\"id\":\"R3\",\"title\":\"Rule 3\"}}");
+            List<BulkRequest> sent = this.stubSyncBulkResponses(bulkResponseWith(successItem(0)));
+
+            ContentIndex.PatchException e =
+                    expectThrows(
+                            ContentIndex.PatchException.class,
+                            () ->
+                                    index.batchUpdate(
+                                            List.of(
+                                                    new ContentIndex.UpdateTask(
+                                                            "R1", List.of(new Operation("add", "/document/v", null, 1)), 101L),
+                                                    new ContentIndex.UpdateTask(
+                                                            "R2", List.of(new Operation("add", "/document/v", null, 2)), 102L),
+                                                    new ContentIndex.UpdateTask(
+                                                            "R3",
+                                                            List.of(new Operation("remove", "/document/missing", null, null)),
+                                                            103L))));
+
+            Assert.assertEquals(Long.valueOf(103L), e.getOffset());
+            Assert.assertEquals(2, sent.size());
+            Assert.assertEquals("R1", sent.get(0).requests().get(0).id());
+            Assert.assertEquals("R2", sent.get(1).requests().get(0).id());
+            Assert.assertEquals(101L, this.indexedSource(sent.get(0), 0).get("offset").asLong());
+        } finally {
+            PluginSettings.resetForTesting();
+            PluginSettings.getInstance(Settings.EMPTY);
+        }
+    }
+
     /**
      * After a blue/green swap the alias points at the "-b" slot: clearing deletes and recreates that
      * index, not the default "-a" one, which would leave the alias with two write indices.
