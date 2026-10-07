@@ -1,264 +1,75 @@
 ## [v5.0.0]
 
 ### Added
-- Create index templates, indices and index management policies at startup [(#434)](https://github.com/wazuh/wazuh-indexer-plugins/issues/434) [(#466)](https://github.com/wazuh/wazuh-indexer-plugins/issues/466)
-- Add retry mechanism for the `wazuh-indexer-setup` plugin initialization tasks [(#533)](https://github.com/wazuh/wazuh-indexer-plugins/issues/533)
-- Apply `cluster.default_number_of_replicas` from `opensearch.yml` on startup [(#1249)](https://github.com/wazuh/wazuh-indexer/issues/1249)
-- Add `wazuh-events-raw-v5` data stream [(#831)](https://github.com/wazuh/wazuh-indexer-plugins/issues/831)
-- Add `wazuh-events-v5-unclassified` data stream for events without a category [(#832)](https://github.com/wazuh/wazuh-indexer-plugins/issues/832) [(#1348)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1348)
-- Add `wazuh-findings-v5-*` data streams with WCS-compliant findings [(#72)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/72)
-- Add `wazuh-active-responses` data stream [(#884)](https://github.com/wazuh/wazuh-indexer-plugins/issues/884)
-- Add metrics and monitoring data streams [(#940)](https://github.com/wazuh/wazuh-indexer-plugins/issues/940) [(#1110)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1110)
-- Add SCA stateful index [(#511)](https://github.com/wazuh/wazuh-indexer-plugins/issues/511)
-- Add `wazuh-agent-config` index [(#1419)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1419)
-- Add `wazuh-agent-stats` index [(#1425)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1425)
-- Add AI assistant support [(#1422)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1422)
-- Add data retention policies for stream indices [(#1213)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1213)
-- Add WCS definition for stream indices [(#553)](https://github.com/wazuh/wazuh-indexer-plugins/issues/553)
-- Add categories to the WCS stateless indices [(#584)](https://github.com/wazuh/wazuh-indexer-plugins/issues/584)
-- Add Cloud Services subcategories [(#590)](https://github.com/wazuh/wazuh-indexer-plugins/issues/590)
-- Add WCS protocol and message format fields [(#605)](https://github.com/wazuh/wazuh-indexer-plugins/issues/605)
-- Add WCS integration fields to stateless indices [(#606)](https://github.com/wazuh/wazuh-indexer-plugins/issues/606)
-- Add WCS fields for the AWS Bedrock integration <!-- [(#602)](https://github.com/wazuh/wazuh-indexer-plugins/pull/602) -->
-- Add WCS field for discarded events [(#851)](https://github.com/wazuh/wazuh-indexer-plugins/issues/851)
-- Add `wazuh.event.id` WCS field for event correlation [(#1096)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1096)
-- Add enrichment fields to stateless indices [(#754)](https://github.com/wazuh/wazuh-indexer-plugins/issues/754)
-- Add missing `indicator.feed.name` and vulnerability fields to the WCS [(#981)](https://github.com/wazuh/wazuh-indexer-plugins/issues/981) [(#983)](https://github.com/wazuh/wazuh-indexer-plugins/issues/983) [(#989)](https://github.com/wazuh/wazuh-indexer-plugins/issues/989)
-- Add security compliance fields to the WCS [(#638)](https://github.com/wazuh/wazuh-indexer-plugins/issues/638) [(#875)](https://github.com/wazuh/wazuh-indexer-plugins/issues/875)
-- Add findings case management fields [(#1220)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1220) [(#1334)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1334)
-- Add `default_parent` field to integrations [(#1103)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1103)
-- Add checksum fields to stateful indices [(#515)](https://github.com/wazuh/wazuh-indexer-plugins/issues/515)
-- Add metadata fields to stateful indices [(#576)](https://github.com/wazuh/wazuh-indexer-plugins/issues/576)
-- Add `state.modified_at` field to stateful indices [(#560)](https://github.com/wazuh/wazuh-indexer-plugins/issues/560)
-- Add `previous` value fields to the WCS for process, service and package inventory changes [(#1413)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1413)
-- Add `file.diff` WCS field for FIM content changes <!-- [(#1418)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1418) -->
-- Add new fields for `wazuh-remoted` statistics to the `wazuh-metrics-comms-v4` template [(#1235)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1235)
-- Add `wazuh-indexer-content-manager` plugin <!-- [(#651)](https://github.com/wazuh/wazuh-indexer-plugins/pull/651) -->
-- Initialize CTI content from snapshots and keep it up to date with scheduled and on-demand updates [(#870)](https://github.com/wazuh/wazuh-indexer-plugins/issues/870) <!-- [(#670)](https://github.com/wazuh/wazuh-indexer-plugins/pull/670) [(#682)](https://github.com/wazuh/wazuh-indexer-plugins/pull/682) -->
-- Load CTI content from the snapshots bundled in the packages on first start [(#1105)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1105)
-- Download IoCs from the CTI API and deliver them to the Wazuh Engine [(#735)](https://github.com/wazuh/wazuh-indexer-plugins/issues/735) [(#753)](https://github.com/wazuh/wazuh-indexer-plugins/issues/753) [(#829)](https://github.com/wazuh/wazuh-indexer-plugins/issues/829)
-- Download the CTI vulnerability feed <!-- [(#907)](https://github.com/wazuh/wazuh-indexer-plugins/pull/907) [(#921)](https://github.com/wazuh/wazuh-indexer-plugins/pull/921) -->
-- Add content spaces and the REST API to manage user-generated rules, decoders, integrations and KVDBs <!-- [(#684)](https://github.com/wazuh/wazuh-indexer-plugins/pull/684) [(#745)](https://github.com/wazuh/wazuh-indexer-plugins/pull/745) -->
-- Add Engine filters index and API [(#756)](https://github.com/wazuh/wazuh-indexer-plugins/issues/756) [(#796)](https://github.com/wazuh/wazuh-indexer-plugins/issues/796)
-- Support creating and promoting rules and integrations across spaces [(#812)](https://github.com/wazuh/wazuh-indexer-plugins/issues/812) [(#37)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/37)
-- Add rollback mechanism to the promote action [(#38)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/38)
-- Add space reset endpoint [(#869)](https://github.com/wazuh/wazuh-indexer-plugins/issues/869)
-- Add support for Engine settings [(#833)](https://github.com/wazuh/wazuh-indexer-plugins/issues/833)
-- Load the `standard`, `test` and `custom` spaces into the Wazuh Engine of every cluster node when their hash changes [(#918)](https://github.com/wazuh/wazuh-indexer-plugins/issues/918) [(#993)](https://github.com/wazuh/wazuh-indexer-plugins/issues/993) [(#1376)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1376)
-- Synchronize CTI integrations and rules with Security Analytics and create threat detectors for them <!-- [(#690)](https://github.com/wazuh/wazuh-indexer-plugins/pull/690) [(#703)](https://github.com/wazuh/wazuh-indexer-plugins/pull/703) -->
-- Add dynamic configuration of standard threat detectors [(#1029)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1029)
-- Add integration mode to enable or disable integrations and their threat detectors [(#1356)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1356)
-- Add rule testing to the logtest endpoint [(#56)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/56)
-- Add CTI subscription API to register, inspect and unregister the environment <!-- [(#666)](https://github.com/wazuh/wazuh-indexer-plugins/pull/666) [(#1145)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1145) -->
-- Download the CTI content granted by the subscription plan <!-- [(#1138)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1138) -->
-- Apply CTI plan changes through a blue/green swap of the content indices <!-- [(#1165)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1165) -->
-- Add support for pre-registered environments <!-- [(#1264)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1264) -->
-- Add telemetry ping job reporting the environment's identity and version to the CTI API [(#1042)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1042) [(#1218)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1218) <!-- [(#939)](https://github.com/wazuh/wazuh-indexer-plugins/pull/939) -->
-- Add `status` field to the CTI consumers index [(#961)](https://github.com/wazuh/wazuh-indexer-plugins/issues/961)
-- Add version check endpoint [(#1010)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1010)
-- Send a custom user agent on requests to the CTI API [(#1069)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1069)
-- Add YAML representation for ruleset resources [(#1084)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1084)
-- Enable the draft policy by default [(#1170)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1170)
-- Add configurable resource creation limits [(#1276)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1276)
-- Add settings to disable on-demand updates and policy updates for every user [(#1277)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1277)
-- Add plugin settings for the operational constants of the Setup and Content Manager plugins [(#1585)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1585)
-- Add documentation and API reference for the `wazuh-indexer-setup` plugin [(#489)](https://github.com/wazuh/wazuh-indexer-plugins/issues/489) [(#931)](https://github.com/wazuh/wazuh-indexer-plugins/issues/931)
-- Add documentation for default users and roles (RBAC) [(#529)](https://github.com/wazuh/wazuh-indexer-plugins/issues/529) [(#1538)](https://github.com/wazuh/wazuh-indexer/issues/1538)
-- Add documentation for the `wazuh-indexer-reporting` plugin [(#63)](https://github.com/wazuh/wazuh-indexer-reporting/issues/63)
-- Add documentation for the `wazuh-indexer-alerting` plugin [(#1)](https://github.com/wazuh/wazuh-indexer-alerting/issues/1) [(#73)](https://github.com/wazuh/wazuh-indexer-alerting/issues/73)
-- Add documentation for the `wazuh-indexer-notifications` plugin and its default channels [(#2)](https://github.com/wazuh/wazuh-indexer-notifications/issues/2) [(#45)](https://github.com/wazuh/wazuh-indexer-notifications/issues/45)
-- Add development guide for `wazuh-indexer-common-utils` [(#1)](https://github.com/wazuh/wazuh-indexer-common-utils/issues/1)
-- Add documentation for the `browser-extensions` and `services` inventory indices [(#571)](https://github.com/wazuh/wazuh-indexer-plugins/issues/571)
-- Add documentation for the Security Analytics settings [(#219)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/219) [(#244)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/244)
-- Add documentation for threat detector rule limits and per-space threat detectors [(#111)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/111) [(#117)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/117)
-- Add documentation for the detection gap of disabled threat detectors [(#1531)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1531)
-- Add documentation for the ISM retention behavior of stream data streams [(#1530)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1530)
-- Add documentation for the active response document contract [(#1551)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1551)
-- Add documentation for Active Response monitors running once per matched event [(#1941)](https://github.com/wazuh/wazuh-indexer/issues/1941)
-- Add documentation for step-by-step upgrades and backup and restore [(#934)](https://github.com/wazuh/wazuh-indexer-plugins/issues/934)
-- Add Wazuh Indexer configuration and fine-tuning guide [(#1240)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1240)
-- Add configuration migration guide for 5.0 <!-- [(#1202)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1202) -->
-- Add README files to the WCS modules <!-- [(#1478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1478) -->
-- Add documentation for the `needrestart` override on Debian-based systems [(#1850)](https://github.com/wazuh/wazuh-indexer/issues/1850)
-- Add documentation for install-time credential and TLS generation [(#1927)](https://github.com/wazuh/wazuh-indexer/issues/1927) [(#1960)](https://github.com/wazuh/wazuh-indexer/issues/1960) [(#1975)](https://github.com/wazuh/wazuh-indexer/issues/1975) [(#1976)](https://github.com/wazuh/wazuh-indexer/issues/1976)
-- (operational) Add repository bumper tool [(#499)](https://github.com/wazuh/wazuh-indexer-plugins/issues/499)
-- (operational) Add `--set-as-main`, revert, issue link and skipped-bump reporting support to the repository bumper [(#975)](https://github.com/wazuh/wazuh-indexer-plugins/issues/975) [(#1051)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1051) [(#1270)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1270) [(#1439)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1439)
-- (operational) Add WCS integrations tooling [(#580)](https://github.com/wazuh/wazuh-indexer-plugins/issues/580)
-- (operational) Sanitize ECS source types before generating the WCS [(#622)](https://github.com/wazuh/wazuh-indexer-plugins/issues/622)
-- (operational) Add GH Action for Local Maven publication [(#743)](https://github.com/wazuh/wazuh-indexer-plugins/issues/743)
-- (operational) Add workflow to check the Content Manager API documentation [(#853)](https://github.com/wazuh/wazuh-indexer-plugins/issues/853)
-- (operational) Add performance metrics tooling [(#1590)](https://github.com/wazuh/wazuh-indexer/issues/1590)
-- (operational) Add Claude Code skills for the WCS, performance tuning and scheduled upward merges [(#1485)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1485) [(#1740)](https://github.com/wazuh/wazuh-indexer/issues/1740) [(#1597)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1597)
-- (operational) Add component tests for the vulnerabilities consumer [(#1482)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1482)
+
+| Issue | Comment |
+|-------|---------|
+| [#1](https://github.com/wazuh/wazuh-indexer-plugins/issues/1) [#3](https://github.com/wazuh/wazuh-indexer-plugins/issues/3) [#13](https://github.com/wazuh/wazuh-indexer-plugins/issues/13) | Initialize `wazuh-indexer-plugins` repository |
+| [#522](https://github.com/wazuh/wazuh-indexer-plugins/issues/522) [#558](https://github.com/wazuh/wazuh-indexer-plugins/issues/558) [#586](https://github.com/wazuh/wazuh-indexer-plugins/issues/586) [#630](https://github.com/wazuh/wazuh-indexer-plugins/issues/630) [#723](https://github.com/wazuh/wazuh-indexer-plugins/issues/723) [#850](https://github.com/wazuh/wazuh-indexer-plugins/issues/850) [#1001](https://github.com/wazuh/wazuh-indexer-plugins/issues/1001) [#1341](https://github.com/wazuh/wazuh-indexer/issues/1341) | Compatibility with OpenSearch 3.6.0 |
+| [#434](https://github.com/wazuh/wazuh-indexer-plugins/issues/434) [#466](https://github.com/wazuh/wazuh-indexer-plugins/issues/466) [#533](https://github.com/wazuh/wazuh-indexer-plugins/issues/533) [#1249](https://github.com/wazuh/wazuh-indexer/issues/1249) | Create the Wazuh index templates, indices and index management policies at startup |
+| [#831](https://github.com/wazuh/wazuh-indexer-plugins/issues/831) | Add `wazuh-events-raw-v5` data stream |
+| [#832](https://github.com/wazuh/wazuh-indexer-plugins/issues/832) [#1348](https://github.com/wazuh/wazuh-indexer-plugins/issues/1348) | Add `wazuh-events-v5-unclassified` data stream for events without a category |
+| [#72](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/72) [#1220](https://github.com/wazuh/wazuh-indexer-plugins/issues/1220) [#1334](https://github.com/wazuh/wazuh-indexer-plugins/issues/1334) | Add `wazuh-findings-v5-*` data streams with WCS-compliant findings and case management fields |
+| [#884](https://github.com/wazuh/wazuh-indexer-plugins/issues/884) | Add `wazuh-active-responses` data stream |
+| [#940](https://github.com/wazuh/wazuh-indexer-plugins/issues/940) [#1110](https://github.com/wazuh/wazuh-indexer-plugins/issues/1110) [#1235](https://github.com/wazuh/wazuh-indexer-plugins/issues/1235) | Add metrics and monitoring data streams |
+| [#511](https://github.com/wazuh/wazuh-indexer-plugins/issues/511) [#351](https://github.com/wazuh/wazuh-indexer-plugins/issues/351) | Add SCA stateful index |
+| [#1419](https://github.com/wazuh/wazuh-indexer-plugins/issues/1419) | Add `wazuh-agent-config` index |
+| [#1425](https://github.com/wazuh/wazuh-indexer-plugins/issues/1425) | Add `wazuh-agent-stats` index |
+| [#1422](https://github.com/wazuh/wazuh-indexer-plugins/issues/1422) | Add AI assistant support |
+| [#276](https://github.com/wazuh/wazuh-indexer/issues/276) | Add cross-account support to the Amazon Security Lake integration |
+| [#1213](https://github.com/wazuh/wazuh-indexer-plugins/issues/1213) | Add data retention policies for stream indices |
+| [#553](https://github.com/wazuh/wazuh-indexer-plugins/issues/553) [#584](https://github.com/wazuh/wazuh-indexer-plugins/issues/584) [#590](https://github.com/wazuh/wazuh-indexer-plugins/issues/590) [#605](https://github.com/wazuh/wazuh-indexer-plugins/issues/605) [#606](https://github.com/wazuh/wazuh-indexer-plugins/issues/606) [#851](https://github.com/wazuh/wazuh-indexer-plugins/issues/851) [#1096](https://github.com/wazuh/wazuh-indexer-plugins/issues/1096) [#754](https://github.com/wazuh/wazuh-indexer-plugins/issues/754) [#638](https://github.com/wazuh/wazuh-indexer-plugins/issues/638) [#875](https://github.com/wazuh/wazuh-indexer-plugins/issues/875) [#1413](https://github.com/wazuh/wazuh-indexer-plugins/issues/1413) | Add the WCS definition of the event data streams, with categories, integration, enrichment, compliance and event correlation fields |
+| [#981](https://github.com/wazuh/wazuh-indexer-plugins/issues/981) [#983](https://github.com/wazuh/wazuh-indexer-plugins/issues/983) [#989](https://github.com/wazuh/wazuh-indexer-plugins/issues/989) | Add missing `indicator.feed.name` and vulnerability fields to the WCS |
+| [#515](https://github.com/wazuh/wazuh-indexer-plugins/issues/515) [#576](https://github.com/wazuh/wazuh-indexer-plugins/issues/576) [#560](https://github.com/wazuh/wazuh-indexer-plugins/issues/560) | Add checksum, metadata and `state.modified_at` fields to the stateful indices |
+| [#870](https://github.com/wazuh/wazuh-indexer-plugins/issues/870) [#1105](https://github.com/wazuh/wazuh-indexer-plugins/issues/1105) [#961](https://github.com/wazuh/wazuh-indexer-plugins/issues/961) [#1069](https://github.com/wazuh/wazuh-indexer-plugins/issues/1069) | Initialize CTI content from the bundled snapshots and keep it up to date with scheduled and on-demand updates |
+| [#735](https://github.com/wazuh/wazuh-indexer-plugins/issues/735) [#753](https://github.com/wazuh/wazuh-indexer-plugins/issues/753) [#829](https://github.com/wazuh/wazuh-indexer-plugins/issues/829) | Download IoCs from the CTI API and deliver them to the Wazuh Engine |
+| [#325](https://github.com/wazuh/wazuh-indexer-plugins/issues/325) | Download the CTI vulnerability feed |
+| [#812](https://github.com/wazuh/wazuh-indexer-plugins/issues/812) [#37](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/37) [#38](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/38) [#869](https://github.com/wazuh/wazuh-indexer-plugins/issues/869) [#1170](https://github.com/wazuh/wazuh-indexer-plugins/issues/1170) [#1103](https://github.com/wazuh/wazuh-indexer-plugins/issues/1103) | Add content spaces (`draft`, `test`, `custom`, `standard`) and the REST API to manage, promote and reset user-generated rules, decoders, integrations and KVDBs |
+| [#756](https://github.com/wazuh/wazuh-indexer-plugins/issues/756) [#796](https://github.com/wazuh/wazuh-indexer-plugins/issues/796) | Add Engine filters index and API |
+| [#833](https://github.com/wazuh/wazuh-indexer-plugins/issues/833) | Add support for Engine settings |
+| [#918](https://github.com/wazuh/wazuh-indexer-plugins/issues/918) [#993](https://github.com/wazuh/wazuh-indexer-plugins/issues/993) [#1376](https://github.com/wazuh/wazuh-indexer-plugins/issues/1376) | Load the `standard`, `test` and `custom` spaces into the Wazuh Engine of every cluster node when their hash changes |
+| [#1029](https://github.com/wazuh/wazuh-indexer-plugins/issues/1029) | Synchronize CTI integrations and rules with Security Analytics and create a threat detector for each integration |
+| [#1356](https://github.com/wazuh/wazuh-indexer-plugins/issues/1356) | Add integration mode to enable or disable integrations and their threat detectors |
+| [#56](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/56) | Add rule testing to the logtest endpoint |
+| [#1042](https://github.com/wazuh/wazuh-indexer-plugins/issues/1042) [#1218](https://github.com/wazuh/wazuh-indexer-plugins/issues/1218) | Add telemetry ping job reporting the environment's identity and version to the CTI API |
+| [#1010](https://github.com/wazuh/wazuh-indexer-plugins/issues/1010) | Add version check endpoint |
+| [#1084](https://github.com/wazuh/wazuh-indexer-plugins/issues/1084) | Add YAML representation for ruleset resources |
+| [#1276](https://github.com/wazuh/wazuh-indexer-plugins/issues/1276) | Add configurable resource creation limits |
+| [#1277](https://github.com/wazuh/wazuh-indexer-plugins/issues/1277) | Add settings to disable on-demand updates and policy updates for every user |
+| [#1585](https://github.com/wazuh/wazuh-indexer-plugins/issues/1585) | Add plugin settings for the operational constants of the Setup and Content Manager plugins |
+| [#529](https://github.com/wazuh/wazuh-indexer-plugins/issues/529) [#1538](https://github.com/wazuh/wazuh-indexer/issues/1538) [#1927](https://github.com/wazuh/wazuh-indexer/issues/1927) [#1960](https://github.com/wazuh/wazuh-indexer/issues/1960) [#1975](https://github.com/wazuh/wazuh-indexer/issues/1975) [#1976](https://github.com/wazuh/wazuh-indexer/issues/1976) [#934](https://github.com/wazuh/wazuh-indexer-plugins/issues/934) [#1240](https://github.com/wazuh/wazuh-indexer-plugins/issues/1240) [#1530](https://github.com/wazuh/wazuh-indexer-plugins/issues/1530) [#1656](https://github.com/wazuh/wazuh-indexer-plugins/issues/1656) | Add the Wazuh indexer 5.x documentation |
+
+
 
 ### Changed
-- Upgrade to OpenSearch 3.6.0 and JDK 25 [(#522)](https://github.com/wazuh/wazuh-indexer-plugins/issues/522) [(#558)](https://github.com/wazuh/wazuh-indexer-plugins/issues/558) [(#586)](https://github.com/wazuh/wazuh-indexer-plugins/issues/586) [(#630)](https://github.com/wazuh/wazuh-indexer-plugins/issues/630) [(#723)](https://github.com/wazuh/wazuh-indexer-plugins/issues/723) [(#850)](https://github.com/wazuh/wazuh-indexer-plugins/issues/850) [(#1001)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1001) [(#1341)](https://github.com/wazuh/wazuh-indexer/issues/1341)
-- Replace deprecated OpenSearch 3.0 settings [(#475)](https://github.com/wazuh/wazuh-indexer-plugins/issues/475)
-- Adapt the `wazuh-indexer-setup` plugin for 5.x [(#448)](https://github.com/wazuh/wazuh-indexer-plugins/issues/448)
-- Unify the Setup and Content Manager plugin states into `running`, `ready` and `failed` [(#1288)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1288)
-- Unify the default settings of Wazuh indices for All-in-One deployments, auto-expanding to one replica on multi-node clusters [(#1284)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1284) [(#1354)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1354) [(#1793)](https://github.com/wazuh/wazuh-indexer/issues/1793) [(#1817)](https://github.com/wazuh/wazuh-indexer/issues/1817) [(#1818)](https://github.com/wazuh/wazuh-indexer/issues/1818)
-- Use the `zstd` codec by default for indices created by Wazuh plugins [(#1271)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1271)
-- Disable automatic refresh on low-activity internal indices [(#1275)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1275)
-- Reduce the in-memory TTL of deleted documents on stateful indices [(#1328)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1328)
-- Upgrade the WCS to ECS 9.1.0 [(#599)](https://github.com/wazuh/wazuh-indexer-plugins/issues/599)
-- Migrate WCS changes from 4.x [(#482)](https://github.com/wazuh/wazuh-indexer-plugins/issues/482) [(#975)](https://github.com/wazuh/wazuh-indexer/issues/975) [(#1068)](https://github.com/wazuh/wazuh-indexer/issues/1068) [(#1114)](https://github.com/wazuh/wazuh-indexer/issues/1114)
-- Include the major version in index names and aliases [(#591)](https://github.com/wazuh/wazuh-indexer-plugins/issues/591)
-- Tune the field limits of WCS indices [(#593)](https://github.com/wazuh/wazuh-indexer-plugins/issues/593)
-- Reduce the WCS to a minimal set of fields [(#637)](https://github.com/wazuh/wazuh-indexer-plugins/issues/637)
-- Replace time-series indices with data streams [(#650)](https://github.com/wazuh/wazuh-indexer-plugins/issues/650)
-- Rename index templates [(#647)](https://github.com/wazuh/wazuh-indexer-plugins/issues/647)
-- Rework the FIM indices [(#506)](https://github.com/wazuh/wazuh-indexer-plugins/issues/506)
-- Update the WCS compliance fields [(#688)](https://github.com/wazuh/wazuh-indexer-plugins/issues/688) [(#1301)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1301)
-- Move `agent` fields under `wazuh` [(#775)](https://github.com/wazuh/wazuh-indexer-plugins/issues/775)
-- Nest the `rule` and `threat` fields under `wazuh` [(#1121)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1121)
-- Extend the MITRE fields of rules, events, findings and active responses [(#1208)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1208)
-- Set the `wazuh-events-v5` template mapping to `strict_allow_templates` [(#963)](https://github.com/wazuh/wazuh-indexer-plugins/issues/963)
-- Map `threat.enrichments` as an object instead of nested and remove the root-level `enrichments` field [(#1209)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1209)
-- Unify `manager.address` and `manager.port` into `manager.endpoint` in the `wazuh-agent-config` index [(#1490)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1490)
-- Change the `wazuh-agent-config` and `wazuh-agent-stats` mappings to `strict_allow_templates` with dynamic templates [(#1535)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1535)
-- Raise the default `ignore_above` of `keyword` fields from 1024 to 4096 <!-- [(#1575)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1575) -->
-- Rename the `metrics-comms` data stream to `wazuh-metrics-comms-v4` [(#1458)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1458)
-- Rename the content indices to `wazuh-threatintel-*` [(#1041)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1041)
-- Hide the `.wazuh-threatintel-vulnerabilities` index [(#1109)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1109)
-- Update the CTI API URL and consumers [(#892)](https://github.com/wazuh/wazuh-indexer-plugins/issues/892) [(#986)](https://github.com/wazuh/wazuh-indexer-plugins/issues/986) [(#1067)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1067) [(#1160)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1160) [(#1241)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1241)
-- Rework the initialization from snapshots based on the `manifest.json` file [(#1113)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1113)
-- Improve the performance of snapshot unzipping and indexing [(#1257)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1257) [(#1318)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1318) [(#1351)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1351)
-- Reduce the IoCs and ruleset memory footprint [(#1740)](https://github.com/wazuh/wazuh-indexer/issues/1740)
-- Recover immediately when a feed update fails [(#1345)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1345)
-- Change the IoC data structure and mappings, with a hash per IoC type [(#814)](https://github.com/wazuh/wazuh-indexer-plugins/issues/814) [(#852)](https://github.com/wazuh/wazuh-indexer-plugins/issues/852) [(#896)](https://github.com/wazuh/wazuh-indexer-plugins/issues/896) [(#1022)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1022)
-- Optimize the rules index mappings to support more CTI rules [(#792)](https://github.com/wazuh/wazuh-indexer-plugins/issues/792)
-- Extend the policy schema and update endpoint with filters, enrichments and default settings [(#755)](https://github.com/wazuh/wazuh-indexer-plugins/issues/755) [(#804)](https://github.com/wazuh/wazuh-indexer-plugins/issues/804)
-- Allow updating the `standard` space policy [(#899)](https://github.com/wazuh/wazuh-indexer-plugins/issues/899)
-- Update the metadata of custom policies [(#950)](https://github.com/wazuh/wazuh-indexer-plugins/issues/950)
-- Normalize the metadata of ruleset resources [(#920)](https://github.com/wazuh/wazuh-indexer-plugins/issues/920)
-- Normalize space values to lowercase [(#146)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/146)
-- Simplify the Content Manager API payloads [(#795)](https://github.com/wazuh/wazuh-indexer-plugins/issues/795)
-- Allow editing resources that carry unmodifiable fields [(#815)](https://github.com/wazuh/wazuh-indexer-plugins/issues/815)
-- Allow dates on the Content Manager REST API [(#1349)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1349)
-- Prevent deletion of the root decoder [(#943)](https://github.com/wazuh/wazuh-indexer-plugins/issues/943)
-- Allow promoting rules without a root decoder [(#1131)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1131)
-- Support logtest executions on multiple spaces, including `custom` [(#932)](https://github.com/wazuh/wazuh-indexer-plugins/issues/932) [(#1184)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1184)
-- Include only enabled rules in standard threat detectors [(#1016)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1016)
-- Improve the time correlation between events and findings [(#214)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/214)
-- Include the `wazuh.rule` object in active response events [(#101)](https://github.com/wazuh/wazuh-indexer-notifications/issues/101)
-- Improve error messages for Security Analytics validation failures [(#143)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/143)
-- Improve Content Manager logging [(#1200)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1200)
-- Route Content Manager operations through transport actions with dedicated action names [(#1263)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1263) [(#1267)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1267) [(#1325)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1325)
-- Reduce the Content Manager privileges [(#1278)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1278)
-- Require `.wazuh-internal-state` to be a protected system index before storing the CTI token <!-- [(#1176)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1176) -->
-- Limit the logtest request size and run logtest on a dedicated thread pool <!-- [(#1496)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1496) -->
-- Request compressed responses from the CTI API <!-- [(#1517)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1517) -->
-- Use the CTI API setting as the base URL for the CTI Console [(#1584)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1584)
-- Increase the Content Manager's default wait for the setup plugin to be ready [(#1797)](https://github.com/wazuh/wazuh-indexer/issues/1797)
-- Rename the Engine Unix socket file to `engine-api-http.sock` [(#1856)](https://github.com/wazuh/wazuh-indexer/issues/1856)
-- Mediate AI assistant session writes through the setup plugin <!-- [(#1554)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1554) -->
-- Remove the upper bounds of the Content Manager resource limit settings [(#1420)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1420)
-- Update third-party integrations to their latest versions [(#477)](https://github.com/wazuh/wazuh-indexer-plugins/issues/477) [(#539)](https://github.com/wazuh/wazuh-indexer-plugins/issues/539) [(#547)](https://github.com/wazuh/wazuh-indexer-plugins/issues/547) [(#562)](https://github.com/wazuh/wazuh-indexer-plugins/issues/562) [(#582)](https://github.com/wazuh/wazuh-indexer-plugins/issues/582) [(#641)](https://github.com/wazuh/wazuh-indexer-plugins/issues/641) [(#697)](https://github.com/wazuh/wazuh-indexer-plugins/issues/697) [(#741)](https://github.com/wazuh/wazuh-indexer-plugins/issues/741) [(#811)](https://github.com/wazuh/wazuh-indexer-plugins/issues/811) [(#906)](https://github.com/wazuh/wazuh-indexer-plugins/issues/906) [(#1015)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1015) [(#1123)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1123)
-- Update documentation for Sigma rules and their extended syntax [(#927)](https://github.com/wazuh/wazuh-indexer-plugins/issues/927) [(#1215)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1215)
-- Update build documentation to include the Security Analytics plugin [(#1270)](https://github.com/wazuh/wazuh-indexer/issues/1270)
-- Update the Wazuh Indexer documentation [(#846)](https://github.com/wazuh/wazuh-indexer-plugins/issues/846) [(#1012)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1012)
-- Update build, installation and offline installation documentation [(#1546)](https://github.com/wazuh/wazuh-indexer/issues/1546) [(#1571)](https://github.com/wazuh/wazuh-indexer/issues/1571)
-- Rename Security Analytics to Ruleset Management in the Reference Manual and update the MITRE fields documentation [(#1540)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1540) [(#1541)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1541) [(#319)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/319)
-- Include the consumer name in the snapshot download log messages [(#1635)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1635)
-- (operational) Add version to the GH Workflow names [(#1122)](https://github.com/wazuh/wazuh-indexer/issues/1122)
-- (operational) Update GitHub Actions to the latest version available [(#1129)](https://github.com/wazuh/wazuh-indexer/issues/1129)
-- (operational) Track GitHub Actions version updates with Dependabot [(#1191)](https://github.com/wazuh/wazuh-indexer/issues/1191)
-- (operational) Configure Dependabot to scan every plugin [(#442)](https://github.com/wazuh/wazuh-indexer-plugins/issues/442)
-- (operational) Regenerate dependent stateless modules when their base module changes [(#615)](https://github.com/wazuh/wazuh-indexer-plugins/issues/615)
-- (operational) Restructure the WCS files and folders [(#461)](https://github.com/wazuh/wazuh-indexer-plugins/issues/461) [(#623)](https://github.com/wazuh/wazuh-indexer-plugins/issues/623) [(#879)](https://github.com/wazuh/wazuh-indexer-plugins/issues/879)
-- (operational) Restructure the repository tooling [(#624)](https://github.com/wazuh/wazuh-indexer-plugins/issues/624)
-- (operational) Pin `mdbook` to version `0.4.x` [(#626)](https://github.com/wazuh/wazuh-indexer-plugins/issues/626)
-- (operational) Save the flattened ECS definition of stateless modules [(#645)](https://github.com/wazuh/wazuh-indexer-plugins/issues/645)
-- (operational) Improve CI workflows, caches and artifact publication [(#654)](https://github.com/wazuh/wazuh-indexer-plugins/issues/654) [(#1439)](https://github.com/wazuh/wazuh-indexer/issues/1439) [(#1443)](https://github.com/wazuh/wazuh-indexer/issues/1443)
-- (operational) Resolve the plugins' build version from `VERSION.json` [(#1595)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1595)
+
+| Issue | Comment |
+|-------|---------|
+| [#1284](https://github.com/wazuh/wazuh-indexer-plugins/issues/1284) [#1354](https://github.com/wazuh/wazuh-indexer-plugins/issues/1354) [#1793](https://github.com/wazuh/wazuh-indexer/issues/1793) [#1817](https://github.com/wazuh/wazuh-indexer/issues/1817) [#1818](https://github.com/wazuh/wazuh-indexer/issues/1818) | Unify the default settings of Wazuh indices for All-in-One deployments, auto-expanding to one replica on multi-node clusters |
+| [#1271](https://github.com/wazuh/wazuh-indexer-plugins/issues/1271) | Use the `zstd` codec by default for indices created by Wazuh plugins |
+| [#1328](https://github.com/wazuh/wazuh-indexer-plugins/issues/1328) | Reduce the in-memory TTL of deleted documents on stateful indices |
+| [#599](https://github.com/wazuh/wazuh-indexer-plugins/issues/599) | Upgrade the WCS to ECS 9.1.0 |
+| [#482](https://github.com/wazuh/wazuh-indexer-plugins/issues/482) [#975](https://github.com/wazuh/wazuh-indexer/issues/975) [#1068](https://github.com/wazuh/wazuh-indexer/issues/1068) [#1114](https://github.com/wazuh/wazuh-indexer/issues/1114) | Migrate WCS changes from 4.x |
+| [#650](https://github.com/wazuh/wazuh-indexer-plugins/issues/650) | Replace time-series indices with data streams |
+| [#506](https://github.com/wazuh/wazuh-indexer-plugins/issues/506) | Rework the FIM indices |
+| [#775](https://github.com/wazuh/wazuh-indexer-plugins/issues/775) | Move `agent` fields under `wazuh` |
+| [#477](https://github.com/wazuh/wazuh-indexer-plugins/issues/477) [#539](https://github.com/wazuh/wazuh-indexer-plugins/issues/539) [#547](https://github.com/wazuh/wazuh-indexer-plugins/issues/547) [#562](https://github.com/wazuh/wazuh-indexer-plugins/issues/562) [#582](https://github.com/wazuh/wazuh-indexer-plugins/issues/582) [#641](https://github.com/wazuh/wazuh-indexer-plugins/issues/641) [#697](https://github.com/wazuh/wazuh-indexer-plugins/issues/697) [#741](https://github.com/wazuh/wazuh-indexer-plugins/issues/741) [#811](https://github.com/wazuh/wazuh-indexer-plugins/issues/811) [#906](https://github.com/wazuh/wazuh-indexer-plugins/issues/906) [#1015](https://github.com/wazuh/wazuh-indexer-plugins/issues/1015) [#1123](https://github.com/wazuh/wazuh-indexer-plugins/issues/1123) [#298](https://github.com/wazuh/wazuh-indexer-plugins/issues/298) [#372](https://github.com/wazuh/wazuh-indexer-plugins/issues/372) | Update third-party integrations to their latest versions |
+| [#1635](https://github.com/wazuh/wazuh-indexer-plugins/issues/1635) | Include the consumer name in the snapshot download log messages |
+
 
 ### Removed
-- Remove the `ecs` object from WCS definitions [(#604)](https://github.com/wazuh/wazuh-indexer-plugins/issues/604)
-- Remove the alerts and archives index templates [(#689)](https://github.com/wazuh/wazuh-indexer-plugins/issues/689)
-- Remove the vulnerability scanner reference field [(#1063)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1063)
-- Remove non-standard IP and geo fields from the F5 BIG-IP mappings [(#806)](https://github.com/wazuh/wazuh-indexer-plugins/issues/806)
-- Remove unused fields from the `wazuh-metrics-agents` template [(#1558)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1558)
-- Remove outdated documentation for the setup plugin [(#530)](https://github.com/wazuh/wazuh-indexer-plugins/issues/530)
-- Remove the swap section from the documentation, superseded by `bootstrap.memory_lock` [(#1670)](https://github.com/wazuh/wazuh-indexer/issues/1670)
-- (operational) Remove plugins not planned for 5.x [(#440)](https://github.com/wazuh/wazuh-indexer-plugins/issues/440)
+
+| Issue | Comment |
+|-------|---------|
+| [#689](https://github.com/wazuh/wazuh-indexer-plugins/issues/689) | Remove the alerts and archives index templates |
+| [#1063](https://github.com/wazuh/wazuh-indexer-plugins/issues/1063) | Remove the vulnerability scanner reference field |
+
 
 ### Fixed
-- Fix SLF4J warnings during startup [(#1577)](https://github.com/wazuh/wazuh-indexer/issues/1577)
-- Fix setup status marked as ready after an initialization failure [(#1810)](https://github.com/wazuh/wazuh-indexer/issues/1810)
-- Fix ISM policies not being applied to data streams and their rolled-over indices [(#1225)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1225) [(#1279)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1279) [(#1533)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1533)
-- Fix `Failed to save/update ManagedIndexMetaData` errors [(#1828)](https://github.com/wazuh/wazuh-indexer/issues/1828)
-- Fix findings dashboards failing with "too many docvalue_fields" [(#1800)](https://github.com/wazuh/wazuh-indexer/issues/1800)
-- Fix missing fields in active response indices [(#1178)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1178)
-- Fix dangling nested fields under the `gen_ai` object [(#607)](https://github.com/wazuh/wazuh-indexer-plugins/issues/607)
-- Fix `dns.answers` field type mismatch in the GCP cloud services template [(#672)](https://github.com/wazuh/wazuh-indexer-plugins/issues/672)
-- Fix `privacy_default_per_provider` rejecting new provider overrides [(#1498)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1498)
-- Fix `index.query.default_field` listing fields that don't exist or can't match text [(#1536)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1536)
-- Fix missing threat-intel content indices [(#1140)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1140) [(#1362)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1362) [(#1476)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1476)
-- Fix race condition creating the CTI consumers index [(#909)](https://github.com/wazuh/wazuh-indexer-plugins/issues/909)
-- Fix content initialization race condition with the setup plugin [(#1251)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1251)
-- Fix the Wazuh Indexer service randomly failing after a restart [(#1418)](https://github.com/wazuh/wazuh-indexer/issues/1418)
-- Fix failures due to blocking operations in multi-node clusters [(#1331)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1331)
-- Fix duplicated policies on multi-node clusters [(#1329)](https://github.com/wazuh/wazuh-indexer/issues/1329)
-- Fix the `standard` space hash being missing, stale or undefined after updates and restarts [(#971)](https://github.com/wazuh/wazuh-indexer-plugins/issues/971) [(#1141)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1141) [(#1412)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1412) [(#1773)](https://github.com/wazuh/wazuh-indexer/issues/1773) [(#1809)](https://github.com/wazuh/wazuh-indexer/issues/1809)
-- Fix `update_on_schedule` and `sync_interval` being ignored after the first boot [(#1564)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1564)
-- Fix duplicate query indices created by concurrent catalog syncs [(#1601)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1601)
-- Fix IoC and CVE feed updates failing [(#914)](https://github.com/wazuh/wazuh-indexer-plugins/issues/914) [(#997)](https://github.com/wazuh/wazuh-indexer-plugins/issues/997)
-- Fix the CTI vulnerabilities consumer never initializing with large snapshots [(#1308)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1308)
-- Fix empty Vulnerability Detection after a transient snapshot failure [(#1383)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1383)
-- Fix unregistered deployments using the `-b` content indices [(#1180)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1180)
-- Fix consumers local offset left behind after a plan change [(#1342)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1342)
-- Fix blank `to_offset` parameter fetching consumer changes [(#1199)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1199)
-- Fix CTI consumers failing on HTTP 429 responses [(#1807)](https://github.com/wazuh/wazuh-indexer/issues/1807) [(#1819)](https://github.com/wazuh/wazuh-indexer/issues/1819) [(#1830)](https://github.com/wazuh/wazuh-indexer/issues/1830)
-- Fix CTI consumer syncs aborting on rejected bulk requests [(#1851)](https://github.com/wazuh/wazuh-indexer/issues/1851) [(#1900)](https://github.com/wazuh/wazuh-indexer/issues/1900) [(#1913)](https://github.com/wazuh/wazuh-indexer/issues/1913)
-- Fix file descriptor leak in the catalog sync [(#1763)](https://github.com/wazuh/wazuh-indexer/issues/1763)
-- Fix point-in-time contexts not being released [(#1872)](https://github.com/wazuh/wazuh-indexer/issues/1872)
-- Fix repeated policy retrieval errors while shards initialize at startup [(#1881)](https://github.com/wazuh/wazuh-indexer/issues/1881)
-- Fix CTI requests not validating TLS certificates <!-- [(#1548)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1548) -->
-- Fix CTI registration starting before the caller's permissions are checked <!-- [(#1547)](https://github.com/wazuh/wazuh-indexer-plugins/pull/1547) -->
-- Fix resources not being removed from Security Analytics [(#973)](https://github.com/wazuh/wazuh-indexer-plugins/issues/973)
-- Fix content being sent to Security Analytics after a failed content update [(#1256)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1256)
-- Fix failed Security Analytics syncs not being retried [(#1487)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1487) [(#1914)](https://github.com/wazuh/wazuh-indexer/issues/1914)
-- Fix failures creating threat detectors [(#945)](https://github.com/wazuh/wazuh-indexer-plugins/issues/945)
-- Fix duplicated threat detectors after a subscription change [(#1283)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1283)
-- Fix missing findings [(#82)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/82)
-- Fix error logs and catalog sync failures at startup [(#109)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/109)
-- Fix integration updates failing with a "Log Type cannot be updated" error [(#87)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/87)
-- Fix `space.hash` field present in every resource type [(#1166)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1166)
-- Fix policy metadata duplicated at root level on updates [(#1173)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1173)
-- Fix root decoder handling on user spaces, policy updates and space resets [(#1158)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1158) [(#1186)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1186) [(#1332)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1332)
-- Fix missing `description` field error when editing integrations or policies [(#874)](https://github.com/wazuh/wazuh-indexer-plugins/issues/874)
-- Fix filter creation rejecting objects in the `check` property [(#1061)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1061)
-- Fix resources being removed from their integration in every space [(#835)](https://github.com/wazuh/wazuh-indexer-plugins/issues/835)
-- Fix promotion changes on fresh installations [(#1373)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1373)
-- Fix promotions failing with `too_many_clauses` [(#1945)](https://github.com/wazuh/wazuh-indexer/issues/1945)
-- Fix `enabled` flag not evaluated on various resource-related operations [(#1394)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1394)
-- Fix user's enabled state lost on CTI updates [(#1403)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1403)
-- Fix logtest not using manually enabled integrations [(#1410)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1410)
-- Fix logtest reporting `contains` matches that never fire in the ingestion pipeline [(#321)](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/321)
-- Fix logtest response not being a valid JSON object [(#872)](https://github.com/wazuh/wazuh-indexer-plugins/issues/872)
-- Fix resource creation requiring `indices:admin/create` on `.wazuh-content-manager-resource-locks` [(#1520)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1520)
-- Fix invalid transport action name prefixes in the Content Manager plugin [(#1314)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1314)
-- Fix plugins not handling security permission exceptions [(#1229)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1229)
-- Fix status codes and response messages of the Content Manager endpoints [(#1388)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1388)
-- Fix KV Store startup failure in the Splunk integration [(#913)](https://github.com/wazuh/wazuh-indexer-plugins/issues/913)
-- Fix WCS CSV documentation listing removed fields [(#470)](https://github.com/wazuh/wazuh-indexer-plugins/issues/470)
-- Fix JDK version in the developer guide [(#537)](https://github.com/wazuh/wazuh-indexer-plugins/issues/537)
-- Fix certificate deployment steps in the installation guide [(#1327)](https://github.com/wazuh/wazuh-indexer/issues/1327)
-- Fix uninstall documentation to remove leftover folders with `--purge` [(#824)](https://github.com/wazuh/wazuh-indexer-plugins/issues/824)
-- Fix development environment setup and build image instructions [(#1470)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1470) [(#1479)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1479)
-- Fix the Content Manager OpenAPI specification and API reference examples [(#1353)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1353) [(#1539)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1539)
-- Fix documentation drift found by the 5.0.0 documentation review [(#1609)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1609) [(#1610)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1610) [(#1611)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1611) [(#1612)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1612) [(#1613)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1613) [(#1614)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1614) [(#1615)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1615) [(#1617)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1617) [(#1618)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1618) [(#1619)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1619) [(#1620)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1620) [(#1621)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1621) [(#1622)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1622) [(#1623)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1623) [(#1624)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1624) [(#1625)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1625) [(#1626)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1626) [(#1627)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1627) [(#1628)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1628) [(#1629)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1629) [(#1630)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1630)
-- Fix vulnerabilities content updates failing with `Target for add operation is not a container` [(#1632)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1632)
-- Fix CTI content updates getting stuck on an offset that cannot be applied, by rebuilding the content from a newer snapshot [(#1633)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1633)
-- (operational) Fix failing WCS event generators [(#503)](https://github.com/wazuh/wazuh-indexer-plugins/issues/503)
-- (operational) Fix WCS generator not detecting some modules [(#614)](https://github.com/wazuh/wazuh-indexer-plugins/issues/614)
-- (operational) Fix `verify_integrations` script [(#639)](https://github.com/wazuh/wazuh-indexer-plugins/issues/639)
-- (operational) Fix `mdbook` Mermaid processor [(#698)](https://github.com/wazuh/wazuh-indexer-plugins/issues/698)
-- (operational) Fix flaky integration tests in the setup plugin [(#877)](https://github.com/wazuh/wazuh-indexer-plugins/issues/877)
-- (operational) Fix `linkchecker` failures [(#867)](https://github.com/wazuh/wazuh-indexer-plugins/issues/867)
-- (operational) Fix CodeQL failures [(#1004)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1004) [(#1497)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1497)
-- (operational) Fix package build failures at the plugins stage [(#1019)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1019) [(#1524)](https://github.com/wazuh/wazuh-indexer/issues/1524)
-- (operational) Fix failing GH workflows [(#1443)](https://github.com/wazuh/wazuh-indexer-plugins/issues/1443)
+
+| Issue | Comment |
+|-------|---------|
+| [#1632](https://github.com/wazuh/wazuh-indexer-plugins/issues/1632) | Fix vulnerabilities content updates failing with `Target for add operation is not a container` |
+| [#1633](https://github.com/wazuh/wazuh-indexer-plugins/issues/1633) | Fix CTI content updates getting stuck on an offset that cannot be applied, by rebuilding the content from a newer snapshot |
 
 ## Prior versions
-- []()
