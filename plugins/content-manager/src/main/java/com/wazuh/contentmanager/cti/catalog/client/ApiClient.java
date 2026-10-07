@@ -117,7 +117,17 @@ public class ApiClient implements AutoCloseable {
     /** Closes the underlying HTTP asynchronous client gracefully. */
     @Override
     public void close() {
-        this.client.close(CloseMode.GRACEFUL);
+        this.close(CloseMode.GRACEFUL);
+    }
+
+    /**
+     * Closes the underlying HTTP asynchronous client.
+     *
+     * @param closeMode {@link CloseMode#GRACEFUL} waits for in-flight exchanges; {@link
+     *     CloseMode#IMMEDIATE} aborts them.
+     */
+    public void close(CloseMode closeMode) {
+        this.client.close(closeMode);
     }
 
     /**
@@ -231,6 +241,10 @@ public class ApiClient implements AutoCloseable {
     /**
      * Retrieves available release updates for a given version tag from the CTI API.
      *
+     * <p>Serves an interactive request, so it makes a single attempt: a 429 is returned to the caller
+     * instead of being slept off, keeping the call bounded by one {@link
+     * PluginSettings#getClientTimeout()}.
+     *
      * @param tag The release tag to query updates for (e.g., "v5.0.0").
      * @return A {@link SimpleHttpResponse} containing the API response with available updates.
      * @throws ExecutionException If the computation threw an exception.
@@ -245,7 +259,24 @@ public class ApiClient implements AutoCloseable {
                 SimpleRequestBuilder.get(uri)
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
-        return this.executeWithRetry(request);
+        return this.executeWithRetry(request, 0);
+    }
+
+    /**
+     * Executes an HTTP request, retrying on HTTP 429 up to {@link
+     * PluginSettings#getClientMaxRetries()} times.
+     *
+     * @param request the request to execute.
+     * @return the {@link SimpleHttpResponse} of the first non-429 attempt, or the last 429 response
+     *     if all retries are exhausted.
+     * @throws ExecutionException If the computation threw an exception.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException If a single attempt exceeded the client timeout.
+     * @see #executeWithRetry(SimpleHttpRequest, int)
+     */
+    SimpleHttpResponse executeWithRetry(SimpleHttpRequest request)
+            throws ExecutionException, InterruptedException, TimeoutException {
+        return this.executeWithRetry(request, PluginSettings.getInstance().getClientMaxRetries());
     }
 
     /**
@@ -255,21 +286,20 @@ public class ApiClient implements AutoCloseable {
      * round-trip. When the API responds with 429 and retries remain, the wait is derived from the
      * {@code Retry-After} header (or an exponential-backoff fallback) via {@link
      * #computeRetryDelaySeconds}, slept off on the calling thread, and the request is re-issued.
-     * Retries are bounded by {@link PluginSettings#getClientMaxRetries()}; once exhausted the last
-     * 429 response is returned to the caller, which handles the non-200 status as before.
+     * Retries are bounded by {@code maxRetries}; once exhausted the last 429 response is returned to
+     * the caller, which handles the non-200 status as before.
      *
      * @param request the request to execute.
+     * @param maxRetries the number of 429 retries allowed; {@code 0} makes a single attempt.
      * @return the {@link SimpleHttpResponse} of the first non-429 attempt, or the last 429 response
      *     if all retries are exhausted.
      * @throws ExecutionException If the computation threw an exception.
      * @throws InterruptedException If the current thread was interrupted while waiting.
      * @throws TimeoutException If a single attempt exceeded the client timeout.
      */
-    SimpleHttpResponse executeWithRetry(SimpleHttpRequest request)
+    SimpleHttpResponse executeWithRetry(SimpleHttpRequest request, int maxRetries)
             throws ExecutionException, InterruptedException, TimeoutException {
-        PluginSettings settings = PluginSettings.getInstance();
-        int maxRetries = settings.getClientMaxRetries();
-        long clientTimeout = settings.getClientTimeout();
+        long clientTimeout = PluginSettings.getInstance().getClientTimeout();
 
         SimpleHttpResponse response = null;
         for (int attempt = 0; attempt <= maxRetries; attempt++) {
@@ -295,6 +325,10 @@ public class ApiClient implements AutoCloseable {
      * Executes a single HTTP round-trip, blocking up to {@code clientTimeout} seconds on the
      * response.
      *
+     * <p>An exchange that is given up on (timeout or interrupt) is cancelled, releasing its pooled
+     * connection. Otherwise a server that keeps trickling bytes never trips the socket timeout, and
+     * on a long-lived client the abandoned exchanges exhaust the per-route pool.
+     *
      * @param request the request to execute.
      * @param clientTimeout the per-attempt deadline in seconds.
      * @return the {@link SimpleHttpResponse}.
@@ -310,7 +344,12 @@ public class ApiClient implements AutoCloseable {
                         SimpleResponseConsumer.create(),
                         new HttpResponseCallback(request, "Outgoing request failed"));
 
-        return future.get(clientTimeout, TimeUnit.SECONDS);
+        try {
+            return future.get(clientTimeout, TimeUnit.SECONDS);
+        } catch (TimeoutException | InterruptedException e) {
+            future.cancel(true);
+            throw e;
+        }
     }
 
     /**

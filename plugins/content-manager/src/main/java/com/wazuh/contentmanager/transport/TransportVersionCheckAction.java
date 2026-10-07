@@ -16,152 +16,42 @@
  */
 package com.wazuh.contentmanager.transport;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.env.Environment;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.action.VersionCheckAction;
 import com.wazuh.contentmanager.action.VersionCheckRequest;
 import com.wazuh.contentmanager.action.VersionCheckResponse;
-import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
-import com.wazuh.contentmanager.cti.catalog.model.Release;
-import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.cti.catalog.service.VersionCheckService;
 
 /**
  * Transport action for GET /version/check. Queries the CTI API to determine available Wazuh version
  * updates and returns the result as structured JSON.
+ *
+ * <p>The work is delegated to {@link VersionCheckService}, which runs the blocking CTI call off the
+ * transport thread and caches and coalesces checks.
  */
 public class TransportVersionCheckAction
         extends HandledTransportAction<VersionCheckRequest, VersionCheckResponse> {
 
-    private static final Logger log = LogManager.getLogger(TransportVersionCheckAction.class);
-
-    private final Environment environment;
-    private final ClusterService clusterService;
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final VersionCheckService versionCheckService;
 
     @Inject
     public TransportVersionCheckAction(
             TransportService transportService,
             ActionFilters actionFilters,
-            Environment environment,
-            ClusterService clusterService) {
+            VersionCheckService versionCheckService) {
         super(VersionCheckAction.NAME, transportService, actionFilters, VersionCheckRequest::new);
-        this.environment = environment;
-        this.clusterService = clusterService;
+        this.versionCheckService = versionCheckService;
     }
 
     @Override
     protected void doExecute(
             Task task, VersionCheckRequest request, ActionListener<VersionCheckResponse> listener) {
-        try {
-            String version = ContentManagerPlugin.getVersion(this.environment);
-            if (version == null || version.isBlank()) {
-                log.error(Constants.E_500_VERSION_NOT_FOUND);
-                listener.onResponse(
-                        new VersionCheckResponse(
-                                Constants.E_500_VERSION_NOT_FOUND, RestStatus.INTERNAL_SERVER_ERROR));
-                return;
-            }
-
-            String tag = "v" + version;
-            // The ApiClient starts an I/O reactor (selector threads holding epoll/eventfd FDs);
-            // close it on every path to avoid leaking descriptors per request (issue #1763).
-            try (ApiClient apiClient = new ApiClient()) {
-                SimpleHttpResponse ctiResponse = apiClient.getReleaseUpdates(tag);
-
-                int ctiStatusCode = ctiResponse.getCode();
-                if (ctiStatusCode < 200 || ctiStatusCode >= 300) {
-                    log.error(
-                            "CTI API returned error for version check: status={}, body={}",
-                            ctiStatusCode,
-                            ctiResponse.getBodyText());
-                    RestStatus status =
-                            RestStatus.fromCode(ctiStatusCode) != null
-                                    ? RestStatus.fromCode(ctiStatusCode)
-                                    : RestStatus.BAD_GATEWAY;
-                    listener.onResponse(
-                            new VersionCheckResponse(ctiResponse.getBodyText(), status).parseMessageAsJson());
-                    return;
-                }
-
-                JsonNode root = this.mapper.readTree(ctiResponse.getBodyText());
-                JsonNode data = root.get("data");
-
-                Release lastMajor = this.getLastRelease(data, "major");
-                Release lastMinor = this.getLastRelease(data, "minor");
-                Release lastPatch = this.getLastRelease(data, "patch");
-
-                String uuid = this.clusterService.state().metadata().clusterUUID();
-                String lastCheckDate =
-                        OffsetDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-
-                // Build the structured message object matching VersionCheckResponse format
-                Map<String, Object> messageMap = new HashMap<>();
-                messageMap.put("uuid", uuid);
-                messageMap.put("last_check_date", lastCheckDate);
-                messageMap.put("current_version", tag);
-                messageMap.put("last_available_major", releaseToMap(lastMajor));
-                messageMap.put("last_available_minor", releaseToMap(lastMinor));
-                messageMap.put("last_available_patch", releaseToMap(lastPatch));
-
-                // Serialize message as JSON string but pass parsed object for structured output
-                String messageJson = this.mapper.writeValueAsString(messageMap);
-                listener.onResponse(new VersionCheckResponse(messageJson, RestStatus.OK, messageMap));
-            }
-
-        } catch (Exception e) {
-            log.error("Unexpected error during version check: {}", e.getMessage(), e);
-            listener.onResponse(
-                    new VersionCheckResponse(
-                            Constants.E_500_CTI_UNREACHABLE, RestStatus.INTERNAL_SERVER_ERROR));
-        }
-    }
-
-    private Release getLastRelease(JsonNode data, String category) {
-        if (data == null || !data.has(category)) {
-            return null;
-        }
-        JsonNode array = data.get(category);
-        if (!array.isArray() || array.isEmpty()) {
-            return null;
-        }
-        try {
-            List<Release> releases =
-                    this.mapper.readValue(array.toString(), new TypeReference<List<Release>>() {});
-            return releases.getLast();
-        } catch (Exception e) {
-            log.warn("Failed to parse {} releases: {}", category, e.getMessage());
-            return null;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> releaseToMap(Release release) {
-        if (release == null) {
-            return new HashMap<>();
-        }
-        return this.mapper.convertValue(release, Map.class);
+        this.versionCheckService.check(listener);
     }
 }

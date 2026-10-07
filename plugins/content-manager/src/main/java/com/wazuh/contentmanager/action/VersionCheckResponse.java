@@ -39,12 +39,20 @@ public class VersionCheckResponse extends ActionResponse implements ToXContent {
     private final String message;
     private final RestStatus status;
     private Object parsedMessage;
+    // Seconds the client should wait before retrying (rate limit); 0 when not applicable.
+    private long retryAfterSeconds;
 
     /** Simple string message constructor (errors). */
     public VersionCheckResponse(String message, RestStatus status) {
         super();
         this.message = message;
         this.status = status;
+    }
+
+    /** Rate-limit constructor: an error message plus the seconds to wait before retrying. */
+    public VersionCheckResponse(String message, RestStatus status, long retryAfterSeconds) {
+        this(message, status);
+        this.retryAfterSeconds = retryAfterSeconds;
     }
 
     /** Constructor with parsed message object (success payloads). */
@@ -62,6 +70,7 @@ public class VersionCheckResponse extends ActionResponse implements ToXContent {
         if (sin.readBoolean()) {
             this.parsedMessage = sin.readGenericValue();
         }
+        this.retryAfterSeconds = sin.readVLong();
     }
 
     @Override
@@ -74,6 +83,7 @@ public class VersionCheckResponse extends ActionResponse implements ToXContent {
         } else {
             out.writeBoolean(false);
         }
+        out.writeVLong(retryAfterSeconds);
     }
 
     /**
@@ -117,5 +127,14 @@ public class VersionCheckResponse extends ActionResponse implements ToXContent {
 
     public RestStatus getStatus() {
         return status;
+    }
+
+    /**
+     * Returns the seconds the client should wait before retrying.
+     *
+     * @return the delay for the {@code Retry-After} header, or {@code 0} when there is none.
+     */
+    public long getRetryAfterSeconds() {
+        return retryAfterSeconds;
     }
 }
