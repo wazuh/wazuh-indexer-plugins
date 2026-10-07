@@ -55,7 +55,7 @@ Arguments:
 -h      Print help
 ```
 
-The example below it will generate a wazuh-indexer package for _Debian_ based systems, for the _x64_ architecture, using _1_ as revision number and using the production naming convention.
+The example below generates a wazuh-indexer package for _Debian_ based systems, for the _x64_ architecture, using _0_ (the default) as revision number and using the production naming convention.
 
 ```bash
 # Within wazuh-indexer/build-scripts/builder
