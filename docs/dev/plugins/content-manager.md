@@ -192,6 +192,16 @@ The update check flow is split into two classes:
     - `Accept-Encoding`: `gzip`
   - Fire-and-forget behavior: callback logs success/failure without blocking scheduler threads.
 
+### Version check internals
+
+`GET /version/check` is served by `TransportVersionCheckAction`, which delegates to **`VersionCheckService`** (`cti/catalog/service/VersionCheckService.java`):
+
+- **Dedicated thread pool.** The blocking CTI request runs on the `content_manager_version_check` pool (fixed, size 1, queue 1, registered in `ContentManagerPlugin.getExecutorBuilders(...)`), never on the transport thread.
+- **Shared in-flight request.** At most one CTI request is in flight per node. Checks that arrive while it runs wait for it and receive its answer.
+- **Token-bucket rate limit.** `BUCKET_CAPACITY` (5) checks in a burst, refilled at one per `TOKEN_REFILL_MILLIS` (12 s). Every CTI request spends a token whatever its outcome; checks that join an in-flight request spend none. An empty bucket answers 429 with a `Retry-After` header. Nothing is cached.
+- **Single attempt.** `ApiClient.getReleaseUpdates()` makes no 429 retries, so a CTI 429 is returned to the caller instead of being slept off. The catalog sync keeps its `client.max_retries` behaviour.
+- **Shared CTI client.** One long-lived `ApiClient`, created on first use and closed when the plugin closes. Timed-out requests are cancelled so their pooled connections are released.
+
 ### CTI HTTP client User-Agent and Accept-Encoding
 
 All HTTP clients that communicate with CTI services include a custom `User-Agent` header set as a **default header on the HTTP client builder**:
