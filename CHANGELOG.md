@@ -4,6 +4,7 @@
 
 | Issue | Comment |
 |-------|---------|
+| [#1](https://github.com/wazuh/wazuh-indexer-plugins/issues/1) [#3](https://github.com/wazuh/wazuh-indexer-plugins/issues/3) [#13](https://github.com/wazuh/wazuh-indexer-plugins/issues/13) | Initialize `wazuh-indexer-plugins` repository |
 | [#522](https://github.com/wazuh/wazuh-indexer-plugins/issues/522) [#558](https://github.com/wazuh/wazuh-indexer-plugins/issues/558) [#586](https://github.com/wazuh/wazuh-indexer-plugins/issues/586) [#630](https://github.com/wazuh/wazuh-indexer-plugins/issues/630) [#723](https://github.com/wazuh/wazuh-indexer-plugins/issues/723) [#850](https://github.com/wazuh/wazuh-indexer-plugins/issues/850) [#1001](https://github.com/wazuh/wazuh-indexer-plugins/issues/1001) [#1341](https://github.com/wazuh/wazuh-indexer/issues/1341) | Compatibility with OpenSearch 3.6.0 |
 | [#434](https://github.com/wazuh/wazuh-indexer-plugins/issues/434) [#466](https://github.com/wazuh/wazuh-indexer-plugins/issues/466) [#533](https://github.com/wazuh/wazuh-indexer-plugins/issues/533) [#1249](https://github.com/wazuh/wazuh-indexer/issues/1249) | Create the Wazuh index templates, indices and index management policies at startup |
 | [#831](https://github.com/wazuh/wazuh-indexer-plugins/issues/831) | Add `wazuh-events-raw-v5` data stream |
