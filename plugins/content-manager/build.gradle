@@ -115,13 +115,12 @@ dependencies {
   compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.21'
   compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.2'
 
-  // JSON Patch (RFC 6902), applied to the CTI catalog changes, and the dependencies it needs at
-  // runtime: the OpenSearch build does not resolve transitive dependencies. Jackson is provided by
-  // OpenSearch, and jsr305 only carries compile-time annotations.
-  implementation 'com.github.java-json-tools:json-patch:1.13'
-  implementation 'com.github.java-json-tools:jackson-coreutils:2.0'
-  implementation 'com.github.java-json-tools:msg-simple:1.2'
-  implementation 'com.github.java-json-tools:btf:1.3'
+  // JSON Patch (RFC 6902), applied to the CTI catalog changes. Its only runtime dependency is
+  // Jackson. At runtime this plugin resolves jackson-databind 2.17.1, bundled in the
+  // security-analytics-commons jar of the extended plugin, not the 2.21 it compiles against:
+  // zjsonpatch 0.5 and later fail on it (they cast ArrayNode.iterator() to ListIterator, which only
+  // holds from Jackson 2.18), so stay on 0.4.x until that jar moves to a newer Jackson.
+  implementation 'com.flipkart.zjsonpatch:zjsonpatch:0.4.16'
 
   compileOnly "com.wazuh:wazuh-indexer-security-analytics-commons:$version"
   // ZipArchive dependencies used for integration tests

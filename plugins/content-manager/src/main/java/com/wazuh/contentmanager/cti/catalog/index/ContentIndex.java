@@ -23,8 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import com.github.fge.jsonpatch.JsonPatchException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteRequest;
@@ -634,8 +632,12 @@ public class ContentIndex {
      * <p>CVE changes are relative to the CTI content, which the index keeps under {@code document},
      * so they patch that node, and the {@code type} kept next to it is carried over.
      *
+     * <p>The change is applied in place, so {@code stored} must be a tree parsed for this call: if an
+     * operation fails it is left partially patched and must be discarded, which callers do by
+     * propagating the exception before anything is indexed.
+     *
      * @param id The ID of the document.
-     * @param stored The document as stored in the index.
+     * @param stored The document as stored in the index, parsed for this call. Modified in place.
      * @param operations The operations of the change.
      * @param offset The CTI offset to store on the document, or null to leave it out.
      * @return The patched document, processed and serialized for indexing.
@@ -651,17 +653,13 @@ public class ContentIndex {
                     "Document [" + id + "] is missing the '" + Constants.KEY_DOCUMENT + "' field.");
         }
 
-        JsonNode result;
         try {
-            result = JsonPatch.apply(content, operations);
-        } catch (JsonPatchException e) {
+            JsonPatch.apply(content, operations);
+        } catch (JsonPatch.InvalidPatchException e) {
             throw new PatchException(id, offset, e.getMessage(), e);
         }
-        if (!result.isObject()) {
-            throw new PatchException(id, offset, "the patched document is not a JSON object", null);
-        }
 
-        ObjectNode patched = (ObjectNode) result;
+        ObjectNode patched = (ObjectNode) content;
         if (offset != null) {
             patched.put(Constants.KEY_OFFSET, offset);
         }

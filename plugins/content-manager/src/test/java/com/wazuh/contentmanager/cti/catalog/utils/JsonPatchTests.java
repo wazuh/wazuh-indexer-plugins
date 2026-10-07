@@ -16,14 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.utils;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import com.github.fge.jsonpatch.JsonPatchException;
-
-import org.opensearch.test.BouncyCastleThreadFilter;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Assert;
 import org.junit.Before;
@@ -34,7 +29,6 @@ import java.util.Map;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 
 /** Tests for the JsonPatch utility class. Validates JSON Patch (RFC 6902) operations. */
-@ThreadLeakFilters(filters = {BouncyCastleThreadFilter.class, JsonPatchThreadsFilter.class})
 public class JsonPatchTests extends OpenSearchTestCase {
 
     private ObjectMapper mapper;
@@ -58,16 +52,23 @@ public class JsonPatchTests extends OpenSearchTestCase {
         return new Operation(op, path, from, null);
     }
 
+    /** Applies the operations to the document, which is patched in place, and returns it. */
+    private static JsonNode patch(JsonNode document, List<Operation> operations)
+            throws JsonPatch.InvalidPatchException {
+        JsonPatch.apply(document, operations);
+        return document;
+    }
+
     /** Test the add operation */
     public void testApplyAdd() throws Exception {
-        JsonNode result = JsonPatch.apply(json("{}"), List.of(op("add", "/newField", "newValue")));
+        JsonNode result = patch(json("{}"), List.of(op("add", "/newField", "newValue")));
         Assert.assertEquals(json("{'newField':'newValue'}"), result);
     }
 
     /** Test the add operation on arrays: insert at an index, and append with "-" */
     public void testApplyAddToArray() throws Exception {
         JsonNode result =
-                JsonPatch.apply(
+                patch(
                         json("{'arr':['a','c']}"), List.of(op("add", "/arr/1", "b"), op("add", "/arr/-", "d")));
         Assert.assertEquals(json("{'arr':['a','b','c','d']}"), result);
     }
@@ -75,7 +76,7 @@ public class JsonPatchTests extends OpenSearchTestCase {
     /** Test the add operation with an object value and with an explicit JSON null */
     public void testApplyAddStructuredAndNullValues() throws Exception {
         JsonNode result =
-                JsonPatch.apply(
+                patch(
                         json("{}"),
                         List.of(op("add", "/obj", Map.of("k", List.of(1, 2))), op("add", "/nothing", null)));
         Assert.assertEquals(json("{'obj':{'k':[1,2]},'nothing':null}"), result);
@@ -84,7 +85,7 @@ public class JsonPatchTests extends OpenSearchTestCase {
     /** Test the remove operation */
     public void testApplyRemove() throws Exception {
         JsonNode result =
-                JsonPatch.apply(
+                patch(
                         json("{'fieldToRemove':'value','kept':1}"),
                         List.of(new Operation("remove", "/fieldToRemove", null, null)));
         Assert.assertEquals(json("{'kept':1}"), result);
@@ -93,7 +94,7 @@ public class JsonPatchTests extends OpenSearchTestCase {
     /** Test the remove operation on arrays */
     public void testApplyRemoveFromArray() throws Exception {
         JsonNode result =
-                JsonPatch.apply(
+                patch(
                         json("{'arr':['a','b','c']}"), List.of(new Operation("remove", "/arr/1", null, null)));
         Assert.assertEquals(json("{'arr':['a','c']}"), result);
     }
@@ -101,7 +102,7 @@ public class JsonPatchTests extends OpenSearchTestCase {
     /** Test the replace operation */
     public void testApplyReplace() throws Exception {
         JsonNode result =
-                JsonPatch.apply(
+                patch(
                         json("{'fieldToReplace':'oldValue'}"),
                         List.of(op("replace", "/fieldToReplace", "newValue")));
         Assert.assertEquals(json("{'fieldToReplace':'newValue'}"), result);
@@ -109,15 +110,14 @@ public class JsonPatchTests extends OpenSearchTestCase {
 
     /** Test the replace operation on arrays */
     public void testApplyReplaceInArray() throws Exception {
-        JsonNode result =
-                JsonPatch.apply(json("{'arr':['a','b']}"), List.of(op("replace", "/arr/0", "z")));
+        JsonNode result = patch(json("{'arr':['a','b']}"), List.of(op("replace", "/arr/0", "z")));
         Assert.assertEquals(json("{'arr':['z','b']}"), result);
     }
 
     /** Test the move operation */
     public void testApplyMove() throws Exception {
         JsonNode result =
-                JsonPatch.apply(
+                patch(
                         json("{'fieldToMove':'value'}"), List.of(fromOp("move", "/fieldToMove", "/newField")));
         Assert.assertEquals(json("{'newField':'value'}"), result);
     }
@@ -125,38 +125,70 @@ public class JsonPatchTests extends OpenSearchTestCase {
     /** Test the move operation on arrays */
     public void testApplyMoveInArray() throws Exception {
         JsonNode result =
-                JsonPatch.apply(json("{'arr':['a','b','c']}"), List.of(fromOp("move", "/arr/0", "/arr/2")));
+                patch(json("{'arr':['a','b','c']}"), List.of(fromOp("move", "/arr/0", "/arr/2")));
         Assert.assertEquals(json("{'arr':['b','c','a']}"), result);
     }
 
     /** Test the copy operation */
     public void testApplyCopy() throws Exception {
         JsonNode result =
-                JsonPatch.apply(
+                patch(
                         json("{'fieldToCopy':'value'}"), List.of(fromOp("copy", "/fieldToCopy", "/newField")));
         Assert.assertEquals(json("{'fieldToCopy':'value','newField':'value'}"), result);
     }
 
     /** Test the copy operation on arrays */
     public void testApplyCopyInArray() throws Exception {
-        JsonNode result =
-                JsonPatch.apply(json("{'arr':['a','b']}"), List.of(fromOp("copy", "/arr/0", "/arr/-")));
+        JsonNode result = patch(json("{'arr':['a','b']}"), List.of(fromOp("copy", "/arr/0", "/arr/-")));
         Assert.assertEquals(json("{'arr':['a','b','a']}"), result);
     }
 
     /** Test the test operation, which passes on a matching value and fails otherwise */
     public void testApplyTest() throws Exception {
         JsonNode document = json("{'arr':['a','b']}");
-        Assert.assertEquals(document, JsonPatch.apply(document, List.of(op("test", "/arr/1", "b"))));
+        Assert.assertEquals(document, patch(document, List.of(op("test", "/arr/1", "b"))));
         Assert.assertThrows(
-                JsonPatchException.class,
-                () -> JsonPatch.apply(document, List.of(op("test", "/arr/1", "a"))));
+                JsonPatch.InvalidPatchException.class,
+                () -> patch(document, List.of(op("test", "/arr/1", "a"))));
+    }
+
+    /**
+     * CTI publishes a new version of a resource by replacing the whole document (path ""). The
+     * document is replaced in place: the same object ends up with the new members only.
+     */
+    public void testApplyReplaceWholeDocument() throws Exception {
+        JsonNode document = json("{'a':1,'b':{'c':2}}");
+
+        JsonPatch.apply(document, List.of(op("replace", "", Map.of("d", List.of(3)))));
+
+        Assert.assertEquals(json("{'d':[3]}"), document);
+    }
+
+    /** An add of the root replaces the whole document too. */
+    public void testApplyAddWholeDocument() throws Exception {
+        JsonNode document = json("{'a':1}");
+
+        JsonPatch.apply(document, List.of(op("add", "", Map.of("b", 2)), op("add", "/c", 3)));
+
+        Assert.assertEquals(json("{'b':2,'c':3}"), document);
+    }
+
+    /** A stored document is always an object, so the root cannot be replaced by anything else. */
+    public void testApplyReplaceWholeDocumentWithNonObjectFails() throws Exception {
+        JsonPatch.InvalidPatchException e =
+                Assert.assertThrows(
+                        JsonPatch.InvalidPatchException.class,
+                        () -> JsonPatch.apply(json("{'a':1}"), List.of(op("replace", "", List.of(1)))));
+
+        Assert.assertEquals(
+                "operation 0 (replace ): the document can only be replaced by a JSON object",
+                e.getMessage());
     }
 
     /** JSON Pointer escapes: "~1" stands for "/" and "~0" for "~" in a key. */
     public void testApplyEscapedKeys() throws Exception {
         JsonNode result =
-                JsonPatch.apply(
+                patch(
                         json("{'a/b':1,'c~d':2}"),
                         List.of(op("replace", "/a~1b", 10), op("replace", "/c~0d", 20)));
         Assert.assertEquals(json("{'a/b':10,'c~d':20}"), result);
@@ -168,7 +200,7 @@ public class JsonPatchTests extends OpenSearchTestCase {
      */
     public void testApplyKeepsWholeFloatingPointValues() throws Exception {
         JsonNode result =
-                JsonPatch.apply(
+                patch(
                         json("{'baseScore':5.5,'scores':[1.5]}"),
                         List.of(op("replace", "/baseScore", 7.0), op("add", "/scores/-", 10.0)));
         Assert.assertEquals(
@@ -177,74 +209,74 @@ public class JsonPatchTests extends OpenSearchTestCase {
 
     /** An operation without a path is rejected, naming the operation. */
     public void testApplyMissingPath() throws Exception {
-        JsonPatchException e =
+        JsonPatch.InvalidPatchException e =
                 Assert.assertThrows(
-                        JsonPatchException.class,
-                        () -> JsonPatch.apply(json("{}"), List.of(op("add", null, "x"))));
-        Assert.assertEquals("operation 0 (add null): missing 'path'", e.getMessage());
+                        JsonPatch.InvalidPatchException.class,
+                        () -> patch(json("{}"), List.of(op("add", null, "x"))));
+        Assert.assertTrue(e.getMessage(), e.getMessage().startsWith("operation 0 (add null): "));
     }
 
     /** An unknown operation is rejected, naming the operation. */
     public void testApplyUnsupportedOperation() throws Exception {
-        JsonPatchException e =
+        JsonPatch.InvalidPatchException e =
                 Assert.assertThrows(
-                        JsonPatchException.class,
-                        () -> JsonPatch.apply(json("{}"), List.of(op("unsupported", "/field", "x"))));
+                        JsonPatch.InvalidPatchException.class,
+                        () -> patch(json("{}"), List.of(op("unsupported", "/field", "x"))));
         Assert.assertTrue(
                 e.getMessage(), e.getMessage().startsWith("operation 0 (unsupported /field): "));
     }
 
     /** Removing a missing field fails, as RFC 6902 section 4.2 requires. */
     public void testApplyRemoveMissingFieldFails() throws Exception {
-        JsonPatchException e =
+        JsonPatch.InvalidPatchException e =
                 Assert.assertThrows(
-                        JsonPatchException.class,
+                        JsonPatch.InvalidPatchException.class,
                         () ->
-                                JsonPatch.apply(
+                                patch(
                                         json("{'existing':'value'}"),
                                         List.of(new Operation("remove", "/nonexistent", null, null))));
         Assert.assertEquals(
-                "operation 0 (remove /nonexistent): no such path in target JSON document", e.getMessage());
+                "operation 0 (remove /nonexistent): Missing field nonexistent", e.getMessage());
     }
 
     /** Removing an out-of-bounds array index fails. */
     public void testApplyRemoveArrayOutOfBoundsFails() {
         Assert.assertThrows(
-                JsonPatchException.class,
+                JsonPatch.InvalidPatchException.class,
                 () ->
-                        JsonPatch.apply(
+                        patch(
                                 json("{'arr':['a','b']}"), List.of(new Operation("remove", "/arr/5", null, null))));
     }
 
     /** Replacing a missing field fails rather than adding it. */
     public void testApplyReplaceMissingFieldFails() {
         Assert.assertThrows(
-                JsonPatchException.class,
-                () -> JsonPatch.apply(json("{}"), List.of(op("replace", "/missing", "x"))));
+                JsonPatch.InvalidPatchException.class,
+                () -> patch(json("{}"), List.of(op("replace", "/missing", "x"))));
     }
 
     /**
-     * When an operation fails, the exception names it by position and path, and the input document is
-     * left as it was, even if earlier operations of the change succeeded.
+     * When an operation fails, the exception names it by position and path. The document is patched
+     * in place, so the operations before the failing one stay applied: callers discard it, as
+     * ContentIndex does by never indexing a document whose change failed.
      */
-    public void testApplyFailureLeavesDocumentUntouched() throws Exception {
+    public void testApplyFailureNamesTheOperationAndLeavesEarlierOnesApplied() throws Exception {
         JsonNode document = json("{'a':1,'arr':['x']}");
-        JsonNode before = document.deepCopy();
 
-        JsonPatchException e =
+        JsonPatch.InvalidPatchException e =
                 Assert.assertThrows(
-                        JsonPatchException.class,
+                        JsonPatch.InvalidPatchException.class,
                         () ->
-                                JsonPatch.apply(
+                                patch(
                                         document,
                                         List.of(
                                                 op("replace", "/a", 2),
                                                 op("add", "/arr/0", "y"),
                                                 op("add", "/missing/child", "z"))));
 
-        Assert.assertEquals(
-                "operation 2 (add /missing/child): parent of node to add does not exist", e.getMessage());
-        Assert.assertEquals(before, document);
+        Assert.assertTrue(
+                e.getMessage(), e.getMessage().startsWith("operation 2 (add /missing/child): "));
+        Assert.assertEquals(json("{'a':2,'arr':['y','x']}"), document);
     }
 
     // The CVE-2026-61372 change from issue #1632, reduced to the affected entries.
@@ -266,7 +298,7 @@ public class JsonPatchTests extends OpenSearchTestCase {
 
     /** The change of issue #1632 turns the previous CTI version into the current one. */
     public void testApplyIssue1632Change() throws Exception {
-        Assert.assertEquals(json(CVE_CURRENT), JsonPatch.apply(json(CVE_PREVIOUS), CVE_CHANGE));
+        Assert.assertEquals(json(CVE_CURRENT), patch(json(CVE_PREVIOUS), CVE_CHANGE));
     }
 
     /**
@@ -279,11 +311,10 @@ public class JsonPatchTests extends OpenSearchTestCase {
                         "{'containers':{'adp':[{'affected':["
                                 + "{'platforms':['bookworm','forky','sid'],'product':'libapache-jena-java'}]}]}}");
 
-        JsonPatchException e =
-                Assert.assertThrows(JsonPatchException.class, () -> JsonPatch.apply(older, CVE_CHANGE));
+        JsonPatch.InvalidPatchException e =
+                Assert.assertThrows(JsonPatch.InvalidPatchException.class, () -> patch(older, CVE_CHANGE));
         Assert.assertEquals(
-                "operation 0 (add /containers/adp/0/affected/1/platforms/1): parent of node to add does not"
-                        + " exist",
+                "operation 0 (add /containers/adp/0/affected/1/platforms/1): Array index 1 is out of bounds",
                 e.getMessage());
     }
 }

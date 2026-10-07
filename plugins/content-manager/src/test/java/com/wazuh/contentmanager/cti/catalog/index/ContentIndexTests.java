@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -53,7 +51,6 @@ import org.opensearch.core.common.breaker.CircuitBreakingException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.node.NodeClosedException;
-import org.opensearch.test.BouncyCastleThreadFilter;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -67,7 +64,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
-import com.wazuh.contentmanager.cti.catalog.utils.JsonPatchThreadsFilter;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.Answers;
@@ -91,7 +87,6 @@ import static org.mockito.Mockito.when;
  * operations for incremental updates, and proper interaction with OpenSearch indices. Mock objects
  * simulate OpenSearch client behavior to enable testing without a live cluster.
  */
-@ThreadLeakFilters(filters = {BouncyCastleThreadFilter.class, JsonPatchThreadsFilter.class})
 public class ContentIndexTests extends OpenSearchTestCase {
 
     private ContentIndex contentIndex;
@@ -468,6 +463,35 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertTrue("Should contain 'space' key", source.has("space"));
     }
 
+    /**
+     * A change is applied in place on the tree parsed from the stored source; when one of its
+     * operations fails after others were applied, the partly patched tree is discarded and nothing is
+     * indexed.
+     */
+    public void testUpdate_FailedChangeIndexesNothing() throws Exception {
+        PlainActionFuture<GetResponse> getFuture = PlainActionFuture.newFuture();
+        getFuture.onResponse(this.getResponse);
+        when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString())
+                .thenReturn("{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"}}");
+
+        ContentIndex.PatchException e =
+                expectThrows(
+                        ContentIndex.PatchException.class,
+                        () ->
+                                this.contentIndex.update(
+                                        "R1",
+                                        List.of(
+                                                new Operation("replace", "/document/title", null, "Changed"),
+                                                new Operation("remove", "/document/missing", null, null)),
+                                        101L));
+
+        Assert.assertTrue(
+                e.getMessage(), e.getMessage().startsWith("operation 1 (remove /document/missing): "));
+        verify(this.client, times(0)).index(any(IndexRequest.class));
+    }
+
     /** Test update when document does not exist. */
     public void testUpdate_DocumentNotFound() {
         // Arrange
@@ -725,8 +749,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertEquals("R2", e.getId());
         Assert.assertEquals(Long.valueOf(102L), e.getOffset());
         Assert.assertEquals(
-                "operation 0 (add /document/missing/child): parent of node to add does not exist",
-                e.getMessage());
+                "operation 0 (add /document/missing/child): Missing field \"missing\"", e.getMessage());
         Assert.assertTrue(sent.isEmpty());
     }
 

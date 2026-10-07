@@ -659,7 +659,7 @@ When `local_offset = 0`:
 When `local_offset > 0` and `local_offset < remote_offset`:
 
 1. Fetches the changes in batches from the CTI API.
-2. Applies each change: creates or deletes the document, or patches it with the change's JSON Patch ([RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902)) operations through the [java-json-tools json-patch](https://github.com/java-json-tools/json-patch) library. Patching is strict: an operation whose target does not exist fails the change, and the stored document is left as it was. Several changes of the same document within a batch are applied in order, each on top of the previous one.
+2. Applies each change: creates or deletes the document, or patches it with the change's JSON Patch ([RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902)) operations through [zjsonpatch](https://github.com/flipkart-incubator/zjsonpatch). Patching is strict: an operation whose target does not exist fails the change (zjsonpatch needs `FORBID_REMOVE_MISSING_OBJECT` for removals). The operations are applied in place, without copying the document, on a tree parsed from the stored source; if one fails, that tree is discarded and the stored document is left as it was. Several changes of the same document within a batch are applied in order, each on top of the previous one.
 3. Pushes the changes to the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 4. Updates the local offset.
 
