@@ -18,10 +18,12 @@ package com.wazuh.contentmanager.cti.console.service;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.logging.log4j.Level;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.test.junit.annotations.TestLogging;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,6 +40,7 @@ import com.wazuh.contentmanager.cti.console.model.Feature;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.CapturingAppender;
 import org.mockito.Mock;
 
 import static org.mockito.Mockito.any;
@@ -56,6 +59,9 @@ import static org.mockito.Mockito.when;
  * simulate CTI API interactions without requiring network connectivity.
  */
 public class PlansServiceTests extends OpenSearchTestCase {
+    private static final String PLANS_SERVICE_DEBUG =
+            "com.wazuh.contentmanager.cti.console.service.PlansServiceImpl:DEBUG";
+
     private PlansService plansService;
     @Mock private ApiClient mockClient;
 
@@ -355,6 +361,51 @@ public class PlansServiceTests extends OpenSearchTestCase {
         Assert.assertEquals("Premium Plan", plan.get().getName());
     }
 
+    /**
+     * The retrieved plan is logged at DEBUG, not INFO: every subscription check from the Dashboard
+     * and every consumer sync looks the plan up, so an INFO line would flood the indexer log.
+     */
+    @TestLogging(
+            value = PLANS_SERVICE_DEBUG,
+            reason = "Asserts that the retrieved plan is a DEBUG line")
+    public void testGetMyPlanLogsRetrievedPlanAtDebug() throws Exception {
+        when(this.mockClient.getEnvironmentMe(any(Token.class))).thenReturn(premiumPlanResponse());
+
+        try (CapturingAppender logs = CapturingAppender.attach(PlansServiceImpl.class)) {
+            Plan plan = ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer"));
+
+            Assert.assertEquals("Premium Plan", plan.getName());
+            Assert.assertEquals(1L, logs.count(Level.DEBUG));
+            Assert.assertEquals(0L, logs.count(Level.INFO));
+        }
+    }
+
+    /** Async getMyPlan: the retrieved plan is logged at DEBUG, not INFO. */
+    @TestLogging(
+            value = PLANS_SERVICE_DEBUG,
+            reason = "Asserts that the retrieved plan is a DEBUG line")
+    public void testGetMyPlanAsyncLogsRetrievedPlanAtDebug() {
+        this.stubAsyncEnvironmentMe(premiumPlanResponse());
+        AtomicReference<Plan> plan = new AtomicReference<>();
+
+        try (CapturingAppender logs = CapturingAppender.attach(PlansServiceImpl.class)) {
+            this.plansService.getMyPlan(
+                    new Token("t", "Bearer"),
+                    ActionListener.wrap(plan::set, e -> fail("unexpected failure: " + e)));
+
+            Assert.assertEquals("Premium Plan", plan.get().getName());
+            Assert.assertEquals(1L, logs.count(Level.DEBUG));
+            Assert.assertEquals(0L, logs.count(Level.INFO));
+        }
+    }
+
+    private static SimpleHttpResponse premiumPlanResponse() {
+        return SimpleHttpResponse.create(
+                200,
+                "{\"plans\": [{\"name\": \"Premium Plan\", \"is_public\": false}]}",
+                ContentType.APPLICATION_JSON);
+    }
+
     @SuppressWarnings("unchecked")
     private void stubAsyncEnvironmentMe(SimpleHttpResponse response) {
         doAnswer(
@@ -425,5 +476,55 @@ public class PlansServiceTests extends OpenSearchTestCase {
         Assert.assertTrue(plan.isPublic());
         verify(this.mockClient, times(1)).getCatalogPlans();
         verify(this.mockClient, times(0)).getEnvironmentMe(any(Token.class));
+    }
+
+    /** Unregistered: the retrieved public plan is logged at DEBUG, not INFO. */
+    @TestLogging(
+            value = PLANS_SERVICE_DEBUG,
+            reason = "Asserts that the retrieved plan is a DEBUG line")
+    public void testGetPublicPlanLogsRetrievedPlanAtDebug() throws Exception {
+        when(this.mockClient.getCatalogPlans()).thenReturn(publicPlanResponse());
+
+        try (CapturingAppender logs = CapturingAppender.attach(PlansServiceImpl.class)) {
+            Plan plan = this.plansService.getPlan();
+
+            Assert.assertEquals("Free", plan.getName());
+            Assert.assertEquals(1L, logs.count(Level.DEBUG));
+            Assert.assertEquals(0L, logs.count(Level.INFO));
+        }
+    }
+
+    /** Unregistered, async: the retrieved public plan is logged at DEBUG, not INFO. */
+    @SuppressWarnings("unchecked")
+    @TestLogging(
+            value = PLANS_SERVICE_DEBUG,
+            reason = "Asserts that the retrieved plan is a DEBUG line")
+    public void testGetPublicPlanAsyncLogsRetrievedPlanAtDebug() {
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SimpleHttpResponse>>getArgument(0)
+                                    .onResponse(publicPlanResponse());
+                            return null;
+                        })
+                .when(this.mockClient)
+                .getCatalogPlans(any(ActionListener.class));
+        AtomicReference<Plan> plan = new AtomicReference<>();
+
+        try (CapturingAppender logs = CapturingAppender.attach(PlansServiceImpl.class)) {
+            this.plansService.getPlan(
+                    ActionListener.wrap(plan::set, e -> fail("unexpected failure: " + e)));
+
+            Assert.assertEquals("Free", plan.get().getName());
+            Assert.assertEquals(1L, logs.count(Level.DEBUG));
+            Assert.assertEquals(0L, logs.count(Level.INFO));
+        }
+    }
+
+    private static SimpleHttpResponse publicPlanResponse() {
+        return SimpleHttpResponse.create(
+                200,
+                "{\"plans\": [{\"name\": \"Free\", \"is_public\": true}]}",
+                ContentType.APPLICATION_JSON);
     }
 }
