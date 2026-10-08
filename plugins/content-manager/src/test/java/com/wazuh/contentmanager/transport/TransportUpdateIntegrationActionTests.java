@@ -214,4 +214,30 @@ public class TransportUpdateIntegrationActionTests extends OpenSearchTestCase {
 
         assertFalse("the request must not be able to add a detector block", resource.has("detector"));
     }
+
+    /** Nor can it change the one the stored document already has. */
+    public void testAnUpdateCannotChangeTheStoredDetectorBlock() {
+        ObjectNode stored = storedIntegration("i1");
+        ObjectNode storedDetector = MAPPER.createObjectNode();
+        storedDetector.set("source", MAPPER.createArrayNode().add("wazuh-events-v5-security"));
+        ((ObjectNode) stored.get("document")).set("detector", storedDetector);
+
+        ContentIndex index = mock(ContentIndex.class);
+        when(index.getDocument("i1")).thenReturn(stored);
+
+        ObjectNode resource = MAPPER.createObjectNode();
+        resource.set("rules", MAPPER.createArrayNode());
+        resource.set("decoders", MAPPER.createArrayNode());
+        resource.set("kvdbs", MAPPER.createArrayNode());
+        ObjectNode sent = MAPPER.createObjectNode();
+        sent.set("source", MAPPER.createArrayNode().add(".opendistro_security"));
+        resource.set("detector", sent);
+
+        assertNull(this.action.preserveMetadata(index, "i1", resource, Space.DRAFT));
+
+        assertEquals(
+                "the stored detector block must survive the request",
+                storedDetector,
+                resource.get("detector"));
+    }
 }

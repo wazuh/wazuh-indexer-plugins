@@ -937,7 +937,7 @@ paths:
         **Note:** Integrations created through this endpoint are always stored with `mode: user-managed`.
         The `mode` field is set server-side and must NOT be included in the request body.
 
-        **Note:** The `detector` field is server-managed and must NOT be included in the request body.
+        **Note:** The `detector` field is server-managed: it is ignored if included in the request body.
       operationId: createIntegration
       requestBody:
         required: true
@@ -989,7 +989,8 @@ paths:
         - `mode: user-managed` in the `standard` space — only the `enabled` field can change; every other field is preserved from the stored document.
 
         The `mode` field is server-managed: it must NOT be included in the request body and is preserved from the stored document.
-        The `detector` field is server-managed in the same way.
+        The `detector` field is server-managed too: it is ignored if included in the request body, and
+        preserved from the stored document.
 
         **Required fields in resource:**
         - `author` - Integration author name
