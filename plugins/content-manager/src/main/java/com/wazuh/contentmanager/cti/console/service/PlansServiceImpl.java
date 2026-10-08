@@ -33,6 +33,7 @@ import com.wazuh.contentmanager.cti.console.model.CatalogPlansResponse;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 /** Implementation of the PlansService interface. */
 public class PlansServiceImpl extends AbstractService implements PlansService {
@@ -109,10 +110,7 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
             throw new CtiConsoleUnavailableException(
                     "The CTI Console returned no plan for the environment.");
         }
-        log.info(
-                "Active plan for registered environment retrieved successfully from CTI"
-                        + " Console. Active plan is: {}.",
-                plans.get(0).getName());
+        log.debug(Constants.D_LOG_ENVIRONMENT_PLAN_RETRIEVED, plans.get(0).getName());
         return plans.get(0);
     }
 
@@ -210,10 +208,7 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
                                                         .findFirst()
                                                         .orElse(null);
                                         if (publicPlan != null) {
-                                            log.info(
-                                                    "Public plan retrieved successfully from CTI"
-                                                            + " Console. Active plan is: {}.",
-                                                    publicPlan.getName());
+                                            log.debug(Constants.D_LOG_PUBLIC_PLAN_RETRIEVED, publicPlan.getName());
                                         }
                                         listener.onResponse(publicPlan);
                                     } else {
@@ -249,9 +244,7 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
                     Plan publicPlan =
                             parsedResponse.getPlans().stream().filter(Plan::isPublic).findFirst().orElse(null);
                     if (publicPlan != null) {
-                        log.info(
-                                "Public plan retrieved successfully from CTI Console. Active plan" + " is: {}.",
-                                publicPlan.getName());
+                        log.debug(Constants.D_LOG_PUBLIC_PLAN_RETRIEVED, publicPlan.getName());
                     }
                     return publicPlan;
                 }
