@@ -722,6 +722,7 @@ public abstract class AbstractConsumerService {
                         urlResolver)) {
                     return new SyncResult(false, feedUnreachable, false);
                 }
+                log.info(Constants.I_LOG_CONTENT_UPDATED_NEW_SOURCE, consumerType);
                 // The swapped snapshot only carries data up to its snapshot offset. Close the gap to
                 // the remote head in the same pass; otherwise the consumer would be reported as READY
                 // while trailing the remote offset (local_offset < remote_offset) until the next sync.
@@ -963,16 +964,32 @@ public abstract class AbstractConsumerService {
                             consumerType,
                             remoteConsumer.getOffset());
                 } else {
-                    updated =
-                            this.performIncrementalUpdate(
-                                    context,
-                                    consumer,
-                                    consumerType,
-                                    catalogUri,
-                                    urlResolver,
-                                    indicesMap,
-                                    currentOffset,
-                                    remoteConsumer.getOffset());
+                    try {
+                        updated =
+                                this.performIncrementalUpdate(
+                                        context,
+                                        consumer,
+                                        consumerType,
+                                        catalogUri,
+                                        urlResolver,
+                                        indicesMap,
+                                        currentOffset,
+                                        remoteConsumer.getOffset());
+                    } catch (RuntimeException e) {
+                        if (!this.updateFromSnapshotAfterFailure(
+                                e,
+                                context,
+                                consumer,
+                                consumerType,
+                                catalogUri,
+                                urlResolver,
+                                indicesMap,
+                                remoteConsumer,
+                                currentOffset)) {
+                            throw e;
+                        }
+                        updated = true;
+                    }
                 }
             }
             return new SyncResult(updated, feedUnreachable, false);
@@ -981,6 +998,127 @@ public abstract class AbstractConsumerService {
                 tokenExchangeService.close();
             }
         }
+    }
+
+    /**
+     * Recovers from an incremental update that stopped on a change that cannot be applied to the
+     * stored content, such as a patch whose target does not exist or an update of a missing document.
+     * That change fails the same way on every pass, so retrying it leaves the consumer stuck. If CTI
+     * has a snapshot newer than the consumer's local offset, the content is rebuilt from it and the
+     * remaining changes are applied from the snapshot's offset. A snapshot at or past the failing
+     * offset already holds the change's result; an older one still rebuilds stored content that
+     * diverged from CTI, which is what usually makes a valid change fail.
+     *
+     * <p>The snapshot is loaded through {@link #performShadowSwap}: into hidden staging indices, with
+     * an atomic alias swap only once it has loaded, so the current content stays available while the
+     * snapshot loads and is kept as it is if the snapshot cannot be loaded.
+     *
+     * <p>A given snapshot is used at most once: after it is loaded the local offset is at or past it,
+     * so the same failure does not reload it on the next pass. Until CTI publishes a newer one, the
+     * failure stands and later passes retry the change.
+     *
+     * @param failure The failure of the incremental update.
+     * @param context The CTI context name.
+     * @param consumer The CTI consumer name.
+     * @param consumerType The consumer type identifier.
+     * @param catalogUri The effective catalog URI.
+     * @param urlResolver The URL resolver for API requests.
+     * @param indicesMap The content indices keyed by type.
+     * @param remoteConsumer The remote consumer, with the latest snapshot.
+     * @param fromOffset The offset the failed update started from.
+     * @return {@code true} if the content was updated from the snapshot, {@code false} if the failure
+     *     must propagate.
+     */
+    private boolean updateFromSnapshotAfterFailure(
+            RuntimeException failure,
+            String context,
+            String consumer,
+            String consumerType,
+            String catalogUri,
+            ResourceUrlResolver urlResolver,
+            Map<String, ContentIndex> indicesMap,
+            RemoteConsumer remoteConsumer,
+            long fromOffset) {
+        ContentIndex.PatchException patchFailure =
+                findCause(failure, ContentIndex.PatchException.class);
+        if (patchFailure == null || patchFailure.getOffset() == null) {
+            return false;
+        }
+        long failedOffset = patchFailure.getOffset();
+        // The failed update may have checkpointed changes past the offset it started from.
+        long localOffset = Math.max(fromOffset, this.readLocalOffset(consumerType));
+        long snapshotOffset = remoteConsumer.getSnapshotOffset();
+        String snapshotLink = remoteConsumer.getSnapshotLink();
+        if (snapshotLink == null || snapshotLink.isBlank() || snapshotOffset <= localOffset) {
+            log.warn(
+                    Constants.W_LOG_NO_NEWER_SNAPSHOT_FOR_FAILED_OFFSET,
+                    failedOffset,
+                    consumerType,
+                    localOffset,
+                    snapshotOffset);
+            return false;
+        }
+
+        log.warn(
+                Constants.W_LOG_UPDATE_FROM_SNAPSHOT_AFTER_FAILURE,
+                failedOffset,
+                consumerType,
+                snapshotOffset,
+                localOffset);
+        if (!this.performShadowSwap(
+                consumerType, catalogUri, catalogUri, indicesMap, remoteConsumer, urlResolver)) {
+            log.error(Constants.E_LOG_UPDATE_FROM_SNAPSHOT_FAILED, consumerType, failedOffset);
+            return false;
+        }
+        log.info(Constants.I_LOG_CONTENT_RELOADED_FROM_SNAPSHOT, consumerType, snapshotOffset);
+        if (snapshotOffset < remoteConsumer.getOffset()) {
+            this.performIncrementalUpdate(
+                    context,
+                    consumer,
+                    consumerType,
+                    catalogUri,
+                    urlResolver,
+                    indicesMap,
+                    snapshotOffset,
+                    remoteConsumer.getOffset());
+        }
+        return true;
+    }
+
+    /**
+     * Reads the local offset persisted in the consumer document.
+     *
+     * @param consumerType The consumer type identifier.
+     * @return The local offset, or 0 if the document is absent or unreadable.
+     */
+    private long readLocalOffset(String consumerType) {
+        try {
+            GetResponse response = this.consumersIndex.getConsumer(consumerType);
+            if (response == null || !response.isExists()) {
+                return 0;
+            }
+            return MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class).getLocalOffset();
+        } catch (Exception e) {
+            log.debug(Constants.D_LOG_CONSUMER_RESOURCE_READ_FAILED, consumerType, e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Returns the first throwable of the given type in a cause chain.
+     *
+     * @param throwable The throwable to inspect.
+     * @param type The type to look for.
+     * @param <T> The type to look for.
+     * @return The first match, or {@code null} if there is none.
+     */
+    private static <T extends Throwable> T findCause(Throwable throwable, Class<T> type) {
+        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
+            if (type.isInstance(cause)) {
+                return type.cast(cause);
+            }
+        }
+        return null;
     }
 
     /**
@@ -1000,7 +1138,8 @@ public abstract class AbstractConsumerService {
      * @param toOffset The offset to update to (inclusive).
      * @return {@code true} if changes were applied.
      */
-    private boolean performIncrementalUpdate(
+    // Package-private so tests can replace the calls to CTI.
+    boolean performIncrementalUpdate(
             String context,
             String consumer,
             String consumerType,
@@ -1166,7 +1305,8 @@ public abstract class AbstractConsumerService {
      * @param urlResolver The URL resolver for downloading content.
      * @return {@code true} if the swap completed successfully, {@code false} on failure.
      */
-    private boolean performShadowSwap(
+    // Package-private so tests can replace the swap.
+    boolean performShadowSwap(
             String consumerType,
             String catalogUri,
             String planResource,
@@ -1280,7 +1420,6 @@ public abstract class AbstractConsumerService {
             log.warn(Constants.W_LOG_OLD_INDICES_DELETE_FAILED, consumerType, e.getMessage());
         }
 
-        log.info(Constants.I_LOG_CONTENT_UPDATED_NEW_SOURCE, consumerType);
         this.shadowSwapPerformed = true;
         return true;
     }

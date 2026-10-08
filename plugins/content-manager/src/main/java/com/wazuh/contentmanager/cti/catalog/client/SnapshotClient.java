@@ -47,25 +47,30 @@ public class SnapshotClient {
     private static final Logger log = LogManager.getLogger(SnapshotClient.class);
     private final Environment env;
     private final ResourceUrlResolver urlResolver;
+    private final String consumerType;
 
     /**
      * Constructs a SnapshotClient with a URL resolver.
      *
      * @param env node's environment.
      * @param urlResolver the resolver used to transform resource URLs before making HTTP requests.
+     * @param consumerType the consumer the snapshots belong to (e.g. {@code
+     *     cti:catalog:consumer:vulnerabilities}), named in every log message of a download.
      */
-    public SnapshotClient(Environment env, ResourceUrlResolver urlResolver) {
+    public SnapshotClient(Environment env, ResourceUrlResolver urlResolver, String consumerType) {
         this.env = env;
         this.urlResolver = urlResolver;
+        this.consumerType = consumerType;
     }
 
     /**
      * Constructs a SnapshotClient with an regular URL resolver.
      *
      * @param env node's environment.
+     * @param consumerType the consumer the snapshots belong to, named in the log messages.
      */
-    public SnapshotClient(Environment env) {
-        this(env, new RegularUrlResolver());
+    public SnapshotClient(Environment env, String consumerType) {
+        this(env, new RegularUrlResolver(), consumerType);
     }
 
     /***
@@ -90,11 +95,11 @@ public class SnapshotClient {
             final Path path = this.env.tmpDir().resolve(filename);
 
             // Download
-            log.info("Starting snapshot download from [{}]", uri);
+            log.info(Constants.I_LOG_SNAPSHOT_DOWNLOAD_STARTED, this.consumerType, uri);
             try (CloseableHttpResponse response = client.execute(request)) {
                 if (response.getCode() < 200 || response.getCode() >= 300) {
                     log.error(
-                            "Failed to download snapshot, received HTTP status code: {}", response.getCode());
+                            Constants.E_LOG_SNAPSHOT_DOWNLOAD_HTTP_STATUS, this.consumerType, response.getCode());
                     return null;
                 }
 
@@ -116,11 +121,11 @@ public class SnapshotClient {
                         }
                     }
                 } else {
-                    log.error("Failed to download snapshot, empty response entity.");
+                    log.error(Constants.E_LOG_SNAPSHOT_DOWNLOAD_EMPTY_RESPONSE, this.consumerType);
                     return null;
                 }
             }
-            log.info("Snapshot downloaded to [{}]", path);
+            log.info(Constants.I_LOG_SNAPSHOT_DOWNLOADED, this.consumerType, path);
             return path;
         }
     }

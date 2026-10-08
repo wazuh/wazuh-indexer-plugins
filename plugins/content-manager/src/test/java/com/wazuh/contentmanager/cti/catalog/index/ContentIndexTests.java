@@ -27,6 +27,8 @@ import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Property;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.UnavailableShardsException;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
@@ -97,6 +99,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
     private static final String INDEX_NAME = ".test-index";
     private static final String MAPPINGS_PATH = "/mappings/test-mapping.json";
+    // A mappings resource that exists, for the tests that create an index.
+    private static final String RULES_MAPPINGS_PATH = "/mappings/cti-rules-mappings.json";
 
     @Before
     @Override
@@ -459,6 +463,35 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertTrue("Should contain 'space' key", source.has("space"));
     }
 
+    /**
+     * A change is applied in place on the tree parsed from the stored source; when one of its
+     * operations fails after others were applied, the partly patched tree is discarded and nothing is
+     * indexed.
+     */
+    public void testUpdate_FailedChangeIndexesNothing() throws Exception {
+        PlainActionFuture<GetResponse> getFuture = PlainActionFuture.newFuture();
+        getFuture.onResponse(this.getResponse);
+        when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString())
+                .thenReturn("{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"}}");
+
+        ContentIndex.PatchException e =
+                expectThrows(
+                        ContentIndex.PatchException.class,
+                        () ->
+                                this.contentIndex.update(
+                                        "R1",
+                                        List.of(
+                                                new Operation("replace", "/document/title", null, "Changed"),
+                                                new Operation("remove", "/document/missing", null, null)),
+                                        101L));
+
+        Assert.assertTrue(
+                e.getMessage(), e.getMessage().startsWith("operation 1 (remove /document/missing): "));
+        verify(this.client, times(0)).index(any(IndexRequest.class));
+    }
+
     /** Test update when document does not exist. */
     public void testUpdate_DocumentNotFound() {
         // Arrange
@@ -619,6 +652,280 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertEquals(101L, result);
         verify(this.client).multiGet(any(MultiGetRequest.class));
         verify(this.client, times(0)).bulk(any(BulkRequest.class));
+    }
+
+    /** Stubs the MultiGet that opens batchUpdate with one stored source per distinct document. */
+    private void stubMultiGetSources(String... sources) {
+        MultiGetItemResponse[] items = new MultiGetItemResponse[sources.length];
+        for (int i = 0; i < sources.length; i++) {
+            GetResponse getResp = mock(GetResponse.class);
+            when(getResp.isExists()).thenReturn(true);
+            when(getResp.getSourceAsString()).thenReturn(sources[i]);
+            MultiGetItemResponse item = mock(MultiGetItemResponse.class);
+            when(item.isFailed()).thenReturn(false);
+            when(item.getResponse()).thenReturn(getResp);
+            items[i] = item;
+        }
+        MultiGetResponse mgetResponse = mock(MultiGetResponse.class);
+        when(mgetResponse.getResponses()).thenReturn(items);
+        PlainActionFuture<MultiGetResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(mgetResponse);
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(future);
+    }
+
+    private JsonNode indexedSource(BulkRequest bulk, int item) throws IOException {
+        return this.mapper.readTree(((IndexRequest) bulk.requests().get(item)).source().utf8ToString());
+    }
+
+    /**
+     * Two changes of the same document in one batch (issue #1632): the second applies on top of the
+     * first instead of on the version fetched before the batch, and the document is fetched and
+     * indexed once, with its last offset.
+     */
+    public void testBatchUpdate_SameDocumentTwice_AppliesChangesInOrder() throws Exception {
+        this.stubMultiGetSources(
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"tags\":[\"a\"]}}",
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R2\",\"title\":\"Rule 2\"}}");
+        List<BulkRequest> sent =
+                this.stubSyncBulkResponses(bulkResponseWith(successItem(0), successItem(1)));
+
+        long result =
+                this.contentIndex.batchUpdate(
+                        List.of(
+                                new ContentIndex.UpdateTask(
+                                        "R1", List.of(new Operation("add", "/document/tags/1", null, "b")), 101L),
+                                new ContentIndex.UpdateTask(
+                                        "R2",
+                                        List.of(new Operation("replace", "/document/title", null, "Updated")),
+                                        102L),
+                                new ContentIndex.UpdateTask(
+                                        "R1", List.of(new Operation("add", "/document/tags/2", null, "c")), 103L)));
+
+        Assert.assertEquals(103L, result);
+        ArgumentCaptor<MultiGetRequest> mget = ArgumentCaptor.forClass(MultiGetRequest.class);
+        verify(this.client).multiGet(mget.capture());
+        Assert.assertEquals(2, mget.getValue().getItems().size());
+
+        Assert.assertEquals(1, sent.size());
+        Assert.assertEquals(2, sent.get(0).numberOfActions());
+        // R1 is indexed after its last change, so after R2.
+        Assert.assertEquals("R2", sent.get(0).requests().get(0).id());
+        Assert.assertEquals("R1", sent.get(0).requests().get(1).id());
+        JsonNode r1 = this.indexedSource(sent.get(0), 1);
+        Assert.assertEquals(
+                this.mapper.readTree("[\"a\",\"b\",\"c\"]"), r1.get("document").get("tags"));
+        Assert.assertEquals(103L, r1.get("offset").asLong());
+    }
+
+    /**
+     * A change that does not fit its document fails the batch with that change's offset and document,
+     * not the last task's, and nothing is indexed.
+     */
+    public void testBatchUpdate_PatchFailureReportsTheFailingChange() throws Exception {
+        this.stubMultiGetSources(
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"}}",
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R2\",\"title\":\"Rule 2\"}}");
+        List<BulkRequest> sent = this.stubSyncBulkResponses(bulkResponseWith(successItem(0)));
+
+        ContentIndex.PatchException e =
+                expectThrows(
+                        ContentIndex.PatchException.class,
+                        () ->
+                                this.contentIndex.batchUpdate(
+                                        List.of(
+                                                new ContentIndex.UpdateTask(
+                                                        "R1",
+                                                        List.of(new Operation("replace", "/document/title", null, "U")),
+                                                        101L),
+                                                new ContentIndex.UpdateTask(
+                                                        "R2",
+                                                        List.of(new Operation("add", "/document/missing/child", null, "x")),
+                                                        102L),
+                                                new ContentIndex.UpdateTask(
+                                                        "R1",
+                                                        List.of(new Operation("replace", "/document/title", null, "V")),
+                                                        103L))));
+
+        Assert.assertEquals("R2", e.getId());
+        Assert.assertEquals(Long.valueOf(102L), e.getOffset());
+        Assert.assertEquals(
+                "operation 0 (add /document/missing/child): Missing field \"missing\"", e.getMessage());
+        Assert.assertTrue(sent.isEmpty());
+    }
+
+    /**
+     * A change to a document that does not exist is a content error too: it fails with the first
+     * change of that document, and nothing is indexed.
+     */
+    public void testBatchUpdate_MissingDocumentReportsItsFirstChange() throws Exception {
+        GetResponse missing = mock(GetResponse.class);
+        when(missing.isExists()).thenReturn(false);
+        MultiGetItemResponse item = mock(MultiGetItemResponse.class);
+        when(item.isFailed()).thenReturn(false);
+        when(item.getResponse()).thenReturn(missing);
+        MultiGetResponse mgetResponse = mock(MultiGetResponse.class);
+        when(mgetResponse.getResponses()).thenReturn(new MultiGetItemResponse[] {item});
+        PlainActionFuture<MultiGetResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(mgetResponse);
+        when(this.client.multiGet(any(MultiGetRequest.class))).thenReturn(future);
+
+        ContentIndex.PatchException e =
+                expectThrows(
+                        ContentIndex.PatchException.class,
+                        () -> this.contentIndex.batchUpdate(updateTasks("R1", "R1")));
+
+        Assert.assertEquals("R1", e.getId());
+        Assert.assertEquals(Long.valueOf(100L), e.getOffset());
+        Assert.assertEquals("the document was not found", e.getMessage());
+        verify(this.client, times(0)).bulk(any(BulkRequest.class));
+    }
+
+    /** A change at or below the stored offset is already in the document and is skipped. */
+    public void testBatchUpdate_SkipsChangesOlderThanTheStoredOffset() throws Exception {
+        this.stubMultiGetSources(
+                "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"},\"offset\":105}");
+
+        long result =
+                this.contentIndex.batchUpdate(
+                        List.of(
+                                new ContentIndex.UpdateTask(
+                                        "R1",
+                                        // Would fail if applied: the document has no "missing" field.
+                                        List.of(new Operation("remove", "/document/missing", null, null)),
+                                        101L)));
+
+        Assert.assertEquals(101L, result);
+        verify(this.client, times(0)).bulk(any(BulkRequest.class));
+    }
+
+    /**
+     * A CVE change patches the CTI content under {@code document}, and the stored document keeps the
+     * {@code type} and {@code offset} at its root, as a snapshot load stores them.
+     */
+    public void testBatchUpdate_CveKeepsTypeAtRoot() throws Exception {
+        ContentIndex cveIndex = new ContentIndex(this.client, Constants.INDEX_CVES, MAPPINGS_PATH);
+        this.stubMultiGetSources(
+                "{\"document\":{\"cveMetadata\":{\"cveId\":\"CVE-2026-0001\",\"state\":\"PUBLISHED\"}},"
+                        + "\"offset\":900,\"type\":\"CVE\"}");
+        List<BulkRequest> sent = this.stubSyncBulkResponses(bulkResponseWith(successItem(0)));
+
+        cveIndex.batchUpdate(
+                List.of(
+                        new ContentIndex.UpdateTask(
+                                "CVE-2026-0001",
+                                List.of(new Operation("replace", "/cveMetadata/state", null, "REJECTED")),
+                                1001L)));
+
+        Assert.assertEquals(
+                this.mapper.readTree(
+                        "{\"document\":{\"cveMetadata\":{\"cveId\":\"CVE-2026-0001\",\"state\":\"REJECTED\"}},"
+                                + "\"offset\":1001,\"type\":\"CVE\"}"),
+                this.indexedSource(sent.get(0), 0));
+    }
+
+    /** A CVE that lost its {@code type} to an earlier update gets it back from its ID. */
+    public void testBatchUpdate_CveWithoutTypeGetsItFromItsId() throws Exception {
+        ContentIndex cveIndex = new ContentIndex(this.client, Constants.INDEX_CVES, MAPPINGS_PATH);
+        this.stubMultiGetSources(
+                "{\"document\":{\"cveMetadata\":{\"state\":\"PUBLISHED\"}},\"offset\":900}");
+        List<BulkRequest> sent = this.stubSyncBulkResponses(bulkResponseWith(successItem(0)));
+
+        cveIndex.batchUpdate(
+                List.of(
+                        new ContentIndex.UpdateTask(
+                                "TID-0001",
+                                List.of(new Operation("replace", "/cveMetadata/state", null, "REJECTED")),
+                                1001L)));
+
+        Assert.assertEquals("TID", this.indexedSource(sent.get(0), 0).get("type").asText());
+    }
+
+    /**
+     * Documents whose last change is done are written when the bulk reaches the size limit, before a
+     * later change of the batch fails; the retry then skips them through the offset guard.
+     */
+    public void testBatchUpdate_FlushesFinishedDocumentsBeforeALaterFailure() throws Exception {
+        PluginSettings.resetForTesting();
+        PluginSettings.getInstance(
+                Settings.builder().put("plugins.content_manager.max_bulk_bytes", 1024 * 1024).build());
+        try {
+            ContentIndex index = new ContentIndex(this.client, INDEX_NAME, MAPPINGS_PATH);
+            String big = "x".repeat(1100 * 1024);
+            this.stubMultiGetSources(
+                    "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"blob\":\"" + big + "\"}}",
+                    "{\"type\":\"rule\",\"document\":{\"id\":\"R2\",\"blob\":\"" + big + "\"}}",
+                    "{\"type\":\"rule\",\"document\":{\"id\":\"R3\",\"title\":\"Rule 3\"}}");
+            List<BulkRequest> sent = this.stubSyncBulkResponses(bulkResponseWith(successItem(0)));
+
+            ContentIndex.PatchException e =
+                    expectThrows(
+                            ContentIndex.PatchException.class,
+                            () ->
+                                    index.batchUpdate(
+                                            List.of(
+                                                    new ContentIndex.UpdateTask(
+                                                            "R1", List.of(new Operation("add", "/document/v", null, 1)), 101L),
+                                                    new ContentIndex.UpdateTask(
+                                                            "R2", List.of(new Operation("add", "/document/v", null, 2)), 102L),
+                                                    new ContentIndex.UpdateTask(
+                                                            "R3",
+                                                            List.of(new Operation("remove", "/document/missing", null, null)),
+                                                            103L))));
+
+            Assert.assertEquals(Long.valueOf(103L), e.getOffset());
+            Assert.assertEquals(2, sent.size());
+            Assert.assertEquals("R1", sent.get(0).requests().get(0).id());
+            Assert.assertEquals("R2", sent.get(1).requests().get(0).id());
+            Assert.assertEquals(101L, this.indexedSource(sent.get(0), 0).get("offset").asLong());
+        } finally {
+            PluginSettings.resetForTesting();
+            PluginSettings.getInstance(Settings.EMPTY);
+        }
+    }
+
+    /**
+     * After a blue/green swap the alias points at the "-b" slot: clearing deletes and recreates that
+     * index, not the default "-a" one, which would leave the alias with two write indices.
+     */
+    public void testClear_RecreatesTheIndexBehindTheAlias() throws Exception {
+        ContentIndex index = new ContentIndex(this.client, "test-alias", RULES_MAPPINGS_PATH);
+        when(this.client
+                        .admin()
+                        .indices()
+                        .prepareGetIndex()
+                        .setIndices("test-alias")
+                        .get()
+                        .getIndices())
+                .thenReturn(new String[] {"test-alias-b"});
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        when(this.client.admin().indices().prepareDelete(anyString()))
+                .thenReturn(mock(DeleteIndexRequestBuilder.class));
+
+        index.clear();
+
+        verify(this.client.admin().indices()).prepareDelete("test-alias-b");
+        verify(this.client.admin().indices(), times(0)).prepareDelete("test-alias-a");
+        ArgumentCaptor<CreateIndexRequest> created = ArgumentCaptor.forClass(CreateIndexRequest.class);
+        verify(this.client.admin().indices()).create(created.capture());
+        Assert.assertEquals("test-alias-b", created.getValue().index());
+    }
+
+    /** Without an alias to resolve, clearing recreates the default "-a" slot. */
+    public void testClear_DefaultsToTheFirstSlotWithoutAlias() throws Exception {
+        ContentIndex index = new ContentIndex(this.client, "test-alias", RULES_MAPPINGS_PATH);
+        when(this.client.admin().indices().prepareGetIndex().setIndices("test-alias").get())
+                .thenThrow(new IndexNotFoundException("test-alias"));
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(false);
+        when(this.client.admin().indices().prepareDelete(anyString()))
+                .thenReturn(mock(DeleteIndexRequestBuilder.class));
+
+        index.clear();
+
+        ArgumentCaptor<CreateIndexRequest> created = ArgumentCaptor.forClass(CreateIndexRequest.class);
+        verify(this.client.admin().indices()).create(created.capture());
+        Assert.assertEquals("test-alias-a", created.getValue().index());
     }
 
     /** Test that update retries on CircuitBreakingException from GET and succeeds. */
