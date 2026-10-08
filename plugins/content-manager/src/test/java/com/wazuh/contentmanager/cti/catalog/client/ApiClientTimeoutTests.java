@@ -18,11 +18,13 @@ package com.wazuh.contentmanager.cti.catalog.client;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleRequestBuilder;
+import org.opensearch.common.network.NetworkAddress;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 
 import java.io.InputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -58,9 +60,8 @@ public class ApiClientTimeoutTests extends OpenSearchTestCase {
             SimpleHttpRequest request =
                     SimpleRequestBuilder.get(
                                     "http://"
-                                            + server.getInetAddress().getHostAddress()
-                                            + ":"
-                                            + server.getLocalPort())
+                                            + NetworkAddress.format(
+                                                    new InetSocketAddress(server.getInetAddress(), server.getLocalPort())))
                             .build();
 
             // The kernel completes the handshake from the backlog; the request is never answered.

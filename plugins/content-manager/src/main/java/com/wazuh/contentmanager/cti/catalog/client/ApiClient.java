@@ -33,6 +33,7 @@ import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.util.concurrent.FutureUtils;
 
 import java.io.IOException;
 import java.net.URI;
@@ -347,7 +348,7 @@ public class ApiClient implements AutoCloseable {
         try {
             return future.get(clientTimeout, TimeUnit.SECONDS);
         } catch (TimeoutException | InterruptedException e) {
-            future.cancel(true);
+            FutureUtils.cancel(future);
             throw e;
         }
     }
