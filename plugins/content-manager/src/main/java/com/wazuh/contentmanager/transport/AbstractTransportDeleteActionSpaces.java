@@ -152,19 +152,19 @@ public abstract class AbstractTransportDeleteActionSpaces
             }
 
             // Validate document is in valid space
-            String spaceError =
+            SpaceCheck spaceCheck =
                     validateDocumentInSpace(client, this.getIndexName(), id, this.getResourceType());
-            if (spaceError != null) {
+            if (spaceCheck.error() != null) {
                 log.warn(
                         Constants.W_LOG_OPERATION_FAILED_ID,
                         "Delete",
                         this.getResourceType(),
                         id,
                         "Resource is not in a valid space");
-                respond(listener, new RestResponse(spaceError, RestStatus.BAD_REQUEST.getStatus()));
+                respond(listener, new RestResponse(spaceCheck.error(), RestStatus.BAD_REQUEST.getStatus()));
                 return;
             }
-            final String spaceName = this.resolvedSpaceName;
+            final String spaceName = spaceCheck.spaceName();
 
             // 2. Pre-delete validation (async)
             this.validateDelete(
@@ -320,9 +320,22 @@ public abstract class AbstractTransportDeleteActionSpaces
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));
     }
 
-    private String resolvedSpaceName;
+    /**
+     * Outcome of {@link #validateDocumentInSpace}: the document's space, or why it cannot be deleted.
+     *
+     * <p>Returned rather than kept in a field: the action is a singleton shared by every in-flight
+     * request, so a field would hand one request the space of another.
+     *
+     * @param spaceName the space the document belongs to; {@code null} when {@code error} is set.
+     * @param error the client-facing error message, or {@code null} if the document may be deleted.
+     */
+    private record SpaceCheck(String spaceName, String error) {
+        static SpaceCheck failed(String error) {
+            return new SpaceCheck(null, error);
+        }
+    }
 
-    private String validateDocumentInSpace(
+    private SpaceCheck validateDocumentInSpace(
             Client client, String index, String docId, String docType) {
         FetchSourceContext spaceOnly =
                 new FetchSourceContext(true, new String[] {Constants.Q_SPACE_NAME}, new String[0]);
@@ -331,30 +344,33 @@ public abstract class AbstractTransportDeleteActionSpaces
         docType = Strings.capitalize(docType);
 
         if (!response.isExists()) {
-            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
+            return SpaceCheck.failed(
+                    String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId));
         }
 
         Map<String, Object> source = response.getSourceAsMap();
         if (source == null || !source.containsKey(Constants.KEY_SPACE)) {
-            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
+            return SpaceCheck.failed(
+                    String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId));
         }
 
         Object spaceObj = source.get(Constants.KEY_SPACE);
         if (!(spaceObj instanceof Map)) {
-            return String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId);
+            return SpaceCheck.failed(
+                    String.format(Locale.ROOT, Constants.E_400_RESOURCE_NOT_FOUND, docType, docId));
         }
 
         @SuppressWarnings("unchecked")
         Map<String, Object> spaceMap = (Map<String, Object>) spaceObj;
-        Object spaceName = spaceMap.get(Constants.KEY_NAME);
-        this.resolvedSpaceName = String.valueOf(spaceName);
+        String spaceName = String.valueOf(spaceMap.get(Constants.KEY_NAME));
 
-        if (!getAllowedSpaces().contains(Space.fromValue(this.resolvedSpaceName))) {
-            return String.format(
-                    Locale.ROOT, Constants.E_400_RESOURCE_SPACE_MISMATCH, this.getAllowedSpaces());
+        if (!getAllowedSpaces().contains(Space.fromValue(spaceName))) {
+            return SpaceCheck.failed(
+                    String.format(
+                            Locale.ROOT, Constants.E_400_RESOURCE_SPACE_MISMATCH, this.getAllowedSpaces()));
         }
 
-        return null;
+        return new SpaceCheck(spaceName, null);
     }
 
     private boolean isNotFoundException(Exception e) {

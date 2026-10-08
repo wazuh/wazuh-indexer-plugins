@@ -23,8 +23,14 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.core.rest.RestStatus;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import com.wazuh.contentmanager.ContentManagerRestTestCase;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -591,6 +597,63 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
     }
 
     /**
+     * Concurrent filter creates and deletes in the draft and standard spaces.
+     *
+     * <p>Each round creates one filter in each space at the same time; the creates do not contend for
+     * the per-space resource lock. Then every filter is deleted at once, so the deletes of each space
+     * race on that space's policy.
+     *
+     * <p>Verifies:
+     *
+     * <ul>
+     *   <li>Every created filter is listed in its own space's policy and not in the other's.
+     *   <li>No deleted filter is left listed in either policy.
+     * </ul>
+     *
+     * @throws Exception On failure to communicate with OpenSearch or parse responses.
+     */
+    public void testFilters_concurrentInBothSpacesStayInTheirOwnPolicy() throws Exception {
+        Map<String, String> spaceById = new HashMap<>();
+        ExecutorService pool = Executors.newFixedThreadPool(8);
+        try {
+            for (int round = 0; round < 8; round++) {
+                Future<String> draft = pool.submit(() -> this.createFilter("draft"));
+                Future<String> standard = pool.submit(() -> this.createFilter("standard"));
+                spaceById.put(draft.get(), "draft");
+                spaceById.put(standard.get(), "standard");
+            }
+
+            List<String> draftPolicy = this.getPolicyFilterIds("draft");
+            List<String> standardPolicy = this.getPolicyFilterIds("standard");
+            for (Map.Entry<String, String> filter : spaceById.entrySet()) {
+                boolean isDraft = "draft".equals(filter.getValue());
+                String id = filter.getKey();
+                assertTrue(
+                        filter.getValue() + " filter " + id + " missing from its own policy",
+                        (isDraft ? draftPolicy : standardPolicy).contains(id));
+                assertFalse(
+                        filter.getValue() + " filter " + id + " listed in the other space's policy",
+                        (isDraft ? standardPolicy : draftPolicy).contains(id));
+            }
+
+            List<Future<Response>> deletes = new ArrayList<>();
+            for (String id : spaceById.keySet()) {
+                deletes.add(pool.submit(() -> this.deleteResource(PluginSettings.FILTERS_URI, id)));
+            }
+            for (Future<Response> delete : deletes) {
+                assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(delete.get()));
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+
+        List<String> remaining = new ArrayList<>(this.getPolicyFilterIds("draft"));
+        remaining.addAll(this.getPolicyFilterIds("standard"));
+        remaining.retainAll(spaceById.keySet());
+        assertTrue("deleted filters still listed in a policy: " + remaining, remaining.isEmpty());
+    }
+
+    /**
      * Delete a filter that does not exist.
      *
      * <p>Verifies: Response status code is 404.
@@ -687,6 +750,22 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                 .path(Constants.KEY_HASH)
                 .path(Constants.KEY_SHA256)
                 .asText();
+    }
+
+    /**
+     * Returns the filter ids listed in a space's policy.
+     *
+     * @param spaceName the space to read (draft, test, custom, standard)
+     * @return the ids in the policy's filters list
+     * @throws IOException on communication error
+     */
+    protected List<String> getPolicyFilterIds(String spaceName) throws IOException {
+        List<String> ids = new ArrayList<>();
+        this.getPolicy(spaceName)
+                .path(Constants.KEY_DOCUMENT)
+                .path(Constants.KEY_FILTERS)
+                .forEach(element -> ids.add(element.asText()));
+        return ids;
     }
 
     /**
