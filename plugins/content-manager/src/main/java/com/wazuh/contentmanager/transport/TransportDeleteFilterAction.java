@@ -22,6 +22,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
+import java.util.Locale;
 import java.util.Set;
 
 import com.wazuh.contentmanager.action.DeleteFilterAction;
@@ -91,6 +92,12 @@ public class TransportDeleteFilterAction extends AbstractTransportDeleteActionSp
     @Override
     protected void unlinkFromParent(
             Client client, String id, String spaceName, ActionListener<Void> listener) {
-        PolicyFilters.unlink(client, spaceName, id, listener);
+        PolicyLinks.unlink(
+                client,
+                spaceName,
+                Constants.KEY_FILTERS,
+                id,
+                String.format(Locale.ROOT, Constants.E_500_POLICY_NOT_FOUND_FOR_SPACE, spaceName),
+                listener);
     }
 }

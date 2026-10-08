@@ -17,15 +17,11 @@
 package com.wazuh.contentmanager.transport;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
@@ -33,7 +29,6 @@ import java.util.Locale;
 
 import com.wazuh.contentmanager.action.DeleteIntegrationAction;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
@@ -43,8 +38,6 @@ import com.wazuh.contentmanager.utils.Constants;
 
 /** Transport action for deleting Integration resources. */
 public class TransportDeleteIntegrationAction extends AbstractTransportDeleteAction {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Inject
     public TransportDeleteIntegrationAction(
@@ -127,56 +120,13 @@ public class TransportDeleteIntegrationAction extends AbstractTransportDeleteAct
             String id,
             IntegrationService integrationService,
             ActionListener<Void> listener) {
-        ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
-        TermQueryBuilder queryBuilder =
-                new TermQueryBuilder(Constants.Q_SPACE_NAME, Space.DRAFT.toString());
-
-        policiesIndex.searchByQuery(
-                queryBuilder,
-                ActionListener.wrap(
-                        searchResult -> {
-                            if (searchResult == null
-                                    || !searchResult.has(Constants.Q_HITS)
-                                    || searchResult.get(Constants.Q_HITS).isEmpty()) {
-                                listener.onFailure(new IllegalStateException(Constants.E_500_MISSING_DRAFT_POLICY));
-                                return;
-                            }
-
-                            ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
-                            JsonNode draftPolicyHit = hitsArray.get(0);
-                            String draftPolicyId = draftPolicyHit.get(Constants.KEY_ID).asText();
-                            JsonNode document = draftPolicyHit.get(Constants.KEY_DOCUMENT);
-
-                            ArrayNode integrations = (ArrayNode) document.get(Constants.KEY_INTEGRATIONS);
-                            if (integrations == null) {
-                                listener.onResponse(null);
-                                return;
-                            }
-
-                            ArrayNode updatedIntegrations = MAPPER.createArrayNode();
-                            boolean removed = false;
-                            for (JsonNode integrationId : integrations) {
-                                if (!integrationId.asText().equals(id)) {
-                                    updatedIntegrations.add(integrationId);
-                                } else {
-                                    removed = true;
-                                }
-                            }
-
-                            if (removed) {
-                                ((ObjectNode) document).set(Constants.KEY_INTEGRATIONS, updatedIntegrations);
-                                String hash = Resource.computeSha256(document.toString());
-                                ((ObjectNode) draftPolicyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
-                                policiesIndex.create(
-                                        draftPolicyId,
-                                        draftPolicyHit,
-                                        ActionListener.wrap(
-                                                indexResponse -> listener.onResponse(null), listener::onFailure));
-                            } else {
-                                listener.onResponse(null);
-                            }
-                        },
-                        listener::onFailure));
+        PolicyLinks.unlink(
+                client,
+                Space.DRAFT.toString(),
+                Constants.KEY_INTEGRATIONS,
+                id,
+                Constants.E_500_MISSING_DRAFT_POLICY,
+                listener);
     }
 
     private boolean isListNotEmpty(JsonNode node) {

@@ -27,6 +27,7 @@ import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import com.wazuh.contentmanager.action.CreateFilterAction;
@@ -163,6 +164,12 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
     @Override
     protected void linkToParent(
             Client client, String id, JsonNode root, String spaceName, ActionListener<Void> listener) {
-        PolicyFilters.link(client, spaceName, id, listener);
+        PolicyLinks.link(
+                client,
+                spaceName,
+                Constants.KEY_FILTERS,
+                id,
+                String.format(Locale.ROOT, Constants.E_500_POLICY_NOT_FOUND_FOR_SPACE, spaceName),
+                listener);
     }
 }
