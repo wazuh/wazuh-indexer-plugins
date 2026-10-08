@@ -134,6 +134,13 @@ public final class IndexSwapHelper {
             String aliasName = typeToAlias.apply(type);
             String shadowPhysical = resolveShadowName(client, aliasName);
 
+            // The alias does not point at the staging slot, so anything there is a leftover, e.g. of a
+            // swap interrupted midway, and would make the creation below fail.
+            if (client.admin().indices().prepareExists(shadowPhysical).get().isExists()) {
+                log.warn(Constants.W_LOG_STALE_SHADOW_INDEX_DELETED, shadowPhysical, aliasName);
+                client.admin().indices().prepareDelete(shadowPhysical).get();
+            }
+
             ContentIndex shadowIndex = new ContentIndex(client, aliasName, shadowPhysical, mappingsPath);
             CreateIndexResponse response = shadowIndex.createShadowIndex();
             if (response == null || !response.isAcknowledged()) {
