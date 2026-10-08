@@ -37,6 +37,7 @@ import org.junit.Before;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -591,5 +592,95 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         Assert.assertTrue(response.getMessage().contains("\"rules_evaluated\":0"));
         verify(this.securityAnalytics, never())
                 .evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any());
+    }
+
+    /**
+     * Outside the standard space the integration document is user-written, so the data sources it
+     * names are not trusted: the category decides them, as it does for an integration that names
+     * none.
+     */
+    @SuppressWarnings("unchecked")
+    public void testDetection_UserWrittenDetectorSourceIsIgnored() throws Exception {
+        // spotless:off
+        SearchHit integrationHit = createHit(1, "int-1",
+            String.format(Locale.ROOT, """
+            {"document": {"rules": ["%s"], "category": "security", "metadata": {"title": "Test Integration"},
+             "detector": {"source": [".opendistro_security"], "interval": 5, "enabled": false}}}
+            """, RULE_ID));
+        SearchHit ruleHit = createHit(2, "rule-1",
+            """
+            {"document": {"detection": {"selection": {"event.kind": "event"}, "condition": "selection"}, "logsource": {"product": "test"}, "level": "low", "status": "experimental"}}
+            """);
+        // spotless:on
+        mockClientSearchAsync(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
+
+        // spotless:off
+        doAnswer(invocation -> {
+            ActionListener<String> l = invocation.getArgument(5);
+            l.onResponse("""
+                {"status":"success","rules_evaluated":1,"rules_matched":0,"matches":[]}
+                """);
+            return null;
+        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any(ActionListener.class));
+        // spotless:on
+
+        JsonNode inputEvent = MAPPER.readTree("{\"event\":{\"kind\":\"event\"}}");
+        executeDetectionAndCapture(INTEGRATION_ID, Space.TEST, inputEvent);
+
+        ArgumentCaptor<List> sourcesCaptor = ArgumentCaptor.forClass(List.class);
+        verify(this.securityAnalytics)
+                .evaluateRulesAsync(
+                        anyString(),
+                        anyList(),
+                        anyString(),
+                        anyString(),
+                        sourcesCaptor.capture(),
+                        any(ActionListener.class));
+        Assert.assertEquals(List.of("wazuh-events-v5-security"), sourcesCaptor.getValue());
+    }
+
+    /**
+     * In the standard space the document is Wazuh's own content and a detector really is deployed
+     * from it, so the sources it names are the ones the rules must resolve against.
+     */
+    @SuppressWarnings("unchecked")
+    public void testDetection_StandardDetectorSourceIsHonoured() throws Exception {
+        // spotless:off
+        SearchHit integrationHit = createHit(1, "int-1",
+            String.format(Locale.ROOT, """
+            {"document": {"rules": ["%s"], "category": "security", "metadata": {"title": "Test Integration"},
+             "detector": {"source": ["wazuh-events-v5-applications", "wazuh-events-v5-other"], "interval": 5, "enabled": true}}}
+            """, RULE_ID));
+        SearchHit ruleHit = createHit(2, "rule-1",
+            """
+            {"document": {"detection": {"selection": {"event.kind": "event"}, "condition": "selection"}, "logsource": {"product": "test"}, "level": "low", "status": "experimental"}}
+            """);
+        // spotless:on
+        mockClientSearchAsync(createSearchResponse(integrationHit), createSearchResponse(ruleHit));
+
+        // spotless:off
+        doAnswer(invocation -> {
+            ActionListener<String> l = invocation.getArgument(5);
+            l.onResponse("""
+                {"status":"success","rules_evaluated":1,"rules_matched":0,"matches":[]}
+                """);
+            return null;
+        }).when(this.securityAnalytics).evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any(ActionListener.class));
+        // spotless:on
+
+        JsonNode inputEvent = MAPPER.readTree("{\"event\":{\"kind\":\"event\"}}");
+        executeDetectionAndCapture(INTEGRATION_ID, Space.STANDARD, inputEvent);
+
+        ArgumentCaptor<List> sourcesCaptor = ArgumentCaptor.forClass(List.class);
+        verify(this.securityAnalytics)
+                .evaluateRulesAsync(
+                        anyString(),
+                        anyList(),
+                        anyString(),
+                        anyString(),
+                        sourcesCaptor.capture(),
+                        any(ActionListener.class));
+        Assert.assertEquals(
+                List.of("wazuh-events-v5-applications", "wazuh-events-v5-other"), sourcesCaptor.getValue());
     }
 }
