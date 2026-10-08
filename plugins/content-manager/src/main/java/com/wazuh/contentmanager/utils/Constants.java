@@ -180,6 +180,10 @@ public class Constants {
             "Access token is invalid or expired. Clearing credentials and falling back to public plan.";
     public static final String W_LOG_PLAN_LOOKUP_FAILED_TOKEN_KEPT =
             "Could not retrieve the subscription plan from the CTI Console ({}). The access token is kept.";
+    public static final String D_LOG_ENVIRONMENT_PLAN_RETRIEVED =
+            "Active plan for registered environment retrieved successfully from CTI Console. Active plan is: {}.";
+    public static final String D_LOG_PUBLIC_PLAN_RETRIEVED =
+            "Public plan retrieved successfully from CTI Console. Active plan is: {}.";
 
     // Log messages - consumer synchronization (AbstractConsumerService)
     public static final String D_LOG_SYNC_COMPLETED =
