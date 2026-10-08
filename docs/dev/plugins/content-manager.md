@@ -659,7 +659,7 @@ When `local_offset = 0`:
 When `local_offset > 0` and `local_offset < remote_offset`:
 
 1. Fetches the changes in batches from the CTI API.
-2. Applies JSON Patch operations (add, update, delete).
+2. Applies each change: creates or deletes the document, or patches it with the change's JSON Patch ([RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902)) operations through [zjsonpatch](https://github.com/flipkart-incubator/zjsonpatch). Patching is strict: an operation whose target does not exist fails the change (zjsonpatch needs `FORBID_REMOVE_MISSING_OBJECT` for removals). The operations are applied in place, without copying the document, on a tree parsed from the stored source; if one fails, that tree is discarded and the stored document is left as it was. Several changes of the same document within a batch are applied in order, each on top of the previous one.
 3. Pushes the changes to the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 4. Updates the local offset.
 
@@ -674,6 +674,8 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 ### Error handling
 
 If a critical error or data corruption is detected, the system resets `local_offset` to 0, triggering a full snapshot re-initialization on the next run.
+
+A change that cannot be applied to the stored content fails as a `ContentIndex.PatchException`, which carries the change's offset and resource: its patch does not fit the stored document, or, for the consumers updated in batches (IoCs and vulnerabilities), the document is missing. Retrying it fails the same way, so `AbstractConsumerService` handles it in the same pass: when CTI has a snapshot newer than the consumer's local offset, it rebuilds the content from that snapshot and applies the remaining changes from the snapshot's offset. A snapshot at or past the failing offset already holds the change's result; an older one still rebuilds stored content that diverged from CTI, which is what usually makes a valid change fail. The snapshot goes through the same blue/green path as a plan change (`performShadowSwap`): it loads into hidden staging indices and the aliases are swapped only once it has loaded, so the current content stays available meanwhile and is kept if the snapshot cannot be loaded. After a rebuild the local offset is at or past the snapshot, so a given snapshot is used at most once; without a newer snapshot, the failure propagates and later runs retry the change. Any other failure (CTI unreachable, cluster errors) propagates as before and resumes from the last checkpoint.
 
 ---
 

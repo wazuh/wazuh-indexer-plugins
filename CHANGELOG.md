@@ -54,6 +54,7 @@
 | [#506](https://github.com/wazuh/wazuh-indexer-plugins/issues/506) | Rework the FIM indices |
 | [#775](https://github.com/wazuh/wazuh-indexer-plugins/issues/775) | Move `agent` fields under `wazuh` |
 | [#477](https://github.com/wazuh/wazuh-indexer-plugins/issues/477) [#539](https://github.com/wazuh/wazuh-indexer-plugins/issues/539) [#547](https://github.com/wazuh/wazuh-indexer-plugins/issues/547) [#562](https://github.com/wazuh/wazuh-indexer-plugins/issues/562) [#582](https://github.com/wazuh/wazuh-indexer-plugins/issues/582) [#641](https://github.com/wazuh/wazuh-indexer-plugins/issues/641) [#697](https://github.com/wazuh/wazuh-indexer-plugins/issues/697) [#741](https://github.com/wazuh/wazuh-indexer-plugins/issues/741) [#811](https://github.com/wazuh/wazuh-indexer-plugins/issues/811) [#906](https://github.com/wazuh/wazuh-indexer-plugins/issues/906) [#1015](https://github.com/wazuh/wazuh-indexer-plugins/issues/1015) [#1123](https://github.com/wazuh/wazuh-indexer-plugins/issues/1123) [#298](https://github.com/wazuh/wazuh-indexer-plugins/issues/298) [#372](https://github.com/wazuh/wazuh-indexer-plugins/issues/372) | Update third-party integrations to their latest versions |
+| [#1635](https://github.com/wazuh/wazuh-indexer-plugins/issues/1635) | Include the consumer name in the snapshot download log messages |
 
 
 ### Removed
@@ -68,5 +69,7 @@
 
 | Issue | Comment |
 |-------|---------|
+| [#1632](https://github.com/wazuh/wazuh-indexer-plugins/issues/1632) | Fix vulnerabilities content updates failing with `Target for add operation is not a container` |
+| [#1633](https://github.com/wazuh/wazuh-indexer-plugins/issues/1633) | Fix CTI content updates getting stuck on an offset that cannot be applied, by rebuilding the content from a newer snapshot |
 
 ## Prior versions

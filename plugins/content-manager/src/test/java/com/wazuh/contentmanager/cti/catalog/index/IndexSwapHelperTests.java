@@ -16,18 +16,29 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Answers;
 import org.mockito.MockitoAnnotations;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -125,5 +136,39 @@ public class IndexSwapHelperTests extends OpenSearchTestCase {
 
         String result = IndexSwapHelper.resolveLivePhysicalName(this.client, alias);
         assertEquals(livePhysical, result);
+    }
+
+    /**
+     * A leftover in the staging slot, which the alias does not point at, is deleted before the shadow
+     * index is created; otherwise the creation fails with resource_already_exists.
+     */
+    @SuppressWarnings("unchecked")
+    public void testCreateShadowIndices_DeletesLeftoverInStagingSlot() throws Exception {
+        String alias = "wazuh-threatintel-rules";
+        GetIndexResponse response = mock(GetIndexResponse.class);
+        when(response.getIndices()).thenReturn(new String[] {alias + ContentIndex.SUFFIX_B});
+        when(this.client.admin().indices().prepareGetIndex().setIndices(alias).get())
+                .thenReturn(response);
+        when(this.client
+                        .admin()
+                        .indices()
+                        .prepareExists(alias + ContentIndex.SUFFIX_A)
+                        .get()
+                        .isExists())
+                .thenReturn(true);
+        when(this.client.admin().indices().prepareDelete(anyString()))
+                .thenReturn(mock(DeleteIndexRequestBuilder.class));
+        CreateIndexResponse created =
+                new CreateIndexResponse(true, true, alias + ContentIndex.SUFFIX_A);
+        ActionFuture<CreateIndexResponse> future = mock(ActionFuture.class);
+        when(future.get(anyLong(), any(TimeUnit.class))).thenReturn(created);
+        when(this.client.admin().indices().create(any(CreateIndexRequest.class))).thenReturn(future);
+
+        Map<String, ContentIndex> shadows =
+                IndexSwapHelper.createShadowIndices(
+                        this.client, Map.of("rule", "/mappings/cti-rules-mappings.json"), t -> alias);
+
+        verify(this.client.admin().indices()).prepareDelete(alias + ContentIndex.SUFFIX_A);
+        assertEquals(alias + ContentIndex.SUFFIX_A, shadows.get("rule").getPhysicalName());
     }
 }

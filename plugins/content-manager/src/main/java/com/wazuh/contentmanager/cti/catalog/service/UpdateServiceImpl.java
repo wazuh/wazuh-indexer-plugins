@@ -165,12 +165,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                             lastAppliedOffset = offset.getOffset();
                         }
                     } catch (Exception e) {
-                        log.error(
-                                Constants.E_LOG_UPDATE_APPLY_OFFSET_FAILED,
-                                offset.getOffset(),
-                                offset.getType(),
-                                offset.getResource(),
-                                e.getMessage());
+                        this.logApplyFailure(e, offset.getOffset(), offset.getType(), offset.getResource());
                         this.persistCheckpoint(
                                 lastAppliedOffset,
                                 fromOffset,
@@ -189,7 +184,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                     try {
                         lastAppliedOffset = this.singleIndex.batchUpdate(updateBatch);
                     } catch (Exception e) {
-                        log.error("Batch update flush failed: {}", e.getMessage());
+                        ContentIndex.UpdateTask last = updateBatch.get(updateBatch.size() - 1);
+                        this.logApplyFailure(e, last.offset(), Offset.Type.UPDATE, last.id());
                         this.persistCheckpoint(
                                 lastAppliedOffset,
                                 fromOffset,
@@ -354,6 +350,30 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         }
         throw new ResourceNotFoundException(
                 "Document with ID '" + id + "' could not be found in any ContentIndex.");
+    }
+
+    /**
+     * Logs a change that could not be applied. Updates are applied in batches, so the change being
+     * processed when a batch fails is not necessarily the one that failed: a patch failure names its
+     * own change, and any other failure is reported against the change being processed.
+     *
+     * @param e The failure.
+     * @param offset The offset of the change being processed.
+     * @param type The type of the change being processed.
+     * @param resource The resource of the change being processed.
+     */
+    private void logApplyFailure(Exception e, long offset, Offset.Type type, String resource) {
+        if (e instanceof ContentIndex.PatchException patchException
+                && patchException.getOffset() != null) {
+            log.error(
+                    Constants.E_LOG_UPDATE_APPLY_OFFSET_FAILED,
+                    patchException.getOffset(),
+                    Offset.Type.UPDATE,
+                    patchException.getId(),
+                    e.getMessage());
+        } else {
+            log.error(Constants.E_LOG_UPDATE_APPLY_OFFSET_FAILED, offset, type, resource, e.getMessage());
+        }
     }
 
     private void persistCheckpoint(
