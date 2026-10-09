@@ -23,8 +23,14 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.core.rest.RestStatus;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import com.wazuh.contentmanager.ContentManagerRestTestCase;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -591,6 +597,166 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
     }
 
     /**
+     * Concurrent filter creates and deletes in the draft and standard spaces.
+     *
+     * <p>Each round creates one filter in each space at the same time; the creates do not contend for
+     * the per-space resource lock. Then every filter is deleted at once, so the deletes of each space
+     * race on that space's policy.
+     *
+     * <p>Verifies:
+     *
+     * <ul>
+     *   <li>Every created filter is listed in its own space's policy and not in the other's.
+     *   <li>No deleted filter is left listed in either policy.
+     * </ul>
+     *
+     * @throws Exception On failure to communicate with OpenSearch or parse responses.
+     */
+    public void testFilters_concurrentInBothSpacesStayInTheirOwnPolicy() throws Exception {
+        Map<String, String> spaceById = new HashMap<>();
+        ExecutorService pool = Executors.newFixedThreadPool(8);
+        try {
+            for (int round = 0; round < 8; round++) {
+                Future<String> draft = pool.submit(() -> this.createFilter("draft"));
+                Future<String> standard = pool.submit(() -> this.createFilter("standard"));
+                spaceById.put(draft.get(), "draft");
+                spaceById.put(standard.get(), "standard");
+            }
+
+            List<String> draftPolicy = this.getPolicyFilterIds("draft");
+            List<String> standardPolicy = this.getPolicyFilterIds("standard");
+            for (Map.Entry<String, String> filter : spaceById.entrySet()) {
+                boolean isDraft = "draft".equals(filter.getValue());
+                String id = filter.getKey();
+                assertTrue(
+                        filter.getValue() + " filter " + id + " missing from its own policy",
+                        (isDraft ? draftPolicy : standardPolicy).contains(id));
+                assertFalse(
+                        filter.getValue() + " filter " + id + " listed in the other space's policy",
+                        (isDraft ? standardPolicy : draftPolicy).contains(id));
+            }
+
+            List<Future<Response>> deletes = new ArrayList<>();
+            for (String id : spaceById.keySet()) {
+                deletes.add(pool.submit(() -> this.deleteResource(PluginSettings.FILTERS_URI, id)));
+            }
+            for (Future<Response> delete : deletes) {
+                assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(delete.get()));
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+
+        List<String> remaining = new ArrayList<>(this.getPolicyFilterIds("draft"));
+        remaining.addAll(this.getPolicyFilterIds("standard"));
+        remaining.retainAll(spaceById.keySet());
+        assertTrue("deleted filters still listed in a policy: " + remaining, remaining.isEmpty());
+    }
+
+    /**
+     * Filter creates in draft while integrations are created and deleted in draft.
+     *
+     * <p>Both write the draft policy document, one its {@code filters} list and the other its {@code
+     * integrations} list, so an integration write that rewrites the whole document from a stale copy
+     * drops a filter linked meanwhile.
+     *
+     * <p>Verifies: every created filter is listed in the draft policy, and every deleted integration
+     * is gone from it.
+     *
+     * @throws Exception On failure to communicate with OpenSearch or parse responses.
+     */
+    public void testFilters_concurrentWithIntegrationsStayInDraftPolicy() throws Exception {
+        List<String> filterIds = new ArrayList<>();
+        List<String> integrationIds = new ArrayList<>();
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> integrations =
+                    pool.submit(
+                            () -> {
+                                for (int i = 0; i < 8; i++) {
+                                    String id =
+                                            this.createIntegration("concurrent-filters-" + randomAlphaOfLength(8));
+                                    integrationIds.add(id);
+                                    assertEquals(
+                                            RestStatus.OK.getStatus(),
+                                            this.getStatusCode(this.deleteResource(PluginSettings.INTEGRATIONS_URI, id)));
+                                }
+                                return null;
+                            });
+            Future<?> filters =
+                    pool.submit(
+                            () -> {
+                                for (int i = 0; i < 8; i++) {
+                                    filterIds.add(this.createFilter("draft"));
+                                }
+                                return null;
+                            });
+            integrations.get();
+            filters.get();
+        } finally {
+            pool.shutdownNow();
+        }
+
+        JsonNode document = this.getPolicy("draft").path(Constants.KEY_DOCUMENT);
+        List<String> listedFilters = this.getPolicyFilterIds("draft");
+        List<String> missing = new ArrayList<>(filterIds);
+        missing.removeAll(listedFilters);
+        assertTrue("filters missing from the draft policy: " + missing, missing.isEmpty());
+        for (JsonNode integration : document.path(Constants.KEY_INTEGRATIONS)) {
+            assertFalse(
+                    "deleted integration still listed: " + integration.asText(),
+                    integrationIds.contains(integration.asText()));
+        }
+
+        for (String id : filterIds) {
+            this.deleteResource(PluginSettings.FILTERS_URI, id);
+        }
+    }
+
+    /**
+     * A burst of concurrent filter and integration deletes in draft, all rewriting the draft policy.
+     *
+     * <p>Verifies: every delete answers 200, and none of the deleted ids is left in the draft policy.
+     *
+     * @throws Exception On failure to communicate with OpenSearch or parse responses.
+     */
+    public void testDeletes_burstInDraftAllSucceedAndLeaveNoOrphans() throws Exception {
+        List<String> filterIds = new ArrayList<>();
+        List<String> integrationIds = new ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            filterIds.add(this.createFilter("draft"));
+        }
+        for (int i = 0; i < 8; i++) {
+            integrationIds.add(this.createIntegration("burst-deletes-" + randomAlphaOfLength(8)));
+        }
+
+        ExecutorService pool = Executors.newFixedThreadPool(28);
+        try {
+            List<Future<Response>> deletes = new ArrayList<>();
+            for (String id : filterIds) {
+                deletes.add(pool.submit(() -> this.deleteResource(PluginSettings.FILTERS_URI, id)));
+            }
+            for (String id : integrationIds) {
+                deletes.add(pool.submit(() -> this.deleteResource(PluginSettings.INTEGRATIONS_URI, id)));
+            }
+            for (Future<Response> delete : deletes) {
+                assertEquals(RestStatus.OK.getStatus(), this.getStatusCode(delete.get()));
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+
+        JsonNode document = this.getPolicy("draft").path(Constants.KEY_DOCUMENT);
+        List<String> orphans = new ArrayList<>();
+        document.path(Constants.KEY_FILTERS).forEach(n -> orphans.add(n.asText()));
+        document.path(Constants.KEY_INTEGRATIONS).forEach(n -> orphans.add(n.asText()));
+        List<String> deleted = new ArrayList<>(filterIds);
+        deleted.addAll(integrationIds);
+        orphans.retainAll(deleted);
+        assertTrue("deleted ids still listed in the draft policy: " + orphans, orphans.isEmpty());
+    }
+
+    /**
      * Delete a filter that does not exist.
      *
      * <p>Verifies: Response status code is 404.
@@ -687,6 +853,22 @@ public class FilterCUDIT extends ContentManagerRestTestCase {
                 .path(Constants.KEY_HASH)
                 .path(Constants.KEY_SHA256)
                 .asText();
+    }
+
+    /**
+     * Returns the filter ids listed in a space's policy.
+     *
+     * @param spaceName the space to read (draft, test, custom, standard)
+     * @return the ids in the policy's filters list
+     * @throws IOException on communication error
+     */
+    protected List<String> getPolicyFilterIds(String spaceName) throws IOException {
+        List<String> ids = new ArrayList<>();
+        this.getPolicy(spaceName)
+                .path(Constants.KEY_DOCUMENT)
+                .path(Constants.KEY_FILTERS)
+                .forEach(element -> ids.add(element.asText()));
+        return ids;
     }
 
     /**

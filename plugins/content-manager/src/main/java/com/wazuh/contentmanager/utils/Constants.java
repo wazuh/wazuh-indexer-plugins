@@ -116,6 +116,9 @@ public class Constants {
     public static final String E_SECURITY_ANALYTICS_ERROR =
             "Error in Security Analytics."; // Used for both BAD_REQUEST and INTERNAL_SERVER_ERROR
     public static final String E_500_MISSING_DRAFT_POLICY = "Draft policy not found.";
+    public static final String E_500_POLICY_NOT_FOUND_FOR_SPACE = "Policy of space [%s] not found.";
+    public static final String E_500_POLICY_LINKS_RETRIES_EXHAUSTED =
+            "Could not update the [%s] list of the [%s] policy after %d conflicting attempts.";
     public static final String E_500_VERSION_NOT_FOUND = "Unable to determine current Wazuh version.";
     public static final String E_500_CTI_UNREACHABLE =
             "Unable to reach the CTI API to check for updates.";
@@ -447,6 +450,15 @@ public class Constants {
     public static final String W_LOG_USER_OVERRIDES_RECORD_FAILED =
             "Failed to record {} [{}] in the user overrides registry. The change itself is fine, but it"
                     + " will not survive the next content rebuild of the standard space: {}";
+
+    // Log messages - a policy's id lists (PolicyLinks)
+    public static final String D_LOG_POLICY_LINKS_CONFLICT =
+            "Write of the [{}] policy's [{}] list conflicted on attempt {}; re-reading and retrying in {}.";
+    public static final String W_LOG_POLICY_LINKS_RETRIES_EXHAUSTED =
+            "Gave up writing the [{}] policy's [{}] list after {} conflicting attempts: {}";
+    public static final String E_LOG_POLICY_LINKS_OPERATION_FAILED =
+            "A queued change to a policy's id list failed before running: {}";
+
     public static final String D_LOG_SNAPSHOT_NO_INDEX_FOR_TYPE =
             "No ContentIndex found for type [{}]. Skipping.";
     public static final String D_LOG_SNAPSHOT_PARSE_LINE_FAILED =
@@ -994,6 +1006,19 @@ public class Constants {
     // one week.
     public static final int DETECTOR_INTERVAL_MIN_MINUTES = 1;
     public static final int DETECTOR_INTERVAL_MAX_MINUTES = 60 * 24 * 7;
+
+    /**
+     * How many times a filter or integration link or unlink re-reads and rewrites a space's policy
+     * after losing a version conflict to a concurrent writer of the same policy. Each conflict means
+     * another writer succeeded, so this bounds the number of concurrent writers one request can
+     * outlast.
+     */
+    public static final int POLICY_LINKS_MAX_UPDATE_ATTEMPTS = 10;
+
+    // Randomized exponential backoff between those attempts, in milliseconds: retry n waits up to
+    // min(MAX, BASE * 2^(n-1)).
+    public static final long POLICY_LINKS_RETRY_BASE_DELAY_MS = 20;
+    public static final long POLICY_LINKS_RETRY_MAX_DELAY_MS = 1_000;
 
     // Setup plugin readiness marker (written by the Setup plugin once all its
     // index templates, indices and data streams have been created).

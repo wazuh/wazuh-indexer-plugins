@@ -17,14 +17,12 @@
 package com.wazuh.contentmanager.transport;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.Client;
 
@@ -33,8 +31,6 @@ import java.util.Locale;
 import java.util.Set;
 
 import com.wazuh.contentmanager.action.CreateFilterAction;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
@@ -47,7 +43,6 @@ import com.wazuh.contentmanager.utils.Constants;
 public class TransportCreateFilterAction extends AbstractTransportCreateActionSpaces {
 
     private static final Set<Space> validSpaces = Set.of(Space.DRAFT, Space.STANDARD);
-    private String spaceName = "";
 
     private final UserOverridesService userOverridesService;
 
@@ -102,8 +97,8 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
     }
 
     @Override
-    protected String getSpaceName() {
-        return this.spaceName;
+    protected String getSpaceName(JsonNode root) {
+        return root.path(Constants.KEY_SPACE).asText();
     }
 
     @Override
@@ -127,7 +122,6 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
             return new RestResponse(
                     Constants.E_400_RESOURCE_SPACE_INVALID, RestStatus.BAD_REQUEST.getStatus());
         }
-        this.spaceName = spaceValue;
 
         return null;
     }
@@ -169,48 +163,13 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
 
     @Override
     protected void linkToParent(
-            Client client, String id, JsonNode root, ActionListener<Void> listener) {
-        ContentIndex policiesIndex = new ContentIndex(client, Constants.INDEX_POLICIES);
-        TermQueryBuilder queryBuilder =
-                new TermQueryBuilder(Constants.Q_SPACE_NAME, this.getSpaceName());
-
-        policiesIndex.searchByQuery(
-                queryBuilder,
-                ActionListener.wrap(
-                        searchResult -> {
-                            if (searchResult == null
-                                    || !searchResult.has(Constants.Q_HITS)
-                                    || searchResult.get(Constants.Q_HITS).isEmpty()) {
-                                listener.onFailure(
-                                        new IllegalStateException(
-                                                String.format(Locale.ROOT, "%s policy not found", this.getSpaceName())));
-                                return;
-                            }
-
-                            ArrayNode hitsArray = (ArrayNode) searchResult.get(Constants.Q_HITS);
-                            JsonNode policyHit = hitsArray.get(0);
-                            String policyId = policyHit.get(Constants.KEY_ID).asText();
-                            JsonNode document = policyHit.get(Constants.KEY_DOCUMENT);
-
-                            ArrayNode filters;
-                            if (document.has(Constants.KEY_FILTERS)) {
-                                filters = (ArrayNode) document.get(Constants.KEY_FILTERS);
-                            } else {
-                                filters = MAPPER.createArrayNode();
-                                ((ObjectNode) document).set(Constants.KEY_FILTERS, filters);
-                            }
-
-                            filters.add(id);
-
-                            String hash = Resource.computeSha256(document.toString());
-                            ((ObjectNode) policyHit.at("/hash")).put(Constants.KEY_SHA256, hash);
-
-                            policiesIndex.create(
-                                    policyId,
-                                    policyHit,
-                                    ActionListener.wrap(
-                                            indexResponse -> listener.onResponse(null), listener::onFailure));
-                        },
-                        listener::onFailure));
+            Client client, String id, JsonNode root, String spaceName, ActionListener<Void> listener) {
+        PolicyLinks.link(
+                client,
+                spaceName,
+                Constants.KEY_FILTERS,
+                id,
+                String.format(Locale.ROOT, Constants.E_500_POLICY_NOT_FOUND_FOR_SPACE, spaceName),
+                listener);
     }
 }
