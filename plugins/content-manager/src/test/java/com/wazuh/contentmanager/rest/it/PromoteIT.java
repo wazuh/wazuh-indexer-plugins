@@ -23,6 +23,7 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.core.rest.RestStatus;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -865,6 +866,44 @@ public class PromoteIT extends ContentManagerRestTestCase {
                         () -> this.makeRequest("POST", PluginSettings.PROMOTE_URI, ""));
         assertEquals(
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
+    }
+
+    /**
+     * Promote with a missing or null space, a body that is not JSON, an unknown key, or a changes
+     * list of the wrong element type.
+     *
+     * <p>These used to answer 500 — the first two as an uncaught NullPointerException whose Java
+     * exception text reached the response body (#1668).
+     *
+     * <p>Verifies: every body is answered 400 and no response carries exception text.
+     *
+     * @throws IOException On communication error
+     */
+    public void testPostPromote_malformedBodiesAreRejectedWith400() throws IOException {
+        String[] bodies = {
+            "{}",
+            "{\"space\":null}",
+            "{\"spaces\":\"draft\"}",
+            "not json",
+            "{\"space\":\"draft\",\"changes\":{\"integrations\":[\"some-id\"]}}"
+        };
+
+        for (String body : bodies) {
+            ResponseException e =
+                    expectThrows(
+                            ResponseException.class,
+                            () -> this.makeRequest("POST", PluginSettings.PROMOTE_URI, body));
+            assertEquals(
+                    "Body " + body + " must be rejected with 400",
+                    RestStatus.BAD_REQUEST.getStatus(),
+                    e.getResponse().getStatusLine().getStatusCode());
+            String responseBody =
+                    new String(
+                            e.getResponse().getEntity().getContent().readAllBytes(), StandardCharsets.UTF_8);
+            assertFalse(
+                    "Body " + body + " must not leak exception text, got: " + responseBody,
+                    responseBody.contains("exception") || responseBody.contains("Exception"));
+        }
     }
 
     // ========================

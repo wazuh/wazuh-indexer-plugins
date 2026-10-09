@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.transport;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
@@ -157,6 +158,13 @@ public class TransportPostPromoteAction
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
             listener.onResponse(new MessageStatusResponse(message, RestStatus.BAD_REQUEST));
+        } catch (JsonProcessingException e) {
+            // A body that is not JSON, an unknown key, or a field of the wrong shape. These are
+            // the caller's errors, not the server's, and the Jackson message leaks class names,
+            // so they get a 400 with the generic validation message (#1668).
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
+            listener.onResponse(
+                    new MessageStatusResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
         } catch (IOException e) {
             respondWithError(listener, e);
         }
@@ -1389,6 +1397,11 @@ public class TransportPostPromoteAction
 
     private void validatePromoteRequest(SpaceDiff spaceDiff) {
         Space sourceSpace = spaceDiff.getSpace();
+        if (sourceSpace == null) {
+            // {} and {"space": null} parse fine, but are invalid.
+            throw new IllegalArgumentException(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_SPACE));
+        }
         Space targetSpace = sourceSpace.promote();
 
         if (sourceSpace == targetSpace) {
