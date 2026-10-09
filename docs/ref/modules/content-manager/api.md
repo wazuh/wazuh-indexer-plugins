@@ -2066,6 +2066,8 @@ Individual rollback or reconciliation step failures are logged but do not preven
 
 The `changes` object contains arrays for each content type (`policy`, `integrations`, `kvdbs`, `decoders`, `rules`, `filters`), each with `operation` and `id` fields.
 
+The `policy` entry only accepts the `update` operation, and its `id` must be the source space policy's `document.id`, as returned by the preview — any other value is rejected. A space holds exactly one policy, and the promotion updates the target space's policy in place.
+
 #### Example request
 
 ```bash
@@ -2112,7 +2114,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 #### Status codes
 
 - **200** — promotion successful.
-- **400** — invalid request body, missing `space` field, or Engine validation failure.
+- **400** — invalid request body, missing `space` field, a policy `id` that is not the space policy's `document.id`, or Engine validation failure.
 - **409** — a promoted resource already exists in the target space (use an `update` operation instead).
 - **500** — Engine communication error or internal error.
 

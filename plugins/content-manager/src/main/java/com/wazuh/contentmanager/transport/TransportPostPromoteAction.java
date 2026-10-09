@@ -480,10 +480,59 @@ public class TransportPostPromoteAction
                         listener::onFailure);
 
         if (resourceType.equals(Constants.KEY_POLICY)) {
-            this.spaceService.getPolicy(sourceSpace, docListener);
+            processPolicyUpdateAsync(resourceId, sourceSpace, docListener);
         } else {
             this.spaceService.getDocumentAsync(indexName, sourceSpace, resourceId, docListener);
         }
+    }
+
+    /**
+     * Loads the source space's policy for promotion, rejecting the request when its {@code id} is not
+     * that policy's {@code document.id} — the id the promotion preview hands out.
+     *
+     * <p>The policy itself is resolved by space, so the {@code id} plays no part in what gets
+     * promoted — but the consolidation step used to resolve the target document by (space, {@code
+     * document.id}), and an {@code id} that matched nothing there indexed the promoted policy as a
+     * second policy document for the target space, which the managers' engine content sync then
+     * rejects ("expected 1, got 2") on every cycle with nothing reported to the caller
+     * (wazuh-indexer#2006). The write path now resolves the target policy by space too, so the only
+     * thing a mismatched {@code id} can mean is a broken client, and it is answered with a 400.
+     */
+    private void processPolicyUpdateAsync(
+            String resourceId, String sourceSpace, ActionListener<Map<String, Object>> docListener) {
+        this.spaceService.getPolicy(
+                sourceSpace,
+                ActionListener.wrap(
+                        (Map<String, Object> sourcePolicy) -> {
+                            if (sourcePolicy == null) {
+                                docListener.onResponse(null);
+                                return;
+                            }
+                            String policyId = documentIdOf(sourcePolicy);
+                            if (!resourceId.equals(policyId)) {
+                                docListener.onFailure(
+                                        new OpenSearchStatusException(
+                                                String.format(
+                                                        Locale.ROOT,
+                                                        Constants.E_400_POLICY_ID_MISMATCH,
+                                                        resourceId,
+                                                        sourceSpace,
+                                                        policyId),
+                                                RestStatus.BAD_REQUEST));
+                                return;
+                            }
+                            docListener.onResponse(sourcePolicy);
+                        },
+                        docListener::onFailure));
+    }
+
+    /** Returns the {@code document.id} of a resource, or {@code null} when it has none. */
+    private static String documentIdOf(Map<String, Object> source) {
+        if (source.get(Constants.KEY_DOCUMENT) instanceof Map<?, ?> document) {
+            Object id = document.get(Constants.KEY_ID);
+            return id instanceof String ? (String) id : null;
+        }
+        return null;
     }
 
     private void processRemoveAsync(

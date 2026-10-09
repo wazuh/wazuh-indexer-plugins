@@ -42,7 +42,9 @@ import org.junit.Before;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -395,6 +397,103 @@ public class SpaceServiceTests extends OpenSearchTestCase {
 
         assertNotNull("Failure should be propagated via onFailure", failure.get());
         assertNull("onResponse should not have been called", changed.get());
+    }
+
+    /**
+     * A promotable resource document carrying a mutable space object, as promoteSpaceAsync mutates
+     * it.
+     */
+    private Map<String, Map<String, Object>> promotableResource(String key) {
+        Map<String, Object> doc = new HashMap<>();
+        doc.put(Constants.KEY_DOCUMENT, Map.of(Constants.KEY_ID, "policy-doc-id"));
+        doc.put(Constants.KEY_SPACE, new HashMap<>(Map.of(Constants.KEY_NAME, "draft")));
+        Map<String, Map<String, Object>> resources = new HashMap<>();
+        resources.put(key, doc);
+        return resources;
+    }
+
+    private ArgumentCaptor<BulkRequest> mockSuccessfulBulk() {
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        BulkResponse bulkResponse = org.mockito.Mockito.mock(BulkResponse.class);
+        when(bulkResponse.hasFailures()).thenReturn(false);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<BulkResponse>>getArgument(1).onResponse(bulkResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .bulk(bulkCaptor.capture(), any());
+        return bulkCaptor;
+    }
+
+    /**
+     * Consolidating into the policies index must resolve the target document by space alone: a space
+     * holds exactly one policy. Resolving it by (space, document.id) instead left the write without
+     * an _id whenever the promotion's policy id matched nothing, and the policy was then indexed as a
+     * second policy document for the target space, breaking the managers' engine content sync for
+     * that space on every cycle (wazuh-indexer#2006).
+     */
+    public void testPromoteSpaceAsyncResolvesThePolicyBySpaceAlone() {
+        ArgumentCaptor<SearchRequest> searchCaptor = ArgumentCaptor.forClass(SearchRequest.class);
+        SearchHit existingPolicy =
+                new SearchHit(1, "existing-policy-id", Collections.emptyMap(), Collections.emptyMap());
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onResponse(searchResponse(existingPolicy));
+                            return null;
+                        })
+                .when(this.client)
+                .search(searchCaptor.capture(), any());
+        ArgumentCaptor<BulkRequest> bulkCaptor = mockSuccessfulBulk();
+
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        this.policyHashService.promoteSpaceAsync(
+                POLICY_IDX,
+                promotableResource("id-that-matches-no-policy"),
+                "test",
+                ActionListener.wrap(r -> {}, failure::set));
+
+        assertNull("Promotion should succeed", failure.get());
+        String query = searchCaptor.getValue().source().query().toString();
+        assertTrue("The policy must be resolved by space", query.contains(Constants.Q_SPACE_NAME));
+        assertFalse(
+                "The policy resolution must not depend on the request's id",
+                query.contains(Constants.Q_DOCUMENT_ID));
+        IndexRequest write = (IndexRequest) bulkCaptor.getValue().requests().get(0);
+        assertEquals(
+                "The write must update the space's existing policy, never add a second one",
+                "existing-policy-id",
+                write.id());
+    }
+
+    /** Every other index keeps resolving the target document by (space, document.id). */
+    public void testPromoteSpaceAsyncResolvesOtherResourcesByDocumentId() {
+        ArgumentCaptor<SearchRequest> searchCaptor = ArgumentCaptor.forClass(SearchRequest.class);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onResponse(emptySearchResponse());
+                            return null;
+                        })
+                .when(this.client)
+                .search(searchCaptor.capture(), any());
+        mockSuccessfulBulk();
+
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        this.policyHashService.promoteSpaceAsync(
+                RULE_IDX,
+                promotableResource("rule-doc-id"),
+                "test",
+                ActionListener.wrap(r -> {}, failure::set));
+
+        assertNull("Promotion should succeed", failure.get());
+        String query = searchCaptor.getValue().source().query().toString();
+        assertTrue(
+                "Non-policy resources must still be resolved by document.id",
+                query.contains(Constants.Q_DOCUMENT_ID));
     }
 
     private SearchHit policyHit(String sourceJson) {
