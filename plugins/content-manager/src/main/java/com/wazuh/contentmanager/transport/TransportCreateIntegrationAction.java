@@ -108,6 +108,10 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
                             ((ObjectNode) resource).set(Constants.KEY_DECODERS, MAPPER.createArrayNode());
                             ((ObjectNode) resource).set(Constants.KEY_KVDBS, MAPPER.createArrayNode());
 
+                            // The detector block describes what Wazuh's own content delivery deploys
+                            // for an integration, so a request cannot supply one.
+                            ((ObjectNode) resource).remove(Constants.KEY_DETECTOR);
+
                             // Integrations created through the API are always user-managed.
                             ((ObjectNode) resource).put(Constants.KEY_MODE, Constants.MODE_USER_MANAGED);
 

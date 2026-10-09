@@ -222,6 +222,10 @@ paths:
         The check is performed by reading the current installed version from `VERSION.json`
         and querying the CTI API for available updates. The response includes the latest
         available major, minor, and patch updates when available.
+
+        Every call queries CTI; nothing is cached. Calls that arrive while a check is in
+        progress share its result. Each node rate limits its CTI queries with a token
+        bucket. Once the bucket is empty, the endpoint answers `429` with a `Retry-After` header.
       operationId: getVersionCheck
       tags:
         - Version Check
@@ -230,6 +234,8 @@ paths:
           $ref: "#/components/responses/VersionCheckSuccess"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/VersionCheckRateLimited"
         "500":
           $ref: "#/components/responses/InternalServerError"
         "502":
@@ -936,6 +942,8 @@ paths:
 
         **Note:** Integrations created through this endpoint are always stored with `mode: user-managed`.
         The `mode` field is set server-side and must NOT be included in the request body.
+
+        **Note:** The `detector` field is server-managed: it is ignored if included in the request body.
       operationId: createIntegration
       requestBody:
         required: true
@@ -987,6 +995,8 @@ paths:
         - `mode: user-managed` in the `standard` space — only the `enabled` field can change; every other field is preserved from the stored document.
 
         The `mode` field is server-managed: it must NOT be included in the request body and is preserved from the stored document.
+        The `detector` field is server-managed too: it is ignored if included in the request body, and
+        preserved from the stored document.
 
         **Required fields in resource:**
         - `author` - Integration author name
@@ -3164,6 +3174,27 @@ components:
                   last_available_minor: {}
                   last_available_patch: {}
                 status: 200
+
+    VersionCheckRateLimited:
+      description: |
+        Too Many Requests - This node's version-check rate limit is exhausted. Retry after the
+        number of seconds in the `Retry-After` header.
+      headers:
+        Retry-After:
+          description: Seconds until the next version check is allowed.
+          schema:
+            type: integer
+            example: 12
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            rate_limited:
+              summary: Version-check rate limit exhausted
+              value:
+                message: "Too many version checks. Please retry in 12 seconds."
+                status: 429
 
     BadGateway:
       description: Bad Gateway - The CTI API returned an error while checking for updates.
