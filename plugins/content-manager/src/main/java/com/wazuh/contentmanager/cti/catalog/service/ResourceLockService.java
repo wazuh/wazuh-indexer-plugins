@@ -344,7 +344,8 @@ public class ResourceLockService {
                             e -> {
                                 if (ExceptionsHelper.unwrap(e, VersionConflictEngineException.class) != null) {
                                     log.warn("Lock [{}] was taken over while this pass was running.", lockId);
-                                    this.heldVersions.remove(lockId);
+                                    // The version stays, so the release at the end of the pass is
+                                    // rejected too instead of deleting the new holder's lock.
                                     onLockLost.run();
                                     return;
                                 }

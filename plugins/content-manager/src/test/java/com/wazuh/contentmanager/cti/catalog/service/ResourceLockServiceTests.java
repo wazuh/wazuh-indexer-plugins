@@ -603,6 +603,40 @@ public class ResourceLockServiceTests extends OpenSearchTestCase {
     }
 
     /**
+     * The release that closes the pass is still conditional after a renewal reported the lock lost.
+     * Dropping the version there would leave the delete unconditional, which is the one case this
+     * guard exists for: the holder would remove the new holder's lock on its way out.
+     */
+    public void testReleaseStaysConditionalAfterARenewalReportedTheLockLost() {
+        Client client = mock(Client.class);
+        mockLockIndexExists(client);
+        mockAcquireReturning(client, 7, 2);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<UpdateResponse> l = invocation.getArgument(1);
+                            l.onFailure(versionConflict());
+                            return null;
+                        })
+                .when(client)
+                .update(any(UpdateRequest.class), any(ActionListener.class));
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        service.tryAcquireOnce("catalog-sync", future);
+        Assert.assertTrue(future.actionGet());
+        service.renew("catalog-sync", () -> {});
+
+        service.release("catalog-sync");
+
+        ArgumentCaptor<DeleteRequest> delete = ArgumentCaptor.forClass(DeleteRequest.class);
+        verify(client, times(1)).delete(delete.capture(), any(ActionListener.class));
+        Assert.assertEquals(
+                "The release is still conditioned on the version this node took",
+                7,
+                delete.getValue().ifSeqNo());
+    }
+
+    /**
      * The release only deletes the version this node holds. Unconditional, a holder that lost the
      * lock deletes the new holder's and leaves the slot free while a pass is still running.
      */
