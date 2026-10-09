@@ -73,6 +73,12 @@ public class CatalogSyncJob implements JobExecutor {
     static final long STARTUP_RETRY_MARGIN_MILLIS = 5_000L;
 
     /**
+     * Delay between attempts to start the pass requested by a registration while another pass is
+     * running.
+     */
+    static final long REGISTRATION_RETRY_DELAY_MILLIS = 30_000L;
+
+    /**
      * Semaphore to control concurrency on this node - only one pass can run at a time. Held from
      * before the cluster lock is requested until after it is released.
      */
@@ -85,6 +91,13 @@ public class CatalogSyncJob implements JobExecutor {
      * most one immediate retry per failure episode.
      */
     private final AtomicBoolean retryPending = new AtomicBoolean(false);
+
+    /**
+     * Set by {@link #triggerOnRegistration()} until a pass starts on this node; every pass clears it
+     * as it starts. A pass that starts after the registration looks the plan up with the new token,
+     * while one that was already running may have looked it up before.
+     */
+    private final AtomicBoolean registrationPassPending = new AtomicBoolean(false);
 
     private final Client client;
     private final ThreadPool threadPool;
@@ -231,6 +244,83 @@ public class CatalogSyncJob implements JobExecutor {
     }
 
     /**
+     * Starts a pass after an access token was registered, so the content of the environment's plan is
+     * downloaded, or swapped in, without waiting for the next scheduled run. The pass looks the plan
+     * up with the new token and moves each consumer to the data source the plan provides, like any
+     * other pass.
+     *
+     * <p>Must be called on the node that stored the token: the token only reaches the memory of that
+     * node, and the pass runs on the node that starts it.
+     *
+     * <p>A pass that is already running, on this node or on another one, may have looked the plan up
+     * before the token was stored. The request then waits, and is retried every {@value
+     * #REGISTRATION_RETRY_DELAY_MILLIS} ms until a pass starts on this node. A pass started meanwhile
+     * by anything else on this node covers it as well.
+     *
+     * <p>Skipped when {@link PluginSettings#UPDATE_ON_SCHEDULE} is false: with automatic updates off,
+     * the plan's content is applied by the next on-demand update.
+     */
+    public void triggerOnRegistration() {
+        if (!PluginSettings.getInstance().isUpdateOnSchedule()) {
+            log.info(Constants.I_LOG_REGISTRATION_UPDATE_SKIPPED_DISABLED);
+            return;
+        }
+        // A request that is already waiting starts a pass that reads the latest token, so it covers
+        // this registration too.
+        if (this.registrationPassPending.getAndSet(true)) {
+            return;
+        }
+        this.startRegistrationPass(true);
+    }
+
+    /**
+     * Starts the pass requested by {@link #triggerOnRegistration()}, or schedules another attempt if
+     * a pass is running.
+     *
+     * @param firstAttempt whether this is the first attempt, to log the wait only once.
+     */
+    private void startRegistrationPass(boolean firstAttempt) {
+        if (!this.registrationPassPending.get()) {
+            // A pass started since the registration, so it applied the plan.
+            return;
+        }
+        this.trigger(
+                ActionListener.wrap(
+                        started -> {
+                            if (started) {
+                                log.info(Constants.I_LOG_REGISTRATION_UPDATE_STARTED);
+                                return;
+                            }
+                            if (firstAttempt) {
+                                log.info(Constants.I_LOG_REGISTRATION_UPDATE_WAITING);
+                            }
+                            try {
+                                this.threadPool.schedule(
+                                        () -> this.startRegistrationPass(false),
+                                        TimeValue.timeValueMillis(REGISTRATION_RETRY_DELAY_MILLIS),
+                                        ThreadPool.Names.GENERIC);
+                            } catch (Exception e) {
+                                // Left set, the flag would turn every later registration into a no-op.
+                                this.registrationPassPending.set(false);
+                                log.error(Constants.E_LOG_REGISTRATION_UPDATE_FAILED, e.getMessage(), e);
+                            }
+                        },
+                        e -> {
+                            this.registrationPassPending.set(false);
+                            log.error(Constants.E_LOG_REGISTRATION_UPDATE_FAILED, e.getMessage(), e);
+                        }));
+    }
+
+    /**
+     * Reports whether a registration is still waiting for its pass to start. Exposed for tests.
+     *
+     * @return true if a registration is waiting for its pass.
+     */
+    boolean isRegistrationPassPending() {
+        return this.registrationPassPending.get();
+    }
+
+    /**
      * Attempts to trigger the synchronization process manually, reporting whether a pass started.
      *
      * @param listener Notified with {@code true} if a pass started, {@code false} if one is already
@@ -318,6 +408,8 @@ public class CatalogSyncJob implements JobExecutor {
      * so a failed pass can immediately trigger a single retry.
      */
     private void runSynchronizationPass() {
+        // This pass looks the plan up after it starts, so it applies any registration made before.
+        this.registrationPassPending.set(false);
         Scheduler.Cancellable renewal = null;
         SyncOutcome outcome = SyncOutcome.SETUP_NOT_READY;
         try {

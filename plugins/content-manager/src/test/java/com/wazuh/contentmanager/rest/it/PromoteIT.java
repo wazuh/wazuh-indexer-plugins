@@ -809,6 +809,51 @@ public class PromoteIT extends ContentManagerRestTestCase {
     }
 
     /**
+     * Promote with a policy update whose id is not the policy's document.id (for example the
+     * OpenSearch _id the QA automation used to send, or any other value).
+     *
+     * <p>It used to answer 200 and index the draft policy as a second policy document of the test
+     * space; the duplicate then broke the managers' engine content sync for the space on every cycle
+     * (wazuh-indexer#2006).
+     *
+     * <p>Verifies:
+     *
+     * <ul>
+     *   <li>Response status code is 400.
+     *   <li>The target space still holds exactly one policy.
+     * </ul>
+     *
+     * @throws IOException On communication error
+     */
+    public void testPostPromote_policyUpdateWithUnknownIdIsRejected() throws IOException {
+        // spotless:off
+        String payload = """
+                {
+                    "space": "draft",
+                    "changes": {
+                        "kvdbs": [],
+                        "rules": [],
+                        "decoders": [],
+                        "filters": [],
+                        "integrations": [],
+                        "policy": [{"operation": "update", "id": "not-a-policy-document-id"}]
+                    }
+                }
+                """;
+        // spotless:on
+
+        ResponseException e =
+                expectThrows(
+                        ResponseException.class,
+                        () -> this.makeRequest("POST", PluginSettings.PROMOTE_URI, payload));
+        assertEquals(
+                RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
+
+        JsonNode testPolicies = this.searchByTerm("test").path("hits").path("hits");
+        assertEquals("The test space must still hold exactly one policy", 1, testPolicies.size());
+    }
+
+    /**
      * Promote with empty body.
      *
      * <p>Verifies: Response status code is 400.

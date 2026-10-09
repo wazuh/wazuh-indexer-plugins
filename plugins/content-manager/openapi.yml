@@ -1264,7 +1264,10 @@ paths:
 
         For the `policy` resource type specifically, only the `update` operation is accepted in
         `changes.policy` — `add`/`remove` are rejected with `400 Bad Request`, unlike other
-        resource types where all three operations are valid.
+        resource types where all three operations are valid. The operation's `id` must be the
+        source space policy's `document.id`, as returned by the promotion preview; any other
+        value is rejected with `400 Bad Request` naming the expected id. A space holds exactly
+        one policy, and the promotion updates the target space's policy in place.
 
         In addition to copying documents across CTI indices, this endpoint synchronizes
         promoted **integrations** and **rules** with the Security Analytics Plugin (SAP).
