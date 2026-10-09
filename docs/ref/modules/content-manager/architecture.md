@@ -254,7 +254,7 @@ When a subscription plan changes (e.g., from the public plan to a paid one, or v
 
 ### How it works
 
-1. **Detection.** During each sync cycle, the Content Manager compares the plan-provided catalog URL against the one stored locally. If they differ, a plan change is detected.
+1. **Detection.** During each sync cycle, the Content Manager compares the plan-provided catalog URL against the one stored locally. If they differ, a plan change is detected. Besides the scheduled and on-demand cycles, registering a CTI access token (`POST /subscription`) starts one right away.
 2. **Shadow download.** New content is downloaded into hidden staging indices. These shadow indices are invisible to users, dashboards, and REST queries during the rebuild.
 3. **User content preservation.** Any user-created content (draft rules, test decoders, custom integrations, etc.) is copied from the live indices into the shadow indices.
 4. **Atomic switch.** Once the shadow indices are fully ready, all index aliases are swapped in a single atomic operation. Users see either the entire old content or the entire new content — never a mix or an empty state.

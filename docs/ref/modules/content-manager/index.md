@@ -143,7 +143,7 @@ For the alias-backed blue/green storage details and the exact hidden/alias statu
 
 To synchronize the content of a subscription plan from the CTI API, the Wazuh Indexer requires a valid CTI access token. The token is registered via the REST API:
 
-1. **Store credentials** by sending the CTI access token via `POST /_plugins/_content_manager/subscription`. The token is persisted in the `.wazuh-internal-state` hidden index and loaded into memory.
+1. **Store credentials** by sending the CTI access token via `POST /_plugins/_content_manager/subscription`. The token is persisted in the `.wazuh-internal-state` hidden index and loaded into memory, and a content update starts right away to apply the subscription plan.
 2. The Content Manager uses the in-memory token for all CTI API requests.
 3. Without a registered token, the instance synchronizes the public content: `GET /_plugins/_content_manager/subscription` reports the public plan and `"is_registered": false`.
 
