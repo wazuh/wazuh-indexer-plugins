@@ -344,7 +344,8 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
 
         job.trigger();
 
-        verify(this.resourceLockService, times(1)).renew(CatalogSyncJob.CLUSTER_LOCK_ID);
+        verify(this.resourceLockService, times(1))
+                .renew(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(Runnable.class));
         verify(renewal, times(1)).cancel();
     }
 
