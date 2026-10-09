@@ -26,12 +26,14 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.engine.VersionConflictEngineException;
+import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.AdminClient;
@@ -488,6 +490,190 @@ public class ResourceLockServiceTests extends OpenSearchTestCase {
                 delete.getValue().ifSeqNo());
         Assert.assertEquals(SEEN_PRIMARY_TERM, delete.getValue().ifPrimaryTerm());
         verify(client, times(2)).index(any(IndexRequest.class), any(ActionListener.class));
+    }
+
+    /** Mocks an acquire that succeeds and hands back the given version of the lock document. */
+    private static void mockAcquireReturning(Client client, long seqNo, long primaryTerm) {
+        IndexResponse response = mock(IndexResponse.class);
+        when(response.getSeqNo()).thenReturn(seqNo);
+        when(response.getPrimaryTerm()).thenReturn(primaryTerm);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            l.onResponse(response);
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any(ActionListener.class));
+    }
+
+    /** Mocks a renewal that succeeds and hands back the given version of the lock document. */
+    private static void mockRenewReturning(Client client, long seqNo, long primaryTerm) {
+        UpdateResponse response = mock(UpdateResponse.class);
+        when(response.getSeqNo()).thenReturn(seqNo);
+        when(response.getPrimaryTerm()).thenReturn(primaryTerm);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<UpdateResponse> l = invocation.getArgument(1);
+                            l.onResponse(response);
+                            return null;
+                        })
+                .when(client)
+                .update(any(UpdateRequest.class), any(ActionListener.class));
+    }
+
+    /**
+     * A renewal only refreshes the document this node took. Unconditional, it would keep alive a lock
+     * another node has taken over in the meantime.
+     */
+    public void testRenewOnlyRefreshesTheVersionThisNodeHolds() {
+        Client client = mock(Client.class);
+        mockLockIndexExists(client);
+        mockAcquireReturning(client, 7, 2);
+        mockRenewReturning(client, 8, 2);
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        service.tryAcquireOnce("catalog-sync", future);
+        Assert.assertTrue(future.actionGet());
+
+        service.renew("catalog-sync");
+
+        ArgumentCaptor<UpdateRequest> update = ArgumentCaptor.forClass(UpdateRequest.class);
+        verify(client, times(1)).update(update.capture(), any(ActionListener.class));
+        Assert.assertEquals(
+                "The renewal is conditioned on the version taken at acquisition",
+                7,
+                update.getValue().ifSeqNo());
+        Assert.assertEquals(2, update.getValue().ifPrimaryTerm());
+    }
+
+    /**
+     * Each renewal rewrites the document, so the token has to follow the response. Kept at the one
+     * read at acquisition, the second renewal would be rejected against a lock this node still holds.
+     */
+    public void testRenewFollowsTheVersionOfEachSuccessfulRenewal() {
+        Client client = mock(Client.class);
+        mockLockIndexExists(client);
+        mockAcquireReturning(client, 7, 2);
+        mockRenewReturning(client, 8, 2);
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        service.tryAcquireOnce("catalog-sync", future);
+        Assert.assertTrue(future.actionGet());
+
+        service.renew("catalog-sync");
+        service.renew("catalog-sync");
+
+        ArgumentCaptor<UpdateRequest> update = ArgumentCaptor.forClass(UpdateRequest.class);
+        verify(client, times(2)).update(update.capture(), any(ActionListener.class));
+        Assert.assertEquals(
+                "The second renewal uses the version the first one returned",
+                8,
+                update.getAllValues().get(1).ifSeqNo());
+    }
+
+    /**
+     * A renewal rejected because the lock changed hands tells the caller, which is the only way the
+     * holder finds out: nothing else reports it, and every later renewal would fail the same way.
+     */
+    public void testRenewReportsTheLockAsLostOnAVersionConflict() {
+        Client client = mock(Client.class);
+        mockLockIndexExists(client);
+        mockAcquireReturning(client, 7, 2);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<UpdateResponse> l = invocation.getArgument(1);
+                            l.onFailure(versionConflict());
+                            return null;
+                        })
+                .when(client)
+                .update(any(UpdateRequest.class), any(ActionListener.class));
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        service.tryAcquireOnce("catalog-sync", future);
+        Assert.assertTrue(future.actionGet());
+
+        AtomicReference<Boolean> lost = new AtomicReference<>(false);
+        service.renew("catalog-sync", () -> lost.set(true));
+
+        Assert.assertTrue("The holder is told it no longer holds the lock", lost.get());
+    }
+
+    /**
+     * The release that closes the pass is still conditional after a renewal reported the lock lost.
+     * Dropping the version there would leave the delete unconditional, which is the one case this
+     * guard exists for: the holder would remove the new holder's lock on its way out.
+     */
+    public void testReleaseStaysConditionalAfterARenewalReportedTheLockLost() {
+        Client client = mock(Client.class);
+        mockLockIndexExists(client);
+        mockAcquireReturning(client, 7, 2);
+        doAnswer(
+                        invocation -> {
+                            ActionListener<UpdateResponse> l = invocation.getArgument(1);
+                            l.onFailure(versionConflict());
+                            return null;
+                        })
+                .when(client)
+                .update(any(UpdateRequest.class), any(ActionListener.class));
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        service.tryAcquireOnce("catalog-sync", future);
+        Assert.assertTrue(future.actionGet());
+        service.renew("catalog-sync", () -> {});
+
+        service.release("catalog-sync");
+
+        ArgumentCaptor<DeleteRequest> delete = ArgumentCaptor.forClass(DeleteRequest.class);
+        verify(client, times(1)).delete(delete.capture(), any(ActionListener.class));
+        Assert.assertEquals(
+                "The release is still conditioned on the version this node took",
+                7,
+                delete.getValue().ifSeqNo());
+    }
+
+    /**
+     * The release only deletes the version this node holds. Unconditional, a holder that lost the
+     * lock deletes the new holder's and leaves the slot free while a pass is still running.
+     */
+    public void testReleaseOnlyDeletesTheVersionThisNodeHolds() {
+        Client client = mock(Client.class);
+        mockLockIndexExists(client);
+        mockAcquireReturning(client, 7, 2);
+        mockRenewReturning(client, 8, 2);
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        PlainActionFuture<Boolean> future = new PlainActionFuture<>();
+        service.tryAcquireOnce("catalog-sync", future);
+        Assert.assertTrue(future.actionGet());
+        service.renew("catalog-sync");
+
+        service.release("catalog-sync");
+
+        ArgumentCaptor<DeleteRequest> delete = ArgumentCaptor.forClass(DeleteRequest.class);
+        verify(client, times(1)).delete(delete.capture(), any(ActionListener.class));
+        Assert.assertEquals(
+                "The release uses the version the last renewal returned", 8, delete.getValue().ifSeqNo());
+        Assert.assertEquals(2, delete.getValue().ifPrimaryTerm());
+    }
+
+    /**
+     * A lock this node never took carries no version, so the delete stays unconditional. This is the
+     * path the resource-creation locks take, and their behaviour is unchanged.
+     */
+    public void testReleaseOfALockThisNodeNeverTookIsUnconditional() {
+        Client client = mock(Client.class);
+
+        ResourceLockService service = new ResourceLockService(client, immediateThreadPool());
+        service.release("some-other-lock");
+
+        ArgumentCaptor<DeleteRequest> delete = ArgumentCaptor.forClass(DeleteRequest.class);
+        verify(client, times(1)).delete(delete.capture(), any(ActionListener.class));
+        Assert.assertEquals(SequenceNumbers.UNASSIGNED_SEQ_NO, delete.getValue().ifSeqNo());
     }
 
     /** Renewal updates the existing document, so it can never create a lock nobody holds. */

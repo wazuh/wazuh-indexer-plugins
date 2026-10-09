@@ -30,6 +30,7 @@ import org.opensearch.transport.client.Client;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.AbstractConsumerService;
@@ -462,15 +463,29 @@ public class CatalogSyncJob implements JobExecutor {
      * Keeps the cluster lock from going stale while a pass runs, renewing it three times per stale
      * threshold. If this node dies, the renewals stop and another node can take the lock over.
      *
+     * <p>They also stop as soon as one reports the lock was taken over, since no later renewal can
+     * succeed. The pass still runs to its end.
+     *
      * @return the renewal task, to cancel when the pass ends.
      */
     private Scheduler.Cancellable scheduleLockRenewal() {
         long interval =
                 Math.max(1000L, PluginSettings.getInstance().getResourceLockStaleThresholdMillis() / 3);
-        return this.threadPool.scheduleWithFixedDelay(
-                () -> this.resourceLockService.renew(CLUSTER_LOCK_ID),
-                TimeValue.timeValueMillis(interval),
-                ThreadPool.Names.GENERIC);
+        AtomicReference<Scheduler.Cancellable> renewal = new AtomicReference<>();
+        renewal.set(
+                this.threadPool.scheduleWithFixedDelay(
+                        () ->
+                                this.resourceLockService.renew(
+                                        CLUSTER_LOCK_ID,
+                                        () -> {
+                                            Scheduler.Cancellable task = renewal.get();
+                                            if (task != null) {
+                                                task.cancel();
+                                            }
+                                        }),
+                        TimeValue.timeValueMillis(interval),
+                        ThreadPool.Names.GENERIC));
+        return renewal.get();
     }
 
     /**
