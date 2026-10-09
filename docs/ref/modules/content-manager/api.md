@@ -96,6 +96,8 @@ YAML parsing preserves numeric type fidelity. Floating-point values like `5.0` a
 
 Stores the provided CTI access token in the `.wazuh-internal-state` hidden index and loads it into memory. If the index does not exist it is recreated automatically before writing.
 
+Once the token is stored, the node starts a content update in the background to apply the environment's plan, without waiting for the next scheduled synchronization. Each consumer whose plan provides a different data source is moved to it through a [blue/green swap](architecture.md#plan-change-handling-bluegreen-swap); the rest are updated as usual. If an update is already running, it may have looked the plan up before the token was stored, so a new one starts once it ends. The response does not wait for the update. No update is started when `plugins.content_manager.catalog.update_on_schedule` is `false`; run [`POST /update`](#trigger-manual-sync) to apply the plan.
+
 > To find out whether the current user is allowed to register, without registering, see [Check registration permission](#check-registration-permission).
 
 #### Request

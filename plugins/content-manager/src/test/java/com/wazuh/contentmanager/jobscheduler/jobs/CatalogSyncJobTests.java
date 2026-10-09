@@ -33,9 +33,13 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -781,5 +785,199 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
 
         verify(job, times(1)).performSynchronization();
         Assert.assertFalse("Semaphore must end released", job.isRunning());
+    }
+
+    /** A registration with no pass running starts one at once, and schedules nothing else. */
+    public void testTriggerOnRegistration_noPassRunning_startsPassAtOnce() {
+        PluginSettings.getInstance().setUpdateOnSchedule(true);
+        this.useSameThreadExecutor();
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+        job.triggerOnRegistration();
+
+        verify(job, times(1)).performSynchronization();
+        Assert.assertFalse(job.isRegistrationPassPending());
+        verify(this.threadPool, never())
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+    }
+
+    /**
+     * A registration made while a pass runs on this node, such as the startup sync of a fresh
+     * install, may come after that pass looked the plan up. Another pass runs once it ends.
+     */
+    public void testTriggerOnRegistration_passRunningOnThisNode_runsAnotherPassAfterIt()
+            throws Exception {
+        PluginSettings.getInstance().setUpdateOnSchedule(true);
+        CountDownLatch running = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doAnswer(
+                        invocation -> {
+                            running.countDown();
+                            release.await();
+                            return CatalogSyncJob.SyncOutcome.SUCCESS;
+                        })
+                .doReturn(CatalogSyncJob.SyncOutcome.SUCCESS)
+                .when(job)
+                .performSynchronization();
+        List<Thread> passes = new ArrayList<>();
+        ExecutorService threadPerPass = mock(ExecutorService.class);
+        doAnswer(
+                        invocation -> {
+                            Thread pass = new Thread((Runnable) invocation.getArgument(0));
+                            passes.add(pass);
+                            pass.start();
+                            return null;
+                        })
+                .when(threadPerPass)
+                .execute(any(Runnable.class));
+        when(this.threadPool.generic()).thenReturn(threadPerPass);
+        AtomicReference<TimeValue> delay = new AtomicReference<>();
+        AtomicReference<Runnable> retry = this.captureScheduled(delay);
+
+        job.trigger();
+        Assert.assertTrue(running.await(10, TimeUnit.SECONDS));
+        job.triggerOnRegistration();
+
+        Assert.assertTrue(job.isRegistrationPassPending());
+        Assert.assertNotNull("The request must wait for the running pass", retry.get());
+        Assert.assertEquals(CatalogSyncJob.REGISTRATION_RETRY_DELAY_MILLIS, delay.get().millis());
+
+        release.countDown();
+        passes.get(0).join(10_000);
+        Assert.assertFalse("The first pass must have ended", job.isRunning());
+        retry.get().run();
+        passes.get(1).join(10_000);
+
+        verify(job, times(2)).performSynchronization();
+        Assert.assertFalse(job.isRegistrationPassPending());
+    }
+
+    /**
+     * A registration made while another node holds the cluster lock keeps retrying until a pass
+     * starts on this node, the only one that holds the new token in memory.
+     */
+    public void testTriggerOnRegistration_lockHeldElsewhere_retriesUntilPassStarts() {
+        PluginSettings.getInstance().setUpdateOnSchedule(true);
+        this.useSameThreadExecutor();
+        this.stubClusterLock(false);
+        AtomicReference<Runnable> retry = this.captureScheduled(new AtomicReference<>());
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+        job.triggerOnRegistration();
+        retry.get().run();
+
+        verify(job, never()).performSynchronization();
+        verify(this.threadPool, times(2))
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+        Assert.assertTrue(job.isRegistrationPassPending());
+
+        this.stubClusterLock(true);
+        retry.get().run();
+
+        verify(job, times(1)).performSynchronization();
+        verify(this.threadPool, times(2))
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+        Assert.assertFalse(job.isRegistrationPassPending());
+    }
+
+    /**
+     * A pass started on this node by anything else after the registration looks the plan up with the
+     * new token: the waiting request is satisfied and starts no further pass.
+     */
+    public void testTriggerOnRegistration_otherPassStartsMeanwhile_noExtraPass() {
+        PluginSettings.getInstance().setUpdateOnSchedule(true);
+        this.useSameThreadExecutor();
+        this.stubClusterLock(false);
+        AtomicReference<Runnable> retry = this.captureScheduled(new AtomicReference<>());
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+        job.triggerOnRegistration();
+        this.stubClusterLock(true);
+        job.trigger();
+        retry.get().run();
+
+        verify(job, times(1)).performSynchronization();
+        verify(job, times(2)).trigger(any(ActionListener.class));
+        Assert.assertFalse(job.isRegistrationPassPending());
+    }
+
+    /** A second registration while one already waits does not start a second wait. */
+    public void testTriggerOnRegistration_alreadyWaiting_doesNotWaitTwice() {
+        PluginSettings.getInstance().setUpdateOnSchedule(true);
+        this.useSameThreadExecutor();
+        this.stubClusterLock(false);
+        this.captureScheduled(new AtomicReference<>());
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+
+        job.triggerOnRegistration();
+        job.triggerOnRegistration();
+
+        verify(job, times(1)).trigger(any(ActionListener.class));
+        verify(this.threadPool, times(1))
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+    }
+
+    /**
+     * A lock that cannot be requested gives the request up, leaving the plan to the next
+     * synchronization, and does not block later registrations.
+     */
+    public void testTriggerOnRegistration_lockRequestFails_givesUpWithoutBlockingLaterOnes() {
+        PluginSettings.getInstance().setUpdateOnSchedule(true);
+        this.useSameThreadExecutor();
+        this.failClusterLock();
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+        job.triggerOnRegistration();
+
+        Assert.assertFalse(job.isRegistrationPassPending());
+        verify(this.threadPool, never())
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+
+        this.stubClusterLock(true);
+        job.triggerOnRegistration();
+
+        verify(job, times(1)).performSynchronization();
+    }
+
+    /** A retry that cannot be scheduled does not block later registrations either. */
+    public void testTriggerOnRegistration_retryCannotBeScheduled_doesNotBlockLaterOnes() {
+        PluginSettings.getInstance().setUpdateOnSchedule(true);
+        this.useSameThreadExecutor();
+        this.stubClusterLock(false);
+        when(this.threadPool.schedule(any(Runnable.class), any(TimeValue.class), anyString()))
+                .thenThrow(new RejectedExecutionException("shutting down"));
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        doReturn(CatalogSyncJob.SyncOutcome.SUCCESS).when(job).performSynchronization();
+
+        job.triggerOnRegistration();
+
+        Assert.assertFalse(job.isRegistrationPassPending());
+
+        this.stubClusterLock(true);
+        job.triggerOnRegistration();
+
+        verify(job, times(1)).performSynchronization();
+    }
+
+    /** With scheduled updates disabled, a registration starts no pass. */
+    public void testTriggerOnRegistration_updateOnScheduleDisabled_startsNoPass() {
+        PluginSettings.getInstance().setUpdateOnSchedule(false);
+        try {
+            this.useSameThreadExecutor();
+            CatalogSyncJob job = spy(this.catalogSyncJob);
+
+            job.triggerOnRegistration();
+
+            verify(job, never()).trigger(any(ActionListener.class));
+            verify(job, never()).performSynchronization();
+            Assert.assertFalse(job.isRegistrationPassPending());
+        } finally {
+            PluginSettings.getInstance().setUpdateOnSchedule(true);
+        }
     }
 }

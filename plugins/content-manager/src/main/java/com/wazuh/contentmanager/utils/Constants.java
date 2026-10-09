@@ -725,6 +725,14 @@ public class Constants {
             "Could not parse the existing Catalog Sync Job document; rewriting it from the current settings: {}";
     public static final String I_LOG_CATALOG_SYNC_SKIPPED_DISABLED =
             "Scheduled catalog synchronization (ID: {}) skipped: plugins.content_manager.catalog.update_on_schedule is false.";
+    public static final String I_LOG_REGISTRATION_UPDATE_STARTED =
+            "Access token registered; content update started to apply the environment's plan.";
+    public static final String I_LOG_REGISTRATION_UPDATE_WAITING =
+            "Access token registered while a content update is running; a new update starts once it ends, to apply the environment's plan.";
+    public static final String I_LOG_REGISTRATION_UPDATE_SKIPPED_DISABLED =
+            "Access token registered; no content update started because plugins.content_manager.catalog.update_on_schedule is false. The environment's plan is applied by the next on-demand update.";
+    public static final String E_LOG_REGISTRATION_UPDATE_FAILED =
+            "Access token registered, but the content update could not start: {}. The environment's plan is applied by the next synchronization.";
     public static final String E_LOG_JOB_SCHEDULE_GIVE_UP = "Giving up {} after {} attempts.";
     public static final String I_LOG_JOB_SCHEDULE_RETRY = "Retrying {} (attempt {}/{}) in {}s.";
     public static final String D_LOG_TELEMETRY_JOB_DISABLED =
