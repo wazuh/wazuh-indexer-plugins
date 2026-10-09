@@ -29,14 +29,14 @@ The Ruleset Management plugin is configured through settings in `opensearch.yml`
 - **`plugins.security_analytics.enriched_findings_bulk_size`** (Integer, default `100`, range 10–1000) — number of enriched findings accumulated before a bulk index request is fired.
 - **`plugins.security_analytics.enriched_findings_enrich_batch_size`** (Integer, default `100`, range 1–1000) — maximum number of findings drained from the queue per in-flight permit, fetched via a single combined MultiGet.
 - **`plugins.security_analytics.enriched_findings_flush_interval`** (Integer, default `5`, range 1–60) — interval in seconds at which pending enriched findings are flushed regardless of batch size.
-- **`plugins.security_analytics.enriched_findings_index_enabled`** (Boolean, default `true`) — toggle the enriched findings pipeline (see [Architecture](architecture.md)).
+- **`plugins.security_analytics.enriched_findings_index_enabled`** (Boolean, default `true`) — toggle the enriched findings pipeline.
 - **`plugins.security_analytics.enriched_findings_max_in_flight`** (Integer, default `5`, range 1–10) — maximum number of concurrent async enrichment chains.
 - **`plugins.security_analytics.enriched_findings_rule_cache_max_size`** (Integer, default `10000`, minimum `0`, **static — requires a node restart to change**) — maximum number of rule-metadata entries cached in memory. Least-recently-used entries are evicted past this size.
 - **`plugins.security_analytics.filter_by_backend_roles`** (Boolean, default `false`) — restrict access to detectors, rules, and findings based on the requester's backend roles.
 - **`plugins.security_analytics.finding_history_max_age`** (Time, default `30d`) — maximum age of a finding history index before rollover.
 - **`plugins.security_analytics.finding_history_retention_period`** (Time, default `60d`) — retention period after which finding history indices are deleted.
 - **`plugins.security_analytics.index_timeout`** (Time, default `60s`) — timeout for Ruleset Management index operations.
-- **`plugins.security_analytics.max_case_management_bulk_size`** (Integer, default `10`, range 0–100, dynamic) — maximum number of findings that can be updated in a single request to the [update findings](case-management.md#updating-findings) endpoint. Setting it to `0` disables the endpoint entirely.
+- **`plugins.security_analytics.max_case_management_bulk_size`** (Integer, default `10`, range 0–100, dynamic) — maximum number of findings that can be updated in a single request to the update findings endpoint (`PUT /_plugins/_security_analytics/findings/_update`). Setting it to `0` disables the endpoint entirely.
 - **`plugins.security_analytics.max_detectors`** (Integer, default `10`, minimum `0`, no upper bound, dynamic) — maximum number of user-created detectors (Content Manager detectors do not count).
 - **`plugins.security_analytics.max_rules_per_detector`** (Integer, default `50`, minimum `0`, no upper bound, dynamic) — maximum number of rules (custom or pre-packaged) allowed in a single detector input. Requests that would exceed this limit are rejected with HTTP 400.
 - **`plugins.security_analytics.mappings.default_schema`** (String, default `ecs`) — default field-mapping schema used to resolve a Sigma rule's raw field names to Wazuh Common Schema fields when a log type does not declare its own schema.
