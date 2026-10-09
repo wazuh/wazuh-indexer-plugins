@@ -94,12 +94,14 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_
 }'
 ```
 
-Disabling scheduled synchronization takes effect immediately and applies to an already-initialized node as well as a fresh one: the plugin updates the periodic job accordingly, and a run that is already scheduled is refused rather than reaching Wazuh CTI. See [Job scheduler](architecture.md#job-scheduler).
+Disabling scheduled synchronization takes effect immediately and applies to an already-initialized node as well as a fresh one: the plugin updates the periodic job accordingly, and a run that is already scheduled is refused rather than reaching Wazuh CTI.
 
 Disabling scheduled synchronization does not remove content that has already been downloaded. It only stops further updates from Wazuh CTI.
 
 `plugins.content_manager.catalog.update_on_start` is not dynamic — it only governs the synchronization triggered as the plugin starts, so it takes effect on the next node start.
 <!-- // ANCHOR_END: offline-config -->
+
+How the plugin keeps the periodic job in step with `update_on_schedule`, and refuses a run while it is disabled, is described in [Job scheduler](architecture.md#job-scheduler).
 
 On online installations, manual synchronization can be performed on demand using the Content Manager API:
 
