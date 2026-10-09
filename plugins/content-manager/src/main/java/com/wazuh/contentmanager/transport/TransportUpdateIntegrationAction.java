@@ -203,6 +203,14 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
             resourceNode.set(Constants.KEY_MODE, existingDocument.get(Constants.KEY_MODE));
         }
 
+        // So is the detector block: it describes what Wazuh's own content delivery deploys for this
+        // integration, so an update keeps whatever the stored document has and never what the
+        // request carries.
+        resourceNode.remove(Constants.KEY_DETECTOR);
+        if (existingDocument.has(Constants.KEY_DETECTOR)) {
+            resourceNode.set(Constants.KEY_DETECTOR, existingDocument.get(Constants.KEY_DETECTOR));
+        }
+
         if (Space.STANDARD.equals(space)) {
             // Only 'enabled' is mutable in the standard space
             boolean enabled = resourceNode.path(Constants.KEY_ENABLED).asBoolean(true);
