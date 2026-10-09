@@ -101,6 +101,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionService;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
+import com.wazuh.contentmanager.cti.catalog.service.VersionCheckService;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.engine.service.EngineService;
@@ -155,6 +156,7 @@ public class ContentManagerPlugin extends Plugin
     private Environment environment;
     private ClusterService clusterService;
     private LogtestService logtestService;
+    private VersionCheckService versionCheckService;
     private PlansService plansService;
     private SubscriptionService subscriptionService;
 
@@ -266,6 +268,7 @@ public class ContentManagerPlugin extends Plugin
 
         this.logtestService =
                 new LogtestService(this.engine, this.securityAnalyticsService, this.client);
+        this.versionCheckService = new VersionCheckService(environment, clusterService, threadPool);
 
         // Register hot-reload settings consumers
         clusterService
@@ -375,6 +378,7 @@ public class ContentManagerPlugin extends Plugin
                 this.engine,
                 this.engineContentLoader,
                 this.logtestService,
+                this.versionCheckService,
                 this.spaceService,
                 this.userOverridesService,
                 this.securityAnalyticsService);
@@ -473,8 +477,8 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Deregisters the cluster-state listener that drives the per-node Engine content load. Invoked by
-     * OpenSearch when the plugin is closed (node shutdown).
+     * Deregisters the cluster-state listener that drives the per-node Engine content load and stops
+     * the version-check CTI client. Invoked by OpenSearch when the plugin is closed (node shutdown).
      */
     @Override
     public void close() {
@@ -483,6 +487,9 @@ public class ContentManagerPlugin extends Plugin
                 this.clusterService.removeListener(this.engineContentListener);
             }
             this.unregisterStandardSpaceHashListener();
+        }
+        if (this.versionCheckService != null) {
+            this.versionCheckService.close();
         }
     }
 
@@ -1205,7 +1212,14 @@ public class ContentManagerPlugin extends Plugin
                         PluginSettings.LOGTEST_THREAD_POOL,
                         size,
                         100,
-                        "plugins.content_manager.thread_pool.logtest"));
+                        "plugins.content_manager.thread_pool.logtest"),
+                // Dedicated pool for the version check's blocking CTI call (one call in flight at most).
+                new FixedExecutorBuilder(
+                        settings,
+                        PluginSettings.VERSION_CHECK_THREAD_POOL,
+                        1,
+                        1,
+                        "plugins.content_manager.thread_pool.version_check"));
     }
 
     @Override

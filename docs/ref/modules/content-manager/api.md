@@ -2169,6 +2169,8 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 Returns whether there are newer versions of Wazuh available for download. The endpoint reads the current installed version from `VERSION.json` and queries the CTI API for available updates. The response includes the latest available major, minor, and patch updates when available.
 
+Every call queries CTI; nothing is cached. Calls that arrive while a check is in progress share its result. Each node rate limits its CTI queries with a token bucket. Once the bucket is empty, the endpoint answers `429` with a `Retry-After` header holding the seconds until the next check is allowed.
+
 #### Request
 
 - Method: `GET`
@@ -2240,9 +2242,23 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
 }
 ```
 
+#### Example response (rate limited)
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 12
+content-type: application/json; charset=UTF-8
+
+{
+  "message": "Too many version checks. Please retry in 12 seconds.",
+  "status": 429
+}
+```
+
 #### Status codes
 
 - **200** — version check completed (may include updates or empty).
+- **429** — rate limit exhausted on this node; retry after the `Retry-After` seconds.
 - **500** — unable to determine version or internal error.
 - **502** — CTI API returned an error.
 
