@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -71,9 +72,15 @@ public class RestGetVersionCheckAction extends BaseRestHandler {
         return new RestResponseListener<>(channel) {
             @Override
             public RestResponse buildResponse(VersionCheckResponse response) throws Exception {
-                return new BytesRestResponse(
-                        response.getStatus(),
-                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
+                BytesRestResponse restResponse =
+                        new BytesRestResponse(
+                                response.getStatus(),
+                                response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
+                if (response.getRetryAfterSeconds() > 0) {
+                    restResponse.addHeader(
+                            HttpHeaders.RETRY_AFTER, Long.toString(response.getRetryAfterSeconds()));
+                }
+                return restResponse;
             }
         };
     }
