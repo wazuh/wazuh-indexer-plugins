@@ -3,18 +3,18 @@
 This guide describes how to migrate an existing Wazuh indexer 4.x deployment to Wazuh indexer 5.x.
 
 > **Important**
-> Only configuration is migrated, and it is migrated manually. There is no automatic upgrade tooling, and **indexed data cannot be migrated** (see [Data cannot be migrated](#data-cannot-be-migrated)). The procedure requires a fresh 5.x installation and manual re-creation of configuration and security settings. If you need to retain access to historical 4.x data, you can optionally keep the 4.x environment running in parallel.
+> Only configuration is migrated by this procedure, and it is migrated manually. There is no automatic upgrade tooling and no in-place upgrade: a fresh 5.x installation and manual re-creation of configuration and security settings are required. Indexed data is handled separately — 4.x indices created by OpenSearch 2.x can be moved with snapshot and restore, and they keep their 4.x names and mappings on the 5.x cluster (see [Migrating indexed data](#migrating-indexed-data)).
 
 ## Scope
 
-Wazuh indexer 5.x is a major release based on OpenSearch 3.x. It ships with new index schemas, a revised security model, and renamed or removed configuration settings. As a result, a 4.x cluster cannot be upgraded in place. The migration covers **configuration only** — base node settings, certificates, and OpenSearch Security authentication/authorization. It does **not** cover indexed data.
+Wazuh indexer 5.x is a major release based on OpenSearch 3.x. It ships with new index schemas, a revised security model, and renamed or removed configuration settings. As a result, a 4.x cluster cannot be upgraded in place. The migration covers **configuration only** — base node settings, certificates, and OpenSearch Security authentication/authorization. Indexed data is covered separately under [Migrating indexed data](#migrating-indexed-data).
 
 The procedure is:
 
 1. Stand up a new 5.x cluster on a fresh host.
 2. Re-create base configuration, certificates, and security settings against the 5.x layout.
 
-The 4.x cluster is never modified by this procedure. Since indexed data is not migrated, you may optionally keep the 4.x environment running in parallel as a read-only legacy deployment if you still need to query historical data — see [Data cannot be migrated](#data-cannot-be-migrated).
+The 4.x cluster is never modified by this procedure. Historical 4.x data can either be restored into the 5.x cluster from a snapshot or left on a 4.x environment kept running in parallel as a read-only legacy deployment — see [Migrating indexed data](#migrating-indexed-data).
 
 ## Prerequisites
 
@@ -127,27 +127,33 @@ Perform these steps on the new 5.x host.
 > - [OpenSearch Security — Authentication backends](https://docs.opensearch.org/3.6/security/authentication-backends/authc-index/)
 > - [OpenSearch Security — Configuration](https://docs.opensearch.org/3.6/security/configuration/index/)
 
-## Data cannot be migrated
+## Migrating indexed data
 
-Wazuh indexer 4.x indices **cannot** be migrated to a 5.x cluster. There is no in-place upgrade, no snapshot restore, and no `_reindex` path from 4.x data. To retain access to historical 4.x data, keep the 4.x environment running in parallel as a legacy, read-only deployment.
+Wazuh indexer 4.x indices are never upgraded in place and are never converted to the 5.x schemas. Their data can still be moved into a 5.x cluster with [snapshot and restore](https://docs.opensearch.org/3.6/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-restore/), provided the indices were created by OpenSearch 2.x: take the snapshot on the 4.x cluster without the cluster state, register the same repository as read-only on the 5.x cluster, and restore the indices under a prefix such as `restored_`. Restored indices keep their original names, mappings, and documents, and are legacy read-only data sitting next to the `v5` indices rather than part of them. To query them from the 5.x dashboard, create an index pattern that matches the restored names.
 
-### Why
+The OpenSearch version that created an index is reported by `index.version.created`. Check it on the 4.x cluster before taking the snapshot:
 
-Wazuh indexer 5.x introduces new index schemas (the `v5` suffix) and new index templates. The schemas, field types, and routing of the 5.x indices differ from 4.x in ways that prevent the older shards from being opened or transformed by a 5.x cluster:
+```bash
+curl -k -u $USERNAME:$PASSWORD https://$WAZUH_INDEXER_IP_ADDRESS:9200/$INDEX/_settings
+```
+
+Indices created by OpenSearch 1.x, that is, by Wazuh indexer 4.x releases older than the first one based on OpenSearch 2.x, fall outside the range a 5.x cluster can read. They cannot be restored, and there is no `_reindex` path from a 5.x cluster into them either. Keep them on a legacy 4.x environment, or reindex them on a 4.x cluster that is based on OpenSearch 2.x before snapshotting.
+
+### What a restore does not do
 
 | Concern | Description |
 | --- | --- |
-| Index schema | 5.x uses new templates and mappings under `wazuh-events-v5`, `wazuh-findings-v5`, and `wazuh-states-v5`. These have no direct counterpart in 4.x. |
-| Engine version | The OpenSearch 3.x base in 5.x reads Lucene segments produced by its own and the immediately preceding major version only. Older 4.x shards fall outside the supported range. |
-| Document shape | Field names, types, and parent-child relationships in the v5 mappings differ from 4.x documents in ways that cannot be transformed losslessly by a reindex. |
+| Index schema | 5.x uses new templates and mappings under `wazuh-events-v5`, `wazuh-findings-v5`, and `wazuh-states-v5`. These have no direct counterpart in 4.x, so restored indices are not read by the 5.x modules and dashboards that target the `v5` index patterns. |
+| Engine version | The OpenSearch 3.x base in 5.x reads Lucene segments produced by its own and the immediately preceding major version only. Indices created by OpenSearch 2.x are within that range; indices created by OpenSearch 1.x are not. |
+| Document shape | Field names, types, and parent-child relationships in the v5 mappings differ from 4.x documents in ways that cannot be transformed losslessly by a reindex, so 4.x data stays in its 4.x shape after the restore. |
 
 ### Optionally keeping a legacy 4.x environment
 
-Whether to retain the old cluster is entirely your decision and depends on whether you still need historical 4.x data. If you do not, the 4.x environment can be decommissioned once the 5.x cluster is in service.
+Whether to retain the old cluster is entirely your decision and depends on whether you still need historical 4.x data and whether that data can be restored into 5.x. If you do not need it, the 4.x environment can be decommissioned once the 5.x cluster is in service.
 
-If you do need historical visibility, you can run the existing 4.x cluster alongside the new 5.x deployment:
+If you do need historical visibility and prefer not to restore the data into 5.x, you can run the existing 4.x cluster alongside the new 5.x deployment:
 
 1. Leave the 4.x cluster in place after the migration; do **not** uninstall it.
 2. Switch the 4.x cluster to a read-only role: stop ingestion from the Wazuh server into 4.x, and optionally mark its indices read-only to prevent accidental writes.
-3. Keep the existing 4.x dashboard pointed at the 4.x cluster for users who need historical data; a 5.x dashboard cannot read 4.x indices.
+3. Keep the existing 4.x dashboard pointed at the 4.x cluster for users who need historical data; the 5.x dashboard only queries the cluster it is configured against.
 4. Plan a retention window after which the 4.x environment can be decommissioned according to your data-retention policy.
