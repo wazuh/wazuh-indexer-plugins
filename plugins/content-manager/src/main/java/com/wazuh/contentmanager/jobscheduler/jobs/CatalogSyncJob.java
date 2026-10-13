@@ -463,8 +463,8 @@ public class CatalogSyncJob implements JobExecutor {
      * Keeps the cluster lock from going stale while a pass runs, renewing it three times per stale
      * threshold. If this node dies, the renewals stop and another node can take the lock over.
      *
-     * <p>They also stop as soon as one reports the lock was taken over, since no later renewal can
-     * succeed. The pass still runs to its end.
+     * <p>They also stop as soon as one finds the lock is no longer this node's, taken over or
+     * deleted, since no later renewal can succeed. The pass still runs to its end.
      *
      * @return the renewal task, to cancel when the pass ends.
      */
