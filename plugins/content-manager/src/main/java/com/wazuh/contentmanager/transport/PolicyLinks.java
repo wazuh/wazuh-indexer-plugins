@@ -31,6 +31,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.Randomness;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilders;
@@ -47,6 +48,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
@@ -63,7 +65,7 @@ import com.wazuh.contentmanager.utils.Constants;
  * <ul>
  *   <li>Within a node, the changes to one space's policy run one at a time, in arrival order. A
  *       burst of concurrent requests therefore causes no conflicts among themselves, however many
- *       there are.
+ *       there are. Each change still runs with its own request's thread context.
  *   <li>Across nodes, and against the other writers of the policy document (the space hash update,
  *       for one), the policy is written with the {@code ifSeqNo}/{@code ifPrimaryTerm} it was read
  *       with, as in {@code UserOverridesService}. A version conflict re-reads it and applies the
@@ -161,13 +163,22 @@ final class PolicyLinks {
     /**
      * Queues the change behind the ones already pending for the same space on this node. The queue
      * moves on as soon as the change is written or has failed, before {@code listener} is notified.
+     *
+     * <p>A queued change is started from inside the completion callback of the change before it, so
+     * it would otherwise run with that other request's thread context: its reads and its policy write
+     * would be authorized and audited as the previous request's user. The caller's context is
+     * therefore captured here and restored around the start of the change; every request it sends
+     * from there on carries that context.
      */
     private static void submit(
             Client client, Target target, Predicate<ArrayNode> mutator, ActionListener<Void> listener) {
+        Supplier<ThreadContext.StoredContext> callerContext =
+                client.threadPool().getThreadContext().newRestorableContext(false);
         QUEUES
                 .computeIfAbsent(target.spaceName(), k -> new SpaceQueue())
                 .submit(
-                        done ->
+                        done -> {
+                            try (ThreadContext.StoredContext ignored = callerContext.get()) {
                                 update(
                                         client,
                                         target,
@@ -181,7 +192,9 @@ final class PolicyLinks {
                                                 e -> {
                                                     done.run();
                                                     listener.onFailure(e);
-                                                })));
+                                                }));
+                            }
+                        });
     }
 
     /**

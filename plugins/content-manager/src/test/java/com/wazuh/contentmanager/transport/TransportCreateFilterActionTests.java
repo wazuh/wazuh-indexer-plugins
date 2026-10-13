@@ -110,6 +110,8 @@ public class TransportCreateFilterActionTests extends OpenSearchTestCase {
                 .when(threadPool)
                 .schedule(any(Runnable.class), any(TimeValue.class), anyString());
         when(transportService.getThreadPool()).thenReturn(threadPool);
+        // PolicyLinks captures the caller's context from the client's thread pool.
+        when(this.client.threadPool()).thenReturn(threadPool);
         this.overridesService = mock(UserOverridesService.class);
         this.engine = mock(EngineService.class);
         this.action =

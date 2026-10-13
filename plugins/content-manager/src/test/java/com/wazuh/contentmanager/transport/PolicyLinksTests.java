@@ -30,6 +30,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.index.shard.ShardId;
@@ -50,6 +51,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
@@ -83,6 +85,8 @@ public class PolicyLinksTests extends OpenSearchTestCase {
     /** Delays of the retries scheduled on the thread pool, which runs them inline. */
     private List<TimeValue> retryDelays;
 
+    private ThreadContext threadContext;
+
     @Before
     @Override
     @SuppressWarnings("unchecked")
@@ -98,7 +102,9 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         this.retryDelays = new ArrayList<>();
         this.stubSearch(true);
 
+        this.threadContext = new ThreadContext(Settings.EMPTY);
         ThreadPool threadPool = mock(ThreadPool.class);
+        when(threadPool.getThreadContext()).thenReturn(this.threadContext);
         doAnswer(
                         invocation -> {
                             this.retryDelays.add(invocation.getArgument(1));
@@ -450,6 +456,24 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         }
     }
 
+    private static final String USER_HEADER = "test_user";
+
+    /** A GET whose response is held, with the thread context it was sent in. */
+    private record HeldGet(
+            ActionListener<GetResponse> listener, Supplier<ThreadContext.StoredContext> context) {}
+
+    private String currentUser() {
+        return this.threadContext.getHeader(USER_HEADER);
+    }
+
+    /** Links a filter in draft from a request made by {@code user}. */
+    private void linkAs(String user, String id, ActionListener<Void> listener) {
+        try (ThreadContext.StoredContext ignored = this.threadContext.stashContext()) {
+            this.threadContext.putHeader(USER_HEADER, user);
+            PolicyLinks.link(this.client, "draft", Constants.KEY_FILTERS, id, MISSING_POLICY, listener);
+        }
+    }
+
     /**
      * Fake policy store for the queue tests: GETs are held until released, and a write succeeds only
      * with the sequence number of the stored version, as OpenSearch does.
@@ -458,7 +482,10 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         ObjectNode document = MAPPER.createObjectNode().put("id", "p");
         long seqNo = 0;
         int conflicts = 0;
-        final Deque<ActionListener<GetResponse>> heldGets = new ArrayDeque<>();
+        final Deque<HeldGet> heldGets = new ArrayDeque<>();
+
+        /** Every get and index call, as {@code <user header>:<action>}. */
+        final List<String> calls = new ArrayList<>();
 
         @SuppressWarnings("unchecked")
         Store() {
@@ -466,7 +493,11 @@ public class PolicyLinksTests extends OpenSearchTestCase {
             this.document.putArray(Constants.KEY_INTEGRATIONS);
             doAnswer(
                             invocation -> {
-                                this.heldGets.add(invocation.getArgument(1));
+                                this.calls.add(currentUser() + ":get");
+                                this.heldGets.add(
+                                        new HeldGet(
+                                                invocation.getArgument(1),
+                                                PolicyLinksTests.this.threadContext.newRestorableContext(false)));
                                 return null;
                             })
                     .when(PolicyLinksTests.this.client)
@@ -475,6 +506,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
                             invocation -> {
                                 IndexRequest request = invocation.getArgument(0);
                                 ActionListener<IndexResponse> l = invocation.getArgument(1);
+                                this.calls.add(currentUser() + ":index");
                                 if (request.ifSeqNo() != this.seqNo) {
                                     this.conflicts++;
                                     l.onFailure(conflict());
@@ -493,26 +525,31 @@ public class PolicyLinksTests extends OpenSearchTestCase {
                     .index(any(IndexRequest.class), any(ActionListener.class));
         }
 
-        /** Answers the oldest held GET with the version stored right now. */
+        /**
+         * Answers the oldest held GET with the version stored right now, in the thread context the GET
+         * was sent in, as OpenSearch delivers a response.
+         */
         void releaseGet() {
             String source =
                     "{\"document\":"
                             + this.document
                             + ",\"hash\":{\"sha256\":\"h\"},\"space\":{\"name\":\"draft\"}}";
-            this.heldGets
-                    .pop()
-                    .onResponse(
-                            new GetResponse(
-                                    new GetResult(
-                                            Constants.INDEX_POLICIES,
-                                            POLICY_DOC_ID,
-                                            this.seqNo,
-                                            1L,
-                                            this.seqNo + 1,
-                                            true,
-                                            new BytesArray(source),
-                                            Collections.emptyMap(),
-                                            Collections.emptyMap())));
+            HeldGet held = this.heldGets.pop();
+            try (ThreadContext.StoredContext ignored = held.context().get()) {
+                held.listener()
+                        .onResponse(
+                                new GetResponse(
+                                        new GetResult(
+                                                Constants.INDEX_POLICIES,
+                                                POLICY_DOC_ID,
+                                                this.seqNo,
+                                                1L,
+                                                this.seqNo + 1,
+                                                true,
+                                                new BytesArray(source),
+                                                Collections.emptyMap(),
+                                                Collections.emptyMap())));
+            }
         }
 
         List<String> list(String key) {
@@ -590,5 +627,29 @@ public class PolicyLinksTests extends OpenSearchTestCase {
 
         assertEquals(2, failures.size());
         assertEquals(List.of("draft", "draft"), this.searchedSpaces);
+    }
+
+    /**
+     * A queued change runs with the thread context of the request that queued it, not with that of
+     * the request whose completion starts it: the policy read and write must be authorized and
+     * audited as the right user.
+     */
+    public void testQueuedChangeRunsWithItsOwnCallersContext() {
+        Store store = new Store();
+        List<Exception> failures = new ArrayList<>();
+        ActionListener<Void> listener = ActionListener.wrap(v -> {}, failures::add);
+
+        this.linkAs("alice", "a", listener);
+        this.linkAs("bob", "b", listener);
+        assertEquals("bob's change waits behind alice's", 1, store.heldGets.size());
+
+        // Alice's GET is answered in her context; her write completes and starts bob's change.
+        store.releaseGet();
+        store.releaseGet();
+
+        assertEquals(List.of(), failures);
+        assertEquals(List.of("alice:get", "alice:index", "bob:get", "bob:index"), store.calls);
+        assertEquals(List.of("a", "b"), store.list(Constants.KEY_FILTERS));
+        assertNull("the test thread's own context is left untouched", this.currentUser());
     }
 }
