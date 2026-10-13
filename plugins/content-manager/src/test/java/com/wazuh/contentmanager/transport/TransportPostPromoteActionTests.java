@@ -331,16 +331,37 @@ public class TransportPostPromoteActionTests extends OpenSearchTestCase {
         }
     }
 
+    /** A changes object with every list empty but the named one, which holds the given items. */
+    private static String changesWith(String space, String listName, String items) {
+        StringBuilder changes = new StringBuilder();
+        for (String name :
+                new String[] {"policy", "integrations", "kvdbs", "decoders", "filters", "rules"}) {
+            if (changes.length() > 0) {
+                changes.append(',');
+            }
+            changes.append('"').append(name).append("\":");
+            changes.append(name.equals(listName) ? items : "[]");
+        }
+        return "{\"space\":\"" + space + "\",\"changes\":{" + changes + "}}";
+    }
+
     /**
-     * A body that is not JSON, carries an unknown key, or gives a field the wrong shape is a 400 with
-     * the generic validation message, never a 500 and never the Jackson exception text (#1668).
+     * A body that is not JSON, carries an unknown key, gives a field the wrong shape, or holds a
+     * change item without an operation or an id is a 400 with the generic validation message, never a
+     * 500 and never the Jackson or NullPointerException text (#1668).
      */
     public void testMalformedBodyIsRejectedWith400() {
         for (String body :
                 new String[] {
+                    "null",
                     "not json",
                     "{\"spaces\":\"draft\"}",
-                    "{\"space\":\"draft\",\"changes\":{\"integrations\":[\"some-id\"]}}"
+                    "{\"space\":\"draft\",\"changes\":{\"integrations\":[\"some-id\"]}}",
+                    changesWith("draft", "integrations", "[{\"id\":\"x\"}]"),
+                    changesWith("draft", "policy", "[{\"operation\":\"update\"}]"),
+                    changesWith("draft", "integrations", "[null]"),
+                    changesWith("draft", "policy", "[null]"),
+                    changesWith("test", "rules", "[null]")
                 }) {
             MessageStatusResponse response = promoteBody(body);
             assertEquals(body, RestStatus.BAD_REQUEST, response.getStatus());

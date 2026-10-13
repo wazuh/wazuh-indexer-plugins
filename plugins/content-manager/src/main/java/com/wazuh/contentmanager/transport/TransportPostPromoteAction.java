@@ -161,12 +161,11 @@ public class TransportPostPromoteAction
         } catch (JsonProcessingException e) {
             // A body that is not JSON, an unknown key, or a field of the wrong shape. These are
             // the caller's errors, not the server's, and the Jackson message leaks class names,
-            // so they get a 400 with the generic validation message (#1668).
+            // so they get a 400 with the generic validation message (#1668). This is the only
+            // IOException readValue can throw from a String, so no broader catch is needed.
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             listener.onResponse(
                     new MessageStatusResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
-        } catch (IOException e) {
-            respondWithError(listener, e);
         }
     }
 
@@ -1396,6 +1395,10 @@ public class TransportPostPromoteAction
     }
 
     private void validatePromoteRequest(SpaceDiff spaceDiff) {
+        if (spaceDiff == null) {
+            // "null" is valid JSON, so readValue returns null instead of throwing (#1668).
+            throw new IllegalArgumentException(Constants.E_400_INVALID_REQUEST_BODY);
+        }
         Space sourceSpace = spaceDiff.getSpace();
         if (sourceSpace == null) {
             // {} and {"space": null} parse fine, but are invalid.
@@ -1422,6 +1425,27 @@ public class TransportPostPromoteAction
                 || changes.getRules() == null) {
             throw new IllegalArgumentException(
                     "All resource type lists (policy, integrations, kvdbs, decoders, filters, rules) are required in changes");
+        }
+
+        // Each item needs an operation and an id; a missing one would otherwise surface later as a
+        // NullPointerException and a 500 (#1668). Must run before any item is dereferenced, the
+        // policy loop below included.
+        for (List<SpaceDiff.OperationItem> items :
+                List.of(
+                        changes.getPolicy(),
+                        changes.getIntegrations(),
+                        changes.getKvdbs(),
+                        changes.getDecoders(),
+                        changes.getFilters(),
+                        changes.getRules())) {
+            for (SpaceDiff.OperationItem item : items) {
+                if (item == null
+                        || item.getOperation() == null
+                        || item.getId() == null
+                        || item.getId().isBlank()) {
+                    throw new IllegalArgumentException(Constants.E_400_INVALID_REQUEST_BODY);
+                }
+            }
         }
 
         for (SpaceDiff.OperationItem item : changes.getPolicy()) {

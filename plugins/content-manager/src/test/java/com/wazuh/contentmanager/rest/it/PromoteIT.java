@@ -868,12 +868,27 @@ public class PromoteIT extends ContentManagerRestTestCase {
                 RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
     }
 
+    /** A changes object with every list empty but the named one, which holds the given items. */
+    private static String changesWith(String space, String listName, String items) {
+        StringBuilder changes = new StringBuilder();
+        for (String name :
+                new String[] {"policy", "integrations", "kvdbs", "decoders", "filters", "rules"}) {
+            if (changes.length() > 0) {
+                changes.append(',');
+            }
+            changes.append('"').append(name).append("\":");
+            changes.append(name.equals(listName) ? items : "[]");
+        }
+        return "{\"space\":\"" + space + "\",\"changes\":{" + changes + "}}";
+    }
+
     /**
-     * Promote with a missing or null space, a body that is not JSON, an unknown key, or a changes
-     * list of the wrong element type.
+     * Promote with a missing or null space, a null body, a body that is not JSON, an unknown key, a
+     * changes list of the wrong element type, or a change item that is null or misses its operation
+     * or id.
      *
-     * <p>These used to answer 500 — the first two as an uncaught NullPointerException whose Java
-     * exception text reached the response body (#1668).
+     * <p>These used to answer 500 — several as an uncaught NullPointerException whose Java exception
+     * text reached the response body (#1668).
      *
      * <p>Verifies: every body is answered 400 and no response carries exception text.
      *
@@ -883,9 +898,15 @@ public class PromoteIT extends ContentManagerRestTestCase {
         String[] bodies = {
             "{}",
             "{\"space\":null}",
+            "null",
             "{\"spaces\":\"draft\"}",
             "not json",
-            "{\"space\":\"draft\",\"changes\":{\"integrations\":[\"some-id\"]}}"
+            "{\"space\":\"draft\",\"changes\":{\"integrations\":[\"some-id\"]}}",
+            changesWith("draft", "integrations", "[{\"id\":\"x\"}]"),
+            changesWith("draft", "policy", "[{\"operation\":\"update\"}]"),
+            changesWith("draft", "integrations", "[null]"),
+            changesWith("draft", "policy", "[null]"),
+            changesWith("test", "rules", "[null]")
         };
 
         for (String body : bodies) {
