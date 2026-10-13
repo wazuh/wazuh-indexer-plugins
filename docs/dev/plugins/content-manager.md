@@ -120,37 +120,47 @@ Only one physical index is live at a time. The alias points to it with `is_write
 
 ### Key classes
 
-| Class                     | Responsibility                                                                                                                                                                                                                                         |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ContentIndex`            | Creates alias-backed physical indices. Has a 4-arg constructor for targeting shadow physical names directly. `createIndex()` creates the physical index and assigns the alias. `createShadowIndex()` creates a hidden physical index without an alias. |
-| `IndexSwapHelper`         | Stateless utility class for swap operations: `resolveShadowName()`, `resolveLivePhysicalName()`, `createShadowIndices()`, `reindexUserContent()`, `atomicSwap()`, `deleteIndices()`.                                                                   |
-| `AbstractConsumerService` | Detects plan changes and delegates to `performShadowSwap()` instead of the old `resetConsumer()` wipe-and-reload path.                                                                                                                                 |
+| Class | Responsibility |
+| --- | --- |
+| `ContentIndex` | Creates alias-backed physical indices. Has a 4-arg constructor for targeting shadow physical names directly. `createIndex()` creates the physical index and assigns the alias. `createShadowIndex()` creates a hidden physical index without an alias. |
+| `IndexSwapHelper` | Stateless utility class for swap operations: `resolveShadowName()`, `resolveLivePhysicalName()`, `shadowIndexExists()`, `createShadowIndices()`, `reindexUserContent()`, `atomicSwap()`, `deleteIndices()`. |
+| `SyncPass` | One synchronization pass: the subscription plan, looked up once when the pass starts, and what the pass's swap did to each consumer (`UNCHANGED`, `SWAPPED`, `PENDING` or `HELD`). |
+| `ShadowSwapService` | Moves every consumer whose data source changes, together, through the shadow swap below, before any consumer synchronizes. Also rebuilds a single consumer from a newer snapshot of its own data source (see [Error handling](#error-handling)). |
+| `AbstractConsumerService` | Decides whether its consumer changes data source (`resolveContentSource()`) and provides the per-consumer pieces of a swap (`prepareSwap()`, `loadStagedSnapshot()`, `onBeforeAliasSwap()`). Its `synchronize(SyncPass)` never swaps: a consumer the pass's swap moved catches up from the snapshot offset, one whose change is pending keeps its content. |
 
 ### Shadow swap flow (plan change)
 
-When `AbstractConsumerService.syncConsumerServices()` detects a plan change (the plan-provided `resource` URL differs from the persisted one), it runs the shadow swap path:
+`CatalogSyncJob` looks the plan up once per pass (`SyncPass.resolve()`) and runs `ShadowSwapService.swapChangedSources()` before any consumer synchronizes. Every consumer whose plan-provided `resource` URL differs from the persisted one, and every consumer left mid-swap by an interrupted pass, moves in one swap:
 
-1. Resolve shadow physical names (the -a/-b suffix not currently live)
-2. Create hidden shadow physical indices (index.hidden=true, no alias)
-3. Download snapshot into shadow indices (reuse SnapshotServiceImpl)
-4. Reindex user content (space.name != "standard") from live → shadow
-   (only for consumer types with hasUserContent()=true, i.e., ruleset)
-5. Unhide non-CVE shadow indices (set index.hidden=false)
-6. Atomic alias swap (single IndicesAliasesRequest for all 8 aliases)
-7. Rewrite consumer document in .wazuh-cti-consumers
-8. Run post-sync cascade (onSyncComplete: Security Analytics sync, engine promote, etc.)
-9. Delete old physical indices
+1. Pre-flight, all or nothing: each moving consumer needs its target indices and a remote consumer whose snapshot link is available. If any fails, nothing is created or written and the consumers stay on their content (`PENDING`). The same happens when whether a consumer changes cannot be determined, for example because its document cannot be read: that consumer is `HELD` and the others wait for it, since it may be changing as well.
+2. Create hidden shadow physical indices for every moving consumer (the -a/-b suffix not currently live; stale ones are deleted first)
+3. Rewrite the documents of all moving consumers in one bulk request: new identity, `running`, `local_offset` 0, `remote_offset` = new head
+4. Download each snapshot into its shadow indices, one consumer after another (`SnapshotServiceImpl.forStaging()`, which leaves the consumer documents alone)
+5. Reindex user content (space.name != "standard") from live → shadow (only for consumer types with hasUserContent()=true, i.e., ruleset)
+6. `onBeforeAliasSwap()` hooks (the ruleset collects its pre-swap Security Analytics resources)
+7. Unhide non-CVE shadow indices, then one atomic alias swap: a single IndicesAliasesRequest for the aliases of every moving consumer (all 8 for a full plan change)
+8. Record the snapshot offsets in the documents of all moving consumers, in one bulk request
+9. Delete the old physical indices
+
+Each consumer's `synchronize(SyncPass)` then catches up from its snapshot offset to the remote head and runs the post-sync cascade (`onSyncComplete(true)`: Security Analytics sync, stale resource cleanup, engine reload, IoC notification) before reporting `ready`.
+
+The order of the writes keeps an interrupted swap recognizable: the shadow indices exist before the documents change (step 2 before 3), `local_offset` leaves 0 only after the switch (step 8), and a rollback restores the documents before deleting the shadow indices. A document that is `running` with `local_offset` 0 while a shadow index of its consumer exists is a swap that did not finish, and the next pass redoes it. A shadow index next to a consumer whose document has content live is a leftover and is deleted.
 
 ### Failure modes
 
-| Failure point                                                                          | System state after failure                                                                                                                                    | Next sync behavior                                                                                                                                                                                                        |
-| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Before step 6 (alias swap)                                                             | Shadow indices are deleted; live alias and consumer document are untouched.                                                                                   | Retries the shadow swap from a clean state against the same target plan.                                                                                                                                                  |
-| Between step 6 (alias swap) and step 7 (consumer doc rewrite)                          | Alias already points at the new physical indices, but `.wazuh-cti-consumers` still names the old `resource` URL.                                              | Re-detects the plan change (persisted resource still differs from the plan) and re-runs the shadow swap — at most one wasted rebuild, no user-visible corruption since readers already see the new content via the alias. |
-| Concurrent REST writes to `draft`/`test`/`custom` during shadow population (steps 2–4) | Content written after the reindex snapshot (step 4) but before the alias swap (step 6) exists only in the old live indices.                                   | Lost on swap unless the write lands in the same sync cycle; acceptable because the `CatalogSyncJob` semaphore (below) makes this window narrow, not eliminated.                                                           |
-| Engine/Security Analytics unavailable during the post-sync cascade (step 8)            | Alias and consumer document are already committed to the new source; only downstream propagation (Engine `promote()`, Security Analytics sync) is incomplete. | Cascade is idempotent and retried on the next scheduled sync, which now runs against the already-swapped source.                                                                                                          |
+| Failure point | System state after failure | Next sync behavior |
+| --- | --- | --- |
+| Pre-flight (step 1), or a consumer whose decision fails | Nothing created or written. | The consumers report `PENDING` (the undecided one `HELD`): their content is kept, and the pass is retried once right away. |
+| Steps 2–7, before the alias swap | Documents are restored to their previous data source, then shadow indices are deleted; live aliases are untouched. | Retries the swap from a clean state against the same target plan, once right away. |
+| Steps 2–7, and the documents cannot be restored | Documents still name the new data sources (`running`, `local_offset` 0); shadow indices are kept. | The consumers are `HELD` in this pass; the next pass recognizes the interrupted swap and redoes it. |
+| Node stops during steps 3–7 | Documents name the new data sources (`running`, `local_offset` 0); live aliases still point at the previous content; shadow indices exist. | Recognized as an interrupted swap and redone. Until then, the documents keep showing the swap in progress. |
+| Between step 7 (alias swap) and step 8 (offsets) | Aliases point at the new content; documents still read `local_offset` 0; old indices are kept. | Recognized as an interrupted swap and redone — at most one wasted rebuild, no user-visible corruption since readers already see the new content via the alias. |
+| Concurrent REST writes to `draft`/`test`/`custom` during shadow population (steps 2–5) | Content written after the reindex snapshot (step 5) but before the alias swap (step 7) exists only in the old live indices. | Lost on swap unless the write lands in the same sync cycle; acceptable because the `CatalogSyncJob` semaphore (below) makes this window narrow, not eliminated. |
+| Engine/Security Analytics unavailable during the post-sync cascade | Aliases and consumer documents are already committed to the new source; only downstream propagation (Engine `promote()`, Security Analytics sync) is incomplete. | Cascade is idempotent and retried on the next scheduled sync, which now runs against the already-swapped source. |
 
-**Concurrency:** The `CatalogSyncJob` semaphore spans the entire `synchronize()` call, which includes the shadow swap. No additional locking is needed, but it also means the swap holds that semaphore for its full duration — normal incremental syncs for other consumers queue behind it.
+**Concurrency:** The `CatalogSyncJob` semaphore and cluster lock span the whole pass, which includes the swap. No additional locking is needed, but it also means the swap holds them for its full duration — the incremental syncs of the consumers that do not change source run after it.
+
+**Disk:** the shadow indices of every moving consumer coexist with the live ones until step 9, so a full plan change temporarily duplicates all the downloaded content.
 
 ### Normal incremental syncs
 
@@ -588,12 +598,12 @@ Written on a `standard` policy update, on filter create, update and delete, and 
 sequenceDiagram
     participant Scheduler as JobScheduler/RestAction
     participant SyncJob as CatalogSyncJob
+    participant Swap as ShadowSwapService
     participant Synchronizer as ConsumerRulesetService
     participant ConsumerSvc as ConsumerService
     participant CTI as External CTI API
     participant Snapshot as SnapshotService
     participant Update as UpdateService
-    participant Swap as IndexSwapHelper
     participant Indices as Content Indices
     participant Consumers as .wazuh-cti-consumers
     participant SA as SecurityAnalyticsServiceImpl
@@ -601,35 +611,42 @@ sequenceDiagram
     Scheduler->>SyncJob: Trigger Execution
     activate SyncJob
 
-    SyncJob->>Synchronizer: synchronize()
+    SyncJob->>CTI: Look the plan up (SyncPass.resolve)
+
+    SyncJob->>Swap: swapChangedSources(consumers, pass)
+    opt A consumer's data source changes (resource URL differs)
+        Swap->>CTI: Fetch the new remote consumer of every changing consumer
+        Swap->>Indices: Create hidden shadow indices (-a/-b spare suffix)
+        Swap->>Consumers: Rewrite every changing consumer (new resource, running, local_offset = 0)
+        Swap->>CTI: Download each snapshot into its shadow indices
+        Swap->>Indices: Reindex user content (space.name != "standard")
+        Swap->>Indices: Unhide shadow indices
+        Swap->>Indices: Atomic alias swap (single IndicesAliasesRequest for every changing consumer)
+        Swap->>Consumers: Record the snapshot offsets (local_offset = snapshot offset)
+        Swap->>Indices: Delete old physical indices
+    end
+    Swap-->>SyncJob: Outcome per consumer, in the pass
+
+    SyncJob->>Synchronizer: synchronize(pass)
 
     Synchronizer->>ConsumerSvc: getLocalConsumer() / getRemoteConsumer()
     ConsumerSvc->>CTI: Fetch Metadata
     ConsumerSvc-->>Synchronizer: Offsets & Metadata
+    Synchronizer->>Consumers: running, remote_offset = remote head
 
     alt Local Offset == 0 (Initialization)
         Synchronizer->>Snapshot: initialize(remoteConsumer)
         Snapshot->>CTI: Download Snapshot ZIP
         Snapshot->>Indices: Bulk Index Content (Rules/Integrations/etc.)
         Snapshot-->>Synchronizer: Done
-    else Local Offset < Remote Offset (Update, no plan change)
+    else Local Offset < Remote Offset (Update, or catch-up after a swap)
         Synchronizer->>Update: update(localOffset, remoteOffset)
         Update->>CTI: Fetch Changes
         Update->>Indices: Apply JSON Patches
         Update-->>Synchronizer: Done
-    else Plan change detected (resource URL differs)
-        Synchronizer->>Swap: performShadowSwap()
-        Swap->>Indices: Create hidden shadow indices (-a/-b spare suffix)
-        Swap->>CTI: Download snapshot into shadow indices
-        Swap->>Indices: Reindex user content (space.name != "standard")
-        Swap->>Indices: Unhide shadow indices
-        Swap->>Indices: Atomic alias swap (single IndicesAliasesRequest)
-        Swap->>Consumers: Rewrite consumer document (new resource, local_offset = remote_offset)
-        Swap->>Indices: Delete old physical indices
-        Swap-->>Synchronizer: Done
     end
 
-    opt Changes Applied (onSyncComplete)
+    opt Changes Applied, or swapped in this pass (onSyncComplete)
         Synchronizer->>Indices: Refresh Indices
 
         Synchronizer->>SA: upsertIntegration(doc)
@@ -653,7 +670,7 @@ sequenceDiagram
     deactivate SyncJob
 ```
 
-The `opt Changes Applied (onSyncComplete)` cascade runs after all three branches, including the shadow swap — by the time it executes, `Indices` and `Consumers` already resolve through the swapped alias and rewritten consumer document.
+The `opt Changes Applied (onSyncComplete)` cascade also runs for a consumer the pass's swap moved, even if nothing is left to catch up — by the time it executes, `Indices` and `Consumers` already resolve through the swapped alias and rewritten consumer document. A consumer whose data source changes but could not be swapped is not synchronized from its new source: it keeps its content until a swap of every changing consumer succeeds.
 
 ### Initialization phase
 
@@ -668,10 +685,11 @@ When `local_offset = 0`:
 
 When `local_offset > 0` and `local_offset < remote_offset`:
 
-1. Fetches the changes in batches from the CTI API.
-2. Applies each change: creates or deletes the document, or patches it with the change's JSON Patch ([RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902)) operations through [zjsonpatch](https://github.com/flipkart-incubator/zjsonpatch). Patching is strict: an operation whose target does not exist fails the change (zjsonpatch needs `FORBID_REMOVE_MISSING_OBJECT` for removals). The operations are applied in place, without copying the document, on a tree parsed from the stored source; if one fails, that tree is discarded and the stored document is left as it was. Several changes of the same document within a batch are applied in order, each on top of the previous one.
-3. Pushes the changes to the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
-4. Updates the local offset.
+1. Marks the consumer `running` and, in the same write, records the remote head as `remote_offset`, so the document shows the gap still to be applied from its first `running` read.
+2. Fetches the changes in batches from the CTI API.
+3. Applies each change: creates or deletes the document, or patches it with the change's JSON Patch ([RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902)) operations through [zjsonpatch](https://github.com/flipkart-incubator/zjsonpatch). Patching is strict: an operation whose target does not exist fails the change (zjsonpatch needs `FORBID_REMOVE_MISSING_OBJECT` for removals). The operations are applied in place, without copying the document, on a tree parsed from the stored source; if one fails, that tree is discarded and the stored document is left as it was. Several changes of the same document within a batch are applied in order, each on top of the previous one.
+4. Pushes the changes to the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
+5. Updates the local offset.
 
 ### Post-synchronization phase
 
@@ -685,7 +703,7 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 
 If a critical error or data corruption is detected, the system resets `local_offset` to 0, triggering a full snapshot re-initialization on the next run.
 
-A change that cannot be applied to the stored content fails as a `ContentIndex.PatchException`, which carries the change's offset and resource: its patch does not fit the stored document, or, for the consumers updated in batches (IoCs and vulnerabilities), the document is missing. Retrying it fails the same way, so `AbstractConsumerService` handles it in the same pass: when CTI has a snapshot newer than the consumer's local offset, it rebuilds the content from that snapshot and applies the remaining changes from the snapshot's offset. A snapshot at or past the failing offset already holds the change's result; an older one still rebuilds stored content that diverged from CTI, which is what usually makes a valid change fail. The snapshot goes through the same blue/green path as a plan change (`performShadowSwap`): it loads into hidden staging indices and the aliases are swapped only once it has loaded, so the current content stays available meanwhile and is kept if the snapshot cannot be loaded. After a rebuild the local offset is at or past the snapshot, so a given snapshot is used at most once; without a newer snapshot, the failure propagates and later runs retry the change. Any other failure (CTI unreachable, cluster errors) propagates as before and resumes from the last checkpoint.
+A change that cannot be applied to the stored content fails as a `ContentIndex.PatchException`, which carries the change's offset and resource: its patch does not fit the stored document, or, for the consumers updated in batches (IoCs and vulnerabilities), the document is missing. Retrying it fails the same way, so `AbstractConsumerService` handles it in the same pass: when CTI has a snapshot newer than the consumer's local offset, it rebuilds the content from that snapshot and applies the remaining changes from the snapshot's offset. A snapshot at or past the failing offset already holds the change's result; an older one still rebuilds stored content that diverged from CTI, which is what usually makes a valid change fail. The snapshot goes through the same blue/green path as a plan change (`ShadowSwapService.rebuild()`, for that consumer alone): it loads into hidden staging indices and the aliases are swapped only once it has loaded, so the current content stays available meanwhile and is kept if the snapshot cannot be loaded. The consumer document is not touched until the switch. After a rebuild the local offset is at or past the snapshot, so a given snapshot is used at most once; without a newer snapshot, the failure propagates and later runs retry the change. Any other failure (CTI unreachable, cluster errors) propagates as before and resumes from the last checkpoint.
 
 ---
 

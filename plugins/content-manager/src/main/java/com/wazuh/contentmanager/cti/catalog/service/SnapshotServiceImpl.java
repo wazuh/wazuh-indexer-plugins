@@ -67,6 +67,12 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final ObjectMapper mapper;
     private final Path stablePath;
 
+    /**
+     * Whether a successful load records its offset in the consumer document. False for a load into
+     * staging indices, see {@link #forStaging}.
+     */
+    private final boolean recordsLocalOffset;
+
     /** The maximum offset encountered while processing snapshot files. */
     private long maxOffsetSeen;
 
@@ -90,7 +96,28 @@ public class SnapshotServiceImpl implements SnapshotService {
             ResourceUrlResolver urlResolver,
             Path snapshotsDir,
             String snapshotFilename) {
+        this(
+                consumerType,
+                indicesMap,
+                consumersIndex,
+                environment,
+                urlResolver,
+                snapshotsDir,
+                snapshotFilename,
+                true);
+    }
+
+    private SnapshotServiceImpl(
+            String consumerType,
+            Map<String, ContentIndex> indicesMap,
+            ConsumersIndex consumersIndex,
+            Environment environment,
+            ResourceUrlResolver urlResolver,
+            Path snapshotsDir,
+            String snapshotFilename,
+            boolean recordsLocalOffset) {
         this.consumerType = consumerType;
+        this.recordsLocalOffset = recordsLocalOffset;
         this.indicesMap = indicesMap;
         this.consumersIndex = consumersIndex;
         this.environment = environment;
@@ -139,6 +166,26 @@ public class SnapshotServiceImpl implements SnapshotService {
             ConsumersIndex consumersIndex,
             Environment environment) {
         this(consumerType, indicesMap, consumersIndex, environment, new RegularUrlResolver());
+    }
+
+    /**
+     * Creates a service that loads a snapshot into the staging indices of a swap. The consumer
+     * document describes the live content, which a staging load does not change, so the load leaves
+     * the document alone; the swap records the new offsets once the staging indices are live.
+     *
+     * @param consumerType The consumer type identifier.
+     * @param stagingIndices A map of content types to the staging indices to load into.
+     * @param environment The OpenSearch environment.
+     * @param urlResolver The resolver used to transform resource URLs before making HTTP requests.
+     * @return the service.
+     */
+    public static SnapshotServiceImpl forStaging(
+            String consumerType,
+            Map<String, ContentIndex> stagingIndices,
+            Environment environment,
+            ResourceUrlResolver urlResolver) {
+        return new SnapshotServiceImpl(
+                consumerType, stagingIndices, null, environment, urlResolver, null, null, false);
     }
 
     /**
@@ -233,8 +280,8 @@ public class SnapshotServiceImpl implements SnapshotService {
             // 5. Partial update of consumer state: bump local_offset to the snapshot offset and
             // keep the remote_offset (set at t0 from RemoteConsumer.last_offset) so the
             // incremental update path can close the gap. Identity fields and status are preserved
-            // from the t0 write.
-            return this.updateLocalOffset(consumer.getSnapshotOffset());
+            // from the t0 write. A staging load leaves the document alone.
+            return !this.recordsLocalOffset || this.updateLocalOffset(consumer.getSnapshotOffset());
         } else {
             this.cleanup(snapshotZip);
             return false;
@@ -487,8 +534,9 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         // 5. Partial update of consumer state: bump local_offset to the highest offset observed
         // while indexing. Identity fields, is_public, status and remote_offset are owned by the
-        // t0 write performed by AbstractConsumerService.writeInitialConsumer.
-        return this.updateLocalOffset(this.maxOffsetSeen);
+        // t0 write performed by AbstractConsumerService.writeInitialConsumer. A staging load
+        // leaves the document alone.
+        return !this.recordsLocalOffset || this.updateLocalOffset(this.maxOffsetSeen);
     }
 
     /**

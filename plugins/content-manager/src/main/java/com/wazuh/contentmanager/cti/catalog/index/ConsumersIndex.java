@@ -22,6 +22,8 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -34,6 +36,7 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -114,6 +117,39 @@ public class ConsumersIndex {
                         .setRefreshPolicy(refreshPolicy);
 
         return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+    }
+
+    /**
+     * Persists several consumer documents in one request. A single refresh makes them visible
+     * together, so a reader never sees some of them changed and the others not.
+     *
+     * @param consumers The consumers to persist.
+     * @throws ExecutionException If the client failed to execute the request.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException If the operation exceeded the configured client timeout.
+     * @throws IOException If there is an error serializing a consumer to XContent.
+     * @throws IllegalStateException If any of the documents could not be written.
+     * @throws RuntimeException If the target index is not currently ready or available.
+     */
+    public void setConsumers(Collection<LocalConsumer> consumers)
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
+        if (!ClusterInfo.indexStatusCheck(
+                this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
+            throw new RuntimeException("Index not ready");
+        }
+        BulkRequest request = new BulkRequest().setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        for (LocalConsumer consumer : consumers) {
+            request.add(
+                    new IndexRequest()
+                            .index(INDEX_NAME)
+                            .id(consumer.getType())
+                            .source(consumer.toXContent()));
+        }
+        BulkResponse response =
+                this.client.bulk(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        if (response.hasFailures()) {
+            throw new IllegalStateException(response.buildFailureMessage());
+        }
     }
 
     /**

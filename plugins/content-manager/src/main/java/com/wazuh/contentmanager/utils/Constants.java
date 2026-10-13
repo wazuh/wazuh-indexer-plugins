@@ -302,17 +302,37 @@ public class Constants {
     public static final String D_LOG_REINDEX_USER_CONTENT =
             "Copying custom content into the staging indices for consumer [{}].";
     public static final String D_LOG_ATOMIC_ALIAS_SWAP =
-            "Switching aliases to the new content indices for consumer [{}].";
-    public static final String E_LOG_SHADOW_SWAP_FAILED_BEFORE_SWAP =
-            "Failed to rebuild content in staging indices for consumer [{}]: {}. Cleaning up.";
+            "Switching aliases to the new content indices for consumers {}.";
     public static final String D_LOG_CONSUMER_DOC_REWRITTEN =
             "Updated consumer [{}] record to the new content source [{}] (offset {}).";
-    public static final String E_LOG_CONSUMER_DOC_REWRITE_FAILED =
-            "Content for consumer [{}] was switched over but its record could not be saved: {}. It will be retried on the next sync.";
     public static final String W_LOG_OLD_INDICES_DELETE_FAILED =
             "Failed to remove the previous content indices for consumer [{}]: {}";
     public static final String I_LOG_CONTENT_UPDATED_NEW_SOURCE =
             "Content updated to the new source for consumer [{}].";
+    public static final String I_LOG_SWAP_SWITCHED =
+            "Switched the content of consumers {} in one operation ({} aliases).";
+    public static final String W_LOG_SWAP_POSTPONED =
+            "The data source of consumers {} changes, but {} could not be prepared. Their current content is kept and the change is retried.";
+    public static final String W_LOG_SWAP_POSTPONED_UNDECIDED =
+            "The data source of consumers {} changes, but whether {} changes too could not be determined. Their current content is kept and the change is retried.";
+    public static final String E_LOG_SWAP_FAILED_BEFORE_SWITCH =
+            "Failed to prepare the new content of consumers {}: {}. Their current content is kept; cleaning up.";
+    public static final String E_LOG_SWAP_ROLLBACK_FAILED =
+            "Could not restore the records of consumers {} after a failed swap: {}. Their staging indices are kept so the next sync redoes the swap.";
+    public static final String E_LOG_SWAP_RECORDS_FAILED =
+            "The content of consumers {} was switched over but their records could not be saved: {}. The previous indices are kept and the next sync redoes the swap.";
+    public static final String W_LOG_SWAP_INTERRUPTED =
+            "Consumer [{}] was left in the middle of a swap by an interrupted sync; redoing the swap.";
+    public static final String W_LOG_SWAP_DECISION_FAILED =
+            "Could not determine whether consumer [{}] changes data source: {}. Its content is left untouched in this sync.";
+    public static final String W_LOG_SWAP_HELD =
+            "Consumer [{}] is waiting for a swap to complete; its content and record are left untouched in this sync.";
+    public static final String D_LOG_SOURCE_CHANGE_PENDING =
+            "The data source of consumer [{}] changes; its current content is kept until every changing consumer can switch together.";
+    public static final String D_LOG_CONSUMER_REMOTE_OFFSET_SET =
+            "Consumer [{}] is syncing from offset {} to {}.";
+    public static final String W_LOG_STAGING_INDEX_CLEANUP_FAILED =
+            "Could not check or delete the staging index of alias [{}]: {}";
 
     // Log messages - Security Analytics sync (SecurityAnalyticsServiceImpl, ConsumerRulesetService)
     public static final String D_LOG_SAP_DETECTOR_DELETED_THEN_INTEGRATION =

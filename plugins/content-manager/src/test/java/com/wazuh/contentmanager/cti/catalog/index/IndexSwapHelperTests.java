@@ -171,4 +171,22 @@ public class IndexSwapHelperTests extends OpenSearchTestCase {
         verify(this.client.admin().indices()).prepareDelete(alias + ContentIndex.SUFFIX_A);
         assertEquals(alias + ContentIndex.SUFFIX_A, shadows.get("rule").getPhysicalName());
     }
+
+    /** shadowIndexExists checks the slot the alias does not point at. */
+    public void testShadowIndexExists_ChecksTheOtherSlot() {
+        String alias = "wazuh-threatintel-rules";
+        GetIndexResponse response = mock(GetIndexResponse.class);
+        when(response.getIndices()).thenReturn(new String[] {alias + ContentIndex.SUFFIX_B});
+        when(this.client.admin().indices().prepareGetIndex().setIndices(alias).get())
+                .thenReturn(response);
+        when(this.client
+                        .admin()
+                        .indices()
+                        .prepareExists(alias + ContentIndex.SUFFIX_A)
+                        .get()
+                        .isExists())
+                .thenReturn(true);
+
+        assertTrue(IndexSwapHelper.shadowIndexExists(this.client, alias));
+    }
 }

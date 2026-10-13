@@ -38,7 +38,9 @@ import com.wazuh.contentmanager.cti.catalog.service.ConsumerIocService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
 import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.ShadowSwapService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.service.SyncPass;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
@@ -101,6 +103,7 @@ public class CatalogSyncJob implements JobExecutor {
     private final Client client;
     private final ThreadPool threadPool;
     private final List<AbstractConsumerService> synchronizers;
+    private final ShadowSwapService shadowSwapService;
     private final SetupReadiness setupReadiness;
     private final ResourceLockService resourceLockService;
 
@@ -128,11 +131,10 @@ public class CatalogSyncJob implements JobExecutor {
             SecurityAnalyticsService securityAnalyticsService,
             UserOverridesService userOverridesService,
             ResourceLockService resourceLockService) {
-        this.client = client;
-        this.setupReadiness = new SetupReadiness(client);
-        this.threadPool = threadPool;
-        this.resourceLockService = resourceLockService;
-        this.synchronizers =
+        this(
+                client,
+                threadPool,
+                resourceLockService,
                 List.of(
                         new ConsumerRulesetService(
                                 client,
@@ -142,7 +144,32 @@ public class CatalogSyncJob implements JobExecutor {
                                 securityAnalyticsService,
                                 userOverridesService),
                         new ConsumerIocService(client, consumersIndex, environment, engineService),
-                        new ConsumerCveService(client, consumersIndex, environment));
+                        new ConsumerCveService(client, consumersIndex, environment)),
+                new ShadowSwapService(client, consumersIndex));
+    }
+
+    /**
+     * Constructs a CatalogSyncJob over the given synchronizers. Package-private so tests can provide
+     * their own.
+     *
+     * @param client The OpenSearch client used for administrative index operations.
+     * @param threadPool The thread pool manager.
+     * @param resourceLockService The lock service holding the cluster-wide sync lock.
+     * @param synchronizers The consumers to synchronize, in order.
+     * @param shadowSwapService The service that moves consumers to a new data source.
+     */
+    CatalogSyncJob(
+            Client client,
+            ThreadPool threadPool,
+            ResourceLockService resourceLockService,
+            List<AbstractConsumerService> synchronizers,
+            ShadowSwapService shadowSwapService) {
+        this.client = client;
+        this.setupReadiness = new SetupReadiness(client);
+        this.threadPool = threadPool;
+        this.resourceLockService = resourceLockService;
+        this.synchronizers = synchronizers;
+        this.shadowSwapService = shadowSwapService;
     }
 
     /**
@@ -561,15 +588,28 @@ public class CatalogSyncJob implements JobExecutor {
                                 + " synchronization; it will be retried on the next scheduled run.");
                 return SyncOutcome.SETUP_NOT_READY;
             }
+            // One plan lookup for the whole pass, so all consumers follow the same plan.
+            SyncPass pass = this.resolveSyncPass();
+            // Consumers whose data source changes move together, in one swap, before any of them
+            // synchronizes, so readers never see the content of two plans at once.
+            try {
+                this.shadowSwapService.swapChangedSources(this.synchronizers, pass);
+            } catch (Exception e) {
+                // Without the swap's outcome, a consumer's document may not describe its content:
+                // leave every consumer untouched in this pass.
+                log.error("Error while moving consumers to their data sources: {}", e.getMessage(), e);
+                return SyncOutcome.FAILURE;
+            }
             boolean anyFailure = false;
             for (AbstractConsumerService synchronizer : this.synchronizers) {
                 try {
                     // true means the pass did not fully complete for a transient reason — the
                     // configured CTI feed was unreachable (fell back to the local snapshot), the Setup
-                    // plugin had not yet provisioned this consumer's target indices, or the consumer
-                    // finished with a phase still pending and asked for a retry itself — and should be
-                    // retried immediately rather than waiting for the next scheduled run.
-                    boolean needsRetry = synchronizer.synchronize();
+                    // plugin had not yet provisioned this consumer's target indices, a change of data
+                    // source could not be applied yet, or the consumer finished with a phase still
+                    // pending and asked for a retry itself — and should be retried immediately rather
+                    // than waiting for the next scheduled run.
+                    boolean needsRetry = synchronizer.synchronize(pass);
                     if (needsRetry) {
                         anyFailure = true;
                         log.warn(
@@ -590,6 +630,16 @@ public class CatalogSyncJob implements JobExecutor {
             }
             return anyFailure ? SyncOutcome.FAILURE : SyncOutcome.SUCCESS;
         }
+    }
+
+    /**
+     * Starts a pass by looking the subscription plan up. Package-private so tests can replace the CTI
+     * Console lookup.
+     *
+     * @return the pass.
+     */
+    SyncPass resolveSyncPass() {
+        return SyncPass.resolve();
     }
 
     /**

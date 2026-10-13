@@ -43,17 +43,11 @@ import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.SignedUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.index.IndexSwapHelper;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.console.model.Feature;
-import com.wazuh.contentmanager.cti.console.model.Plan;
-import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
-import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
-import com.wazuh.contentmanager.cti.console.service.TokenRejectedException;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.transport.TransportPromoteSnapshotAction;
 import com.wazuh.contentmanager.utils.Constants;
@@ -166,7 +160,7 @@ public abstract class AbstractConsumerService {
     protected abstract String getSnapshotFilename();
 
     /**
-     * Hook called inside {@link #performShadowSwap} just before the atomic alias swap. Subclasses can
+     * Hook called by {@link ShadowSwapService} just before the atomic alias swap. Subclasses can
      * override this to capture pre-swap state (e.g., collect resource IDs that may become stale after
      * the swap). The default implementation is a no-op.
      */
@@ -191,11 +185,33 @@ public abstract class AbstractConsumerService {
     }
 
     /**
+     * Synchronizes this consumer alone, in a pass of its own: looks the plan up, moves the consumer
+     * to a new data source if it has one, through {@link ShadowSwapService}, and then runs {@link
+     * #synchronize(SyncPass)}.
+     *
+     * @return see {@link #synchronize(SyncPass)}.
+     */
+    public boolean synchronize() {
+        SyncPass pass = SyncPass.resolve();
+        new ShadowSwapService(this.client, this.consumersIndex).swapChangedSources(List.of(this), pass);
+        return this.synchronize(pass);
+    }
+
+    /**
      * Main synchronization entry point. Orchestrates the synchronization process by performing the
      * actual sync and calling onSyncComplete with the result.
      *
-     * <p>Marks the consumer as {@link LocalConsumer.Status#RUNNING} before sync begins so that
-     * external components can detect the in-progress state. The status moves to {@link
+     * <p>A change of data source is not applied here: the pass's {@link ShadowSwapService} moves all
+     * changing consumers together before this runs, and its outcome for this consumer is in the pass.
+     * A consumer it moved catches up from the loaded snapshot to the remote head and runs its
+     * post-synchronization work as an update. A consumer whose change could not be applied keeps its
+     * current content, and one the swap left on hold is not touched at all.
+     *
+     * <p>Marks the consumer as {@link LocalConsumer.Status#RUNNING} before any content is applied so
+     * that external components can detect the in-progress state. When the remote head of the data
+     * source the document describes is known, the same write records it as the remote offset while
+     * keeping the local one, so from the first {@code running} read until the pass completes, the
+     * document shows the gap still to be applied. The status moves to {@link
      * LocalConsumer.Status#READY} once synchronization actually completes, or to {@link
      * LocalConsumer.Status#FAILED} if an unexpected exception interrupts the sync; the exception is
      * then rethrown so the caller ({@code CatalogSyncJob}) can log it and continue with the remaining
@@ -203,29 +219,40 @@ public abstract class AbstractConsumerService {
      * not yet provisioned this consumer's target indices, the status is left at {@code RUNNING}
      * rather than {@code READY} — nothing was synced, so nothing completed.
      *
+     * @param pass The pass this synchronization belongs to.
      * @return {@code true} when the caller should retry this consumer immediately instead of waiting
      *     for the next scheduled run: a catalog URL was configured but the remote feed could not be
      *     reached (the pass still completes by falling back to the local snapshot, and the status is
      *     still moved to {@link LocalConsumer.Status#READY}), the target indices were not yet
-     *     provisioned (nothing was synced, status stays {@code RUNNING}), or {@link
-     *     #onSyncComplete(boolean)} called {@link #requestImmediateRetry()} because the pass left
-     *     work undone. {@code false} when the pass reached the state it was meant to reach.
+     *     provisioned (nothing was synced, status stays {@code RUNNING}), a change of data source is
+     *     still to be applied, or {@link #onSyncComplete(boolean)} called {@link
+     *     #requestImmediateRetry()} because the pass left work undone. {@code false} when the pass
+     *     reached the state it was meant to reach.
      */
-    public boolean synchronize() {
+    public boolean synchronize(SyncPass pass) {
         this.immediateRetryRequested = false;
-        this.setConsumerStatus(LocalConsumer.Status.RUNNING);
+        SyncPass.SwapOutcome swap = pass.swapOutcome(this.getConsumerType());
+        if (swap == SyncPass.SwapOutcome.HELD) {
+            // The document may name the data source a swap is moving this consumer to rather than
+            // its live content: only a swap may change either of them.
+            log.warn(Constants.W_LOG_SWAP_HELD, this.getConsumerType());
+            return true;
+        }
         try {
-            SyncResult result = this.syncConsumerServices();
+            SyncResult result = this.syncConsumerServices(pass);
             log.debug(Constants.D_LOG_SYNC_COMPLETED, this.getConsumerType(), result.updated());
             if (result.indicesMissing()) {
                 // Nothing was synced: do not report a completion that did not happen. Status stays
-                // RUNNING (set above); the caller retries immediately rather than waiting for the next
-                // scheduled sync, since the Setup plugin usually finishes provisioning within seconds.
+                // RUNNING (set by syncConsumerServices); the caller retries immediately rather than
+                // waiting for the next scheduled sync, since the Setup plugin usually finishes
+                // provisioning within seconds.
                 return true;
             }
-            this.onSyncComplete(result.updated());
+            this.onSyncComplete(result.updated() || swap == SyncPass.SwapOutcome.SWAPPED);
             this.setConsumerStatus(LocalConsumer.Status.READY);
-            return result.feedUnreachable() || this.immediateRetryRequested;
+            return result.feedUnreachable()
+                    || result.sourceChangePending()
+                    || this.immediateRetryRequested;
         } catch (Exception e) {
             this.setConsumerStatus(LocalConsumer.Status.FAILED);
             throw new RuntimeException(
@@ -234,7 +261,7 @@ public abstract class AbstractConsumerService {
     }
 
     /**
-     * Outcome of {@link #syncConsumerServices()}.
+     * Outcome of {@link #syncConsumerServices(SyncPass)}.
      *
      * @param updated {@code true} if any content update (snapshot or incremental) was applied.
      * @param feedUnreachable {@code true} if a catalog URL was configured but the remote consumer
@@ -243,8 +270,38 @@ public abstract class AbstractConsumerService {
      * @param indicesMissing {@code true} if the pass was aborted before touching any content because
      *     {@link #missingTargetIndices()} found the Setup plugin has not yet provisioned this
      *     consumer's target indices. Nothing was synced, so the caller must not report completion.
+     * @param sourceChangePending {@code true} if the data source of the consumer changes but the swap
+     *     that applies the change did not run, so the current content was kept as it is.
      */
-    private record SyncResult(boolean updated, boolean feedUnreachable, boolean indicesMissing) {}
+    private record SyncResult(
+            boolean updated,
+            boolean feedUnreachable,
+            boolean indicesMissing,
+            boolean sourceChangePending) {}
+
+    /**
+     * Where the content of a consumer comes from in a pass.
+     *
+     * @param snapshotsDir The plugin's snapshots directory, or {@code null} when there is none.
+     * @param localSnapshot The packaged snapshot of the consumer, or {@code null}.
+     * @param manifestEntry The consumer's entry in the snapshots manifest, or {@code null}.
+     * @param catalogUri The catalog URL the pass synchronizes from, or {@code null} when there is
+     *     none.
+     * @param swapTarget The data source the consumer moves to, or {@code null} when it stays on its
+     *     current one.
+     */
+    record ContentSource(
+            Path snapshotsDir,
+            Path localSnapshot,
+            JsonNode manifestEntry,
+            String catalogUri,
+            String swapTarget) {
+
+        /** Returns whether the consumer moves to another data source. */
+        boolean changes() {
+            return this.swapTarget != null;
+        }
+    }
 
     /**
      * Updates the consumer status in the {@code .wazuh-cti-consumers} index. This is a partial
@@ -255,6 +312,21 @@ public abstract class AbstractConsumerService {
      * @param status The new {@link LocalConsumer.Status} to persist.
      */
     private void setConsumerStatus(LocalConsumer.Status status) {
+        this.setConsumerStatus(status, null);
+    }
+
+    /**
+     * Updates the consumer status in the {@code .wazuh-cti-consumers} index and, in the same write,
+     * the remote offset when one is given. This is a partial update: it preserves all identity fields
+     * and the local offset, so a remote offset ahead of it shows the gap still to be applied. When
+     * the consumer document does not yet exist (i.e., t0 has not run), the call is a no-op since
+     * identity fields would not be derivable.
+     *
+     * @param status The new {@link LocalConsumer.Status} to persist.
+     * @param remoteOffset The remote offset to persist with it, or {@code null} to keep the current
+     *     one.
+     */
+    private void setConsumerStatus(LocalConsumer.Status status, Long remoteOffset) {
         String consumerType = this.getConsumerType();
         try {
             GetResponse response = this.consumersIndex.getConsumer(consumerType);
@@ -272,13 +344,34 @@ public abstract class AbstractConsumerService {
                             current.isPublic(),
                             status,
                             current.getLocalOffset(),
-                            current.getRemoteOffset(),
+                            remoteOffset != null ? remoteOffset : current.getRemoteOffset(),
                             current.getPendingSyncPhases());
             this.consumersIndex.setConsumer(updated);
             log.debug(Constants.D_LOG_CONSUMER_STATUS_SET, consumerType, status);
+            if (remoteOffset != null) {
+                log.debug(
+                        Constants.D_LOG_CONSUMER_REMOTE_OFFSET_SET,
+                        consumerType,
+                        current.getLocalOffset(),
+                        remoteOffset);
+            }
         } catch (Exception e) {
             log.warn(Constants.W_LOG_CONSUMER_STATUS_FAILED, consumerType, status, e.getMessage());
         }
+    }
+
+    /**
+     * Reads this consumer's document from {@code .wazuh-cti-consumers}.
+     *
+     * @return the document, or {@code null} if it does not exist.
+     * @throws Exception if the document cannot be read.
+     */
+    LocalConsumer readConsumerDocument() throws Exception {
+        GetResponse response = this.consumersIndex.getConsumer(this.getConsumerType());
+        if (response == null || !response.isExists()) {
+            return null;
+        }
+        return MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class);
     }
 
     /**
@@ -485,6 +578,15 @@ public abstract class AbstractConsumerService {
     }
 
     /**
+     * Returns the public aliases of this consumer's content indices.
+     *
+     * @return the alias names.
+     */
+    List<String> aliases() {
+        return this.getMappings().keySet().stream().map(this::getIndexName).toList();
+    }
+
+    /**
      * Returns whether an index holds no documents. A read failure is reported as "not empty" so a
      * transient error never triggers a full content re-download.
      *
@@ -521,15 +623,13 @@ public abstract class AbstractConsumerService {
     }
 
     /**
-     * Performs the core synchronization logic for consumer services. Retrieves local and remote
-     * consumer state, creates any missing indices with their mappings and aliases, initializes from
-     * snapshot if this is a first-time sync (offset = 0), and applies incremental updates if the
-     * remote offset is ahead.
+     * Resolves where this consumer's content comes from in a pass, and whether the pass moves it to
+     * another data source.
      *
-     * @return a {@link SyncResult} carrying whether content was updated and whether a configured feed
-     *     could not be reached.
+     * @param pass The pass, which holds the plan.
+     * @return the content source.
      */
-    private SyncResult syncConsumerServices() {
+    ContentSource resolveContentSource(SyncPass pass) {
         String consumerType = this.getConsumerType();
 
         // Resolve the snapshots directory and load the external manifest entry once up front. The
@@ -566,7 +666,7 @@ public abstract class AbstractConsumerService {
         String planResource = null;
         boolean planUnknown = false;
         try {
-            planResource = this.resolvePlanResource(consumerType);
+            planResource = pass.planResource(consumerType);
         } catch (CtiConsoleUnavailableException e) {
             log.warn(Constants.W_LOG_PLAN_RESOURCE_RESOLVE_FAILED, consumerType, e.getMessage());
             planUnknown = true;
@@ -591,9 +691,10 @@ public abstract class AbstractConsumerService {
             catalogUri = null;
         }
 
-        // When the plan provides a different resource than the existing consumer, trigger a
-        // blue/green swap instead of wiping live indices. The shadow path downloads into hidden
-        // staging indices and atomically swaps aliases once ready.
+        // When the plan provides a different resource than the existing consumer, the consumer moves
+        // to it through a blue/green swap instead of wiping live indices: the ShadowSwapService
+        // downloads into hidden staging indices and switches the aliases of every moving consumer
+        // at once.
         //
         // Two cases trigger a swap:
         //   1. Upgrade: planResource is non-null and differs from existingResource.
@@ -602,7 +703,6 @@ public abstract class AbstractConsumerService {
         //      manifest resource (free/default). This means we were on a paid plan and need to swap
         //      back to free content. Never taken when the plan lookup failed (planUnknown): a CTI
         //      outage must not downgrade a paying instance.
-        boolean shadowSwapRequired = false;
         String swapTargetResource = null;
         if (planResource != null
                 && !planResource.isBlank()
@@ -611,7 +711,6 @@ public abstract class AbstractConsumerService {
                 && !UrlUtils.isSameResource(planResource, existingResource)) {
             // Case 1: Plan upgrade or cross-plan change.
             log.debug(Constants.D_LOG_INDEX_SWAP_STARTED, consumerType, existingResource, planResource);
-            shadowSwapRequired = true;
             swapTargetResource = planResource;
             catalogUri = planResource;
         } else if (!planUnknown
@@ -627,17 +726,41 @@ public abstract class AbstractConsumerService {
                     consumerType,
                     existingResource,
                     manifestResource);
-            shadowSwapRequired = true;
             swapTargetResource = manifestResource;
             catalogUri = manifestResource;
         }
+        return new ContentSource(
+                snapshotsDir, localSnapshot, manifestEntry, catalogUri, swapTargetResource);
+    }
 
-        // Single user-facing INFO that a content-source change is being applied; the
-        // step-by-step rebuild/swap below is logged at DEBUG. Paired with the
-        // "content updated" INFO emitted once the swap completes.
-        if (shadowSwapRequired) {
-            log.info(Constants.I_LOG_CONTENT_SOURCE_CHANGED, consumerType);
+    /**
+     * Performs the core synchronization logic for consumer services. Retrieves local and remote
+     * consumer state, creates any missing indices with their mappings and aliases, initializes from
+     * snapshot if this is a first-time sync (offset = 0), and applies incremental updates if the
+     * remote offset is ahead.
+     *
+     * @param pass The pass this synchronization belongs to.
+     * @return a {@link SyncResult} carrying whether content was updated and whether a configured feed
+     *     could not be reached.
+     */
+    private SyncResult syncConsumerServices(SyncPass pass) {
+        String consumerType = this.getConsumerType();
+        ContentSource source = pass.contentSource(consumerType);
+        if (source == null) {
+            source = this.resolveContentSource(pass);
+            pass.recordContentSource(consumerType, source);
         }
+        if (source.changes() && pass.swapOutcome(consumerType) != SyncPass.SwapOutcome.SWAPPED) {
+            // Only a swap of every changing consumer at once moves a data source, so that readers
+            // never see two plans mixed. Until one succeeds, the current content stays as it is.
+            log.debug(Constants.D_LOG_SOURCE_CHANGE_PENDING, consumerType);
+            this.setConsumerStatus(LocalConsumer.Status.RUNNING);
+            return new SyncResult(false, false, false, true);
+        }
+        Path snapshotsDir = source.snapshotsDir();
+        Path localSnapshot = source.localSnapshot();
+        JsonNode manifestEntry = source.manifestEntry();
+        String catalogUri = source.catalogUri();
 
         String context = PluginSettings.getContextFromCatalogUri(catalogUri);
         String consumer = PluginSettings.getConsumerFromCatalogUri(catalogUri);
@@ -691,6 +814,21 @@ public abstract class AbstractConsumerService {
             // place the unreachable-feed condition is observable.
             boolean feedUnreachable = catalogConfigured && remoteConsumer == null;
 
+            // Mark the pass as running before anything is applied. When the remote head is known, the
+            // same write records the offset this pass syncs to, so that from the first running read
+            // the document shows the gap still to be loaded instead of the offsets of the previous
+            // pass. Only for the data source the document describes: the offsets of another one are
+            // not comparable with its local offset.
+            if (localConsumer != null
+                    && remoteConsumer != null
+                    && UrlUtils.isSameResource(localConsumer.getResource(), catalogUri)
+                    && remoteConsumer.getOffset() >= localConsumer.getLocalOffset()
+                    && remoteConsumer.getOffset() != localConsumer.getRemoteOffset()) {
+                this.setConsumerStatus(LocalConsumer.Status.RUNNING, remoteConsumer.getOffset());
+            } else {
+                this.setConsumerStatus(LocalConsumer.Status.RUNNING);
+            }
+
             Map<String, ContentIndex> indicesMap = new HashMap<>();
             for (Map.Entry<String, String> entry : this.getMappings().entrySet()) {
                 String indexName = this.getIndexName(entry.getKey());
@@ -707,37 +845,7 @@ public abstract class AbstractConsumerService {
             List<String> missingIndices = this.missingTargetIndices();
             if (!missingIndices.isEmpty()) {
                 log.error(Constants.E_LOG_SYNC_ABORTED_INDICES_MISSING, consumerType, missingIndices);
-                return new SyncResult(false, feedUnreachable, true);
-            }
-
-            // When a plan change is detected, download into hidden shadow indices and atomically
-            // swap aliases. This avoids any window where users see empty/partial data.
-            if (shadowSwapRequired) {
-                if (!this.performShadowSwap(
-                        consumerType,
-                        catalogUri,
-                        swapTargetResource,
-                        indicesMap,
-                        remoteConsumer,
-                        urlResolver)) {
-                    return new SyncResult(false, feedUnreachable, false);
-                }
-                log.info(Constants.I_LOG_CONTENT_UPDATED_NEW_SOURCE, consumerType);
-                // The swapped snapshot only carries data up to its snapshot offset. Close the gap to
-                // the remote head in the same pass; otherwise the consumer would be reported as READY
-                // while trailing the remote offset (local_offset < remote_offset) until the next sync.
-                if (remoteConsumer.getSnapshotOffset() < remoteConsumer.getOffset()) {
-                    this.performIncrementalUpdate(
-                            context,
-                            consumer,
-                            consumerType,
-                            catalogUri,
-                            urlResolver,
-                            indicesMap,
-                            remoteConsumer.getSnapshotOffset(),
-                            remoteConsumer.getOffset());
-                }
-                return new SyncResult(true, feedUnreachable, false);
+                return new SyncResult(false, feedUnreachable, true, false);
             }
 
             boolean updated = false;
@@ -992,7 +1100,7 @@ public abstract class AbstractConsumerService {
                     }
                 }
             }
-            return new SyncResult(updated, feedUnreachable, false);
+            return new SyncResult(updated, feedUnreachable, false, false);
         } finally {
             if (tokenExchangeService != null) {
                 tokenExchangeService.close();
@@ -1065,8 +1173,7 @@ public abstract class AbstractConsumerService {
                 consumerType,
                 snapshotOffset,
                 localOffset);
-        if (!this.performShadowSwap(
-                consumerType, catalogUri, catalogUri, indicesMap, remoteConsumer, urlResolver)) {
+        if (!this.performShadowSwap(catalogUri, remoteConsumer, urlResolver)) {
             log.error(Constants.E_LOG_UPDATE_FROM_SNAPSHOT_FAILED, consumerType, failedOffset);
             return false;
         }
@@ -1238,189 +1345,127 @@ public abstract class AbstractConsumerService {
     }
 
     /**
-     * Resolves the catalog resource URL from the active plan's features for the given consumer type.
-     * For registered environments, the plan is fetched from the CTI Console API and the feature
-     * matching the consumer type is used to get the resource URL.
+     * Rebuilds this consumer's content from a newer snapshot of the data source it is already on,
+     * through {@link ShadowSwapService#rebuild}: the snapshot loads into hidden staging indices and
+     * the aliases switch only once it has loaded, so the current content stays available meanwhile
+     * and is kept if the snapshot cannot be loaded.
      *
-     * @param consumerType the consumer type to look up (e.g., {@code
-     *     "cti:catalog:consumer:ruleset"}).
-     * @return the feature's resource URL, or {@code null} if not registered, the CTI Console rejected
-     *     the token, or the plan has no matching feature.
-     * @throws CtiConsoleUnavailableException if the plan of a registered environment could not be
-     *     fetched, so whether it provides a resource is unknown.
+     * @param resource The consumer's data source.
+     * @param remoteConsumer The remote consumer metadata (with snapshot link and offset).
+     * @param urlResolver The URL resolver for downloading content.
+     * @return {@code true} if the rebuilt content is live, {@code false} if the current content was
+     *     kept.
      */
-    private String resolvePlanResource(String consumerType) throws CtiConsoleUnavailableException {
-        if (!PluginSettings.getInstance().isRegistered()) {
-            return null;
+    // Package-private so tests can replace the rebuild.
+    boolean performShadowSwap(
+            String resource, RemoteConsumer remoteConsumer, ResourceUrlResolver urlResolver) {
+        if (remoteConsumer == null
+                || remoteConsumer.getSnapshotLink() == null
+                || remoteConsumer.getSnapshotLink().isBlank()) {
+            log.error(Constants.E_LOG_SHADOW_SWAP_UNAVAILABLE, this.getConsumerType());
+            return false;
         }
-        Plan plan;
-        PlansServiceImpl plansService = null;
-        try {
-            plansService = new PlansServiceImpl();
-            plan =
-                    plansService.getMyPlan(
-                            new Token(PluginSettings.getInstance().getAccessToken(), "Bearer"));
-        } catch (TokenRejectedException e) {
-            log.debug(Constants.D_LOG_PLAN_TOKEN_REJECTED, consumerType);
-            return null;
-        } catch (CtiConsoleUnavailableException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CtiConsoleUnavailableException(e.getMessage(), e);
-        } finally {
-            if (plansService != null) {
-                plansService.close();
-            }
-        }
-        if (plan == null) {
-            log.debug(Constants.D_LOG_NO_PLAN_RETURNED);
-            return null;
-        }
-        Feature feature = plan.getFeature(consumerType);
-        if (feature == null) {
-            log.debug(Constants.D_LOG_NO_FEATURE_FOR_CONSUMER, consumerType, plan.getName());
-            return null;
-        }
-        log.debug(
-                Constants.D_LOG_PLAN_PROVIDES_RESOURCE,
-                plan.getName(),
-                feature.getResource(),
-                consumerType);
-        return feature.getResource();
+        return new ShadowSwapService(this.client, this.consumersIndex)
+                .rebuild(this, resource, remoteConsumer, urlResolver);
     }
 
     /**
-     * Performs the blue/green shadow swap for a plan change. Downloads new content into hidden shadow
-     * indices, reindexes user content (draft/test/custom) from the live indices, atomically swaps all
-     * aliases, rewrites the consumer document, and deletes the old physical indices.
+     * Prepares this consumer to move to a data source in a swap: its target indices must exist, and
+     * the remote consumer of the data source must offer a snapshot to load.
      *
-     * <p>On any failure before the alias swap, shadow indices are cleaned up and the system remains
-     * on the old content. The next scheduled sync will re-detect the plan change and retry.
-     *
-     * @param consumerType The consumer type identifier.
-     * @param catalogUri The effective catalog URI (from the new plan).
-     * @param planResource The plan-provided resource URL.
-     * @param liveIndicesMap The current live ContentIndex instances (keyed by type).
-     * @param remoteConsumer The remote consumer metadata (with snapshot link and offset).
-     * @param urlResolver The URL resolver for downloading content.
-     * @return {@code true} if the swap completed successfully, {@code false} on failure.
+     * @param resource The data source the consumer moves to.
+     * @return the swap candidate, or {@code null} if the consumer cannot move in this pass. The
+     *     reason is logged.
      */
-    // Package-private so tests can replace the swap.
-    boolean performShadowSwap(
-            String consumerType,
-            String catalogUri,
-            String planResource,
-            Map<String, ContentIndex> liveIndicesMap,
+    ShadowSwapService.Candidate prepareSwap(String resource) {
+        String consumerType = this.getConsumerType();
+        List<String> missingIndices = this.missingTargetIndices();
+        if (!missingIndices.isEmpty()) {
+            log.error(Constants.E_LOG_SYNC_ABORTED_INDICES_MISSING, consumerType, missingIndices);
+            return null;
+        }
+        ResourceUrlResolver urlResolver;
+        TokenExchangeServiceImpl tokenExchangeService = null;
+        if (PluginSettings.getInstance().isRegistered()) {
+            log.debug(Constants.D_LOG_SIGNED_URL_RESOLVER, consumerType);
+            tokenExchangeService = new TokenExchangeServiceImpl();
+            urlResolver =
+                    new SignedUrlResolver(
+                            tokenExchangeService, PluginSettings.getInstance().getAccessToken());
+        } else {
+            log.debug(Constants.D_LOG_REGULAR_URL_RESOLVER, consumerType);
+            urlResolver = new RegularUrlResolver();
+        }
+        boolean prepared = false;
+        try {
+            RemoteConsumer remoteConsumer = this.fetchRemoteConsumer(resource, urlResolver);
+            if (remoteConsumer == null
+                    || remoteConsumer.getSnapshotLink() == null
+                    || remoteConsumer.getSnapshotLink().isBlank()) {
+                log.error(Constants.E_LOG_SHADOW_SWAP_UNAVAILABLE, consumerType);
+                return null;
+            }
+            prepared = true;
+            return new ShadowSwapService.Candidate(
+                    this, resource, remoteConsumer, urlResolver, tokenExchangeService);
+        } finally {
+            // A candidate closes the token exchange service once its swap ends.
+            if (!prepared && tokenExchangeService != null) {
+                tokenExchangeService.close();
+            }
+        }
+    }
+
+    /**
+     * Fetches the remote consumer of a data source.
+     *
+     * @param resource The data source.
+     * @param urlResolver The URL resolver for the request.
+     * @return the remote consumer, or {@code null} if it could not be fetched.
+     */
+    private RemoteConsumer fetchRemoteConsumer(String resource, ResourceUrlResolver urlResolver) {
+        if (this.consumerServiceOverride != null) {
+            return this.consumerServiceOverride.getRemoteConsumer();
+        }
+        ConsumerServiceImpl consumerService =
+                new ConsumerServiceImpl(
+                        PluginSettings.getContextFromCatalogUri(resource),
+                        PluginSettings.getConsumerFromCatalogUri(resource),
+                        this.getConsumerType(),
+                        resource,
+                        this.consumersIndex,
+                        new ApiClient(urlResolver));
+        try {
+            return consumerService.getRemoteConsumer();
+        } finally {
+            consumerService.close();
+        }
+    }
+
+    /**
+     * Loads the snapshot of a remote consumer into the staging indices of a swap. The consumer
+     * document is left alone: it describes the live content, which this load does not change.
+     *
+     * @param stagingIndices The staging indices, keyed by type.
+     * @param remoteConsumer The remote consumer, with the snapshot link.
+     * @param urlResolver The URL resolver for the download.
+     * @return {@code true} if the snapshot loaded in full.
+     */
+    // Package-private so tests can replace the download.
+    boolean loadStagedSnapshot(
+            Map<String, ContentIndex> stagingIndices,
             RemoteConsumer remoteConsumer,
             ResourceUrlResolver urlResolver) {
+        SnapshotServiceImpl snapshotService =
+                this.snapshotServiceOverride != null
+                        ? this.snapshotServiceOverride
+                        : SnapshotServiceImpl.forStaging(
+                                this.getConsumerType(), stagingIndices, this.environment, urlResolver);
+        return snapshotService.initialize(remoteConsumer);
+    }
 
-        if (remoteConsumer == null || remoteConsumer.getSnapshotLink() == null) {
-            log.error(Constants.E_LOG_SHADOW_SWAP_UNAVAILABLE, consumerType);
-            return false;
-        }
-
-        long timeoutSeconds = PluginSettings.getInstance().getClientTimeout();
-        Map<String, ContentIndex> shadowIndicesMap = null;
-        List<String> shadowPhysicalNames = new ArrayList<>();
-
-        // Track alias → old physical and alias → new physical for the atomic swap.
-        Map<String, String> aliasToOldPhysical = new HashMap<>();
-        Map<String, String> aliasToNewPhysical = new HashMap<>();
-
-        try {
-            // Step 1-2: Resolve shadow names and create hidden shadow indices.
-            log.debug(Constants.D_LOG_SHADOW_INDICES_CREATING, consumerType);
-            shadowIndicesMap =
-                    IndexSwapHelper.createShadowIndices(this.client, this.getMappings(), this::getIndexName);
-
-            for (Map.Entry<String, ContentIndex> entry : shadowIndicesMap.entrySet()) {
-                String type = entry.getKey();
-                ContentIndex shadowIndex = entry.getValue();
-                String aliasName = shadowIndex.getIndexName();
-                String shadowPhysical = shadowIndex.getPhysicalName();
-
-                shadowPhysicalNames.add(shadowPhysical);
-                aliasToNewPhysical.put(aliasName, shadowPhysical);
-                aliasToOldPhysical.put(
-                        aliasName, IndexSwapHelper.resolveLivePhysicalName(this.client, aliasName));
-            }
-
-            // Step 3-4: Download snapshot into shadow indices.
-            log.debug(Constants.D_LOG_SHADOW_SNAPSHOT_DOWNLOADING, consumerType, catalogUri);
-            SnapshotServiceImpl snapshotService =
-                    this.snapshotServiceOverride != null
-                            ? this.snapshotServiceOverride
-                            : new SnapshotServiceImpl(
-                                    consumerType,
-                                    shadowIndicesMap,
-                                    this.consumersIndex,
-                                    this.environment,
-                                    urlResolver);
-            boolean snapshotSuccess = snapshotService.initialize(remoteConsumer);
-            if (!snapshotSuccess) {
-                log.error(Constants.E_LOG_SHADOW_SNAPSHOT_FAILED, consumerType);
-                IndexSwapHelper.deleteIndices(this.client, shadowPhysicalNames);
-                return false;
-            }
-
-            // Step 5: Reindex user content (draft/test/custom) from live → shadow for ruleset
-            // indices.
-            if (this.hasUserContent()) {
-                Map<String, String> liveToShadow = new LinkedHashMap<>();
-                for (Map.Entry<String, String> entry : aliasToNewPhysical.entrySet()) {
-                    String aliasName = entry.getKey();
-                    liveToShadow.put(aliasToOldPhysical.get(aliasName), entry.getValue());
-                }
-                log.debug(Constants.D_LOG_REINDEX_USER_CONTENT, consumerType);
-                IndexSwapHelper.reindexUserContent(this.client, liveToShadow, timeoutSeconds);
-            }
-
-            // Allow subclasses to capture pre-swap state before aliases change.
-            this.onBeforeAliasSwap();
-
-            // Step 6-7: Unhide + atomic alias swap.
-            log.debug(Constants.D_LOG_ATOMIC_ALIAS_SWAP, consumerType);
-            IndexSwapHelper.atomicSwap(
-                    this.client, aliasToNewPhysical, aliasToOldPhysical, timeoutSeconds);
-
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_SHADOW_SWAP_FAILED_BEFORE_SWAP, consumerType, e.getMessage(), e);
-            IndexSwapHelper.deleteIndices(this.client, shadowPhysicalNames);
-            return false;
-        }
-
-        // --- Post-swap steps (alias has been swapped, point of no return) ---
-
-        // Step 8: Rewrite consumer document with new plan resource.
-        try {
-            String newContext = PluginSettings.getContextFromCatalogUri(planResource);
-            String newConsumerName = PluginSettings.getConsumerFromCatalogUri(planResource);
-            long snapshotOffset = remoteConsumer.getSnapshotOffset();
-
-            LocalConsumer newConsumer =
-                    new LocalConsumer(
-                            newContext,
-                            newConsumerName,
-                            consumerType,
-                            planResource,
-                            remoteConsumer.isPublic(),
-                            LocalConsumer.Status.RUNNING,
-                            snapshotOffset,
-                            remoteConsumer.getOffset());
-            this.consumersIndex.setConsumer(newConsumer);
-            log.debug(Constants.D_LOG_CONSUMER_DOC_REWRITTEN, consumerType, planResource, snapshotOffset);
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_CONSUMER_DOC_REWRITE_FAILED, consumerType, e.getMessage());
-        }
-
-        // Step 10: Delete old physical indices.
-        try {
-            IndexSwapHelper.deleteIndices(this.client, aliasToOldPhysical.values());
-        } catch (Exception e) {
-            log.warn(Constants.W_LOG_OLD_INDICES_DELETE_FAILED, consumerType, e.getMessage());
-        }
-
+    /** Records that a swap replaced this consumer's content, see {@link #shadowSwapPerformed}. */
+    void markShadowSwapPerformed() {
         this.shadowSwapPerformed = true;
-        return true;
     }
 }

@@ -92,6 +92,21 @@ public final class IndexSwapHelper {
     }
 
     /**
+     * Returns whether the slot the alias does not point at holds an index: the staging index of a
+     * swap that has not switched yet, or the previous index of one that has.
+     *
+     * @param client The OpenSearch client.
+     * @param aliasName The public alias name.
+     * @return true if the other slot holds an index.
+     * @throws IllegalStateException If the alias does not resolve to a recognized {@code -a} / {@code
+     *     -b} physical index.
+     */
+    public static boolean shadowIndexExists(Client client, String aliasName) {
+        String shadowPhysical = resolveShadowName(client, aliasName);
+        return client.admin().indices().prepareExists(shadowPhysical).get().isExists();
+    }
+
+    /**
      * Returns the current live physical index name that the alias points to.
      *
      * @param client The OpenSearch client.
