@@ -30,7 +30,15 @@ public interface TokenExchangeService extends ClosableHttpClient {
      *
      * @param resource the full URL of the resource to which access is requested.
      * @param accessToken the OAuth 2.0 access token previously issued to the environment.
-     * @return the HMAC-signed URL granting temporary access, or {@code null} if the exchange fails.
+     * @return the HMAC-signed URL granting temporary access, or {@code null} if {@code resource} or
+     *     {@code accessToken} is null or empty, or the CTI Console declined to sign the resource
+     *     ({@code 400 invalid_target} or {@code invalid_request}); the caller then uses the plain
+     *     URL.
+     * @throws TokenRejectedException if the CTI Console rejects the access token: {@code 401}, or
+     *     {@code 400} with the OAuth error {@code unauthorized_client}.
+     * @throws CtiConsoleUnavailableException if the exchange fails for any other reason: network
+     *     error, timeout, another error status, or an unparseable response.
      */
-    String getResourceToken(String resource, String accessToken);
+    String getResourceToken(String resource, String accessToken)
+            throws TokenRejectedException, CtiConsoleUnavailableException;
 }

@@ -67,7 +67,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -170,6 +175,50 @@ public class ContentIndex {
 
     /** Describes a single document update: the document ID, patch operations, and CTI offset. */
     public record UpdateTask(String id, List<Operation> operations, long offset) {}
+
+    /**
+     * Thrown when a CTI change cannot be applied to the stored content: its operations do not fit the
+     * stored document, typically because the document does not match the version the change was
+     * computed against, or the document does not exist. Carries the change that failed, so callers
+     * can report it rather than the change that was being processed when a batch was flushed, and can
+     * tell it from a transient failure: retrying the change fails the same way.
+     */
+    public static class PatchException extends Exception {
+        private final String id;
+        private final Long offset;
+
+        /**
+         * Constructs a new PatchException.
+         *
+         * @param id The ID of the document the change targets.
+         * @param offset The CTI offset of the change, or null if unknown.
+         * @param message Why the change could not be applied.
+         * @param cause The underlying failure, or null.
+         */
+        public PatchException(String id, Long offset, String message, Throwable cause) {
+            super(message, cause);
+            this.id = id;
+            this.offset = offset;
+        }
+
+        /**
+         * Gets the ID of the document the change targets.
+         *
+         * @return The document ID.
+         */
+        public String getId() {
+            return this.id;
+        }
+
+        /**
+         * Gets the CTI offset of the change.
+         *
+         * @return The offset, or null if unknown.
+         */
+        public Long getOffset() {
+            return this.offset;
+        }
+    }
 
     /** A synchronous call to the cluster that may fail with a checked exception. */
     @FunctionalInterface
@@ -321,6 +370,21 @@ public class ContentIndex {
      */
     public CreateIndexResponse createIndex()
             throws ExecutionException, InterruptedException, TimeoutException {
+        return this.createIndex(this.physicalName);
+    }
+
+    /**
+     * Creates the given physical index with the configured mappings and settings, and assigns the
+     * public alias to it.
+     *
+     * @param physicalName The physical index to create.
+     * @return The response from the create index operation, or null if mappings could not be read.
+     * @throws ExecutionException If the client execution fails.
+     * @throws InterruptedException If the thread is interrupted while waiting.
+     * @throws TimeoutException If the operation exceeds the client timeout setting.
+     */
+    private CreateIndexResponse createIndex(String physicalName)
+            throws ExecutionException, InterruptedException, TimeoutException {
         if (this.mappingsPath == null) {
             log.error(Constants.E_LOG_CREATE_INDEX_NO_MAPPINGS, this.indexName);
             return null;
@@ -342,7 +406,7 @@ public class ContentIndex {
         }
 
         CreateIndexRequest request =
-                new CreateIndexRequest().index(this.physicalName).mapping(mappings).settings(settings);
+                new CreateIndexRequest().index(physicalName).mapping(mappings).settings(settings);
 
         CreateIndexResponse response =
                 this.client
@@ -357,7 +421,7 @@ public class ContentIndex {
                     new IndicesAliasesRequest()
                             .addAliasAction(
                                     IndicesAliasesRequest.AliasActions.add()
-                                            .index(this.physicalName)
+                                            .index(physicalName)
                                             .alias(this.indexName)
                                             .writeIndex(true));
             this.client
@@ -365,7 +429,7 @@ public class ContentIndex {
                     .indices()
                     .aliases(aliasRequest)
                     .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            log.debug(Constants.D_LOG_INDEX_CREATED_WITH_ALIAS, this.physicalName, this.indexName);
+            log.debug(Constants.D_LOG_INDEX_CREATED_WITH_ALIAS, physicalName, this.indexName);
         }
 
         return response;
@@ -549,115 +613,158 @@ public class ContentIndex {
                         .get(new GetRequest(this.indexName, id).fetchSourceContext(excludeYaml))
                         .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         if (!response.isExists()) {
-            throw new IOException("Document [" + id + "] not found for update.");
+            throw new PatchException(id, offset, "the document was not found", null);
         }
 
-        // 2. Patch
+        // 2. Patch and process
         ObjectNode currentDoc = (ObjectNode) MAPPER.readTree(response.getSourceAsString());
+        String processedJson = this.patch(id, currentDoc, operations, offset);
 
-        // Resources from the VD feed do not contain a "document" object, so we need to patch the root
-        // document instead of the "document" node.
-        if (this.indexName.equals(Constants.INDEX_CVES)) {
-            currentDoc = (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT);
-            if (currentDoc == null) {
-                throw new IOException(
-                        "Document [" + id + "] is missing the '" + Constants.KEY_DOCUMENT + "' field.");
-            }
-        }
-
-        for (Operation op : operations) {
-            JsonNode opJson = MAPPER.valueToTree(op);
-            JsonPatch.applyOperation(currentDoc, opJson);
-        }
-
-        // 2.5. Inject offset if provided
-        if (offset != null) {
-            currentDoc.put(Constants.KEY_OFFSET, offset);
-        }
-
-        // 3. Process
-        String processedJson = this.processPayloadToString(currentDoc);
-
-        // 4. Index
+        // 3. Index
         IndexRequest request =
                 new IndexRequest(this.getWriteIndex()).id(id).source(processedJson, XContentType.JSON);
         this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**
+     * Applies the operations of one CTI change to a stored document.
+     *
+     * <p>CVE changes are relative to the CTI content, which the index keeps under {@code document},
+     * so they patch that node, and the {@code type} kept next to it is carried over.
+     *
+     * <p>The change is applied in place, so {@code stored} must be a tree parsed for this call: if an
+     * operation fails it is left partially patched and must be discarded, which callers do by
+     * propagating the exception before anything is indexed.
+     *
+     * @param id The ID of the document.
+     * @param stored The document as stored in the index, parsed for this call. Modified in place.
+     * @param operations The operations of the change.
+     * @param offset The CTI offset to store on the document, or null to leave it out.
+     * @return The patched document, processed and serialized for indexing.
+     * @throws PatchException If the operations cannot be applied to the document.
+     * @throws IOException If a CVE document has no {@code document} field.
+     */
+    private String patch(String id, ObjectNode stored, List<Operation> operations, Long offset)
+            throws PatchException, IOException {
+        boolean isCve = this.indexName.equals(Constants.INDEX_CVES);
+        JsonNode content = isCve ? stored.get(Constants.KEY_DOCUMENT) : stored;
+        if (content == null || !content.isObject()) {
+            throw new IOException(
+                    "Document [" + id + "] is missing the '" + Constants.KEY_DOCUMENT + "' field.");
+        }
+
+        try {
+            JsonPatch.apply(content, operations);
+        } catch (JsonPatch.InvalidPatchException e) {
+            throw new PatchException(id, offset, e.getMessage(), e);
+        }
+
+        ObjectNode patched = (ObjectNode) content;
+        if (offset != null) {
+            patched.put(Constants.KEY_OFFSET, offset);
+        }
+        // Cve.fromPayload moves both back to the root, as it does for the CTI payloads. A document
+        // that lost its type to an earlier update gets it back from its ID.
+        if (isCve) {
+            String type =
+                    stored.hasNonNull(Constants.KEY_TYPE)
+                            ? stored.get(Constants.KEY_TYPE).asText()
+                            : Cve.deriveType(id);
+            if (type != null) {
+                patched.put(Constants.KEY_TYPE, type);
+            }
+        }
+        return this.processPayloadToString(patched);
+    }
+
+    /**
      * Applies a batch of update tasks using a single MultiGet + BulkRequest round-trip pair.
-     * Documents whose stored offset already matches the target offset are skipped (idempotency guard
-     * for partial-failure retries).
+     *
+     * <p>A batch can hold several changes of the same document, since CTI publishes successive
+     * versions of a resource back to back. Each document is fetched and indexed once, and each of its
+     * changes is applied on top of the previous one, not on the version fetched before the batch.
+     * Changes a document already holds, because its stored offset is at or past theirs, are skipped
+     * (idempotency guard for partial-failure retries).
      *
      * @param tasks The update tasks to apply. Must not be empty.
      * @return The offset of the last successfully applied task.
+     * @throws PatchException If a task's document does not exist or its operations cannot be applied
+     *     to it. Nothing from the batch is indexed, unless the size limit already flushed part of it.
      * @throws Exception If fetching or indexing fails.
      */
     public long batchUpdate(List<UpdateTask> tasks) throws Exception {
         long timeout = this.pluginSettings.getClientTimeout();
         long maxBytes = this.pluginSettings.getMaxBulkBytes();
 
-        // 1. MultiGet all documents, excluding the derived yaml field to reduce allocation
+        // The position of each document's last change, keyed in first-seen order.
+        Map<String, Integer> lastTaskOf = new LinkedHashMap<>();
+        for (int i = 0; i < tasks.size(); i++) {
+            lastTaskOf.put(tasks.get(i).id(), i);
+        }
+        List<String> ids = new ArrayList<>(lastTaskOf.keySet());
+
+        // 1. MultiGet each document once, excluding the derived yaml field to reduce allocation
         FetchSourceContext excludeYaml =
                 new FetchSourceContext(true, new String[0], new String[] {Constants.KEY_YAML});
         MultiGetRequest mgetRequest = new MultiGetRequest();
-        for (UpdateTask task : tasks) {
-            mgetRequest.add(
-                    new MultiGetRequest.Item(this.indexName, task.id()).fetchSourceContext(excludeYaml));
+        for (String id : ids) {
+            mgetRequest.add(new MultiGetRequest.Item(this.indexName, id).fetchSourceContext(excludeYaml));
         }
         MultiGetResponse mgetResponse =
                 this.retryTransient(
-                        "multi-get of " + tasks.size() + " document(s)",
+                        "multi-get of " + ids.size() + " document(s)",
                         () -> this.client.multiGet(mgetRequest).get(timeout, TimeUnit.SECONDS));
         MultiGetItemResponse[] responses = mgetResponse.getResponses();
 
-        // 2. Stream: patch each document and flush when size limit is reached
-        BulkRequest bulkRequest = new BulkRequest();
-        boolean isCve = this.indexName.equals(Constants.INDEX_CVES);
-
-        for (int i = 0; i < tasks.size(); i++) {
-            UpdateTask task = tasks.get(i);
+        // The current version of each document: as fetched, then as patched by the batch so far.
+        Map<String, String> sources = new HashMap<>();
+        for (int i = 0; i < ids.size(); i++) {
+            String id = ids.get(i);
             MultiGetItemResponse item = responses[i];
-
             if (item.isFailed()) {
                 throw new IOException(
-                        "MultiGet failed for document [" + task.id() + "]: " + item.getFailure().getMessage());
+                        "MultiGet failed for document [" + id + "]: " + item.getFailure().getMessage());
             }
             GetResponse getResp = item.getResponse();
             if (!getResp.isExists()) {
-                throw new IOException("Document [" + task.id() + "] not found for update.");
+                long offset =
+                        tasks.stream().filter(t -> t.id().equals(id)).findFirst().orElseThrow().offset();
+                throw new PatchException(id, offset, "the document was not found", null);
+            }
+            sources.put(id, getResp.getSourceAsString());
+        }
+
+        // 2. Stream: patch each document, index it after its last change, and flush when the size
+        // limit is reached
+        Set<String> patched = new HashSet<>();
+        BulkRequest bulkRequest = new BulkRequest();
+        for (int i = 0; i < tasks.size(); i++) {
+            UpdateTask task = tasks.get(i);
+            ObjectNode currentDoc = (ObjectNode) MAPPER.readTree(sources.get(task.id()));
+
+            // Idempotency guard: skip changes the document already holds, e.g. when a sub-batch that
+            // failed after a size-limit flush is retried. Document offsets are comparable with the
+            // consumer's because every snapshot load replaces the whole index.
+            long storedOffset =
+                    currentDoc.has(Constants.KEY_OFFSET) ? currentDoc.get(Constants.KEY_OFFSET).asLong() : -1;
+            if (storedOffset < task.offset()) {
+                sources.put(task.id(), this.patch(task.id(), currentDoc, task.operations(), task.offset()));
+                patched.add(task.id());
+            } else {
+                log.debug(
+                        Constants.D_LOG_UPDATE_CHANGE_ALREADY_APPLIED, task.offset(), task.id(), storedOffset);
             }
 
-            ObjectNode currentDoc = (ObjectNode) MAPPER.readTree(getResp.getSourceAsString());
+            if (lastTaskOf.get(task.id()) == i && patched.contains(task.id())) {
+                bulkRequest.add(
+                        new IndexRequest(this.getWriteIndex())
+                                .id(task.id())
+                                .source(sources.remove(task.id()), XContentType.JSON));
 
-            // Idempotency guard: skip if already at this offset
-            if (currentDoc.has(Constants.KEY_OFFSET)
-                    && currentDoc.get(Constants.KEY_OFFSET).asLong() == task.offset()) {
-                continue;
-            }
-
-            ObjectNode patchTarget =
-                    isCve ? (ObjectNode) currentDoc.get(Constants.KEY_DOCUMENT) : currentDoc;
-            if (patchTarget == null) {
-                throw new IOException(
-                        "Document [" + task.id() + "] is missing the '" + Constants.KEY_DOCUMENT + "' field.");
-            }
-
-            for (Operation op : task.operations()) {
-                JsonNode opJson = MAPPER.valueToTree(op);
-                JsonPatch.applyOperation(patchTarget, opJson);
-            }
-            patchTarget.put(Constants.KEY_OFFSET, task.offset());
-
-            String processedJson = this.processPayloadToString(patchTarget);
-            bulkRequest.add(
-                    new IndexRequest(this.getWriteIndex())
-                            .id(task.id())
-                            .source(processedJson, XContentType.JSON));
-
-            if (bulkRequest.estimatedSizeInBytes() >= maxBytes) {
-                this.executeBulkUpdate(bulkRequest, timeout);
-                bulkRequest = new BulkRequest();
+                if (bulkRequest.estimatedSizeInBytes() >= maxBytes) {
+                    this.executeBulkUpdate(bulkRequest, timeout);
+                    bulkRequest = new BulkRequest();
+                }
             }
         }
 
@@ -1160,8 +1267,8 @@ public class ContentIndex {
     }
 
     /**
-     * Deletes all documents in the index by deleting the physical index and recreating it with the
-     * alias.
+     * Deletes all documents in the index by deleting the physical index the alias points at and
+     * recreating it, under the same name, with the alias.
      */
     public void clear() {
         if (this.mappingsPath == null) {
@@ -1169,15 +1276,32 @@ public class ContentIndex {
             return;
         }
         try {
-            boolean exists =
-                    this.client.admin().indices().prepareExists(this.physicalName).get().isExists();
+            String target = this.isShadow ? this.physicalName : this.livePhysicalName();
+            boolean exists = this.client.admin().indices().prepareExists(target).get().isExists();
             if (exists) {
-                this.client.admin().indices().prepareDelete(this.physicalName).get();
+                this.client.admin().indices().prepareDelete(target).get();
             }
-            this.createIndex();
-            log.debug(Constants.D_LOG_INDEX_WIPED_RECREATED, this.indexName, this.physicalName);
+            this.createIndex(target);
+            log.debug(Constants.D_LOG_INDEX_WIPED_RECREATED, this.indexName, target);
         } catch (Exception e) {
             log.error(Constants.E_LOG_CLEAR_INDEX_FAILED, this.indexName, e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the physical index the public alias points at. After a blue/green swap that is the
+     * other slot, not the default one this instance was built with, and recreating the default one
+     * instead would leave the alias with two write indices.
+     *
+     * @return The live physical index, or the default one if the alias does not resolve to exactly
+     *     one other index.
+     */
+    private String livePhysicalName() {
+        try {
+            String live = IndexSwapHelper.resolveLivePhysicalName(this.client, this.indexName);
+            return live.equals(this.indexName) ? this.physicalName : live;
+        } catch (Exception e) {
+            return this.physicalName;
         }
     }
 

@@ -20,15 +20,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.appender.AbstractAppender;
-import org.apache.logging.log4j.core.config.Property;
 import org.opensearch.action.search.SearchPhaseExecutionException;
 import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.cluster.block.ClusterBlockException;
-import org.opensearch.common.logging.Loggers;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.OpenSearchExecutors;
@@ -41,16 +35,15 @@ import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.CapturingAppender;
 import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -532,47 +525,5 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
         AtomicReference<Exception> secondFailure = new AtomicReference<>();
         nullEngineLoader.reloadIfChanged(ActionListener.wrap(v -> {}, secondFailure::set));
         assertNotNull(secondFailure.get());
-    }
-
-    /**
-     * Collects the events a logger emits so a test can assert on the level a message was logged at.
-     * {@code MockLogAppender} from the test framework is not usable here: it rewrites expected logger
-     * names with an {@code org.opensearch.} prefix, so it cannot match this plugin's loggers.
-     */
-    private static final class CapturingAppender extends AbstractAppender implements AutoCloseable {
-
-        private final List<LogEvent> events = new CopyOnWriteArrayList<>();
-        private final Logger logger;
-
-        private CapturingAppender(Logger logger) {
-            super("capturing-" + logger.getName(), null, null, true, Property.EMPTY_ARRAY);
-            this.logger = logger;
-        }
-
-        /**
-         * Attaches a new appender to {@code clazz}'s logger. Close it (try-with-resources) to detach:
-         * Log4j configuration is global to the JVM, so a leaked appender would follow later tests.
-         */
-        static CapturingAppender attach(Class<?> clazz) {
-            CapturingAppender appender = new CapturingAppender(LogManager.getLogger(clazz));
-            appender.start();
-            Loggers.addAppender(appender.logger, appender);
-            return appender;
-        }
-
-        @Override
-        public void append(LogEvent event) {
-            this.events.add(event.toImmutable());
-        }
-
-        long count(Level level) {
-            return this.events.stream().filter(event -> event.getLevel() == level).count();
-        }
-
-        @Override
-        public void close() {
-            Loggers.removeAppender(this.logger, this);
-            super.stop();
-        }
     }
 }

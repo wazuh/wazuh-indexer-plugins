@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.transport;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -219,5 +222,42 @@ public class TransportCreateIntegrationActionTests extends OpenSearchTestCase {
         } finally {
             PluginSettings.getInstance().setMaxIntegrations(PluginSettings.DEFAULT_MAX_INTEGRATIONS);
         }
+    }
+
+    /**
+     * The detector block describes what Wazuh's own content delivery deploys for an integration, so a
+     * request cannot supply one: it is dropped the way the rule, decoder and KVDB lists are.
+     */
+    @SuppressWarnings("unchecked")
+    public void testCreateDropsTheDetectorBlock() throws Exception {
+        SearchHits noHits =
+                new SearchHits(new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f);
+        SearchResponse noDuplicates = mock(SearchResponse.class);
+        when(noDuplicates.getHits()).thenReturn(noHits);
+        doAnswer(
+                        invocation -> {
+                            ((ActionListener<SearchResponse>) invocation.getArgument(1)).onResponse(noDuplicates);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any(ActionListener.class));
+
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode resource =
+                (ObjectNode)
+                        mapper.readTree(
+                                "{\"category\":\"security\","
+                                        + "\"metadata\":{\"title\":\"probe\",\"author\":\"Tester\"},"
+                                        + "\"detector\":{\"source\":[\".opendistro_security\"],\"enabled\":true}}");
+
+        ActionListener<com.wazuh.contentmanager.rest.model.RestResponse> listener =
+                mock(ActionListener.class);
+        this.action.validatePayload(this.client, mapper.createObjectNode(), resource, null, listener);
+
+        // A null response means the payload was accepted; anything else and the resource was never
+        // reached.
+        verify(listener).onResponse(null);
+        Assert.assertFalse(
+                "a request cannot supply a detector block", resource.has(Constants.KEY_DETECTOR));
     }
 }

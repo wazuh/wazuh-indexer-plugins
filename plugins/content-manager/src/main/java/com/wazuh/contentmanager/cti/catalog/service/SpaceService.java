@@ -917,10 +917,7 @@ public class SpaceService {
             listener.onResponse(resolved);
             return;
         }
-        findDocumentIdAsync(
-                indexName,
-                spaceName,
-                docIds.get(idx),
+        ActionListener<String> idListener =
                 ActionListener.wrap(
                         realId -> {
                             if (realId != null) {
@@ -928,7 +925,15 @@ public class SpaceService {
                             }
                             resolveDocumentIdsAsync(indexName, spaceName, docIds, idx + 1, resolved, listener);
                         },
-                        listener::onFailure));
+                        listener::onFailure);
+        if (Constants.INDEX_POLICIES.equals(indexName)) {
+            // A space has exactly one policy, so it is resolved by space alone. Resolving it by
+            // (space, document.id) leaves the write without an _id whenever the given id matches
+            // nothing, and the policy is then indexed as a second policy document for the space.
+            findPolicyIdAsync(spaceName, idListener);
+        } else {
+            findDocumentIdAsync(indexName, spaceName, docIds.get(idx), idListener);
+        }
     }
 
     /**
@@ -982,6 +987,37 @@ public class SpaceService {
                             }
                             listener.onFailure(
                                     new IOException("Failed to retrieve policy: " + e.getMessage(), e));
+                        }));
+    }
+
+    /**
+     * Asynchronously finds the real _id of a space's policy document, which is resolved by space
+     * alone since a space holds exactly one policy.
+     *
+     * @param spaceName The space name.
+     * @param listener receives the real _id, or null if the space has no policy.
+     */
+    private void findPolicyIdAsync(String spaceName, ActionListener<String> listener) {
+        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+        sourceBuilder.size(1);
+        sourceBuilder.fetchSource(false);
+        searchRequest.source(sourceBuilder);
+
+        this.client.search(
+                searchRequest,
+                ActionListener.wrap(
+                        response -> {
+                            if (response.getHits().getTotalHits().value() > 0) {
+                                listener.onResponse(response.getHits().getAt(0).getId());
+                            } else {
+                                listener.onResponse(null);
+                            }
+                        },
+                        e -> {
+                            log.error(Constants.E_LOG_GET_POLICY_FAILED, spaceName, e.getMessage());
+                            listener.onFailure(e);
                         }));
     }
 

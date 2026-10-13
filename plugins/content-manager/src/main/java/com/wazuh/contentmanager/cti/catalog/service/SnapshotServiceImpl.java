@@ -96,7 +96,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.environment = environment;
         this.pluginSettings = PluginSettings.getInstance();
         this.mapper = new ObjectMapper();
-        this.snapshotClient = new SnapshotClient(this.environment, urlResolver);
+        this.snapshotClient = new SnapshotClient(this.environment, urlResolver, consumerType);
 
         if (snapshotsDir != null && snapshotFilename != null) {
             String stableFilename = snapshotFilename.replace(".zip", Constants.STABLE_SNAPSHOT_SUFFIX);
@@ -178,7 +178,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             // 1. Download Snapshot
             snapshotZip = this.snapshotClient.downloadFile(snapshotUrl);
             if (snapshotZip == null) {
-                log.error(Constants.E_LOG_SNAPSHOT_DOWNLOAD_FAILED, snapshotUrl);
+                log.error(Constants.E_LOG_SNAPSHOT_DOWNLOAD_FAILED, this.consumerType, snapshotUrl);
                 return false;
             }
 
@@ -195,9 +195,9 @@ public class SnapshotServiceImpl implements SnapshotService {
             success = true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, this.consumerType, e.getMessage());
         } catch (Exception e) {
-            log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_SNAPSHOT_PROCESS_FAILED, this.consumerType, e.getMessage());
         }
 
         if (success) {
@@ -454,10 +454,10 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, this.consumerType, e.getMessage());
             return false;
         } catch (Exception e) {
-            log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, e.getMessage());
+            log.error(Constants.E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED, this.consumerType, e.getMessage());
             return false;
         }
 

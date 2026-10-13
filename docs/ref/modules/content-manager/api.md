@@ -96,6 +96,8 @@ YAML parsing preserves numeric type fidelity. Floating-point values like `5.0` a
 
 Stores the provided CTI access token in the `.wazuh-internal-state` hidden index and loads it into memory. If the index does not exist it is recreated automatically before writing.
 
+Once the token is stored, the node starts a content update in the background to apply the environment's plan, without waiting for the next scheduled synchronization. Each consumer whose plan provides a different data source is moved to it through a [blue/green swap](architecture.md#plan-change-handling-bluegreen-swap); the rest are updated as usual. If an update is already running, it may have looked the plan up before the token was stored, so a new one starts once it ends. The response does not wait for the update. No update is started when `plugins.content_manager.catalog.update_on_schedule` is `false`; run [`POST /update`](#trigger-manual-sync) to apply the plan.
+
 > To find out whether the current user is allowed to register, without registering, see [Check registration permission](#check-registration-permission).
 
 #### Request
@@ -197,7 +199,9 @@ The response fields are produced by the security plugin and are therefore camelC
 
 Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public plan is returned.
 
-> If the stored token is rejected by the CTI API (e.g. expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public plan as if the instance were unregistered.
+> If the CTI Console rejects the stored token with `401` (expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public plan as if the instance were unregistered.
+>
+> Any other failure to fetch the plan, such as a network error, a timeout, a `429` or a `5xx` from the CTI Console, keeps the token: the instance stays registered and the response is a `502`. Content synchronization follows the same rule: only a rejected token (`401`, or `400 unauthorized_client` from the token exchange) makes a registered instance fall back to the public content. If the plan lookup fails, the synchronization keeps the current content source and carries on with it. If the token exchange that signs the content URLs fails, the token is kept, and that synchronization pass fails as if the feed were unreachable and is retried. In neither case is the instance switched back to the public content.
 
 #### Request
 
@@ -241,10 +245,20 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
 }
 ```
 
+#### Example response (plan unavailable)
+
+```json
+{
+  "message": "Unable to retrieve the subscription plan from the CTI Console. The registration is unchanged; try again later.",
+  "status": 502
+}
+```
+
 #### Status codes
 
 - **200** — subscription status returned successfully.
 - **500** — internal error.
+- **502** — the instance is registered but its plan could not be fetched from the CTI Console. The stored token is kept; retry later.
 
 ---
 
@@ -2054,6 +2068,8 @@ Individual rollback or reconciliation step failures are logged but do not preven
 
 The `changes` object contains arrays for each content type (`policy`, `integrations`, `kvdbs`, `decoders`, `rules`, `filters`), each with `operation` and `id` fields.
 
+The `policy` entry only accepts the `update` operation, and its `id` must be the source space policy's `document.id`, as returned by the preview — any other value is rejected. A space holds exactly one policy, and the promotion updates the target space's policy in place.
+
 #### Example request
 
 ```bash
@@ -2100,7 +2116,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 #### Status codes
 
 - **200** — promotion successful.
-- **400** — invalid request body, missing `space` field, or Engine validation failure.
+- **400** — invalid request body, missing `space` field, a policy `id` that is not the space policy's `document.id`, or Engine validation failure.
 - **409** — a promoted resource already exists in the target space (use an `update` operation instead).
 - **500** — Engine communication error or internal error.
 
@@ -2156,6 +2172,8 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 ### Check available updates
 
 Returns whether there are newer versions of Wazuh available for download. The endpoint reads the current installed version from `VERSION.json` and queries the CTI API for available updates. The response includes the latest available major, minor, and patch updates when available.
+
+Every call queries CTI; nothing is cached. Calls that arrive while a check is in progress share its result. Each node rate limits its CTI queries with a token bucket. Once the bucket is empty, the endpoint answers `429` with a `Retry-After` header holding the seconds until the next check is allowed.
 
 #### Request
 
@@ -2228,9 +2246,23 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
 }
 ```
 
+#### Example response (rate limited)
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 12
+content-type: application/json; charset=UTF-8
+
+{
+  "message": "Too many version checks. Please retry in 12 seconds.",
+  "status": 429
+}
+```
+
 #### Status codes
 
 - **200** — version check completed (may include updates or empty).
+- **429** — rate limit exhausted on this node; retry after the `Retry-After` seconds.
 - **500** — unable to determine version or internal error.
 - **502** — CTI API returned an error.
 
