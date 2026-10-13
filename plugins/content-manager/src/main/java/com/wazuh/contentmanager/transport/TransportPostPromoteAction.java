@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.transport;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
@@ -157,8 +158,14 @@ public class TransportPostPromoteAction
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             String message = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
             listener.onResponse(new MessageStatusResponse(message, RestStatus.BAD_REQUEST));
-        } catch (IOException e) {
-            respondWithError(listener, e);
+        } catch (JsonProcessingException e) {
+            // A body that is not JSON, an unknown key, or a field of the wrong shape. These are
+            // the caller's errors, not the server's, and the Jackson message leaks class names,
+            // so they get a 400 with the generic validation message (#1668). This is the only
+            // IOException readValue can throw from a String, so no broader catch is needed.
+            log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
+            listener.onResponse(
+                    new MessageStatusResponse(Constants.E_400_INVALID_REQUEST_BODY, RestStatus.BAD_REQUEST));
         }
     }
 
@@ -480,10 +487,59 @@ public class TransportPostPromoteAction
                         listener::onFailure);
 
         if (resourceType.equals(Constants.KEY_POLICY)) {
-            this.spaceService.getPolicy(sourceSpace, docListener);
+            processPolicyUpdateAsync(resourceId, sourceSpace, docListener);
         } else {
             this.spaceService.getDocumentAsync(indexName, sourceSpace, resourceId, docListener);
         }
+    }
+
+    /**
+     * Loads the source space's policy for promotion, rejecting the request when its {@code id} is not
+     * that policy's {@code document.id} — the id the promotion preview hands out.
+     *
+     * <p>The policy itself is resolved by space, so the {@code id} plays no part in what gets
+     * promoted — but the consolidation step used to resolve the target document by (space, {@code
+     * document.id}), and an {@code id} that matched nothing there indexed the promoted policy as a
+     * second policy document for the target space, which the managers' engine content sync then
+     * rejects ("expected 1, got 2") on every cycle with nothing reported to the caller
+     * (wazuh-indexer#2006). The write path now resolves the target policy by space too, so the only
+     * thing a mismatched {@code id} can mean is a broken client, and it is answered with a 400.
+     */
+    private void processPolicyUpdateAsync(
+            String resourceId, String sourceSpace, ActionListener<Map<String, Object>> docListener) {
+        this.spaceService.getPolicy(
+                sourceSpace,
+                ActionListener.wrap(
+                        (Map<String, Object> sourcePolicy) -> {
+                            if (sourcePolicy == null) {
+                                docListener.onResponse(null);
+                                return;
+                            }
+                            String policyId = documentIdOf(sourcePolicy);
+                            if (!resourceId.equals(policyId)) {
+                                docListener.onFailure(
+                                        new OpenSearchStatusException(
+                                                String.format(
+                                                        Locale.ROOT,
+                                                        Constants.E_400_POLICY_ID_MISMATCH,
+                                                        resourceId,
+                                                        sourceSpace,
+                                                        policyId),
+                                                RestStatus.BAD_REQUEST));
+                                return;
+                            }
+                            docListener.onResponse(sourcePolicy);
+                        },
+                        docListener::onFailure));
+    }
+
+    /** Returns the {@code document.id} of a resource, or {@code null} when it has none. */
+    private static String documentIdOf(Map<String, Object> source) {
+        if (source.get(Constants.KEY_DOCUMENT) instanceof Map<?, ?> document) {
+            Object id = document.get(Constants.KEY_ID);
+            return id instanceof String ? (String) id : null;
+        }
+        return null;
     }
 
     private void processRemoveAsync(
@@ -1339,7 +1395,16 @@ public class TransportPostPromoteAction
     }
 
     private void validatePromoteRequest(SpaceDiff spaceDiff) {
+        if (spaceDiff == null) {
+            // "null" is valid JSON, so readValue returns null instead of throwing (#1668).
+            throw new IllegalArgumentException(Constants.E_400_INVALID_REQUEST_BODY);
+        }
         Space sourceSpace = spaceDiff.getSpace();
+        if (sourceSpace == null) {
+            // {} and {"space": null} parse fine, but are invalid.
+            throw new IllegalArgumentException(
+                    String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_SPACE));
+        }
         Space targetSpace = sourceSpace.promote();
 
         if (sourceSpace == targetSpace) {
@@ -1360,6 +1425,27 @@ public class TransportPostPromoteAction
                 || changes.getRules() == null) {
             throw new IllegalArgumentException(
                     "All resource type lists (policy, integrations, kvdbs, decoders, filters, rules) are required in changes");
+        }
+
+        // Each item needs an operation and an id; a missing one would otherwise surface later as a
+        // NullPointerException and a 500 (#1668). Must run before any item is dereferenced, the
+        // policy loop below included.
+        for (List<SpaceDiff.OperationItem> items :
+                List.of(
+                        changes.getPolicy(),
+                        changes.getIntegrations(),
+                        changes.getKvdbs(),
+                        changes.getDecoders(),
+                        changes.getFilters(),
+                        changes.getRules())) {
+            for (SpaceDiff.OperationItem item : items) {
+                if (item == null
+                        || item.getOperation() == null
+                        || item.getId() == null
+                        || item.getId().isBlank()) {
+                    throw new IllegalArgumentException(Constants.E_400_INVALID_REQUEST_BODY);
+                }
+            }
         }
 
         for (SpaceDiff.OperationItem item : changes.getPolicy()) {

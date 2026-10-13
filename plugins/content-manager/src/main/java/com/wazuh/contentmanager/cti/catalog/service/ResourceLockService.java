@@ -30,10 +30,12 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ContextPreservingActionListener;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -44,6 +46,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -86,6 +89,37 @@ public class ResourceLockService {
 
     private final Client client;
     private final ThreadPool threadPool;
+
+    /**
+     * The locks this node took with {@link #tryAcquireOnce(String, ActionListener)} and has not
+     * released yet, so renewing and releasing can be conditioned on the document still being the
+     * version this node last wrote. A lock missing from here is not this node's to renew.
+     */
+    private final Map<String, HeldLock> heldLocks = new ConcurrentHashMap<>();
+
+    /**
+     * A lock this node holds: the version of the document as this node last wrote it, and the state
+     * of its renewal. Guarded by its own monitor, together with its presence in {@link #heldLocks}.
+     */
+    private static final class HeldLock {
+        private long seqNo;
+        private long primaryTerm;
+
+        /**
+         * Whether a renewal is in flight. Only one is sent at a time: a second one would carry the same
+         * version as the first, and be rejected once the first one lands, as if another node had taken
+         * the lock over.
+         */
+        private boolean renewing;
+
+        /** The release requested while a renewal was in flight, sent once that renewal completes. */
+        private Runnable pendingRelease;
+
+        private HeldLock(long seqNo, long primaryTerm) {
+            this.seqNo = seqNo;
+            this.primaryTerm = primaryTerm;
+        }
+    }
 
     /**
      * Constructor.
@@ -269,7 +303,11 @@ public class ResourceLockService {
             this.client.index(
                     lockRequest(lockId),
                     ActionListener.wrap(
-                            response -> listener.onResponse(true),
+                            response -> {
+                                this.heldLocks.put(
+                                        lockId, new HeldLock(response.getSeqNo(), response.getPrimaryTerm()));
+                                listener.onResponse(true);
+                            },
                             e -> {
                                 if (ExceptionsHelper.unwrap(e, VersionConflictEngineException.class) == null) {
                                     listener.onFailure(e);
@@ -303,14 +341,110 @@ public class ResourceLockService {
      * @param lockId The lock document ID.
      */
     public void renew(String lockId) {
-        try (ThreadContext.StoredContext ignored = this.stashContext()) {
-            this.client.update(
-                    new UpdateRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
-                            .doc(Map.of(ACQUIRED_AT_FIELD, Instant.now().toEpochMilli())),
-                    ActionListener.wrap(
-                            response -> {},
-                            e -> log.warn("Failed to renew lock [{}]: {}", lockId, e.getMessage())));
+        this.renew(lockId, () -> {});
+    }
+
+    /**
+     * Refreshes a lock, only while it is still the version this node took. Unconditional, the renewal
+     * keeps alive a lock another node has taken over, and its holder never finds out it lost it.
+     *
+     * <p>At most one renewal of a lock is in flight. One requested before the previous one completed
+     * is skipped: it would carry the same version, and the first one landing would make it fail as if
+     * the lock had been taken over. A lock this node does not hold, because it never took it or has
+     * released it, is not renewed.
+     *
+     * @param lockId The lock document ID.
+     * @param onLockLost Run when a renewal finds the lock is no longer this node's. No later renewal
+     *     can succeed, so the caller is expected to stop renewing.
+     */
+    public void renew(String lockId, Runnable onLockLost) {
+        HeldLock held = this.heldLocks.get(lockId);
+        if (held == null) {
+            log.debug("Lock [{}] is not held by this node; not renewing it.", lockId);
+            return;
         }
+        UpdateRequest request;
+        synchronized (held) {
+            if (this.heldLocks.get(lockId) != held) {
+                log.debug("Lock [{}] was released; not renewing it.", lockId);
+                return;
+            }
+            if (held.renewing) {
+                log.debug("Previous renewal of lock [{}] has not completed; skipping this one.", lockId);
+                return;
+            }
+            held.renewing = true;
+            request =
+                    new UpdateRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
+                            .doc(Map.of(ACQUIRED_AT_FIELD, Instant.now().toEpochMilli()))
+                            .setIfSeqNo(held.seqNo)
+                            .setIfPrimaryTerm(held.primaryTerm);
+        }
+        ActionListener<UpdateResponse> listener =
+                ActionListener.wrap(
+                        response -> this.endRenewal(held, response),
+                        e -> {
+                            try {
+                                if (isLockLost(e)) {
+                                    log.warn(
+                                            "Lock [{}] is no longer held by this node, stopping its renewal: {}",
+                                            lockId,
+                                            ExceptionsHelper.unwrapCause(e).getMessage());
+                                    onLockLost.run();
+                                } else {
+                                    // The cause, not the message: on a RemoteTransportException the
+                                    // message is only [node][address][action].
+                                    log.warn(
+                                            "Failed to renew lock [{}]: {}",
+                                            lockId,
+                                            ExceptionsHelper.unwrapCause(e).getMessage(),
+                                            e);
+                                }
+                            } finally {
+                                // The version stays as it was, so the release is still rejected if
+                                // the lock was taken over, instead of deleting the new holder's.
+                                this.endRenewal(held, null);
+                            }
+                        });
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            this.client.update(request, listener);
+        } catch (Exception e) {
+            // Left in flight, the renewal would block every later one and the release.
+            listener.onFailure(e);
+        }
+    }
+
+    /**
+     * Ends the renewal in flight and sends the release that was waiting for it, if any.
+     *
+     * @param held The lock that was being renewed.
+     * @param written The response of the renewal, to take the new version from; null if it failed.
+     */
+    private void endRenewal(HeldLock held, UpdateResponse written) {
+        Runnable pendingRelease;
+        synchronized (held) {
+            if (written != null) {
+                held.seqNo = written.getSeqNo();
+                held.primaryTerm = written.getPrimaryTerm();
+            }
+            held.renewing = false;
+            pendingRelease = held.pendingRelease;
+            held.pendingRelease = null;
+        }
+        if (pendingRelease != null) {
+            pendingRelease.run();
+        }
+    }
+
+    /**
+     * Whether a failed renewal means the lock is no longer this node's: the document is now another
+     * version, or it is gone. Either way no later renewal can succeed, since a renewal never creates
+     * the document.
+     */
+    private static boolean isLockLost(Exception e) {
+        return ExceptionsHelper.unwrap(
+                        e, VersionConflictEngineException.class, DocumentMissingException.class)
+                != null;
     }
 
     /**
@@ -330,27 +464,82 @@ public class ResourceLockService {
      * whatever its outcome. Lets a caller that takes the same lock again right away wait for the
      * document to be gone, instead of finding it still there. Failures are logged and swallowed.
      *
+     * <p>Only deletes the version this node took. Unconditional, a holder that lost the lock deletes
+     * the new holder's and leaves it free while a pass is still running. A release requested while a
+     * renewal is in flight waits for it, and deletes the version it wrote.
+     *
      * @param lockId The lock document ID.
      * @param onReleased Run exactly once, after the delete succeeded or failed.
      */
     public void release(String lockId, Runnable onReleased) {
-        try (ThreadContext.StoredContext ignored = this.stashContext()) {
-            this.client.delete(
-                    new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
-                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
-                    new ActionListener<>() {
-                        @Override
-                        public void onResponse(DeleteResponse response) {
-                            onReleased.run();
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.warn("Failed to release lock [{}]: {}", lockId, e.getMessage());
-                            onReleased.run();
-                        }
-                    });
+        HeldLock held = this.heldLocks.get(lockId);
+        if (held == null) {
+            // A lock this node did not take leaves the delete unconditional, as it was before. This is
+            // the path the resource-creation locks take.
+            this.deleteLock(lockId, deleteRequest(lockId), onReleased);
+            return;
         }
+        synchronized (held) {
+            this.heldLocks.remove(lockId, held);
+            if (held.renewing) {
+                // Sent now, the delete would carry the version that renewal is about to replace, and be
+                // rejected once it lands: the lock would stay behind, held by nobody, until it goes
+                // stale.
+                log.debug("Release of lock [{}] waits for its renewal in flight.", lockId);
+                held.pendingRelease = () -> this.deleteHeldLock(lockId, held, onReleased);
+                return;
+            }
+        }
+        this.deleteHeldLock(lockId, held, onReleased);
+    }
+
+    /** Deletes a lock this node holds, only while it is still the version this node last wrote. */
+    private void deleteHeldLock(String lockId, HeldLock held, Runnable onReleased) {
+        DeleteRequest request = deleteRequest(lockId);
+        synchronized (held) {
+            request.setIfSeqNo(held.seqNo).setIfPrimaryTerm(held.primaryTerm);
+        }
+        this.deleteLock(lockId, request, onReleased);
+    }
+
+    private void deleteLock(String lockId, DeleteRequest request, Runnable onReleased) {
+        ActionListener<DeleteResponse> listener =
+                ActionListener.notifyOnce(
+                        new ActionListener<>() {
+                            @Override
+                            public void onResponse(DeleteResponse response) {
+                                onReleased.run();
+                            }
+
+                            @Override
+                            public void onFailure(Exception e) {
+                                if (ExceptionsHelper.unwrap(e, VersionConflictEngineException.class) != null) {
+                                    log.debug("Lock [{}] was taken over before this node released it.", lockId);
+                                } else {
+                                    log.warn("Failed to release lock [{}]: {}", lockId, e.getMessage());
+                                }
+                                onReleased.run();
+                            }
+                        });
+        try (ThreadContext.StoredContext ignored = this.stashContext()) {
+            this.client.delete(request, listener);
+        } catch (Exception e) {
+            // A release sent once a renewal lands has no caller left to catch this.
+            listener.onFailure(e);
+        }
+    }
+
+    private static DeleteRequest deleteRequest(String lockId) {
+        return new DeleteRequest(Constants.INDEX_RESOURCE_LOCKS, lockId)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+    }
+
+    private static IndexRequest lockRequest(String lockId) {
+        return new IndexRequest(Constants.INDEX_RESOURCE_LOCKS)
+                .id(lockId)
+                .source(Map.of(ACQUIRED_AT_FIELD, Instant.now().toEpochMilli()))
+                .opType(DocWriteRequest.OpType.CREATE)
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     }
 
     private static IndexRequest lockRequest(String lockId) {

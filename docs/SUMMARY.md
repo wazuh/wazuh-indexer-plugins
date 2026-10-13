@@ -11,7 +11,7 @@
 - [Build from sources](dev/build-sources.md)
 - [Run from sources](dev/run-sources.md)
 - [Run tests](dev/run-tests.md)
-- [Credential and TLS resolution](dev/credentials.md)
+- [Packages](dev/packages.md)
 - [Plugins]()
   - [Setup](dev/plugins/setup.md)
   - [Security](dev/plugins/security.md)
@@ -28,7 +28,7 @@
   - [Performance tuning](dev/skills/perf-tuning.md)
 
 # Reference manual
-- [Introduction]()
+- [Introduction](ref/index.md)
   - [Description](ref/description.md)
   - [Architecture](ref/architecture.md)
   - [Compatibility](ref/compatibility.md)

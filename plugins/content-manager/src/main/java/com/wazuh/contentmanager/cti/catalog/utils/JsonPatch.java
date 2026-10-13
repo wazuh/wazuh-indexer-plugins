@@ -17,347 +17,138 @@
 package com.wazuh.contentmanager.cti.catalog.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
 
+import com.flipkart.zjsonpatch.CompatibilityFlags;
+import com.flipkart.zjsonpatch.JsonPatchApplicationException;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 
 /**
- * Utility class for applying JSON Patch operations to JSON documents using Jackson.
+ * Applies the operations of a CTI change, which are JSON Patch (RFC 6902) operations, to a JSON
+ * document.
  *
- * <p>This class provides methods to apply various JSON Patch operations such as add, remove,
- * replace, move, copy, and test.
+ * <p>Delegates to zjsonpatch, configured to follow the RFC strictly: an operation whose target
+ * location does not exist fails.
  *
- * <p>Operations that cannot be applied throw an exception describing the failure; callers are
- * responsible for logging it with the appropriate context.
+ * <p>The operations are applied in place: the document is not copied, so a change costs what it
+ * modifies, whatever the size of the document. If an operation fails, the ones before it have
+ * already been applied, so the caller must discard the document rather than store it. A replacement
+ * of the whole document, which zjsonpatch cannot do in place, is handled here.
  */
-public class JsonPatch {
+public final class JsonPatch {
 
-    private static final Logger log = LogManager.getLogger(JsonPatch.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
-     * Applies a single JSON Patch operation to a document.
-     *
-     * @param document The target JSON document.
-     * @param operation The JSON Patch operation.
+     * RFC 6902 behaviour. zjsonpatch skips the removal of a missing object member unless told
+     * otherwise; every other operation on a missing location fails by default.
      */
-    public static void applyOperation(ObjectNode document, JsonNode operation) {
-        String op = operation.get(Operation.OP).asText();
-        String path = operation.get(Operation.PATH).asText();
-        JsonNode value = operation.has(Operation.VALUE) ? operation.get(Operation.VALUE) : null;
-        String from = operation.has(Operation.FROM) ? operation.get(Operation.FROM).asText() : null;
+    private static final EnumSet<CompatibilityFlags> STRICT =
+            EnumSet.of(CompatibilityFlags.FORBID_REMOVE_MISSING_OBJECT);
 
-        switch (op) {
-            case "add":
-                JsonPatch.addOperation(document, path, value);
-                break;
-            case "remove":
-                JsonPatch.removeOperation(document, path);
-                break;
-            case "replace":
-                JsonPatch.replaceOperation(document, path, value);
-                break;
-            case "move":
-                JsonPatch.moveOperation(document, from, path);
-                break;
-            case "copy":
-                JsonPatch.copyOperation(document, from, path);
-                break;
-            case "test":
-                JsonPatch.testOperation(document, path, value);
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported JSON Patch operation: " + op);
+    /** The operations that take a value, which can be a JSON null. */
+    private static final Set<String> VALUE_OPERATIONS = Set.of("add", "replace", "test");
+
+    private JsonPatch() {}
+
+    /** Thrown when an operation of a change is malformed or cannot be applied to the document. */
+    public static class InvalidPatchException extends Exception {
+        /**
+         * Constructs a new InvalidPatchException.
+         *
+         * @param message Which operation failed, and why.
+         * @param cause The library's failure.
+         */
+        public InvalidPatchException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 
     /**
-     * Handles the "add" operation.
+     * Applies the operations of one change, in order, to a document, in place.
      *
-     * @param document The target JSON document.
-     * @param path The JSON path where the value should be added.
-     * @param value The value to be added.
+     * @param document The document to patch. It is modified in place, and left partially patched if
+     *     an operation fails.
+     * @param operations The operations of the change.
+     * @throws InvalidPatchException If an operation is malformed or cannot be applied. The message
+     *     names the operation, by its position in the change, and its path.
      */
-    private static void addOperation(ObjectNode document, String path, JsonNode value) {
-        if (path.isEmpty()) {
-            document.removeAll();
-            if (value != null && value.isObject()) {
-                document.setAll((ObjectNode) value);
-            }
-            return;
-        }
-
-        JsonNode target = JsonPatch.navigateToParent(document, path);
-        String key = JsonPatch.extractKeyFromPath(path);
-
-        if (target instanceof ObjectNode objNode) {
-            objNode.set(key, value);
-        } else if (target instanceof ArrayNode arrayNode) {
-            if ("-".equals(key)) {
-                arrayNode.add(value);
-            } else {
-                try {
-                    int index = Integer.parseInt(key);
-                    if (index >= 0 && index <= arrayNode.size()) {
-                        arrayNode.insert(index, value);
-                    } else {
-                        throw new IndexOutOfBoundsException("Index out of bounds for add operation: " + index);
-                    }
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Invalid array index for add operation: " + key);
-                }
-            }
-        } else {
-            throw new IllegalArgumentException("Target for add operation is not a container");
-        }
-    }
-
-    /**
-     * Handles the "remove" operation.
-     *
-     * @param document The target JSON document.
-     * @param path The JSON path where the value should be removed.
-     */
-    private static void removeOperation(ObjectNode document, String path) {
-        if (path.isEmpty()) {
-            document.removeAll();
-            return;
-        }
-
-        JsonNode target = JsonPatch.navigateToParent(document, path);
-        String key = JsonPatch.extractKeyFromPath(path);
-
-        if (target == null) {
-            log.warn("Skipping remove operation: parent path not found for {}", path);
-            return;
-        }
-
-        if (target instanceof ObjectNode objNode) {
-            if (!objNode.has(key)) {
-                log.warn("Skipping remove operation: path not found {}", path);
-                return;
-            }
-            objNode.remove(key);
-        } else if (target instanceof ArrayNode arrayNode) {
+    public static void apply(JsonNode document, List<Operation> operations)
+            throws InvalidPatchException {
+        for (int i = 0; i < operations.size(); i++) {
+            Operation operation = operations.get(i);
             try {
-                int index = Integer.parseInt(key);
-                if (index >= 0 && index < arrayNode.size()) {
-                    arrayNode.remove(index);
+                if (replacesDocument(operation)) {
+                    replaceDocument(document, operation);
                 } else {
-                    log.warn(
-                            "Skipping remove operation: index [{}] out of bounds (size: {}) for {}",
-                            index,
-                            arrayNode.size(),
-                            path);
+                    ArrayNode patch = MAPPER.createArrayNode().add(toJson(operation));
+                    com.flipkart.zjsonpatch.JsonPatch.applyInPlace(patch, document, STRICT);
                 }
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid array index for remove operation: " + key);
+            } catch (JsonPatchApplicationException | IllegalArgumentException e) {
+                throw new InvalidPatchException(
+                        "operation "
+                                + i
+                                + " ("
+                                + operation.getOp()
+                                + " "
+                                + operation.getPath()
+                                + "): "
+                                + e.getMessage(),
+                        e);
             }
-        } else {
-            log.warn("Skipping remove operation: target is not a container for {}", path);
         }
     }
 
     /**
-     * Handles the "replace" operation. Per RFC 6902 section 4.3 the target location MUST exist;
-     * unlike {@link #removeOperation}, this method throws when the path is absent so that a missing
-     * field is never silently added.
+     * Whether an operation replaces the whole document: an {@code add} or {@code replace} of the root
+     * ({@code path ""}). CTI publishes a new version of a resource this way.
      *
-     * @param document The target JSON document.
-     * @param path The JSON path where the value should be replaced.
-     * @param value The new value to be added.
+     * @param operation The operation.
+     * @return {@code true} if it replaces the whole document.
      */
-    private static void replaceOperation(ObjectNode document, String path, JsonNode value) {
-        if (!path.isEmpty()) {
-            JsonNode target = JsonPatch.navigateToParent(document, path);
-            String key = JsonPatch.extractKeyFromPath(path);
-            if (target == null
-                    || (target.isObject() && !((ObjectNode) target).has(key))
-                    || (target.isArray() && Integer.parseInt(key) >= target.size())) {
-                throw new IllegalArgumentException("Path not found for replace operation: " + path);
-            }
-        }
-        JsonPatch.removeOperation(document, path);
-        JsonPatch.addOperation(document, path, value);
+    private static boolean replacesDocument(Operation operation) {
+        return "".equals(operation.getPath())
+                && ("add".equals(operation.getOp()) || "replace".equals(operation.getOp()));
     }
 
     /**
-     * Handles the "move" operation.
+     * Replaces the whole document in place. zjsonpatch cannot do it, since the caller holds the
+     * reference to the root: the root object is emptied and filled with the new value's members.
      *
-     * @param document The target JSON document.
-     * @param fromPath The JSON path from where the value should be moved.
-     * @param toPath The JSON path where the value should be moved.
+     * @param document The document.
+     * @param operation An {@code add} or {@code replace} of the root.
+     * @throws IllegalArgumentException If the document or the new value is not a JSON object.
      */
-    private static void moveOperation(ObjectNode document, String fromPath, String toPath) {
-        JsonNode parent = JsonPatch.navigateToParent(document, fromPath);
-        if (parent == null) {
-            throw new IllegalArgumentException("Invalid 'from' path for move operation: " + fromPath);
+    private static void replaceDocument(JsonNode document, Operation operation) {
+        JsonNode value = MAPPER.valueToTree(operation.getValue());
+        if (!document.isObject() || value == null || !value.isObject()) {
+            throw new IllegalArgumentException("the document can only be replaced by a JSON object");
         }
-
-        String key = JsonPatch.extractKeyFromPath(fromPath);
-        JsonNode value = null;
-
-        if (parent.isObject()) {
-            if (!parent.has(key)) {
-                throw new IllegalArgumentException(
-                        "Source key '"
-                                + key
-                                + "' does not exist in 'from' path '"
-                                + fromPath
-                                + "', in move operation");
-            }
-            value = parent.get(key);
-        } else if (parent.isArray()) {
-            try {
-                int index = Integer.parseInt(key);
-                ArrayNode array = (ArrayNode) parent;
-                if (index >= 0 && index < array.size()) {
-                    value = array.get(index);
-                } else {
-                    throw new IndexOutOfBoundsException("Index out of bounds for move operation: " + index);
-                }
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid array index for move operation: " + key);
-            }
-        }
-
-        if (value == null) {
-            throw new IllegalArgumentException("Could not retrieve value to move from: " + fromPath);
-        }
-
-        JsonPatch.removeOperation(document, fromPath);
-        JsonPatch.addOperation(document, toPath, value);
+        ((ObjectNode) document).removeAll().setAll((ObjectNode) value);
     }
 
     /**
-     * Handles the "copy" operation.
+     * Converts an operation to its JSON Patch form.
      *
-     * @param document The target JSON document.
-     * @param fromPath The JSON path from where the value should be copied.
-     * @param toPath The JSON path where the value should be copied.
+     * @param operation The operation.
+     * @return The operation as a JSON object.
      */
-    private static void copyOperation(ObjectNode document, String fromPath, String toPath) {
-        JsonNode parent = JsonPatch.navigateToParent(document, fromPath);
-        if (parent == null) {
-            throw new IllegalArgumentException("Invalid 'from' path for copy operation: " + fromPath);
+    private static ObjectNode toJson(Operation operation) {
+        ObjectNode node = MAPPER.createObjectNode();
+        node.put(Operation.OP, operation.getOp());
+        node.put(Operation.PATH, operation.getPath());
+        if (operation.getFrom() != null) {
+            node.put(Operation.FROM, operation.getFrom());
         }
-
-        String fromKey = JsonPatch.extractKeyFromPath(fromPath);
-        JsonNode valueToCopy = null;
-
-        if (parent.isObject()) {
-            if (!parent.has(fromKey)) {
-                throw new IllegalArgumentException(
-                        "Source key '"
-                                + fromKey
-                                + "' does not exist in 'from' path '"
-                                + fromPath
-                                + "', in copy operation");
-            }
-            valueToCopy = parent.get(fromKey);
-        } else if (parent.isArray()) {
-            try {
-                int index = Integer.parseInt(fromKey);
-                ArrayNode array = (ArrayNode) parent;
-                if (index >= 0 && index < array.size()) {
-                    valueToCopy = array.get(index);
-                } else {
-                    throw new IndexOutOfBoundsException("Index out of bounds for copy operation: " + index);
-                }
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid array index for copy operation: " + fromKey);
-            }
+        if (operation.getOp() != null && VALUE_OPERATIONS.contains(operation.getOp())) {
+            node.set(Operation.VALUE, MAPPER.valueToTree(operation.getValue()));
         }
-
-        if (valueToCopy == null) {
-            throw new IllegalArgumentException("Could not retrieve value to copy from: " + fromPath);
-        }
-
-        JsonNode copiedValue = valueToCopy.deepCopy();
-        JsonPatch.addOperation(document, toPath, copiedValue);
-    }
-
-    /**
-     * Handles the "test" operation.
-     *
-     * @param document The target JSON document.
-     * @param path The JSON path where the value should be tested.
-     * @param value The expected value to be tested against.
-     * @throws IllegalArgumentException if the value does not match.
-     */
-    private static void testOperation(ObjectNode document, String path, JsonNode value) {
-        JsonNode target = JsonPatch.navigateToParent(document, path);
-        if (target == null) {
-            throw new IllegalArgumentException("Path not found for test operation: " + path);
-        }
-
-        String key = JsonPatch.extractKeyFromPath(path);
-        JsonNode actual = null;
-
-        if (target instanceof ObjectNode) {
-            actual = target.get(key);
-        } else if (target instanceof ArrayNode array) {
-            try {
-                int index = Integer.parseInt(key);
-                if (index >= 0 && index < array.size()) {
-                    actual = array.get(index);
-                } else {
-                    throw new IndexOutOfBoundsException("Index out of bounds for test operation: " + index);
-                }
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Invalid array index for test operation: " + key);
-            }
-        }
-
-        if (actual == null || !actual.equals(value)) {
-            throw new IllegalArgumentException("Test operation failed: value does not match");
-        }
-    }
-
-    /**
-     * Navigates to the parent JSON element based on the given path.
-     *
-     * @param document The target JSON document.
-     * @param path The JSON path to navigate.
-     * @return The parent JSON element.
-     */
-    private static JsonNode navigateToParent(ObjectNode document, String path) {
-        String[] parts = path.split("/");
-        JsonNode current = document;
-
-        for (int i = 1; i < parts.length - 1; i++) {
-            String part = parts[i];
-            if (current == null) {
-                return null;
-            }
-
-            if (current instanceof ObjectNode obj) {
-                current = obj.has(part) ? obj.get(part) : null;
-            } else if (current instanceof ArrayNode arr) {
-                try {
-                    int index = Integer.parseInt(part);
-                    current = (index >= 0 && index < arr.size()) ? arr.get(index) : null;
-                } catch (NumberFormatException e) {
-                    return null;
-                }
-            } else {
-                return null;
-            }
-        }
-        return current;
-    }
-
-    /**
-     * Extracts the last key from the JSON path.
-     *
-     * @param path The JSON path.
-     * @return The last key in the path.
-     */
-    private static String extractKeyFromPath(String path) {
-        String[] parts = path.split("/");
-        return parts[parts.length - 1];
+        return node;
     }
 }

@@ -16,20 +16,19 @@
  */
 package com.wazuh.contentmanager.cti.catalog.utils;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import org.opensearch.test.OpenSearchIntegTestCase;
 import org.opensearch.test.OpenSearchTestCase;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import java.util.List;
+import java.util.Map;
+
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 
-/** Tests for the JsonPatch utility class. Validates JSON Patch operations. */
-@OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
+/** Tests for the JsonPatch utility class. Validates JSON Patch (RFC 6902) operations. */
 public class JsonPatchTests extends OpenSearchTestCase {
 
     private ObjectMapper mapper;
@@ -41,292 +40,281 @@ public class JsonPatchTests extends OpenSearchTestCase {
         this.mapper = new ObjectMapper();
     }
 
-    @After
-    @Override
-    public void tearDown() throws Exception {
-        super.tearDown();
+    private JsonNode json(String json) throws Exception {
+        return this.mapper.readTree(json.replace('\'', '"'));
+    }
+
+    private static Operation op(String op, String path, Object value) {
+        return new Operation(op, path, null, value);
+    }
+
+    private static Operation fromOp(String op, String from, String path) {
+        return new Operation(op, path, from, null);
+    }
+
+    /** Applies the operations to the document, which is patched in place, and returns it. */
+    private static JsonNode patch(JsonNode document, List<Operation> operations)
+            throws JsonPatch.InvalidPatchException {
+        JsonPatch.apply(document, operations);
+        return document;
     }
 
     /** Test the add operation */
-    public void testApplyOperationAdd() {
-        ObjectNode document = this.mapper.createObjectNode();
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "add");
-        operation.put(Operation.PATH, "/newField");
-        operation.put(Operation.VALUE, "newValue");
-        JsonPatch.applyOperation(document, operation);
-        Assert.assertTrue(document.has("newField"));
-        Assert.assertEquals("newValue", document.get("newField").asText());
+    public void testApplyAdd() throws Exception {
+        JsonNode result = patch(json("{}"), List.of(op("add", "/newField", "newValue")));
+        Assert.assertEquals(json("{'newField':'newValue'}"), result);
     }
 
-    /** Test the add operation on arrays */
-    public void testApplyOperationAddToArray() {
-        ObjectNode document = this.mapper.createObjectNode();
-        ArrayNode array = this.mapper.createArrayNode();
-        array.add("a");
-        array.add("c");
-        document.set("arr", array);
+    /** Test the add operation on arrays: insert at an index, and append with "-" */
+    public void testApplyAddToArray() throws Exception {
+        JsonNode result =
+                patch(
+                        json("{'arr':['a','c']}"), List.of(op("add", "/arr/1", "b"), op("add", "/arr/-", "d")));
+        Assert.assertEquals(json("{'arr':['a','b','c','d']}"), result);
+    }
 
-        // Test Insert at index 1
-        ObjectNode insertOp = this.mapper.createObjectNode();
-        insertOp.put(Operation.OP, "add");
-        insertOp.put(Operation.PATH, "/arr/1");
-        insertOp.put(Operation.VALUE, "b");
-        JsonPatch.applyOperation(document, insertOp);
-
-        ArrayNode updatedArray = (ArrayNode) document.get("arr");
-        Assert.assertEquals(3, updatedArray.size());
-        Assert.assertEquals("a", updatedArray.get(0).asText());
-        Assert.assertEquals("b", updatedArray.get(1).asText());
-        Assert.assertEquals("c", updatedArray.get(2).asText());
-
-        // Test Append to end using "-"
-        ObjectNode appendOp = this.mapper.createObjectNode();
-        appendOp.put(Operation.OP, "add");
-        appendOp.put(Operation.PATH, "/arr/-");
-        appendOp.put(Operation.VALUE, "d");
-        JsonPatch.applyOperation(document, appendOp);
-
-        updatedArray = (ArrayNode) document.get("arr");
-        Assert.assertEquals(4, updatedArray.size());
-        Assert.assertEquals("d", updatedArray.get(3).asText());
+    /** Test the add operation with an object value and with an explicit JSON null */
+    public void testApplyAddStructuredAndNullValues() throws Exception {
+        JsonNode result =
+                patch(
+                        json("{}"),
+                        List.of(op("add", "/obj", Map.of("k", List.of(1, 2))), op("add", "/nothing", null)));
+        Assert.assertEquals(json("{'obj':{'k':[1,2]},'nothing':null}"), result);
     }
 
     /** Test the remove operation */
-    public void testApplyOperationRemove() {
-        ObjectNode document = this.mapper.createObjectNode();
-        document.put("fieldToRemove", "value");
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "remove");
-        operation.put(Operation.PATH, "/fieldToRemove");
-        JsonPatch.applyOperation(document, operation);
-        Assert.assertFalse(document.has("fieldToRemove"));
+    public void testApplyRemove() throws Exception {
+        JsonNode result =
+                patch(
+                        json("{'fieldToRemove':'value','kept':1}"),
+                        List.of(new Operation("remove", "/fieldToRemove", null, null)));
+        Assert.assertEquals(json("{'kept':1}"), result);
     }
 
     /** Test the remove operation on arrays */
-    public void testApplyOperationRemoveFromArray() {
-        ObjectNode document = this.mapper.createObjectNode();
-        ArrayNode array = this.mapper.createArrayNode();
-        array.add("a");
-        array.add("b");
-        array.add("c");
-        document.set("arr", array);
-
-        // Remove index 1 ("b")
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "remove");
-        operation.put(Operation.PATH, "/arr/1");
-        JsonPatch.applyOperation(document, operation);
-
-        ArrayNode updatedArray = (ArrayNode) document.get("arr");
-        Assert.assertEquals(2, updatedArray.size());
-        Assert.assertEquals("a", updatedArray.get(0).asText());
-        Assert.assertEquals("c", updatedArray.get(1).asText());
+    public void testApplyRemoveFromArray() throws Exception {
+        JsonNode result =
+                patch(
+                        json("{'arr':['a','b','c']}"), List.of(new Operation("remove", "/arr/1", null, null)));
+        Assert.assertEquals(json("{'arr':['a','c']}"), result);
     }
 
     /** Test the replace operation */
-    public void testApplyOperationReplace() {
-        ObjectNode document = this.mapper.createObjectNode();
-        document.put("fieldToReplace", "oldValue");
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "replace");
-        operation.put(Operation.PATH, "/fieldToReplace");
-        operation.put(Operation.VALUE, "newValue");
-        JsonPatch.applyOperation(document, operation);
-        Assert.assertEquals("newValue", document.get("fieldToReplace").asText());
+    public void testApplyReplace() throws Exception {
+        JsonNode result =
+                patch(
+                        json("{'fieldToReplace':'oldValue'}"),
+                        List.of(op("replace", "/fieldToReplace", "newValue")));
+        Assert.assertEquals(json("{'fieldToReplace':'newValue'}"), result);
     }
 
     /** Test the replace operation on arrays */
-    public void testApplyOperationReplaceInArray() {
-        ObjectNode document = this.mapper.createObjectNode();
-        ArrayNode array = this.mapper.createArrayNode();
-        array.add("a");
-        array.add("b");
-        document.set("arr", array);
-
-        // Replace index 0 ("a") with "z"
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "replace");
-        operation.put(Operation.PATH, "/arr/0");
-        operation.put(Operation.VALUE, "z");
-        JsonPatch.applyOperation(document, operation);
-
-        ArrayNode updatedArray = (ArrayNode) document.get("arr");
-        Assert.assertEquals(2, updatedArray.size());
-        Assert.assertEquals("z", updatedArray.get(0).asText());
-        Assert.assertEquals("b", updatedArray.get(1).asText());
+    public void testApplyReplaceInArray() throws Exception {
+        JsonNode result = patch(json("{'arr':['a','b']}"), List.of(op("replace", "/arr/0", "z")));
+        Assert.assertEquals(json("{'arr':['z','b']}"), result);
     }
 
     /** Test the move operation */
-    public void testApplyOperationMove() {
-        ObjectNode document = this.mapper.createObjectNode();
-        document.put("fieldToMove", "value");
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "move");
-        operation.put(Operation.FROM, "/fieldToMove");
-        operation.put(Operation.PATH, "/newField");
-        JsonPatch.applyOperation(document, operation);
-        Assert.assertFalse(document.has("fieldToMove"));
-        Assert.assertTrue(document.has("newField"));
+    public void testApplyMove() throws Exception {
+        JsonNode result =
+                patch(
+                        json("{'fieldToMove':'value'}"), List.of(fromOp("move", "/fieldToMove", "/newField")));
+        Assert.assertEquals(json("{'newField':'value'}"), result);
     }
 
     /** Test the move operation on arrays */
-    public void testApplyOperationMoveInArray() {
-        ObjectNode document = this.mapper.createObjectNode();
-        ArrayNode array = this.mapper.createArrayNode();
-        array.add("a");
-        array.add("b");
-        array.add("c");
-        document.set("arr", array);
-
-        // Move index 0 ("a") to index 2
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "move");
-        operation.put(Operation.FROM, "/arr/0");
-        operation.put(Operation.PATH, "/arr/2");
-        JsonPatch.applyOperation(document, operation);
-
-        ArrayNode updatedArray = (ArrayNode) document.get("arr");
-        Assert.assertEquals(3, updatedArray.size());
-        Assert.assertEquals("b", updatedArray.get(0).asText());
-        Assert.assertEquals("c", updatedArray.get(1).asText());
-        Assert.assertEquals("a", updatedArray.get(2).asText());
+    public void testApplyMoveInArray() throws Exception {
+        JsonNode result =
+                patch(json("{'arr':['a','b','c']}"), List.of(fromOp("move", "/arr/0", "/arr/2")));
+        Assert.assertEquals(json("{'arr':['b','c','a']}"), result);
     }
 
     /** Test the copy operation */
-    public void testApplyOperationCopy() {
-        ObjectNode document = this.mapper.createObjectNode();
-        document.put("fieldToCopy", "value");
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "copy");
-        operation.put(Operation.FROM, "/fieldToCopy");
-        operation.put(Operation.PATH, "/newField");
-        JsonPatch.applyOperation(document, operation);
-        Assert.assertTrue(document.has("newField"));
-        Assert.assertEquals("value", document.get("newField").asText());
+    public void testApplyCopy() throws Exception {
+        JsonNode result =
+                patch(
+                        json("{'fieldToCopy':'value'}"), List.of(fromOp("copy", "/fieldToCopy", "/newField")));
+        Assert.assertEquals(json("{'fieldToCopy':'value','newField':'value'}"), result);
     }
 
     /** Test the copy operation on arrays */
-    public void testApplyOperationCopyInArray() {
-        ObjectNode document = this.mapper.createObjectNode();
-        ArrayNode array = this.mapper.createArrayNode();
-        array.add("a");
-        array.add("b");
-        document.set("arr", array);
-
-        // Copy index 0 ("a") to end ("-")
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "copy");
-        operation.put(Operation.FROM, "/arr/0");
-        operation.put(Operation.PATH, "/arr/-");
-        JsonPatch.applyOperation(document, operation);
-
-        ArrayNode updatedArray = (ArrayNode) document.get("arr");
-        Assert.assertEquals(3, updatedArray.size());
-        Assert.assertEquals("a", updatedArray.get(0).asText());
-        Assert.assertEquals("b", updatedArray.get(1).asText());
-        Assert.assertEquals("a", updatedArray.get(2).asText());
+    public void testApplyCopyInArray() throws Exception {
+        JsonNode result = patch(json("{'arr':['a','b']}"), List.of(fromOp("copy", "/arr/0", "/arr/-")));
+        Assert.assertEquals(json("{'arr':['a','b','a']}"), result);
     }
 
-    /** Test the test operation */
-    public void testApplyOperationTest() {
-        ObjectNode document = this.mapper.createObjectNode();
-        document.put("fieldToTest", "value");
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "test");
-        operation.put(Operation.PATH, "/fieldToTest");
-        operation.put(Operation.VALUE, "value");
-        JsonPatch.applyOperation(document, operation);
-        Assert.assertTrue(document.has("fieldToTest"));
+    /** Test the test operation, which passes on a matching value and fails otherwise */
+    public void testApplyTest() throws Exception {
+        JsonNode document = json("{'arr':['a','b']}");
+        Assert.assertEquals(document, patch(document, List.of(op("test", "/arr/1", "b"))));
+        Assert.assertThrows(
+                JsonPatch.InvalidPatchException.class,
+                () -> patch(document, List.of(op("test", "/arr/1", "a"))));
     }
 
-    /** Test the test operation on arrays */
-    public void testApplyOperationTestInArray() {
-        ObjectNode document = this.mapper.createObjectNode();
-        ArrayNode array = this.mapper.createArrayNode();
-        array.add("a");
-        array.add("b");
-        document.set("arr", array);
+    /**
+     * CTI publishes a new version of a resource by replacing the whole document (path ""). The
+     * document is replaced in place: the same object ends up with the new members only.
+     */
+    public void testApplyReplaceWholeDocument() throws Exception {
+        JsonNode document = json("{'a':1,'b':{'c':2}}");
 
-        // Test index 1 is "b" (PASS)
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "test");
-        operation.put(Operation.PATH, "/arr/1");
-        operation.put(Operation.VALUE, "b");
-        JsonPatch.applyOperation(document, operation);
+        JsonPatch.apply(document, List.of(op("replace", "", Map.of("d", List.of(3)))));
 
-        // Test index 1 is "a" (FAILS)
-        ObjectNode failOperation = this.mapper.createObjectNode();
-        failOperation.put(Operation.OP, "test");
-        failOperation.put(Operation.PATH, "/arr/1");
-        failOperation.put(Operation.VALUE, "a");
-
-        try {
-            JsonPatch.applyOperation(document, failOperation);
-            Assert.fail("Should have thrown IllegalArgumentException");
-        } catch (IllegalArgumentException ignored) {
-
-        }
+        Assert.assertEquals(json("{'d':[3]}"), document);
     }
 
-    /** Test the unsupported operation */
-    public void testApplyOperationUnsupported() {
-        ObjectNode document = this.mapper.createObjectNode();
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "unsupported");
-        operation.put(Operation.PATH, "/field");
-        IllegalArgumentException exception =
+    /** An add of the root replaces the whole document too. */
+    public void testApplyAddWholeDocument() throws Exception {
+        JsonNode document = json("{'a':1}");
+
+        JsonPatch.apply(document, List.of(op("add", "", Map.of("b", 2)), op("add", "/c", 3)));
+
+        Assert.assertEquals(json("{'b':2,'c':3}"), document);
+    }
+
+    /** A stored document is always an object, so the root cannot be replaced by anything else. */
+    public void testApplyReplaceWholeDocumentWithNonObjectFails() throws Exception {
+        JsonPatch.InvalidPatchException e =
                 Assert.assertThrows(
-                        IllegalArgumentException.class,
-                        () -> {
-                            JsonPatch.applyOperation(document, operation);
-                        });
-        Assert.assertEquals("Unsupported JSON Patch operation: unsupported", exception.getMessage());
+                        JsonPatch.InvalidPatchException.class,
+                        () -> JsonPatch.apply(json("{'a':1}"), List.of(op("replace", "", List.of(1)))));
+
+        Assert.assertEquals(
+                "operation 0 (replace ): the document can only be replaced by a JSON object",
+                e.getMessage());
     }
 
-    /** Test that removing a missing field is a no-op instead of throwing. */
-    public void testApplyOperationRemoveMissingField() {
-        ObjectNode document = this.mapper.createObjectNode();
-        document.put("existing", "value");
-
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "remove");
-        operation.put(Operation.PATH, "/nonexistent");
-        JsonPatch.applyOperation(document, operation);
-
-        Assert.assertTrue(document.has("existing"));
-        Assert.assertFalse(document.has("nonexistent"));
+    /** JSON Pointer escapes: "~1" stands for "/" and "~0" for "~" in a key. */
+    public void testApplyEscapedKeys() throws Exception {
+        JsonNode result =
+                patch(
+                        json("{'a/b':1,'c~d':2}"),
+                        List.of(op("replace", "/a~1b", 10), op("replace", "/c~0d", 20)));
+        Assert.assertEquals(json("{'a/b':10,'c~d':20}"), result);
     }
 
-    /** Test that removing an out-of-bounds array index is a no-op instead of throwing. */
-    public void testApplyOperationRemoveArrayOutOfBounds() {
-        ObjectNode document = this.mapper.createObjectNode();
-        ArrayNode array = this.mapper.createArrayNode();
-        array.add("a");
-        array.add("b");
-        document.set("arr", array);
-
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "remove");
-        operation.put(Operation.PATH, "/arr/5");
-        JsonPatch.applyOperation(document, operation);
-
-        ArrayNode updatedArray = (ArrayNode) document.get("arr");
-        Assert.assertEquals(2, updatedArray.size());
-        Assert.assertEquals("a", updatedArray.get(0).asText());
-        Assert.assertEquals("b", updatedArray.get(1).asText());
+    /**
+     * A floating-point value keeps its form: a CVSS score of 7.0 is stored as 7.0, not 7, as it is in
+     * the CTI content.
+     */
+    public void testApplyKeepsWholeFloatingPointValues() throws Exception {
+        JsonNode result =
+                patch(
+                        json("{'baseScore':5.5,'scores':[1.5]}"),
+                        List.of(op("replace", "/baseScore", 7.0), op("add", "/scores/-", 10.0)));
+        Assert.assertEquals(
+                "{\"baseScore\":7.0,\"scores\":[1.5,10.0]}", this.mapper.writeValueAsString(result));
     }
 
-    /** Test that removing a path whose parent does not exist is a no-op instead of throwing. */
-    public void testApplyOperationRemoveMissingParent() {
-        ObjectNode document = this.mapper.createObjectNode();
-        document.put("existing", "value");
+    /** An operation without a path is rejected, naming the operation. */
+    public void testApplyMissingPath() throws Exception {
+        JsonPatch.InvalidPatchException e =
+                Assert.assertThrows(
+                        JsonPatch.InvalidPatchException.class,
+                        () -> patch(json("{}"), List.of(op("add", null, "x"))));
+        Assert.assertTrue(e.getMessage(), e.getMessage().startsWith("operation 0 (add null): "));
+    }
 
-        ObjectNode operation = this.mapper.createObjectNode();
-        operation.put(Operation.OP, "remove");
-        operation.put(Operation.PATH, "/a/b/c");
-        JsonPatch.applyOperation(document, operation);
+    /** An unknown operation is rejected, naming the operation. */
+    public void testApplyUnsupportedOperation() throws Exception {
+        JsonPatch.InvalidPatchException e =
+                Assert.assertThrows(
+                        JsonPatch.InvalidPatchException.class,
+                        () -> patch(json("{}"), List.of(op("unsupported", "/field", "x"))));
+        Assert.assertTrue(
+                e.getMessage(), e.getMessage().startsWith("operation 0 (unsupported /field): "));
+    }
 
-        Assert.assertTrue(document.has("existing"));
+    /** Removing a missing field fails, as RFC 6902 section 4.2 requires. */
+    public void testApplyRemoveMissingFieldFails() throws Exception {
+        JsonPatch.InvalidPatchException e =
+                Assert.assertThrows(
+                        JsonPatch.InvalidPatchException.class,
+                        () ->
+                                patch(
+                                        json("{'existing':'value'}"),
+                                        List.of(new Operation("remove", "/nonexistent", null, null))));
+        Assert.assertEquals(
+                "operation 0 (remove /nonexistent): Missing field nonexistent", e.getMessage());
+    }
+
+    /** Removing an out-of-bounds array index fails. */
+    public void testApplyRemoveArrayOutOfBoundsFails() {
+        Assert.assertThrows(
+                JsonPatch.InvalidPatchException.class,
+                () ->
+                        patch(
+                                json("{'arr':['a','b']}"), List.of(new Operation("remove", "/arr/5", null, null))));
+    }
+
+    /** Replacing a missing field fails rather than adding it. */
+    public void testApplyReplaceMissingFieldFails() {
+        Assert.assertThrows(
+                JsonPatch.InvalidPatchException.class,
+                () -> patch(json("{}"), List.of(op("replace", "/missing", "x"))));
+    }
+
+    /**
+     * When an operation fails, the exception names it by position and path. The document is patched
+     * in place, so the operations before the failing one stay applied: callers discard it, as
+     * ContentIndex does by never indexing a document whose change failed.
+     */
+    public void testApplyFailureNamesTheOperationAndLeavesEarlierOnesApplied() throws Exception {
+        JsonNode document = json("{'a':1,'arr':['x']}");
+
+        JsonPatch.InvalidPatchException e =
+                Assert.assertThrows(
+                        JsonPatch.InvalidPatchException.class,
+                        () ->
+                                patch(
+                                        document,
+                                        List.of(
+                                                op("replace", "/a", 2),
+                                                op("add", "/arr/0", "y"),
+                                                op("add", "/missing/child", "z"))));
+
+        Assert.assertTrue(
+                e.getMessage(), e.getMessage().startsWith("operation 2 (add /missing/child): "));
+        Assert.assertEquals(json("{'a':2,'arr':['y','x']}"), document);
+    }
+
+    // The CVE-2026-61372 change from issue #1632, reduced to the affected entries.
+    private static final String CVE_PREVIOUS =
+            "{'containers':{'adp':[{'affected':["
+                    + "{'platforms':['bookworm','forky','sid'],'product':'libapache-jena-java'},"
+                    + "{'platforms':['trixie'],'product':'apache-jena'}]}]}}";
+    private static final String CVE_CURRENT =
+            "{'containers':{'adp':[{'affected':["
+                    + "{'platforms':['forky','sid'],'product':'libapache-jena-java'},"
+                    + "{'platforms':['bookworm','trixie'],'product':'apache-jena'}]}]}}";
+    private static final List<Operation> CVE_CHANGE =
+            List.of(
+                    op("add", "/containers/adp/0/affected/1/platforms/1", "trixie"),
+                    op("replace", "/containers/adp/0/affected/1/platforms/0", "bookworm"),
+                    new Operation("remove", "/containers/adp/0/affected/0/platforms/2", null, null),
+                    op("replace", "/containers/adp/0/affected/0/platforms/1", "sid"),
+                    op("replace", "/containers/adp/0/affected/0/platforms/0", "forky"));
+
+    /** The change of issue #1632 turns the previous CTI version into the current one. */
+    public void testApplyIssue1632Change() throws Exception {
+        Assert.assertEquals(json(CVE_CURRENT), patch(json(CVE_PREVIOUS), CVE_CHANGE));
+    }
+
+    /**
+     * Applied to an older version that lacks the second affected entry, the same change fails on its
+     * first operation, which is what the indexer logged in issue #1632.
+     */
+    public void testApplyIssue1632ChangeToOlderVersionFails() throws Exception {
+        JsonNode older =
+                json(
+                        "{'containers':{'adp':[{'affected':["
+                                + "{'platforms':['bookworm','forky','sid'],'product':'libapache-jena-java'}]}]}}");
+
+        JsonPatch.InvalidPatchException e =
+                Assert.assertThrows(JsonPatch.InvalidPatchException.class, () -> patch(older, CVE_CHANGE));
+        Assert.assertEquals(
+                "operation 0 (add /containers/adp/0/affected/1/platforms/1): Array index 1 is out of bounds",
+                e.getMessage());
     }
 }
