@@ -32,7 +32,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   }'
 ```
 
-A successful registration returns `{"message":"Access token received successfully.","status":201}`. The token is persisted in `.wazuh-internal-state` and loaded into memory immediately.
+A successful registration returns `{"message":"Access token received successfully.","status":201}`. The token is persisted in `.wazuh-internal-state` and loaded into memory immediately, and a content update starts to apply the subscription plan. The node log shows `Access token registered; content update started to apply the environment's plan.`, or, if an update was already running, that a new one starts once it ends. With `plugins.content_manager.catalog.update_on_schedule` set to `false`, no update starts on its own: run `POST /_plugins/_content_manager/update`.
 
 ### "Unable to retrieve the subscription plan from the CTI Console"
 
