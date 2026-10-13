@@ -39,6 +39,7 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -137,6 +138,20 @@ public class ApiClientRetryTests extends OpenSearchTestCase {
         assertEquals(HttpStatus.SC_TOO_MANY_REQUESTS, result.getCode());
         verify(client, times(PluginSettings.getInstance().getClientMaxRetries() + 1))
                 .executeOnce(any(SimpleHttpRequest.class), anyLong());
+    }
+
+    /**
+     * With a zero retry budget (the interactive version-check path) a 429 is returned after a single
+     * attempt, even with a large Retry-After, and no backoff is ever computed or slept.
+     */
+    public void testZeroRetriesReturns429WithoutWaiting() throws Exception {
+        ApiClient client = scriptedClient(response(HttpStatus.SC_TOO_MANY_REQUESTS, "3600"));
+
+        SimpleHttpResponse result = client.executeWithRetry(request(), 0);
+
+        assertEquals(HttpStatus.SC_TOO_MANY_REQUESTS, result.getCode());
+        verify(client, times(1)).executeOnce(any(SimpleHttpRequest.class), anyLong());
+        verify(client, never()).computeRetryDelaySeconds(any(SimpleHttpResponse.class), anyInt());
     }
 
     /**

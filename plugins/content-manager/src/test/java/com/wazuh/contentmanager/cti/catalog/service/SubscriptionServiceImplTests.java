@@ -29,7 +29,9 @@ import java.lang.reflect.Field;
 import com.wazuh.contentmanager.cti.catalog.index.CredentialsIndex;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
+import com.wazuh.contentmanager.cti.console.service.TokenRejectedException;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -105,7 +107,7 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
         verify(listener).onResponse(plan);
     }
 
-    /** Async getPlan: token in memory but getMyPlan returns null → deletes and falls back. */
+    /** Async getPlan: the CTI Console rejects the token (401) → deletes and falls back. */
     @SuppressWarnings("unchecked")
     public void testGetPlanAsync_InvalidToken_FallsBackToPublicPlan() {
         PluginSettings.getInstance().setAccessToken("bad-token");
@@ -113,7 +115,7 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
         doAnswer(
                         invocation -> {
                             ActionListener<Plan> asyncListener = invocation.getArgument(1);
-                            asyncListener.onResponse(null);
+                            asyncListener.onFailure(new TokenRejectedException("401"));
                             return null;
                         })
                 .when(this.plansService)
@@ -140,6 +142,44 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
 
         verify(listener).onResponse(publicPlan);
         Assert.assertNull(PluginSettings.getInstance().getAccessToken());
+    }
+
+    /**
+     * Async getPlan: the plan lookup fails for a reason other than a rejection (network error,
+     * timeout, 429, 5xx) → the token is kept, nothing is deleted, and the failure is propagated
+     * instead of reporting the public plan.
+     */
+    @SuppressWarnings("unchecked")
+    public void testGetPlanAsync_TransientFailure_KeepsToken() {
+        for (Exception failure :
+                new Exception[] {
+                    new CtiConsoleUnavailableException(
+                            "The CTI Console answered status 503 to the plan lookup."),
+                    new CtiConsoleUnavailableException(
+                            "The plan lookup request to the CTI Console failed.",
+                            new java.util.concurrent.TimeoutException("5 SECONDS")),
+                    new RuntimeException("unexpected")
+                }) {
+            reset(this.plansService, this.credentialsIndex);
+            PluginSettings.getInstance().setAccessToken("good-token");
+            doAnswer(
+                            invocation -> {
+                                ActionListener<Plan> asyncListener = invocation.getArgument(1);
+                                asyncListener.onFailure(failure);
+                                return null;
+                            })
+                    .when(this.plansService)
+                    .getMyPlan(any(Token.class), any(ActionListener.class));
+
+            ActionListener<Plan> listener = mock(ActionListener.class);
+            this.service.getPlan(listener);
+
+            verify(listener).onFailure(failure);
+            verify(listener, never()).onResponse(any());
+            verify(this.credentialsIndex, never()).deleteDocument(any(ActionListener.class));
+            verify(this.plansService, never()).getPlan(any(ActionListener.class));
+            Assert.assertEquals("good-token", PluginSettings.getInstance().getAccessToken());
+        }
     }
 
     /** Async getPlan: no token in memory or index → returns public plan. */
@@ -170,7 +210,7 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
         verify(this.plansService, never()).getMyPlan(any(Token.class), any(ActionListener.class));
     }
 
-    /** Async getPlan: invalid token and deleteDocument fails → still falls back to public plan. */
+    /** Async getPlan: rejected token and deleteDocument fails → still falls back to public plan. */
     @SuppressWarnings("unchecked")
     public void testGetPlanAsync_InvalidToken_DeleteFails_StillFallsBack() {
         PluginSettings.getInstance().setAccessToken("bad-token");
@@ -178,7 +218,7 @@ public class SubscriptionServiceImplTests extends OpenSearchTestCase {
         doAnswer(
                         invocation -> {
                             ActionListener<Plan> asyncListener = invocation.getArgument(1);
-                            asyncListener.onResponse(null);
+                            asyncListener.onFailure(new TokenRejectedException("401"));
                             return null;
                         })
                 .when(this.plansService)

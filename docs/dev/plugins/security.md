@@ -24,7 +24,7 @@ new-user:
   description: "New user description"
 ```
 
-Do not write a hash. `hash` carries a `${NAME}` placeholder naming the environment variable that will hold the password; a password generated at installation replaces it with a bcrypt digest. A literal hash would ship the same password in every deployment, which is what the placeholder exists to prevent. Add the variable to the resolver's list of owned accounts — see [Credential and TLS resolution](../credentials.md).
+Do not write a hash. `hash` carries a `${NAME}` placeholder naming the environment variable that will hold the password; a password generated at installation replaces it with a bcrypt digest. A literal hash would ship the same password in every deployment, which is what the placeholder exists to prevent. Add the variable to the resolver's list of owned accounts — see [Credential and TLS resolution](../packages.md#credential-and-tls-resolution).
 
 OpenSearch's reference:
 - [internal_users.yml](https://docs.opensearch.org/3.6/security/configuration/yaml/#internal_usersyml)

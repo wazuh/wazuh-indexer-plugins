@@ -115,14 +115,24 @@ jobs:
           set -euo pipefail
           echo "Pulling ${IMAGE}"
           docker pull "${IMAGE}"
+          gen_password() {
+            printf '%s%s' "$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 20)" 'Aa1.'
+          }
+          for key in WAZUH_INDEXER_ADMIN_PASSWORD WAZUH_INDEXER_KIBANASERVER_PASSWORD WAZUH_INDEXER_MANAGER_PASSWORD; do
+            value=$(gen_password)
+            echo "::add-mask::${value}"
+            export "${key}=${value}"
+          done
           # The image already bootstraps as a single node (node-1), so do NOT pass
           # discovery.type=single-node (it conflicts with the baked
-          # cluster.initial_cluster_manager_nodes). Disable security: the image ships
-          # no TLS certs and the component tests don't exercise auth/TLS. The entrypoint
-          # still starts the Wazuh Engine.
+          # cluster.initial_cluster_manager_nodes). Disable security: the component
+          # tests don't exercise auth/TLS. The entrypoint still starts the Wazuh Engine.
           docker run -d --name wazuh-indexer \
             -p 9200:9200 \
             --ulimit memlock=-1:-1 \
+            -e WAZUH_INDEXER_ADMIN_PASSWORD \
+            -e WAZUH_INDEXER_KIBANASERVER_PASSWORD \
+            -e WAZUH_INDEXER_MANAGER_PASSWORD \
             -e "plugins.security.disabled=true" \
             -e "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g" \
             "${IMAGE}"

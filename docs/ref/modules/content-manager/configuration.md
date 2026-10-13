@@ -17,7 +17,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.pit_keepalive`** (Long, default `120`, range 60–600) — point-in-time keepalive in seconds used during paginated index scans.
 - **`plugins.content_manager.engine.mock`** (Boolean, default `false`) — bypasses real Engine socket calls, returning mocked responses instead. Intended for testing only.
 - **`plugins.content_manager.catalog.update_on_start`** (Boolean, default `true`) — trigger content sync when the plugin starts.
-- **`plugins.content_manager.catalog.update_on_schedule`** (Boolean, default `true`, dynamic) — enable the periodic sync job. When `false` the job is disabled and any scheduled run is refused, so no content is fetched from Wazuh CTI on a schedule. On-demand updates (`POST /update`) are unaffected — they are controlled by `plugins.content_manager.catalog.update_on_demand`.
+- **`plugins.content_manager.catalog.update_on_schedule`** (Boolean, default `true`, dynamic) — enable the periodic sync job. When `false` the job is disabled and any scheduled run is refused, so no content is fetched from Wazuh CTI on a schedule. Registering a CTI access token does not start a content update either. On-demand updates (`POST /update`) are unaffected — they are controlled by `plugins.content_manager.catalog.update_on_demand`.
 - **`plugins.content_manager.catalog.ruleset`** (String, default `""`) — full CTI consumer URL for ruleset content.
 - **`plugins.content_manager.catalog.iocs`** (String, default `""`) — full CTI consumer URL for IoC content.
 - **`plugins.content_manager.catalog.vulnerabilities`** (String, default `""`) — full CTI consumer URL for vulnerabilities content.

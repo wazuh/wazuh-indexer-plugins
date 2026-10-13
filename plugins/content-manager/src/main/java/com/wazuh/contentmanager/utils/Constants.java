@@ -61,6 +61,8 @@ public class Constants {
             "Integration [%s] is protected and cannot be modified.";
     public static final String E_400_INVALID_PROMOTION_OPERATION_FOR_POLICY =
             "Only 'update' operation is supported for policy.";
+    public static final String E_400_POLICY_ID_MISMATCH =
+            "Policy [%s] not found in the '%s' space. The policy update must use the space's policy id [%s].";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
     public static final String E_409_DUPLICATE_NAME =
             "A %s with the name '%s' already exists in the %s space.";
@@ -78,6 +80,10 @@ public class Constants {
             "logtest payload exceeds the maximum allowed size of %d bytes.";
     public static final String E_429_LOGTEST_BUSY =
             "logtest is busy: too many concurrent requests. Please retry later.";
+    public static final String E_429_VERSION_CHECK_BUSY =
+            "The version check is busy. Please retry later.";
+    public static final String E_429_VERSION_CHECK_RATE_LIMITED =
+            "Too many version checks. Please retry in %d seconds.";
     public static final String E_400_UUID_SHOULD_NOT_BE_PROVIDED =
             "ID should not be provided in the payload.";
     public static final String E_400_ENGINE_VALIDATION_FAILED = "Engine validation failed.";
@@ -120,6 +126,9 @@ public class Constants {
                     + "with enabled rules (cause: %s).";
     public static final String E_DETECTOR_LOOKUP_TRUNCATED =
             "Found %d enabled detectors, more than the %d that can be checked in one search.";
+    public static final String E_502_CTI_PLAN_UNAVAILABLE =
+            "Unable to retrieve the subscription plan from the CTI Console. "
+                    + "The registration is unchanged; try again later.";
 
     // Log messages
     public static final String I_LOG_MAX_INTEGRATIONS_REACHED =
@@ -171,6 +180,12 @@ public class Constants {
             "Access token stored successfully. Registration will be confirmed on next plan retrieval.";
     public static final String I_LOG_ACCESS_TOKEN_EXPIRED_OR_INVALID =
             "Access token is invalid or expired. Clearing credentials and falling back to public plan.";
+    public static final String W_LOG_PLAN_LOOKUP_FAILED_TOKEN_KEPT =
+            "Could not retrieve the subscription plan from the CTI Console ({}). The access token is kept.";
+    public static final String D_LOG_ENVIRONMENT_PLAN_RETRIEVED =
+            "Active plan for registered environment retrieved successfully from CTI Console. Active plan is: {}.";
+    public static final String D_LOG_PUBLIC_PLAN_RETRIEVED =
+            "Public plan retrieved successfully from CTI Console. Active plan is: {}.";
 
     // Log messages - consumer synchronization (AbstractConsumerService)
     public static final String D_LOG_SYNC_COMPLETED =
@@ -268,12 +283,14 @@ public class Constants {
             "Failed to read snapshot manifest from [{}]: {}. Consumer cannot be initialized and will be retried on the next sync.";
     public static final String D_LOG_NO_PLAN_RETURNED =
             "No plan returned for registered environment.";
+    public static final String D_LOG_PLAN_TOKEN_REJECTED =
+            "The CTI Console rejected the access token; consumer [{}] has no plan resource.";
     public static final String D_LOG_NO_FEATURE_FOR_CONSUMER =
             "No feature found for consumer type [{}] in plan [{}].";
     public static final String D_LOG_PLAN_PROVIDES_RESOURCE =
             "Plan [{}] provides resource [{}] for consumer [{}].";
     public static final String W_LOG_PLAN_RESOURCE_RESOLVE_FAILED =
-            "Failed to resolve plan resource for consumer [{}]: {}";
+            "Could not retrieve the subscription plan for consumer [{}] ({}). Keeping the current data source.";
     public static final String E_LOG_SHADOW_SWAP_UNAVAILABLE =
             "Cannot rebuild content for consumer [{}]: the remote content source is unavailable.";
     public static final String D_LOG_SHADOW_INDICES_CREATING =
@@ -395,10 +412,20 @@ public class Constants {
             "Snapshot URL is empty. Skipping initialization.";
     public static final String D_LOG_SNAPSHOT_INIT_START =
             "Starting snapshot initialization for [{}]";
-    public static final String E_LOG_SNAPSHOT_DOWNLOAD_FAILED = "Failed to download snapshot from {}";
+    public static final String E_LOG_SNAPSHOT_DOWNLOAD_FAILED =
+            "Failed to download snapshot for consumer [{}] from [{}]";
+    public static final String I_LOG_SNAPSHOT_DOWNLOAD_STARTED =
+            "Starting snapshot download for consumer [{}] from [{}]";
+    public static final String I_LOG_SNAPSHOT_DOWNLOADED =
+            "Snapshot for consumer [{}] downloaded to [{}]";
+    public static final String E_LOG_SNAPSHOT_DOWNLOAD_HTTP_STATUS =
+            "Failed to download snapshot for consumer [{}], received HTTP status code: {}";
+    public static final String E_LOG_SNAPSHOT_DOWNLOAD_EMPTY_RESPONSE =
+            "Failed to download snapshot for consumer [{}], empty response entity.";
     public static final String D_LOG_SNAPSHOT_WAIT_PENDING_BULK =
             "Waiting for pending bulk updates to finish...";
-    public static final String E_LOG_SNAPSHOT_PROCESS_FAILED = "Error processing snapshot: {}";
+    public static final String E_LOG_SNAPSHOT_PROCESS_FAILED =
+            "Error processing snapshot for consumer [{}]: {}";
 
     // Log messages - user overrides registry (UserOverridesService)
     public static final String E_LOG_USER_OVERRIDES_REGISTRY_READ_FAILED =
@@ -435,7 +462,7 @@ public class Constants {
     public static final String D_LOG_SNAPSHOT_LOCAL_INIT_START =
             "Starting local snapshot initialization for [{}] from [{}]";
     public static final String E_LOG_SNAPSHOT_LOCAL_PROCESS_FAILED =
-            "Error processing local snapshot: {}";
+            "Error processing local snapshot for consumer [{}]: {}";
     public static final String W_LOG_SNAPSHOT_CONSUMER_DOC_MISSING =
             "Consumer [{}] record not found after loading the snapshot; skipping local offset update.";
     public static final String E_LOG_SNAPSHOT_CONSUMER_STATE_UPDATE_FAILED =
@@ -473,6 +500,20 @@ public class Constants {
     public static final String I_LOG_UPDATE_CONSUMER_SUCCESS =
             "Successfully updated consumer [{}] to offset [{}]";
     public static final String E_LOG_UPDATE_FAILED = "Error during content update: {}";
+    public static final String W_LOG_UPDATE_FROM_SNAPSHOT_AFTER_FAILURE =
+            "Offset [{}] of consumer [{}] cannot be applied to the stored content. Rebuilding the"
+                    + " content from the snapshot at offset [{}], newer than the local offset [{}].";
+    public static final String W_LOG_NO_NEWER_SNAPSHOT_FOR_FAILED_OFFSET =
+            "Offset [{}] of consumer [{}] cannot be applied to the stored content, and there is no"
+                    + " snapshot newer than the local offset [{}] (latest snapshot: [{}]). It will be"
+                    + " retried on the next run.";
+    public static final String E_LOG_UPDATE_FROM_SNAPSHOT_FAILED =
+            "Failed to rebuild the content of consumer [{}] from the snapshot after offset [{}] could"
+                    + " not be applied. The current content is kept.";
+    public static final String I_LOG_CONTENT_RELOADED_FROM_SNAPSHOT =
+            "Content of consumer [{}] rebuilt from the snapshot at offset [{}].";
+    public static final String D_LOG_UPDATE_CHANGE_ALREADY_APPLIED =
+            "Skipping offset [{}] for [{}]: the document is already at offset [{}].";
     public static final String W_LOG_UPDATE_NO_INDEX_FOR_TYPE = "No index mapped for type [{}]";
     public static final String D_LOG_UPDATE_SKIP_CVE_DELETE =
             "Skipping DELETE for CVE resource [{}] (CVE removals are not applied).";
@@ -585,6 +626,8 @@ public class Constants {
             "Failed to process payload via models: {}";
     public static final String D_LOG_SHADOW_INDEX_CREATED_FOR_ALIAS =
             "Created staging index [{}] for alias [{}].";
+    public static final String W_LOG_STALE_SHADOW_INDEX_DELETED =
+            "Deleting leftover staging index [{}], which alias [{}] does not point at.";
     public static final String D_LOG_REINDEX_USER_CONTENT_START =
             "Copying custom content from [{}] to [{}].";
     public static final String D_LOG_REINDEX_USER_CONTENT_COMPLETE =
@@ -618,6 +661,8 @@ public class Constants {
             "Wazuh Console resource-token error: {}";
     public static final String E_LOG_CTI_RESOURCE_TOKEN_PARSE_FAILED =
             "Could not parse the response from the Wazuh Console to obtain a resource token.";
+    public static final String W_LOG_CTI_RESOURCE_TOKEN_DECLINED =
+            "The Wazuh Console declined to sign resource [{}] ({}); the plain URL is used.";
     public static final String D_LOG_CTI_ACCESS_TOKEN_UPDATED = "Wazuh Console access token updated.";
     public static final String E_LOG_ENGINE_SOCKET_UNAVAILABLE =
             "Cannot reach the Wazuh Engine: its API socket is not available. Verify the Engine is running.";
@@ -680,6 +725,14 @@ public class Constants {
             "Could not parse the existing Catalog Sync Job document; rewriting it from the current settings: {}";
     public static final String I_LOG_CATALOG_SYNC_SKIPPED_DISABLED =
             "Scheduled catalog synchronization (ID: {}) skipped: plugins.content_manager.catalog.update_on_schedule is false.";
+    public static final String I_LOG_REGISTRATION_UPDATE_STARTED =
+            "Access token registered; content update started to apply the environment's plan.";
+    public static final String I_LOG_REGISTRATION_UPDATE_WAITING =
+            "Access token registered while a content update is running; a new update starts once it ends, to apply the environment's plan.";
+    public static final String I_LOG_REGISTRATION_UPDATE_SKIPPED_DISABLED =
+            "Access token registered; no content update started because plugins.content_manager.catalog.update_on_schedule is false. The environment's plan is applied by the next on-demand update.";
+    public static final String E_LOG_REGISTRATION_UPDATE_FAILED =
+            "Access token registered, but the content update could not start: {}. The environment's plan is applied by the next synchronization.";
     public static final String E_LOG_JOB_SCHEDULE_GIVE_UP = "Giving up {} after {} attempts.";
     public static final String I_LOG_JOB_SCHEDULE_RETRY = "Retrying {} (attempt {}/{}) in {}s.";
     public static final String D_LOG_TELEMETRY_JOB_DISABLED =

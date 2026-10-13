@@ -134,7 +134,8 @@ public class LogtestService {
                                     Map<String, Object> integrationSource =
                                             integrationSearchResponse.getHits().getAt(0).getSourceAsMap();
                                     List<String> ruleIds = extractRuleIds(integrationSource);
-                                    DetectorTarget target = extractDetectorTarget(integrationId, integrationSource);
+                                    DetectorTarget target =
+                                            extractDetectorTarget(integrationId, integrationSource, space);
                                     String normalizedEventJson = (String) engineResult.remove("_normalized_event");
 
                                     if (ruleIds.isEmpty()) {
@@ -246,7 +247,7 @@ public class LogtestService {
                                                             evaluateDetectionRules(
                                                                     eventJson,
                                                                     ruleBodies,
-                                                                    extractDetectorTarget(integrationId, integrationSource),
+                                                                    extractDetectorTarget(integrationId, integrationSource, space),
                                                                     listener),
                                                     e -> {
                                                         log.warn(
@@ -403,13 +404,18 @@ public class LogtestService {
      * yields {@code wazuh-events-v5-<category>}. Reading them from the same place is what keeps
      * logtest evaluating against the same mappings as the detector.
      *
+     * <p>Only the standard space is read that way. Everywhere else the document is user-written, and
+     * a detector is never built from it, so the sources it names are its author's choice rather than
+     * CTI's and the category decides them instead.
+     *
      * @param integrationId the integration document id.
      * @param integrationSource the integration document source map.
+     * @param space the space the integration was found in.
      * @return the detector coordinates for this integration.
      */
     @SuppressWarnings("unchecked")
     private DetectorTarget extractDetectorTarget(
-            String integrationId, Map<String, Object> integrationSource) {
+            String integrationId, Map<String, Object> integrationSource, Space space) {
         String logType = integrationId;
         List<String> sourceIndices = new ArrayList<>();
         String category = null;
@@ -431,12 +437,14 @@ public class LogtestService {
                 category = categoryObj.toString();
             }
 
-            Object detectorObj = document.get(Constants.KEY_DETECTOR);
-            if (detectorObj instanceof Map) {
-                Object sourcesObj = ((Map<String, Object>) detectorObj).get(Constants.KEY_SOURCE);
-                if (sourcesObj instanceof List) {
-                    for (Object source : (List<?>) sourcesObj) {
-                        sourceIndices.add(source.toString());
+            if (Space.STANDARD.equals(space)) {
+                Object detectorObj = document.get(Constants.KEY_DETECTOR);
+                if (detectorObj instanceof Map) {
+                    Object sourcesObj = ((Map<String, Object>) detectorObj).get(Constants.KEY_SOURCE);
+                    if (sourcesObj instanceof List) {
+                        for (Object source : (List<?>) sourcesObj) {
+                            sourceIndices.add(source.toString());
+                        }
                     }
                 }
             }
