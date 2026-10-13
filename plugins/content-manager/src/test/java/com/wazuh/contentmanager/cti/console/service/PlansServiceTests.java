@@ -18,9 +18,12 @@ package com.wazuh.contentmanager.cti.console.service;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.logging.log4j.Level;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.test.junit.annotations.TestLogging;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -30,15 +33,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.cti.console.client.ApiClient;
 import com.wazuh.contentmanager.cti.console.model.Feature;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.CapturingAppender;
 import org.mockito.Mock;
 
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,6 +59,9 @@ import static org.mockito.Mockito.when;
  * simulate CTI API interactions without requiring network connectivity.
  */
 public class PlansServiceTests extends OpenSearchTestCase {
+    private static final String PLANS_SERVICE_DEBUG =
+            "com.wazuh.contentmanager.cti.console.service.PlansServiceImpl:DEBUG";
+
     private PlansService plansService;
     @Mock private ApiClient mockClient;
 
@@ -176,8 +185,7 @@ public class PlansServiceTests extends OpenSearchTestCase {
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    public void testGetMyPlanSuccess()
-            throws ExecutionException, InterruptedException, TimeoutException {
+    public void testGetMyPlanSuccess() throws Exception {
         // Mock client response for the /platform/environments/me endpoint
         // This endpoint returns a plan list directly under the "plans" key
         // spotless:off
@@ -236,8 +244,8 @@ public class PlansServiceTests extends OpenSearchTestCase {
         verify(this.mockClient, times(1)).getEnvironmentMe(testToken);
     }
 
-    /** Test getMyPlan failure when API returns an error code. */
-    public void testGetMyPlanFailure()
+    /** A 401 is the only answer that means the token was rejected. */
+    public void testGetMyPlanUnauthorizedThrowsTokenRejected()
             throws ExecutionException, InterruptedException, TimeoutException {
         String errorResponse = "{\"errors\": {\"detail\": \"Unauthorized\"}}";
 
@@ -246,14 +254,180 @@ public class PlansServiceTests extends OpenSearchTestCase {
                         SimpleHttpResponse.create(
                                 401, errorResponse.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
-        Plan plan = ((PlansServiceImpl) this.plansService).getMyPlan(new Token("anyToken", "Bearer"));
+        expectThrows(
+                TokenRejectedException.class,
+                () -> ((PlansServiceImpl) this.plansService).getMyPlan(new Token("anyToken", "Bearer")));
+    }
 
-        Assert.assertNull("Should return null on API error code", plan);
+    /** Any other error status says nothing about the token. */
+    public void testGetMyPlanErrorStatusThrowsPlanUnavailable()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        for (int status : new int[] {403, 404, 429, 500, 502, 503}) {
+            when(this.mockClient.getEnvironmentMe(any(Token.class)))
+                    .thenReturn(
+                            SimpleHttpResponse.create(
+                                    status,
+                                    "{\"error\": \"x\"}".getBytes(StandardCharsets.UTF_8),
+                                    ContentType.APPLICATION_JSON));
+
+            CtiConsoleUnavailableException e =
+                    expectThrows(
+                            CtiConsoleUnavailableException.class,
+                            () -> ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer")));
+            Assert.assertTrue(e.getMessage(), e.getMessage().contains(String.valueOf(status)));
+        }
+    }
+
+    /** A request that times out or cannot connect says nothing about the token. */
+    public void testGetMyPlanRequestFailureThrowsPlanUnavailable()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        when(this.mockClient.getEnvironmentMe(any(Token.class)))
+                .thenThrow(new TimeoutException("5 SECONDS"))
+                .thenThrow(new ExecutionException(new java.net.ConnectException("Connection refused")));
+
+        CtiConsoleUnavailableException timeout =
+                expectThrows(
+                        CtiConsoleUnavailableException.class,
+                        () -> ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer")));
+        Assert.assertTrue(timeout.getCause() instanceof TimeoutException);
+        CtiConsoleUnavailableException refused =
+                expectThrows(
+                        CtiConsoleUnavailableException.class,
+                        () -> ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer")));
+        Assert.assertTrue(refused.getCause() instanceof ExecutionException);
+    }
+
+    /** A 200 that cannot be parsed or lists no plan is unusable, not a rejection. */
+    public void testGetMyPlanUnusableResponseThrowsPlanUnavailable()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        for (String body : new String[] {"not json", "{}", "{\"plans\": []}"}) {
+            when(this.mockClient.getEnvironmentMe(any(Token.class)))
+                    .thenReturn(
+                            SimpleHttpResponse.create(
+                                    200, body.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+
+            expectThrows(
+                    CtiConsoleUnavailableException.class,
+                    () -> ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer")));
+        }
+    }
+
+    /** Async getMyPlan: 401 fails the listener with TokenRejectedException. */
+    public void testGetMyPlanAsyncUnauthorizedFailsWithTokenRejected() {
+        this.stubAsyncEnvironmentMe(SimpleHttpResponse.create(401, "{}", ContentType.APPLICATION_JSON));
+
+        Assert.assertTrue(this.getMyPlanAsyncFailure() instanceof TokenRejectedException);
+    }
+
+    /** Async getMyPlan: a 503 fails the listener with CtiConsoleUnavailableException. */
+    public void testGetMyPlanAsyncErrorStatusFailsWithPlanUnavailable() {
+        this.stubAsyncEnvironmentMe(SimpleHttpResponse.create(503, "{}", ContentType.APPLICATION_JSON));
+
+        Assert.assertTrue(this.getMyPlanAsyncFailure() instanceof CtiConsoleUnavailableException);
+    }
+
+    /**
+     * Async getMyPlan: a transport failure fails the listener with CtiConsoleUnavailableException.
+     */
+    @SuppressWarnings("unchecked")
+    public void testGetMyPlanAsyncRequestFailureFailsWithPlanUnavailable() {
+        java.net.ConnectException cause = new java.net.ConnectException("Connection refused");
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<SimpleHttpResponse>>getArgument(1).onFailure(cause);
+                            return null;
+                        })
+                .when(this.mockClient)
+                .getEnvironmentMe(any(Token.class), any(ActionListener.class));
+
+        Exception failure = this.getMyPlanAsyncFailure();
+        Assert.assertTrue(failure instanceof CtiConsoleUnavailableException);
+        Assert.assertSame(cause, failure.getCause());
+    }
+
+    /** Async getMyPlan: a 200 with a plan answers the listener with it. */
+    public void testGetMyPlanAsyncSuccess() {
+        this.stubAsyncEnvironmentMe(
+                SimpleHttpResponse.create(
+                        200,
+                        "{\"plans\": [{\"name\": \"Premium Plan\", \"is_public\": false}]}",
+                        ContentType.APPLICATION_JSON));
+        AtomicReference<Plan> plan = new AtomicReference<>();
+
+        this.plansService.getMyPlan(
+                new Token("t", "Bearer"),
+                ActionListener.wrap(plan::set, e -> fail("unexpected failure: " + e)));
+
+        Assert.assertEquals("Premium Plan", plan.get().getName());
+    }
+
+    /**
+     * The retrieved plan is logged at DEBUG, not INFO: every subscription check from the Dashboard
+     * and every consumer sync looks the plan up, so an INFO line would flood the indexer log.
+     */
+    @TestLogging(
+            value = PLANS_SERVICE_DEBUG,
+            reason = "Asserts that the retrieved plan is a DEBUG line")
+    public void testGetMyPlanLogsRetrievedPlanAtDebug() throws Exception {
+        when(this.mockClient.getEnvironmentMe(any(Token.class))).thenReturn(premiumPlanResponse());
+
+        try (CapturingAppender logs = CapturingAppender.attach(PlansServiceImpl.class)) {
+            Plan plan = ((PlansServiceImpl) this.plansService).getMyPlan(new Token("t", "Bearer"));
+
+            Assert.assertEquals("Premium Plan", plan.getName());
+            Assert.assertEquals(1L, logs.count(Level.DEBUG));
+            Assert.assertEquals(0L, logs.count(Level.INFO));
+        }
+    }
+
+    /** Async getMyPlan: the retrieved plan is logged at DEBUG, not INFO. */
+    @TestLogging(
+            value = PLANS_SERVICE_DEBUG,
+            reason = "Asserts that the retrieved plan is a DEBUG line")
+    public void testGetMyPlanAsyncLogsRetrievedPlanAtDebug() {
+        this.stubAsyncEnvironmentMe(premiumPlanResponse());
+        AtomicReference<Plan> plan = new AtomicReference<>();
+
+        try (CapturingAppender logs = CapturingAppender.attach(PlansServiceImpl.class)) {
+            this.plansService.getMyPlan(
+                    new Token("t", "Bearer"),
+                    ActionListener.wrap(plan::set, e -> fail("unexpected failure: " + e)));
+
+            Assert.assertEquals("Premium Plan", plan.get().getName());
+            Assert.assertEquals(1L, logs.count(Level.DEBUG));
+            Assert.assertEquals(0L, logs.count(Level.INFO));
+        }
+    }
+
+    private static SimpleHttpResponse premiumPlanResponse() {
+        return SimpleHttpResponse.create(
+                200,
+                "{\"plans\": [{\"name\": \"Premium Plan\", \"is_public\": false}]}",
+                ContentType.APPLICATION_JSON);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void stubAsyncEnvironmentMe(SimpleHttpResponse response) {
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<SimpleHttpResponse>>getArgument(1).onResponse(response);
+                            return null;
+                        })
+                .when(this.mockClient)
+                .getEnvironmentMe(any(Token.class), any(ActionListener.class));
+    }
+
+    private Exception getMyPlanAsyncFailure() {
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        this.plansService.getMyPlan(
+                new Token("t", "Bearer"),
+                ActionListener.wrap(p -> fail("expected a failure, got plan " + p), failure::set));
+        Assert.assertNotNull("listener was not failed", failure.get());
+        return failure.get();
     }
 
     /** getPlan() when accessToken is set must delegate to getMyPlan(). */
-    public void testGetPlanWhenRegistered()
-            throws ExecutionException, InterruptedException, TimeoutException {
+    public void testGetPlanWhenRegistered() throws Exception {
         PluginSettings.getInstance().setAccessToken("test-bearer-token");
 
         // spotless:off
@@ -280,8 +454,7 @@ public class PlansServiceTests extends OpenSearchTestCase {
     }
 
     /** getPlan() when accessToken is null must delegate to getPublicPlan(). */
-    public void testGetPlanWhenUnregistered()
-            throws ExecutionException, InterruptedException, TimeoutException {
+    public void testGetPlanWhenUnregistered() throws Exception {
         // accessToken is null by default after setUp()
 
         // spotless:off
@@ -303,5 +476,55 @@ public class PlansServiceTests extends OpenSearchTestCase {
         Assert.assertTrue(plan.isPublic());
         verify(this.mockClient, times(1)).getCatalogPlans();
         verify(this.mockClient, times(0)).getEnvironmentMe(any(Token.class));
+    }
+
+    /** Unregistered: the retrieved public plan is logged at DEBUG, not INFO. */
+    @TestLogging(
+            value = PLANS_SERVICE_DEBUG,
+            reason = "Asserts that the retrieved plan is a DEBUG line")
+    public void testGetPublicPlanLogsRetrievedPlanAtDebug() throws Exception {
+        when(this.mockClient.getCatalogPlans()).thenReturn(publicPlanResponse());
+
+        try (CapturingAppender logs = CapturingAppender.attach(PlansServiceImpl.class)) {
+            Plan plan = this.plansService.getPlan();
+
+            Assert.assertEquals("Free", plan.getName());
+            Assert.assertEquals(1L, logs.count(Level.DEBUG));
+            Assert.assertEquals(0L, logs.count(Level.INFO));
+        }
+    }
+
+    /** Unregistered, async: the retrieved public plan is logged at DEBUG, not INFO. */
+    @SuppressWarnings("unchecked")
+    @TestLogging(
+            value = PLANS_SERVICE_DEBUG,
+            reason = "Asserts that the retrieved plan is a DEBUG line")
+    public void testGetPublicPlanAsyncLogsRetrievedPlanAtDebug() {
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SimpleHttpResponse>>getArgument(0)
+                                    .onResponse(publicPlanResponse());
+                            return null;
+                        })
+                .when(this.mockClient)
+                .getCatalogPlans(any(ActionListener.class));
+        AtomicReference<Plan> plan = new AtomicReference<>();
+
+        try (CapturingAppender logs = CapturingAppender.attach(PlansServiceImpl.class)) {
+            this.plansService.getPlan(
+                    ActionListener.wrap(plan::set, e -> fail("unexpected failure: " + e)));
+
+            Assert.assertEquals("Free", plan.get().getName());
+            Assert.assertEquals(1L, logs.count(Level.DEBUG));
+            Assert.assertEquals(0L, logs.count(Level.INFO));
+        }
+    }
+
+    private static SimpleHttpResponse publicPlanResponse() {
+        return SimpleHttpResponse.create(
+                200,
+                "{\"plans\": [{\"name\": \"Free\", \"is_public\": true}]}",
+                ContentType.APPLICATION_JSON);
     }
 }

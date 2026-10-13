@@ -38,10 +38,14 @@ import org.junit.Before;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
+import com.wazuh.contentmanager.cti.catalog.client.ResourceUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -419,5 +423,225 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         }
         verify(this.snapshotService, never()).initialize(any(RemoteConsumer.class));
         verify(this.snapshotService, never()).initialize(any(Path.class), any());
+    }
+
+    // ---------------------------------------------------------------------
+    // An offset that cannot be applied falls back to a snapshot (#1633).
+    // ---------------------------------------------------------------------
+
+    private static final String VD_CATALOG_URI =
+            "https://cti.example/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5";
+
+    /**
+     * A ConsumerCveService whose incremental updates and shadow swaps are scripted instead of calling
+     * CTI and the cluster.
+     */
+    private static class ScriptedConsumerCveService extends TestableConsumerCveService {
+        final List<long[]> incrementalUpdates = new ArrayList<>();
+        final List<String> shadowSwaps = new ArrayList<>();
+        private final RuntimeException firstFailure;
+        private final boolean swapSucceeds;
+
+        ScriptedConsumerCveService(
+                Client client,
+                ConsumersIndex consumersIndex,
+                Environment environment,
+                RuntimeException firstFailure,
+                boolean swapSucceeds) {
+            super(client, consumersIndex, environment);
+            this.firstFailure = firstFailure;
+            this.swapSucceeds = swapSucceeds;
+        }
+
+        @Override
+        boolean performIncrementalUpdate(
+                String context,
+                String consumer,
+                String consumerType,
+                String catalogUri,
+                ResourceUrlResolver urlResolver,
+                Map<String, ContentIndex> indicesMap,
+                long fromOffset,
+                long toOffset) {
+            this.incrementalUpdates.add(new long[] {fromOffset, toOffset});
+            if (this.incrementalUpdates.size() == 1) {
+                throw this.firstFailure;
+            }
+            return true;
+        }
+
+        @Override
+        boolean performShadowSwap(
+                String consumerType,
+                String catalogUri,
+                String planResource,
+                Map<String, ContentIndex> liveIndicesMap,
+                RemoteConsumer remoteConsumer,
+                ResourceUrlResolver urlResolver) {
+            this.shadowSwaps.add(planResource);
+            return this.swapSucceeds;
+        }
+    }
+
+    /**
+     * The failure UpdateServiceImpl reports when the change at the given offset cannot be applied.
+     */
+    private static RuntimeException patchFailureAt(long offset) {
+        return new RuntimeException(
+                "Update failed for consumer [cti:catalog:consumer:vulnerabilities]",
+                new ContentIndex.PatchException(
+                        "CVE-2026-90029", offset, "operation 0 (remove /x): no such path", null));
+    }
+
+    /**
+     * A consumer that starts its pass at offset 1000 and whose first incremental update fails as
+     * given, against a remote head at 1060 whose latest snapshot is at the given offset.
+     *
+     * @param persistedLocalOffset The local offset in the consumer document after the failure (the
+     *     update's checkpoint), or null for no document.
+     */
+    private ScriptedConsumerCveService consumerStuckAt1000(
+            long snapshotOffset,
+            RuntimeException failure,
+            RemoteConsumer remoteConsumer,
+            Long persistedLocalOffset,
+            boolean swapSucceeds)
+            throws Exception {
+        ConsumerCveServiceTests.clearPluginSettings();
+        PluginSettings.getInstance(
+                Settings.builder()
+                        .put("plugins.content_manager.catalog.vulnerabilities", VD_CATALOG_URI)
+                        .build());
+        when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                .thenReturn(true);
+        when(this.consumerService.getLocalConsumer())
+                .thenReturn(
+                        new LocalConsumer(
+                                "t1-vulnerabilities-5",
+                                "public-vulnerabilities-5",
+                                "cti:catalog:consumer:vulnerabilities",
+                                VD_CATALOG_URI,
+                                true,
+                                LocalConsumer.Status.FAILED,
+                                1000,
+                                1050));
+        when(this.consumerService.getRemoteConsumer()).thenReturn(remoteConsumer);
+        when(remoteConsumer.getSnapshotLink()).thenReturn("https://cti.example/store/snapshot.zip");
+        when(remoteConsumer.getSnapshotOffset()).thenReturn(snapshotOffset);
+        when(remoteConsumer.getOffset()).thenReturn(1060L);
+        when(this.consumersIndex.getConsumer("cti:catalog:consumer:vulnerabilities"))
+                .thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(persistedLocalOffset != null);
+        if (persistedLocalOffset != null) {
+            when(this.getResponse.getSourceAsString())
+                    .thenReturn(
+                            "{\"name\":\"public-vulnerabilities-5\",\"context\":\"t1-vulnerabilities-5\","
+                                    + "\"type\":\"cti:catalog:consumer:vulnerabilities\",\"resource\":\""
+                                    + VD_CATALOG_URI
+                                    + "\",\"is_public\":true,\"status\":\"running\",\"local_offset\":"
+                                    + persistedLocalOffset
+                                    + ",\"remote_offset\":1060}");
+        }
+
+        ScriptedConsumerCveService service =
+                new ScriptedConsumerCveService(
+                        this.client, this.consumersIndex, this.environment, failure, swapSucceeds);
+        service.setConsumerService(this.consumerService);
+        service.setSnapshotService(this.snapshotService);
+        return service;
+    }
+
+    /**
+     * A snapshot past the offset that cannot be applied: the same pass rebuilds the content from it,
+     * through a shadow swap that keeps the source, and applies the remaining changes from the
+     * snapshot's offset.
+     */
+    public void testPatchFailureRebuildsFromSnapshotThatIncludesTheOffset() throws Exception {
+        ScriptedConsumerCveService service =
+                this.consumerStuckAt1000(
+                        1050L, patchFailureAt(1030L), mock(RemoteConsumer.class), null, true);
+
+        boolean needsRetry = service.synchronize();
+
+        assertFalse(needsRetry);
+        assertEquals(List.of(VD_CATALOG_URI), service.shadowSwaps);
+        assertEquals(2, service.incrementalUpdates.size());
+        assertArrayEquals(new long[] {1000, 1060}, service.incrementalUpdates.get(0));
+        assertArrayEquals(new long[] {1050, 1060}, service.incrementalUpdates.get(1));
+        // The content is never cleared in place: the snapshot goes through the shadow indices.
+        verify(this.snapshotService, never()).initialize(any(RemoteConsumer.class));
+    }
+
+    /**
+     * A snapshot newer than the local offset but older than the failing one still rebuilds the
+     * content: stored content that diverged from CTI is what makes a valid change fail.
+     */
+    public void testPatchFailureRebuildsFromSnapshotNewerThanLocalOffset() throws Exception {
+        ScriptedConsumerCveService service =
+                this.consumerStuckAt1000(
+                        1020L, patchFailureAt(1030L), mock(RemoteConsumer.class), null, true);
+
+        service.synchronize();
+
+        assertEquals(1, service.shadowSwaps.size());
+        assertArrayEquals(new long[] {1020, 1060}, service.incrementalUpdates.get(1));
+    }
+
+    /** No snapshot newer than the local offset: nothing is rebuilt and the failure propagates. */
+    public void testPatchFailureWithoutNewerSnapshotDoesNotRebuild() throws Exception {
+        ScriptedConsumerCveService service =
+                this.consumerStuckAt1000(
+                        1000L, patchFailureAt(1030L), mock(RemoteConsumer.class), null, true);
+
+        expectThrows(RuntimeException.class, service::synchronize);
+
+        assertTrue(service.shadowSwaps.isEmpty());
+        assertEquals(1, service.incrementalUpdates.size());
+    }
+
+    /**
+     * The local offset is the update's checkpoint, which can be past the offset the pass started
+     * from: a snapshot between the two is already behind the content and is not loaded.
+     */
+    public void testPatchFailureComparesSnapshotWithCheckpoint() throws Exception {
+        ScriptedConsumerCveService service =
+                this.consumerStuckAt1000(
+                        1015L, patchFailureAt(1030L), mock(RemoteConsumer.class), 1020L, true);
+
+        expectThrows(RuntimeException.class, service::synchronize);
+
+        assertTrue(service.shadowSwaps.isEmpty());
+    }
+
+    /**
+     * The snapshot cannot be loaded: the shadow swap keeps the current content, nothing more is
+     * applied, and the failure propagates.
+     */
+    public void testPatchFailureKeepsContentWhenSnapshotCannotBeLoaded() throws Exception {
+        ScriptedConsumerCveService service =
+                this.consumerStuckAt1000(
+                        1050L, patchFailureAt(1030L), mock(RemoteConsumer.class), null, false);
+
+        expectThrows(RuntimeException.class, service::synchronize);
+
+        assertEquals(1, service.shadowSwaps.size());
+        assertEquals(1, service.incrementalUpdates.size());
+        verify(this.snapshotService, never()).initialize(any(RemoteConsumer.class));
+    }
+
+    /** Any other failure, here a CTI error, propagates without touching the content. */
+    public void testNonPatchFailureDoesNotRebuild() throws Exception {
+        ScriptedConsumerCveService service =
+                this.consumerStuckAt1000(
+                        1050L,
+                        new RuntimeException("Failed to fetch changes (HTTP 500)"),
+                        mock(RemoteConsumer.class),
+                        null,
+                        true);
+
+        expectThrows(RuntimeException.class, service::synchronize);
+
+        assertTrue(service.shadowSwaps.isEmpty());
+        assertEquals(1, service.incrementalUpdates.size());
     }
 }

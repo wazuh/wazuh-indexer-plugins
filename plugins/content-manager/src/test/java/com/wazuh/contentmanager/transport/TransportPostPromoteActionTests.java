@@ -45,8 +45,10 @@ import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /** Unit tests for {@link TransportPostPromoteAction}'s detector guard. */
 public class TransportPostPromoteActionTests extends OpenSearchTestCase {
@@ -198,5 +200,190 @@ public class TransportPostPromoteActionTests extends OpenSearchTestCase {
         assertNotNull(message);
         assertTrue(message, message.contains("Rule [a]"));
         assertTrue(message, message.contains("detector [critical]"));
+    }
+
+    // ── Policy id validation (wazuh-indexer#2006) ────────────────────────────
+
+    /** The marker failure the stubbed payload build raises once the gathering phase passed. */
+    private static final String REACHED_PAYLOAD_BUILD = "reached the payload build";
+
+    /** A draft to test promotion whose only change is the policy update with the given id. */
+    private static String draftPolicyUpdateBody(String policyId) {
+        return "{\"space\":\"draft\",\"changes\":{\"policy\":[{\"operation\":\"update\",\"id\":\""
+                + policyId
+                + "\"}],\"integrations\":[],\"kvdbs\":[],\"decoders\":[],\"filters\":[],\"rules\":[]}}";
+    }
+
+    /**
+     * Runs a draft to test promotion against a space service whose draft policy has {@code
+     * document.id} "policy-doc-id". The payload build is stubbed to fail with {@link
+     * #REACHED_PAYLOAD_BUILD}, so the response tells whether the gathering phase let the policy
+     * update through.
+     */
+    @SuppressWarnings("unchecked")
+    private MessageStatusResponse promotePolicyUpdate(String requestedPolicyId) {
+        SpaceService spaceService = mock(SpaceService.class);
+        when(spaceService.getIndexForResourceType(anyString())).thenCallRealMethod();
+        doAnswer(
+                        invocation -> {
+                            ((ActionListener<Map<String, Object>>) invocation.getArguments()[1])
+                                    .onResponse(
+                                            Map.of(
+                                                    Constants.KEY_DOCUMENT,
+                                                    Map.of(Constants.KEY_ID, "policy-doc-id"),
+                                                    Constants.KEY_SPACE,
+                                                    Map.of(Constants.KEY_NAME, "draft")));
+                            return null;
+                        })
+                .when(spaceService)
+                .getPolicy(anyString(), any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ((ActionListener<?>) invocation.getArguments()[10])
+                                    .onFailure(new IllegalArgumentException(REACHED_PAYLOAD_BUILD));
+                            return null;
+                        })
+                .when(spaceService)
+                .buildEnginePayload(
+                        any(), anyString(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+
+        TransportPostPromoteAction action =
+                new TransportPostPromoteAction(
+                        mock(TransportService.class),
+                        mock(ActionFilters.class),
+                        spaceService,
+                        mock(EngineService.class),
+                        mock(SecurityAnalyticsService.class),
+                        mock(Client.class));
+
+        AtomicReference<MessageStatusResponse> response = new AtomicReference<>();
+        action.doExecute(
+                mock(Task.class),
+                new PostPromoteRequest(draftPolicyUpdateBody(requestedPolicyId)),
+                ActionListener.wrap(response::set, e -> fail(e.getMessage())));
+        return response.get();
+    }
+
+    /**
+     * A policy update whose id is not the space policy's document.id is rejected with a 400 naming
+     * the expected id, before anything is written. It used to be accepted and indexed as a second
+     * policy document for the target space, which the managers' engine content sync then rejected on
+     * every cycle (wazuh-indexer#2006).
+     */
+    public void testPolicyUpdateWithUnknownIdIsRejected() {
+        MessageStatusResponse response = promotePolicyUpdate("not-the-policy-id");
+
+        assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+        assertEquals(
+                String.format(
+                        Locale.ROOT,
+                        Constants.E_400_POLICY_ID_MISMATCH,
+                        "not-the-policy-id",
+                        "draft",
+                        "policy-doc-id"),
+                response.getMessage());
+    }
+
+    /** A policy update carrying the space policy's document.id passes the gathering phase. */
+    public void testPolicyUpdateWithMatchingIdIsAccepted() {
+        MessageStatusResponse response = promotePolicyUpdate("policy-doc-id");
+
+        assertEquals(REACHED_PAYLOAD_BUILD, response.getMessage());
+    }
+
+    // ── Request body validation (#1668) ──────────────────────────────────────
+
+    /**
+     * Runs a promotion with the given raw body against an action whose services are inert mocks.
+     * Every case below is answered synchronously, before any service or client call.
+     */
+    private MessageStatusResponse promoteBody(String body) {
+        TransportPostPromoteAction action =
+                new TransportPostPromoteAction(
+                        mock(TransportService.class),
+                        mock(ActionFilters.class),
+                        mock(SpaceService.class),
+                        mock(EngineService.class),
+                        mock(SecurityAnalyticsService.class),
+                        mock(Client.class));
+
+        AtomicReference<MessageStatusResponse> response = new AtomicReference<>();
+        action.doExecute(
+                mock(Task.class),
+                new PostPromoteRequest(body),
+                ActionListener.wrap(response::set, e -> fail(e.getMessage())));
+        return response.get();
+    }
+
+    /**
+     * A body without a space, or with a null one, is a 400 naming the missing field — the same answer
+     * GET /promote gives. It used to reach {@code Space.promote()} as null and escape as an uncaught
+     * NullPointerException, a 500 carrying the Java exception text (#1668).
+     */
+    public void testMissingSpaceIsRejectedWith400() {
+        String missingField =
+                String.format(Locale.ROOT, Constants.E_400_MISSING_FIELD, Constants.KEY_SPACE);
+
+        for (String body : new String[] {"{}", "{\"space\":null}"}) {
+            MessageStatusResponse response = promoteBody(body);
+            assertEquals(body, RestStatus.BAD_REQUEST, response.getStatus());
+            assertEquals(body, missingField, response.getMessage());
+        }
+    }
+
+    /** A changes object with every list empty but the named one, which holds the given items. */
+    private static String changesWith(String space, String listName, String items) {
+        StringBuilder changes = new StringBuilder();
+        for (String name :
+                new String[] {"policy", "integrations", "kvdbs", "decoders", "filters", "rules"}) {
+            if (changes.length() > 0) {
+                changes.append(',');
+            }
+            changes.append('"').append(name).append("\":");
+            changes.append(name.equals(listName) ? items : "[]");
+        }
+        return "{\"space\":\"" + space + "\",\"changes\":{" + changes + "}}";
+    }
+
+    /**
+     * A body that is not JSON, carries an unknown key, gives a field the wrong shape, or holds a
+     * change item without an operation or an id is a 400 with the generic validation message, never a
+     * 500 and never the Jackson or NullPointerException text (#1668).
+     */
+    public void testMalformedBodyIsRejectedWith400() {
+        for (String body :
+                new String[] {
+                    "null",
+                    "not json",
+                    "{\"spaces\":\"draft\"}",
+                    "{\"space\":\"draft\",\"changes\":{\"integrations\":[\"some-id\"]}}",
+                    changesWith("draft", "integrations", "[{\"id\":\"x\"}]"),
+                    changesWith("draft", "policy", "[{\"operation\":\"update\"}]"),
+                    changesWith("draft", "integrations", "[null]"),
+                    changesWith("draft", "policy", "[null]"),
+                    changesWith("test", "rules", "[null]")
+                }) {
+            MessageStatusResponse response = promoteBody(body);
+            assertEquals(body, RestStatus.BAD_REQUEST, response.getStatus());
+            assertEquals(body, Constants.E_400_INVALID_REQUEST_BODY, response.getMessage());
+        }
+    }
+
+    /** An unknown space value keeps its specific message, which names the value (#1668). */
+    public void testUnknownSpaceKeepsItsMessage() {
+        MessageStatusResponse response = promoteBody("{\"space\":\"bogus\"}");
+
+        assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+        assertEquals("Unknown space: [bogus].", response.getMessage());
+    }
+
+    /** An unpromotable space keeps its specific message (#1668). */
+    public void testUnpromotableSpaceKeepsItsMessage() {
+        MessageStatusResponse response = promoteBody("{\"space\":\"standard\"}");
+
+        assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+        assertEquals(
+                String.format(Locale.ROOT, Constants.E_400_UNPROMOTABLE_SPACE, "standard"),
+                response.getMessage());
     }
 }

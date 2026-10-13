@@ -28,12 +28,15 @@ import org.junit.Before;
 import com.wazuh.contentmanager.action.IndexSubscriptionRequest;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
+import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.InOrder;
 
 import static org.mockito.Mockito.*;
 
 public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
     private SubscriptionServiceImpl subscriptionService;
+    private CatalogSyncJob catalogSyncJob;
     private TransportIndexSubscriptionAction action;
 
     @Before
@@ -41,9 +44,13 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.subscriptionService = mock(SubscriptionServiceImpl.class);
+        this.catalogSyncJob = mock(CatalogSyncJob.class);
         this.action =
                 new TransportIndexSubscriptionAction(
-                        mock(TransportService.class), mock(ActionFilters.class), this.subscriptionService);
+                        mock(TransportService.class),
+                        mock(ActionFilters.class),
+                        this.subscriptionService,
+                        this.catalogSyncJob);
     }
 
     /**
@@ -58,6 +65,7 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
         this.action.doExecute(mock(Task.class), request, listener);
 
         verify(this.subscriptionService, never()).register(any(), any(ActionListener.class));
+        verify(this.catalogSyncJob, never()).triggerOnRegistration();
         verify(listener)
                 .onResponse(
                         argThat(
@@ -95,6 +103,36 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
                                     Assert.assertEquals(Constants.S_201_ACCESS_TOKEN_RECEIVED, response.getMessage());
                                     return true;
                                 }));
+        // The registration is answered first; the content update runs in the background.
+        InOrder order = inOrder(listener, this.catalogSyncJob);
+        order.verify(listener).onResponse(any(MessageStatusResponse.class));
+        order.verify(this.catalogSyncJob).triggerOnRegistration();
+    }
+
+    /**
+     * A content update that fails to start does not change the answer to a registration that
+     * succeeded, nor answer it a second time.
+     */
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_Created_UpdateTriggerThrows_AnswersOnce() {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Void> asyncListener = invocation.getArgument(1);
+                            asyncListener.onResponse(null);
+                            return null;
+                        })
+                .when(this.subscriptionService)
+                .register(eq("valid-token"), any(ActionListener.class));
+        doThrow(new RuntimeException("boom")).when(this.catalogSyncJob).triggerOnRegistration();
+
+        IndexSubscriptionRequest request = new IndexSubscriptionRequest("valid-token");
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), request, listener);
+
+        verify(listener, times(1)).onResponse(any(MessageStatusResponse.class));
+        verify(listener)
+                .onResponse(argThat(response -> RestStatus.CREATED.equals(response.getStatus())));
+        verify(listener, never()).onFailure(any());
     }
 
     @SuppressWarnings("unchecked")
@@ -113,6 +151,7 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
+        verify(this.catalogSyncJob, never()).triggerOnRegistration();
         verify(listener)
                 .onResponse(
                         argThat(
@@ -140,6 +179,7 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
+        verify(this.catalogSyncJob, never()).triggerOnRegistration();
         verify(listener, never()).onFailure(any());
         verify(listener)
                 .onResponse(
@@ -166,6 +206,7 @@ public class TransportIndexSubscriptionActionTests extends OpenSearchTestCase {
         ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
         this.action.doExecute(mock(Task.class), request, listener);
 
+        verify(this.catalogSyncJob, never()).triggerOnRegistration();
         verify(listener)
                 .onResponse(
                         argThat(

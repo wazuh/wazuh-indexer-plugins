@@ -55,6 +55,13 @@ public class PluginSettings {
      */
     public static final String LOGTEST_THREAD_POOL = "content_manager_logtest";
 
+    /**
+     * Name of the dedicated thread pool that runs the version check's blocking CTI call, off the
+     * transport threads and apart from the generic pool. One thread is enough: checks share the
+     * in-flight call and are rate limited, so at most one task is ever submitted at a time.
+     */
+    public static final String VERSION_CHECK_THREAD_POOL = "content_manager_version_check";
+
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 1000;
 
