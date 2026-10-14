@@ -140,6 +140,10 @@ public final class YamlUtils {
      * <p>Integer values in YAML produce {@code IntNode}/{@code LongNode}, not {@code DecimalNode}, so
      * this fix only affects values that were genuinely floating-point in the source YAML.
      *
+     * <p>Only scale 0 is fixed. Values in exponent notation (e.g. {@code 1e3}) have a negative scale
+     * and are left untouched: raising their scale would materialize the full integer value, so a
+     * small input like {@code 1e+256000000} would consume unbounded CPU and memory.
+     *
      * @param node The root node to process.
      */
     public static void fixDecimalScale(JsonNode node) {
@@ -152,7 +156,7 @@ public final class YamlUtils {
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> field = fields.next();
                 JsonNode value = field.getValue();
-                if (value.isFloatingPointNumber() && value.decimalValue().scale() <= 0) {
+                if (needsScaleFix(value)) {
                     BigDecimal fixed = value.decimalValue().setScale(1);
                     obj.set(field.getKey(), DecimalNode.valueOf(fixed));
                 } else {
@@ -163,7 +167,7 @@ public final class YamlUtils {
             ArrayNode arr = (ArrayNode) node;
             for (int i = 0; i < arr.size(); i++) {
                 JsonNode value = arr.get(i);
-                if (value.isFloatingPointNumber() && value.decimalValue().scale() <= 0) {
+                if (needsScaleFix(value)) {
                     BigDecimal fixed = value.decimalValue().setScale(1);
                     arr.set(i, DecimalNode.valueOf(fixed));
                 } else {
@@ -171,5 +175,15 @@ public final class YamlUtils {
                 }
             }
         }
+    }
+
+    /**
+     * Checks whether a node is a floating-point value with scale exactly 0, such as {@code 5.0}.
+     *
+     * @param value The node to check.
+     * @return {@code true} if the node's scale must be raised to 1.
+     */
+    private static boolean needsScaleFix(JsonNode value) {
+        return value.isFloatingPointNumber() && value.decimalValue().scale() == 0;
     }
 }
