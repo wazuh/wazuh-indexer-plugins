@@ -20,8 +20,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.refresh.RefreshResponse;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.index.reindex.ReindexRequestBuilder;
@@ -89,6 +91,21 @@ public final class IndexSwapHelper {
                             + ContentIndex.SUFFIX_B
                             + "'.");
         }
+    }
+
+    /**
+     * Returns whether the slot the alias does not point at holds an index: the staging index of a
+     * swap that has not switched yet, or the previous index of one that has.
+     *
+     * @param client The OpenSearch client.
+     * @param aliasName The public alias name.
+     * @return true if the other slot holds an index.
+     * @throws IllegalStateException If the alias does not resolve to a recognized {@code -a} / {@code
+     *     -b} physical index.
+     */
+    public static boolean shadowIndexExists(Client client, String aliasName) {
+        String shadowPhysical = resolveShadowName(client, aliasName);
+        return client.admin().indices().prepareExists(shadowPhysical).get().isExists();
     }
 
     /**
@@ -183,6 +200,29 @@ public final class IndexSwapHelper {
                     .get();
 
             log.debug(Constants.D_LOG_REINDEX_USER_CONTENT_COMPLETE, livePhysical, shadowPhysical);
+        }
+    }
+
+    /**
+     * Refreshes the given physical indices, so that everything written to them is searchable. A shard
+     * that fails to refresh fails the call: its content would be only partly searchable.
+     *
+     * @param client The OpenSearch client.
+     * @param indexNames The physical index names to refresh.
+     * @param timeoutSeconds The timeout for the refresh.
+     * @throws Exception If the refresh fails or a shard does not refresh.
+     */
+    public static void refreshIndices(
+            Client client, Collection<String> indexNames, long timeoutSeconds) throws Exception {
+        RefreshResponse response =
+                client
+                        .admin()
+                        .indices()
+                        .prepareRefresh(indexNames.toArray(new String[0]))
+                        .get(TimeValue.timeValueSeconds(timeoutSeconds));
+        if (response.getFailedShards() > 0) {
+            throw new IllegalStateException(
+                    response.getFailedShards() + " shards of " + indexNames + " could not be refreshed");
         }
     }
 

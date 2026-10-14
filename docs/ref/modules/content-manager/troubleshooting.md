@@ -42,6 +42,12 @@ A successful registration returns `{"message":"Access token received successfull
 
 Check that the node can reach the URL in `plugins.content_manager.cti.api`, then repeat the request. You don't need to register again. The credentials are only deleted when the CTI Console rejects the token with `401`; `GET /subscription` then reports `"is_registered": false`.
 
+### Every consumer shows `running` after a plan change
+
+This is expected while the content of the new plan is prepared. After a subscription plan change, every consumer whose data source changes reports `running` under its new data source, with `local_offset` `0`, until the content of all of them is ready and switched in one operation. The previous content stays live meanwhile. A full plan change usually takes several minutes, mostly to download the vulnerabilities and IoCs, and temporarily needs disk space for a second copy of the content. See [Plan change handling](architecture.md#plan-change-handling-bluegreen-swap).
+
+If the new content cannot be prepared, the consumers return to their previous data source and content, and the change is retried on every sync. The node log shows why, in a `could not be prepared` or `could not be determined` warning, or a `Failed to prepare the new content of consumers` error. Consumers that stay `running` with `local_offset` `0` across several syncs belong to a swap that was interrupted, for example by a restart, and could not be redone yet; the log shows the same messages, and a `waiting for a swap to complete` warning for each of them. The next sync redoes an interrupted swap; to redo it without waiting for the scheduled sync, trigger a sync on demand as shown in [Sync not running](#sync-not-running).
+
 ### Sync not running
 
 Content is not being updated despite having a valid subscription.
@@ -228,9 +234,9 @@ Example output:
 - `status == ready`: Sync is complete; content is safe to read.
 - `status == running`: Sync is in progress. If this persists after a sync should have finished, the node process may have been interrupted (e.g. killed) mid-cycle without a chance to record `failed`.
 - `status == failed`: The previous sync cycle was interrupted by an unexpected exception. Check the Content Manager logs around the time this consumer was last synced; the job retries automatically on its next scheduled run.
-- `local_offset == remote_offset`: Content is up-to-date.
-- `local_offset < remote_offset`: Content needs updating.
-- `local_offset == 0`: Content has never been synced (snapshot required).
+- `local_offset == remote_offset`: Content is up-to-date. While the consumer is `running`, the sync has no changes left to apply: it is checking for new ones or finishing its post-sync work.
+- `local_offset < remote_offset`: Content needs updating. While the consumer is `running`, `remote_offset` is the offset the sync in progress updates to.
+- `local_offset == 0`: Content has never been synced (snapshot required). With status `running` during a plan change, none of the new plan's content is live yet: it is being prepared (see [Every consumer shows `running` after a plan change](#every-consumer-shows-running-after-a-plan-change)).
 - `pending_sync_phases`: for the ruleset consumer, lists which of `integrations`, `rules`, and `detectors` failed to sync to Ruleset Management and are retried on the next scheduled sync; empty means all sub-phases are in sync.
 
 ### Check sync job

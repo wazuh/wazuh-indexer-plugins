@@ -44,6 +44,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -57,6 +58,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -1397,5 +1399,40 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Assert.assertFalse("Temp file should be cleaned up", Files.exists(zipPath));
         Assert.assertNull(
                 "stablePath should be null for default constructor", this.snapshotService.getStablePath());
+    }
+
+    /**
+     * A load into the staging indices of a swap leaves the consumer document alone: the document
+     * describes the live content, which the load does not change. The same load through the regular
+     * service records the snapshot offset.
+     */
+    public void testStagingLoad_LeavesConsumerDocumentAlone() throws Exception {
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(100L);
+        String line =
+                "{\"name\": \"1\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"1\"}}}";
+        Map<String, ContentIndex> staging = new HashMap<>();
+        staging.put("kvdb", this.contentIndexMock);
+        SnapshotServiceImpl stagingService =
+                SnapshotServiceImpl.forStaging(
+                        "cti:catalog:consumer:ruleset", staging, this.environment, new RegularUrlResolver());
+        stagingService.setSnapshotClient(this.snapshotClient);
+        when(this.snapshotClient.downloadFile(url))
+                .thenReturn(this.createZipFileWithContent("data.json", line));
+
+        Assert.assertTrue(
+                "A staging load succeeds without a consumer document",
+                stagingService.initialize(this.remoteConsumer));
+        verify(this.contentIndexMock, atLeastOnce()).executeBulk(any(BulkRequest.class));
+        verify(this.consumersIndex, never()).getConsumer(anyString());
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class), anyBoolean());
+
+        mockT0ConsumerDoc();
+        when(this.snapshotClient.downloadFile(url))
+                .thenReturn(this.createZipFileWithContent("data.json", line));
+        Assert.assertTrue(this.snapshotService.initialize(this.remoteConsumer));
+        verify(this.consumersIndex).setConsumer(any(LocalConsumer.class));
     }
 }

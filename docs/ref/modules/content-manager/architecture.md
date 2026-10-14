@@ -254,15 +254,36 @@ When a subscription plan changes (e.g., from the public plan to a paid one, or v
 
 ### How it works
 
-1. **Detection.** During each sync cycle, the Content Manager compares the plan-provided catalog URL against the one stored locally. If they differ, a plan change is detected. Besides the scheduled and on-demand cycles, registering a CTI access token (`POST /subscription`) starts one right away.
-2. **Shadow download.** New content is downloaded into hidden staging indices. These shadow indices are invisible to users, dashboards, and REST queries during the rebuild.
+1. **Detection.** Each sync cycle looks the subscription plan up once and, for each consumer, compares the plan-provided catalog URL against the one stored locally. Every consumer whose URL differs changes data source. Besides the scheduled and on-demand cycles, registering a CTI access token (`POST /subscription`) starts one right away.
+2. **Shadow download.** The new content of every changing consumer is downloaded into hidden staging indices, one consumer after another. These shadow indices are invisible to users, dashboards, and REST queries during the rebuild.
 3. **User content preservation.** Any user-created content (draft rules, test decoders, custom integrations, etc.) is copied from the live indices into the shadow indices.
-4. **Atomic switch.** Once the shadow indices are fully ready, all index aliases are swapped in a single atomic operation. Users see either the entire old content or the entire new content — never a mix or an empty state.
+4. **Atomic switch.** Once the shadow indices of every changing consumer are ready and refreshed, so that all their content is searchable, the aliases of all of them are swapped in a single atomic operation. Users see either the entire old content or the entire new content — never a mix of two plans or an empty state.
 5. **Cleanup.** The old indices are deleted, freeing the temporary disk space.
+
+The change is all or nothing: if one changing consumer cannot be prepared, for example because its new data source offers no snapshot, or if whether a consumer changes cannot be determined, for example because its record cannot be read, no consumer switches and the change is retried.
+
+### Consumer status during a swap
+
+From the moment the shadow download starts, every changing consumer reports `running` in `.wazuh-cti-consumers`, already under its new data source (`name`, `context`, `resource` and `is_public`). All of them change in the same write, so they are never shown on different plans. Their offsets show how much of the new content is live: `local_offset` is `0` until the switch and the snapshot offset after it, and `remote_offset` is the latest offset of the new data source. After the switch, each consumer applies the changes published after its snapshot, runs its post-sync work and reports `ready` with `local_offset` equal to `remote_offset`.
+
+| Moment | Each changing consumer |
+|---|---|
+| Before the change | previous data source · `ready` · `L/L` |
+| Shadow download | new data source · `running` · `0/H` |
+| After the switch | new data source · `running` · `S/H` |
+| Done | new data source · `ready` · `H/H` |
+
+`L` is the previous local offset, `H` the latest offset of the new data source and `S` its snapshot offset. Components that wait for `ready` before reading the content, such as the Engine and the vulnerability detector, keep the content they already loaded while a consumer is `running`; the live content does not change until the switch.
 
 ### Failure behavior
 
-If the new content cannot be downloaded or processed (network error, source unavailable, etc.), the swap is abandoned cleanly: the staging indices are discarded, users continue to see the old content, and the system retries on the next scheduled sync. A failed swap is invisible to the end user.
+If the new content cannot be downloaded or processed (network error, source unavailable, etc.), the swap is abandoned cleanly: the staging indices are discarded, every consumer record returns to its previous data source, users continue to see the old content, and the sync is retried once right away and then on each scheduled sync. A failed swap is invisible to the end user.
+
+If the node stops in the middle of a swap, the next sync recognizes the interrupted swap — a consumer that is `running` with `local_offset` `0` while its staging indices exist — and redoes it.
+
+### Disk usage
+
+The staging indices of every changing consumer exist next to the live ones until the switch, so a full plan change temporarily needs room for a second copy of all the downloaded content, vulnerabilities and IoCs included. The space is freed as soon as the swap completes.
 
 ## Index structure
 
@@ -353,6 +374,8 @@ The `status` field reflects the consumer's synchronization lifecycle:
 | `running` | Sync is in progress; content may be partially written or inconsistent. |
 | `failed` | The previous sync cycle was interrupted by an unexpected exception. |
 
-The status is set to `running` at the very start of a sync cycle and transitions to `ready` after all post-sync work finishes — including hash recalculation, Ruleset Management synchronization, and Engine IoC notification — or to `failed` if an unexpected exception interrupts the cycle. The job scheduler logs the failure and retries on the next scheduled run regardless of the consumer's status.
+The status is set to `running` at the start of a sync cycle, before any content is applied, and transitions to `ready` after all post-sync work finishes — including hash recalculation, Ruleset Management synchronization, and Engine IoC notification — or to `failed` if an unexpected exception interrupts the cycle. The job scheduler logs the failure and retries on the next scheduled run regardless of the consumer's status.
+
+The offsets tell how far the content is synced. `local_offset` is the offset of the content that is live. While a sync cycle is `running`, `remote_offset` is the offset the cycle syncs to, recorded by the same write that marks the consumer `running`, so `local_offset` lower than `remote_offset` shows the changes still to be applied. A `running` consumer with equal offsets has no changes left to apply: it is checking for new ones or finishing its post-sync work, such as the Ruleset Management synchronization of the ruleset. The cycle ends `ready` with both equal. During a plan change, the offsets belong to the new data source, see [Consumer status during a swap](#consumer-status-during-a-swap).
 
 For the ruleset consumer, `pending_sync_phases` lists which of `integrations`, `rules`, and `detectors` failed to sync to Ruleset Management on the last pass and are retried on the next scheduled sync, even without new CTI content; an empty array means all sub-phases are in sync.

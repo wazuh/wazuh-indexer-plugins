@@ -472,13 +472,8 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
 
         @Override
         boolean performShadowSwap(
-                String consumerType,
-                String catalogUri,
-                String planResource,
-                Map<String, ContentIndex> liveIndicesMap,
-                RemoteConsumer remoteConsumer,
-                ResourceUrlResolver urlResolver) {
-            this.shadowSwaps.add(planResource);
+                String resource, RemoteConsumer remoteConsumer, ResourceUrlResolver urlResolver) {
+            this.shadowSwaps.add(resource);
             return this.swapSucceeds;
         }
     }
