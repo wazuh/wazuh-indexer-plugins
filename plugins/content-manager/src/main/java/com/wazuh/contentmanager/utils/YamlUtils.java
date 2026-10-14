@@ -30,7 +30,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.Iterator;
+import java.math.RoundingMode;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +86,7 @@ public final class YamlUtils {
             return null;
         }
         if (!document.isObject()) {
-            return toYaml(document);
+            return YamlUtils.toYaml(document);
         }
         try {
             Map<String, Object> ordered = new LinkedHashMap<>();
@@ -99,9 +99,7 @@ public final class YamlUtils {
             }
 
             // Add remaining keys
-            Iterator<Map.Entry<String, JsonNode>> fields = document.fields();
-            while (fields.hasNext()) {
-                Map.Entry<String, JsonNode> field = fields.next();
+            for (Map.Entry<String, JsonNode> field : document.properties()) {
                 if (!keyOrder.contains(field.getKey())) {
                     ordered.put(field.getKey(), field.getValue());
                 }
@@ -127,7 +125,7 @@ public final class YamlUtils {
      */
     public static JsonNode fromYaml(String yaml) throws IOException {
         JsonNode tree = YAML_MAPPER.readTree(yaml);
-        fixDecimalScale(tree);
+        YamlUtils.fixDecimalScale(tree);
         return tree;
     }
 
@@ -152,26 +150,24 @@ public final class YamlUtils {
         }
         if (node.isObject()) {
             ObjectNode obj = (ObjectNode) node;
-            Iterator<Map.Entry<String, JsonNode>> fields = obj.fields();
-            while (fields.hasNext()) {
-                Map.Entry<String, JsonNode> field = fields.next();
+            for (Map.Entry<String, JsonNode> field : obj.properties()) {
                 JsonNode value = field.getValue();
-                if (needsScaleFix(value)) {
-                    BigDecimal fixed = value.decimalValue().setScale(1);
+                if (YamlUtils.needsScaleFix(value)) {
+                    BigDecimal fixed = value.decimalValue().setScale(1, RoundingMode.UNNECESSARY);
                     obj.set(field.getKey(), DecimalNode.valueOf(fixed));
                 } else {
-                    fixDecimalScale(value);
+                    YamlUtils.fixDecimalScale(value);
                 }
             }
         } else if (node.isArray()) {
             ArrayNode arr = (ArrayNode) node;
             for (int i = 0; i < arr.size(); i++) {
                 JsonNode value = arr.get(i);
-                if (needsScaleFix(value)) {
-                    BigDecimal fixed = value.decimalValue().setScale(1);
+                if (YamlUtils.needsScaleFix(value)) {
+                    BigDecimal fixed = value.decimalValue().setScale(1, RoundingMode.UNNECESSARY);
                     arr.set(i, DecimalNode.valueOf(fixed));
                 } else {
-                    fixDecimalScale(value);
+                    YamlUtils.fixDecimalScale(value);
                 }
             }
         }
