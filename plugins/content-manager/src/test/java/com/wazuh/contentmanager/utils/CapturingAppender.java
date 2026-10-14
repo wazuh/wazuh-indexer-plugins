@@ -74,6 +74,19 @@ public final class CapturingAppender extends AbstractAppender implements AutoClo
         return this.events.stream().filter(event -> event.getLevel() == level).count();
     }
 
+    /**
+     * Returns the formatted messages of the captured events logged at {@code level}.
+     *
+     * @param level the level to filter on.
+     * @return the messages, in the order they were logged.
+     */
+    public List<String> messages(Level level) {
+        return this.events.stream()
+                .filter(event -> event.getLevel() == level)
+                .map(event -> event.getMessage().getFormattedMessage())
+                .toList();
+    }
+
     @Override
     public void close() {
         Loggers.removeAppender(this.logger, this);

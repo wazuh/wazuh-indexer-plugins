@@ -40,6 +40,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -353,8 +354,68 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
 
         job.trigger();
 
-        verify(this.resourceLockService, times(1)).renew(CatalogSyncJob.CLUSTER_LOCK_ID);
+        verify(this.resourceLockService, times(1))
+                .renew(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(Runnable.class));
         verify(renewal, times(1)).cancel();
+    }
+
+    /**
+     * A renewal that finds the lock lost cancels the renewal task while the pass is still running,
+     * instead of letting it fail once per interval until the pass ends. The pass itself carries on.
+     */
+    public void testPass_lockLost_cancelsTheRenewalWhileThePassRuns() {
+        this.useSameThreadExecutor();
+        AtomicInteger cancels = new AtomicInteger();
+        Scheduler.Cancellable renewal =
+                new Scheduler.Cancellable() {
+                    @Override
+                    public boolean cancel() {
+                        cancels.incrementAndGet();
+                        return true;
+                    }
+
+                    @Override
+                    public boolean isCancelled() {
+                        return cancels.get() > 0;
+                    }
+                };
+        AtomicReference<Runnable> renewalTask = new AtomicReference<>();
+        when(this.threadPool.scheduleWithFixedDelay(
+                        any(Runnable.class), any(TimeValue.class), eq(ThreadPool.Names.GENERIC)))
+                .thenAnswer(
+                        invocation -> {
+                            renewalTask.set(invocation.getArgument(0));
+                            return renewal;
+                        });
+        // The renewal finds the lock is no longer this node's.
+        doAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(1)).run();
+                            return null;
+                        })
+                .when(this.resourceLockService)
+                .renew(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(Runnable.class));
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+        AtomicInteger cancelsDuringPass = new AtomicInteger(-1);
+        doAnswer(
+                        invocation -> {
+                            renewalTask.get().run();
+                            cancelsDuringPass.set(cancels.get());
+                            return CatalogSyncJob.SyncOutcome.SUCCESS;
+                        })
+                .when(job)
+                .performSynchronization();
+
+        job.trigger();
+
+        Assert.assertEquals(
+                "The renewal is cancelled as soon as the lock is reported lost",
+                1,
+                cancelsDuringPass.get());
+        verify(job, times(1)).performSynchronization();
+        verify(this.resourceLockService, times(1))
+                .release(eq(CatalogSyncJob.CLUSTER_LOCK_ID), any(Runnable.class));
+        Assert.assertFalse(job.isRunning());
     }
 
     /**
