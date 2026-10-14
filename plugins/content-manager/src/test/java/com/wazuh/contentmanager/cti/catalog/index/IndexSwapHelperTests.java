@@ -20,13 +20,17 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
+import org.opensearch.action.admin.indices.refresh.RefreshRequestBuilder;
+import org.opensearch.action.admin.indices.refresh.RefreshResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -188,5 +192,30 @@ public class IndexSwapHelperTests extends OpenSearchTestCase {
                 .thenReturn(true);
 
         assertTrue(IndexSwapHelper.shadowIndexExists(this.client, alias));
+    }
+
+    /** refreshIndices refreshes every given index in one request. */
+    public void testRefreshIndices_RefreshesEveryIndex() throws Exception {
+        RefreshRequestBuilder request = mock(RefreshRequestBuilder.class);
+        RefreshResponse response = mock(RefreshResponse.class);
+        when(response.getFailedShards()).thenReturn(0);
+        when(request.get(any(TimeValue.class))).thenReturn(response);
+        when(this.client.admin().indices().prepareRefresh("rules-b", "iocs-b")).thenReturn(request);
+
+        IndexSwapHelper.refreshIndices(this.client, List.of("rules-b", "iocs-b"), 30);
+
+        verify(request).get(TimeValue.timeValueSeconds(30));
+    }
+
+    /** A shard that fails to refresh fails the call, so its index is not switched to. */
+    public void testRefreshIndices_FailedShardThrows() {
+        RefreshResponse response = mock(RefreshResponse.class);
+        when(response.getFailedShards()).thenReturn(1);
+        when(this.client.admin().indices().prepareRefresh("rules-b").get(any(TimeValue.class)))
+                .thenReturn(response);
+
+        expectThrows(
+                IllegalStateException.class,
+                () -> IndexSwapHelper.refreshIndices(this.client, List.of("rules-b"), 30));
     }
 }

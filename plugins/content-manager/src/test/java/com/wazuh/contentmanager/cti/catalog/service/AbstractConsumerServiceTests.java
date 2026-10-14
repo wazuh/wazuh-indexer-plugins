@@ -225,6 +225,9 @@ public class AbstractConsumerServiceTests extends OpenSearchTestCase {
                     }
 
                     @Override
+                    void refreshIndices(Collection<String> indices) {}
+
+                    @Override
                     void switchAliases(Map<String, String> aliasToStaging, Map<String, String> aliasToLive) {}
 
                     @Override

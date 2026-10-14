@@ -137,7 +137,12 @@ public class ShadowSwapServiceIT extends OpenSearchIntegTestCase {
             assertEquals(90, document.getLocalOffset());
             assertEquals(100, document.getRemoteOffset());
         }
-        client().admin().indices().prepareRefresh(RULES, DECODERS, IOCS, CVES).get();
+        for (String alias : ALIASES) {
+            assertEquals(
+                    "The new content of [" + alias + "] is searchable as soon as it is switched",
+                    1,
+                    this.searchHits(alias));
+        }
         assertFalse("The previous standard rule is gone", this.documentExists(RULES, "old-standard"));
         assertTrue(this.documentExists(RULES, "new-" + RULES));
         assertTrue(this.documentExists(DECODERS, "new-" + DECODERS));
@@ -270,6 +275,11 @@ public class ShadowSwapServiceIT extends OpenSearchIntegTestCase {
                 .get();
     }
 
+    /** Counts the documents a search finds, which unlike a get sees only refreshed content. */
+    private long searchHits(String index) {
+        return client().prepareSearch(index).setSize(0).get().getHits().getTotalHits().value();
+    }
+
     private boolean documentExists(String index, String id) {
         return client().prepareGet(index, id).get().isExists();
     }
@@ -383,6 +393,17 @@ public class ShadowSwapServiceIT extends OpenSearchIntegTestCase {
             if (!this.loadSucceeds) {
                 return false;
             }
+            String[] physical =
+                    stagingIndices.values().stream()
+                            .map(ContentIndex::getPhysicalName)
+                            .toArray(String[]::new);
+            // As under a large load, nothing refreshes the documents on its own before the switch.
+            client()
+                    .admin()
+                    .indices()
+                    .prepareUpdateSettings(physical)
+                    .setSettings(Settings.builder().put("index.refresh_interval", "-1"))
+                    .get();
             for (ContentIndex staging : stagingIndices.values()) {
                 String id = "new-" + staging.getIndexName();
                 String source =
@@ -397,14 +418,6 @@ public class ShadowSwapServiceIT extends OpenSearchIntegTestCase {
                         .setSource(source, XContentType.JSON)
                         .get();
             }
-            client()
-                    .admin()
-                    .indices()
-                    .prepareRefresh(
-                            stagingIndices.values().stream()
-                                    .map(ContentIndex::getPhysicalName)
-                                    .toArray(String[]::new))
-                    .get();
             return true;
         }
     }

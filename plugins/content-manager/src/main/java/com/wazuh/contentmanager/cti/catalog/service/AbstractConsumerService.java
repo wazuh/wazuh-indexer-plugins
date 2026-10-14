@@ -191,7 +191,7 @@ public abstract class AbstractConsumerService {
      *
      * @return see {@link #synchronize(SyncPass)}.
      */
-    public boolean synchronize() {
+    boolean synchronize() {
         SyncPass pass = SyncPass.resolve();
         new ShadowSwapService(this.client, this.consumersIndex).swapChangedSources(List.of(this), pass);
         return this.synchronize(pass);

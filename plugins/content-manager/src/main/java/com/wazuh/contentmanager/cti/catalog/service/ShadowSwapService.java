@@ -304,6 +304,8 @@ public class ShadowSwapService {
                 aliasToStaging.putAll(candidate.aliasToStaging);
                 aliasToLive.putAll(candidate.aliasToLive);
             }
+            log.debug(Constants.D_LOG_REFRESH_STAGING_INDICES, types);
+            this.refreshIndices(aliasToStaging.values());
             log.debug(Constants.D_LOG_ATOMIC_ALIAS_SWAP, types);
             this.switchAliases(aliasToStaging, aliasToLive);
             log.info(Constants.I_LOG_SWAP_SWITCHED, types, aliasToStaging.size());
@@ -469,6 +471,11 @@ public class ShadowSwapService {
     void copyUserContent(Map<String, String> liveToStaging) {
         IndexSwapHelper.reindexUserContent(
                 this.client, liveToStaging, PluginSettings.getInstance().getClientTimeout());
+    }
+
+    void refreshIndices(Collection<String> indices) throws Exception {
+        IndexSwapHelper.refreshIndices(
+                this.client, indices, PluginSettings.getInstance().getClientTimeout());
     }
 
     void switchAliases(Map<String, String> aliasToStaging, Map<String, String> aliasToLive)

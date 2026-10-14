@@ -301,6 +301,8 @@ public class Constants {
             "Failed to download the new content for consumer [{}]; keeping the current content.";
     public static final String D_LOG_REINDEX_USER_CONTENT =
             "Copying custom content into the staging indices for consumer [{}].";
+    public static final String D_LOG_REFRESH_STAGING_INDICES =
+            "Refreshing the new content indices of consumers {} so they are searchable when switched.";
     public static final String D_LOG_ATOMIC_ALIAS_SWAP =
             "Switching aliases to the new content indices for consumers {}.";
     public static final String D_LOG_CONSUMER_DOC_REWRITTEN =

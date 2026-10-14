@@ -138,9 +138,10 @@ Only one physical index is live at a time. The alias points to it with `is_write
 4. Download each snapshot into its shadow indices, one consumer after another (`SnapshotServiceImpl.forStaging()`, which leaves the consumer documents alone)
 5. Reindex user content (space.name != "standard") from live → shadow (only for consumer types with hasUserContent()=true, i.e., ruleset)
 6. `onBeforeAliasSwap()` hooks (the ruleset collects its pre-swap Security Analytics resources)
-7. Unhide non-CVE shadow indices, then one atomic alias swap: a single IndicesAliasesRequest for the aliases of every moving consumer (all 8 for a full plan change)
-8. Record the snapshot offsets in the documents of all moving consumers, in one bulk request
-9. Delete the old physical indices
+7. Refresh all shadow indices, so the last bulks of the loads are searchable the moment they go live (a shard that fails to refresh fails the swap, which is then undone like any failure before the switch)
+8. Unhide non-CVE shadow indices, then one atomic alias swap: a single IndicesAliasesRequest for the aliases of every moving consumer (all 8 for a full plan change)
+9. Record the snapshot offsets in the documents of all moving consumers, in one bulk request
+10. Delete the old physical indices
 
 Each consumer's `synchronize(SyncPass)` then catches up from its snapshot offset to the remote head and runs the post-sync cascade (`onSyncComplete(true)`: Security Analytics sync, stale resource cleanup, engine reload, IoC notification) before reporting `ready`.
 
@@ -620,6 +621,7 @@ sequenceDiagram
         Swap->>Consumers: Rewrite every changing consumer (new resource, running, local_offset = 0)
         Swap->>CTI: Download each snapshot into its shadow indices
         Swap->>Indices: Reindex user content (space.name != "standard")
+        Swap->>Indices: Refresh shadow indices
         Swap->>Indices: Unhide shadow indices
         Swap->>Indices: Atomic alias swap (single IndicesAliasesRequest for every changing consumer)
         Swap->>Consumers: Record the snapshot offsets (local_offset = snapshot offset)

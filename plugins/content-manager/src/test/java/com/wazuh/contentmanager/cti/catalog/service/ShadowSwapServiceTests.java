@@ -111,6 +111,7 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
                         "before switch ruleset",
                         "before switch iocs",
                         "before switch cves",
+                        "refresh [rules-b, decoders-b, iocs-b, cves-b]",
                         "switch [rules, decoders, iocs, cves]",
                         "bulk write [ruleset pro-ruleset running 4000/4010, iocs pro-iocs running"
                                 + " 777591/803322, cves pro-cves running 59000/60300]",
@@ -175,6 +176,25 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
         assertEquals(Set.of("rules-a", "decoders-a", "iocs-a", "cves-a"), this.swapService.indices);
         assertEquals(SyncPass.SwapOutcome.PENDING, pass.swapOutcome(IOCS));
         assertEquals("ready", this.consumersIndex.documents.get(IOCS).getStatus().toString());
+    }
+
+    /**
+     * Staging indices that cannot be refreshed are not switched to, since searches would see only
+     * part of them: every consumer keeps its content.
+     */
+    public void testFailedRefreshKeepsEveryConsumerOnItsContent() {
+        this.swapService.refreshFails = true;
+        SyncPass pass = SyncPass.withPlan(plan(RULESET, IOCS, CVES));
+
+        this.swapService.swapChangedSources(this.consumers(), pass);
+
+        assertEquals(0, this.swapService.switchRequests);
+        assertEquals(this.liveOnA(), this.swapService.aliasTargets);
+        assertEquals(Set.of("rules-a", "decoders-a", "iocs-a", "cves-a"), this.swapService.indices);
+        for (String type : List.of(RULESET, IOCS, CVES)) {
+            assertEquals(SyncPass.SwapOutcome.PENDING, pass.swapOutcome(type));
+            assertEquals(resource("open-" + type), this.consumersIndex.documents.get(type).getResource());
+        }
     }
 
     /**
@@ -370,6 +390,7 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
                         "create staging cves",
                         "load cves",
                         "before switch cves",
+                        "refresh [cves-b]",
                         "switch [cves]",
                         "bulk write [cves open-cves running 51250/51300]",
                         "delete [cves-a]"),
@@ -462,6 +483,7 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
         final Map<String, String> aliasTargets = new LinkedHashMap<>();
         final Set<String> indices = new LinkedHashSet<>();
         private final List<String> events;
+        boolean refreshFails;
         boolean switchFails;
         int switchRequests;
 
@@ -508,6 +530,14 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
         @Override
         void copyUserContent(Map<String, String> liveToStaging) {
             this.events.add("copy user content " + liveToStaging.keySet());
+        }
+
+        @Override
+        void refreshIndices(Collection<String> names) {
+            this.events.add("refresh " + names);
+            if (this.refreshFails) {
+                throw new IllegalStateException("shards could not be refreshed");
+            }
         }
 
         @Override
