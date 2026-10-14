@@ -68,6 +68,36 @@ For integration tests:
 plugins/<plugin-name>/build/reports/tests/integTest/index.html
 ```
 
+## Code coverage
+
+Code coverage is measured with [JaCoCo](https://www.jacoco.org/jacoco/). The configuration lives in `gradle/coverage.gradle`, which both plugins apply.
+
+Coverage of the unit tests:
+
+```bash
+./gradlew :wazuh-indexer-content-manager:jacocoTestReport
+```
+
+`jacocoTestReport` runs the unit tests first if needed. To also measure the plugin code that runs inside the integration test cluster, add `-Dtests.coverage=true`. This runs `integTest` as well:
+
+```bash
+./gradlew :wazuh-indexer-content-manager:jacocoTestReport -Dtests.coverage=true
+```
+
+The reports are written in three formats:
+
+```
+plugins/<plugin-name>/build/reports/jacoco/test/html/index.html
+plugins/<plugin-name>/build/reports/jacoco/test/jacocoTestReport.xml
+plugins/<plugin-name>/build/reports/jacoco/test/jacocoTestReport.csv
+```
+
+Open the HTML report in a browser to browse the coverage per package, class and source line.
+
+In CI, the [Gradle check workflow](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/.github/workflows/5_testintegration_gradlecheck.yml) runs `./gradlew check jacocoTestReport -PnumNodes=1 -Dtests.coverage=true` for each modified plugin. It adds a coverage table to the job summary and uploads the reports as the `coverage-<plugin-name>` workflow artifact.
+
+> The integration test nodes are stopped with `SIGKILL`, so the JaCoCo agent on each node cannot write its data on exit. Instead, each node's agent serves its data over TCP on a free port, and `integTest` pulls it into `build/jacoco/integTestCluster.exec` after the last test, before the cluster stops.
+
 ## Running a single test class
 
 To run a specific test class:

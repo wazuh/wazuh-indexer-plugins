@@ -6,6 +6,7 @@ on:
     paths:
       - "plugins/**/*.java"
       - "plugins/**/*.gradle"
+      - "gradle/coverage.gradle"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -219,4 +220,26 @@ jobs:
           cp -a "$HOME/.m2" /home/builder/.m2 2>/dev/null || true
           chown -R builder:builder "$GITHUB_WORKSPACE" /home/builder
           runuser -u builder -- env "JAVA_HOME=$JAVA_HOME" "PATH=$PATH" "GRADLE_USER_HOME=/home/builder/.gradle" \
-            ./gradlew check -PnumNodes=1
+            ./gradlew check jacocoTestReport -PnumNodes=1 -Dtests.coverage=true
+
+      - name: Coverage summary
+        if: ${{ !cancelled() }}
+        working-directory: ./plugins/${{ matrix.project }}
+        run: |
+          csv=build/reports/jacoco/test/jacocoTestReport.csv
+          [ -f "$csv" ] || { echo "No coverage report at $csv"; exit 0; }
+          {
+            echo "### Code coverage: ${{ matrix.project }}"
+            echo "| Lines | Branches | Instructions |"
+            echo "|---|---|---|"
+            awk -F, 'NR > 1 { im += $4; ic += $5; bm += $6; bc += $7; lm += $8; lc += $9 }
+              END { printf "| %.1f%% | %.1f%% | %.1f%% |\n", 100*lc/(lm+lc), 100*bc/(bm+bc), 100*ic/(im+ic) }' "$csv"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ matrix.project }}
+          path: plugins/${{ matrix.project }}/build/reports/jacoco/test/
+          if-no-files-found: warn

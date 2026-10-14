@@ -37,6 +37,7 @@
 | [#1276](https://github.com/wazuh/wazuh-indexer-plugins/issues/1276) | Add configurable resource creation limits |
 | [#1277](https://github.com/wazuh/wazuh-indexer-plugins/issues/1277) | Add settings to disable on-demand updates and policy updates for every user |
 | [#1585](https://github.com/wazuh/wazuh-indexer-plugins/issues/1585) | Add plugin settings for the operational constants of the Setup and Content Manager plugins |
+| [#1652](https://github.com/wazuh/wazuh-indexer-plugins/issues/1652) [#1677](https://github.com/wazuh/wazuh-indexer-plugins/issues/1677) | Add JaCoCo code coverage reports for the Setup and Content Manager plugins, including the integration test cluster, and publish them in CI |
 | [#529](https://github.com/wazuh/wazuh-indexer-plugins/issues/529) [#1538](https://github.com/wazuh/wazuh-indexer/issues/1538) [#1927](https://github.com/wazuh/wazuh-indexer/issues/1927) [#1960](https://github.com/wazuh/wazuh-indexer/issues/1960) [#1975](https://github.com/wazuh/wazuh-indexer/issues/1975) [#1976](https://github.com/wazuh/wazuh-indexer/issues/1976) [#934](https://github.com/wazuh/wazuh-indexer-plugins/issues/934) [#1240](https://github.com/wazuh/wazuh-indexer-plugins/issues/1240) [#1530](https://github.com/wazuh/wazuh-indexer-plugins/issues/1530) [#1656](https://github.com/wazuh/wazuh-indexer-plugins/issues/1656) | Add the Wazuh indexer 5.x documentation |
 
 
