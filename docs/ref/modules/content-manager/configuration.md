@@ -54,7 +54,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.security_analytics.detector_interval`** (Integer, default `2`, range 1–10080, dynamic) — detector schedule interval, in minutes, applied when the CTI integration document does not specify one, or specifies one outside the bounds Ruleset Management accepts.
 - **`plugins.content_manager.update_sub_batch_size`** (Integer, default `50`, range 1–1000) — maximum number of UPDATE offsets batched into a single MultiGet + bulk request while applying a catalog changeset.
 - **`plugins.content_manager.offset_flush_interval`** (Integer, default `10`, range 1–1000) — how many batches (changeset application) or bulks (snapshot load) are processed between consumer-offset checkpoints. A smaller value narrows the window of work replayed after a crash, at the cost of more writes to the consumer-state document.
-- **`plugins.content_manager.search_page_size`** (Integer, default `10000`, range 100–10000) — page size used by the paginated IoC reconciliation scan. Lower values mean more round trips over the same documents, not fewer documents.
+- **`plugins.content_manager.search_page_size`** (Integer, default `1000`, range 100–10000) — page size used by the paginated IoC reconciliation scan and the IoC export to the Engine. Lower values mean more round trips over the same documents, not fewer documents. Higher values cost more heap per search, and on a busy node search backpressure may cancel the page.
 
 Settings marked *dynamic* can be changed on a running cluster and take effect on the next operation:
 

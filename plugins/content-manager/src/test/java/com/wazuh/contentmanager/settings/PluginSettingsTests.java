@@ -500,7 +500,7 @@ public class PluginSettingsTests extends OpenSearchTestCase {
         // DetectorLookupService.MAX_RESULTS / ConsumerIocService.SEARCH_PAGE_SIZE
         Assert.assertEquals(50, s.getUpdateSubBatchSize());
         Assert.assertEquals(10, s.getOffsetFlushInterval());
-        Assert.assertEquals(10_000, s.getSearchPageSize());
+        Assert.assertEquals(1_000, s.getSearchPageSize());
     }
 
     /**
