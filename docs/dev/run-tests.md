@@ -96,6 +96,8 @@ Open the HTML report in a browser to browse the coverage per package, class and 
 
 In CI, the [Gradle check workflow](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/.github/workflows/5_testintegration_gradlecheck.yml) runs `./gradlew check jacocoTestReport -PnumNodes=1 -Dtests.coverage=true` for each modified plugin. It adds a coverage table to the job summary and uploads the reports as the `coverage-<plugin-name>` workflow artifact.
 
+The workflow also runs on every push to `5.0.0` that changes plugin code. There it measures both plugins, and its `coverage-badge` job generates the coverage and branches badges from the two CSV reports and commits them to the `badges` branch, creating it on the first run. The README's coverage badge reads `jacoco.svg` from that branch.
+
 > The integration test nodes are stopped with `SIGKILL`, so the JaCoCo agent on each node cannot write its data on exit. Instead, each node's agent serves its data over TCP on a free port, and `integTest` pulls it into `build/jacoco/integTestCluster.exec` after the last test, before the cluster stops.
 
 ## Running a single test class

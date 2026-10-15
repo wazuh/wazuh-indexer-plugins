@@ -8,6 +8,7 @@
 [![Index templates generator](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_schema.yml/badge.svg)](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_templates.yml)
 [![Deploy GH pages](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_docs.yml/badge.svg)](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_docs.yml)
 [![Build](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_plugins.yml/badge.svg)](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_plugins.yml)
+[![Coverage](https://raw.githubusercontent.com/wazuh/wazuh-indexer-plugins/badges/jacoco.svg)](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_testintegration_gradlecheck.yml?query=branch%3A5.0.0)
 
 - [Welcome!](#welcome)
 - [Project Resources](#project-resources)
