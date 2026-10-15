@@ -48,14 +48,12 @@ rsync -aREz \
 /etc/wazuh-indexer/wazuh-indexer-reports-scheduler/ \
 /etc/wazuh-indexer/wazuh-indexer-notifications/ \
 /etc/wazuh-indexer/wazuh-indexer-notifications-core/ \
+/etc/wazuh-indexer/ca/ \
+/etc/wazuh-indexer/export/ \
 /usr/lib/sysctl.d/wazuh-indexer.conf $backup_folder
 ```
 
-If the node has a `/etc/wazuh/ca/` directory, back it up as well. It holds the certificate authority that signed the node's certificates, including its private key when the package created it:
-
-```bash
-rsync -aREz /etc/wazuh/ca/ $backup_folder
-```
+`ca/` holds the certificate authority that signed the node's certificates, including its private key when the package created it, and `export/` the passwords and the CA certificate the node published for the Wazuh manager and the Wazuh dashboard. Back up `/etc/wazuh-indexer/local.env` too if you created it.
 
 Compress the files and transfer them to the new server. The archive contains private keys, so store and transfer it securely:
 
@@ -107,24 +105,24 @@ Perform the following steps to restore the Wazuh indexer files on the new server
     cp -rp etc/wazuh-indexer/. /etc/wazuh-indexer/
     cp -p usr/lib/sysctl.d/wazuh-indexer.conf /usr/lib/sysctl.d/wazuh-indexer.conf
 
-    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer
-    chmod 500 /etc/wazuh-indexer/certs
-    chmod 400 /etc/wazuh-indexer/certs/*
+    chown -R root:wazuh-indexer /etc/wazuh-indexer
+    find /etc/wazuh-indexer -type d -exec chmod 750 {} +
+    find /etc/wazuh-indexer -type f -exec chmod 640 {} +
+    chown root:root /etc/wazuh-indexer/certs/admin.pem /etc/wazuh-indexer/certs/admin-key.pem
+    chmod 600 /etc/wazuh-indexer/certs/admin.pem /etc/wazuh-indexer/certs/admin-key.pem
+    chown root:root /etc/wazuh-indexer/ca/root-ca.key /etc/wazuh-indexer/export/credentials.env
+    chmod 400 /etc/wazuh-indexer/ca/root-ca.key
+    chmod 600 /etc/wazuh-indexer/export/credentials.env /etc/wazuh-indexer/ca/.wazuh-indexer-bootstrap-ca
     chown root:root /usr/lib/sysctl.d/wazuh-indexer.conf
     ```
 
-    The first command copies everything the backup saved under `/etc/wazuh-indexer/` over the existing files: the certificates, `opensearch.yml`, the JVM options, `log4j2.properties`, the keystore, the security configuration and the plugin configuration directories. Copying the contents of the directory (`etc/wazuh-indexer/.`) matters: the package already created these directories on the new server, and `cp -r` of a directory onto an existing one nests the copy inside it (`certs/certs`), where the Wazuh indexer never reads it.
+    The configuration directory belongs to root: the Wazuh indexer reads it through its group and writes nothing in it. The admin certificate pair, the CA private key and the published passwords are root's alone.
+
+    The first command copies everything the backup saved under `/etc/wazuh-indexer/` over the existing files: the certificates, `opensearch.yml`, the JVM options, `log4j2.properties`, the keystore, the security configuration, the plugin configuration directories, the certificate authority in `ca/` and what the node published in `export/`. Copying the contents of the directory (`etc/wazuh-indexer/.`) matters: the package already created these directories on the new server, and `cp -r` of a directory onto an existing one nests the copy inside it (`certs/certs`), where the Wazuh indexer never reads it.
 
     > **Note:** the sysctl drop-in stays `root`-owned, as the package ships it. It is applied by
     > `systemd-sysctl` as root, so a copy the service account can edit would let that account set
     > kernel parameters.
-
-    If the backup contains `etc/wazuh/ca/`, restore it too, so that the certificate authority on the new server is the one that signed the restored certificates:
-
-    ```bash
-    cp -rp etc/wazuh/ca/. /etc/wazuh/ca/
-    chown -R root:root /etc/wazuh/ca
-    ```
 
 3. Start the Wazuh indexer service:
 
@@ -140,7 +138,7 @@ Perform the following steps to restore the Wazuh indexer files on the new server
 
     In a multi-node cluster, run it once, on any node, after every node has been restored and started.
 
-    > **Note**: From this point on, the internal users have the passwords they had on the old server. If `/etc/wazuh/credentials.env` exists on the new server, the `WAZUH_INDEXER_*` passwords it lists are the ones generated when the package was installed there, and no longer work. The Wazuh Manager and the Wazuh Dashboard read this file when they are installed, so replace those values with the old server's passwords before installing either of them on this server.
+    > **Note**: From this point on, the internal users have the passwords they had on the old server, and the restored `/etc/wazuh-indexer/export/credentials.env` lists them. If you did not restore `export/`, the passwords it lists are the ones generated when the package was installed on the new server, and no longer work: the Wazuh Manager and the Wazuh Dashboard on this host read that file, so put the old server's passwords there before installing or starting either of them.
 
 5. Clear the backup files to free up space:
 

@@ -76,23 +76,23 @@ Leave a snapshot repository that other nodes still use as it is.
 
 ### Credentials and certificates
 
-The purge removes the Wazuh indexer's passwords from `/etc/wazuh/credentials.env` (see [Retrieving the generated credentials](getting-started/installation.md#retrieving-the-generated-credentials)) and leaves the other components' passwords in place. When no component's passwords are left, it also removes the root certificate authority (CA) from `/etc/wazuh/ca/`, together with the node and admin certificates the Wazuh indexer issued from it in `/etc/wazuh-indexer/certs/`. Certificates that CA did not issue, such as your own, are kept.
+The purge removes what the Wazuh indexer published for the other components in `/etc/wazuh-indexer/export/` (see [Retrieving the generated credentials](getting-started/installation.md#retrieving-the-generated-credentials)), its certificate authority (CA) in `/etc/wazuh-indexer/ca/`, and the node and admin certificates it issued from that CA in `/etc/wazuh-indexer/certs/`. Certificates that CA did not issue, such as your own, are kept, and so is `/etc/wazuh-indexer/local.env`. The keystore the package created at installation goes too, unless you added secrets to it, in which case it is kept.
 
 ## Reinstalling after a purge
 
-Installing the package again gives the files kept in the four directories back to the `wazuh-indexer` user, with the permissions they had before the purge.
+Installing the package again gives the files kept in the data and log directories back to the `wazuh-indexer` user, with the permissions they had before the purge, and the configuration directory back to root, read by the service through its group.
 
-If the purge removed the certificates, the installation issues new ones. If you kept your own, the node uses them only after checking that they were issued by the CA it trusts: the one in `/etc/wazuh/ca/`, or, when that directory is empty, the `root-ca.pem` beside them in `/etc/wazuh-indexer/certs/`. When they were not, or when there is no CA to check them against, the installation says so and the service does not start:
+If the purge removed the certificates, the installation issues new ones. If you kept your own, the node uses them only after checking that they were issued by the CA it trusts: the one in `/etc/wazuh-indexer/ca/`, or, when that directory is empty, the `root-ca.pem` beside them in `/etc/wazuh-indexer/certs/`. When they were not, or when there is no CA to check them against, the installation says so and the service does not start:
 
 ```
-resolve-credentials: the certificate pair in /etc/wazuh-indexer/certs was not issued by /etc/wazuh/ca/root-ca.pem
+resolve-credentials: the certificate pair in /etc/wazuh-indexer/certs was not issued by /etc/wazuh-indexer/ca/root-ca.pem
 resolve-credentials:         stage the CA that issued it, or remove the pair so that this node issues a new one
 ```
 
 Stage the CA that issued the pair, or remove the pair so that the node issues a new one, then start the service. There are two places to stage it:
 
-- Beside the pair, as `/etc/wazuh-indexer/certs/root-ca.pem`, when `/etc/wazuh/ca/` is empty. This can be the CA that issued the pair directly, even if it is not a root CA.
-- In `/etc/wazuh/ca/`, as `root-ca.pem`, shared with the other Wazuh components on this host. It must be a self-signed root CA, the directory must be owned by `root:root` with mode `700`, and the file owned by `root:root` with mode `644`.
+- Beside the pair, as `/etc/wazuh-indexer/certs/root-ca.pem`, owned by `root:wazuh-indexer` with mode `640`, when `/etc/wazuh-indexer/ca/` is empty. This can be the CA that issued the pair directly, even if it is not a root CA. The package publishes it in `/etc/wazuh-indexer/export/ca.pem` for the other Wazuh components on this host.
+- In `/etc/wazuh-indexer/ca/`, as `root-ca.pem`. It must be a self-signed root CA, the directory owned by root with mode `750` and the file owned by root with mode `640`.
 
 A directory outside the four the package manages is not given back. Set it in `opensearch.yml` again, then give it to the new user:
 
