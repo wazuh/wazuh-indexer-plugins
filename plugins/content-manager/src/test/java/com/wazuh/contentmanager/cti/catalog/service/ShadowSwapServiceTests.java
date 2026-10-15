@@ -26,6 +26,7 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -395,6 +396,49 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
                         "bulk write [cves open-cves running 51250/51300]",
                         "delete [cves-a]"),
                 this.events);
+    }
+
+    /**
+     * A rebuild from a snapshot file stays on the consumer's data source, carries its user content
+     * over, and records the highest offset of the file as both offsets once the aliases switched.
+     */
+    public void testRebuildFromFileCarriesUserContentAndRecordsTheFileOffset() {
+        this.ruleset.fileOffset = 1600;
+
+        boolean rebuilt =
+                this.swapService.rebuildFromFile(
+                        this.ruleset,
+                        this.consumersIndex.documents.get(RULESET),
+                        Path.of("/snapshots/ruleset.zip"));
+
+        assertTrue(rebuilt);
+        assertEquals(
+                List.of(
+                        "create staging ruleset",
+                        "load file ruleset ruleset.zip",
+                        "copy user content [rules-a, decoders-a]",
+                        "before switch ruleset",
+                        "refresh [rules-b, decoders-b]",
+                        "switch [rules, decoders]",
+                        "bulk write [ruleset open-ruleset running 1600/1600]",
+                        "delete [rules-a, decoders-a]"),
+                this.events);
+        assertTrue(this.ruleset.swapPerformed());
+    }
+
+    /** A snapshot file that cannot be loaded keeps the live content and drops the staging indices. */
+    public void testFailedRebuildFromFileKeepsTheContent() {
+        this.cves.fileOffset = -1;
+
+        boolean rebuilt =
+                this.swapService.rebuildFromFile(
+                        this.cves, this.consumersIndex.documents.get(CVES), Path.of("/snapshots/cves.zip"));
+
+        assertFalse(rebuilt);
+        assertEquals(
+                List.of("create staging cves", "load file cves cves.zip", "delete [cves-b]"), this.events);
+        assertEquals("cves-a", this.swapService.aliasTargets.get("cves"));
+        assertEquals(51200, this.consumersIndex.documents.get(CVES).getLocalOffset());
     }
 
     /** Leaves the three consumers as a swap interrupted before its switch would. */

@@ -86,7 +86,7 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                             return null;
                         })
                 .when(this.catalogSyncJob)
-                .trigger(any(ActionListener.class));
+                .trigger(any(ActionListener.class), anyBoolean());
     }
 
     public void testDoExecute_Accepted() {
@@ -107,7 +107,44 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
                                             response.getMessage());
                                     return true;
                                 }));
-        verify(this.catalogSyncJob, times(1)).trigger(any(ActionListener.class));
+        verify(this.catalogSyncJob, times(1)).trigger(any(ActionListener.class), eq(false));
+    }
+
+    /** An offline update with snapshot files on the node starts an offline pass. */
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_OfflineAccepted() {
+        this.stubTrigger(true);
+        when(this.catalogSyncJob.hasLocalSnapshots()).thenReturn(true);
+
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), new TriggerUpdateRequest(true), listener);
+
+        verify(listener).onResponse(argThat(response -> response.getStatus() == RestStatus.ACCEPTED));
+        verify(this.catalogSyncJob, times(1)).trigger(any(ActionListener.class), eq(true));
+    }
+
+    /**
+     * An offline update on a node without snapshot files would change nothing: it is answered 400 and
+     * no pass starts.
+     */
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_OfflineWithoutSnapshotFiles() {
+        this.stubTrigger(true);
+        when(this.catalogSyncJob.hasLocalSnapshots()).thenReturn(false);
+
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), new TriggerUpdateRequest(true), listener);
+
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+                                    Assert.assertTrue(
+                                            response.getMessage().contains("wazuh-indexer-content-manager/snapshots"));
+                                    return true;
+                                }));
+        verify(this.catalogSyncJob, never()).trigger(any(ActionListener.class), anyBoolean());
     }
 
     /** A pass running on this or any other node answers 409. */
@@ -133,7 +170,7 @@ public class TransportTriggerUpdateActionTests extends OpenSearchTestCase {
     public void testDoExecute_Exception() {
         doThrow(new RuntimeException("Unexpected failure"))
                 .when(this.catalogSyncJob)
-                .trigger(any(ActionListener.class));
+                .trigger(any(ActionListener.class), anyBoolean());
         TriggerUpdateRequest request = new TriggerUpdateRequest();
 
         @SuppressWarnings("unchecked")
