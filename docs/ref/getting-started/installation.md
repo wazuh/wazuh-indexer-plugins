@@ -8,7 +8,7 @@
 
 ### Installing the Wazuh indexer step by step
 
-Install and configure the Wazuh indexer as a single-node or multi-node cluster, following step-by-step instructions. The installation process is divided into three stages.
+Install and configure the Wazuh indexer as a single-node or multi-node cluster, following step-by-step instructions. To move an existing 4.x deployment to 5.x, see [Migration guide](../../guide/migration/index.md). The installation process is divided into three stages.
 
 1. Certificates creation
 
