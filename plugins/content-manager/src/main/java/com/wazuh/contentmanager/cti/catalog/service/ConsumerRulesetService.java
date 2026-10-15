@@ -77,6 +77,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private final SecurityAnalyticsService securityAnalyticsService;
     private final SpaceService spaceService;
     private final UserOverridesService userOverridesService;
+    private DetectorLookupService detectorLookupService;
 
     private Set<String> preSwapIntegrationIds = Collections.emptySet();
     private Set<String> preSwapRuleIds = Collections.emptySet();
@@ -102,6 +103,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         this.securityAnalyticsService = securityAnalyticsService;
         this.spaceService = spaceService;
         this.userOverridesService = userOverridesService;
+        this.detectorLookupService = new DetectorLookupService(client);
 
         this.mapper = new ObjectMapper();
         this.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
@@ -109,6 +111,11 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 .configOverride(Policy.class)
                 .setInclude(
                         JsonInclude.Value.construct(JsonInclude.Include.ALWAYS, JsonInclude.Include.ALWAYS));
+    }
+
+    /** Injects a {@link DetectorLookupService} instance, used by tests to provide a mock. */
+    void setDetectorLookupService(DetectorLookupService detectorLookupService) {
+        this.detectorLookupService = detectorLookupService;
     }
 
     @Override
@@ -129,6 +136,18 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     @Override
     protected boolean hasUserContent() {
         return true;
+    }
+
+    /**
+     * New ruleset content owes Security Analytics every phase built from it: the integrations, the
+     * rules, and the detectors when detector creation is enabled.
+     */
+    @Override
+    protected List<String> phasesOwedByContentChange() {
+        if (PluginSettings.getInstance().getCreateDetectors()) {
+            return List.of(PHASE_INTEGRATIONS, PHASE_RULES, PHASE_DETECTORS);
+        }
+        return List.of(PHASE_INTEGRATIONS, PHASE_RULES);
     }
 
     @Override
@@ -184,10 +203,28 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         List<String> pendingPhases = this.readPendingSyncPhases();
         boolean createDetectors = PluginSettings.getInstance().getCreateDetectors();
 
-        boolean shouldSyncIntegrations = isUpdated || pendingPhases.contains(PHASE_INTEGRATIONS);
-        boolean shouldSyncRules = isUpdated || pendingPhases.contains(PHASE_RULES);
+        // A pass with nothing to sync and nothing pending still checks that the detectors exist. The
+        // pending phases only record what a pass knew it had left undone, so detectors lost any other
+        // way would never be created again. Reading the integrations for the check also serves the
+        // phases it makes due.
+        Set<String> duePhases = new HashSet<>(pendingPhases);
+        IntegrationDocsResult integrationRead = null;
+        if (!isUpdated
+                && createDetectors
+                && !pendingPhases.contains(PHASE_DETECTORS)
+                && this.securityAnalyticsService instanceof SecurityAnalyticsServiceImpl sapService) {
+            integrationRead = this.readIntegrationDocs();
+            if (integrationRead.ok() && this.detectorsMissing(sapService, integrationRead.docs())) {
+                // A detector needs its integration and rules in Security Analytics, which may be gone
+                // with it.
+                duePhases.addAll(this.phasesOwedByContentChange());
+            }
+        }
+
+        boolean shouldSyncIntegrations = isUpdated || duePhases.contains(PHASE_INTEGRATIONS);
+        boolean shouldSyncRules = isUpdated || duePhases.contains(PHASE_RULES);
         boolean shouldSyncDetectors =
-                createDetectors && (isUpdated || pendingPhases.contains(PHASE_DETECTORS));
+                createDetectors && (isUpdated || duePhases.contains(PHASE_DETECTORS));
 
         if (!shouldSyncIntegrations && !shouldSyncRules && !shouldSyncDetectors) {
             // Reaching this point with "detectors" still pending means detector creation is disabled,
@@ -230,7 +267,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         Map<String, JsonNode> integrationDocs = Collections.emptyMap();
         boolean integrationDocsRead = false;
         if (shouldSyncIntegrations || shouldSyncRules || shouldSyncDetectors) {
-            IntegrationDocsResult read = this.readIntegrationDocs();
+            IntegrationDocsResult read =
+                    integrationRead != null ? integrationRead : this.readIntegrationDocs();
             integrationDocs = read.docs();
             integrationDocsRead = read.ok();
         }
@@ -741,6 +779,54 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             log.error(Constants.E_LOG_SAP_PARTIAL, failed.size(), "detectors", Space.STANDARD, failed);
         }
         return !timedOut && failed.isEmpty();
+    }
+
+    /**
+     * Returns whether an integration that should have a detector has none in Security Analytics.
+     * Detectors are looked up by id, which is their integration's id. Only the integrations that list
+     * rules are looked up, and of those found missing, only one that would actually build a detector
+     * counts: one whose rules are all disabled has none to begin with.
+     *
+     * <p>A failure to check is logged and reported as nothing missing, so the pass falls back to the
+     * pending phases alone.
+     *
+     * @param sapService The Security Analytics service that builds the detector requests.
+     * @param integrationDocs The integration documents, keyed by document ID.
+     * @return {@code true} if at least one detector is missing.
+     */
+    private boolean detectorsMissing(
+            SecurityAnalyticsServiceImpl sapService, Map<String, JsonNode> integrationDocs) {
+        try {
+            Map<String, JsonNode> candidates = new HashMap<>();
+            integrationDocs
+                    .values()
+                    .forEach(
+                            doc -> {
+                                String id = doc.path(Constants.KEY_ID).asText("");
+                                if (!id.isBlank() && !doc.path(Constants.KEY_RULES).isEmpty()) {
+                                    candidates.put(id, doc);
+                                }
+                            });
+            if (candidates.isEmpty()) {
+                return false;
+            }
+            Set<String> absent =
+                    this.<Set<String>>awaitResult(
+                            l -> this.detectorLookupService.findMissingDetectors(candidates.keySet(), l));
+            List<String> missing =
+                    absent.stream()
+                            .filter(id -> sapService.buildDetectorRequest(candidates.get(id), true, null) != null)
+                            .sorted()
+                            .toList();
+            if (missing.isEmpty()) {
+                return false;
+            }
+            log.warn(Constants.W_LOG_SAP_DETECTORS_MISSING, missing.size(), missing);
+            return true;
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_SAP_DETECTORS_CHECK_FAILED, e.getMessage());
+            return false;
+        }
     }
 
     /**

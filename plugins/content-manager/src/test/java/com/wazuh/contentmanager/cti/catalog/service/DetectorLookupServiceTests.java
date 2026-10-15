@@ -22,6 +22,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchResponseSections;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.index.query.IdsQueryBuilder;
 import org.opensearch.index.query.NestedQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.TermQueryBuilder;
@@ -266,6 +267,91 @@ public class DetectorLookupServiceTests extends OpenSearchTestCase {
         AtomicReference<Map<String, Boolean>> result = new AtomicReference<>();
         this.service.fetchRuleEnabledStates(
                 Set.of(), Space.CUSTOM, ActionListener.wrap(result::set, e -> fail(e.getMessage())));
+
+        assertTrue(result.get().isEmpty());
+    }
+
+    /** Builds a SearchResponse with one source-less hit per given document id. */
+    private SearchResponse searchResponseWithIds(String... ids) {
+        SearchHit[] hits = new SearchHit[ids.length];
+        for (int i = 0; i < ids.length; i++) {
+            hits[i] = new SearchHit(i, ids[i], null, null);
+        }
+        SearchHits searchHits =
+                new SearchHits(hits, new TotalHits(ids.length, TotalHits.Relation.EQUAL_TO), 1.0f);
+        SearchResponseSections sections =
+                new SearchResponseSections(searchHits, null, null, false, null, null, 1);
+        return new SearchResponse(sections, null, 1, 1, 0, 100, null, null);
+    }
+
+    /** The ids without a detector document are the missing ones; the lookup is by document id. */
+    @SuppressWarnings("unchecked")
+    public void testFindMissingDetectorsReturnsIdsWithoutADetector() {
+        AtomicReference<SearchRequest> captured = new AtomicReference<>();
+        doAnswer(
+                        invocation -> {
+                            captured.set(invocation.getArgument(0));
+                            ActionListener<SearchResponse> listener =
+                                    (ActionListener<SearchResponse>) invocation.getArguments()[1];
+                            listener.onResponse(searchResponseWithIds("int-a"));
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any(ActionListener.class));
+
+        AtomicReference<Set<String>> result = new AtomicReference<>();
+        this.service.findMissingDetectors(
+                Set.of("int-a", "int-b", "int-c"),
+                ActionListener.wrap(result::set, e -> fail(e.getMessage())));
+
+        assertEquals(Set.of("int-b", "int-c"), result.get());
+        SearchRequest request = captured.get();
+        assertEquals(List.of(".opensearch-sap-detectors-config"), List.of(request.indices()));
+        assertTrue(request.source().query() instanceof IdsQueryBuilder);
+        assertEquals(
+                Set.of("int-a", "int-b", "int-c"), ((IdsQueryBuilder) request.source().query()).ids());
+    }
+
+    /**
+     * A cluster with no detectors index answers with no hits, so every id is missing: no detector has
+     * been created yet.
+     */
+    public void testFindMissingDetectorsWithoutDetectorsIndexReportsEveryId() {
+        stubSearch(searchResponseOf());
+
+        AtomicReference<Set<String>> result = new AtomicReference<>();
+        this.service.findMissingDetectors(
+                Set.of("int-a", "int-b"), ActionListener.wrap(result::set, e -> fail(e.getMessage())));
+
+        assertEquals(Set.of("int-a", "int-b"), result.get());
+    }
+
+    /** A failed search is propagated rather than read as "every detector is missing". */
+    @SuppressWarnings("unchecked")
+    public void testFindMissingDetectorsPropagatesSearchFailures() {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<SearchResponse> listener =
+                                    (ActionListener<SearchResponse>) invocation.getArguments()[1];
+                            listener.onFailure(new RuntimeException("shard failure"));
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any(ActionListener.class));
+
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        this.service.findMissingDetectors(
+                Set.of("int-a"),
+                ActionListener.wrap(r -> fail("the failure should not be swallowed"), failure::set));
+
+        assertEquals("shard failure", failure.get().getMessage());
+    }
+
+    /** An empty id set short-circuits without querying. */
+    public void testFindMissingDetectorsWithNoIds() {
+        AtomicReference<Set<String>> result = new AtomicReference<>();
+        this.service.findMissingDetectors(
+                Set.of(), ActionListener.wrap(result::set, e -> fail(e.getMessage())));
 
         assertTrue(result.get().isEmpty());
     }

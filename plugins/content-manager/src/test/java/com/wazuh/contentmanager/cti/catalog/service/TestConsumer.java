@@ -48,6 +48,12 @@ class TestConsumer extends AbstractConsumerService {
     /** Whether snapshot loads into staging indices succeed. */
     boolean loadSucceeds = true;
 
+    /** The phases a change to its content leaves owed. */
+    List<String> owedPhases = List.of();
+
+    /** When set, the post-synchronization work throws it, as a pass cut at that point would. */
+    RuntimeException postSyncFailure;
+
     /**
      * Constructs a TestConsumer.
      *
@@ -130,7 +136,15 @@ class TestConsumer extends AbstractConsumerService {
     }
 
     @Override
+    protected List<String> phasesOwedByContentChange() {
+        return this.owedPhases;
+    }
+
+    @Override
     public void onSyncComplete(boolean isUpdated) {
+        if (this.postSyncFailure != null) {
+            throw this.postSyncFailure;
+        }
         this.events.add("post-sync " + this.type + " updated=" + isUpdated);
     }
 
