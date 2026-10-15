@@ -542,14 +542,6 @@ public class ResourceLockService {
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     }
 
-    private static IndexRequest lockRequest(String lockId) {
-        return new IndexRequest(Constants.INDEX_RESOURCE_LOCKS)
-                .id(lockId)
-                .source(Map.of(ACQUIRED_AT_FIELD, Instant.now().toEpochMilli()))
-                .opType(DocWriteRequest.OpType.CREATE)
-                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-    }
-
     /**
      * Deletes the lock document if it was acquired more than {@link
      * PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS} ago, guarding against a lock orphaned by a
