@@ -73,5 +73,6 @@
 | [#1632](https://github.com/wazuh/wazuh-indexer-plugins/issues/1632) | Fix vulnerabilities content updates failing with `Target for add operation is not a container` |
 | [#1633](https://github.com/wazuh/wazuh-indexer-plugins/issues/1633) | Fix CTI content updates getting stuck on an offset that cannot be applied, by rebuilding the content from a newer snapshot |
 | [#1664](https://github.com/wazuh/wazuh-indexer-plugins/issues/1664) | Fix the catalog sync lock being renewed and deleted by a node that no longer holds it |
+| [#2007](https://github.com/wazuh/wazuh-indexer/issues/2007) | Fix the IoC hash computation and export being cancelled by search backpressure on a busy node, by reading 1000 documents per page sorted on `document.id` instead of `_id` |
 
 ## Prior versions

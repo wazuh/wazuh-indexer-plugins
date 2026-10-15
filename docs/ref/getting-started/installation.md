@@ -8,7 +8,7 @@
 
 ### Installing the Wazuh indexer step by step
 
-Install and configure the Wazuh indexer as a single-node or multi-node cluster, following step-by-step instructions. The installation process is divided into three stages.
+Install and configure the Wazuh indexer as a single-node or multi-node cluster, following step-by-step instructions. To move an existing 4.x deployment to 5.x, see [Migration guide](../../guide/migration/index.md). The installation process is divided into three stages.
 
 1. Certificates creation
 
@@ -194,9 +194,9 @@ printf '%s' '<new-password>' | /usr/share/wazuh-indexer/tools/wazuh-passwords-to
 
 #### Configuring the Wazuh indexer
 
-Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the following values.
+Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the values in steps (a) to (e). Then set the JVM heap size in `/etc/wazuh-indexer/jvm.options`, as described in step (f).
 
-The package ships a working single-node configuration: one node named `node-1`, listening on all interfaces (`0.0.0.0`). On a single node every step is optional: apply (a) to listen on a specific address, and (b) together with (c) to rename the node. A multi-node cluster needs all five steps, on every node.
+The package ships a working single-node configuration: one node named `node-1`, listening on all interfaces (`0.0.0.0`). On a single node, steps (a) to (e) are optional: apply (a) to listen on a specific address, and (b) together with (c) to rename the node. Step (f) applies to every node, including a single node, because the package starts with a 1 GB heap. A multi-node cluster needs all six steps, on every node.
 
   a. **`network.host`**: Sets the address of this node for both HTTP and transport traffic. The node will bind to this address and use it as its publish address. Accepts an IP address or a hostname.
   On a multi-node cluster, use the same node address set in `config.yml` to create the SSL certificates.
@@ -229,6 +229,15 @@ The package ships a working single-node configuration: one node named `node-1`, 
   - "C=US,L=California,O=Wazuh,OU=Wazuh,CN=node-2"
   - "C=US,L=California,O=Wazuh,OU=Wazuh,CN=node-3"
   ```
+
+  f. **JVM heap size**: Set it in `/etc/wazuh-indexer/jvm.options`, before the first start. The package sets it to 1 GB. Use half of the system RAM when the Wazuh indexer is alone on the host, or a quarter when the Wazuh manager or the Wazuh dashboard runs on the same host. Set the initial (`-Xms`) and maximum (`-Xmx`) heap size to the same value. For example, on a dedicated node with 8 GB of RAM:
+
+  ```ini
+  -Xms4g
+  -Xmx4g
+  ```
+
+  For a size that is not a whole number of gigabytes, use megabytes, for example `-Xms1536m` and `-Xmx1536m`. See [JVM heap size](../../ref/configuration/index.md#jvm-heap-size) for the sizing limits, and [Memory locking](../../ref/configuration/index.md#memory-locking) for the memory the node needs beyond the heap.
 
 #### Deploying certificates
 
