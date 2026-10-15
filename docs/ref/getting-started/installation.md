@@ -230,6 +230,15 @@ The package ships a working single-node configuration: one node named `node-1`, 
   - "C=US,L=California,O=Wazuh,OU=Wazuh,CN=node-3"
   ```
 
+Then set the JVM heap size in `/etc/wazuh-indexer/jvm.options`, on every node. The package sets it to 1 GB. Use half of the system RAM when the Wazuh indexer is alone on the host, or a quarter when the Wazuh manager or the Wazuh dashboard runs on the same host. Set the initial (`-Xms`) and maximum (`-Xmx`) heap size to the same value. For example, on a dedicated node with 8 GB of RAM:
+
+```init
+-Xms4g
+-Xmx4g
+```
+
+For a size that is not a whole number of gigabytes, use megabytes, for example `-Xms1536m` and `-Xmx1536m`. See [JVM heap size](../../ref/configuration/index.md#jvm-heap-size) for the sizing limits.
+
 #### Deploying certificates
 
 > **Note**: This step applies only if you generated the certificates in advance, as described in [Certificates](#1-certificates). A single-node deployment already has the certificates the package issued.

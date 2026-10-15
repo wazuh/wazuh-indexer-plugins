@@ -22,7 +22,7 @@ Wazuh Indexer runs on the Java Virtual Machine (JVM). The heap size determines h
 Follow these recommendations when sizing the heap:
 
 - Set the initial heap size (`-Xms`) and the maximum heap size (`-Xmx`) to the same value. This prevents performance degradation caused by the JVM resizing the heap at runtime.
-- Set the heap to no more than 50% of the available system RAM. The other half is left for the operating system file system cache, which Wazuh Indexer relies on heavily.
+- Set the heap to no more than 50% of the available system RAM. The other half is left for the operating system file system cache, which Wazuh Indexer relies on heavily. On a host that also runs the Wazuh manager or the Wazuh dashboard, set it to 25% of the RAM.
 - Do not set the heap above approximately 32 GB. Above this threshold the JVM can no longer use compressed ordinary object pointers, which wastes memory and reduces performance.
 
 For example, on a node with 8 GB of RAM, set the heap to 4 GB:
@@ -37,7 +37,7 @@ Where:
 - `-Xms4g` sets the initial heap size to 4 GB.
 - `-Xmx4g` sets the maximum heap size to 4 GB.
 
-Restart the service after changing the heap size:
+During installation, set the heap before the service starts for the first time, as described in [Configuring the Wazuh indexer](../getting-started/installation.md#configuring-the-wazuh-indexer). On a running node, restart the service after changing the heap size:
 
 ```console
 systemctl restart wazuh-indexer
