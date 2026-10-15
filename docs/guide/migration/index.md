@@ -45,7 +45,7 @@ For a full description of each file, see [Configuration](../../ref/configuration
 
 ### Configuration procedure
 
-Perform these steps on every node of the new 5.x cluster. Steps 2 to 6 run with the service stopped; steps 7 to 9 need it running.
+Perform these steps on every node of the new 5.x cluster. Steps 2 to 6 run with the service stopped. Step 7 starts it, and steps 8 to 10 need it running.
 
 1. Install the 5.x package on a fresh host following [Installation](../../ref/getting-started/installation.md). This creates the default 5.x configuration tree under `/etc/wazuh-indexer/`.
 2. Stop the new service before editing configuration:
@@ -64,13 +64,14 @@ Perform these steps on every node of the new 5.x cluster. Steps 2 to 6 run with 
     systemctl enable --now wazuh-indexer
     ```
 
-8. Confirm the node joins the new 5.x cluster. `$WAZUH_INDEXER_ADMIN_PASSWORD` is the `admin` password from `/etc/wazuh/credentials.env`, as described in [Installation](../../ref/getting-started/installation.md#testing-the-cluster-installation):
+8. Once the service is running on every node, load the security configuration from a single node. See step 3 of the [Security procedure](#security-procedure). The node does not accept authenticated requests until this step is done.
+9. Confirm the nodes joined the new 5.x cluster. `$WAZUH_INDEXER_ADMIN_PASSWORD` is the `admin` password from `/etc/wazuh/credentials.env`, as described in [Installation](../../ref/getting-started/installation.md#testing-the-cluster-installation):
 
     ```bash
     curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD "https://127.0.0.1:9200/_cat/nodes?v"
     ```
 
-9. Once every node has joined, load the security configuration from a single node. See steps 3 and 4 of the [Security procedure](#security-procedure).
+10. Verify authentication for each backend. See step 4 of the [Security procedure](#security-procedure).
 
 ### Settings changes
 
@@ -123,7 +124,7 @@ In 5.x, all security plugin configuration lives under `/etc/wazuh-indexer/opense
 
 ### Security procedure
 
-Step 1 runs on the 4.x cluster. The remaining steps run on the new 5.x cluster: step 2 on every node, with the service running or stopped, and steps 3 and 4 with the cluster running and every node joined.
+Step 1 runs on the 4.x cluster. The remaining steps run on the new 5.x cluster: step 2 on every node, with the service running or stopped, and steps 3 and 4 with the service running on every node.
 
 1. Export the live 4.x security configuration. The on-disk files under `/etc/wazuh-indexer/opensearch-security/` may be stale, since the active configuration is stored in the security index. Use the backup procedure to write the live configuration to disk before reusing it. See [Back up and restore](../../ref/backup-restore.md).
 2. On **every** node of the new 5.x cluster, do **not** overwrite the shipped files. Edit them in place under `/etc/wazuh-indexer/opensearch-security/`, making the same changes on each node. For each custom entry in the 4.x files, decide whether it should be re-created in 5.x:

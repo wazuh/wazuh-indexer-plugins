@@ -27,7 +27,7 @@ Follow these recommendations when sizing the heap:
 
 For example, on a node with 8 GB of RAM, set the heap to 4 GB:
 
-```init
+```ini
 -Xms4g
 -Xmx4g
 ```
