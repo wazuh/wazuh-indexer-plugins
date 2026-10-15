@@ -20,11 +20,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
+
+import java.util.Locale;
 
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.TriggerUpdateAction;
@@ -39,6 +42,7 @@ public class TransportTriggerUpdateAction
     private static final Logger log = LogManager.getLogger(TransportTriggerUpdateAction.class);
 
     private final CatalogSyncJob catalogSyncJob;
+    private final TransportService transportService;
 
     @Inject
     public TransportTriggerUpdateAction(
@@ -47,12 +51,26 @@ public class TransportTriggerUpdateAction
             CatalogSyncJob catalogSyncJob) {
         super(TriggerUpdateAction.NAME, transportService, actionFilters, TriggerUpdateRequest::new);
         this.catalogSyncJob = catalogSyncJob;
+        this.transportService = transportService;
     }
 
     @Override
     protected void doExecute(
             Task task, TriggerUpdateRequest request, ActionListener<MessageStatusResponse> listener) {
         try {
+            // The pass runs on this node, so the snapshot files it loads must be here. Without any,
+            // an offline update would change nothing: say so instead of accepting it.
+            if (request.isOffline() && !this.catalogSyncJob.hasLocalSnapshots()) {
+                listener.onResponse(
+                        new MessageStatusResponse(
+                                String.format(
+                                        Locale.ROOT,
+                                        Constants.E_400_NO_OFFLINE_SNAPSHOTS,
+                                        "plugins/" + Constants.PLUGIN_DIR_NAME + "/" + Constants.CTI_SNAPSHOTS_DIR,
+                                        this.localNodeName()),
+                                RestStatus.BAD_REQUEST));
+                return;
+            }
             // A pass running on any node of the cluster, not only this one, answers 409: trigger()
             // checks this node's semaphore and then the cluster-wide sync lock.
             this.catalogSyncJob.trigger(
@@ -69,10 +87,21 @@ public class TransportTriggerUpdateAction
                                                     "A content update is already in progress.", RestStatus.CONFLICT));
                                 }
                             },
-                            e -> respondWithFailure(e, listener)));
+                            e -> respondWithFailure(e, listener)),
+                    request.isOffline());
         } catch (Exception e) {
             respondWithFailure(e, listener);
         }
+    }
+
+    /**
+     * Returns the name of this node, for the messages that point the operator at it.
+     *
+     * @return the node name, or {@code "local"} when it is not known yet.
+     */
+    private String localNodeName() {
+        DiscoveryNode node = this.transportService.getLocalNode();
+        return node != null ? node.getName() : "local";
     }
 
     private static void respondWithFailure(

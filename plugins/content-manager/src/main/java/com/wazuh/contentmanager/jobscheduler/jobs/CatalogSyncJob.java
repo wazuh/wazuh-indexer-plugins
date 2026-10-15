@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.AbstractConsumerService;
@@ -202,8 +203,8 @@ public class CatalogSyncJob implements JobExecutor {
                             }
                         },
                         e ->
-                                log.error(
-                                        "CatalogSyncJob (ID: {}) could not start: {}", jobId, e.getMessage(), e)));
+                                log.error("CatalogSyncJob (ID: {}) could not start: {}", jobId, e.getMessage(), e)),
+                false);
     }
 
     /**
@@ -354,7 +355,32 @@ public class CatalogSyncJob implements JobExecutor {
      *     running on this or any other node, or a failure if the cluster lock could not be requested.
      */
     public void trigger(ActionListener<Boolean> listener) {
-        this.start(listener);
+        this.start(listener, false);
+    }
+
+    /**
+     * Attempts to trigger a synchronization pass manually, optionally offline. An offline pass
+     * reloads every consumer that has a snapshot file in the snapshots directory of this node from
+     * that file, whatever its current offset, and does not contact Wazuh CTI. Consumers without one
+     * are left as they are. It is how an air-gapped deployment is updated with newer snapshots.
+     *
+     * @param listener Notified with {@code true} if a pass started, {@code false} if one is already
+     *     running on this or any other node, or a failure if the cluster lock could not be requested.
+     * @param offline Whether to run an offline pass.
+     */
+    public void trigger(ActionListener<Boolean> listener, boolean offline) {
+        this.start(listener, offline);
+    }
+
+    /**
+     * Reports whether any consumer has a snapshot file waiting to be loaded in the snapshots
+     * directory of this node, which an offline pass needs. See {@link
+     * AbstractConsumerService#hasLocalSnapshot()}.
+     *
+     * @return {@code true} if at least one consumer has one.
+     */
+    public boolean hasLocalSnapshots() {
+        return this.synchronizers.stream().anyMatch(AbstractConsumerService::hasLocalSnapshot);
     }
 
     /**
@@ -363,8 +389,9 @@ public class CatalogSyncJob implements JobExecutor {
      * #execute(JobExecutionContext)} and {@link #trigger(ActionListener)}.
      *
      * @param listener Notified with whether a pass started.
+     * @param offline Whether the pass is an offline one.
      */
-    private void start(ActionListener<Boolean> listener) {
+    private void start(ActionListener<Boolean> listener, boolean offline) {
         if (!this.semaphore.tryAcquire()) {
             CatalogSyncJob.notifyCaller(listener, false);
             return;
@@ -386,7 +413,7 @@ public class CatalogSyncJob implements JobExecutor {
                                     CatalogSyncJob.this
                                             .threadPool
                                             .generic()
-                                            .execute(CatalogSyncJob.this::runSynchronizationPass);
+                                            .execute(() -> CatalogSyncJob.this.runSynchronizationPass(offline));
                                 } catch (Exception e) {
                                     CatalogSyncJob.this.releaseClusterLock(CatalogSyncJob.this.semaphore::release);
                                     CatalogSyncJob.notifyCallerOfFailure(listener, e);
@@ -433,15 +460,17 @@ public class CatalogSyncJob implements JobExecutor {
      * Runs one synchronization pass, renewing the cluster lock while it runs, and, once the lock and
      * then the semaphore have been released, hands the outcome to {@link #handleOutcome(SyncOutcome)}
      * so a failed pass can immediately trigger a single retry.
+     *
+     * @param offline Whether the pass is an offline one.
      */
-    private void runSynchronizationPass() {
+    private void runSynchronizationPass(boolean offline) {
         // This pass looks the plan up after it starts, so it applies any registration made before.
         this.registrationPassPending.set(false);
         Scheduler.Cancellable renewal = null;
         SyncOutcome outcome = SyncOutcome.SETUP_NOT_READY;
         try {
             renewal = this.scheduleLockRenewal();
-            outcome = this.performSynchronization();
+            outcome = offline ? this.performOfflineSynchronization() : this.performSynchronization();
         } catch (Exception e) {
             log.error("Error running CatalogSyncJob: {}", e.getMessage(), e);
         } finally {
@@ -592,6 +621,27 @@ public class CatalogSyncJob implements JobExecutor {
     }
 
     SyncOutcome performSynchronization() {
+        return this.runPass(this::resolveSyncPass);
+    }
+
+    /**
+     * Runs an offline pass: like {@link #performSynchronization()}, but every consumer with a
+     * snapshot file in the snapshots directory of this node is reloaded from it, and Wazuh CTI is not
+     * contacted. See {@link SyncPass#offline()}.
+     *
+     * @return the outcome of the pass, as for {@link #performSynchronization()}.
+     */
+    SyncOutcome performOfflineSynchronization() {
+        return this.runPass(SyncPass::offline);
+    }
+
+    /**
+     * Waits for the Setup plugin and runs every synchronizer in one pass.
+     *
+     * @param passFactory Starts the pass, once the Setup plugin is ready.
+     * @return the outcome of the pass.
+     */
+    private SyncOutcome runPass(Supplier<SyncPass> passFactory) {
         try (ThreadContext.StoredContext ignored = this.stashContext()) {
             // Content download requires two things to be true: the Setup plugin reported ready, and
             // the target indices it provisions exist. This is the first; the second is checked per
@@ -604,7 +654,7 @@ public class CatalogSyncJob implements JobExecutor {
                 return SyncOutcome.SETUP_NOT_READY;
             }
             // One plan lookup for the whole pass, so all consumers follow the same plan.
-            SyncPass pass = this.resolveSyncPass();
+            SyncPass pass = passFactory.get();
             // Consumers whose data source changes move together, in one swap, before any of them
             // synchronizes, so readers never see the content of two plans at once.
             try {
