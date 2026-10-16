@@ -50,6 +50,8 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.breaker.CircuitBreakingException;
+import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
@@ -394,7 +396,7 @@ public class ContentIndex {
                 Settings.builder()
                         .put("index.number_of_replicas", 0)
                         .put("index.auto_expand_replicas", "0-1")
-                        .put(Constants.KEY_INDEX_CODEC, Constants.CODEC_ZSTD);
+                        .put(Constants.KEY_INDEX_CODEC, this.codec());
         if (Constants.INDEX_CVES.equals(this.indexName)) {
             settingsBuilder.put("index.hidden", true);
         }
@@ -436,6 +438,25 @@ public class ContentIndex {
     }
 
     /**
+     * Returns the codec of the physical indices of this content index.
+     *
+     * <p>Content indices use {@code zstd}, except the vulnerabilities index. Its documents reach 17
+     * MB, and the {@code zstd} stored-fields writer copies every chunk it compresses, about 480 KB of
+     * documents, into a new array. A chunk closed by a document of 32 KB or more is over half a G1
+     * region of a 2 GB heap, so loading the vulnerabilities snapshot allocated gigabytes of those
+     * copies straight into the old generation, enough to push the heap over the parent circuit
+     * breaker. {@code best_compression} reuses its buffers and stores this content in about the same
+     * space.
+     *
+     * @return The value of {@code index.codec}.
+     */
+    private String codec() {
+        return Constants.INDEX_CVES.equals(this.indexName)
+                ? Constants.CODEC_BEST_COMPRESSION
+                : Constants.CODEC_ZSTD;
+    }
+
+    /**
      * Creates a hidden shadow physical index without an alias. Used during blue/green swaps to
      * prepare the staging slot. The index is hidden so its partial contents are not exposed via
      * {@code _cat/indices}, Dashboards, or wildcard queries during the rebuild window.
@@ -457,7 +478,7 @@ public class ContentIndex {
                         .put("index.number_of_replicas", 0)
                         .put("index.auto_expand_replicas", "0-1")
                         .put("index.hidden", true)
-                        .put(Constants.KEY_INDEX_CODEC, Constants.CODEC_ZSTD)
+                        .put(Constants.KEY_INDEX_CODEC, this.codec())
                         .build();
 
         String mappings = this.readMappings();
@@ -567,11 +588,17 @@ public class ContentIndex {
             YamlUtils.fixDecimalScale(processedPayload.get(Constants.KEY_DOCUMENT));
         }
 
-        IndexRequest request =
-                new IndexRequest(this.getWriteIndex())
-                        .id(id)
-                        .source(processedPayload.toString(), XContentType.JSON)
-                        .setRefreshPolicy(refreshPolicy);
+        IndexRequest request;
+        try {
+            request =
+                    new IndexRequest(this.getWriteIndex())
+                            .id(id)
+                            .source(MAPPER.writeValueAsBytes(processedPayload), XContentType.JSON)
+                            .setRefreshPolicy(refreshPolicy);
+        } catch (JsonProcessingException e) {
+            listener.onFailure(e);
+            return;
+        }
         this.client.index(request, listener);
     }
 
@@ -617,8 +644,8 @@ public class ContentIndex {
         }
 
         // 2. Patch and process
-        ObjectNode currentDoc = (ObjectNode) MAPPER.readTree(response.getSourceAsString());
-        String processedJson = this.patch(id, currentDoc, operations, offset);
+        ObjectNode currentDoc = (ObjectNode) readSource(id, response.getSourceAsBytesRef());
+        byte[] processedJson = this.patch(id, currentDoc, operations, offset);
 
         // 3. Index
         IndexRequest request =
@@ -640,11 +667,11 @@ public class ContentIndex {
      * @param stored The document as stored in the index, parsed for this call. Modified in place.
      * @param operations The operations of the change.
      * @param offset The CTI offset to store on the document, or null to leave it out.
-     * @return The patched document, processed and serialized for indexing.
+     * @return The patched document, processed and serialized for indexing as UTF-8 JSON.
      * @throws PatchException If the operations cannot be applied to the document.
      * @throws IOException If a CVE document has no {@code document} field.
      */
-    private String patch(String id, ObjectNode stored, List<Operation> operations, Long offset)
+    private byte[] patch(String id, ObjectNode stored, List<Operation> operations, Long offset)
             throws PatchException, IOException {
         boolean isCve = this.indexName.equals(Constants.INDEX_CVES);
         JsonNode content = isCve ? stored.get(Constants.KEY_DOCUMENT) : stored;
@@ -674,7 +701,7 @@ public class ContentIndex {
                 patched.put(Constants.KEY_TYPE, type);
             }
         }
-        return this.processPayloadToString(patched);
+        return this.processPayloadToBytes(patched);
     }
 
     /**
@@ -716,8 +743,10 @@ public class ContentIndex {
                         () -> this.client.multiGet(mgetRequest).get(timeout, TimeUnit.SECONDS));
         MultiGetItemResponse[] responses = mgetResponse.getResponses();
 
-        // The current version of each document: as fetched, then as patched by the batch so far.
-        Map<String, String> sources = new HashMap<>();
+        // The current version of each document: as fetched, then as patched by the batch so far. Kept
+        // as bytes: decoding the sources into strings copied every document twice and sized its
+        // re-encoding for indexing at three bytes per character.
+        Map<String, BytesReference> sources = new HashMap<>();
         for (int i = 0; i < ids.size(); i++) {
             String id = ids.get(i);
             MultiGetItemResponse item = responses[i];
@@ -731,7 +760,7 @@ public class ContentIndex {
                         tasks.stream().filter(t -> t.id().equals(id)).findFirst().orElseThrow().offset();
                 throw new PatchException(id, offset, "the document was not found", null);
             }
-            sources.put(id, getResp.getSourceAsString());
+            sources.put(id, getResp.getSourceAsBytesRef());
         }
 
         // 2. Stream: patch each document, index it after its last change, and flush when the size
@@ -740,7 +769,7 @@ public class ContentIndex {
         BulkRequest bulkRequest = new BulkRequest();
         for (int i = 0; i < tasks.size(); i++) {
             UpdateTask task = tasks.get(i);
-            ObjectNode currentDoc = (ObjectNode) MAPPER.readTree(sources.get(task.id()));
+            ObjectNode currentDoc = (ObjectNode) readSource(task.id(), sources.get(task.id()));
 
             // Idempotency guard: skip changes the document already holds, e.g. when a sub-batch that
             // failed after a size-limit flush is retried. Document offsets are comparable with the
@@ -748,7 +777,9 @@ public class ContentIndex {
             long storedOffset =
                     currentDoc.has(Constants.KEY_OFFSET) ? currentDoc.get(Constants.KEY_OFFSET).asLong() : -1;
             if (storedOffset < task.offset()) {
-                sources.put(task.id(), this.patch(task.id(), currentDoc, task.operations(), task.offset()));
+                sources.put(
+                        task.id(),
+                        new BytesArray(this.patch(task.id(), currentDoc, task.operations(), task.offset())));
                 patched.add(task.id());
             } else {
                 log.debug(
@@ -1372,19 +1403,20 @@ public class ContentIndex {
     }
 
     /**
-     * Same transformation as {@link #processPayload} but serializes directly to a JSON string,
-     * avoiding the intermediate {@link ObjectNode} tree allocation.
+     * Same transformation as {@link #processPayload} but serializes directly to UTF-8 JSON, avoiding
+     * the intermediate {@link ObjectNode} tree. The bytes go to the index request as they are: a
+     * string would have to be re-encoded, into an array sized at three bytes per character.
      *
      * @param payload The JSON payload to process.
-     * @return The processed payload as a JSON string, or an empty JSON object on failure.
+     * @return The processed payload as UTF-8 JSON, or an empty JSON object on failure.
      */
-    public String processPayloadToString(JsonNode payload) {
+    public byte[] processPayloadToBytes(JsonNode payload) {
         try {
             Resource resource;
             switch (this.indexName) {
                 case Constants.INDEX_IOCS:
                     Ioc ioc = Ioc.fromPayload(payload);
-                    return MAPPER.writeValueAsString(ioc);
+                    return MAPPER.writeValueAsBytes(ioc);
                 case Constants.INDEX_DECODERS:
                     resource = Decoder.fromPayload(payload);
                     break;
@@ -1408,19 +1440,36 @@ public class ContentIndex {
                     break;
                 case Constants.INDEX_CVES:
                     Cve cve = Cve.fromPayload(payload);
-                    return MAPPER.writeValueAsString(cve);
+                    return MAPPER.writeValueAsBytes(cve);
                 default:
                     resource = Resource.fromPayload(payload);
                     break;
             }
 
-            return MAPPER.writeValueAsString(resource);
+            return MAPPER.writeValueAsBytes(resource);
         } catch (JsonProcessingException e) {
             log.error(Constants.E_LOG_PROCESS_PAYLOAD_FAILED, e.getMessage(), e);
-            return "{}";
+            return "{}".getBytes(StandardCharsets.UTF_8);
         } catch (Exception e) {
             log.error(Constants.E_LOG_PROCESS_PAYLOAD_FAILED, e.getMessage(), e);
-            return "{}";
+            return "{}".getBytes(StandardCharsets.UTF_8);
+        }
+    }
+
+    /**
+     * Parses a stored source straight from its bytes, without decoding it into a string first.
+     *
+     * @param id The ID of the document, for the error message.
+     * @param source The source of the document, as returned by a get.
+     * @return The parsed source.
+     * @throws IOException If the document has no source or it is not valid JSON.
+     */
+    private static JsonNode readSource(String id, BytesReference source) throws IOException {
+        if (source == null) {
+            throw new IOException("Document [" + id + "] has no source.");
+        }
+        try (InputStream in = source.streamInput()) {
+            return MAPPER.readTree(in);
         }
     }
 }

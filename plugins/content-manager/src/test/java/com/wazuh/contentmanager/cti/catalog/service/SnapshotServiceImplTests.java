@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.lucene.util.BytesRef;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.settings.Settings;
@@ -35,9 +36,11 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -122,8 +125,13 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
-        when(this.contentIndexMock.processPayloadToString(any(JsonNode.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0, JsonNode.class).toString());
+        when(this.contentIndexMock.processPayloadToBytes(any(JsonNode.class)))
+                .thenAnswer(
+                        invocation ->
+                                invocation
+                                        .getArgument(0, JsonNode.class)
+                                        .toString()
+                                        .getBytes(StandardCharsets.UTF_8));
         when(this.contentIndexMock.getWriteIndex()).thenReturn(".test-context-test-consumer-kvdb");
     }
 
@@ -216,7 +224,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         verify(this.contentIndexMock, never()).clear();
-        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToBytes(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -309,7 +317,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToBytes(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
 
@@ -339,8 +347,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        // Verify delegation to ContentIndex.processPayloadToString
-        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
+        // Verify delegation to ContentIndex.processPayloadToBytes
+        verify(this.contentIndexMock).processPayloadToBytes(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -364,7 +372,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToBytes(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -411,7 +419,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToBytes(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -441,7 +449,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock, atLeastOnce()).processPayloadToString(any(JsonNode.class));
+        verify(this.contentIndexMock, atLeastOnce()).processPayloadToBytes(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -475,7 +483,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock).processPayloadToString(any(JsonNode.class));
+        verify(this.contentIndexMock).processPayloadToBytes(any(JsonNode.class));
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
@@ -670,7 +678,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         + "{\"foo\": \"bar\", \"n\": 42, \"nested\": {\"a\": [1, 2, 3]}}}}";
         assertLazyMatchesBaseline(line);
 
-        SnapshotServiceImpl.LazyEnvelope result = this.snapshotService.parseLazyEnvelope(line);
+        SnapshotServiceImpl.LazyEnvelope result = this.parse(line);
         assertTrue(result.hasPayload);
         assertEquals("CVE-2026-0001", result.resourceName);
         assertTrue(result.hasOffset);
@@ -681,16 +689,14 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         String line =
                 "{\"name\": \"TID-123\", \"offset\": 1, \"payload\": {\"document\": {\"foo\": \"bar\"}}}";
         assertLazyMatchesBaseline(line);
-        assertEquals("TID-123", this.snapshotService.parseLazyEnvelope(line).resourceName);
+        assertEquals("TID-123", this.parse(line).resourceName);
     }
 
     public void testLazyEnvelope_NoOffsetPresent() throws Exception {
         String line =
                 "{\"resource\": \"CVE-2026-0002\", \"payload\": {\"document\": {\"foo\": \"bar\"}}}";
         assertLazyMatchesBaseline(line);
-        assertFalse(
-                "no offset field should not be persisted",
-                this.snapshotService.parseLazyEnvelope(line).hasOffset);
+        assertFalse("no offset field should not be persisted", this.parse(line).hasOffset);
     }
 
     public void testLazyEnvelope_DocumentContainingBracesAndQuotes() throws Exception {
@@ -727,7 +733,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         + " {\"title\": \"t\"}}, \"cveMetadata\": {\"cveId\": \"CVE-1999-0001\"},"
                         + " \"dataType\": \"CVE_RECORD\", \"dataVersion\": \"5.1\"}}";
         assertLazyMatchesBaseline(line);
-        SnapshotServiceImpl.LazyEnvelope result = this.snapshotService.parseLazyEnvelope(line);
+        SnapshotServiceImpl.LazyEnvelope result = this.parse(line);
         assertEquals("CVE-1999-0001", result.resourceName);
         assertEquals(1L, result.offset);
     }
@@ -742,7 +748,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         String line =
                 "{\"resource\": \"NOT-A-CVE\", \"offset\": 1, \"payload\": {\"type\": \"rule\","
                         + " \"document\": {\"foo\": \"bar\"}}}";
-        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        SnapshotServiceImpl.LazyEnvelope env = this.parse(line);
         assertTrue(env.hasPayload);
         assertEquals("NOT-A-CVE", env.resourceName);
         assertEquals("rule", env.type);
@@ -754,7 +760,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         String line =
                 "{\"resource\": \"CVE-2026-0007\", \"offset\": 1, \"payload\": {\"type\": \"x\","
                         + " \"foo\": \"bar\"}}";
-        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        SnapshotServiceImpl.LazyEnvelope env = this.parse(line);
         assertTrue(env.hasPayload);
         assertEquals("x", env.type);
         assertNull("no document key and structural type present -> documentRaw null", env.documentRaw);
@@ -762,12 +768,12 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
     public void testLazyEnvelope_NoPayload() throws Exception {
         String line = "{\"resource\": \"CVE-2026-0008\", \"offset\": 1}";
-        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        SnapshotServiceImpl.LazyEnvelope env = this.parse(line);
         assertFalse("missing payload must set hasPayload false", env.hasPayload);
     }
 
     public void testLazyEnvelope_NonObjectLineHasNoPayload() throws Exception {
-        assertFalse(this.snapshotService.parseLazyEnvelope("[1, 2, 3]").hasPayload);
+        assertFalse(this.parse("[1, 2, 3]").hasPayload);
     }
 
     /**
@@ -790,7 +796,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         svc.initialize(zip, null);
 
-        verify(this.contentIndexMock, never()).processPayloadToString(any(JsonNode.class));
+        verify(this.contentIndexMock, never()).processPayloadToBytes(any(JsonNode.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -805,6 +811,133 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
+     * A CVE body with text outside ASCII, escapes and number forms a re-serialization would change.
+     */
+    private static final String RAW_CVE_BODY =
+            "{\"containers\": {\"cna\": {\"title\": \"Café ’quoted’ 漢字 😀\","
+                    + " \"escaped\": \"\\u00e9 \\\" \\\\ }{\", \"score\": 1.50, \"big\": 1e3, \"zero\": -0.0}},"
+                    + " \"dataType\": \"CVE_RECORD\"}";
+
+    /**
+     * The stored CVE document carries the line's document bytes verbatim, between the wrapper and the
+     * offset and type, whether the payload is the document or wraps it.
+     */
+    public void testLazyEnvelope_CveStoredDocumentKeepsTheRawBytes() throws Exception {
+        String payloadIsDocument =
+                "{\"name\": \"CVE-2026-0101\", \"offset\": 7, \"payload\": " + RAW_CVE_BODY + "}";
+        assertEquals(
+                "{\"document\":" + RAW_CVE_BODY + ",\"offset\":7,\"type\":\"CVE\"}",
+                this.parse(payloadIsDocument).toCveStoredDocument("CVE").utf8ToString());
+
+        String wrapped =
+                "{\"resource\": \"CVE-2026-0102\", \"payload\": {\"document\": " + RAW_CVE_BODY + "}}";
+        assertEquals(
+                "{\"document\":" + RAW_CVE_BODY + ",\"type\":\"CVE\"}",
+                this.parse(wrapped).toCveStoredDocument("CVE").utf8ToString());
+    }
+
+    /** The envelope is parsed in place, from a line in the middle of a larger buffer. */
+    public void testLazyEnvelope_ParsesALineInsideABuffer() throws Exception {
+        String line = "{\"name\": \"CVE-2026-0103\", \"offset\": 3, \"payload\": " + RAW_CVE_BODY + "}";
+        byte[] lineBytes = line.getBytes(StandardCharsets.UTF_8);
+        byte[] buffer = new byte[lineBytes.length + 20];
+        System.arraycopy(lineBytes, 0, buffer, 10, lineBytes.length);
+
+        SnapshotServiceImpl.LazyEnvelope env =
+                this.snapshotService.parseLazyEnvelope(buffer, 10, lineBytes.length);
+
+        assertEquals("CVE-2026-0103", env.resourceName);
+        assertEquals(3L, env.offset);
+        assertEquals(RAW_CVE_BODY, env.documentRaw.utf8ToString());
+    }
+
+    /**
+     * End-to-end over a ZIP whose lines end in CRLF, hold text outside ASCII and one of them is
+     * larger than the line reader's initial buffer: every CVE is indexed with its raw document, from
+     * an array of exactly the stored document's size. A string source was re-encoded into an array of
+     * three bytes per character, which is what put the long documents over half a G1 region of a 2 GB
+     * heap during the first sync.
+     */
+    public void testInitialize_IndexesCvesAsTheirRawBytes() throws Exception {
+        Map<String, ContentIndex> cveMap = new HashMap<>();
+        cveMap.put("cves", this.contentIndexMock);
+        SnapshotServiceImpl svc =
+                new SnapshotServiceImpl(
+                        Constants.CONSUMER_TYPE_VULNERABILITIES, cveMap, this.consumersIndex, this.environment);
+        when(this.contentIndexMock.getWriteIndex()).thenReturn(".wazuh-threatintel-vulnerabilities");
+
+        String longBody =
+                "{\"containers\": {\"cna\": {\"title\": \"ñ "
+                        + "y".repeat(NdjsonLineReader.DEFAULT_INITIAL_CAPACITY * 3)
+                        + "\"}}, \"dataType\": \"CVE_RECORD\"}";
+        String[] bodies = {RAW_CVE_BODY, longBody, RAW_CVE_BODY};
+        StringBuilder content = new StringBuilder();
+        for (int i = 0; i < bodies.length; i++) {
+            content
+                    .append("{\"name\": \"CVE-2026-020")
+                    .append(i)
+                    .append("\", \"offset\": ")
+                    .append(i + 1)
+                    .append(", \"payload\": ")
+                    .append(bodies[i])
+                    .append("}\r\n");
+        }
+        Path zip = this.createZipFileWithContent("cve.json", content.toString());
+
+        svc.initialize(zip, null);
+
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
+        List<IndexRequest> requests = new ArrayList<>();
+        bulkCaptor
+                .getAllValues()
+                .forEach(b -> b.requests().forEach(r -> requests.add((IndexRequest) r)));
+        assertEquals(bodies.length, requests.size());
+        for (int i = 0; i < bodies.length; i++) {
+            IndexRequest request = requests.get(i);
+            assertEquals("CVE-2026-020" + i, request.id());
+            assertEquals(
+                    "{\"document\":" + bodies[i] + ",\"offset\":" + (i + 1) + ",\"type\":\"CVE\"}",
+                    request.source().utf8ToString());
+            BytesRef ref = request.source().toBytesRef();
+            assertEquals("source offset", 0, ref.offset);
+            assertEquals("source array length", ref.length, ref.bytes.length);
+        }
+    }
+
+    /**
+     * A line that is not valid UTF-8 is skipped like any other line that cannot be parsed, and the
+     * lines around it are indexed.
+     */
+    public void testInitialize_SkipsALineThatIsNotUtf8() throws Exception {
+        byte[] good1 =
+                "{\"name\": \"k1\", \"offset\": 1, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"k1\"}}}\n"
+                        .getBytes(StandardCharsets.UTF_8);
+        byte[] bad =
+                "{\"name\": \"k2\", \"offset\": 2, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"ÿþ\"}}}\n"
+                        .getBytes(StandardCharsets.ISO_8859_1);
+        byte[] good3 =
+                "{\"name\": \"k3\", \"offset\": 3, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"k3\"}}}"
+                        .getBytes(StandardCharsets.UTF_8);
+        Path zip = this.tempDir.resolve("test_latin1_" + System.nanoTime() + ".zip");
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zip))) {
+            zos.putNextEntry(new ZipEntry("data.json"));
+            zos.write(good1);
+            zos.write(bad);
+            zos.write(good3);
+            zos.closeEntry();
+        }
+
+        this.snapshotService.initialize(zip, null);
+
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
+        List<String> ids = new ArrayList<>();
+        bulkCaptor.getAllValues().forEach(b -> b.requests().forEach(r -> ids.add(r.id())));
+        assertEquals(List.of("k1", "k3"), ids);
+    }
+
+    /**
      * The lazy envelope parse must produce a synthetic payload equivalent to the previous full-tree
      * {@code readValueAsTree} approach for non-CVE document types.
      */
@@ -812,7 +945,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         String line =
                 "{\"name\": \"rule-1\", \"version\": 4, \"offset\": 42, \"payload\": {\"type\": \"rule\","
                         + " \"document\": {\"id\": \"R1\", \"related\": {\"sigma_id\": \"S-1\"}}}}";
-        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        SnapshotServiceImpl.LazyEnvelope env = this.parse(line);
         assertEquals("rule-1", env.resourceName);
         assertTrue(env.hasOffset);
         assertEquals(42L, env.offset);
@@ -833,7 +966,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     public void testLazyEnvelope_ResourceTakesPrecedenceOverName() throws Exception {
         String line =
                 "{\"resource\": \"res-1\", \"name\": \"name-1\", \"payload\": {\"type\": \"kvdb\"}}";
-        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        SnapshotServiceImpl.LazyEnvelope env = this.parse(line);
         assertEquals("res-1", env.resourceName);
         assertFalse(env.hasOffset);
         assertTrue(env.hasPayload);
@@ -845,7 +978,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 "{\"resource\": \"r-1\", \"payload\": {\"type\": \"rule\","
                         + " \"document\": {\"id\": \"R1\"},"
                         + " \"space\": {\"name\": \"custom\"}}}";
-        SnapshotServiceImpl.LazyEnvelope env = this.snapshotService.parseLazyEnvelope(line);
+        SnapshotServiceImpl.LazyEnvelope env = this.parse(line);
         assertEquals("custom", env.spaceName);
         ObjectNode payload = env.toPayloadNode(this.plain);
         assertEquals("custom", payload.get(Constants.KEY_SPACE).get(Constants.KEY_NAME).asText());
@@ -875,16 +1008,22 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     private void assertLazyMatchesBaseline(String line) throws Exception {
-        SnapshotServiceImpl.LazyEnvelope result = this.snapshotService.parseLazyEnvelope(line);
+        SnapshotServiceImpl.LazyEnvelope result = this.parse(line);
         assertTrue("expected lazy envelope to have payload: " + line, result.hasPayload);
         assertNotNull("expected documentRaw to be captured: " + line, result.documentRaw);
         String cveType = Cve.deriveType(result.resourceName);
         assertNotNull("expected CVE-pattern resource: " + result.resourceName, cveType);
         JsonNode expected = this.cti.readTree(baselineStoredDocument(line));
-        JsonNode actual = this.cti.readTree(result.toCveStoredDocument(cveType));
+        JsonNode actual = this.cti.readTree(result.toCveStoredDocument(cveType).utf8ToString());
         assertTrue(
                 "lazy output differs from baseline.\n  baseline=" + expected + "\n  lazy    =" + actual,
                 semanticallyEqual(expected, actual));
+    }
+
+    /** Parses an envelope from its UTF-8 bytes, as {@code processZipEntry} reads it from the ZIP. */
+    private SnapshotServiceImpl.LazyEnvelope parse(String line) throws IOException {
+        byte[] bytes = line.getBytes(StandardCharsets.UTF_8);
+        return this.snapshotService.parseLazyEnvelope(bytes, 0, bytes.length);
     }
 
     /** Numeric-aware deep equality: numbers compare by value, everything else structurally. */
@@ -989,7 +1128,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock, atLeastOnce()).clear();
 
         // Documents should be processed and indexed
-        verify(this.contentIndexMock, atLeastOnce()).processPayloadToString(any(JsonNode.class));
+        verify(this.contentIndexMock, atLeastOnce()).processPayloadToBytes(any(JsonNode.class));
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(any(BulkRequest.class));
         verify(this.contentIndexMock).waitForPendingUpdates();
 
