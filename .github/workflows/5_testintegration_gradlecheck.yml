@@ -7,9 +7,9 @@ on:
       - "plugins/**/*.java"
       - "plugins/**/*.gradle"
       - "gradle/coverage.gradle"
-  # Runs on the release branch too, to keep the coverage badge current.
+  # Runs on the default and release branches too, to keep each branch's coverage badge current.
   push:
-    branches: ["5.0.0"]
+    branches: ["main", "[0-9]+.[0-9]+.[0-9]+"]
     paths:
       - "plugins/**/*.java"
       - "plugins/**/*.gradle"
@@ -258,11 +258,12 @@ jobs:
           path: plugins/${{ matrix.project }}/build/reports/jacoco/test/
           if-no-files-found: warn
 
-  # Regenerates the coverage badge from the release branch's reports and stores it on the
-  # `badges` branch, which the README links to. The branch is created on the first run.
+  # Regenerates the pushed branch's coverage badge from its reports and stores it on the `badges`
+  # branch, under a folder named after the pushed branch. The README links to the default branch's
+  # badge. The `badges` branch is created on the first run.
   coverage-badge:
     needs: gradle-check
-    if: github.event_name == 'push' && github.ref_name == '5.0.0'
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -277,7 +278,7 @@ jobs:
         uses: cicirello/jacoco-badge-generator@v2.12.1
         with:
           jacoco-csv-file: reports/coverage-content-manager/jacocoTestReport.csv reports/coverage-setup/jacocoTestReport.csv
-          badges-directory: badges
+          badges-directory: badges/${{ github.ref_name }}
           generate-branches-badge: true
           generate-coverage-endpoint: true
 
@@ -295,7 +296,7 @@ jobs:
           else
             git switch --orphan badges
           fi
-          cp ../badges/* .
+          cp -r ../badges/. .
           git add -A
           if git diff --cached --quiet; then
             echo "Badge unchanged."
@@ -303,5 +304,10 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Update coverage badge for ${GITHUB_SHA::8}"
-          git push origin badges
+          git commit -m "Update coverage badge of ${GITHUB_REF_NAME} for ${GITHUB_SHA::8}"
+          # Another branch's run may have updated its own folder in the meantime.
+          for _ in 1 2 3; do
+            git push origin badges && exit 0
+            git pull --rebase origin badges
+          done
+          exit 1
