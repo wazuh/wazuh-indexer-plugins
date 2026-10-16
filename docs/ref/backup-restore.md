@@ -110,13 +110,15 @@ Perform the following steps to restore the Wazuh indexer files on the new server
     find /etc/wazuh-indexer -type f -exec chmod 640 {} +
     chown root:root /etc/wazuh-indexer/certs/admin.pem /etc/wazuh-indexer/certs/admin-key.pem
     chmod 600 /etc/wazuh-indexer/certs/admin.pem /etc/wazuh-indexer/certs/admin-key.pem
-    chown root:root /etc/wazuh-indexer/ca/root-ca.key /etc/wazuh-indexer/export/credentials.env
+    chown root:root /etc/wazuh-indexer/ca/root-ca.key /etc/wazuh-indexer/export/credentials.env /etc/wazuh-indexer/export/*-client*.pem
     chmod 400 /etc/wazuh-indexer/ca/root-ca.key
-    chmod 600 /etc/wazuh-indexer/export/credentials.env /etc/wazuh-indexer/ca/.wazuh-indexer-bootstrap-ca
+    chmod 600 /etc/wazuh-indexer/export/credentials.env /etc/wazuh-indexer/export/*-client*.pem /etc/wazuh-indexer/ca/.wazuh-indexer-bootstrap-ca
+    chown root:root /etc/wazuh-indexer/local.env /etc/wazuh-indexer/.wazuh-indexer-keystore 2>/dev/null
+    chmod 600 /etc/wazuh-indexer/local.env /etc/wazuh-indexer/.wazuh-indexer-keystore 2>/dev/null
     chown root:root /usr/lib/sysctl.d/wazuh-indexer.conf
     ```
 
-    The configuration directory belongs to root: the Wazuh indexer reads it through its group and writes nothing in it. The admin certificate pair, the CA private key and the published passwords are root's alone.
+    The configuration directory belongs to root: the Wazuh indexer reads it through its group and writes nothing in it. The admin certificate pair, the CA private key, the published passwords and client pairs, `local.env` and the keystore marker are root's alone; the service refuses to start while `local.env` is readable by anyone else.
 
     The first command copies everything the backup saved under `/etc/wazuh-indexer/` over the existing files: the certificates, `opensearch.yml`, the JVM options, `log4j2.properties`, the keystore, the security configuration, the plugin configuration directories, the certificate authority in `ca/` and what the node published in `export/`. Copying the contents of the directory (`etc/wazuh-indexer/.`) matters: the package already created these directories on the new server, and `cp -r` of a directory onto an existing one nests the copy inside it (`certs/certs`), where the Wazuh indexer never reads it.
 
