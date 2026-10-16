@@ -5,40 +5,63 @@
     expected:
       - { at: wazuh, as: rule }
   title: Rule
+  short: A rule that detected the event. Under `wazuh.rule`, the Wazuh rule of a finding.
   description: >
-    Fields related to the detection rule that generated the finding.
+    Details about a rule that detected the event. At the root (`rule.*`), the
+    rule of the source device or service as reported in the original log, for
+    example a firewall or intrusion detection rule, set by the decoder. Under
+    `wazuh.rule`, the Wazuh detection rule that matched the event, set by the
+    Wazuh Indexer on findings only.
   type: group
   group: 2
   fields:
+    - name: id
+      type: keyword
+      level: extended
+      short: Rule ID. Under `wazuh.rule`, the ID of the Wazuh rule that matched.
+      description: >
+        Identifier of the rule. At the root, the ID the source device or
+        service gives its rule. Under `wazuh.rule`, the ID of the Wazuh rule
+        document that matched the event.
+      example: "8784f095-729a-5912-9315-119722b444ed"
     - name: title
       type: keyword
       level: custom
+      short: Title of the rule. Under `wazuh.rule`, placeholders are filled with event values.
       description: >
-        Title of the rule that generated the finding.
-      example: "Suspicious PowerShell Execution"
+        Title of the rule. Under `wazuh.rule`, placeholders such as
+        `{{user.name}}` in the rule title are replaced with the values of the
+        event that matched.
+      example: "Sudo command executed - vagrant"
     - name: tags
       type: keyword
       level: custom
+      short: Tags of the rule. Under `wazuh.rule`, the level, the integration and then the rule tags.
       description: >
-        Tags associated with the rule.
+        Tags associated with the rule. Under `wazuh.rule`, the list starts with
+        the rule level and the integration the rule belongs to, followed by the
+        rule's own tags.
       normalize:
         - array
-      example: '["attack.execution", "attack.t1059"]'
+      example: '["low", "wazuh-generic-1", "attack.privilege-escalation", "attack.t1548"]'
     - name: level
       type: keyword
       level: custom
       description: >
-        Severity level of the rule.
+        Severity level of the rule: `informational`, `low`, `medium`, `high`
+        or `critical`.
       example: "high"
     - name: status
       type: keyword
       level: custom
       description: >
-        Status of the rule (e.g., stable, test, experimental).
+        Maturity status of the rule: `stable`, `experimental`, `test`,
+        `deprecated` or `unsupported`.
       example: "stable"
     - name: sigma_id
       type: keyword
       level: custom
       description: >
-        Sigma rule identifier.
+        Identifier of the Sigma rule the rule was imported from, when it has
+        one.
       example: "5af54681-df95-4c26-854f-2565e13cfab0"
