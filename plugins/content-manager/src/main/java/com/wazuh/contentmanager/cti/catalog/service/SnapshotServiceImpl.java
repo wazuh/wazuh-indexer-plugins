@@ -28,11 +28,13 @@ import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.env.Environment;
 import org.opensearch.secure_sm.AccessController;
 
-import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -313,11 +315,16 @@ public class SnapshotServiceImpl implements SnapshotService {
      * Reads a single ZIP entry path as NDJSON, extracts the payload from each line, and bulk-indexes
      * the documents into the appropriate content index.
      *
+     * <p>Lines stay bytes from the ZIP to the index request: a line is parsed in place in the
+     * reader's buffer, and each document is copied once, into the request's source. Decoding the
+     * lines into strings copied every document several times and sized its UTF-8 source at three
+     * bytes per character, which on a 2 GB heap was enough to trip the parent circuit breaker during
+     * the vulnerabilities first sync.
+     *
      * @param entryPath the {@link Path} to the entry inside the ZIP {@link FileSystem}.
      * @throws IOException if the entry stream cannot be opened.
      */
     private void processZipEntry(Path entryPath) throws IOException {
-        String line;
         int docCount = 0;
         int bulkCount = 0;
         int missingPayload = 0;
@@ -333,10 +340,12 @@ public class SnapshotServiceImpl implements SnapshotService {
             return;
         }
 
-        try (BufferedReader reader = Files.newBufferedReader(entryPath, StandardCharsets.UTF_8)) {
-            while ((line = reader.readLine()) != null) {
+        try (InputStream in = Files.newInputStream(entryPath)) {
+            NdjsonLineReader reader = new NdjsonLineReader(in);
+            while (reader.next()) {
                 try {
-                    LazyEnvelope envelope = this.parseLazyEnvelope(line);
+                    LazyEnvelope envelope =
+                            this.parseLazyEnvelope(reader.buffer(), reader.lineStart(), reader.lineLength());
 
                     if (!envelope.hasPayload || envelope.resourceName == null) {
                         missingPayload++;
@@ -371,20 +380,20 @@ public class SnapshotServiceImpl implements SnapshotService {
                         this.maxOffsetSeen = Math.max(this.maxOffsetSeen, envelope.offset);
                     }
 
-                    String sourceJson;
+                    BytesReference source;
                     if (Constants.KEY_CVES.equals(type) && cveType != null && envelope.documentRaw != null) {
-                        sourceJson = envelope.toCveStoredDocument(cveType);
+                        source = envelope.toCveStoredDocument(cveType);
                     } else {
                         ObjectNode syntheticPayload = envelope.toPayloadNode(this.mapper);
                         if (Constants.KEY_CVES.equals(type) && cveType != null) {
                             syntheticPayload.put(Constants.KEY_TYPE, cveType);
                         }
-                        sourceJson = indexHandler.processPayloadToString(syntheticPayload);
+                        source = new BytesArray(indexHandler.processPayloadToBytes(syntheticPayload));
                     }
 
                     IndexRequest indexRequest =
                             new IndexRequest(indexHandler.getWriteIndex())
-                                    .source(sourceJson, XContentType.JSON)
+                                    .source(source, XContentType.JSON)
                                     .id(envelope.resourceName);
 
                     bulkRequest.add(indexRequest);
@@ -678,10 +687,14 @@ public class SnapshotServiceImpl implements SnapshotService {
 
     /**
      * Result of a lazy/partial NDJSON envelope parse. Holds routing-level fields as primitives and
-     * the deep payload document content as a raw JSON string. The full Jackson tree is only
-     * materialized on demand via {@link #getDocumentNode}.
+     * the deep payload document content as raw UTF-8 JSON. The raw document is a view of the line it
+     * was parsed from, not a copy, so an envelope must be used before the next line is read. The full
+     * Jackson tree is only materialized on demand via {@link #getDocumentNode}.
      */
     static final class LazyEnvelope {
+        private static final byte[] CVE_DOCUMENT_PREFIX =
+                ("{\"" + Constants.KEY_DOCUMENT + "\":").getBytes(StandardCharsets.UTF_8);
+
         String resourceName;
         long offset;
         boolean hasOffset;
@@ -689,7 +702,7 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         String type;
         String spaceName;
-        String documentRaw;
+        BytesArray documentRaw;
         boolean documentIsPayload;
 
         private ObjectNode documentNode;
@@ -701,7 +714,9 @@ public class SnapshotServiceImpl implements SnapshotService {
          */
         ObjectNode getDocumentNode(ObjectMapper mapper) throws IOException {
             if (this.documentNode == null && this.documentRaw != null) {
-                JsonNode parsed = mapper.readTree(this.documentRaw);
+                JsonNode parsed =
+                        mapper.readTree(
+                                this.documentRaw.array(), this.documentRaw.offset(), this.documentRaw.length());
                 if (parsed.isObject()) {
                     this.documentNode = (ObjectNode) parsed;
                 }
@@ -735,19 +750,31 @@ public class SnapshotServiceImpl implements SnapshotService {
         }
 
         /**
-         * Builds the stored document JSON for CVE fast-path types via StringBuilder, matching the shape
-         * produced by the full-tree CVE pipeline without materializing a tree.
+         * Builds the stored document JSON for CVE fast-path types, matching the shape produced by the
+         * full-tree CVE pipeline without materializing a tree. The raw document is copied once, into an
+         * array of the exact size of the stored document, which the index request then uses as is.
          */
-        String toCveStoredDocument(String cveType) {
-            StringBuilder sb =
-                    new StringBuilder((this.documentRaw != null ? this.documentRaw.length() : 0) + 64);
-            sb.append("{\"").append(Constants.KEY_DOCUMENT).append("\":");
-            sb.append(this.documentRaw);
-            if (this.hasOffset) {
-                sb.append(",\"").append(Constants.KEY_OFFSET).append("\":").append(this.offset);
-            }
-            sb.append(",\"").append(Constants.KEY_TYPE).append("\":\"").append(cveType).append("\"}");
-            return sb.toString();
+        BytesReference toCveStoredDocument(String cveType) {
+            String suffix =
+                    (this.hasOffset ? ",\"" + Constants.KEY_OFFSET + "\":" + this.offset : "")
+                            + ",\""
+                            + Constants.KEY_TYPE
+                            + "\":\""
+                            + cveType
+                            + "\"}";
+            byte[] suffixBytes = suffix.getBytes(StandardCharsets.UTF_8);
+            int prefixLength = CVE_DOCUMENT_PREFIX.length;
+            int documentLength = this.documentRaw.length();
+            byte[] stored = new byte[prefixLength + documentLength + suffixBytes.length];
+            System.arraycopy(CVE_DOCUMENT_PREFIX, 0, stored, 0, prefixLength);
+            System.arraycopy(
+                    this.documentRaw.array(),
+                    this.documentRaw.offset(),
+                    stored,
+                    prefixLength,
+                    documentLength);
+            System.arraycopy(suffixBytes, 0, stored, prefixLength + documentLength, suffixBytes.length);
+            return new BytesArray(stored);
         }
     }
 
@@ -756,20 +783,24 @@ public class SnapshotServiceImpl implements SnapshotService {
      *
      * <p>Walks the token stream once, extracting envelope-level fields ({@code resource}, {@code
      * name}, {@code offset}) as primitives, then descends into the {@code payload} object to stream
-     * routing fields ({@code type}, {@code space.name}) and capture the {@code document} value as a
-     * raw JSON string. No full Jackson tree is built for the line or the payload wrapper.
+     * routing fields ({@code type}, {@code space.name}) and capture the {@code document} value as raw
+     * JSON, as a view of the line's bytes. No full Jackson tree is built for the line or the payload
+     * wrapper, and the line is never decoded into a string.
      *
-     * @param line The raw NDJSON line.
-     * @return The extracted {@link LazyEnvelope}. {@code hasPayload} is {@code false} when the line
-     *     is not a JSON object or carries no {@code payload} field.
-     * @throws IOException If the line is not well-formed JSON.
+     * @param line The buffer holding the raw NDJSON line, encoded as UTF-8.
+     * @param start Where the line starts in {@code line}.
+     * @param length The length of the line in bytes.
+     * @return The extracted {@link LazyEnvelope}, whose raw document is valid as long as {@code line}
+     *     is not overwritten. {@code hasPayload} is {@code false} when the line is not a JSON object
+     *     or carries no {@code payload} field.
+     * @throws IOException If the line is not well-formed JSON or not valid UTF-8.
      */
-    LazyEnvelope parseLazyEnvelope(String line) throws IOException {
+    LazyEnvelope parseLazyEnvelope(byte[] line, int start, int length) throws IOException {
         LazyEnvelope env = new LazyEnvelope();
         String resource = null;
         String name = null;
 
-        try (JsonParser parser = this.mapper.getFactory().createParser(line)) {
+        try (JsonParser parser = this.mapper.getFactory().createParser(line, start, length)) {
             if (parser.nextToken() != JsonToken.START_OBJECT) {
                 return env;
             }
@@ -795,7 +826,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     case Constants.KEY_PAYLOAD:
                         if (value == JsonToken.START_OBJECT) {
                             env.hasPayload = true;
-                            this.parsePayloadFields(parser, line, env);
+                            this.parsePayloadFields(parser, line, start, length, env);
                         } else {
                             parser.skipChildren();
                         }
@@ -813,14 +844,15 @@ public class SnapshotServiceImpl implements SnapshotService {
 
     /**
      * Descends into the {@code payload} object and streams its top-level routing fields, capturing
-     * the {@code document} value as raw JSON text via character-offset slicing.
+     * the {@code document} value as raw JSON via byte-offset slicing. The parser's byte offsets are
+     * relative to {@code start}.
      */
-    private void parsePayloadFields(JsonParser parser, String line, LazyEnvelope env)
-            throws IOException {
-        long payloadStart = parser.currentTokenLocation().getCharOffset();
+    private void parsePayloadFields(
+            JsonParser parser, byte[] line, int start, int length, LazyEnvelope env) throws IOException {
+        long payloadStart = parser.currentTokenLocation().getByteOffset();
         boolean hasDocumentKey = false;
         boolean hasNonDocumentStructural = false;
-        String legacyRaw = null;
+        BytesArray legacyRaw = null;
 
         while (parser.nextToken() != JsonToken.END_OBJECT) {
             String field = parser.currentName();
@@ -837,7 +869,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     break;
                 case Constants.KEY_DOCUMENT:
                     if (value == JsonToken.START_OBJECT || value == JsonToken.START_ARRAY) {
-                        env.documentRaw = this.sliceCurrentValue(parser, line);
+                        env.documentRaw = this.sliceCurrentValue(parser, line, start, length);
                         hasDocumentKey = true;
                     } else {
                         parser.skipChildren();
@@ -845,7 +877,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     break;
                 case Constants.KEY_PAYLOAD:
                     if (value == JsonToken.START_OBJECT || value == JsonToken.START_ARRAY) {
-                        legacyRaw = this.sliceCurrentValue(parser, line);
+                        legacyRaw = this.sliceCurrentValue(parser, line, start, length);
                     } else {
                         parser.skipChildren();
                     }
@@ -878,25 +910,28 @@ public class SnapshotServiceImpl implements SnapshotService {
         if (!hasDocumentKey && legacyRaw != null) {
             env.documentRaw = legacyRaw;
         } else if (!hasDocumentKey && !hasNonDocumentStructural) {
-            long payloadEnd = parser.currentLocation().getCharOffset();
-            if (payloadStart >= 0 && payloadEnd > payloadStart && payloadEnd <= line.length()) {
-                env.documentRaw = line.substring((int) payloadStart, (int) payloadEnd);
+            long payloadEnd = parser.currentLocation().getByteOffset();
+            if (payloadStart >= 0 && payloadEnd > payloadStart && payloadEnd <= length) {
+                env.documentRaw =
+                        new BytesArray(line, start + (int) payloadStart, (int) (payloadEnd - payloadStart));
                 env.documentIsPayload = true;
             }
         }
     }
 
     /**
-     * Slices the raw JSON text of the value the parser is currently positioned on, consuming the
-     * whole subtree with. Returns {@code null} if the computed offsets are not usable.
+     * Slices the raw JSON of the value the parser is currently positioned on, consuming the whole
+     * subtree with. The slice is a view of {@code line}, not a copy. Returns {@code null} if the
+     * computed offsets are not usable.
      */
-    private String sliceCurrentValue(JsonParser parser, String line) throws IOException {
-        long start = parser.currentTokenLocation().getCharOffset();
+    private BytesArray sliceCurrentValue(JsonParser parser, byte[] line, int start, int length)
+            throws IOException {
+        long valueStart = parser.currentTokenLocation().getByteOffset();
         parser.skipChildren();
-        long end = parser.currentLocation().getCharOffset();
-        if (start < 0 || end < start || end > line.length()) {
+        long valueEnd = parser.currentLocation().getByteOffset();
+        if (valueStart < 0 || valueEnd < valueStart || valueEnd > length) {
             return null;
         }
-        return line.substring((int) start, (int) end);
+        return new BytesArray(line, start + (int) valueStart, (int) (valueEnd - valueStart));
     }
 }
