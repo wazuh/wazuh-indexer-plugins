@@ -1134,4 +1134,306 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
 
         verify(this.consumersIndex, never()).setConsumer(any());
     }
+
+    // --- Phases owed by a content change ---------------------------------------------------
+
+    /** New ruleset content owes all three phases while detector creation is enabled. */
+    public void testPhasesOwedByContentChange_includeDetectors() {
+        Assert.assertEquals(
+                List.of("integrations", "rules", "detectors"),
+                this.synchronizer.phasesOwedByContentChange());
+    }
+
+    /** With detector creation disabled, no detectors phase is owed: it could never be run. */
+    public void testPhasesOwedByContentChange_detectorsDisabled_omitsDetectors() {
+        PluginSettings.resetForTesting();
+        try {
+            PluginSettings.getInstance(
+                    Settings.builder().put(PluginSettings.CREATE_DETECTORS.getKey(), false).build());
+
+            Assert.assertEquals(
+                    List.of("integrations", "rules"), this.synchronizer.phasesOwedByContentChange());
+        } finally {
+            PluginSettings.resetForTesting();
+            PluginSettings.getInstance(Settings.EMPTY);
+        }
+    }
+
+    // --- Resuming a cut pass ----------------------------------------------------------------
+
+    /**
+     * Builds a ruleset service over recording collaborators, with the given phases pending and an
+     * empty standard space, so every push succeeds. The consumer document write is recorded as
+     * "pending-write".
+     */
+    private ConsumerRulesetService serviceResuming(List<String> pendingPhases, List<String> order)
+            throws Exception {
+        this.mockExistingConsumerDoc(pendingPhases);
+        this.mockIndexResolution(name -> false);
+        this.recordEngineReload(order);
+        doAnswer(
+                        invocation -> {
+                            order.add("pending-write");
+                            return null;
+                        })
+                .when(this.consumersIndex)
+                .setConsumer(any());
+        return this.synchronizerWith(
+                this.stubSpaceServiceRecording(order), this.stubOverridesServiceRecording(order));
+    }
+
+    /**
+     * A pass that resumes the phases a cut pass recorded redoes the content work that pass may not
+     * have reached: the user's overrides are re-applied before anything is pushed, and the pending
+     * phases are cleared only once the space hash is recalculated and the engines are told to reload.
+     */
+    public void testOnSyncComplete_resumedPass_redoesTheContentWork() throws Exception {
+        List<String> order = new ArrayList<>();
+        ConsumerRulesetService svc =
+                this.serviceResuming(List.of("integrations", "rules", "detectors"), order);
+
+        svc.onSyncComplete(false);
+
+        Assert.assertEquals(List.of("apply", "hash", "engine", "pending-write"), order);
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(captor.capture());
+        Assert.assertTrue(captor.getValue().getPendingSyncPhases().isEmpty());
+    }
+
+    /**
+     * A pass cut while it recalculates the space hash keeps its phases pending, so the next pass
+     * redoes the content work instead of finding nothing left to do.
+     */
+    public void testOnSyncComplete_passCutBeforeTheSpaceHash_keepsThePhasesPending()
+            throws Exception {
+        List<String> order = new ArrayList<>();
+        this.mockExistingConsumerDoc(List.of("integrations", "rules", "detectors"));
+        this.mockIndexResolution(name -> false);
+        SpaceService spaceService = this.stubSpaceServiceRecording(order);
+        doAnswer(
+                        invocation -> {
+                            throw new IllegalStateException("node closed");
+                        })
+                .when(spaceService)
+                .calculateAndUpdate(any(), any());
+        ConsumerRulesetService svc =
+                this.synchronizerWith(spaceService, this.stubOverridesServiceRecording(order));
+
+        expectThrows(IllegalStateException.class, () -> svc.onSyncComplete(false));
+
+        verify(this.consumersIndex, never()).setConsumer(any());
+    }
+
+    /**
+     * Only a failed detectors phase pending is not a resumed content change: the pass retries the
+     * detectors without re-applying the overrides or reloading the space.
+     */
+    public void testOnSyncComplete_onlyDetectorsPending_skipsTheContentWork() throws Exception {
+        List<String> order = new ArrayList<>();
+        ConsumerRulesetService svc = this.serviceResuming(List.of("detectors"), order);
+
+        svc.onSyncComplete(false);
+
+        Assert.assertEquals(List.of("pending-write"), order);
+    }
+
+    // --- Detector existence check ----------------------------------------------------------
+
+    /**
+     * Builds a ruleset service with nothing pending and one integration that lists a rule, over the
+     * given Security Analytics service and detector lookup. Every push succeeds.
+     */
+    @SuppressWarnings("unchecked")
+    private ConsumerRulesetService serviceCheckingDetectors(
+            SecurityAnalyticsServiceImpl sapServiceImpl, DetectorLookupService lookup) throws Exception {
+        this.mockExistingConsumerDoc(Collections.emptyList());
+        this.mockIndexResolution(name -> false);
+
+        ConsumerRulesetService svc =
+                new ConsumerRulesetService(
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.spaceService,
+                        sapServiceImpl,
+                        this.userOverridesService);
+        svc.setDetectorLookupService(lookup);
+
+        Map<String, Map<String, Object>> integrations = new LinkedHashMap<>();
+        integrations.put(
+                "int-1",
+                Map.of(
+                        "document",
+                        Map.of(
+                                "id", "int-1",
+                                "metadata", Map.of("title", "Test"),
+                                "rules", List.of("rule-1"),
+                                "detector", Map.of("source", List.of("wazuh-events-v5-test")))));
+        this.mockResourcesBySpace(Constants.INDEX_INTEGRATIONS, integrations);
+        this.mockResourcesBySpace(Constants.INDEX_RULES, Collections.emptyMap());
+
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Object>>getArgument(3).onResponse(null);
+                            return null;
+                        })
+                .when(sapServiceImpl)
+                .upsertIntegration(any(), eq(Space.STANDARD), any(), any());
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Object>>getArgument(4).onResponse(null);
+                            return null;
+                        })
+                .when(sapServiceImpl)
+                .upsertDetectorAsync(any(), anyBoolean(), any(), any(), any());
+        when(sapServiceImpl.buildDetectorRequest(any(), eq(true), any()))
+                .thenReturn(mock(WIndexDetectorRequest.class));
+        return svc;
+    }
+
+    /** A detector lookup that reports the given ids as missing. */
+    private DetectorLookupService lookupReportingMissing(Set<String> missing) {
+        DetectorLookupService lookup = mock(DetectorLookupService.class);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Set<String>>>getArgument(1).onResponse(missing);
+                            return null;
+                        })
+                .when(lookup)
+                .findMissingDetectors(any(), any());
+        return lookup;
+    }
+
+    /**
+     * The state of #1674: offsets in sync, nothing pending, and no detectors in Security Analytics. A
+     * pass with nothing new to sync finds the missing detector and syncs all three phases again,
+     * since the integration and rules may be gone with it.
+     */
+    public void testOnSyncComplete_missingDetector_syncsEveryPhaseAgain() throws Exception {
+        SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
+        DetectorLookupService lookup = this.lookupReportingMissing(Set.of("int-1"));
+        ConsumerRulesetService svc = this.serviceCheckingDetectors(sapServiceImpl, lookup);
+
+        svc.onSyncComplete(false);
+
+        verify(lookup).findMissingDetectors(eq(Set.of("int-1")), any());
+        verify(sapServiceImpl).upsertIntegration(any(), eq(Space.STANDARD), any(), any());
+        verify(this.spaceService)
+                .getResourcesBySpace(eq(Constants.INDEX_RULES), eq(Space.STANDARD), any(), any());
+        verify(sapServiceImpl).upsertDetectorAsync(any(), anyBoolean(), any(), any(), any());
+        // The integrations are read once, for the check and the phases alike.
+        verify(this.spaceService)
+                .getResourcesBySpace(eq(Constants.INDEX_INTEGRATIONS), eq(Space.STANDARD), any(), any());
+        // The detectors may have gone with a pass cut before the content work, so it is redone too.
+        verify(this.userOverridesService).apply(eq(Space.STANDARD.toString()), any());
+        verify(this.spaceService).calculateAndUpdate(eq(List.of(Space.STANDARD.toString())), any());
+        // Everything succeeded and nothing was pending before: the document is left as it is.
+        verify(this.consumersIndex, never()).setConsumer(any());
+    }
+
+    /** A missing detector that cannot be created again is left pending, like any failed phase. */
+    public void testOnSyncComplete_missingDetectorFailsAgain_leavesDetectorsPending()
+            throws Exception {
+        SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
+        ConsumerRulesetService svc =
+                this.serviceCheckingDetectors(sapServiceImpl, this.lookupReportingMissing(Set.of("int-1")));
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<Object>>getArgument(4)
+                                    .onFailure(new RuntimeException("still broken"));
+                            return null;
+                        })
+                .when(sapServiceImpl)
+                .upsertDetectorAsync(any(), anyBoolean(), any(), any(), any());
+
+        svc.onSyncComplete(false);
+
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(captor.capture());
+        Assert.assertEquals(List.of("detectors"), captor.getValue().getPendingSyncPhases());
+    }
+
+    /** With every detector in place, a pass with nothing to sync pushes nothing. */
+    public void testOnSyncComplete_detectorsPresent_pushesNothing() throws Exception {
+        SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
+        ConsumerRulesetService svc =
+                this.serviceCheckingDetectors(sapServiceImpl, this.lookupReportingMissing(Set.of()));
+
+        svc.onSyncComplete(false);
+
+        verify(sapServiceImpl, never()).upsertIntegration(any(), any(), any(), any());
+        verify(sapServiceImpl, never()).upsertDetectorAsync(any(), anyBoolean(), any(), any(), any());
+        verify(this.consumersIndex, never()).setConsumer(any());
+    }
+
+    /**
+     * An integration whose rules are all disabled builds no detector, so its absence is not a missing
+     * detector; otherwise every pass would sync everything again.
+     */
+    public void testOnSyncComplete_absentDetectorThatWouldNotBeBuilt_isNotMissing() throws Exception {
+        SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
+        ConsumerRulesetService svc =
+                this.serviceCheckingDetectors(sapServiceImpl, this.lookupReportingMissing(Set.of("int-1")));
+        when(sapServiceImpl.buildDetectorRequest(any(), eq(true), any())).thenReturn(null);
+
+        svc.onSyncComplete(false);
+
+        verify(sapServiceImpl, never()).upsertIntegration(any(), any(), any(), any());
+        verify(sapServiceImpl, never()).upsertDetectorAsync(any(), anyBoolean(), any(), any(), any());
+    }
+
+    /** A failed check falls back to the pending phases alone: it neither pushes nor records. */
+    public void testOnSyncComplete_detectorCheckFails_pushesNothing() throws Exception {
+        SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
+        DetectorLookupService lookup = mock(DetectorLookupService.class);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<Set<String>>>getArgument(1)
+                                    .onFailure(new RuntimeException("shard failure"));
+                            return null;
+                        })
+                .when(lookup)
+                .findMissingDetectors(any(), any());
+        ConsumerRulesetService svc = this.serviceCheckingDetectors(sapServiceImpl, lookup);
+
+        svc.onSyncComplete(false);
+
+        verify(sapServiceImpl, never()).upsertIntegration(any(), any(), any(), any());
+        verify(sapServiceImpl, never()).upsertDetectorAsync(any(), anyBoolean(), any(), any(), any());
+        verify(this.consumersIndex, never()).setConsumer(any());
+    }
+
+    /** A pass that updated the content syncs every phase anyway, so it does not check. */
+    public void testOnSyncComplete_updated_skipsTheCheck() throws Exception {
+        SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
+        DetectorLookupService lookup = this.lookupReportingMissing(Set.of("int-1"));
+        ConsumerRulesetService svc = this.serviceCheckingDetectors(sapServiceImpl, lookup);
+
+        svc.onSyncComplete(true);
+
+        verifyNoInteractions(lookup);
+        verify(sapServiceImpl).upsertDetectorAsync(any(), anyBoolean(), any(), any(), any());
+    }
+
+    /** With detector creation disabled there are no detectors to expect, so nothing is checked. */
+    public void testOnSyncComplete_detectorsDisabled_skipsTheCheck() throws Exception {
+        SecurityAnalyticsServiceImpl sapServiceImpl = mock(SecurityAnalyticsServiceImpl.class);
+        DetectorLookupService lookup = this.lookupReportingMissing(Set.of("int-1"));
+        ConsumerRulesetService svc = this.serviceCheckingDetectors(sapServiceImpl, lookup);
+        PluginSettings.resetForTesting();
+        try {
+            PluginSettings.getInstance(
+                    Settings.builder().put(PluginSettings.CREATE_DETECTORS.getKey(), false).build());
+
+            svc.onSyncComplete(false);
+
+            verifyNoInteractions(lookup);
+            verify(sapServiceImpl, never()).upsertIntegration(any(), any(), any(), any());
+        } finally {
+            PluginSettings.resetForTesting();
+            PluginSettings.getInstance(Settings.EMPTY);
+        }
+    }
 }
