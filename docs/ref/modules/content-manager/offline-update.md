@@ -4,7 +4,7 @@ Air-gapped deployments cannot reach Wazuh CTI, so they cannot download content c
 
 Incremental changes cannot be applied offline. Each offline update replaces the content of a consumer with the snapshot you provide, so the content is as recent as the snapshot. Wazuh CTI decides when new snapshots are published.
 
-The Wazuh Indexer packages include a snapshot of each consumer, so a new installation already has content. Use this procedure to update it later.
+The Wazuh Indexer packages include a snapshot of each consumer, loaded by the first update: at start, or, with `plugins.content_manager.catalog.update_on_start` disabled, by `POST /_plugins/_content_manager/update`. Use this procedure to update that content later.
 
 ## Before you start
 
@@ -110,7 +110,7 @@ After the update, each node renames the file to `<name>.stable.zip` (for example
 
 ## Considerations
 
-- **Duration.** Loading the vulnerabilities feed takes a few minutes, the IoCs about a minute and the ruleset under a minute, depending on the hardware.
+- **Duration.** The vulnerabilities feed and the IoCs take a few minutes each, the ruleset under a minute, depending on the hardware.
 - **Content during the update.** The snapshot loads into hidden staging indices and the content switches to it in one step once it has loaded, the same [blue/green swap](architecture.md#plan-change-handling-bluegreen-swap) used for plan changes. The previous content stays available until then.
 - **Disk space.** While a consumer is rebuilt, its previous and new content are both stored. Make sure the nodes have room for a second copy of the largest feed you update.
 - **User content.** Decoders, rules, integrations and other resources in the draft, test and custom spaces are carried over to the rebuilt ruleset. Only the standard content changes, and Ruleset Management integrations and rules that are no longer in it are removed.
