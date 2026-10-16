@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.transport.client.Client;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -185,6 +186,26 @@ public class ShadowSwapService {
     }
 
     /**
+     * Rebuilds a consumer's content from a snapshot file on this node, staying on the data source it
+     * is already on. Like {@link #rebuild}, the file loads into staging indices, user content is
+     * carried over, and the aliases switch only once it has loaded, so the current content stays
+     * available meanwhile and is kept if the file cannot be loaded. The document then records the
+     * highest offset of the file as both its local and remote offset.
+     *
+     * @param consumer The consumer.
+     * @param current The consumer's document, which names its data source.
+     * @param snapshot The snapshot file to load.
+     * @return {@code true} if the rebuilt content is live, {@code false} if the current content was
+     *     kept.
+     */
+    boolean rebuildFromFile(AbstractConsumerService consumer, LocalConsumer current, Path snapshot) {
+        Candidate candidate = new Candidate(consumer, current, snapshot);
+        candidate.rebuild = true;
+        SwapResult result = this.swap(List.of(candidate));
+        return result == SwapResult.SWITCHED || result == SwapResult.SWITCHED_UNRECORDED;
+    }
+
+    /**
      * Decides whether a consumer moves in this pass's swap, deleting any staging index a finished
      * swap left behind when it does not.
      *
@@ -276,8 +297,7 @@ public class ShadowSwapService {
             for (Candidate candidate : candidates) {
                 log.debug(
                         Constants.D_LOG_SHADOW_SNAPSHOT_DOWNLOADING, candidate.type(), candidate.resource);
-                if (!candidate.consumer.loadStagedSnapshot(
-                        candidate.staging, candidate.remoteConsumer, candidate.urlResolver)) {
+                if (!candidate.load()) {
                     log.error(Constants.E_LOG_SHADOW_SNAPSHOT_FAILED, candidate.type());
                     throw new IllegalStateException(
                             "the snapshot of consumer [" + candidate.type() + "] could not be loaded");
@@ -325,7 +345,7 @@ public class ShadowSwapService {
         // redoes the swap instead of updating content its documents do not describe.
         try {
             this.consumersIndex.setConsumers(
-                    candidates.stream().map(c -> c.document(c.remoteConsumer.getSnapshotOffset())).toList());
+                    candidates.stream().map(c -> c.document(c.snapshotOffset())).toList());
         } catch (Exception e) {
             log.error(Constants.E_LOG_SWAP_RECORDS_FAILED, types, e.getMessage());
             return SwapResult.SWITCHED_UNRECORDED;
@@ -335,7 +355,7 @@ public class ShadowSwapService {
                     Constants.D_LOG_CONSUMER_DOC_REWRITTEN,
                     candidate.type(),
                     candidate.resource,
-                    candidate.remoteConsumer.getSnapshotOffset());
+                    candidate.snapshotOffset());
             try {
                 this.deleteIndices(candidate.aliasToLive.values());
             } catch (Exception e) {
@@ -525,6 +545,18 @@ public class ShadowSwapService {
         private final ResourceUrlResolver urlResolver;
         private final TokenExchangeServiceImpl tokenExchangeService;
 
+        /**
+         * The snapshot file the new content is loaded from instead of the remote consumer's snapshot,
+         * or {@code null}.
+         */
+        private final Path snapshotFile;
+
+        /** Whether the data source is public, for a candidate loaded from a snapshot file. */
+        private final boolean filePublic;
+
+        /** The highest offset of the loaded snapshot file, once it has loaded. */
+        private long fileOffset;
+
         /** Whether this is a rebuild from the data source the consumer is already on. */
         private boolean rebuild;
 
@@ -559,6 +591,45 @@ public class ShadowSwapService {
             this.remoteConsumer = remoteConsumer;
             this.urlResolver = urlResolver;
             this.tokenExchangeService = tokenExchangeService;
+            this.snapshotFile = null;
+            this.filePublic = false;
+        }
+
+        /**
+         * Constructs a Candidate whose new content comes from a snapshot file on this node, on the data
+         * source the consumer is already on.
+         *
+         * @param consumer The consumer.
+         * @param current The consumer's document.
+         * @param snapshotFile The snapshot file.
+         */
+        Candidate(AbstractConsumerService consumer, LocalConsumer current, Path snapshotFile) {
+            this.consumer = consumer;
+            this.resource = current.getResource();
+            this.remoteConsumer = null;
+            this.urlResolver = null;
+            this.tokenExchangeService = null;
+            this.snapshotFile = snapshotFile;
+            this.filePublic = current.isPublic();
+        }
+
+        /**
+         * Loads the new content into the staging indices.
+         *
+         * @return {@code true} if it loaded in full.
+         */
+        private boolean load() {
+            if (this.snapshotFile == null) {
+                return this.consumer.loadStagedSnapshot(
+                        this.staging, this.remoteConsumer, this.urlResolver);
+            }
+            this.fileOffset = this.consumer.loadStagedSnapshotFile(this.staging, this.snapshotFile);
+            return this.fileOffset >= 0;
+        }
+
+        /** Returns the offset the loaded snapshot brings the content to. */
+        private long snapshotOffset() {
+            return this.snapshotFile != null ? this.fileOffset : this.remoteConsumer.getSnapshotOffset();
         }
 
         private String type() {
@@ -578,10 +649,11 @@ public class ShadowSwapService {
                     PluginSettings.getConsumerFromCatalogUri(this.resource),
                     this.type(),
                     this.resource,
-                    this.remoteConsumer.isPublic(),
+                    this.snapshotFile != null ? this.filePublic : this.remoteConsumer.isPublic(),
                     LocalConsumer.Status.RUNNING,
                     localOffset,
-                    this.remoteConsumer.getOffset());
+                    // A snapshot file says nothing of the data source's head beyond its own offset.
+                    this.snapshotFile != null ? this.fileOffset : this.remoteConsumer.getOffset());
         }
 
         private void close() {

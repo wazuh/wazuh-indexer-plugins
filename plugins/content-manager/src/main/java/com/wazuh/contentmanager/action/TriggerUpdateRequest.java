@@ -23,14 +23,50 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
+/**
+ * Request of an on-demand content update ({@code POST /_plugins/_content_manager/update}).
+ * Optionally offline: the pass then loads the snapshot files placed on the node instead of asking
+ * Wazuh CTI.
+ */
 public class TriggerUpdateRequest extends ActionRequest {
 
+    /** Whether the update is an offline one. */
+    private final boolean offline;
+
+    /** Creates the request of a regular, online update. */
     public TriggerUpdateRequest() {
-        super();
+        this(false);
     }
 
+    /**
+     * Creates the request of an update.
+     *
+     * @param offline Whether to load the snapshot files placed on the node instead of asking Wazuh
+     *     CTI.
+     */
+    public TriggerUpdateRequest(boolean offline) {
+        super();
+        this.offline = offline;
+    }
+
+    /**
+     * Reads the request from a stream.
+     *
+     * @param sin The stream.
+     * @throws IOException if it cannot be read.
+     */
     public TriggerUpdateRequest(StreamInput sin) throws IOException {
         super(sin);
+        this.offline = sin.readBoolean();
+    }
+
+    /**
+     * Returns whether the update is an offline one.
+     *
+     * @return {@code true} for an offline update.
+     */
+    public boolean isOffline() {
+        return this.offline;
     }
 
     @Override
@@ -41,5 +77,6 @@ public class TriggerUpdateRequest extends ActionRequest {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeBoolean(this.offline);
     }
 }

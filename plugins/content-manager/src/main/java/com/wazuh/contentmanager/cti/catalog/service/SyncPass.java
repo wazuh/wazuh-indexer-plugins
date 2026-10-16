@@ -70,13 +70,28 @@ public final class SyncPass {
     /** Why the plan of a registered instance could not be looked up, or {@code null}. */
     private final CtiConsoleUnavailableException planFailure;
 
+    /**
+     * Whether the pass loads the snapshot files placed in the snapshots directory instead of asking
+     * Wazuh CTI, as requested by an offline update.
+     */
+    private final boolean offline;
+
     private final Map<String, SwapOutcome> swapOutcomes = new HashMap<>();
     private final Map<String, AbstractConsumerService.ContentSource> contentSources = new HashMap<>();
 
     private SyncPass(Plan plan, boolean tokenRejected, CtiConsoleUnavailableException planFailure) {
+        this(plan, tokenRejected, planFailure, false);
+    }
+
+    private SyncPass(
+            Plan plan,
+            boolean tokenRejected,
+            CtiConsoleUnavailableException planFailure,
+            boolean offline) {
         this.plan = plan;
         this.tokenRejected = tokenRejected;
         this.planFailure = planFailure;
+        this.offline = offline;
     }
 
     /**
@@ -164,6 +179,30 @@ public final class SyncPass {
                 feature.getResource(),
                 consumerType);
         return feature.getResource();
+    }
+
+    /**
+     * Starts an offline pass: each consumer with a snapshot file in the snapshots directory is
+     * reloaded from it, and neither the CTI Console nor the CTI catalog is contacted. The plan is
+     * left unknown, so every consumer keeps its current data source.
+     *
+     * @return the pass.
+     */
+    public static SyncPass offline() {
+        return new SyncPass(
+                null,
+                false,
+                new CtiConsoleUnavailableException(Constants.D_LOG_OFFLINE_PASS_NO_PLAN),
+                true);
+    }
+
+    /**
+     * Returns whether this is an offline pass, started by {@link #offline()}.
+     *
+     * @return {@code true} for an offline pass.
+     */
+    public boolean isOffline() {
+        return this.offline;
     }
 
     /**

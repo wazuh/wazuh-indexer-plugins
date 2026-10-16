@@ -101,6 +101,10 @@ public class Constants {
             "This promotion would leave %d detectors without enabled rules: %s. "
                     + "Disable or delete them, or keep one of their rules enabled.";
 
+    public static final String E_400_NO_OFFLINE_SNAPSHOTS =
+            "No snapshot file to load in [%s] on node [%s]. Place the new snapshot files in that"
+                    + " directory, on every node, before requesting an offline update.";
+
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_412_UNPROTECTED_CREDENTIALS_INDEX =
             "Registration is disabled because the '"
@@ -264,6 +268,14 @@ public class Constants {
             "Remote snapshot initialization failed for consumer [{}] and no local snapshot was found at [{}].";
     public static final String W_LOG_CATALOG_UNREACHABLE_FALLBACK =
             "Could not reach catalog URL [{}] for consumer [{}]. Falling back to local snapshot [{}].";
+    public static final String I_LOG_OFFLINE_RELOAD =
+            "Offline update: rebuilding consumer [{}] from local snapshot [{}] (local offset {}).";
+    public static final String I_LOG_OFFLINE_RELOADED =
+            "Offline update: consumer [{}] rebuilt from its local snapshot, now at offset {}.";
+    public static final String E_LOG_OFFLINE_RELOAD_FAILED =
+            "Offline update: consumer [{}] could not be rebuilt from local snapshot [{}]; its current content was kept.";
+    public static final String D_LOG_OFFLINE_PASS_NO_PLAN =
+            "Offline update: the subscription plan is not looked up.";
     public static final String D_LOG_INIT_FROM_LOCAL_SNAPSHOT =
             "Initializing consumer [{}] from local snapshot [{}]";
     public static final String E_LOG_LOCAL_SNAPSHOT_INIT_FAILED =
@@ -862,6 +874,7 @@ public class Constants {
 
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
+    public static final String KEY_OFFLINE = "offline";
     public static final String KEY_INTEGRATIONS = "integrations";
     public static final String KEY_KVDBS = "kvdbs";
     public static final String KEY_RULES = "rules";

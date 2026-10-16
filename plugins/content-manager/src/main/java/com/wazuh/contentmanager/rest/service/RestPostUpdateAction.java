@@ -34,6 +34,7 @@ import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.TriggerUpdateAction;
 import com.wazuh.contentmanager.action.TriggerUpdateRequest;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -43,10 +44,15 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * <p>Triggers a CTI content update operation by delegating to the transport action, which calls
  * {@link com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob#trigger()}.
  *
+ * <p>With {@code ?offline=true}, the update reloads every consumer that has a snapshot file in the
+ * snapshots directory of the node from that file, and does not contact Wazuh CTI. It is how an
+ * air-gapped deployment is kept up to date.
+ *
  * <p>Possible HTTP responses:
  *
  * <ul>
  *   <li>202 Accepted: Update request accepted for processing.
+ *   <li>400 Bad Request: Offline update requested, but the node has no snapshot file to load.
  *   <li>409 Conflict: A content update is already in progress.
  *   <li>500 Internal Server Error: Unexpected error during processing.
  * </ul>
@@ -82,7 +88,8 @@ public class RestPostUpdateAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         log.debug("{} {}", request.method(), PluginSettings.UPDATE_URI);
 
-        TriggerUpdateRequest triggerRequest = new TriggerUpdateRequest();
+        TriggerUpdateRequest triggerRequest =
+                new TriggerUpdateRequest(request.paramAsBoolean(Constants.KEY_OFFLINE, false));
         return channel ->
                 client.execute(
                         TriggerUpdateAction.INSTANCE, triggerRequest, createMessageStatusResponse(channel));

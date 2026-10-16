@@ -525,10 +525,11 @@ public class SnapshotServiceImpl implements SnapshotService {
             return false;
         }
 
-        // 4. Promote to stable, delete source, or leave in place (rollback re-index)
+        // 4. Promote to stable, delete source, or leave in place (rollback re-index, or a staging
+        // load, whose swap has the file promoted once the new content is live)
         if (this.stablePath != null && !localZip.equals(this.stablePath)) {
             promoteToStable(localZip, this.stablePath);
-        } else if (this.stablePath == null) {
+        } else if (this.stablePath == null && this.recordsLocalOffset) {
             SnapshotServiceImpl.deleteSnapshot(localZip);
         }
 

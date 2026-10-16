@@ -74,6 +74,19 @@ public class SyncPassTests extends OpenSearchTestCase {
         expectThrows(CtiConsoleUnavailableException.class, () -> pass.planResource("ruleset"));
     }
 
+    /**
+     * An offline pass does not look the plan up: it is unknown, so every consumer keeps its current
+     * data source. Regular passes are not offline.
+     */
+    public void testOfflinePassKeepsDataSources() {
+        SyncPass pass = SyncPass.offline();
+
+        assertTrue(pass.isOffline());
+        expectThrows(CtiConsoleUnavailableException.class, () -> pass.planResource("ruleset"));
+        assertFalse(SyncPass.withPlan(null).isOffline());
+        assertFalse(SyncPass.withUnknownPlan("CTI Console unavailable").isOffline());
+    }
+
     /** A consumer the swap recorded nothing for is unchanged. */
     public void testSwapOutcomeDefaultsToUnchanged() {
         SyncPass pass = SyncPass.withPlan(null);

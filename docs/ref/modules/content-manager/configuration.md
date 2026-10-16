@@ -101,6 +101,8 @@ Disabling scheduled synchronization does not remove content that has already bee
 `plugins.content_manager.catalog.update_on_start` is not dynamic — it only governs the synchronization triggered as the plugin starts, so it takes effect on the next node start.
 <!-- // ANCHOR_END: offline-config -->
 
+To keep the content of an offline installation up to date, load newer snapshots as described in [Offline content updates](offline-update.md).
+
 How the plugin keeps the periodic job in step with `update_on_schedule`, and refuses a run while it is disabled, is described in [Job scheduler](architecture.md#job-scheduler).
 
 On online installations, manual synchronization can be performed on demand using the Content Manager API:
