@@ -17,7 +17,7 @@ jobs:
         uses: lycheeverse/lychee-action@v2
         with:
           lycheeVersion: v0.23.0
-          args: --accept=200,403,429 "./**/*.md" "./**/*.txt" --exclude-all-private --insecure --exclude "https://gist.github.com" --exclude "https://www.gnu.org/licenses" --exclude "https://osquery.io" --exclude "https://fsf.org/" --exclude "compatibility\.html" --root-dir docs
+          args: --accept=200,403,429 "./**/*.md" "./**/*.txt" --exclude-all-private --insecure --exclude "https://gist.github.com" --exclude "https://www.gnu.org/licenses" --exclude "https://osquery.io" --exclude "https://fsf.org/" --exclude "compatibility\.html" --exclude "github\.com/wazuh/wazuh-indexer-plugins/raw/badges/" --root-dir docs
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Fail if there were link errors
