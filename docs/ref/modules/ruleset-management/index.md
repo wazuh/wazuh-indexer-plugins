@@ -94,12 +94,13 @@ Raw findings are not stored by default. They are written to `.opensearch-sap-{in
 
 An **enriched finding** is an augmented version of a raw Ruleset Management finding. Because the Wazuh Dashboard needs the full event payload and rule context to render alert details, each finding is enriched with:
 
-- The **full triggering event source** (fetched from the source index by document ID)
-- **Rule metadata** under `wazuh.rule`: name, severity level, compliance mappings, MITRE ATT&CK tags
+- The **full triggering event source** (fetched from the source index by document ID), including its `@timestamp` and `wazuh.event.id`
+- A **reference to the event**: its `_id` in `event.doc_id` and its backing index in `event.index`
+- The **matching rule** under `wazuh.rule`: its ID, title, severity level, status, tags, compliance mappings and MITRE ATT&CK mappings
 
-Rule metadata is merged into the event's existing `wazuh` object, so `wazuh.integration.*` from the triggering event sits alongside `wazuh.rule.*` in the enriched document.
+Rule metadata is merged into the event's existing `wazuh` object, so `wazuh.integration.*` from the triggering event sits alongside `wazuh.rule.*` in the enriched document. Any `wazuh.rule` object the event already carried is replaced.
 
-Enriched findings are written to `wazuh-findings-v5-{category}*`, where `{category}` is derived from the `wazuh.integration.category` field in the triggering event.
+Enriched findings are written to `wazuh-findings-v5-{category}*`, where `{category}` is derived from the `wazuh.integration.category` field in the triggering event. See [Findings](../setup/schema.md#findings) in the Wazuh Common Schema for the field layout of a finding.
 
 ### How findings are generated (high level)
 
