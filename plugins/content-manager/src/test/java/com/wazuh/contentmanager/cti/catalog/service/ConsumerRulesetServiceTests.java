@@ -1159,6 +1159,84 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         }
     }
 
+    // --- Resuming a cut pass ----------------------------------------------------------------
+
+    /**
+     * Builds a ruleset service over recording collaborators, with the given phases pending and an
+     * empty standard space, so every push succeeds. The consumer document write is recorded as
+     * "pending-write".
+     */
+    private ConsumerRulesetService serviceResuming(List<String> pendingPhases, List<String> order)
+            throws Exception {
+        this.mockExistingConsumerDoc(pendingPhases);
+        this.mockIndexResolution(name -> false);
+        this.recordEngineReload(order);
+        doAnswer(
+                        invocation -> {
+                            order.add("pending-write");
+                            return null;
+                        })
+                .when(this.consumersIndex)
+                .setConsumer(any());
+        return this.synchronizerWith(
+                this.stubSpaceServiceRecording(order), this.stubOverridesServiceRecording(order));
+    }
+
+    /**
+     * A pass that resumes the phases a cut pass recorded redoes the content work that pass may not
+     * have reached: the user's overrides are re-applied before anything is pushed, and the pending
+     * phases are cleared only once the space hash is recalculated and the engines are told to reload.
+     */
+    public void testOnSyncComplete_resumedPass_redoesTheContentWork() throws Exception {
+        List<String> order = new ArrayList<>();
+        ConsumerRulesetService svc =
+                this.serviceResuming(List.of("integrations", "rules", "detectors"), order);
+
+        svc.onSyncComplete(false);
+
+        Assert.assertEquals(List.of("apply", "hash", "engine", "pending-write"), order);
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(captor.capture());
+        Assert.assertTrue(captor.getValue().getPendingSyncPhases().isEmpty());
+    }
+
+    /**
+     * A pass cut while it recalculates the space hash keeps its phases pending, so the next pass
+     * redoes the content work instead of finding nothing left to do.
+     */
+    public void testOnSyncComplete_passCutBeforeTheSpaceHash_keepsThePhasesPending()
+            throws Exception {
+        List<String> order = new ArrayList<>();
+        this.mockExistingConsumerDoc(List.of("integrations", "rules", "detectors"));
+        this.mockIndexResolution(name -> false);
+        SpaceService spaceService = this.stubSpaceServiceRecording(order);
+        doAnswer(
+                        invocation -> {
+                            throw new IllegalStateException("node closed");
+                        })
+                .when(spaceService)
+                .calculateAndUpdate(any(), any());
+        ConsumerRulesetService svc =
+                this.synchronizerWith(spaceService, this.stubOverridesServiceRecording(order));
+
+        expectThrows(IllegalStateException.class, () -> svc.onSyncComplete(false));
+
+        verify(this.consumersIndex, never()).setConsumer(any());
+    }
+
+    /**
+     * Only a failed detectors phase pending is not a resumed content change: the pass retries the
+     * detectors without re-applying the overrides or reloading the space.
+     */
+    public void testOnSyncComplete_onlyDetectorsPending_skipsTheContentWork() throws Exception {
+        List<String> order = new ArrayList<>();
+        ConsumerRulesetService svc = this.serviceResuming(List.of("detectors"), order);
+
+        svc.onSyncComplete(false);
+
+        Assert.assertEquals(List.of("pending-write"), order);
+    }
+
     // --- Detector existence check ----------------------------------------------------------
 
     /**
@@ -1246,6 +1324,9 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         // The integrations are read once, for the check and the phases alike.
         verify(this.spaceService)
                 .getResourcesBySpace(eq(Constants.INDEX_INTEGRATIONS), eq(Space.STANDARD), any(), any());
+        // The detectors may have gone with a pass cut before the content work, so it is redone too.
+        verify(this.userOverridesService).apply(eq(Space.STANDARD.toString()), any());
+        verify(this.spaceService).calculateAndUpdate(eq(List.of(Space.STANDARD.toString())), any());
         // Everything succeeded and nothing was pending before: the document is left as it is.
         verify(this.consumersIndex, never()).setConsumer(any());
     }

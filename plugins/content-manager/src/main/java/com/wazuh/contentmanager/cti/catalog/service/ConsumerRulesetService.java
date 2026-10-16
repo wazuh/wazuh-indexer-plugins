@@ -226,6 +226,15 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         boolean shouldSyncDetectors =
                 createDetectors && (isUpdated || duePhases.contains(PHASE_DETECTORS));
 
+        // The content work around the Security Analytics sync (refresh, user overrides, space hash,
+        // engine reload) is owed by a content change just like the phases, and runs whenever the
+        // integrations are. They are recorded as pending before the content changes, so a pass cut
+        // before this work finished leaves them pending, and the missing-detectors recovery queues
+        // them too. A consumer whose detectors alone keep failing does not redo the work on every
+        // pass. The work is idempotent, so redoing it after a failed integrations push only costs the
+        // reads.
+        boolean contentWorkDue = shouldSyncIntegrations;
+
         if (!shouldSyncIntegrations && !shouldSyncRules && !shouldSyncDetectors) {
             // Reaching this point with "detectors" still pending means detector creation is disabled,
             // so the phase can never be retried: drop it rather than re-reading it on every pass
@@ -237,7 +246,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return;
         }
 
-        if (isUpdated) {
+        if (contentWorkDue) {
             this.refreshIndices(
                     Constants.INDEX_RULES,
                     Constants.INDEX_DECODERS,
@@ -248,7 +257,8 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             // Re-apply the user's overrides before anything reads the rebuilt content. The Security
             // Analytics sync below, the space hash and the engine payload must all see the merged
             // values, not the ones CTI just wrote. This one hook covers every path that gets here --
-            // full resync, rollback to a snapshot, incremental patches and a plan change.
+            // full resync, rollback to a snapshot, incremental patches, a plan change, and a pass that
+            // resumes one of them after it was cut.
             //
             // A failure must not abort the sync: the registry is a durable document, so the worst case
             // is that the overrides are re-applied one synchronization later. Unlike the integrations'
@@ -317,24 +327,12 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
         }
 
-        // Only write when the set of pending phases actually changed. Persisting it costs a cluster
-        // health check plus an immediate-refresh index request, and both the healthy case (nothing
-        // pending before or after) and a permanently degraded one (the same phases failing every
-        // pass) would otherwise pay that on every scheduled sync.
-        if (!stillPending.equals(pendingPhases)) {
-            this.setPendingSyncPhases(stillPending);
-        }
-        if (!stillPending.isEmpty()) {
-            log.error(Constants.E_LOG_SAP_SYNC_DEGRADED, this.getConsumerType(), stillPending);
-            this.requestImmediateRetry();
-        }
-
         if (this.shadowSwapPerformed) {
             this.deleteStaleResources();
             this.shadowSwapPerformed = false;
         }
 
-        if (isUpdated) {
+        if (contentWorkDue) {
             // Reload STANDARD space, as it was updated.
             try {
                 this.<Set<String>>awaitResult(
@@ -354,6 +352,21 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                     ActionListener.wrap(
                             r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
                             e -> log.warn(Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
+        }
+
+        // Last, so that a pass cut before the space hash and the engine reload keeps its phases
+        // pending, and the next pass redoes the content work with them.
+        //
+        // Only write when the set of pending phases actually changed. Persisting it costs a cluster
+        // health check plus an immediate-refresh index request, and both the healthy case (nothing
+        // pending before or after) and a permanently degraded one (the same phases failing every
+        // pass) would otherwise pay that on every scheduled sync.
+        if (!stillPending.equals(pendingPhases)) {
+            this.setPendingSyncPhases(stillPending);
+        }
+        if (!stillPending.isEmpty()) {
+            log.error(Constants.E_LOG_SAP_SYNC_DEGRADED, this.getConsumerType(), stillPending);
+            this.requestImmediateRetry();
         }
     }
 
