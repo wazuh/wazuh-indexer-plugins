@@ -104,7 +104,14 @@ Offline update: rebuilding consumer [cti:catalog:consumer:vulnerabilities] from 
 Offline update: consumer [cti:catalog:consumer:vulnerabilities] rebuilt from its local snapshot, now at offset 1077535.
 ```
 
-If a file cannot be loaded, for example because it is damaged, the log shows `could not be rebuilt from local snapshot [...]; its current content was kept.` and the consumer keeps its previous content.
+Before replacing any content, each file is checked to be a snapshot of that consumer. A file is rejected if it is not a ZIP archive, holds no `.json` entry, is empty, or holds lines that are not content documents of that consumer: for example the vulnerabilities snapshot saved as `iocs.zip`, or a line without an offset. A rejected file changes nothing: the consumer keeps its content and offsets, the file is not renamed, and the `*.stable.zip` fallback is untouched. The log tells why:
+
+```
+Snapshot file [iocs.zip] rejected for consumer [cti:catalog:consumer:iocs]: its content is of type [cves], which this consumer does not hold. Nothing was loaded.
+Offline update: consumer [cti:catalog:consumer:iocs] could not be rebuilt from local snapshot [iocs.zip]; its current content was kept.
+```
+
+Replace the file with the right snapshot and request the update again.
 
 After the update, each node renames the file to `<name>.stable.zip` (for example `vulnerabilities.stable.zip`), replacing the previous one. That file is the fallback the node reloads from if the content ever needs to be rebuilt. The directory then holds no file waiting to be loaded until you copy new ones.
 
