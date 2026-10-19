@@ -563,8 +563,6 @@ public class Constants {
     public static final String D_LOG_IOC_EXPORT_SKIPPED_TEST_ENV =
             "IOCs export skipped: test environment";
     public static final String D_LOG_IOC_TYPE_HASHES_STORED = "IOC type hashes stored successfully.";
-    public static final String E_LOG_IOC_TYPE_HASHES_FAILED =
-            "Failed to compute and store IOC type hashes: {}";
     public static final String D_LOG_IOC_ENGINE_REPLY = "Engine reply to IOC load request: {}";
     public static final String D_LOG_IOC_PIT_RELEASE_FAILED =
             "Failed to release the IOC point-in-time context [{}]: {}";
@@ -1015,7 +1013,8 @@ public class Constants {
     // IOC export
     public static final String IOC_EXPORT_FILENAME = "iocs.ndjson";
     public static final String D_LOG_IOC_EXPORT_COMPLETE = "IOC export completed: {}";
-    public static final String E_LOG_IOC_EXPORT_FAILED = "Failed to export IOCs to NDJSON: {}";
+    public static final String E_LOG_IOC_LOAD_FAILED =
+            "Failed to store the IOC type hashes or export the IOCs: {}";
     public static final String I_LOG_IOC_ENGINE_NOTIFIED =
             "Notified the Wazuh Engine to load the updated IOCs.";
     public static final String E_LOG_IOC_ENGINE_NOTIFY_FAILED =

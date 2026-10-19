@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.jobscheduler.jobs;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
@@ -47,6 +48,7 @@ import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 import com.wazuh.contentmanager.utils.SetupReadiness;
 
 /**
@@ -636,7 +638,8 @@ public class CatalogSyncJob implements JobExecutor {
                     }
                 } catch (Exception e) {
                     anyFailure = true;
-                    log.error(
+                    log.log(
+                            NodeShutdown.levelFor(e, Level.ERROR),
                             "Error during synchronization of {}: {}",
                             synchronizer.getClass().getSimpleName(),
                             e.getMessage(),
