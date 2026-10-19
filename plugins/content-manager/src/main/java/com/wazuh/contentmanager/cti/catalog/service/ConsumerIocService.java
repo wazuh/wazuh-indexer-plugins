@@ -37,6 +37,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.transport.client.Client;
@@ -209,8 +210,14 @@ public class ConsumerIocService extends AbstractConsumerService {
     /**
      * Computes SHA-256 hashes for all IOC types in a single paginated pass. Iterates over all
      * documents (excluding the hash summary document) sorted by {@code document.type} and {@code
-     * _id}, concatenating per-document SHA-256 values grouped by type. Each group's concatenation is
-     * then hashed to produce the final per-type SHA-256.
+     * document.id}, concatenating per-document SHA-256 values grouped by type. Each group's
+     * concatenation is then hashed to produce the final per-type SHA-256.
+     *
+     * <p>{@code document.id} is the document's {@code _id}, so the order, and the hashes, are the
+     * same as sorting on {@code _id}. Sorting on {@code _id} has no doc values to read from and costs
+     * hundreds of megabytes per page, enough for search backpressure to cancel the page on a busy
+     * node (wazuh-indexer#2007). The {@code _shard_doc} tiebreaker keeps {@code search_after}
+     * unambiguous within the PIT.
      *
      * @param pitId The PIT identifier for consistent reads.
      * @param keepalive The PIT keepalive duration.
@@ -227,8 +234,10 @@ public class ConsumerIocService extends AbstractConsumerService {
                                     QueryBuilders.boolQuery()
                                             .mustNot(QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
                             .sort(Constants.Q_DOCUMENT_TYPE, SortOrder.ASC)
-                            .sort("_id", SortOrder.ASC)
+                            .sort(Constants.Q_DOCUMENT_ID, SortOrder.ASC)
+                            .sort(SortBuilders.shardDocSort())
                             .size(PluginSettings.getInstance().getSearchPageSize())
+                            .fetchSource(new String[] {Constants.Q_DOCUMENT_TYPE, Constants.Q_HASH}, null)
                             .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));
             if (searchAfter != null) {
                 source.searchAfter(searchAfter);
@@ -330,7 +339,8 @@ public class ConsumerIocService extends AbstractConsumerService {
                                                         QueryBuilders.boolQuery()
                                                                 .mustNot(
                                                                         QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
-                                                .sort("_id", SortOrder.ASC)
+                                                .sort(Constants.Q_DOCUMENT_ID, SortOrder.ASC)
+                                                .sort(SortBuilders.shardDocSort())
                                                 .size(PluginSettings.getInstance().getSearchPageSize())
                                                 .fetchSource(new String[] {Constants.KEY_DOCUMENT}, null)
                                                 .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));

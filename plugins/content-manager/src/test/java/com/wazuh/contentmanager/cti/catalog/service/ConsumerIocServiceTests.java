@@ -37,6 +37,9 @@ import org.opensearch.env.Environment;
 import org.opensearch.search.DocValueFormat;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.sort.FieldSortBuilder;
+import org.opensearch.search.sort.ShardDocSortBuilder;
+import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -48,6 +51,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
@@ -619,5 +623,49 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
                 "type_hashes should be empty when no documents exist",
                 0,
                 root.get(Constants.KEY_TYPE_HASHES).size());
+    }
+
+    /**
+     * Both IoC passes sort on {@code document.id} with a {@code _shard_doc} tiebreaker, never on
+     * {@code _id}: an {@code _id} sort has no doc values and makes every page expensive enough for
+     * search backpressure to cancel it on a busy node (wazuh-indexer#2007). The hash pass also
+     * fetches only the two fields it reads.
+     */
+    public void testIocPassesSortOnDocValuesFields() {
+        this.mockPitLifecycle();
+        this.mockEmptySearch();
+        this.mockIndexResponse();
+
+        this.service.onSyncComplete(true);
+
+        ArgumentCaptor<SearchRequest> searchCaptor = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(this.client, times(2)).search(searchCaptor.capture());
+        SearchRequest hashPass = searchCaptor.getAllValues().get(0);
+        SearchRequest exportPass = searchCaptor.getAllValues().get(1);
+
+        assertEquals(
+                List.of(Constants.Q_DOCUMENT_TYPE, Constants.Q_DOCUMENT_ID, "_shard_doc"),
+                sortKeys(hashPass));
+        assertEquals(List.of(Constants.Q_DOCUMENT_ID, "_shard_doc"), sortKeys(exportPass));
+        assertArrayEquals(
+                new String[] {Constants.Q_DOCUMENT_TYPE, Constants.Q_HASH},
+                hashPass.source().fetchSource().includes());
+        assertEquals(1_000, hashPass.source().size());
+    }
+
+    private static List<String> sortKeys(SearchRequest request) {
+        return request.source().sorts().stream()
+                .map(ConsumerIocServiceTests::sortKey)
+                .collect(Collectors.toList());
+    }
+
+    private static String sortKey(SortBuilder<?> sort) {
+        if (sort instanceof FieldSortBuilder field) {
+            return field.getFieldName();
+        }
+        if (sort instanceof ShardDocSortBuilder) {
+            return ShardDocSortBuilder.NAME;
+        }
+        return sort.toString();
     }
 }

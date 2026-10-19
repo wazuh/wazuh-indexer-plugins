@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
@@ -286,9 +287,19 @@ public class SpaceService {
                             e -> {
                                 if (e instanceof VersionConflictEngineException) {
                                     log.debug(Constants.D_LOG_SPACE_ALREADY_INITIALIZED, spaceName);
-                                } else {
-                                    log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, spaceName, e.getMessage());
+                                    // The conflicting write may belong to a concurrent initializer (e.g. a
+                                    // catalog sync) that has not refreshed yet. Refresh before replying so
+                                    // the caller can search the policy as soon as it gets the response.
+                                    this.client
+                                            .admin()
+                                            .indices()
+                                            .refresh(
+                                                    new RefreshRequest(Constants.INDEX_POLICIES),
+                                                    ActionListener.wrap(
+                                                            r -> listener.onResponse(null), re -> listener.onResponse(null)));
+                                    return;
                                 }
+                                log.error(Constants.E_LOG_INITIALIZE_SPACE_FAILED, spaceName, e.getMessage());
                                 listener.onResponse(null);
                             }));
         } catch (Exception e) {
