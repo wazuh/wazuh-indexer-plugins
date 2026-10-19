@@ -567,7 +567,8 @@ public class ShadowSwapService {
 
         /**
          * Returns the consumer document on the new data source, {@code running} and with the given
-         * local offset.
+         * local offset. It keeps the phases pending before the swap and adds the ones the new content
+         * leaves owed, so a pass cut after the switch still runs them.
          *
          * @param localOffset How much of the new content is live.
          * @return the document.
@@ -581,7 +582,10 @@ public class ShadowSwapService {
                     this.remoteConsumer.isPublic(),
                     LocalConsumer.Status.RUNNING,
                     localOffset,
-                    this.remoteConsumer.getOffset());
+                    this.remoteConsumer.getOffset(),
+                    AbstractConsumerService.mergePhases(
+                            this.before != null ? this.before.getPendingSyncPhases() : null,
+                            this.consumer.phasesOwedByContentChange()));
         }
 
         private void close() {

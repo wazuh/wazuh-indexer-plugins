@@ -166,6 +166,20 @@ public abstract class AbstractConsumerService {
      */
     protected void onBeforeAliasSwap() {}
 
+    /**
+     * Returns the post-synchronization phases that a change to this consumer's content leaves owed
+     * until {@link #onSyncComplete(boolean)} has run them. They are recorded as pending before the
+     * content changes: the local offset moves with the content, so a pass cut before {@link
+     * #onSyncComplete(boolean)}, by a node shutdown or an exception, would otherwise leave an
+     * up-to-date offset with nothing pending, and no later pass would run them. The default
+     * implementation owes nothing.
+     *
+     * @return the owed phase names.
+     */
+    protected List<String> phasesOwedByContentChange() {
+        return Collections.emptyList();
+    }
+
     /** Injects a {@link ConsumerService} instance, used by tests to provide a mock. */
     public void setConsumerService(ConsumerService consumerService) {
         this.consumerServiceOverride = consumerService;
@@ -431,6 +445,69 @@ public abstract class AbstractConsumerService {
         } catch (Exception e) {
             log.warn(Constants.W_LOG_CONSUMER_PENDING_PHASES_FAILED, consumerType, e.getMessage());
         }
+    }
+
+    /**
+     * Records the phases {@link #phasesOwedByContentChange()} names as pending, keeping those already
+     * pending, before this pass changes the consumer's content. Unlike {@link
+     * #setPendingSyncPhases(List)}, a failed write stops the pass: changing the content without the
+     * record is what lets a pass cut before {@link #onSyncComplete(boolean)} drop those phases for
+     * good. When the consumer document does not exist there is no local offset that could get ahead
+     * of the phases, so nothing is recorded.
+     *
+     * @throws IllegalStateException if the phases cannot be recorded.
+     */
+    void recordPhasesOwedByContentChange() {
+        List<String> owed = this.phasesOwedByContentChange();
+        if (owed.isEmpty()) {
+            return;
+        }
+        String consumerType = this.getConsumerType();
+        try {
+            LocalConsumer current = this.readConsumerDocument();
+            if (current == null) {
+                return;
+            }
+            List<String> pending = mergePhases(current.getPendingSyncPhases(), owed);
+            if (pending.equals(current.getPendingSyncPhases())) {
+                return;
+            }
+            this.consumersIndex.setConsumer(
+                    new LocalConsumer(
+                            current.getContext(),
+                            current.getName(),
+                            current.getType(),
+                            current.getResource(),
+                            current.isPublic(),
+                            current.getStatus(),
+                            current.getLocalOffset(),
+                            current.getRemoteOffset(),
+                            pending));
+            log.debug(Constants.D_LOG_CONSUMER_PHASES_OWED_RECORDED, consumerType, pending);
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "Could not record the sync phases owed by consumer ["
+                            + consumerType
+                            + "] before changing its content",
+                    e);
+        }
+    }
+
+    /**
+     * Returns the pending phases with the owed ones appended, without duplicates.
+     *
+     * @param pending The phases already pending, or {@code null}.
+     * @param owed The phases to add.
+     * @return the merged phases, the pending ones first.
+     */
+    static List<String> mergePhases(List<String> pending, List<String> owed) {
+        List<String> merged = new ArrayList<>(pending != null ? pending : Collections.emptyList());
+        for (String phase : owed) {
+            if (!merged.contains(phase)) {
+                merged.add(phase);
+            }
+        }
+        return merged;
     }
 
     /**
@@ -903,6 +980,8 @@ public abstract class AbstractConsumerService {
                 // catalog URL is available (either setting or existing doc's resource), otherwise from
                 // the manifest entry.
                 this.writeInitialConsumer(remoteConsumer, manifestEntry, catalogUri, consumerType);
+                // After t0, which writes the document afresh, and before anything is cleared or loaded.
+                this.recordPhasesOwedByContentChange();
 
                 SnapshotServiceImpl snapshotService =
                         this.snapshotServiceOverride != null
@@ -1072,6 +1151,9 @@ public abstract class AbstractConsumerService {
                             consumerType,
                             remoteConsumer.getOffset());
                 } else {
+                    // Outside the try below: a failure to record must stop the pass, not be taken for
+                    // a failed update and recovered from a snapshot.
+                    this.recordPhasesOwedByContentChange();
                     try {
                         updated =
                                 this.performIncrementalUpdate(

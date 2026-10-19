@@ -64,6 +64,9 @@ class InMemoryConsumersIndex extends ConsumersIndex {
     /** Whether reads fail, as when the index is unavailable. */
     boolean readsFail;
 
+    /** Whether single-document writes fail. */
+    boolean writesFail;
+
     /** The consumer types whose document cannot be read while the others can. */
     final Set<String> unreadable = new HashSet<>();
 
@@ -93,6 +96,9 @@ class InMemoryConsumersIndex extends ConsumersIndex {
 
     @Override
     public IndexResponse setConsumer(LocalConsumer consumer, boolean lightweight) {
+        if (this.writesFail) {
+            throw new IllegalStateException("write of [" + consumer.getType() + "] failed");
+        }
         this.documents.put(consumer.getType(), consumer);
         this.writes.add(new Write(false, List.of(consumer)));
         if (this.events != null) {
