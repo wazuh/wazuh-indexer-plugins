@@ -1,0 +1,84 @@
+/*
+ * Copyright (C) 2026, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
+// Code coverage with JaCoCo.
+//
+// The OpenSearch build-tools already apply the `jacoco` plugin and attach its agent to every Test
+// task, so `test` records build/jacoco/test.exec on every run. This script pins the agent version,
+// generates the reports CI publishes (HTML to read, XML for tools, CSV for the badge) and, with
+// -Dtests.coverage=true, also measures the plugin code that runs inside the integTest cluster.
+//
+//   ./gradlew :wazuh-indexer-setup:jacocoTestReport
+//   ./gradlew :wazuh-indexer-setup:jacocoTestReport -Dtests.coverage=true
+//
+// Apply it last in the plugin's build.gradle, once testClusters.integTest knows its node count.
+
+jacoco {
+  // The root build's Gradle 9.2 ships 0.8.13, whose Java 25 support is experimental, and the
+  // plugins' own Gradle 9.5 wrappers ship 0.8.14, which makes it official. Pin it so both agree.
+  toolVersion = '0.8.14'
+}
+
+tasks.named('jacocoTestReport', JacocoReport) {
+  dependsOn tasks.named('test')
+  reports {
+    html.required = true
+    xml.required = true
+    csv.required = true
+  }
+}
+
+if (System.getProperty('tests.coverage') == 'true') {
+  // The integTest nodes are JVMs started by testclusters, not Test tasks, so their agent is attached
+  // by hand. testclusters stops the nodes with SIGKILL, which skips the agent's dump on exit, so each
+  // agent serves its data over TCP and integTest pulls it once the whole suite has run, failed tests
+  // included: the cluster is only stopped after the task finishes.
+  //
+  // Each node gets a free port rather than a fixed one: content-manager's build includes setup, and
+  // with parallel builds both clusters start at the same time.
+  def clusterExec = layout.buildDirectory.file('jacoco/integTestCluster.exec')
+  def agentJar = zipTree(configurations.jacocoAgent.singleFile).matching { include 'jacocoagent.jar' }.singleFile
+  def ports = testClusters.integTest.nodes.collect {
+    new ServerSocket(0, 1, InetAddress.getLoopbackAddress()).withCloseable { it.localPort }
+  }
+
+  testClusters.integTest {
+    nodes.eachWithIndex { node, i ->
+      node.jvmArgs("-javaagent:${agentJar}=output=tcpserver,address=127.0.0.1,port=${ports[i]},includes=com.wazuh.*")
+    }
+  }
+
+  tasks.named('integTest') {
+    doFirst {
+      delete clusterExec
+    }
+    afterSuite { suite, result ->
+      if (suite.parent != null) {
+        return
+      }
+      ant.taskdef(name: 'jacocoDump', classname: 'org.jacoco.ant.DumpTask', classpath: configurations.jacocoAnt.asPath)
+      ports.each { port ->
+        ant.jacocoDump(address: '127.0.0.1', port: port, destfile: clusterExec.get().asFile, append: true)
+      }
+    }
+  }
+
+  tasks.named('jacocoTestReport', JacocoReport) {
+    dependsOn tasks.named('integTest')
+    executionData.from(clusterExec)
+  }
+}

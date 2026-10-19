@@ -22,12 +22,91 @@
     - name: doc_id
       type: keyword
       level: custom
+      short: In a finding, the `_id` of the event that matched the rule.
       description: >
-        Document ID of the matched alert that triggered the active response.
-      example: "abc123"
+        `_id` of the event document that matched the detection rule. Set on
+        findings only, together with `event.index`.
+      example: "4cgCE6EBJxulUzH6bBKf"
     - name: index
       type: keyword
       level: custom
+      short: In a finding, the backing index of the event that matched the rule.
       description: >
-        Source index of the matched alert that triggered the active response.
-      example: "wazuh-events-v5-security"
+        Backing index of the `wazuh-events-v5-<category>` data stream that
+        holds the event that matched the detection rule. Set on findings only,
+        together with `event.doc_id`.
+      example: ".ds-wazuh-events-v5-security-000001"
+    - name: start
+      type: date
+      level: extended
+      short: Time the logged activity happened or started, as found in the original log.
+      description: >
+        Date and time at which the activity described by the event happened,
+        or started when it has a duration (such as a network session), as found
+        in the original log and parsed by the decoder.
+
+        Use this field to know when something happened: `@timestamp` holds the
+        time the Wazuh Engine received the event, which is later. The decoders
+        of the Wazuh ruleset set this field whenever the log carries a
+        timestamp; events without one, such as inventory or rootcheck events,
+        do not have it. A date parsed without a time zone is taken as UTC.
+      example: "2026-10-13T13:00:57.000Z"
+    - name: end
+      type: date
+      level: extended
+      short: Time the logged activity ended or was last observed, as found in the original log.
+      description: >
+        Date and time at which the activity described by the event ended or was
+        last observed, as found in the original log and parsed by the decoder.
+        Only set for sources that report it, such as flow logs or cloud
+        findings.
+    - name: created
+      type: date
+      level: core
+      short: Time the source says the event was first read. Not set by Wazuh and not used by the ruleset.
+      description: >
+        Date and time at which the event was first read by an agent or
+        pipeline, when the original log reports it. Neither the Wazuh agent nor
+        the Wazuh Engine sets this field, and the rules of the Wazuh ruleset do
+        not use it: only a few decoders copy it from the source.
+
+        The time the Wazuh Engine received the event is `@timestamp`.
+      example: "2026-10-16T15:53:00.000Z"
+    - name: ingested
+      type: date
+      level: core
+      short: Time the source says the event reached a data store. Not set by Wazuh and not used by the ruleset.
+      description: >
+        Date and time at which the event arrived in a central data store, when
+        the original log reports it, for example an event forwarded from
+        another platform. Wazuh does not set this field when it indexes the
+        event, and the rules of the Wazuh ruleset do not use it: only a few
+        decoders copy it from the source.
+
+        The time the Wazuh Engine received the event is `@timestamp`.
+      example: "2026-10-16T15:53:01.000Z"
+    - name: original
+      type: keyword
+      level: core
+      short: Raw log as received by the Wazuh Engine. Not searchable; read it from `_source`.
+      description: >
+        Raw text of the log as received by the Wazuh Engine, before decoding.
+        In normalized events and findings it is the log alone; in
+        `wazuh-events-raw-v5` it keeps the `<queue>:<location>:` prefix the
+        Wazuh agent adds.
+
+        The field is not indexed and has no doc values: it cannot be searched
+        or aggregated, only read from `_source`. Search the fields extracted by
+        the decoders instead.
+      example: "Oct 13 13:00:57 wazuh-aio sshd[9538]: pam_unix(sshd:session): session opened for user vagrant(uid=1000) by (uid=0)"
+    - name: id
+      type: keyword
+      level: core
+      short: ID the source gave the event, when the log has one. Wazuh's own ID is `wazuh.event.id`.
+      description: >
+        Unique identifier of the event as assigned by its source, copied from
+        the original log by the decoder when the log has one (for example, the
+        record ID of a cloud audit log).
+
+        The identifier Wazuh assigns to every received log is `wazuh.event.id`.
+      example: "8a4f500d"

@@ -679,7 +679,7 @@ The `opt Changes Applied (onSyncComplete)` cascade also runs for a consumer the 
 When `local_offset = 0`:
 
 1. Downloads a ZIP snapshot from the CTI API.
-2. Extracts and parses JSON files for each content type.
+2. Reads each NDJSON entry of the ZIP straight from the archive, line by line and as bytes: a line is parsed in place in a reusable buffer (`NdjsonLineReader`), never decoded into a string, and each document is copied once, into its index request. The vulnerabilities snapshot alone is over 4 GB of NDJSON with documents of up to 17 MB, so string copies of its lines are enough to push a 2 GB heap over the parent circuit breaker.
 3. Bulk-indexes content into respective indices.
 4. Registers all content with the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 
@@ -689,7 +689,7 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 
 1. Marks the consumer `running` and, in the same write, records the remote head as `remote_offset`, so the document shows the gap still to be applied from its first `running` read.
 2. Fetches the changes in batches from the CTI API.
-3. Applies each change: creates or deletes the document, or patches it with the change's JSON Patch ([RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902)) operations through [zjsonpatch](https://github.com/flipkart-incubator/zjsonpatch). Patching is strict: an operation whose target does not exist fails the change (zjsonpatch needs `FORBID_REMOVE_MISSING_OBJECT` for removals). The operations are applied in place, without copying the document, on a tree parsed from the stored source; if one fails, that tree is discarded and the stored document is left as it was. Several changes of the same document within a batch are applied in order, each on top of the previous one.
+3. Applies each change: creates or deletes the document, or patches it with the change's JSON Patch ([RFC 6902](https://datatracker.ietf.org/doc/html/rfc6902)) operations through [zjsonpatch](https://github.com/flipkart-incubator/zjsonpatch). Patching is strict: an operation whose target does not exist fails the change (zjsonpatch needs `FORBID_REMOVE_MISSING_OBJECT` for removals). The operations are applied in place, without copying the document, on a tree parsed from the stored source bytes; if one fails, that tree is discarded and the stored document is left as it was. The patched document is serialized back to UTF-8 bytes for indexing. Several changes of the same document within a batch are applied in order, each on top of the previous one.
 4. Pushes the changes to the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 5. Updates the local offset.
 

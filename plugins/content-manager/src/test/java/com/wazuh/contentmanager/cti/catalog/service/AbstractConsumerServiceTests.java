@@ -309,6 +309,119 @@ public class AbstractConsumerServiceTests extends OpenSearchTestCase {
         return snapshotService;
     }
 
+    /**
+     * The phases a content change leaves owed are recorded as pending after the consumer is marked
+     * running and before the update moves its local offset.
+     */
+    public void testUpdateRecordsTheOwedPhasesBeforeTheContentChanges() {
+        this.consumer.owedPhases = List.of("first", "second");
+        this.consumersIndex.put(document(OPEN_IOCS, LocalConsumer.Status.READY, 1000, 1000));
+        this.consumersIndex.events = this.events;
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+
+        this.consumer.synchronize(SyncPass.withPlan(null));
+
+        assertEquals(
+                List.of(
+                        "write iocs open-iocs running 1000/1150",
+                        "write iocs open-iocs running 1000/1150",
+                        "update iocs 1000->1150"),
+                this.events.subList(0, 3));
+        assertEquals(
+                List.of(), this.consumersIndex.writes.get(0).documents().get(0).getPendingSyncPhases());
+        assertEquals(
+                List.of("first", "second"),
+                this.consumersIndex.writes.get(1).documents().get(0).getPendingSyncPhases());
+    }
+
+    /**
+     * A pass cut after its update and before its post-synchronization work leaves the owed phases
+     * pending next to the new local offset, so the next pass, which has nothing new to apply, still
+     * finds them.
+     */
+    public void testPassCutAfterTheUpdateLeavesTheOwedPhasesPending() {
+        this.consumer.owedPhases = List.of("first", "second");
+        this.consumer.postSyncFailure = new IllegalStateException("node closed");
+        this.consumersIndex.put(document(OPEN_IOCS, LocalConsumer.Status.READY, 1000, 1000));
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+
+        expectThrows(RuntimeException.class, () -> this.consumer.synchronize(SyncPass.withPlan(null)));
+
+        LocalConsumer document = this.consumersIndex.documents.get(IOCS);
+        assertEquals("failed 1150/1150", state(document));
+        assertEquals(List.of("first", "second"), document.getPendingSyncPhases());
+    }
+
+    /** The owed phases are added to the ones already pending, which are kept. */
+    public void testOwedPhasesKeepThePendingOnes() {
+        this.consumer.owedPhases = List.of("first", "second");
+        this.consumersIndex.put(
+                new LocalConsumer(
+                        "open-iocs",
+                        "open-iocs",
+                        IOCS,
+                        OPEN_IOCS,
+                        true,
+                        LocalConsumer.Status.READY,
+                        1000,
+                        1000,
+                        List.of("second", "third")));
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+
+        this.consumer.synchronize(SyncPass.withPlan(null));
+
+        assertEquals(
+                List.of("second", "third", "first"),
+                this.consumersIndex.documents.get(IOCS).getPendingSyncPhases());
+    }
+
+    /**
+     * When the owed phases cannot be recorded, the pass stops before the content changes: updating it
+     * without the record is what lets a cut pass lose them.
+     */
+    public void testUnrecordedPhasesStopThePassBeforeTheContentChanges() {
+        this.consumer.owedPhases = List.of("first");
+        this.consumersIndex.put(document(OPEN_IOCS, LocalConsumer.Status.READY, 1000, 1000));
+        this.consumersIndex.writesFail = true;
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+
+        expectThrows(RuntimeException.class, () -> this.consumer.synchronize(SyncPass.withPlan(null)));
+
+        assertTrue(this.events.isEmpty());
+        assertEquals(1000, this.consumersIndex.documents.get(IOCS).getLocalOffset());
+    }
+
+    /** A pass that changes no content owes nothing and records nothing. */
+    public void testUpToDateConsumerRecordsNoPhases() {
+        this.consumer.owedPhases = List.of("first");
+        this.consumersIndex.put(document(OPEN_IOCS, LocalConsumer.Status.READY, 1150, 1150));
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+
+        this.consumer.synchronize(SyncPass.withPlan(null));
+
+        assertEquals(List.of(), this.consumersIndex.documents.get(IOCS).getPendingSyncPhases());
+    }
+
+    /**
+     * A consumer the swap moved has its owed phases pending from the swap's first document write, so
+     * a pass cut before its post-synchronization work leaves them pending on the new data source.
+     */
+    public void testSwappedConsumerCutBeforePostSyncKeepsTheOwedPhasesPending() {
+        this.consumer.owedPhases = List.of("first", "second");
+        this.consumer.postSyncFailure = new IllegalStateException("node closed");
+        this.consumersIndex.put(document(OPEN_IOCS, LocalConsumer.Status.READY, 900120, 900120));
+        this.consumer.setRemote(remote("pro-iocs", 803322, 777591));
+        SyncPass pass = SyncPass.withPlan(plan());
+        this.swap(pass);
+
+        expectThrows(RuntimeException.class, () -> this.consumer.synchronize(pass));
+
+        LocalConsumer document = this.consumersIndex.documents.get(IOCS);
+        assertEquals(PRO_IOCS, document.getResource());
+        assertEquals("failed 803322/803322", state(document));
+        assertEquals(List.of("first", "second"), document.getPendingSyncPhases());
+    }
+
     /** Runs the pass's swap for the consumer, without staging indices left from earlier passes. */
     private void swap(SyncPass pass) {
         this.stubSwapService().swapChangedSources(List.of(this.consumer), pass);

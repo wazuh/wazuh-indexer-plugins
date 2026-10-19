@@ -208,6 +208,8 @@ public class Constants {
             "Could not read pending sync phases for [{}]: {}";
     public static final String W_LOG_CONSUMER_PENDING_PHASES_FAILED =
             "Failed to persist pending sync phases for [{}]: {}";
+    public static final String D_LOG_CONSUMER_PHASES_OWED_RECORDED =
+            "Consumer [{}] content is about to change; pending sync phases recorded as {}";
     public static final String D_LOG_CONSUMER_RESOURCE_READ_FAILED =
             "Could not read existing consumer resource for [{}]: {}";
     public static final String D_LOG_CONSUMER_T0_WRITTEN =
@@ -431,6 +433,11 @@ public class Constants {
             "Syncing {} detectors ({} sequentially, {} in parallel)";
     public static final String D_LOG_SAP_DETECTORS_NO_INTEGRATIONS =
             "Integration documents could not be read; keeping the detectors phase pending.";
+    public static final String W_LOG_SAP_DETECTORS_MISSING =
+            "{} detector(s) missing from the Security Analytics plugin although nothing is pending:"
+                    + " {}. Syncing integrations, rules and detectors again.";
+    public static final String W_LOG_SAP_DETECTORS_CHECK_FAILED =
+            "Could not check whether the detectors exist; trusting the pending sync phases: {}";
     public static final String E_LOG_DETECTOR_WAIT_INTERRUPTED =
             "Interrupted while waiting for detector sync to complete.";
     public static final String E_LOG_SAP_DETECTORS_STILL_IN_FLIGHT =
@@ -869,6 +876,7 @@ public class Constants {
     // Index settings
     public static final String KEY_INDEX_CODEC = "index.codec";
     public static final String CODEC_ZSTD = "zstd";
+    public static final String CODEC_BEST_COMPRESSION = "best_compression";
     public static final String KEY_INDEX_REFRESH_INTERVAL = "index.refresh_interval";
     public static final String REFRESH_INTERVAL_DISABLED = "-1";
 

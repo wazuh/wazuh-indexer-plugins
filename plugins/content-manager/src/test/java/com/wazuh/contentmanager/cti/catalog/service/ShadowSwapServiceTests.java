@@ -441,6 +441,36 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
         assertEquals(51200, this.consumersIndex.documents.get(CVES).getLocalOffset());
     }
 
+    /**
+     * Both document writes of a swap keep the phases pending before it and add the ones the new
+     * content leaves owed, so a pass cut after the switch still runs them. A consumer that owes
+     * nothing keeps nothing pending.
+     */
+    public void testSwapDocumentsCarryTheOwedPhases() {
+        this.ruleset.owedPhases = List.of("first", "second");
+        this.consumersIndex.put(
+                new LocalConsumer(
+                        "open-ruleset",
+                        "open-ruleset",
+                        RULESET,
+                        resource("open-ruleset"),
+                        true,
+                        LocalConsumer.Status.READY,
+                        1500,
+                        1500,
+                        List.of("third")));
+
+        this.swapService.swapChangedSources(this.consumers(), SyncPass.withPlan(plan(RULESET, IOCS)));
+
+        List<InMemoryConsumersIndex.Write> bulkWrites = this.consumersIndex.bulkWrites();
+        assertEquals(2, bulkWrites.size());
+        for (InMemoryConsumersIndex.Write write : bulkWrites) {
+            Map<String, List<String>> pending = new LinkedHashMap<>();
+            write.documents().forEach(d -> pending.put(d.getType(), d.getPendingSyncPhases()));
+            assertEquals(Map.of(RULESET, List.of("third", "first", "second"), IOCS, List.of()), pending);
+        }
+    }
+
     /** Leaves the three consumers as a swap interrupted before its switch would. */
     private void interruptMidSwap() {
         this.consumersIndex.put(
