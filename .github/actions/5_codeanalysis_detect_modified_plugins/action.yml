@@ -25,11 +25,17 @@ runs:
 
         affected_projects=()
 
+        # Build scripts shared by every plugin affect all of them
+        shared_changed=false
+        if echo "$changed_files" | grep -q "^gradle/coverage.gradle$"; then
+            shared_changed=true
+        fi
+
         # Check for each plugin folder
-        if echo "$changed_files" | grep -q "^plugins/setup/"; then
+        if $shared_changed || echo "$changed_files" | grep -q "^plugins/setup/"; then
             affected_projects+=('"setup"')
         fi
-        if echo "$changed_files" | grep -q "^plugins/content-manager/"; then
+        if $shared_changed || echo "$changed_files" | grep -q "^plugins/content-manager/"; then
             affected_projects+=('"content-manager"')
         fi
 
