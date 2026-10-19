@@ -81,13 +81,17 @@ The account name in the keystore key is the `name` of the `smtp_account` configu
 
 ```bash
 # Add SMTP username
-sudo -u wazuh-indexer /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.my_smtp_account.username
+sudo /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.my_smtp_account.username
 
 # Add SMTP password
-sudo -u wazuh-indexer /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.my_smtp_account.password
+sudo /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.my_smtp_account.password
+
+# The keystore belongs to root and is read by the Wazuh Indexer through its group
+sudo chown root:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
+sudo chmod 640 /etc/wazuh-indexer/opensearch.keystore
 ```
 
-Run `opensearch-keystore` as the `wazuh-indexer` user, as shown. Run as `root`, it leaves `/etc/wazuh-indexer/opensearch.keystore` owned by `root:root`, which the Wazuh Indexer cannot read: reloading the keystore fails with `access_denied_exception` and the Wazuh Indexer fails to start. To recover, run `sudo chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore`.
+Run `opensearch-keystore` as `root`, as shown: the configuration directory is root's, and the `wazuh-indexer` user cannot write in it. The tool leaves the keystore owned by `root:root`, which the Wazuh Indexer cannot read, so the two commands after it give it back to the service's group. Without them, reloading the keystore fails with `access_denied_exception` and the Wazuh Indexer fails to start.
 
 The credentials are reloadable secure settings. Apply them without a restart by reloading the keystore on every node:
 
