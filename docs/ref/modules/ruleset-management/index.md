@@ -96,9 +96,9 @@ An **enriched finding** is an augmented version of a raw Ruleset Management find
 
 - The **full triggering event source** (fetched from the source index by document ID), including its `@timestamp` and `wazuh.event.id`
 - A **reference to the event**: its `_id` in `event.doc_id` and its backing index in `event.index`
-- The **matching rule** under `wazuh.rule`: its ID, title, severity level, status, tags, compliance mappings and MITRE ATT&CK mappings
+- The **matching rule** under `wazuh.rule`: its ID, title, severity level, status, tags, compliance and MITRE ATT&CK fields
 
-Rule metadata is merged into the event's existing `wazuh` object, so `wazuh.integration.*` from the triggering event sits alongside `wazuh.rule.*` in the enriched document. Any `wazuh.rule` object the event already carried is replaced.
+Rule metadata is merged into the event's existing `wazuh` object, so `wazuh.integration.*` from the triggering event sits alongside `wazuh.rule.*` in the enriched document.
 
 Enriched findings are written to `wazuh-findings-v5-{category}*`, where `{category}` is derived from the `wazuh.integration.category` field in the triggering event. See [Findings](../setup/schema.md#findings) in the Wazuh Common Schema for the field layout of a finding.
 

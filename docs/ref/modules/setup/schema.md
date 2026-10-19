@@ -4,14 +4,17 @@ The Wazuh Common Schema (WCS) is the data model of the indices Wazuh writes: eve
 
 A field keeps its ECS meaning unless its WCS description says otherwise. Wazuh gives a few ECS fields a specific meaning, the time fields in particular. This page explains them, together with the Wazuh fields that events and findings rely on:
 
-- [Field reference](#field-reference)
-- [From log to finding](#from-log-to-finding)
-- [Categories and data streams](#categories-and-data-streams)
-- [Time fields](#time-fields)
-- [The `wazuh` object](#the-wazuh-object)
-- [The `event` object and `message`](#the-event-object-and-message)
-- [Findings](#findings)
-- [Raw events](#raw-events)
+- [Wazuh Common Schema](#wazuh-common-schema)
+  - [Field reference](#field-reference)
+  - [From log to finding](#from-log-to-finding)
+  - [Categories and data streams](#categories-and-data-streams)
+  - [Time fields](#time-fields)
+  - [The `wazuh` object](#the-wazuh-object)
+    - [Root fields and `wazuh` fields](#root-fields-and-wazuh-fields)
+    - [Following a log through its documents](#following-a-log-through-its-documents)
+  - [The `event` object and `message`](#the-event-object-and-message)
+  - [Findings](#findings)
+  - [Raw events](#raw-events)
 
 ## Field reference
 
@@ -27,7 +30,7 @@ The modules behind events and findings are:
 - [`stateless/events/raw`](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/wcs/stateless/events/raw/docs/fields.csv) — the `wazuh-events-raw-v5` data stream.
 - [`stateless/active-responses`](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/wcs/stateless/active-responses/docs/fields.csv) — the `wazuh-active-responses` data stream.
 
-The `Level` column tells where a field comes from: `core` and `extended` fields come from ECS, `custom` fields are Wazuh additions. A module's sources are its `fields/subset.yml`, which selects the ECS fields it keeps, and its `fields/custom/*.yml` files, which define the Wazuh fields and the Wazuh descriptions of the ECS fields Wazuh uses in a specific way, such as `@timestamp`.
+The `Level` column tells where a field comes from: `core` and `extended` fields come from ECS, `custom` fields are Wazuh additions.
 
 The events and findings data streams accept WCS fields only: a document carrying a field outside the schema is rejected. Their index templates map each field the first time a document uses it, so the mapping of a backing index only lists the fields it has received so far.
 
@@ -62,16 +65,16 @@ sequenceDiagram
 
 Every integration belongs to a category, and the category selects the data streams its events and findings are written to: `wazuh-events-v5-<key>` and `wazuh-findings-v5-<key>`. The key is the identifier used everywhere — in data stream names, integrations, rules, decoders and Ruleset Management — so use it exactly as shown.
 
-| Name | Key | Example log types |
-| --- | --- | --- |
-| Access Management | `access-management` | `ad_ldap`, `apache_access`, `okta` |
-| Applications | `applications` | `github`, `gworkspace`, `m365` |
-| Cloud Services | `cloud-services` | `azure`, `cloudtrail`, `s3` |
-| Network Activity | `network-activity` | `dns`, `network`, `vpcflow` |
-| Security | `security` | `waf` |
-| System Activity | `system-activity` | `linux`, `windows`, `others_macos` |
-| Other | `other` | `others_application`, `others_apt`, `others_web` |
-| Unclassified | `unclassified` | |
+| Name              | Key                 | Example log types                                |
+| ----------------- | ------------------- | ------------------------------------------------ |
+| Access Management | `access-management` | `ad_ldap`, `apache_access`, `okta`               |
+| Applications      | `applications`      | `github`, `gworkspace`, `m365`                   |
+| Cloud Services    | `cloud-services`    | `azure`, `cloudtrail`, `s3`                      |
+| Network Activity  | `network-activity`  | `dns`, `network`, `vpcflow`                      |
+| Security          | `security`          | `waf`                                            |
+| System Activity   | `system-activity`   | `linux`, `windows`, `others_macos`               |
+| Other             | `other`             | `others_application`, `others_apt`, `others_web` |
+| Unclassified      | `unclassified`      |                                                  |
 
 Events that no integration recognizes are `unclassified`. They are only indexed when the policy sets `index_unclassified_events`.
 
@@ -180,13 +183,13 @@ A finding is the matched event with the rule added:
 
 - **Every field of the event**, copied unchanged and in the same place: `@timestamp`, `event.*`, `wazuh.event.id`, `wazuh.integration.*` and every decoded field.
 - **`event.doc_id`** and **`event.index`** — the `_id` of the event and the backing index that holds it, such as `.ds-wazuh-events-v5-system-activity-000001`.
-- **`wazuh.rule`** — the rule that matched, which replaces any `wazuh.rule` the event carried:
+- **`wazuh.rule`** — stores information about the rule that matched:
   - `id` — the ID of the rule document.
   - `title` — the rule title, with its placeholders filled from the event (see [Dynamic event field referencing](../ruleset-management/rules.md#dynamic-event-field-referencing)).
   - `level` and `status` — the rule's severity level and maturity status.
   - `tags` — the rule level, the integration the rule belongs to, and then the rule's own tags.
   - `sigma_id` — the identifier of the Sigma rule it was imported from, when it has one.
-  - `compliance.*` and `mitre.*` — the compliance and MITRE ATT&CK mappings of the rule.
+  - `compliance.*` and `mitre.*` — the compliance and MITRE ATT&CK fields of the rule.
 
 Keep in mind that:
 
