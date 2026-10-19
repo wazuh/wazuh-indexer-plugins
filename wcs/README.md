@@ -6,6 +6,8 @@ The Wazuh Common Schema is a derivation of the [Elastic Common Schema](https://w
 
 The Wazuh Common Schema is structured in modules. For a detailed list of the available fields in a module and their description, please refer to the `docs/` folder of the module. For example, [states-inventory-packages](stateful/inventory/packages/docs/).
 
+The [Wazuh Common Schema](https://wazuh.github.io/wazuh-indexer-plugins/ref/modules/setup/schema.html) page of the documentation explains the key fields of events and findings, such as the time fields and the `wazuh` object, and how Wazuh fills them.
+
 ## References
 
 - [ECS repository](https://github.com/elastic/ecs)
