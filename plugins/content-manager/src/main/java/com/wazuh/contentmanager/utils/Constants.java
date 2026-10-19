@@ -510,6 +510,19 @@ public class Constants {
             "Skipped {} snapshot entries (missing payload: {}, unknown type: {}, unmapped type: {}, parse errors: {}).";
     public static final String E_LOG_SNAPSHOT_READ_FILE_FAILED =
             "Error reading snapshot file [{}]: {}";
+    public static final String E_LOG_SNAPSHOT_FILE_REJECTED =
+            "Snapshot file [{}] rejected for consumer [{}]: {}. Nothing was loaded.";
+    public static final String E_LOG_SNAPSHOT_FILE_CONTENT_REJECTED =
+            "Snapshot file [{}] rejected for consumer [{}]: {} document(s) indexed, {} line(s) that are not content of this consumer, {} line(s) without offset. It was neither promoted nor recorded.";
+    // Why a snapshot file is rejected, completing E_LOG_SNAPSHOT_FILE_REJECTED.
+    public static final String REASON_SNAPSHOT_NOT_A_ZIP = "it cannot be read as a ZIP archive (%s)";
+    public static final String REASON_SNAPSHOT_NO_JSON_ENTRY = "it holds no .json entry";
+    public static final String REASON_SNAPSHOT_EMPTY = "it is empty";
+    public static final String REASON_SNAPSHOT_NOT_CONTENT =
+            "its first line is not a CTI content document";
+    public static final String REASON_SNAPSHOT_NO_OFFSET = "its first line has no offset";
+    public static final String REASON_SNAPSHOT_OTHER_CONSUMER =
+            "its content is of type [%s], which this consumer does not hold";
     public static final String E_LOG_SNAPSHOT_INDEXING_INCOMPLETE =
             "Snapshot indexing for consumer [{}] dropped {} document(s); local_offset was not advanced so the next sync retries the snapshot.";
     public static final String D_LOG_SNAPSHOT_LOCAL_INIT_START =

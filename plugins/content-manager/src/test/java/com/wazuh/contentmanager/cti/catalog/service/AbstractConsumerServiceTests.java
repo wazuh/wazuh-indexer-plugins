@@ -247,6 +247,26 @@ public class AbstractConsumerServiceTests extends OpenSearchTestCase {
     }
 
     /**
+     * An offline pass whose file loads nothing, such as an empty file or the snapshot of another
+     * consumer, keeps the current content and offset: the consumer is not reloaded from that file as
+     * if it had no content.
+     */
+    public void testOfflinePassKeepsContentWhenTheFileHoldsNothing() throws Exception {
+        this.placeSnapshotFile();
+        this.consumer.swapService = this.stubSwapService();
+        this.consumer.fileOffset = 0;
+        SnapshotServiceImpl snapshotService = this.mockSnapshotService(0);
+        this.consumersIndex.put(document(OPEN_IOCS, LocalConsumer.Status.READY, 1000, 1000));
+        this.consumer.setRemote(remote("open-iocs", 1500, 1400));
+
+        this.consumer.synchronize(SyncPass.offline());
+
+        verify(snapshotService, never()).initialize(any(Path.class), any());
+        assertEquals(List.of("load file iocs test.zip", "post-sync iocs updated=false"), this.events);
+        assertEquals(List.of("running 1000/1000", "ready 1000/1000"), this.writtenStates());
+    }
+
+    /**
      * An offline pass leaves a consumer without a snapshot file as it is, instead of reloading it
      * from the stable snapshot of an earlier load.
      */

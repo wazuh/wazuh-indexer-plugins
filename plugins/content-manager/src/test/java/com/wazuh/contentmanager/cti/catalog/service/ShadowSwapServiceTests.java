@@ -426,6 +426,24 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
         assertTrue(this.ruleset.swapPerformed());
     }
 
+    /**
+     * A snapshot file that loads nothing, such as an empty one, must not replace the live content:
+     * the aliases stay on it and the staging indices are dropped.
+     */
+    public void testRebuildFromFileWithoutContentKeepsTheContent() {
+        this.iocs.fileOffset = 0;
+
+        boolean rebuilt =
+                this.swapService.rebuildFromFile(
+                        this.iocs, this.consumersIndex.documents.get(IOCS), Path.of("/snapshots/iocs.zip"));
+
+        assertFalse(rebuilt);
+        assertEquals(
+                List.of("create staging iocs", "load file iocs iocs.zip", "delete [iocs-b]"), this.events);
+        assertEquals("iocs-a", this.swapService.aliasTargets.get("iocs"));
+        assertEquals(900120, this.consumersIndex.documents.get(IOCS).getLocalOffset());
+    }
+
     /** A snapshot file that cannot be loaded keeps the live content and drops the staging indices. */
     public void testFailedRebuildFromFileKeepsTheContent() {
         this.cves.fileOffset = -1;

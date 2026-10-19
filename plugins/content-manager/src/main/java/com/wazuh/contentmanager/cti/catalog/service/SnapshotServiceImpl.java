@@ -75,6 +75,18 @@ public class SnapshotServiceImpl implements SnapshotService {
      */
     private final boolean recordsLocalOffset;
 
+    /** Documents sent to the content indices during the last snapshot load. */
+    private long indexedDocuments;
+
+    /**
+     * Lines of the last snapshot load that were not indexed: without payload, of an unknown type, of
+     * a type this consumer has no index for, or unreadable.
+     */
+    private long rejectedLines;
+
+    /** Indexed lines of the last snapshot load that carried no offset. */
+    private long linesWithoutOffset;
+
     /** The maximum offset encountered while processing snapshot files. */
     private long maxOffsetSeen;
 
@@ -353,16 +365,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     }
 
                     String cveType = Cve.deriveType(envelope.resourceName);
-
-                    String type = null;
-                    if (cveType != null) {
-                        type = Constants.KEY_CVES;
-                    } else if (envelope.type != null) {
-                        type = envelope.type;
-                        if (Constants.TYPE_IOC.equalsIgnoreCase(type)) {
-                            type = Constants.KEY_IOCS;
-                        }
-                    }
+                    String type = contentType(envelope);
 
                     if (type == null) {
                         unknownType++;
@@ -378,6 +381,8 @@ public class SnapshotServiceImpl implements SnapshotService {
 
                     if (envelope.hasOffset) {
                         this.maxOffsetSeen = Math.max(this.maxOffsetSeen, envelope.offset);
+                    } else {
+                        this.linesWithoutOffset++;
                     }
 
                     BytesReference source;
@@ -399,6 +404,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     bulkRequest.add(indexRequest);
                     envelope = null;
                     docCount++;
+                    this.indexedDocuments++;
 
                     if (docCount >= this.pluginSettings.getMaxItemsPerBulk()
                             || bulkRequest.estimatedSizeInBytes() >= this.pluginSettings.getMaxBulkBytes()) {
@@ -425,6 +431,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             }
 
             int skipped = missingPayload + unknownType + unmappedType + parseErrors;
+            this.rejectedLines += skipped;
             if (skipped > 0) {
                 log.warn(
                         Constants.W_LOG_SNAPSHOT_ENTRIES_SKIPPED,
@@ -439,6 +446,80 @@ public class SnapshotServiceImpl implements SnapshotService {
             if (bulkRequest.numberOfActions() > 0) {
                 executorIndex.executeBulk(bulkRequest);
             }
+        }
+    }
+
+    /**
+     * Returns the content type a snapshot line is routed by: {@link Constants#KEY_CVES} for the
+     * vulnerability feed, whose type comes from the resource name, {@link Constants#KEY_IOCS} for an
+     * IoC, and the payload's {@code type} otherwise.
+     *
+     * @param envelope The parsed line.
+     * @return the type, matching a key of the consumer's indices, or {@code null} if it has none.
+     */
+    private static String contentType(LazyEnvelope envelope) {
+        if (Cve.deriveType(envelope.resourceName) != null) {
+            return Constants.KEY_CVES;
+        }
+        if (envelope.type != null && Constants.TYPE_IOC.equalsIgnoreCase(envelope.type)) {
+            return Constants.KEY_IOCS;
+        }
+        return envelope.type;
+    }
+
+    /**
+     * Checks, from its first line alone, that a snapshot file holds content of this consumer, so a
+     * file that does not is rejected before any index is touched. Every line of a CTI snapshot is a
+     * content document with a {@code name}, a positive {@code offset} and a {@code payload}, and all
+     * of them belong to the same consumer: an empty file, an unrelated one or the snapshot of another
+     * consumer fails here. The rest of the file is checked as it loads, see {@link #initialize(Path,
+     * JsonNode)}.
+     *
+     * @param zipPath The snapshot file.
+     * @return why the file is rejected, or {@code null} if its first line is content of this
+     *     consumer.
+     */
+    // Package-private for tests.
+    String checkSnapshotFile(Path zipPath) {
+        URI uri = URI.create("jar:" + zipPath.toUri());
+        try (FileSystem zipFs = FileSystems.newFileSystem(uri, Collections.emptyMap())) {
+            for (Path root : zipFs.getRootDirectories()) {
+                try (DirectoryStream<Path> entries = Files.newDirectoryStream(root, "*.json")) {
+                    for (Path entry : entries) {
+                        return this.checkFirstLine(entry);
+                    }
+                }
+            }
+            return Constants.REASON_SNAPSHOT_NO_JSON_ENTRY;
+        } catch (Exception e) {
+            return String.format(Locale.ROOT, Constants.REASON_SNAPSHOT_NOT_A_ZIP, e.getMessage());
+        }
+    }
+
+    /** Checks the first line of a snapshot entry, see {@link #checkSnapshotFile(Path)}. */
+    private String checkFirstLine(Path entry) throws IOException {
+        try (InputStream in = Files.newInputStream(entry)) {
+            NdjsonLineReader reader = new NdjsonLineReader(in);
+            if (!reader.next()) {
+                return Constants.REASON_SNAPSHOT_EMPTY;
+            }
+            LazyEnvelope envelope;
+            try {
+                envelope = this.parseLazyEnvelope(reader.buffer(), reader.lineStart(), reader.lineLength());
+            } catch (IOException e) {
+                return Constants.REASON_SNAPSHOT_NOT_CONTENT;
+            }
+            if (!envelope.hasPayload || envelope.resourceName == null) {
+                return Constants.REASON_SNAPSHOT_NOT_CONTENT;
+            }
+            if (!envelope.hasOffset || envelope.offset <= 0) {
+                return Constants.REASON_SNAPSHOT_NO_OFFSET;
+            }
+            String type = contentType(envelope);
+            if (type == null || !this.indicesMap.containsKey(type)) {
+                return String.format(Locale.ROOT, Constants.REASON_SNAPSHOT_OTHER_CONSUMER, type);
+            }
+            return null;
         }
     }
 
@@ -487,9 +568,27 @@ public class SnapshotServiceImpl implements SnapshotService {
         log.debug(Constants.D_LOG_SNAPSHOT_LOCAL_INIT_START, this.consumerType, localZip.getFileName());
 
         this.maxOffsetSeen = 0;
+        this.indexedDocuments = 0;
+        this.rejectedLines = 0;
+        this.linesWithoutOffset = 0;
         long startMs = System.currentTimeMillis();
 
         try {
+            // 0. Refuse a file that is not content of this consumer before touching any index: an
+            // empty or unrelated file would otherwise load "successfully" with no documents, and an
+            // offline update would switch the consumer to empty indices and promote the file over
+            // the stable snapshot.
+            String rejection =
+                    AccessController.doPrivilegedChecked(() -> this.checkSnapshotFile(localZip));
+            if (rejection != null) {
+                log.error(
+                        Constants.E_LOG_SNAPSHOT_FILE_REJECTED,
+                        localZip.getFileName(),
+                        this.consumerType,
+                        rejection);
+                return false;
+            }
+
             this.resetDroppedDocuments();
 
             // 1. Clear indices
@@ -531,6 +630,22 @@ public class SnapshotServiceImpl implements SnapshotService {
         long dropped = this.getDroppedDocuments();
         if (dropped > 0) {
             log.error(Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE, this.consumerType, dropped);
+            return false;
+        }
+
+        // The same for a file that is not entirely content of this consumer: a CTI snapshot has no
+        // line without an offset or of another consumer, and is never empty.
+        if (this.indexedDocuments == 0
+                || this.maxOffsetSeen <= 0
+                || this.rejectedLines > 0
+                || this.linesWithoutOffset > 0) {
+            log.error(
+                    Constants.E_LOG_SNAPSHOT_FILE_CONTENT_REJECTED,
+                    localZip.getFileName(),
+                    this.consumerType,
+                    this.indexedDocuments,
+                    this.rejectedLines,
+                    this.linesWithoutOffset);
             return false;
         }
 

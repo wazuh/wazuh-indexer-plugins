@@ -626,7 +626,9 @@ public class ShadowSwapService {
                         this.staging, this.remoteConsumer, this.urlResolver);
             }
             this.fileOffset = this.consumer.loadStagedSnapshotFile(this.staging, this.snapshotFile);
-            return this.fileOffset >= 0;
+            // A snapshot always has content past offset 0: anything else must not replace the live
+            // content.
+            return this.fileOffset > 0;
         }
 
         /** Returns the offset the loaded snapshot brings the content to. */
