@@ -527,7 +527,7 @@ Manages space-related operations:
 - **`getSpaceResources(spaceName)`** — Fetches all resources (document IDs and hashes) from all managed indices for a given space.
 - **`promoteSpace(indexName, resources, targetSpace)`** — Copies documents from one space to another via bulk indexing, updating the `space.name` field.
 - **`calculateAndUpdate(targetSpaces)`** — Recalculates the aggregate SHA-256 hash for each policy in the given spaces. The hash is computed by concatenating hashes of the policy and all its linked resources (integrations, decoders, KVDBs, rules).
-- **`buildEnginePayload(...)`** — Assembles the full policy payload (policy + all resources from target space with modifications applied) for Engine validation during promotion.
+- **`buildEnginePayload(...)`** — Assembles the full policy payload (policy + all resources from target space with modifications applied) for Engine validation during promotion. A space without decoders, kvdbs or filters is sent with `integrations: []` both in the policy and in the resources: the Engine builds a testing session only when the policy lists integrations (and then requires a root decoder), and with none it deletes the space's session instead.
 - **`deleteResources(indexName, ids, targetSpace)`** — Bulk-deletes resources from a target space.
 
 ### Document structure

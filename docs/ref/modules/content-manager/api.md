@@ -2062,6 +2062,8 @@ Promotes content from the source space to the next space in the promotion chain 
 
 Both promotion targets (`test` and `custom`) are validated by the local Wazuh Engine. The Engine is called when the changeset includes decoders, kvdbs, or filters, and also when it does not but the target space already holds engine resources; a changeset limited to integrations, rules, or the policy against an empty target space skips the call.
 
+A target space left without decoders, kvdbs, or filters, for example after its root decoder is unset and the decoder deleted, is sent to the Engine without integrations, even if it still holds empty or rule-only integrations. The Engine then removes the space's testing environment instead of asking for a root decoder, so the promotion succeeds. From then on `POST /logtest` against that space reports `The '<space>' environment does not exist.` in its `normalization` section, while `POST /logtest/detection` keeps evaluating the space's rules.
+
 In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Ruleset Management plugin. For each promoted resource, a new document is created in the target space with:
 - A newly generated UUID as the primary ID.
 - A `document.id` field storing the original CTI document UUID for cross-reference.
