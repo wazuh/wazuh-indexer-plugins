@@ -30,13 +30,12 @@ import org.opensearch.node.NodeClosedException;
  * either recorded as pending before it starts or picked up again by the next pass after the
  * restart.
  *
- * <p>The exception alone does not tell them apart. The node stops its services in order: the
- * cluster service first, then the search service, which frees every open search and point-in-time
- * context, and only then the transport service, whose requests fail with {@link
- * NodeClosedException}. A search that was paging through a point in time in between fails with "all
- * shards failed" over a missing search context, which is also how an expired point in time fails on
- * a healthy node. So the stop is detected by its start, through a listener on the cluster service,
- * and {@link NodeClosedException} is kept as a signal for a stop the listener did not see.
+ * <p>Most of them carry a {@link NodeClosedException} in their cause chain, wrapped in a {@code
+ * SendRequestTransportException} or in a search's "all shards failed". Not all have to: the node
+ * stops the cluster service first, then the search service, which frees every open search and
+ * point-in-time context, and only then the transport service. So the stop is also detected by its
+ * start, through a listener on the cluster service, which additionally lets the caller skip work
+ * that can only fail, such as releasing a point in time the stop is about to free.
  */
 public final class NodeShutdown {
 
@@ -63,6 +62,15 @@ public final class NodeShutdown {
     }
 
     /**
+     * Returns whether the local node has started shutting down.
+     *
+     * @return {@code true} once the watched component has started stopping.
+     */
+    public static boolean isStopping() {
+        return stopping;
+    }
+
+    /**
      * Returns whether a failure is the local node shutting down rather than a real failure of the
      * operation: the node has started stopping, or the failure's cause chain holds a {@link
      * NodeClosedException}.
@@ -75,7 +83,7 @@ public final class NodeShutdown {
      * @return {@code true} if the failure is caused by the local node shutting down.
      */
     public static boolean isShutdownFailure(Throwable e) {
-        return stopping || ExceptionsHelper.unwrap(e, NodeClosedException.class) != null;
+        return isStopping() || ExceptionsHelper.unwrap(e, NodeClosedException.class) != null;
     }
 
     /**

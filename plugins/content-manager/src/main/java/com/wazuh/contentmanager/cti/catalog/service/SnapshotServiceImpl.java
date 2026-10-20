@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
@@ -50,6 +51,7 @@ import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 
 /**
  * Service responsible for handling the download and indexing of CTI snapshots. Snapshot entries are
@@ -263,7 +265,11 @@ public class SnapshotServiceImpl implements SnapshotService {
             // Discarding the temp keeps any previously-good stable in place.
             long dropped = this.getDroppedDocuments();
             if (dropped > 0) {
-                log.error(Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE, this.consumerType, dropped);
+                log.log(
+                        NodeShutdown.isStopping() ? Level.DEBUG : Level.ERROR,
+                        Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE,
+                        this.consumerType,
+                        dropped);
                 this.cleanup(snapshotZip);
                 return false;
             }
@@ -521,7 +527,11 @@ public class SnapshotServiceImpl implements SnapshotService {
         // instead of overwriting a good stable with a load proven unable to index in full.
         long dropped = this.getDroppedDocuments();
         if (dropped > 0) {
-            log.error(Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE, this.consumerType, dropped);
+            log.log(
+                    NodeShutdown.isStopping() ? Level.DEBUG : Level.ERROR,
+                    Constants.E_LOG_SNAPSHOT_INDEXING_INCOMPLETE,
+                    this.consumerType,
+                    dropped);
             return false;
         }
 

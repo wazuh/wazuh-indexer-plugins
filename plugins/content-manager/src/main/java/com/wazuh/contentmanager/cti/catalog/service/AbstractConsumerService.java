@@ -501,6 +501,22 @@ public abstract class AbstractConsumerService {
     }
 
     /**
+     * Ends the pass when the local node has started stopping. Called before loading another snapshot
+     * to recover from a failed load or update: that load would run on the closing node and be cut
+     * too, logging its own failures on the way. The pass fails, so nothing is committed, and the
+     * caller logs the failure at debug.
+     *
+     * @param consumerType The consumer whose pass is ending.
+     * @throws IllegalStateException if the node is stopping.
+     */
+    private static void endPassIfNodeStopping(String consumerType) {
+        if (NodeShutdown.isStopping()) {
+            throw new IllegalStateException(
+                    "The node is stopping; ending the synchronization of consumer [" + consumerType + "]");
+        }
+    }
+
+    /**
      * Returns the pending phases with the owed ones appended, without duplicates.
      *
      * @param pending The phases already pending, or {@code null}.
@@ -1051,6 +1067,7 @@ public abstract class AbstractConsumerService {
                             SnapshotServiceImpl.deleteSnapshot(localSnapshot);
                         }
                     } else {
+                        endPassIfNodeStopping(consumerType);
                         // Three-tier fallback: stable snapshot -> packaged local -> give up
                         Path stableSnapshot = snapshotService.getStablePath();
                         boolean stableExists = false;
@@ -1180,6 +1197,7 @@ public abstract class AbstractConsumerService {
                                         currentOffset,
                                         remoteConsumer.getOffset());
                     } catch (RuntimeException e) {
+                        endPassIfNodeStopping(consumerType);
                         if (!this.updateFromSnapshotAfterFailure(
                                 e,
                                 context,

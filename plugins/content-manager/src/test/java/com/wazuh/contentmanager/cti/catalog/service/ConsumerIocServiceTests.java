@@ -35,6 +35,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.lifecycle.AbstractLifecycleComponent;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.node.NodeClosedException;
@@ -508,6 +509,25 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
             assertEquals(0, appender.count(Level.ERROR));
             assertEquals(0, appender.count(Level.WARN));
         }
+    }
+
+    /**
+     * While the node stops, the PIT is not released: its contexts close with the node, and core logs
+     * {@code PitService} "Delete PITs failed" at error for a release that can only fail.
+     */
+    public void testPitNotReleasedWhileNodeStops() {
+        AbstractLifecycleComponent clusterService = NodeShutdownTests.idleComponent();
+        NodeShutdown.watch(clusterService);
+        clusterService.start();
+        clusterService.stop();
+        this.mockPitLifecycle();
+        when(this.client.search(any(SearchRequest.class)))
+                .thenThrow(new RuntimeException(new NodeClosedException((DiscoveryNode) null)));
+
+        this.service.onSyncComplete(true);
+
+        verify(this.client).execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class));
+        verify(this.client, never()).execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
     }
 
     /** The same failure on a running node is still an error. */

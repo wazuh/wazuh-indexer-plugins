@@ -642,6 +642,8 @@ public class Constants {
             "Bulk indexing dropped {} document(s) after {} retries. Last failure: {}";
     public static final String E_LOG_BULK_ITEMS_NOT_RETRYABLE =
             "Bulk indexing dropped {} document(s) with non-retryable failures. Last failure: {}";
+    public static final String D_LOG_BULK_RETRY_SKIPPED_NODE_STOPPING =
+            "The node is stopping; dropped {} bulk operation(s) instead of retrying them. Last failure: {}";
     public static final String E_LOG_BULK_RETRY_SCHEDULE_FAILED =
             "Bulk indexing dropped {} document(s): retry could not be scheduled: {}";
     public static final String W_LOG_BULK_RETRY_TOPOLOGY =

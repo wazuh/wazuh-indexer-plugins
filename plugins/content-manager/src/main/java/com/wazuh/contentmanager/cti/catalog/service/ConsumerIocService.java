@@ -230,9 +230,15 @@ public class ConsumerIocService extends AbstractConsumerService {
      * died with it. The most likely cause is exactly that — a node stopping or restarting while the
      * IOC sync runs — so this is logged at debug.
      *
+     * <p>While the local node is stopping the release is skipped: its contexts close with it, and the
+     * request could only fail, with core logging {@code PitService} "Delete PITs failed" at error.
+     *
      * @param pitId The identifier of the PIT to release.
      */
     private void releasePit(String pitId) {
+        if (NodeShutdown.isStopping()) {
+            return;
+        }
         try {
             DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
             this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();

@@ -73,6 +73,7 @@ public class NodeShutdownTests extends OpenSearchTestCase {
 
         component.stop();
 
+        assertTrue(NodeShutdown.isStopping());
         // The point-in-time search cut by the search service freeing its contexts.
         SearchPhaseExecutionException freedContext =
                 new SearchPhaseExecutionException(
