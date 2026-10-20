@@ -39,6 +39,7 @@ import org.opensearch.action.get.MultiGetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.common.lifecycle.AbstractLifecycleComponent;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
@@ -64,6 +65,8 @@ import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.CapturingAppender;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
+import com.wazuh.contentmanager.utils.NodeShutdownTests;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -112,6 +115,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         PluginSettings.getInstance(settings);
 
         this.contentIndex = new ContentIndex(this.client, INDEX_NAME, MAPPINGS_PATH);
+        NodeShutdown.watch(NodeShutdownTests.idleComponent());
     }
 
     @After
@@ -1396,6 +1400,78 @@ public class ContentIndexTests extends OpenSearchTestCase {
                 id,
                 DocWriteRequest.OpType.INDEX,
                 new BulkItemResponse.Failure(INDEX_NAME, docId, mock(NodeClosedException.class)));
+    }
+
+    /**
+     * Documents a stopping node could not write are still counted, so the load is not committed, but
+     * logged at debug: the stop cut the load, the documents were not bad (wazuh-indexer#2029).
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_NodeClosedDropIsNotLoggedAsError() throws Exception {
+        this.runScheduledTasksInline();
+        this.stubBulkResponses(bulkResponseWith(nodeClosedItem(0, "CVE-0000-0001")));
+
+        try (CapturingAppender logs = CapturingAppender.attach(ContentIndex.class)) {
+            this.contentIndex.executeBulk(bulkOf("CVE-0000-0001"));
+
+            Assert.assertEquals(0, logs.count(Level.ERROR));
+        }
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /** A document the cluster rejects on a running node is still an error. */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_RejectedDropIsLoggedAsError() throws Exception {
+        this.runScheduledTasksInline();
+        this.stubBulkResponses(bulkResponseWith(rejectedItem(0, "CVE-0000-0001")));
+
+        try (CapturingAppender logs = CapturingAppender.attach(ContentIndex.class)) {
+            this.contentIndex.executeBulk(bulkOf("CVE-0000-0001"));
+
+            Assert.assertEquals(1, logs.count(Level.ERROR));
+        }
+    }
+
+    /**
+     * A real rejection in the same response as node-closed failures is still an error: only a drop
+     * made entirely of shutdown failures is logged at debug.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_RejectionAmongNodeClosedDropsIsLoggedAsError() throws Exception {
+        this.runScheduledTasksInline();
+        this.stubBulkResponses(
+                bulkResponseWith(nodeClosedItem(0, "CVE-0000-0001"), rejectedItem(1, "CVE-0000-0002")));
+
+        try (CapturingAppender logs = CapturingAppender.attach(ContentIndex.class)) {
+            this.contentIndex.executeBulk(bulkOf("CVE-0000-0001", "CVE-0000-0002"));
+
+            Assert.assertEquals(1, logs.count(Level.ERROR));
+        }
+        Assert.assertEquals(2L, this.contentIndex.getDroppedDocuments());
+    }
+
+    /**
+     * Once the node is stopping, a retryable failure is not retried: the retry would run on the
+     * closing node. The operations are counted as dropped, so the load is not committed.
+     */
+    @SuppressWarnings("unchecked")
+    public void testExecuteBulk_NoRetryWhileTheNodeStops() throws Exception {
+        AbstractLifecycleComponent clusterService = NodeShutdownTests.idleComponent();
+        NodeShutdown.watch(clusterService);
+        clusterService.start();
+        clusterService.stop();
+        this.runScheduledTasksInline();
+        List<BulkRequest> sent = this.stubBulkResponses(bulkResponseWith(shedItem(0, "CVE-0000-0001")));
+
+        try (CapturingAppender logs = CapturingAppender.attach(ContentIndex.class)) {
+            this.contentIndex.executeBulk(bulkOf("CVE-0000-0001"));
+
+            Assert.assertEquals(0, logs.count(Level.ERROR));
+            Assert.assertEquals(0, logs.count(Level.WARN));
+        }
+        Assert.assertEquals(1, sent.size());
+        Assert.assertTrue(this.scheduledDelaysMs.isEmpty());
+        Assert.assertEquals(1L, this.contentIndex.getDroppedDocuments());
     }
 
     /** An administrative write block: a 403, which must stay permanent. */

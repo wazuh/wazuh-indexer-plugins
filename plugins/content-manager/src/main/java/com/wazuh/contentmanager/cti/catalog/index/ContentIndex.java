@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteRequest;
@@ -85,6 +86,7 @@ import com.wazuh.contentmanager.cti.catalog.model.*;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 import com.wazuh.contentmanager.utils.YamlUtils;
 
 /**
@@ -1061,6 +1063,7 @@ public class ContentIndex {
 
                         BulkRequest retryRequest = new BulkRequest();
                         int permanent = 0;
+                        boolean permanentOnlyFromShutdown = true;
                         String lastPermanentFailure = null;
                         String lastRetryableFailure = null;
                         RetryPolicy retryPolicy = null;
@@ -1077,13 +1080,18 @@ public class ContentIndex {
                                 retryPolicy = RetryPolicy.mostPersistent(retryPolicy, itemPolicy);
                             } else {
                                 permanent++;
+                                permanentOnlyFromShutdown &= NodeShutdown.isShutdownFailure(failure.getCause());
                                 lastPermanentFailure = item.getFailureMessage();
                             }
                         }
 
                         if (permanent > 0) {
                             ContentIndex.this.droppedDocuments.addAndGet(permanent);
-                            log.error(Constants.E_LOG_BULK_ITEMS_NOT_RETRYABLE, permanent, lastPermanentFailure);
+                            log.log(
+                                    permanentOnlyFromShutdown ? Level.DEBUG : Level.ERROR,
+                                    Constants.E_LOG_BULK_ITEMS_NOT_RETRYABLE,
+                                    permanent,
+                                    lastPermanentFailure);
                         }
 
                         if (retryRequest.numberOfActions() == 0) {
@@ -1102,7 +1110,10 @@ public class ContentIndex {
                             return;
                         }
                         ContentIndex.this.droppedDocuments.addAndGet(operations.size());
-                        log.error(Constants.E_LOG_BULK_INDEX_OPERATION_FAILED, e.getMessage());
+                        log.log(
+                                NodeShutdown.levelFor(e, Level.ERROR),
+                                Constants.E_LOG_BULK_INDEX_OPERATION_FAILED,
+                                e.getMessage());
                         ContentIndex.this.semaphore.release();
                     }
                 });
@@ -1122,6 +1133,13 @@ public class ContentIndex {
             BulkRequest retryRequest, int attempt, RetryPolicy policy, String failureMessage) {
         int pending = retryRequest.numberOfActions();
         int maxRetries = policy.maxRetries(this.pluginSettings);
+
+        if (NodeShutdown.isStopping()) {
+            this.droppedDocuments.addAndGet(pending);
+            log.debug(Constants.D_LOG_BULK_RETRY_SKIPPED_NODE_STOPPING, pending, failureMessage);
+            this.semaphore.release();
+            return;
+        }
 
         if (attempt >= maxRetries) {
             this.droppedDocuments.addAndGet(pending);
@@ -1150,7 +1168,11 @@ public class ContentIndex {
         } catch (Exception e) {
             // The node is shutting down, or the scheduler refused the task: the permit must not leak.
             this.droppedDocuments.addAndGet(pending);
-            log.error(Constants.E_LOG_BULK_RETRY_SCHEDULE_FAILED, pending, e.getMessage());
+            log.log(
+                    NodeShutdown.levelFor(e, Level.ERROR),
+                    Constants.E_LOG_BULK_RETRY_SCHEDULE_FAILED,
+                    pending,
+                    e.getMessage());
             this.semaphore.release();
         }
     }

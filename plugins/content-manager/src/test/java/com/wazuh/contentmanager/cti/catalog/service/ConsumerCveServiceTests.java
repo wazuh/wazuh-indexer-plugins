@@ -27,6 +27,7 @@ import org.opensearch.action.search.CreatePitResponse;
 import org.opensearch.action.search.DeletePitAction;
 import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.lifecycle.AbstractLifecycleComponent;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.search.DocValueFormat;
@@ -50,6 +51,8 @@ import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
+import com.wazuh.contentmanager.utils.NodeShutdownTests;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
@@ -269,6 +272,67 @@ public class ConsumerCveServiceTests extends OpenSearchTestCase {
         InOrder inOrder = inOrder(this.snapshotService);
         inOrder.verify(this.snapshotService).initialize(eq(remoteConsumer));
         inOrder.verify(this.snapshotService).initialize(eq(localSnapshot), any());
+    }
+
+    /**
+     * A remote load cut by the node stopping ends the pass instead of falling back to the local
+     * snapshot: that load would run on the closing node and be cut too. The pass fails, so nothing is
+     * committed.
+     */
+    public void testSynchronizeDoesNotFallBackWhileTheNodeStops() throws Exception {
+        Path pluginsDir = LuceneTestCase.createTempDir();
+        Path localSnapshot =
+                pluginsDir
+                        .resolve(Constants.PLUGIN_DIR_NAME)
+                        .resolve(Constants.CTI_SNAPSHOTS_DIR)
+                        .resolve(Constants.CVE_SNAPSHOT_FILENAME);
+        Files.createDirectories(localSnapshot.getParent());
+        Files.writeString(localSnapshot, "placeholder");
+
+        ConsumerCveServiceTests.clearPluginSettings();
+        PluginSettings.getInstance(
+                Settings.builder()
+                        .put(
+                                "plugins.content_manager.catalog.vulnerabilities",
+                                "https://cti.example/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5")
+                        .build());
+
+        RemoteConsumer remoteConsumer = mock(RemoteConsumer.class);
+        AbstractLifecycleComponent clusterService = NodeShutdownTests.idleComponent();
+        NodeShutdown.watch(clusterService);
+        clusterService.start();
+        try {
+            when(this.environment.pluginsDir()).thenReturn(pluginsDir);
+            when(this.client.admin().indices().prepareExists(anyString()).get().isExists())
+                    .thenReturn(true);
+            when(this.consumerService.getLocalConsumer()).thenReturn(null);
+            when(this.consumerService.getRemoteConsumer()).thenReturn(remoteConsumer);
+            when(remoteConsumer.getSnapshotLink())
+                    .thenReturn("https://cti.example/store/vulnerabilities.zip");
+            when(remoteConsumer.getSnapshotOffset()).thenReturn(222L);
+            when(remoteConsumer.getOffset()).thenReturn(222L);
+            when(this.consumersIndex.getConsumer("cti:catalog:consumer:vulnerabilities"))
+                    .thenReturn(this.getResponse);
+            when(this.getResponse.isExists()).thenReturn(false);
+            // The node starts stopping while the remote snapshot loads, which cuts the load.
+            when(this.snapshotService.initialize(eq(remoteConsumer)))
+                    .thenAnswer(
+                            invocation -> {
+                                clusterService.stop();
+                                return false;
+                            });
+
+            TestableConsumerCveService stoppingService =
+                    new TestableConsumerCveService(this.client, this.consumersIndex, this.environment);
+            stoppingService.setConsumerService(this.consumerService);
+            stoppingService.setSnapshotService(this.snapshotService);
+
+            expectThrows(RuntimeException.class, stoppingService::synchronize);
+
+            verify(this.snapshotService, never()).initialize(eq(localSnapshot), any());
+        } finally {
+            NodeShutdown.watch(NodeShutdownTests.idleComponent());
+        }
     }
 
     /** Tests that a successful remote initialization removes the packaged local snapshot. */

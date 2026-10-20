@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.jobscheduler.jobs;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
@@ -47,6 +48,7 @@ import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 import com.wazuh.contentmanager.utils.SetupReadiness;
 
 /**
@@ -443,7 +445,11 @@ public class CatalogSyncJob implements JobExecutor {
             renewal = this.scheduleLockRenewal();
             outcome = this.performSynchronization();
         } catch (Exception e) {
-            log.error("Error running CatalogSyncJob: {}", e.getMessage(), e);
+            log.log(
+                    NodeShutdown.levelFor(e, Level.ERROR),
+                    "Error running CatalogSyncJob: {}",
+                    e.getMessage(),
+                    e);
         } finally {
             if (renewal != null) {
                 renewal.cancel();
@@ -556,6 +562,8 @@ public class CatalogSyncJob implements JobExecutor {
             // cause the next unrelated FAILURE to be misread as that retry's outcome and skip its own
             // immediate retry.
             case SETUP_NOT_READY -> this.retryPending.set(false);
+            // The pass was cut by the node stopping: a retry would run on the closing node.
+            case NODE_STOPPING -> this.retryPending.set(false);
         }
     }
 
@@ -574,7 +582,8 @@ public class CatalogSyncJob implements JobExecutor {
     enum SyncOutcome {
         SUCCESS,
         FAILURE,
-        SETUP_NOT_READY
+        SETUP_NOT_READY,
+        NODE_STOPPING
     }
 
     /**
@@ -612,11 +621,21 @@ public class CatalogSyncJob implements JobExecutor {
             } catch (Exception e) {
                 // Without the swap's outcome, a consumer's document may not describe its content:
                 // leave every consumer untouched in this pass.
-                log.error("Error while moving consumers to their data sources: {}", e.getMessage(), e);
-                return SyncOutcome.FAILURE;
+                log.log(
+                        NodeShutdown.levelFor(e, Level.ERROR),
+                        "Error while moving consumers to their data sources: {}",
+                        e.getMessage(),
+                        e);
+                return NodeShutdown.isStopping() ? SyncOutcome.NODE_STOPPING : SyncOutcome.FAILURE;
             }
             boolean anyFailure = false;
             for (AbstractConsumerService synchronizer : this.synchronizers) {
+                if (NodeShutdown.isStopping()) {
+                    log.debug(
+                            "The node is stopping; ending the synchronization pass before {}.",
+                            synchronizer.getClass().getSimpleName());
+                    return SyncOutcome.NODE_STOPPING;
+                }
                 try {
                     // true means the pass did not fully complete for a transient reason — the
                     // configured CTI feed was unreachable (fell back to the local snapshot), the Setup
@@ -636,12 +655,17 @@ public class CatalogSyncJob implements JobExecutor {
                     }
                 } catch (Exception e) {
                     anyFailure = true;
-                    log.error(
+                    log.log(
+                            NodeShutdown.levelFor(e, Level.ERROR),
                             "Error during synchronization of {}: {}",
                             synchronizer.getClass().getSimpleName(),
                             e.getMessage(),
                             e);
                 }
+            }
+            if (NodeShutdown.isStopping()) {
+                // A consumer that failed here was most likely cut by the stop.
+                return SyncOutcome.NODE_STOPPING;
             }
             return anyFailure ? SyncOutcome.FAILURE : SyncOutcome.SUCCESS;
         }

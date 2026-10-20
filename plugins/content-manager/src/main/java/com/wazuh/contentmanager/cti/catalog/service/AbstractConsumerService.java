@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
@@ -51,6 +52,7 @@ import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.transport.TransportPromoteSnapshotAction;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 import com.wazuh.contentmanager.utils.UrlUtils;
 
 /**
@@ -370,7 +372,12 @@ public abstract class AbstractConsumerService {
                         remoteOffset);
             }
         } catch (Exception e) {
-            log.warn(Constants.W_LOG_CONSUMER_STATUS_FAILED, consumerType, status, e.getMessage());
+            log.log(
+                    NodeShutdown.levelFor(e, Level.WARN),
+                    Constants.W_LOG_CONSUMER_STATUS_FAILED,
+                    consumerType,
+                    status,
+                    e.getMessage());
         }
     }
 
@@ -494,6 +501,22 @@ public abstract class AbstractConsumerService {
     }
 
     /**
+     * Ends the pass when the local node has started stopping. Called before loading another snapshot
+     * to recover from a failed load or update: that load would run on the closing node and be cut
+     * too, logging its own failures on the way. The pass fails, so nothing is committed, and the
+     * caller logs the failure at debug.
+     *
+     * @param consumerType The consumer whose pass is ending.
+     * @throws IllegalStateException if the node is stopping.
+     */
+    private static void endPassIfNodeStopping(String consumerType) {
+        if (NodeShutdown.isStopping()) {
+            throw new IllegalStateException(
+                    "The node is stopping; ending the synchronization of consumer [" + consumerType + "]");
+        }
+    }
+
+    /**
      * Returns the pending phases with the owed ones appended, without duplicates.
      *
      * @param pending The phases already pending, or {@code null}.
@@ -581,7 +604,11 @@ public abstract class AbstractConsumerService {
             this.consumersIndex.setConsumer(t0);
             log.debug(Constants.D_LOG_CONSUMER_T0_WRITTEN, consumerType, t0.getRemoteOffset());
         } catch (Exception e) {
-            log.warn(Constants.W_LOG_CONSUMER_T0_FAILED, consumerType, e.getMessage());
+            log.log(
+                    NodeShutdown.levelFor(e, Level.WARN),
+                    Constants.W_LOG_CONSUMER_T0_FAILED,
+                    consumerType,
+                    e.getMessage());
         }
     }
 
@@ -687,7 +714,7 @@ public abstract class AbstractConsumerService {
 
     /**
      * Refreshes the specified indices to make recent changes searchable. Any errors during refresh
-     * are logged as warnings but do not interrupt execution.
+     * are logged as warnings (debug when the node is shutting down) but do not interrupt execution.
      *
      * @param indexNames The index names to refresh.
      */
@@ -695,7 +722,10 @@ public abstract class AbstractConsumerService {
         try {
             this.client.admin().indices().prepareRefresh(indexNames).get();
         } catch (Exception e) {
-            log.warn(Constants.W_LOG_REFRESH_INDICES_FAILED, e.getMessage());
+            log.log(
+                    NodeShutdown.levelFor(e, Level.WARN),
+                    Constants.W_LOG_REFRESH_INDICES_FAILED,
+                    e.getMessage());
         }
     }
 
@@ -1037,6 +1067,7 @@ public abstract class AbstractConsumerService {
                             SnapshotServiceImpl.deleteSnapshot(localSnapshot);
                         }
                     } else {
+                        endPassIfNodeStopping(consumerType);
                         // Three-tier fallback: stable snapshot -> packaged local -> give up
                         Path stableSnapshot = snapshotService.getStablePath();
                         boolean stableExists = false;
@@ -1166,6 +1197,7 @@ public abstract class AbstractConsumerService {
                                         currentOffset,
                                         remoteConsumer.getOffset());
                     } catch (RuntimeException e) {
+                        endPassIfNodeStopping(consumerType);
                         if (!this.updateFromSnapshotAfterFailure(
                                 e,
                                 context,
