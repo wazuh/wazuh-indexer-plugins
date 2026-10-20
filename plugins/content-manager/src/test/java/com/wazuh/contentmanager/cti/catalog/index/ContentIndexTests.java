@@ -18,11 +18,14 @@ package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.Level;
+import org.apache.lucene.util.BytesRef;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.UnavailableShardsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.bulk.BulkRequest;
@@ -43,6 +46,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.breaker.CircuitBreaker;
 import org.opensearch.core.common.breaker.CircuitBreakingException;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.node.NodeClosedException;
@@ -303,7 +307,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         getFuture.onResponse(this.getResponse);
         when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
         when(this.getResponse.isExists()).thenReturn(true);
-        when(this.getResponse.getSourceAsString()).thenReturn(originalDocJson);
+        when(this.getResponse.getSourceAsBytesRef()).thenReturn(new BytesArray(originalDocJson));
 
         PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
         indexFuture.onResponse(this.indexResponse);
@@ -471,8 +475,10 @@ public class ContentIndexTests extends OpenSearchTestCase {
         getFuture.onResponse(this.getResponse);
         when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
         when(this.getResponse.isExists()).thenReturn(true);
-        when(this.getResponse.getSourceAsString())
-                .thenReturn("{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"}}");
+        when(this.getResponse.getSourceAsBytesRef())
+                .thenReturn(
+                        new BytesArray(
+                                "{\"type\":\"rule\",\"document\":{\"id\":\"R1\",\"title\":\"Rule 1\"}}"));
 
         ContentIndex.PatchException e =
                 expectThrows(
@@ -546,7 +552,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         getFuture.onResponse(this.getResponse);
         when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
         when(this.getResponse.isExists()).thenReturn(true);
-        when(this.getResponse.getSourceAsString()).thenReturn(originalDocJson);
+        when(this.getResponse.getSourceAsBytesRef()).thenReturn(new BytesArray(originalDocJson));
 
         PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
         indexFuture.onResponse(this.indexResponse);
@@ -574,11 +580,11 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         GetResponse getResp1 = mock(GetResponse.class);
         when(getResp1.isExists()).thenReturn(true);
-        when(getResp1.getSourceAsString()).thenReturn(doc1Json);
+        when(getResp1.getSourceAsBytesRef()).thenReturn(new BytesArray(doc1Json));
 
         GetResponse getResp2 = mock(GetResponse.class);
         when(getResp2.isExists()).thenReturn(true);
-        when(getResp2.getSourceAsString()).thenReturn(doc2Json);
+        when(getResp2.getSourceAsBytesRef()).thenReturn(new BytesArray(doc2Json));
 
         MultiGetItemResponse item1 = mock(MultiGetItemResponse.class);
         when(item1.isFailed()).thenReturn(false);
@@ -627,7 +633,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         GetResponse getResp = mock(GetResponse.class);
         when(getResp.isExists()).thenReturn(true);
-        when(getResp.getSourceAsString()).thenReturn(docJson);
+        when(getResp.getSourceAsBytesRef()).thenReturn(new BytesArray(docJson));
 
         MultiGetItemResponse item = mock(MultiGetItemResponse.class);
         when(item.isFailed()).thenReturn(false);
@@ -658,7 +664,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
         for (int i = 0; i < sources.length; i++) {
             GetResponse getResp = mock(GetResponse.class);
             when(getResp.isExists()).thenReturn(true);
-            when(getResp.getSourceAsString()).thenReturn(sources[i]);
+            when(getResp.getSourceAsBytesRef()).thenReturn(new BytesArray(sources[i]));
             MultiGetItemResponse item = mock(MultiGetItemResponse.class);
             when(item.isFailed()).thenReturn(false);
             when(item.getResponse()).thenReturn(getResp);
@@ -838,6 +844,68 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertEquals("TID", this.indexedSource(sent.get(0), 0).get("type").asText());
     }
 
+    /** A long CVE description with text outside ASCII, as CTI publishes some of them. */
+    private static final String LONG_DESCRIPTION = "Café ’quoted’ 漢字 😀 " + "x".repeat(200_000);
+
+    /** Asserts the source is backed by an array of exactly its own length. */
+    private static void assertExactlySized(IndexRequest request) {
+        BytesRef ref = request.source().toBytesRef();
+        Assert.assertEquals("source offset", 0, ref.offset);
+        Assert.assertEquals("source array length", ref.length, ref.bytes.length);
+    }
+
+    /**
+     * A batch indexes each document as UTF-8 bytes of its own length. A string source was re-encoded
+     * into an array of three bytes per character, so every document over about 175,000 characters
+     * became an allocation of more than half a G1 region of a 2 GB heap. Text outside ASCII keeps its
+     * value through the update.
+     */
+    public void testBatchUpdate_IndexesExactlySizedSources() throws Exception {
+        ContentIndex cveIndex = new ContentIndex(this.client, Constants.INDEX_CVES, MAPPINGS_PATH);
+        ObjectNode stored =
+                (ObjectNode)
+                        this.mapper.readTree(
+                                "{\"document\":{\"cveMetadata\":{\"state\":\"PUBLISHED\"},"
+                                        + "\"containers\":{\"cna\":{\"descriptions\":[{\"value\":\"\"}]}}},"
+                                        + "\"offset\":900,\"type\":\"CVE\"}");
+        ((ObjectNode) stored.at("/document/containers/cna/descriptions/0"))
+                .put("value", LONG_DESCRIPTION);
+        this.stubMultiGetSources(stored.toString());
+        List<BulkRequest> sent = this.stubSyncBulkResponses(bulkResponseWith(successItem(0)));
+
+        cveIndex.batchUpdate(
+                List.of(
+                        new ContentIndex.UpdateTask(
+                                "CVE-2026-0002",
+                                List.of(new Operation("replace", "/cveMetadata/state", null, "REJECTED")),
+                                1001L)));
+
+        IndexRequest request = (IndexRequest) sent.get(0).requests().get(0);
+        assertExactlySized(request);
+        JsonNode indexed = this.indexedSource(sent.get(0), 0);
+        Assert.assertEquals(
+                LONG_DESCRIPTION, indexed.at("/document/containers/cna/descriptions/0/value").asText());
+        Assert.assertEquals("REJECTED", indexed.at("/document/cveMetadata/state").asText());
+    }
+
+    /** A document created by an incremental update is indexed as UTF-8 bytes of its own length. */
+    public void testCreate_IndexesExactlySizedSource() throws Exception {
+        ContentIndex cveIndex = new ContentIndex(this.client, Constants.INDEX_CVES, MAPPINGS_PATH);
+        ObjectNode payload =
+                (ObjectNode)
+                        this.mapper.readTree(
+                                "{\"type\":\"CVE\",\"offset\":1001,\"document\":{\"dataType\":\"CVE_RECORD\"}}");
+        ((ObjectNode) payload.get(Constants.KEY_DOCUMENT)).put("description", LONG_DESCRIPTION);
+
+        cveIndex.create("CVE-2026-0003", payload, ActionListener.wrap(r -> {}, e -> {}));
+
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture(), any());
+        assertExactlySized(captor.getValue());
+        JsonNode indexed = this.mapper.readTree(captor.getValue().source().utf8ToString());
+        Assert.assertEquals(LONG_DESCRIPTION, indexed.at("/document/description").asText());
+    }
+
     /**
      * Documents whose last change is done are written when the bulk reaches the size limit, before a
      * later change of the batch fails; the retry then skips them through the offset guard.
@@ -926,6 +994,30 @@ public class ContentIndexTests extends OpenSearchTestCase {
         Assert.assertEquals("test-alias-a", created.getValue().index());
     }
 
+    /**
+     * The vulnerabilities index, live or shadow, is created with {@code best_compression}: the {@code
+     * zstd} stored-fields writer copies each chunk it compresses into a new array, and the large CVE
+     * documents make many of those copies humongous on a 2 GB heap. Other content indices keep {@code
+     * zstd}.
+     */
+    public void testCreateIndex_VulnerabilitiesUseBestCompression() throws Exception {
+        PlainActionFuture<CreateIndexResponse> response = PlainActionFuture.newFuture();
+        response.onResponse(new CreateIndexResponse(false, false, Constants.INDEX_CVES));
+        when(this.client.admin().indices().create(any(CreateIndexRequest.class))).thenReturn(response);
+        String cveMappings = "/mappings/cti-cve-mappings.json";
+        new ContentIndex(this.client, Constants.INDEX_CVES, cveMappings).createIndex();
+        new ContentIndex(this.client, Constants.INDEX_CVES, Constants.INDEX_CVES + "-b", cveMappings)
+                .createShadowIndex();
+        new ContentIndex(this.client, Constants.INDEX_RULES, RULES_MAPPINGS_PATH).createIndex();
+
+        ArgumentCaptor<CreateIndexRequest> created = ArgumentCaptor.forClass(CreateIndexRequest.class);
+        verify(this.client.admin().indices(), times(3)).create(created.capture());
+        List<CreateIndexRequest> requests = created.getAllValues();
+        Assert.assertEquals("best_compression", requests.get(0).settings().get("index.codec"));
+        Assert.assertEquals("best_compression", requests.get(1).settings().get("index.codec"));
+        Assert.assertEquals("zstd", requests.get(2).settings().get("index.codec"));
+    }
+
     /** Test that update retries on CircuitBreakingException from GET and succeeds. */
     public void testUpdate_RetriesOnCircuitBreakerException() throws Exception {
         String id = "retry-test-id";
@@ -950,7 +1042,7 @@ public class ContentIndexTests extends OpenSearchTestCase {
 
         when(this.client.get(any(GetRequest.class))).thenReturn(failFuture).thenReturn(successFuture);
         when(this.getResponse.isExists()).thenReturn(true);
-        when(this.getResponse.getSourceAsString()).thenReturn(originalDocJson);
+        when(this.getResponse.getSourceAsBytesRef()).thenReturn(new BytesArray(originalDocJson));
 
         PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
         indexFuture.onResponse(this.indexResponse);
@@ -1138,9 +1230,12 @@ public class ContentIndexTests extends OpenSearchTestCase {
         for (int i = 0; i < ids.length; i++) {
             GetResponse getResp = mock(GetResponse.class);
             when(getResp.isExists()).thenReturn(true);
-            when(getResp.getSourceAsString())
+            when(getResp.getSourceAsBytesRef())
                     .thenReturn(
-                            "{\"type\":\"rule\",\"document\":{\"id\":\"" + ids[i] + "\",\"title\":\"Rule\"}}");
+                            new BytesArray(
+                                    "{\"type\":\"rule\",\"document\":{\"id\":\""
+                                            + ids[i]
+                                            + "\",\"title\":\"Rule\"}}"));
             MultiGetItemResponse item = mock(MultiGetItemResponse.class);
             when(item.isFailed()).thenReturn(false);
             when(item.getResponse()).thenReturn(getResp);
