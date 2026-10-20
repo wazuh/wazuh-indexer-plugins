@@ -1250,6 +1250,98 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.snapshotClient, never()).downloadFile(anyString());
     }
 
+    // ---- Snapshot file validation ----
+
+    /** Initializes from a file that must be rejected before any index is touched. */
+    private void assertRejectedUntouched(Path localZip) throws Exception {
+        Assert.assertFalse(this.snapshotService.initialize(localZip, null));
+        verify(this.contentIndexMock, never()).clear();
+        verify(this.contentIndexMock, never()).executeBulk(any(BulkRequest.class));
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
+        Assert.assertTrue("A rejected file stays in place", Files.exists(localZip));
+    }
+
+    /** An empty snapshot is rejected before the indices are cleared. */
+    public void testInitializeFromPath_RejectsEmptyFile() throws Exception {
+        this.assertRejectedUntouched(this.createZipFileWithContent("data.json", ""));
+    }
+
+    /** A ZIP archive without a .json entry is rejected. */
+    public void testInitializeFromPath_RejectsZipWithoutJsonEntry() throws Exception {
+        this.assertRejectedUntouched(this.createZipFileWithContent("readme.txt", "hello"));
+    }
+
+    /** A file that is not a ZIP archive is rejected. */
+    public void testInitializeFromPath_RejectsFileThatIsNotAZip() throws Exception {
+        Path notAZip = this.tempDir.resolve("ruleset.zip");
+        Files.writeString(notAZip, "not a zip");
+        this.assertRejectedUntouched(notAZip);
+    }
+
+    /** JSON that is not CTI content, such as a document without payload, is rejected. */
+    public void testInitializeFromPath_RejectsUnrelatedJson() throws Exception {
+        this.assertRejectedUntouched(
+                this.createZipFileWithContent("data.json", "{\"hello\":\"world\"}"));
+    }
+
+    /** Content without an offset is not a CTI snapshot. */
+    public void testInitializeFromPath_RejectsFirstLineWithoutOffset() throws Exception {
+        this.assertRejectedUntouched(
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\":\"kvdb-1\",\"payload\":{\"type\":\"kvdb\",\"document\":{\"id\":\"kvdb-1\"}}}"));
+    }
+
+    /** The snapshot of another consumer, here IoCs and CVEs for the ruleset, is rejected. */
+    public void testInitializeFromPath_RejectsSnapshotOfAnotherConsumer() throws Exception {
+        this.assertRejectedUntouched(
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\":\"1762342\",\"offset\":1,\"payload\":{\"type\":\"ioc\",\"document\":{\"id\":\"1762342\"}}}"));
+        this.assertRejectedUntouched(
+                this.createZipFileWithContent(
+                        "cves.json",
+                        "{\"name\":\"CVE-1999-0001\",\"offset\":1,\"payload\":{\"cveMetadata\":{\"cveId\":\"CVE-1999-0001\"}}}"));
+    }
+
+    /**
+     * A file that starts like the consumer's snapshot but holds lines of another consumer, or lines
+     * without an offset, is loaded but not committed: no offset is recorded and it is not promoted.
+     */
+    public void testInitializeFromPath_RejectsFileNotEntirelyOfTheConsumer() throws Exception {
+        Path snapshotsDir = this.tempDir.resolve("snapshots-mixed");
+        Files.createDirectories(snapshotsDir);
+        SnapshotServiceImpl service = this.createServiceWithStablePath(snapshotsDir, "ruleset.zip");
+        // spotless:off
+        String kvdb = "{\"name\":\"kvdb-1\",\"offset\":10,\"payload\":{\"type\":\"kvdb\",\"document\":{\"id\":\"kvdb-1\"}}}\n";
+        String ioc = "{\"name\":\"1762342\",\"offset\":11,\"payload\":{\"type\":\"ioc\",\"document\":{\"id\":\"1762342\"}}}\n";
+        String noOffset = "{\"name\":\"kvdb-2\",\"payload\":{\"type\":\"kvdb\",\"document\":{\"id\":\"kvdb-2\"}}}\n";
+        // spotless:on
+        for (String content : new String[] {kvdb + ioc, kvdb + noOffset}) {
+            Path localZip = snapshotsDir.resolve("ruleset.zip");
+            Files.deleteIfExists(localZip);
+            try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(localZip))) {
+                zos.putNextEntry(new ZipEntry("data.json"));
+                zos.write(content.getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+            }
+
+            Assert.assertFalse(service.initialize(localZip, null));
+            Assert.assertTrue(Files.exists(localZip));
+            Assert.assertFalse(Files.exists(snapshotsDir.resolve("ruleset.stable.zip")));
+        }
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
+    }
+
+    /** A CTI snapshot passes the check on its first line. */
+    public void testCheckSnapshotFile_AcceptsContentOfTheConsumer() throws Exception {
+        Path localZip =
+                this.createZipFileWithContent(
+                        "data.json",
+                        "{\"name\":\"kvdb-1\",\"offset\":42,\"payload\":{\"type\":\"kvdb\",\"document\":{\"id\":\"kvdb-1\"}}}");
+        Assert.assertNull(this.snapshotService.checkSnapshotFile(localZip));
+    }
+
     // ---- Stable snapshot tests ----
 
     private SnapshotServiceImpl createServiceWithStablePath(Path snapshotsDir, String filename) {

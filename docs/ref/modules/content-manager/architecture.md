@@ -128,6 +128,23 @@ Job scheduler triggers
   → Ruleset Management service creates detectors using dynamic CTI configuration (max rules per detector configurable, default 50)
 ```
 
+### Offline update
+
+```
+POST /update?offline=true
+  → Rejected with 400 if this node has no ruleset.zip, iocs.zip or vulnerabilities.zip in its snapshots directory
+  → The pass does not contact Wazuh CTI: no plan lookup, no remote consumer, no incremental changes
+  → For each consumer with a snapshot file and content already loaded:
+      → Reject the file, keeping the content, unless every line is a content document of this consumer with an offset
+      → Load the file into staging indices, copy user content over, switch the aliases (blue/green swap)
+      → Record the highest offset of the file as local_offset and remote_offset
+      → Promote the file to <name>.stable.zip on every node
+  → A consumer with a file but no content yet loads it as a first-time snapshot
+  → Consumers without a file are left as they are
+```
+
+See [Offline content updates](offline-update.md) for the procedure.
+
 ### CTI sync (incremental)
 
 ```

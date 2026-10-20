@@ -162,6 +162,60 @@ public abstract class AbstractConsumerService {
     protected abstract String getSnapshotFilename();
 
     /**
+     * Resolves the plugin's snapshots directory on this node. Package-private so tests can point it
+     * at a directory of their own.
+     *
+     * @return the directory, or {@code null} when there is none, as in test environments.
+     */
+    Path resolveSnapshotsDir() {
+        // Snapshots dir do not exist on development environments.
+        if (ContentManagerPlugin.isTestEnvironment()) {
+            return null;
+        }
+        Path pluginsDir = this.environment.pluginsDir();
+        return pluginsDir == null
+                ? null
+                : pluginsDir.resolve(Constants.PLUGIN_DIR_NAME).resolve(Constants.CTI_SNAPSHOTS_DIR);
+    }
+
+    /**
+     * Reports whether a snapshot file of this consumer waits to be loaded in the snapshots directory
+     * of this node: the packaged one, or one an operator placed there for an offline update. A loaded
+     * snapshot is kept as the stable one under another name, so it does not count.
+     *
+     * @return {@code true} if the file exists.
+     */
+    public boolean hasLocalSnapshot() {
+        try {
+            Path snapshotsDir = this.resolveSnapshotsDir();
+            return snapshotsDir != null
+                    && snapshotFileExists(snapshotsDir.resolve(this.getSnapshotFilename()));
+        } catch (Exception e) {
+            log.debug(
+                    Constants.D_LOG_SNAPSHOTS_DIR_RESOLVE_FAILED, this.getConsumerType(), e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Checks whether a snapshot file exists.
+     *
+     * @param snapshot The file, or {@code null}.
+     * @return {@code true} if it exists; {@code false} if it does not or cannot be checked.
+     */
+    private static boolean snapshotFileExists(Path snapshot) {
+        if (snapshot == null) {
+            return false;
+        }
+        try {
+            return AccessController.doPrivilegedChecked(() -> Files.exists(snapshot));
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_LOCAL_SNAPSHOT_CHECK_FAILED, snapshot, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Hook called by {@link ShadowSwapService} just before the atomic alias swap. Subclasses can
      * override this to capture pre-swap state (e.g., collect resource IDs that may become stale after
      * the swap). The default implementation is a no-op.
@@ -746,19 +800,14 @@ public abstract class AbstractConsumerService {
         Path snapshotsDir = null;
         Path localSnapshot = null;
         JsonNode manifestEntry = null;
-        // Snapshots dir do not exist on development environments.
-        if (!ContentManagerPlugin.isTestEnvironment()) {
-            try {
-                Path pluginsDir = this.environment.pluginsDir();
-                if (pluginsDir != null) {
-                    snapshotsDir =
-                            pluginsDir.resolve(Constants.PLUGIN_DIR_NAME).resolve(Constants.CTI_SNAPSHOTS_DIR);
-                    localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
-                    manifestEntry = this.loadSnapshotsManifest(snapshotsDir);
-                }
-            } catch (Exception e) {
-                log.debug(Constants.D_LOG_SNAPSHOTS_DIR_RESOLVE_FAILED, consumerType, e.getMessage());
+        try {
+            snapshotsDir = this.resolveSnapshotsDir();
+            if (snapshotsDir != null) {
+                localSnapshot = snapshotsDir.resolve(this.getSnapshotFilename());
+                manifestEntry = this.loadSnapshotsManifest(snapshotsDir);
             }
+        } catch (Exception e) {
+            log.debug(Constants.D_LOG_SNAPSHOTS_DIR_RESOLVE_FAILED, consumerType, e.getMessage());
         }
 
         // The effective catalog URI prefers, in order:
@@ -775,7 +824,10 @@ public abstract class AbstractConsumerService {
         try {
             planResource = pass.planResource(consumerType);
         } catch (CtiConsoleUnavailableException e) {
-            log.warn(Constants.W_LOG_PLAN_RESOURCE_RESOLVE_FAILED, consumerType, e.getMessage());
+            // An offline pass does not look the plan up on purpose; nothing failed.
+            if (!pass.isOffline()) {
+                log.warn(Constants.W_LOG_PLAN_RESOURCE_RESOLVE_FAILED, consumerType, e.getMessage());
+            }
             planUnknown = true;
         }
         String existingResource = this.readExistingConsumerResource(consumerType);
@@ -907,7 +959,9 @@ public abstract class AbstractConsumerService {
                     consumerService = ownedConsumerService;
                 }
                 localConsumer = consumerService.getLocalConsumer();
-                remoteConsumer = catalogConfigured ? consumerService.getRemoteConsumer() : null;
+                // An offline pass loads the snapshot files placed on this node and never asks CTI.
+                remoteConsumer =
+                        catalogConfigured && !pass.isOffline() ? consumerService.getRemoteConsumer() : null;
             } finally {
                 if (ownedConsumerService != null) {
                     ownedConsumerService.close();
@@ -919,7 +973,7 @@ public abstract class AbstractConsumerService {
             // changes), but the caller retries so a transiently-blocked feed recovers immediately.
             // getRemoteConsumer() swallows the network failure and returns null, so this is the only
             // place the unreachable-feed condition is observable.
-            boolean feedUnreachable = catalogConfigured && remoteConsumer == null;
+            boolean feedUnreachable = catalogConfigured && remoteConsumer == null && !pass.isOffline();
 
             // Mark the pass as running before anything is applied. When the remote head is known, the
             // same write records the offset this pass syncs to, so that from the first running read
@@ -986,21 +1040,33 @@ public abstract class AbstractConsumerService {
                 }
             }
 
-            if (currentOffset == 0) {
-                final Path localSnapshotPath = localSnapshot;
-                boolean snapshotExists;
-                if (localSnapshotPath == null) {
-                    snapshotExists = false;
+            // Offline update. An air-gapped deployment cannot fetch changes, so it is kept up to date
+            // with newer snapshots placed in the snapshots directory, which a non-zero offset would
+            // skip. A consumer with content is rebuilt from its file through a swap: the current
+            // content, user content included, stays live until the file has loaded, and is kept if it
+            // cannot be. A consumer without content takes the snapshot path below. Consumers without a
+            // file are left as they are, instead of being reloaded from an older stable snapshot.
+            if (pass.isOffline()
+                    && currentOffset > 0
+                    && localConsumer != null
+                    && snapshotFileExists(localSnapshot)) {
+                log.info(
+                        Constants.I_LOG_OFFLINE_RELOAD,
+                        consumerType,
+                        localSnapshot.getFileName(),
+                        currentOffset);
+                if (this.rebuildFromSnapshotFile(localConsumer, localSnapshot)) {
+                    currentOffset = this.readLocalOffset(consumerType);
+                    updated = true;
+                    log.info(Constants.I_LOG_OFFLINE_RELOADED, consumerType, currentOffset);
                 } else {
-                    try {
-                        snapshotExists =
-                                AccessController.doPrivilegedChecked(() -> Files.exists(localSnapshotPath));
-                    } catch (Exception e) {
-                        log.warn(
-                                Constants.W_LOG_LOCAL_SNAPSHOT_CHECK_FAILED, localSnapshotPath, e.getMessage());
-                        snapshotExists = false;
-                    }
+                    log.error(
+                            Constants.E_LOG_OFFLINE_RELOAD_FAILED, consumerType, localSnapshot.getFileName());
                 }
+            }
+
+            if (currentOffset == 0) {
+                boolean snapshotExists = snapshotFileExists(localSnapshot);
 
                 boolean hasEffectiveCatalog = catalogUri != null && !catalogUri.isBlank();
 
@@ -1114,7 +1180,7 @@ public abstract class AbstractConsumerService {
                         }
                     }
                 } else if (snapshotExists) {
-                    if (hasEffectiveCatalog) {
+                    if (hasEffectiveCatalog && !pass.isOffline()) {
                         // Catalog URL was set but the remote attempt did not yield a usable response
                         // (invalid URL, network failure, missing snapshot link). Fall back to the
                         // packaged local snapshot.
@@ -1576,6 +1642,39 @@ public abstract class AbstractConsumerService {
                         : SnapshotServiceImpl.forStaging(
                                 this.getConsumerType(), stagingIndices, this.environment, urlResolver);
         return snapshotService.initialize(remoteConsumer);
+    }
+
+    /**
+     * Rebuilds this consumer's content from a snapshot file on this node, through {@link
+     * ShadowSwapService#rebuildFromFile}.
+     *
+     * @param current The consumer's document.
+     * @param snapshot The snapshot file.
+     * @return {@code true} if the rebuilt content is live, {@code false} if the current content was
+     *     kept.
+     */
+    // Package-private so tests can replace the rebuild.
+    boolean rebuildFromSnapshotFile(LocalConsumer current, Path snapshot) {
+        return new ShadowSwapService(this.client, this.consumersIndex)
+                .rebuildFromFile(this, current, snapshot);
+    }
+
+    /**
+     * Loads a snapshot file into the staging indices of a swap. The file is left in place, and the
+     * consumer document alone, as for {@link #loadStagedSnapshot}.
+     *
+     * @param stagingIndices The staging indices, keyed by type.
+     * @param snapshot The snapshot file.
+     * @return the highest offset in the file if it loaded in full, {@code -1} otherwise.
+     */
+    // Package-private so tests can replace the load.
+    long loadStagedSnapshotFile(Map<String, ContentIndex> stagingIndices, Path snapshot) {
+        SnapshotServiceImpl snapshotService =
+                this.snapshotServiceOverride != null
+                        ? this.snapshotServiceOverride
+                        : SnapshotServiceImpl.forStaging(
+                                this.getConsumerType(), stagingIndices, this.environment, new RegularUrlResolver());
+        return snapshotService.initialize(snapshot, null) ? snapshotService.getMaxOffsetSeen() : -1;
     }
 
     /** Records that a swap replaced this consumer's content, see {@link #shadowSwapPerformed}. */

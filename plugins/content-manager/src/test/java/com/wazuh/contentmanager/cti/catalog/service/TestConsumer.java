@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,18 @@ class TestConsumer extends AbstractConsumerService {
 
     /** The catalog URL configured for this consumer, empty for none. */
     String customCatalogUri = "";
+
+    /** The snapshots directory of this consumer's node, {@code null} for none. */
+    Path snapshotsDir;
+
+    /** The consumer service {@link #setRemote(RemoteConsumer)} installed, to verify its calls. */
+    ConsumerService consumerService;
+
+    /** The swap service rebuilds from a snapshot file go through, {@code null} for the real one. */
+    ShadowSwapService swapService;
+
+    /** The highest offset of the snapshot file a staging load reads, {@code -1} for a failed load. */
+    long fileOffset = 2000;
 
     /** Whether snapshot loads into staging indices succeed. */
     boolean loadSucceeds = true;
@@ -86,6 +99,12 @@ class TestConsumer extends AbstractConsumerService {
         when(consumerService.getRemoteConsumer()).thenReturn(remoteConsumer);
         when(consumerService.getLocalConsumer()).thenAnswer(invocation -> this.readConsumerDocument());
         this.setConsumerService(consumerService);
+        this.consumerService = consumerService;
+    }
+
+    @Override
+    Path resolveSnapshotsDir() {
+        return this.snapshotsDir;
     }
 
     /** Returns whether a swap replaced this consumer's content. */
@@ -155,6 +174,19 @@ class TestConsumer extends AbstractConsumerService {
             ResourceUrlResolver urlResolver) {
         this.events.add("load " + this.type);
         return this.loadSucceeds;
+    }
+
+    @Override
+    long loadStagedSnapshotFile(Map<String, ContentIndex> stagingIndices, Path snapshot) {
+        this.events.add("load file " + this.type + " " + snapshot.getFileName());
+        return this.fileOffset;
+    }
+
+    @Override
+    boolean rebuildFromSnapshotFile(LocalConsumer current, Path snapshot) {
+        return this.swapService != null
+                ? this.swapService.rebuildFromFile(this, current, snapshot)
+                : super.rebuildFromSnapshotFile(current, snapshot);
     }
 
     /** Records the update and, like {@link UpdateServiceImpl}, checkpoints the offset reached. */

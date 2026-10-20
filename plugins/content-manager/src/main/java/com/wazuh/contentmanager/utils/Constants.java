@@ -101,6 +101,10 @@ public class Constants {
             "This promotion would leave %d detectors without enabled rules: %s. "
                     + "Disable or delete them, or keep one of their rules enabled.";
 
+    public static final String E_400_NO_OFFLINE_SNAPSHOTS =
+            "No snapshot file to load in [%s] on node [%s]. Place the new snapshot files in that"
+                    + " directory, on every node, before requesting an offline update.";
+
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_412_UNPROTECTED_CREDENTIALS_INDEX =
             "Registration is disabled because the '"
@@ -266,6 +270,14 @@ public class Constants {
             "Remote snapshot initialization failed for consumer [{}] and no local snapshot was found at [{}].";
     public static final String W_LOG_CATALOG_UNREACHABLE_FALLBACK =
             "Could not reach catalog URL [{}] for consumer [{}]. Falling back to local snapshot [{}].";
+    public static final String I_LOG_OFFLINE_RELOAD =
+            "Offline update: rebuilding consumer [{}] from local snapshot [{}] (local offset {}).";
+    public static final String I_LOG_OFFLINE_RELOADED =
+            "Offline update: consumer [{}] rebuilt from its local snapshot, now at offset {}.";
+    public static final String E_LOG_OFFLINE_RELOAD_FAILED =
+            "Offline update: consumer [{}] could not be rebuilt from local snapshot [{}]; its current content was kept.";
+    public static final String D_LOG_OFFLINE_PASS_NO_PLAN =
+            "Offline update: the subscription plan is not looked up.";
     public static final String D_LOG_INIT_FROM_LOCAL_SNAPSHOT =
             "Initializing consumer [{}] from local snapshot [{}]";
     public static final String E_LOG_LOCAL_SNAPSHOT_INIT_FAILED =
@@ -498,6 +510,19 @@ public class Constants {
             "Skipped {} snapshot entries (missing payload: {}, unknown type: {}, unmapped type: {}, parse errors: {}).";
     public static final String E_LOG_SNAPSHOT_READ_FILE_FAILED =
             "Error reading snapshot file [{}]: {}";
+    public static final String E_LOG_SNAPSHOT_FILE_REJECTED =
+            "Snapshot file [{}] rejected for consumer [{}]: {}. Nothing was loaded.";
+    public static final String E_LOG_SNAPSHOT_FILE_CONTENT_REJECTED =
+            "Snapshot file [{}] rejected for consumer [{}]: {} document(s) indexed, {} line(s) that are not content of this consumer, {} line(s) without offset. It was neither promoted nor recorded.";
+    // Why a snapshot file is rejected, completing E_LOG_SNAPSHOT_FILE_REJECTED.
+    public static final String REASON_SNAPSHOT_NOT_A_ZIP = "it cannot be read as a ZIP archive (%s)";
+    public static final String REASON_SNAPSHOT_NO_JSON_ENTRY = "it holds no .json entry";
+    public static final String REASON_SNAPSHOT_EMPTY = "it is empty";
+    public static final String REASON_SNAPSHOT_NOT_CONTENT =
+            "its first line is not a CTI content document";
+    public static final String REASON_SNAPSHOT_NO_OFFSET = "its first line has no offset";
+    public static final String REASON_SNAPSHOT_OTHER_CONSUMER =
+            "its content is of type [%s], which this consumer does not hold";
     public static final String E_LOG_SNAPSHOT_INDEXING_INCOMPLETE =
             "Snapshot indexing for consumer [{}] dropped {} document(s); local_offset was not advanced so the next sync retries the snapshot.";
     public static final String D_LOG_SNAPSHOT_LOCAL_INIT_START =
@@ -870,6 +895,7 @@ public class Constants {
 
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
+    public static final String KEY_OFFLINE = "offline";
     public static final String KEY_INTEGRATIONS = "integrations";
     public static final String KEY_KVDBS = "kvdbs";
     public static final String KEY_RULES = "rules";
