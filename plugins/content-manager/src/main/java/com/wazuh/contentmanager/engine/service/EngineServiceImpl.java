@@ -23,6 +23,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.threadpool.ThreadPool;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+
 import com.wazuh.contentmanager.engine.client.EngineSocketClient;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
@@ -40,6 +43,15 @@ public class EngineServiceImpl implements EngineService {
     private final EngineSocketClient socket;
     private final ObjectMapper mapper;
     private final ThreadPool threadPool;
+
+    /** Guards {@link #lastPromote}. */
+    private final Object promoteLock = new Object();
+
+    /**
+     * Completes when the last promote queued by {@link #promoteAsync} has finished, successfully or
+     * not. Each new promote is chained after it.
+     */
+    private CompletableFuture<Void> lastPromote = CompletableFuture.completedFuture(null);
 
     /**
      * Production constructor.
@@ -77,18 +89,35 @@ public class EngineServiceImpl implements EngineService {
         return this.socket.sendRequest(PROMOTE, POST.name(), policy);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The promotes of this node are sent to the Engine one at a time, in the order they were
+     * requested. The Engine replaces a space's session in several steps that are not serialized, and
+     * fails two promotes of the same space that overlap ("environment already exists", "Namespace
+     * does not exist"). Each promote is queued behind the previous one without holding a thread while
+     * it waits, and only the Engine call is queued: the listener is notified outside the queue, so
+     * its own work never delays, or stops, the next promote.
+     */
     @Override
     public void promoteAsync(JsonNode policy, ActionListener<RestResponse> listener) {
-        this.threadPool
-                .generic()
-                .execute(
-                        () -> {
-                            try {
-                                listener.onResponse(promote(policy));
-                            } catch (Exception e) {
-                                listener.onFailure(e);
-                            }
-                        });
+        CompletableFuture<RestResponse> call;
+        synchronized (this.promoteLock) {
+            call =
+                    this.lastPromote.thenApplyAsync(
+                            ignored -> this.promote(policy), this.threadPool.generic());
+            this.lastPromote = call.handle((response, e) -> null);
+        }
+        call.whenComplete(
+                (response, e) -> {
+                    if (e == null) {
+                        listener.onResponse(response);
+                    } else {
+                        Throwable cause = e instanceof CompletionException ? e.getCause() : e;
+                        listener.onFailure(
+                                cause instanceof Exception exception ? exception : new RuntimeException(cause));
+                    }
+                });
     }
 
     @Override
