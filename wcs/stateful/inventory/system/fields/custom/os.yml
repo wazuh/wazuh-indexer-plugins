@@ -31,23 +31,13 @@
         Patch level of the OS
       type: keyword
       level: custom
-    - name: kernel.name
+    - name: display_version
       description: >
-        System kernel name
+        Feature update version of a Windows operating system, read from the
+        registry. It holds `DisplayVersion` on releases that define it (for
+        example `22H2`) and `ReleaseId` on older ones (for example `1809`).
+        Empty on other operating systems.
+      short: Windows feature update version, such as 22H2 or 1809.
       type: keyword
       level: custom
-    - name: kernel.release
-      description: >
-        Kernel release version
-      type: keyword
-      level: custom
-    - name: kernel.version
-      description: >
-        Kernel version
-      type: keyword
-      level: custom
-    - name: distribution.release
-      description: >
-        Distribution-specific release information
-      type: keyword
-      level: custom
+      example: 22H2

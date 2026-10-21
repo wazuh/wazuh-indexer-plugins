@@ -15,6 +15,9 @@ Based on ECS:
 
 The detail of the fields can be found in csv file [States inventory system Fields](fields.csv).
 
+The kernel name and version (`sysname` and `version`) are not stored: `host.os.kernel` holds the
+kernel release only, as in `wazuh-states-vulnerabilities`.
+
 ### Transition table
 
 | Field Name         | Type    | Description                                                                       | Destination Field            | Custom |
@@ -28,18 +31,17 @@ The detail of the fields can be found in csv file [States inventory system Field
 | os_name            | string  | Operating system name.                                                            | host.os.name                 | FALSE  |
 | os_version         | string  | Full OS version.                                                                  | host.os.version              | FALSE  |
 | os_platform        | string  | Platform name (e.g., Debian, RedHat).                                             | host.os.platform             | FALSE  |
-| os_display_version | string  | Human-readable OS version.                                                        | host.os.full                 | FALSE  |
 | os_codename        | string  | OS codename (if applicable).                                                      | host.os.codename             | TRUE   |
 | os_major           | string  | Major version number.                                                             | host.os.major                | TRUE   |
 | os_minor           | string  | Minor version number.                                                             | host.os.minor                | TRUE   |
 | os_patch           | string  | Patch level of the OS.                                                            | host.os.patch                | TRUE   |
 | os_build           | string  | Build number of the OS.                                                           | host.os.build                | TRUE   |
-| sysname            | string  | System kernel name.                                                               | host.os.kernel.name          | TRUE   |
-| release            | string  | Kernel release version.                                                           | host.os.kernel.release       | TRUE   |
-| version            | string  | Kernel version.                                                                   | host.os.kernel.version       | TRUE   |
-| os_release         | string  | Distribution-specific release information.                                        | host.os.distribution.release | TRUE   |
+| release            | string  | Kernel release, as reported by `uname -r` (e.g., 5.15.0-91-generic).              | host.os.kernel               | FALSE  |
+| os_display_version | string  | Windows only. Feature update version (e.g., 22H2).                                | host.os.display_version      | TRUE   |
+| os_release         | string  | Windows only. Release ID, used when there is no display version (e.g., 1809).     | host.os.display_version      | TRUE   |
 | cluster_name       | string  | Wazuh cluster name                                                                | wazuh.cluster.name           | TRUE   |
 | cluster_node       | string  | Wazuh cluster node                                                                | wazuh.cluster.node           | TRUE   |
 | schema_version     | string  | Wazuh schema version                                                              | wazuh.schema.version         | TRUE   |
 |                    | string  | Which commercial OS family (one of: linux, macos, unix, windows, ios or android). | host.os.type                 | FALSE  |
+|                    | string  | Operating system name, including the version or code name. Filled on every OS.    | host.os.full                 | FALSE  |
 | checksum           | keyword | SHA1 hash used as checksum of the data collected by the agent.                    | checksum.hash.sha1           | TRUE   |

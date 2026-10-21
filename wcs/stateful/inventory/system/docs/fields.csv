@@ -5,11 +5,9 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,host,host.hostname,keyword,core,,,Hostname of the host.
 9.1.0,true,host,host.os.build,keyword,custom,,,Build number of the OS
 9.1.0,true,host,host.os.codename,keyword,custom,,,OS codename
-9.1.0,true,host,host.os.distribution.release,keyword,custom,,,Distribution-specific release information
+9.1.0,true,host,host.os.display_version,keyword,custom,,22H2,"Windows feature update version, such as 22H2 or 1809."
 9.1.0,true,host,host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
-9.1.0,true,host,host.os.kernel.name,keyword,custom,,,System kernel name
-9.1.0,true,host,host.os.kernel.release,keyword,custom,,,Kernel release version
-9.1.0,true,host,host.os.kernel.version,keyword,custom,,,Kernel version
+9.1.0,true,host,host.os.kernel,keyword,extended,,4.4.0-112-generic,Operating system kernel version as a raw string.
 9.1.0,true,host,host.os.major,keyword,custom,,,Major version number
 9.1.0,true,host,host.os.minor,keyword,custom,,,Minor version number
 9.1.0,true,host,host.os.name,keyword,extended,,Mac OS X,"Operating system name, without the version."

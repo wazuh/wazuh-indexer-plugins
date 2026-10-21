@@ -14,15 +14,9 @@ fields:
         fields:
           build: {}
           codename: {}
-          distribution:
-            fields:
-              release: {}
+          display_version: {}
           full: {}
-          kernel:
-            fields:
-              name: {}
-              release: {}
-              version: {}
+          kernel: {}
           major: {}
           minor: {}
           name: {}
