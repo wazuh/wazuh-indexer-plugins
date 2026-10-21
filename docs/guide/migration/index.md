@@ -39,6 +39,10 @@ The canonical 5.x configuration layout is:
 | `/etc/wazuh-indexer/jvm.options` | JVM heap and GC settings |
 | `/etc/wazuh-indexer/log4j2.properties` | Logging configuration |
 | `/etc/wazuh-indexer/certs/` | Transport and HTTP TLS certificates |
+| `/etc/wazuh-indexer/ca/` | Certificate authority the package created at installation, or the one you staged before installing it. New in 5.x |
+| `/etc/wazuh-indexer/local.env` | Optional. Passwords and certificate names you supply before installing. New in 5.x, never written by the package |
+| `/etc/wazuh-indexer/export/` | Passwords, CA certificate and client certificates published for the Wazuh manager and the Wazuh dashboard. New in 5.x |
+| `/etc/wazuh-indexer/opensearch.keystore` | Secure settings (see [Keystore](#keystore)) |
 | `/etc/wazuh-indexer/opensearch-security/` | Security plugin configuration (see [Security migration](#security-migration)) |
 
 For a full description of each file, see [Configuration](../../ref/configuration/index.md).
@@ -47,15 +51,15 @@ For a full description of each file, see [Configuration](../../ref/configuration
 
 Perform these steps on every node of the new 5.x cluster. Steps 2 to 6 run with the service stopped. Step 7 starts it, and steps 8 to 10 need it running.
 
-1. Install the 5.x package on a fresh host following [Installation](../../ref/getting-started/installation.md). This creates the default 5.x configuration tree under `/etc/wazuh-indexer/`.
+1. Install the 5.x package on a fresh host following [Installation](../../ref/getting-started/installation.md). This creates the default 5.x configuration tree under `/etc/wazuh-indexer/`. To keep the 4.x certificates, stage them before installing the package, as described in [Keeping the 4.x certificates](#keeping-the-4x-certificates).
 2. Stop the new service before editing configuration:
 
     ```bash
     systemctl stop wazuh-indexer
     ```
 
-3. Copy the relevant 4.x configuration values into the corresponding 5.x files — do not overwrite the 5.x files. Review each setting against [Settings changes](#settings-changes) below.
-4. To keep the 4.x certificates, deploy them as described in [Deploying certificates](../../ref/getting-started/installation.md#deploying-certificates): the node pair as `indexer.pem` and `indexer-key.pem`, plus `admin.pem`, `admin-key.pem` and `root-ca.pem`, all under `/etc/wazuh-indexer/certs/`, so the 5.x certificate paths in `opensearch.yml` stay valid. Then set `plugins.security.nodes_dn` and `plugins.security.authcz.admin_dn` to the subjects of those certificates. To keep the certificates the 5.x package issued instead, skip this step. See [Generated at installation](#generated-at-installation).
+3. Copy the relevant 4.x configuration values into the corresponding 5.x files — do not overwrite the 5.x files. Review each setting against [Settings changes](#settings-changes) below. Add the 4.x keystore entries again as described in [Keystore](#keystore).
+4. If you staged the 4.x certificates in step 1, the installation set `plugins.security.nodes_dn` and `plugins.security.authcz.admin_dn` to the subjects of this node's certificates. On a multi-node cluster, add the subjects of the other nodes' certificates to `plugins.security.nodes_dn`. To keep the certificates the 5.x package issued instead, skip this step. See [Generated at installation](#generated-at-installation).
 5. Port `jvm.options` and `log4j2.properties` by copying only individual non-default lines into the 5.x files. Do not replace the 5.x files outright.
 6. Edit the security configuration files. See steps 1 and 2 of the [Security procedure](#security-procedure).
 7. Start the service:
@@ -65,7 +69,7 @@ Perform these steps on every node of the new 5.x cluster. Steps 2 to 6 run with 
     ```
 
 8. Once the service is running on every node, load the security configuration from a single node. See step 3 of the [Security procedure](#security-procedure). The node does not accept authenticated requests until this step is done.
-9. Confirm the nodes joined the new 5.x cluster. `$WAZUH_INDEXER_ADMIN_PASSWORD` is the `admin` password from `/etc/wazuh/credentials.env`, as described in [Installation](../../ref/getting-started/installation.md#testing-the-cluster-installation):
+9. Confirm the nodes joined the new 5.x cluster. `$WAZUH_INDEXER_ADMIN_PASSWORD` is the `admin` password from `/etc/wazuh-indexer/export/credentials.env`, as described in [Retrieving the generated credentials](../../ref/getting-started/installation.md#retrieving-the-generated-credentials), or the one you set in `/etc/wazuh-indexer/local.env` if you supplied it:
 
     ```bash
     curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD "https://127.0.0.1:9200/_cat/nodes?v"
@@ -99,10 +103,20 @@ The following 4.x settings have changed in 5.x and must be reviewed before reuse
 
 #### Generated at installation
 
-The 5.x package issues the node's TLS certificates and generates the passwords of its default users when it is installed, and writes the following settings itself. See [Installation](../../ref/getting-started/installation.md). Their values differ from the ones the 4.x installation wrote, and that is expected. Keep the generated values, unless you migrate the 4.x certificates (step 4 of the [Configuration procedure](#configuration-procedure)), in which case set them to match those certificates.
+The 5.x package issues the node's TLS certificates and generates the passwords of its default users when it is installed, and writes the following settings itself. See [Installation](../../ref/getting-started/installation.md). Their values differ from the ones the 4.x installation wrote, and that is expected. Keep the generated values. If you staged the 4.x certificates before installing the package, the installation writes the values that match them instead (see [Keeping the 4.x certificates](#keeping-the-4x-certificates)).
 
 - Certificate paths, `plugins.security.ssl.http.pem*_filepath` and `plugins.security.ssl.transport.pem*_filepath`: 5.x always names the node pair `indexer.pem` and `indexer-key.pem`. A 4.x node installed step by step uses the same names, while the 4.x installation assistant named the pair after the node, for example `node-1.pem`.
 - `plugins.security.authcz.admin_dn` and `plugins.security.nodes_dn`: 5.x fills them in with the subjects of the certificates it issued. The fields appear in a different order than in the 4.x files (`C=US,...,CN=admin` instead of `CN=admin,...,C=US`). Keep the 5.x values.
+
+### Keeping the 4.x certificates
+
+The 5.x package takes in certificates only when it is installed: certificates replaced afterwards are used, but the package does not publish their authority to the Wazuh manager and the Wazuh dashboard on the host, which keep trusting the authority the package created. To keep the 4.x certificates, stage them on each node before installing the package, with the commands in [On every other Wazuh indexer node](../../ref/getting-started/installation.md#on-every-other-wazuh-indexer-node), run against the 4.x `wazuh-certificates.tar`. The 4.x installation assistant keeps them under `wazuh-install-files/` in `wazuh-install-files.tar` instead, so repack them first: `tar -xf wazuh-install-files.tar && tar -cf wazuh-certificates.tar -C wazuh-install-files .`.
+
+The 4.x tar also holds the key of the 4.x authority, `root-ca.key`. Stage it as well, as `/etc/wazuh-indexer/ca/root-ca.key` with mode `400`, for the installation to issue the client pairs of the Wazuh manager and the Wazuh dashboard from the 4.x authority.
+
+### Keystore
+
+The 5.x package creates its own `/etc/wazuh-indexer/opensearch.keystore`. Do not copy the 4.x keystore over it: an entry for a setting that 5.x does not know stops the node at start with `unknown secure setting`. List the 4.x entries on a 4.x node with `/usr/share/wazuh-indexer/bin/opensearch-keystore list`, and add the ones you still need on every node of the new 5.x cluster as described in [SMTP account credentials](../../ref/modules/notifications/configuration.md#smtp-account-credentials): as root, then giving the keystore back to the service's group. Skip `keystore.seed`, which every keystore creates for itself, and the entries of plugins that 5.x no longer ships (see [Settings changes](#settings-changes)).
 
 ## Security migration
 
