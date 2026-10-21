@@ -40,11 +40,9 @@ import com.wazuh.contentmanager.action.ContentDeleteRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -62,20 +60,14 @@ public abstract class AbstractTransportDeleteActionSpaces
     private static final Logger log = LogManager.getLogger(AbstractTransportDeleteActionSpaces.class);
     protected final PayloadValidations documentValidations = new PayloadValidations();
     protected final Client client;
-    protected final EngineService engine;
-    protected final EngineContentLoader engineContentLoader;
 
     protected AbstractTransportDeleteActionSpaces(
             String actionName,
             TransportService transportService,
             ActionFilters actionFilters,
-            Client client,
-            EngineService engine,
-            EngineContentLoader engineContentLoader) {
+            Client client) {
         super(actionName, transportService, actionFilters, ContentDeleteRequest::new);
         this.client = client;
-        this.engine = engine;
-        this.engineContentLoader = engineContentLoader;
     }
 
     @Override
@@ -255,12 +247,7 @@ public abstract class AbstractTransportDeleteActionSpaces
                                     List.of(spaceName),
                                     ActionListener.wrap(
                                             changed -> {
-                                                TransportActionHelper.reloadStandardSpaceIntoEngine(
-                                                        this.engine,
-                                                        spaceService,
-                                                        changed,
-                                                        this.engineContentLoader,
-                                                        this.client);
+                                                TransportActionHelper.reloadStandardSpaceIntoEngine(changed, this.client);
                                                 log.info(Constants.I_LOG_SUCCESS, "Deleted", this.getResourceType(), id);
                                                 this.afterResourceDeleted(
                                                         id,

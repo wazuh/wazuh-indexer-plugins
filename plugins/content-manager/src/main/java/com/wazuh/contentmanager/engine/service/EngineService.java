@@ -28,11 +28,20 @@ public interface EngineService {
 
     RestResponse validate(JsonNode resource);
 
+    /**
+     * Sends a policy to the Engine to validate and, for a tester space, load. Sends it at once,
+     * without waiting for other promotes: use {@link #promoteAsync} to load a space, so that two
+     * loads never overlap in the Engine.
+     *
+     * @param policy the Engine payload to promote.
+     * @return the Engine's response.
+     */
     RestResponse promote(JsonNode policy);
 
     /**
      * Asynchronous variant of {@link #promote(JsonNode)} that offloads the blocking socket I/O to a
      * background thread. Use this from transport-thread callbacks where blocking is not permitted.
+     * Implementations send the promotes of a node to the Engine one at a time.
      *
      * @param policy the Engine payload to promote.
      * @param listener receives the {@link RestResponse} on success, or the exception on failure.

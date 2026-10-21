@@ -27,9 +27,7 @@ import java.util.Set;
 
 import com.wazuh.contentmanager.action.DeleteFilterAction;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
-import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.utils.Constants;
 
 /** Transport action for deleting Filter resources (Spaces variant). */
@@ -44,16 +42,8 @@ public class TransportDeleteFilterAction extends AbstractTransportDeleteActionSp
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
-            EngineService engine,
-            EngineContentLoader engineContentLoader,
             UserOverridesService userOverridesService) {
-        super(
-                DeleteFilterAction.NAME,
-                transportService,
-                actionFilters,
-                client,
-                engine,
-                engineContentLoader);
+        super(DeleteFilterAction.NAME, transportService, actionFilters, client);
         this.userOverridesService = userOverridesService;
     }
 

@@ -48,7 +48,6 @@ import com.wazuh.contentmanager.action.ContentUpdateRequest;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -69,19 +68,16 @@ public abstract class AbstractTransportUpdateActionSpaces
     protected final PayloadValidations documentValidations = new PayloadValidations();
     protected final Client client;
     protected final EngineService engine;
-    protected final EngineContentLoader engineContentLoader;
 
     protected AbstractTransportUpdateActionSpaces(
             String actionName,
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
-            EngineService engine,
-            EngineContentLoader engineContentLoader) {
+            EngineService engine) {
         super(actionName, transportService, actionFilters, ContentUpdateRequest::new);
         this.client = client;
         this.engine = engine;
-        this.engineContentLoader = engineContentLoader;
     }
 
     @Override
@@ -344,12 +340,7 @@ public abstract class AbstractTransportUpdateActionSpaces
                                         List.of(spaceName),
                                         ActionListener.wrap(
                                                 changed -> {
-                                                    TransportActionHelper.reloadStandardSpaceIntoEngine(
-                                                            this.engine,
-                                                            spaceService,
-                                                            changed,
-                                                            this.engineContentLoader,
-                                                            this.client);
+                                                    TransportActionHelper.reloadStandardSpaceIntoEngine(changed, this.client);
                                                     log.info(Constants.I_LOG_SUCCESS, "Updated", this.getResourceType(), id);
                                                     this.afterResourceCommitted(
                                                             id,

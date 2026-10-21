@@ -45,10 +45,8 @@ import java.util.function.UnaryOperator;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.UpdatePolicyRequest;
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
-import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
@@ -89,7 +87,6 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
         this.client = mock(Client.class);
         this.spaceService = mock(SpaceService.class);
         this.overridesService = mock(UserOverridesService.class);
-        EngineService engineService = mock(EngineService.class);
         this.indexResponse = mock(IndexResponse.class);
 
         this.action =
@@ -97,8 +94,6 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
                         mock(TransportService.class),
                         mock(ActionFilters.class),
                         this.spaceService,
-                        engineService,
-                        mock(EngineContentLoader.class),
                         this.client,
                         this.overridesService);
 
