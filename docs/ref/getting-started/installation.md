@@ -69,11 +69,13 @@ The certificates tool ships with the Wazuh indexer package, so install the packa
 
     To learn more about how to create and configure the certificates, see the [Certificates deployment](https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/certificate-deployment.html) section.
 
-1. Run the tool to create the certificates. It reads `config.yml` from beside itself and writes the result to `wazuh-certificates/` in the same directory.
+1. Run the tool to create the certificates, signed by the authority this node already has in `/etc/wazuh-indexer/ca/`. It reads `config.yml` from beside itself and writes the result to `wazuh-certificates/` in the same directory.
 
     ```bash
-    /usr/share/wazuh-indexer/tools/wazuh-certs-tool.sh -A
+    WAZUH_CA_DIR=/etc/wazuh-indexer/ca /usr/share/wazuh-indexer/tools/wazuh-certs-tool.sh -A
     ```
+
+    Without `WAZUH_CA_DIR`, the tool creates an authority of its own in `/usr/share/wazuh-indexer/tools/wazuh-ca/` and signs with that one instead. This node published the authority it was installed with as `/etc/wazuh-indexer/export/ca.pem` and does not publish it again, so the Wazuh manager and the Wazuh dashboard on this host could no longer verify the Wazuh indexer.
 
 1. Compress all the necessary files.
 
@@ -231,7 +233,7 @@ The package ships a working single-node configuration: one node named `node-1`, 
 >
 > Make sure that a copy of the `wazuh-certificates.tar` file, created during the initial configuration step, is placed in your working directory.
 
-The installation takes in certificates only when the package is installed: certificates replaced afterwards are used, but their authority is not published to the Wazuh manager and the Wazuh dashboard on the host. The certificates tool signs with the authority of the node it runs on, so that node can replace its pair afterwards, while every other node must have its pair and that authority staged before the package is installed.
+The installation takes in certificates only when the package is installed: certificates replaced afterwards are used, but their authority is not published to the Wazuh manager and the Wazuh dashboard on the host. Run with `WAZUH_CA_DIR`, as in [Generating the SSL certificates](#generating-the-ssl-certificates), the certificates tool signs with the authority in `/etc/wazuh-indexer/ca/`, so that node can replace its pair afterwards, while every other node must have its pair and that authority staged before the package is installed.
 
 In the commands below, replace `<INDEXER_NODE_NAME>` with the name of the Wazuh indexer node you are configuring as defined in `config.yml`. For example, `node-1`.
 
@@ -261,9 +263,10 @@ The certificates tool and the package issue certificates with the same subject f
 
 ##### On every other Wazuh indexer node
 
-Run these commands before installing the package. They stage this node's pair, the admin pair and the authority that issued them, `root-ca.pem`, both beside the pair and in `/etc/wazuh-indexer/ca/`:
+Run these commands before installing the package, replacing `<INDEXER_NODE_NAME>` with the name of this node as defined in `config.yml`. They stage this node's pair, the admin pair and the authority that issued them, `root-ca.pem`, both beside the pair and in `/etc/wazuh-indexer/ca/`:
 
 ```bash
+NODE_NAME=<INDEXER_NODE_NAME>
 install -d -m 750 /etc/wazuh-indexer /etc/wazuh-indexer/certs /etc/wazuh-indexer/ca
 tar -xf ./wazuh-certificates.tar -C /etc/wazuh-indexer/certs/ ./$NODE_NAME.pem ./$NODE_NAME-key.pem ./admin.pem ./admin-key.pem ./root-ca.pem
 mv /etc/wazuh-indexer/certs/$NODE_NAME.pem /etc/wazuh-indexer/certs/indexer.pem

@@ -112,6 +112,8 @@ The 5.x package issues the node's TLS certificates and generates the passwords o
 
 The 5.x package takes in certificates only when it is installed: certificates replaced afterwards are used, but the package does not publish their authority to the Wazuh manager and the Wazuh dashboard on the host, which keep trusting the authority the package created. To keep the 4.x certificates, stage them on each node before installing the package, with the commands in [On every other Wazuh indexer node](../../ref/getting-started/installation.md#on-every-other-wazuh-indexer-node), run against the 4.x `wazuh-certificates.tar`. The 4.x installation assistant keeps them under `wazuh-install-files/` in `wazuh-install-files.tar` instead, so repack them first: `tar -xf wazuh-install-files.tar && tar -cf wazuh-certificates.tar -C wazuh-install-files .`.
 
+There, `NODE_NAME` is the name of the node in the 4.x `config.yml`, which is how its pair is named inside the tar. The 4.x pair also carries the addresses of the 4.x node in its subject alternative names, and 5.x verifies them on the transport layer, so keep those addresses on the 5.x host or reissue the certificates.
+
 The 4.x tar also holds the key of the 4.x authority, `root-ca.key`. Stage it as well, as `/etc/wazuh-indexer/ca/root-ca.key` with mode `400`, for the installation to issue the client pairs of the Wazuh manager and the Wazuh dashboard from the 4.x authority.
 
 ### Keystore
