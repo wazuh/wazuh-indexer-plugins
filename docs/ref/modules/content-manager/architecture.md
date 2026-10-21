@@ -193,7 +193,9 @@ The policy hash is an aggregate SHA-256 computed from the individual hashes of t
 - Changes to the enrichment types list
 - Reordering of the filters list
 
-The engine load is best-effort: if the Engine is unreachable, the error is logged but the operation (sync or REST update) still succeeds.
+The engine load is best-effort: if the Engine is unreachable or refuses the policy, the error is logged but the operation (sync or REST update) still succeeds. The node retries the load on its own, after 5 seconds and then with a delay that doubles up to 5 minutes, until the Engine accepts it.
+
+Each node loads a space into its Engine one load at a time. A change to the standard space, whether by CTI sync or a REST update, is broadcast to every node, and each node reloads the spaces whose hash changed. A change that arrives while a reload is running makes that reload check the spaces once more when it ends, so it is never left out. All the policies a node sends to its Engine, including the validations of a promotion, are sent one after the other, because the Engine fails two loads of the same space that overlap.
 
 ### Promotion
 

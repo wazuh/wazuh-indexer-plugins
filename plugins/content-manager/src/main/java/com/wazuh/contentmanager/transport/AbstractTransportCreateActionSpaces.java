@@ -46,7 +46,6 @@ import com.wazuh.contentmanager.action.ContentCreateRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.ResourceLockTimeoutException;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -70,7 +69,6 @@ public abstract class AbstractTransportCreateActionSpaces
     protected final PayloadValidations documentValidations = new PayloadValidations();
     protected final Client client;
     protected final EngineService engine;
-    protected final EngineContentLoader engineContentLoader;
     protected final ResourceLockService resourceLockService;
 
     protected AbstractTransportCreateActionSpaces(
@@ -78,12 +76,10 @@ public abstract class AbstractTransportCreateActionSpaces
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
-            EngineService engine,
-            EngineContentLoader engineContentLoader) {
+            EngineService engine) {
         super(actionName, transportService, actionFilters, ContentCreateRequest::new);
         this.client = client;
         this.engine = engine;
-        this.engineContentLoader = engineContentLoader;
         this.resourceLockService = new ResourceLockService(client, transportService.getThreadPool());
     }
 
@@ -424,11 +420,7 @@ public abstract class AbstractTransportCreateActionSpaces
                                                                 ActionListener.wrap(
                                                                         changed -> {
                                                                             TransportActionHelper.reloadStandardSpaceIntoEngine(
-                                                                                    this.engine,
-                                                                                    spaceService,
-                                                                                    changed,
-                                                                                    this.engineContentLoader,
-                                                                                    this.client);
+                                                                                    changed, this.client);
                                                                             log.info(
                                                                                     Constants.I_LOG_SUCCESS,
                                                                                     "Created",

@@ -34,7 +34,9 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -341,19 +343,30 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
     }
 
     /**
-     * A trigger arriving while a reload is in flight does not start a second run; its listener is
-     * notified when the run it was folded into finishes.
+     * Holds every {@code getPolicy} read of the standard space open, so a test can keep a pass in
+     * flight while triggers arrive and answer each read when it chooses.
+     *
+     * @return the pending reads, oldest first.
      */
-    public void testFoldedTriggerIsNotifiedWithTheRunItJoined() {
-        // Hold the STANDARD policy read open so the run stays in flight across both triggers.
-        AtomicReference<ActionListener<Map<String, Object>>> pendingRead = new AtomicReference<>();
+    private List<ActionListener<Map<String, Object>>> holdStandardReads() {
+        List<ActionListener<Map<String, Object>>> reads = new ArrayList<>();
         doAnswer(
                         inv -> {
-                            pendingRead.set(inv.getArgument(1));
+                            reads.add(inv.getArgument(1));
                             return null;
                         })
                 .when(this.spaceService)
                 .getPolicy(eq(STANDARD), any());
+        return reads;
+    }
+
+    /**
+     * A trigger arriving while a reload is in flight does not start a second run: it is folded into
+     * the run, which checks the spaces once more before it ends, and its listener is notified when
+     * that repeat finishes.
+     */
+    public void testFoldedTriggerIsNotifiedWithTheRunItJoined() {
+        List<ActionListener<Map<String, Object>>> reads = this.holdStandardReads();
         this.okPromote();
 
         AtomicReference<Boolean> first = new AtomicReference<>();
@@ -364,12 +377,58 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
         // Still in flight: neither listener has been notified, and only one run was started.
         assertNull(first.get());
         assertNull(second.get());
-        verify(this.spaceService, times(1)).getPolicy(eq(STANDARD), any());
+        assertEquals(1, reads.size());
 
-        pendingRead.get().onResponse(policyWithHash(STANDARD, "std-1"));
+        reads.get(0).onResponse(policyWithHash(STANDARD, "std-1"));
+
+        // The pass is repeated for the folded trigger; the run is still in flight.
+        assertEquals(2, reads.size());
+        assertNull(first.get());
+        assertNull(second.get());
+
+        reads.get(1).onResponse(policyWithHash(STANDARD, "std-1"));
 
         assertEquals(Boolean.TRUE, first.get());
         assertEquals(Boolean.TRUE, second.get());
+        verify(this.engine, times(1)).promoteAsync(any(), any());
+    }
+
+    /**
+     * A change that lands while a pass is running, after the pass read the hashes, is loaded by the
+     * repeat. Content changes fire no cluster-state event, so without the repeat it stayed out of the
+     * Engine until another run started (wazuh-indexer#2032).
+     */
+    public void testChangeLandingDuringAPassIsLoadedByTheRepeat() {
+        List<ActionListener<Map<String, Object>>> reads = this.holdStandardReads();
+        this.okPromote();
+
+        this.loader.reloadIfChanged();
+        // The pass has read std-1; the change to std-2 lands and triggers a reload.
+        this.loader.reloadIfChanged();
+        reads.get(0).onResponse(policyWithHash(STANDARD, "std-1"));
+        reads.get(1).onResponse(policyWithHash(STANDARD, "std-2"));
+
+        verify(this.engine, times(2)).promoteAsync(any(), any());
+
+        // std-2 is recorded as loaded: a later trigger with no new change does not load it again.
+        this.loader.reloadIfChanged();
+        reads.get(2).onResponse(policyWithHash(STANDARD, "std-2"));
+        verify(this.engine, times(2)).promoteAsync(any(), any());
+    }
+
+    /** However many triggers arrive during a pass, the run repeats it once. */
+    public void testTriggersDuringAPassCollapseIntoOneRepeat() {
+        List<ActionListener<Map<String, Object>>> reads = this.holdStandardReads();
+        this.okPromote();
+
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+        reads.get(0).onResponse(policyWithHash(STANDARD, "std-1"));
+        reads.get(1).onResponse(policyWithHash(STANDARD, "std-1"));
+
+        assertEquals(2, reads.size());
         verify(this.engine, times(1)).promoteAsync(any(), any());
     }
 
@@ -525,5 +584,133 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
         AtomicReference<Exception> secondFailure = new AtomicReference<>();
         nullEngineLoader.reloadIfChanged(ActionListener.wrap(v -> {}, secondFailure::set));
         assertNotNull(secondFailure.get());
+    }
+
+    /**
+     * Captures the retries the loader schedules after a failed load, leaving out the in-flight
+     * watchdog, which is scheduled with the reload timeout.
+     */
+    private List<Runnable> captureRetries(List<TimeValue> delays) {
+        List<Runnable> retries = new ArrayList<>();
+        long watchdogMs =
+                TimeValue.timeValueMinutes(PluginSettings.getInstance().getEngineReloadTimeoutMinutes())
+                        .millis();
+        when(this.threadPool.schedule(any(Runnable.class), any(TimeValue.class), anyString()))
+                .thenAnswer(
+                        inv -> {
+                            TimeValue delay = inv.getArgument(1);
+                            if (delay.millis() != watchdogMs) {
+                                delays.add(delay);
+                                retries.add(inv.getArgument(0));
+                            }
+                            return null;
+                        });
+        return retries;
+    }
+
+    /** Answers every promote with the given status. */
+    private void promoteAnswers(int status) {
+        doAnswer(
+                        inv -> {
+                            ActionListener<RestResponse> l = inv.getArgument(1);
+                            l.onResponse(new RestResponse("engine says " + status, status));
+                            return null;
+                        })
+                .when(this.engine)
+                .promoteAsync(any(), any());
+    }
+
+    /**
+     * A load the Engine refuses is retried on its own: without the retry, the Engine kept the
+     * previous content until some unrelated trigger, since a content change fires no cluster-state
+     * event (wazuh-indexer#2032).
+     */
+    public void testFailedLoadIsRetried() {
+        List<TimeValue> delays = new ArrayList<>();
+        List<Runnable> retries = this.captureRetries(delays);
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(400);
+
+        this.loader.reloadIfChanged();
+
+        assertEquals(List.of(EngineContentLoader.RETRY_INITIAL_DELAY), delays);
+
+        this.okPromote();
+        retries.get(0).run();
+
+        verify(this.engine, times(2)).promoteAsync(any(), any());
+        // Loaded: nothing more to retry.
+        assertEquals(1, retries.size());
+    }
+
+    /** The retry delay doubles with each consecutive failed run, up to the maximum. */
+    public void testRetryDelayBacksOffUpToTheMaximum() {
+        List<TimeValue> delays = new ArrayList<>();
+        List<Runnable> retries = this.captureRetries(delays);
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(500);
+
+        this.loader.reloadIfChanged();
+        for (int i = 0; i < 8; i++) {
+            retries.get(retries.size() - 1).run();
+        }
+
+        List<Long> seconds = delays.stream().map(TimeValue::seconds).toList();
+        assertEquals(List.of(5L, 10L, 20L, 40L, 80L, 160L, 300L, 300L, 300L), seconds);
+    }
+
+    /** A run in which every space loads resets the backoff. */
+    public void testSuccessfulRunResetsTheBackoff() {
+        List<TimeValue> delays = new ArrayList<>();
+        List<Runnable> retries = this.captureRetries(delays);
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(500);
+        this.loader.reloadIfChanged();
+        retries.get(0).run();
+
+        this.okPromote();
+        retries.get(1).run();
+
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-2"));
+        this.promoteAnswers(500);
+        this.loader.reloadIfChanged();
+
+        List<Long> seconds = delays.stream().map(TimeValue::seconds).toList();
+        assertEquals(List.of(5L, 10L, 5L), seconds);
+    }
+
+    /** Failed runs before the scheduled retry fires do not stack more retries. */
+    public void testOnlyOneRetryIsScheduledAtATime() {
+        List<TimeValue> delays = new ArrayList<>();
+        this.captureRetries(delays);
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(500);
+
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+
+        assertEquals(1, delays.size());
+    }
+
+    /**
+     * Content indices that cannot serve reads yet are not a failed load: the cluster-state listener
+     * retries those runs, so no retry is scheduled.
+     */
+    public void testDeferredRunSchedulesNoRetry() {
+        List<TimeValue> delays = new ArrayList<>();
+        this.captureRetries(delays);
+        doAnswer(
+                        inv -> {
+                            ActionListener<Map<String, Object>> l = inv.getArgument(1);
+                            l.onFailure(new IndexNotFoundException(Constants.INDEX_POLICIES));
+                            return null;
+                        })
+                .when(this.spaceService)
+                .getPolicy(anyString(), any());
+
+        this.loader.reloadIfChanged();
+
+        assertTrue(delays.isEmpty());
     }
 }
