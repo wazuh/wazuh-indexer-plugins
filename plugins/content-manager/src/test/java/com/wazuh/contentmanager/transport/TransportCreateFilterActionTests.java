@@ -62,7 +62,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.action.ContentCreateRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -120,7 +119,6 @@ public class TransportCreateFilterActionTests extends OpenSearchTestCase {
                         mock(ActionFilters.class),
                         this.client,
                         this.engine,
-                        mock(EngineContentLoader.class),
                         this.overridesService);
 
         // Recording an override succeeds by default, so the tests that predate the registry are

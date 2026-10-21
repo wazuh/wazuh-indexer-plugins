@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -58,10 +59,10 @@ import com.wazuh.contentmanager.utils.TransientFailures;
  * (so it reaches all nodes, not just the elected cluster manager) and from the post-sync and
  * post-promote broadcasts as a prompt nudge. For each tracked space it compares the aggregate
  * {@code space.hash.sha256} stored in {@link Constants#INDEX_POLICIES} against the hash last loaded
- * into this node's Engine and reloads only that space when they differ. Because the cluster-state
- * listener fires on every cluster-state update, a load that failed because the Engine was not yet
- * ready is retried on a subsequent event without any dedicated timer or poll; once loaded, every
- * later call is a cheap in-memory comparison.
+ * into this node's Engine and reloads only that space when they differ. A load that fails, because
+ * the Engine refused the payload or could not be reached, records no hash, and the run schedules a
+ * retry with a growing delay, since a content change fires no cluster-state event that would retry
+ * it. Once loaded, every later call is a cheap in-memory comparison.
  *
  * <p>The reload is fully asynchronous: the index reads are chained through {@link ActionListener}
  * callbacks instead of being awaited on a pool thread, and the tracked spaces are walked one at a
@@ -105,9 +106,27 @@ public class EngineContentLoader {
     private static final List<String> TRACKED_SPACES =
             List.of(Space.STANDARD.toString(), Space.TEST.toString(), Space.CUSTOM.toString());
 
+    /** Delay before the first retry of a run in which a space failed to load. */
+    static final TimeValue RETRY_INITIAL_DELAY = TimeValue.timeValueSeconds(5);
+
+    /** Upper bound of the retry delay, which doubles with each consecutive failed run. */
+    static final TimeValue RETRY_MAX_DELAY = TimeValue.timeValueMinutes(5);
+
     private final EngineService engine;
     private final SpaceService spaceService;
     private final ThreadPool threadPool;
+
+    /**
+     * Set when a space failed to load during the current pass: the Engine refused the payload, could
+     * not be reached, or a read failed. Only touched from inside a run, and runs are single-flighted.
+     */
+    private volatile boolean passFailed;
+
+    /** Consecutive runs that ended with a failed load, for the retry backoff. */
+    private volatile int failedRuns;
+
+    /** Whether a retry is already scheduled, so failed runs never stack retries. */
+    private final AtomicBoolean retryScheduled = new AtomicBoolean();
 
     /**
      * Per-space hash of the content currently loaded into this node's Engine (space name → hash).
@@ -133,16 +152,26 @@ public class EngineContentLoader {
 
     /**
      * The reload currently in flight, or {@code null} when idle. Acts as the single-flight guard: a
-     * trigger arriving while a run is in flight is folded into it instead of starting another.
+     * trigger arriving while a run is in flight is folded into it instead of starting another, and
+     * makes the run go over the tracked spaces once more before it ends.
      */
     private Run current;
 
-    /** One reload run: the listeners waiting on it, its watchdog and its completion flag. */
+    /**
+     * One reload run: the listeners waiting on it, its watchdog, whether a trigger arrived during the
+     * current pass, and its completion flag.
+     */
     private static final class Run {
         private final List<ActionListener<Void>> waiters = new ArrayList<>();
 
         /** Assigned before the chain starts, read by whichever thread completes the run. */
         private volatile Scheduler.ScheduledCancellable watchdog;
+
+        /**
+         * Set when a trigger is folded into the run. The current pass may have read the hashes before
+         * that trigger's change landed, so the run repeats the pass once it ends.
+         */
+        private boolean triggeredDuringPass;
 
         private boolean finished;
     }
@@ -160,19 +189,6 @@ public class EngineContentLoader {
         this.engine = engine;
         this.spaceService = spaceService;
         this.threadPool = threadPool;
-    }
-
-    /**
-     * Records a hash as already loaded for the given space, so that a subsequent {@link
-     * #reloadIfChanged} skips it when the index hash matches. Use this when an external path (e.g.
-     * {@link com.wazuh.contentmanager.transport.TransportActionHelper#reloadStandardSpaceIntoEngine})
-     * has already promoted the space's content into the Engine.
-     *
-     * @param space the space name (e.g. {@code standard}).
-     * @param hash the hash that was successfully loaded.
-     */
-    public void updateLoadedHash(String space, String hash) {
-        this.loadedHashes.put(space, hash);
     }
 
     /**
@@ -200,10 +216,13 @@ public class EngineContentLoader {
      * costs no pool thread at all.
      *
      * <p>Because triggers are collapsed, a call made while a reload is already running is notified
-     * when <em>that</em> run finishes, not by a run of its own. Such a run may have read the content
-     * hashes before this caller's change landed, so completion means "the in-flight reload finished",
-     * not "every change visible at call time is loaded". The cluster-state listener keeps converging
-     * the node either way.
+     * when <em>that</em> run finishes, not by a run of its own. The pass in progress may have read
+     * the content hashes before this caller's change landed, so the run goes over the tracked spaces
+     * once more before it ends, however many calls arrived during the pass. A content change only
+     * writes documents and fires no cluster-state event, so without that repeat it would not be
+     * loaded until some unrelated event or change triggered another run. Completion therefore means
+     * that every change visible when the call was made has been loaded, or its load has failed and
+     * been logged.
      *
      * @param listener notified once: {@code onResponse} when the run completed (individual space
      *     failures are logged, not surfaced), {@code onFailure} if the Engine is unavailable or the
@@ -215,6 +234,7 @@ public class EngineContentLoader {
             if (this.current != null) {
                 // A reload is already running; this trigger is folded into it and so is its listener.
                 this.current.waiters.add(listener);
+                this.current.triggeredDuringPass = true;
                 return;
             }
             run = new Run();
@@ -227,11 +247,88 @@ public class EngineContentLoader {
             return;
         }
         run.watchdog = this.armWatchdog(run);
+        this.startPass(run);
+    }
+
+    /**
+     * Runs one pass over the tracked spaces for {@code run}, then either ends the run or, when a
+     * trigger was folded into it during the pass, runs another pass.
+     *
+     * @param run the run to drive.
+     */
+    private void startPass(Run run) {
+        this.passFailed = false;
         try {
-            this.reloadFrom(0, () -> this.complete(run, null));
+            this.reloadFrom(0, () -> this.endPass(run));
         } catch (Exception e) {
             log.error(Constants.E_LOG_ENGINE_RELOAD_SCHEDULE_FAILED, e.getMessage());
             this.complete(run, e);
+        }
+    }
+
+    /**
+     * Ends a pass: starts another one when a trigger arrived during it, otherwise completes the run.
+     * A run the watchdog already ended is not continued, so a newer run is never overlapped.
+     *
+     * @param run the run whose pass ended.
+     */
+    private void endPass(Run run) {
+        List<ActionListener<Void>> waiters;
+        synchronized (this.mutex) {
+            if (run.finished) {
+                return;
+            }
+            if (run.triggeredDuringPass) {
+                run.triggeredDuringPass = false;
+                waiters = null;
+            } else {
+                // Decided and finished under the same lock, so a trigger cannot be folded into the
+                // run between the two and be notified without its change having been loaded.
+                waiters = this.finish(run);
+            }
+        }
+        if (waiters == null) {
+            log.debug(Constants.D_LOG_ENGINE_RELOAD_REPEATED);
+            this.startPass(run);
+            return;
+        }
+        if (this.passFailed) {
+            this.scheduleRetry();
+        } else {
+            this.failedRuns = 0;
+        }
+        this.notifyWaiters(run, waiters, null);
+    }
+
+    /**
+     * Schedules another run after one in which a space failed to load. A failed load records no hash,
+     * so the retry reloads only the spaces still out of date. Without it, the Engine would keep the
+     * previous content until some unrelated trigger: a content change writes documents and fires no
+     * cluster-state event. The delay doubles with each consecutive failed run, up to {@link
+     * #RETRY_MAX_DELAY}, so an Engine that stays down is not polled continuously.
+     */
+    private void scheduleRetry() {
+        if (!this.retryScheduled.compareAndSet(false, true)) {
+            return;
+        }
+        int failed = this.failedRuns;
+        this.failedRuns = failed + 1;
+        long delayMs =
+                Math.min(RETRY_INITIAL_DELAY.millis() << Math.min(failed, 16), RETRY_MAX_DELAY.millis());
+        TimeValue delay = TimeValue.timeValueMillis(delayMs);
+        try {
+            this.threadPool.schedule(
+                    () -> {
+                        this.retryScheduled.set(false);
+                        this.reloadIfChanged();
+                    },
+                    delay,
+                    ThreadPool.Names.GENERIC);
+            log.debug(Constants.D_LOG_ENGINE_RELOAD_RETRY_SCHEDULED, delay);
+        } catch (Exception e) {
+            // The node is shutting down: the next start loads every space anyway.
+            this.retryScheduled.set(false);
+            log.debug(Constants.E_LOG_ENGINE_RELOAD_SCHEDULE_FAILED, e.getMessage());
         }
     }
 
@@ -248,16 +345,43 @@ public class EngineContentLoader {
     private boolean complete(Run run, Exception failure) {
         List<ActionListener<Void>> waiters;
         synchronized (this.mutex) {
-            if (run.finished) {
-                return false;
-            }
-            run.finished = true;
-            if (this.current == run) {
-                this.current = null;
-            }
-            waiters = List.copyOf(run.waiters);
-            run.waiters.clear();
+            waiters = this.finish(run);
         }
+        if (waiters == null) {
+            return false;
+        }
+        this.notifyWaiters(run, waiters, failure);
+        return true;
+    }
+
+    /**
+     * Marks a run finished and clears the single-flight guard. Must be called holding {@link #mutex}.
+     *
+     * @param run the run to finish.
+     * @return the listeners to notify, or {@code null} if the run had already finished.
+     */
+    private List<ActionListener<Void>> finish(Run run) {
+        if (run.finished) {
+            return null;
+        }
+        run.finished = true;
+        if (this.current == run) {
+            this.current = null;
+        }
+        List<ActionListener<Void>> waiters = List.copyOf(run.waiters);
+        run.waiters.clear();
+        return waiters;
+    }
+
+    /**
+     * Cancels a finished run's watchdog and notifies its listeners. Called without holding {@link
+     * #mutex}.
+     *
+     * @param run the finished run.
+     * @param waiters the listeners returned by {@link #finish(Run)}.
+     * @param failure {@code null} when the run completed, otherwise the failure to report.
+     */
+    private void notifyWaiters(Run run, List<ActionListener<Void>> waiters, Exception failure) {
         if (run.watchdog != null) {
             run.watchdog.cancel();
         }
@@ -268,7 +392,6 @@ public class EngineContentLoader {
                 waiter.onFailure(failure);
             }
         }
-        return true;
     }
 
     /**
@@ -313,6 +436,7 @@ public class EngineContentLoader {
                                 return;
                             }
                             log.error(Constants.E_LOG_ENGINE_SPACE_LOAD_FAILED, space, e.getMessage());
+                            this.passFailed = true;
                             this.reloadFrom(index + 1, onComplete);
                         });
         try {
@@ -422,6 +546,7 @@ public class EngineContentLoader {
                                         space,
                                         response.getStatus(),
                                         response.getMessage());
+                                this.passFailed = true;
                             }
                             listener.onResponse(null);
                         },

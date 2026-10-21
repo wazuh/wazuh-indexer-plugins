@@ -37,17 +37,14 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 import com.wazuh.contentmanager.action.ReloadEngineContentAction;
 import com.wazuh.contentmanager.action.ReloadEngineContentRequest;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
-import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -110,82 +107,29 @@ public final class TransportActionHelper {
      * the last full load and changes such as toggling an integration's {@code enabled} flag never
      * reach log test.
      *
+     * <p>The reload is a broadcast to every node, this one included, where {@link
+     * EngineContentLoader#reloadIfChanged()} loads the space if its hash changed. It is not also
+     * loaded here: a second load of the same space can overlap the loader's, and the Engine fails
+     * overlapping loads ("The 'standard' environment already exists", "Namespace does not exist").
+     *
      * <p>Fire-and-forget: the reload runs asynchronously and failures are only logged. The mutation
      * that triggered it has already been persisted, so it must not be reported as failed.
      *
-     * @param engine the Engine service; a {@code null} value is logged and skipped.
-     * @param spaceService used to build the Engine payload for the standard space.
      * @param changedSpaces the spaces whose hash changed, as reported by {@link
      *     SpaceService#calculateAndUpdate}. The reload is skipped unless it contains the standard
      *     space.
+     * @param client used to send the broadcast.
      */
-    public static void reloadStandardSpaceIntoEngine(
-            EngineService engine,
-            SpaceService spaceService,
-            Set<String> changedSpaces,
-            EngineContentLoader engineContentLoader,
-            Client client) {
+    public static void reloadStandardSpaceIntoEngine(Set<String> changedSpaces, Client client) {
         if (changedSpaces == null || !changedSpaces.contains(Space.STANDARD.toString())) {
             return;
         }
-        if (engine == null) {
-            log.warn(Constants.E_LOG_ENGINE_IS_NULL);
-            return;
-        }
-
         client.execute(
                 ReloadEngineContentAction.INSTANCE,
                 new ReloadEngineContentRequest(),
                 ActionListener.wrap(
                         r -> log.debug(Constants.D_LOG_ENGINE_RELOAD_BROADCAST_SENT),
                         e -> log.warn(Constants.W_LOG_ENGINE_RELOAD_BROADCAST_FAILED, e.getMessage())));
-
-        spaceService.buildEnginePayload(
-                Space.STANDARD.toString(),
-                ActionListener.wrap(
-                        payload ->
-                                engine.promoteAsync(
-                                        payload,
-                                        ActionListener.wrap(
-                                                response -> {
-                                                    if (response.getStatus() == RestStatus.OK.getStatus()) {
-                                                        log.info(Constants.I_LOG_ENGINE_STANDARD_LOADED);
-                                                        updateLoaderHash(spaceService, engineContentLoader);
-                                                    } else {
-                                                        log.warn(
-                                                                Constants.W_LOG_ENGINE_STANDARD_LOAD_STATUS,
-                                                                response.getStatus(),
-                                                                response.getMessage());
-                                                    }
-                                                },
-                                                e ->
-                                                        log.error(
-                                                                Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage()))),
-                        e -> log.error(Constants.E_LOG_ENGINE_STANDARD_LOAD_FAILED, e.getMessage())));
-    }
-
-    @SuppressWarnings("unchecked")
-    private static void updateLoaderHash(
-            SpaceService spaceService, EngineContentLoader engineContentLoader) {
-        if (engineContentLoader == null) {
-            return;
-        }
-        spaceService.getPolicy(
-                Space.STANDARD.toString(),
-                ActionListener.wrap(
-                        policy -> {
-                            if (policy == null) {
-                                return;
-                            }
-                            Object space = policy.get(Constants.KEY_SPACE);
-                            if (space instanceof Map) {
-                                String hash = Resource.extractHash((Map<String, Object>) space);
-                                if (hash != null) {
-                                    engineContentLoader.updateLoadedHash(Space.STANDARD.toString(), hash);
-                                }
-                            }
-                        },
-                        e -> log.debug("Failed to read hash for loader update: {}", e.getMessage())));
     }
 
     /** Walks the exception cause chain looking for an OpenSearchSecurityException. */
