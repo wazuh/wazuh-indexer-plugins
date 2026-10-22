@@ -1,0 +1,291 @@
+{
+  "title": "Wazuh - Compliance",
+  "description": "Regulatory requirements of the rules that produced the findings.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_01": {
+      "type": "ds.search",
+      "name": "PCI DSS findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.pci_dss{}\"=* | stats count"
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "NIST 800-53 findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_53{}\"=* | stats count"
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "GDPR findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.gdpr{}\"=* | stats count"
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "HIPAA findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.hipaa{}\"=* | stats count"
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "Findings by framework over time",
+      "options": {
+        "query": "`wazuh_findings` | eval framework=mvappend(if(isnotnull('wazuh.rule.compliance.pci_dss{}'),\"PCI DSS\",null()), if(isnotnull('wazuh.rule.compliance.nist_800_53{}'),\"NIST 800-53\",null()), if(isnotnull('wazuh.rule.compliance.gdpr{}'),\"GDPR\",null()), if(isnotnull('wazuh.rule.compliance.hipaa{}'),\"HIPAA\",null())) | where isnotnull(framework) | timechart usenull=f useother=f count by framework"
+      }
+    },
+    "ds_06": {
+      "type": "ds.search",
+      "name": "PCI DSS requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.pci_dss{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_07": {
+      "type": "ds.search",
+      "name": "NIST 800-53 requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.nist_800_53{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_08": {
+      "type": "ds.search",
+      "name": "GDPR requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.gdpr{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_09": {
+      "type": "ds.search",
+      "name": "HIPAA requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.hipaa{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_10": {
+      "type": "ds.search",
+      "name": "Requirements by rule",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.pci_dss{}\" as pci_dss, \"wazuh.rule.compliance.nist_800_53{}\" as nist_800_53, \"wazuh.rule.compliance.gdpr{}\" as gdpr, \"wazuh.rule.compliance.hipaa{}\" as hipaa | where isnotnull(pci_dss) OR isnotnull(nist_800_53) OR isnotnull(gdpr) OR isnotnull(hipaa) | stats count, dc(wazuh.agent.name) as agents, values(pci_dss) as pci_dss, values(nist_800_53) as nist_800_53, values(gdpr) as gdpr, values(hipaa) as hipaa by wazuh.rule.title | sort - count"
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.singlevalue",
+      "title": "PCI DSS findings",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {}
+    },
+    "viz_02": {
+      "type": "splunk.singlevalue",
+      "title": "NIST 800-53 findings",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {}
+    },
+    "viz_03": {
+      "type": "splunk.singlevalue",
+      "title": "GDPR findings",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {}
+    },
+    "viz_04": {
+      "type": "splunk.singlevalue",
+      "title": "HIPAA findings",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {}
+    },
+    "viz_05": {
+      "type": "splunk.column",
+      "title": "Findings by framework over time",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_06": {
+      "type": "splunk.bar",
+      "title": "PCI DSS requirements",
+      "dataSources": {
+        "primary": "ds_06"
+      },
+      "options": {}
+    },
+    "viz_07": {
+      "type": "splunk.bar",
+      "title": "NIST 800-53 requirements",
+      "dataSources": {
+        "primary": "ds_07"
+      },
+      "options": {}
+    },
+    "viz_08": {
+      "type": "splunk.bar",
+      "title": "GDPR requirements",
+      "dataSources": {
+        "primary": "ds_08"
+      },
+      "options": {}
+    },
+    "viz_09": {
+      "type": "splunk.bar",
+      "title": "HIPAA requirements",
+      "dataSources": {
+        "primary": "ds_09"
+      },
+      "options": {}
+    },
+    "viz_10": {
+      "type": "splunk.table",
+      "title": "Requirements by rule",
+      "dataSources": {
+        "primary": "ds_10"
+      },
+      "options": {}
+    }
+  },
+  "layout": {
+    "type": "grid",
+    "options": {},
+    "globalInputs": [
+      "input_global_trp"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 300,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 300,
+          "y": 0,
+          "w": 300,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 0,
+          "w": 300,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 900,
+          "y": 0,
+          "w": 300,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 110,
+          "w": 1200,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_06",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 430,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_07",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 430,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_08",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 750,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_09",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 750,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_10",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 1070,
+          "w": 1200,
+          "h": 360
+        }
+      }
+    ]
+  }
+}

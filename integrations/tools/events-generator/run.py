@@ -1,205 +1,301 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
-# Events generator tool for Wazuh's indices.
-# Chooses a random element from <index>/alerts.json to index
-# Required. Destination of the events. Default: indexer.
-#  -c: Number of elements to push. Use 0 to run indefinitely. Default: 0
-#  -i: index name prefix or module (e.g: wazuh-alerts, wazuh-states-vulnerabilities)
-#  -t: interval between events in seconds. Default: 5
-# when output is "indexer", the following parameters can be provided:
-#  -a: indexer's API IP address or hostname.
-#  -P: indexer's API port number.
-#  -u: username
-#  -p: password
+# Events generator for the Wazuh indexer integrations.
+#
+# Indexes Wazuh Common Schema (WCS) events into the wazuh-events-v5-<category>
+# data streams and, for a share of them, the findings that the Security Analytics
+# plugin would produce into wazuh-findings-v5-<category>.
+#
+# Events are built from the templates under samples/. Findings are built the way
+# the Security Analytics plugin enriches them: a copy of the triggering event,
+# event.doc_id and event.index pointing at it, the matching rule under
+# wazuh.rule, and a deterministic document id.
 
-
-from abc import ABC, abstractmethod
 import argparse
+import base64
+import copy
 import datetime
-import logging
-import random
-import requests
-import time
+import hashlib
 import json
+import logging
+import os
+import random
+import signal
+import sys
+import time
+
+import requests
 import urllib3
-# import OpenSearch.opensearchpy
 
-logging.basicConfig(level=logging.NOTSET)
-# Combination to supress certificates validation warning when verify=False
-# https://github.com/influxdata/influxdb-python/issues/240#issuecomment-341313420
-logging.getLogger("urllib3").setLevel(logging.ERROR)
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+SAMPLES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "samples")
 
-logger = logging.getLogger("event_generator")
+# Categories of the events and findings data streams created by the setup plugin.
+CATEGORIES = (
+    "access-management",
+    "applications",
+    "cloud-services",
+    "network-activity",
+    "security",
+    "system-activity",
+    "other",
+    "unclassified",
+)
 
-# ================================================== #
-
-
-class Inventory:
-    def __init__(self, path: str):
-        with open(path, "r") as fd:
-            self.elements = fd.readlines()
-            self.size = len(self.elements)
-
-    def get_random(self) -> str:
-        """
-        Returns the last element of the list
-        """
-        random.shuffle(self.elements)
-        return self.elements[self.size-1]
-
-# ================================================== #
+logger = logging.getLogger("events-generator")
 
 
-class Publisher(ABC):
-    @abstractmethod
-    def publish(self, event: str):
-        pass
+def load_samples(samples_dir: str = SAMPLES_DIR) -> dict:
+    """Loads the event templates, agents and rules the documents are built from."""
+    samples = {}
+    for name in ("events", "agents", "rules"):
+        with open(os.path.join(samples_dir, f"{name}.json"), "r") as fd:
+            samples[name] = json.load(fd)
+    return samples
 
-# ================================================== #
+
+def stream_name(kind: str, category: str) -> str:
+    """Name of the data stream holding documents of the given kind and category."""
+    return f"wazuh-{kind}-v5-{category}"
 
 
-class PublisherClient(Publisher):
+def now() -> str:
+    """Current time in the format the Wazuh engine uses for @timestamp."""
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
+def build_event(template: dict, agent: dict, cluster: dict, timestamp: str) -> dict:
+    """Builds an event from a template, the agent that collected it and the cluster that processed it."""
+    event = copy.deepcopy(template["event"])
+    event["@timestamp"] = timestamp
+    wazuh = event.setdefault("wazuh", {})
+    wazuh["agent"] = copy.deepcopy(agent)
+    wazuh["cluster"] = copy.deepcopy(cluster)
+    return event
+
+
+def dedup_id(event_index: str, event_doc_id: str, rule_id) -> str:
+    """
+    Document id of a finding, computed as the Security Analytics plugin does
+    (WazuhEnrichedFindingService.dedupId): each part prefixed by its length in
+    UTF-16 code units (Java String.length()), SHA-256, truncated to 128 bits,
+    base64url without padding.
+    """
+    key = ""
+    for part in (event_index, event_doc_id, "" if rule_id is None else rule_id):
+        key += f"{len(part.encode('utf-16-le')) // 2}:{part}"
+    digest = hashlib.sha256(key.encode("utf-8")).digest()[:16]
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+
+
+def build_finding(event: dict, event_index: str, event_doc_id: str, rule: dict) -> dict:
+    """Builds the finding of a rule matching an event, as the Security Analytics plugin does."""
+    finding = copy.deepcopy(event)
+    finding.setdefault("event", {})
+    finding["event"]["doc_id"] = event_doc_id
+    finding["event"]["index"] = event_index
+    finding.setdefault("wazuh", {})["rule"] = copy.deepcopy(rule)
+    return finding
+
+
+def rules_for(template: dict, rules: list) -> list:
+    """Rules that can match the events of a template, by integration name."""
+    integration = template["event"].get("wazuh", {}).get("integration", {}).get("name")
+    return [rule for rule in rules if integration in rule.get("integrations", [])]
+
+
+def strip_rule(rule: dict) -> dict:
+    """The rule as it appears under wazuh.rule, without the generator's own metadata."""
+    return {key: value for key, value in rule.items() if key != "integrations"}
+
+
+class Indexer:
+    """Minimal client to write documents into the Wazuh indexer data streams."""
+
+    def __init__(self, url: str, username: str, password: str, verify):
+        self.url = url.rstrip("/")
+        self.session = requests.Session()
+        self.session.auth = (username, password)
+        self.session.verify = verify
+
+    def index(self, stream: str, document: dict) -> dict:
+        """Appends a document with an id generated by the indexer."""
+        response = self.session.post(f"{self.url}/{stream}/_doc", json=document)
+        response.raise_for_status()
+        return response.json()
+
+    def create(self, stream: str, doc_id: str, document: dict):
+        """Appends a document with the given id. Returns None if it already exists."""
+        response = self.session.put(f"{self.url}/{stream}/_create/{doc_id}", json=document)
+        if response.status_code == 409:
+            return None
+        response.raise_for_status()
+        return response.json()
+
+
+class DryRun:
+    """Prints the documents instead of indexing them."""
+
     def __init__(self):
-        # self.client = OpenSearch(
-        #     hosts...
-        # )
-        pass
+        self.count = 0
 
-# ================================================== #
+    def index(self, stream: str, document: dict) -> dict:
+        self.count += 1
+        print(json.dumps({"stream": stream, "document": document}))
+        return {"_index": f".ds-{stream}-000001", "_id": f"dry-run-{self.count}"}
 
-
-class PublisherHttp(Publisher):
-    def __init__(self, address: str, port: int, path: str, user: str, password: str):
-        super()
-        self.address = address
-        self.port = port
-        self.path = path
-        self.username = user
-        self.password = password
-
-    def url(self) -> str:
-        return f"https://{self.address}:{self.port}/{self.path}/_doc"
-
-    def publish(self, event: str):
-        try:
-            result = requests.post(
-                self.url(),
-                auth=(self.username, self.password),
-                json=json.loads(event),
-                verify=False
-            )
-            print(result.json())
-        except json.JSONDecodeError as e:
-            logger.error("Error encoding event " +
-                         event + "\n Caused by: " + e.msg)
-
-# ================================================== #
+    def create(self, stream: str, doc_id: str, document: dict) -> dict:
+        print(json.dumps({"stream": stream, "_id": doc_id, "document": document}))
+        return {"_index": f".ds-{stream}-000001", "_id": doc_id}
 
 
-class PublisherCreator:
-    @staticmethod
-    def create(publisher: str, args) -> Publisher:
-        if publisher == "indexer":
-            address = args["address"]
-            port = args["port"]
-            path = args["index"]
-            username = args["username"]
-            password = args["password"]
+class Pending:
+    """Findings waiting to be indexed, as the Security Analytics plugin indexes them some time after the event."""
 
-            return PublisherHttp(address, port, path, username, password)
-        else:
-            raise ValueError("Unsupported publisher type")
+    def __init__(self):
+        self.items = []
 
-# ================================================== #
+    def add(self, due: float, stream: str, doc_id: str, document: dict):
+        self.items.append((due, stream, doc_id, document))
 
-
-def date_now() -> str:
-    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]+'+0000'
-
-# ================================================== #
+    def flush(self, client, now_ts: float = None):
+        """Indexes the findings that are due, or all of them without a time."""
+        due, waiting = [], []
+        for item in self.items:
+            (due if now_ts is None or item[0] <= now_ts else waiting).append(item)
+        self.items = waiting
+        for _, stream, doc_id, document in due:
+            created = client.create(stream, doc_id, document)
+            if created:
+                logger.info("finding %s indexed into %s (rule %s)", created["_id"], created["_index"], document["wazuh"]["rule"]["id"])
 
 
-def parse_args():
+def generate(client, samples: dict, categories, findings_ratio: float, rng: random.Random,
+             findings_delay: float = 0, pending: Pending = None, custom_stream: str = None, custom_ratio: float = 0) -> dict:
+    """
+    Indexes one event and, with the given probability, one finding for it. With a delay, the finding
+    is left in pending to be indexed later. With a custom data stream, a share of the events is also
+    indexed into it.
+    """
+    templates = [t for t in samples["events"] if t["event"]["wazuh"]["integration"]["category"] in categories]
+    template = rng.choice(templates)
+    agents = [a for a in samples["agents"]["agents"] if template.get("os", "any") in ("any", a["host"]["os"]["type"])]
+    event = build_event(template, rng.choice(agents), samples["agents"]["cluster"], now())
+
+    category = event["wazuh"]["integration"]["category"]
+    result = client.index(stream_name("events", category), event)
+    logger.info("event %s indexed into %s", result["_id"], result["_index"])
+
+    if custom_stream and rng.random() < custom_ratio:
+        copy_result = client.index(custom_stream, event)
+        logger.info("event %s indexed into %s", copy_result["_id"], copy_result["_index"])
+
+    candidates = rules_for(template, samples["rules"])
+    if candidates and rng.random() < findings_ratio:
+        rule = strip_rule(rng.choice(candidates))
+        finding = build_finding(event, result["_index"], result["_id"], rule)
+        doc_id = dedup_id(result["_index"], result["_id"], rule["id"])
+        pending = pending if pending is not None else Pending()
+        pending.add(time.time() + findings_delay, stream_name("findings", category), doc_id, finding)
+        if not findings_delay:
+            pending.flush(client)
+    return event
+
+
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(
-        description="Events generator tool for Wazuh's indices. Indexes a random element from <index>/alerts.json",
+        description="Indexes Wazuh Common Schema events and findings into the Wazuh indexer data streams."
+    )
+    parser.add_argument("-a", "--address", default="localhost", help="Wazuh indexer address. Default: localhost.")
+    parser.add_argument("-P", "--port", default=9200, type=int, help="Wazuh indexer port. Default: 9200.")
+    parser.add_argument(
+        "-u", "--username", default=os.environ.get("WAZUH_INDEXER_USERNAME", "admin"),
+        help="Wazuh indexer user. Default: $WAZUH_INDEXER_USERNAME or admin.",
     )
     parser.add_argument(
-        '-i', '--index',
-        default="wazuh-alerts-4.x-sample",
-        help="Destination index name or alias"
+        "-p", "--password", default=os.environ.get("WAZUH_INDEXER_PASSWORD"),
+        help="Wazuh indexer password. Default: $WAZUH_INDEXER_PASSWORD.",
+    )
+    parser.add_argument("--ca", help="CA certificate to verify the Wazuh indexer with. Without it, the certificate is not verified.")
+    parser.add_argument("-c", "--count", default=0, type=int, help="Number of events to index. 0 runs indefinitely. Default: 0.")
+    parser.add_argument("-t", "--time", default=5, type=float, help="Seconds between events. Default: 5.")
+    parser.add_argument(
+        "-f", "--findings-ratio", default=0.3, type=float,
+        help="Probability of an event producing a finding, between 0 and 1. Default: 0.3.",
     )
     parser.add_argument(
-        '-o', '--output',
-        choices=['indexer'],
-        default="indexer",
-        help="Destination of the events. Default: indexer."
+        "--categories", default=",".join(CATEGORIES),
+        help="Comma-separated categories to generate events for. Default: all of them.",
     )
     parser.add_argument(
-        '-m', '--module',
-        default="wazuh-alerts",
-        help="Wazuh module to read the alerts from (e.g: wazuh-alerts, wazuh-states-vulnerabilities). Must match a subfolder's name."
-    )
-    # Infinite loop by default
-    parser.add_argument(
-        '-c', '--count',
-        default=0,
-        type=int,
-        help="Number of elements to push. Use 0 to run indefinitely. Default: 0"
-    )
-    # Interval of time between events
-    parser.add_argument(
-        '-t', '--time',
-        default=5,
-        type=int,
-        help="Interval between events in seconds. Default: 5"
+        "--findings-delay", default=float(os.environ.get("WAZUH_GENERATOR_FINDINGS_DELAY", 0)), type=float,
+        help="Seconds between an event and the indexing of its finding, as the Security Analytics plugin "
+             "indexes findings after the event. Default: $WAZUH_GENERATOR_FINDINGS_DELAY or 0.",
     )
     parser.add_argument(
-        '-a', '--address',
-        default="localhost",
-        help="Indexer's API IP address or hostname."
+        "--custom-stream", default=os.environ.get("WAZUH_CUSTOM_STREAM") or None,
+        help="Data stream to also index a share of the events into, to test the export of custom data streams. "
+             "Default: $WAZUH_CUSTOM_STREAM, or none.",
     )
     parser.add_argument(
-        '-P', '--port',
-        default=9200,
-        type=int,
-        help="Indexer's API port number."
+        "--custom-ratio", default=0.2, type=float,
+        help="Probability of an event being also indexed into the custom data stream. Default: 0.2.",
     )
-    parser.add_argument(
-        '-u', '--username',
-        default="admin",
-        help="Indexer's username"
-    )
-    parser.add_argument(
-        '-p', '--password',
-        default="admin",
-        help="Indexer's password"
-    )
-    return parser.parse_args()
+    parser.add_argument("--dry-run", action="store_true", help="Print the documents instead of indexing them.")
+    parser.add_argument("--seed", type=int, help="Seed for the random choices, to get repeatable output.")
+    args = parser.parse_args(argv)
+
+    categories = [c.strip() for c in args.categories.split(",") if c.strip()]
+    unknown = sorted(set(categories) - set(CATEGORIES))
+    if unknown:
+        parser.error(f"unknown categories: {', '.join(unknown)}")
+    args.categories = categories
+    if not 0 <= args.findings_ratio <= 1:
+        parser.error("--findings-ratio must be between 0 and 1")
+    if not 0 <= args.custom_ratio <= 1:
+        parser.error("--custom-ratio must be between 0 and 1")
+    if args.findings_delay < 0:
+        parser.error("--findings-delay cannot be negative")
+    if not args.dry_run and not args.password:
+        parser.error("a password is required: use --password or $WAZUH_INDEXER_PASSWORD")
+    return args
 
 
-# ================================================== #
+def main(argv=None):
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    args = parse_args(argv)
+    # docker stop: end cleanly. Findings still pending are not indexed.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 
+    if args.dry_run:
+        client = DryRun()
+    else:
+        if not args.ca:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        client = Indexer(f"https://{args.address}:{args.port}", args.username, args.password, args.ca or False)
 
-def main(args: dict):
-    inventory = Inventory(f"{args['module']}/alerts.json")
-    logger.info("Inventory created")
-    publisher = PublisherCreator.create(args["output"], args)
-    logger.info("Publisher created")
-
+    samples = load_samples()
+    rng = random.Random(args.seed)
+    pending = Pending()
     count = 0
-    max_iter = args["count"]
-    time_interval = args["time"]
-    while (count < max_iter or max_iter == 0):
-        chosen = inventory.get_random().replace("{timestamp}", date_now())
-        logger.info("Event created")
-        publisher.publish(chosen)
-
-        time.sleep(time_interval)
+    while args.count == 0 or count < args.count:
+        try:
+            generate(client, samples, args.categories, args.findings_ratio, rng,
+                     args.findings_delay, pending, args.custom_stream, args.custom_ratio)
+            pending.flush(client, time.time())
+        except requests.RequestException as e:
+            logger.error("could not index the documents: %s", e)
         count += 1
+        if args.count == 0 or count < args.count:
+            time.sleep(args.time)
+    # Findings still pending when the last event was generated.
+    while pending.items:
+        time.sleep(max(0.0, min(i[0] for i in pending.items) - time.time()))
+        try:
+            pending.flush(client, time.time())
+        except requests.RequestException as e:
+            logger.error("could not index the documents: %s", e)
+            break
 
-# ================================================== #
 
-
-if __name__ == '__main__':
-    main(vars(parse_args()))
+if __name__ == "__main__":
+    sys.exit(main())
