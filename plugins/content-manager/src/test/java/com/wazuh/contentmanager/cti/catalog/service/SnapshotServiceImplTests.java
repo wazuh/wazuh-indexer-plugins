@@ -1168,9 +1168,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
     /**
      * Local-path initialization preserves all identity fields from the existing (t0-written) consumer
-     * document and only mutates {@code local_offset}. Identity, {@code is_public}, {@code status} and
-     * {@code remote_offset} are owned by the t0 write in {@code AbstractConsumerService}, not by
-     * {@code SnapshotServiceImpl}.
+     * document and only mutates {@code local_offset}. Identity, {@code is_public}, {@code status},
+     * {@code remote_offset} and {@code updated_at} are owned by {@code AbstractConsumerService}, not
+     * by {@code SnapshotServiceImpl}.
      */
     public void testInitializeFromPath_PreservesT0FieldsAndOnlyUpdatesLocalOffset() throws Exception {
         // spotless:off
@@ -1188,7 +1188,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 "{\"name\":\"public-ruleset-5\",\"context\":\"t1-ruleset-5\","
                         + "\"type\":\"cti:catalog:consumer:ruleset\","
                         + "\"resource\":\"https://example/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5\","
-                        + "\"is_public\":true,\"status\":\"running\",\"local_offset\":0,\"remote_offset\":42}";
+                        + "\"is_public\":true,\"status\":\"running\",\"local_offset\":0,\"remote_offset\":42,"
+                        + "\"updated_at\":\"2026-10-20T08:00:00.123Z\"}";
 
         org.opensearch.action.get.GetResponse existingGetResponse =
                 mock(org.opensearch.action.get.GetResponse.class);
@@ -1214,6 +1215,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         Assert.assertEquals(LocalConsumer.Status.RUNNING, persisted.getStatus());
         Assert.assertEquals(42L, persisted.getLocalOffset());
         Assert.assertEquals(42L, persisted.getRemoteOffset());
+        Assert.assertEquals("2026-10-20T08:00:00.123Z", persisted.getUpdatedAt());
     }
 
     /**

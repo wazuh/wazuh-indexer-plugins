@@ -200,6 +200,11 @@ public class Constants {
     public static final String D_LOG_CONSUMER_DOC_ABSENT =
             "Consumer [{}] doc not present; skipping status update to [{}]";
     public static final String D_LOG_CONSUMER_STATUS_SET = "Consumer [{}] status set to [{}]";
+    public static final String D_LOG_CONSUMER_CONTENT_UPDATED_AT =
+            "Consumer [{}] content updated at [{}]";
+    public static final String D_LOG_CATALOG_CHECKED_AT = "CTI catalog checked at [{}]";
+    public static final String W_LOG_CATALOG_CHECKED_AT_FAILED =
+            "Failed to record the time of the last CTI catalog check: {}";
     public static final String W_LOG_CONSUMER_STATUS_FAILED =
             "Failed to set consumer [{}] status to [{}]: {}";
     public static final String D_LOG_CONSUMER_PENDING_PHASES_DOC_ABSENT =
@@ -953,6 +958,8 @@ public class Constants {
     public static final String KEY_CONTEXT = "context";
     public static final String KEY_LOCAL_OFFSET = "local_offset";
     public static final String KEY_REMOTE_OFFSET = "remote_offset";
+    public static final String KEY_UPDATED_AT = "updated_at";
+    public static final String KEY_LAST_CHECKED_AT = "last_checked_at";
 
     // API request content fields
     public static final String KEY_TYPE = "type";

@@ -205,15 +205,16 @@ class TestConsumer extends AbstractConsumerService {
             LocalConsumer current = this.readConsumerDocument();
             this.consumersIndex.setConsumer(
                     new LocalConsumer(
-                            current.getContext(),
-                            current.getName(),
-                            current.getType(),
-                            current.getResource(),
-                            current.isPublic(),
-                            LocalConsumer.Status.RUNNING,
-                            toOffset,
-                            toOffset,
-                            current.getPendingSyncPhases()),
+                                    current.getContext(),
+                                    current.getName(),
+                                    current.getType(),
+                                    current.getResource(),
+                                    current.isPublic(),
+                                    LocalConsumer.Status.RUNNING,
+                                    toOffset,
+                                    toOffset,
+                                    current.getPendingSyncPhases())
+                            .withUpdatedAt(current.getUpdatedAt()),
                     true);
         } catch (Exception e) {
             throw new IllegalStateException(e);
