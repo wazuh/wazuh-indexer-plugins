@@ -233,7 +233,14 @@ Example output:
           "status": "ready",
           "local_offset": 3932,
           "remote_offset": 3932,
-          "pending_sync_phases": []
+          "pending_sync_phases": [],
+          "updated_at": "2026-10-21T12:26:16.581Z"
+        }
+      },
+      {
+        "_id": "cti:catalog:global",
+        "_source": {
+          "last_checked_at": "2026-10-21T15:30:02.114Z"
         }
       }
     ]
@@ -246,6 +253,8 @@ Example output:
 - `status == failed`: The previous sync cycle was interrupted by an unexpected exception. Check the Content Manager logs around the time this consumer was last synced; the job retries automatically on its next scheduled run.
 - `local_offset == remote_offset`: Content is up-to-date. While the consumer is `running`, the sync has no changes left to apply: it is checking for new ones or finishing its post-sync work.
 - `local_offset < remote_offset`: Content needs updating. While the consumer is `running`, `remote_offset` is the offset the sync in progress updates to.
+- `updated_at`: when a sync last changed the consumer's content. A sync that finds nothing new leaves it as it is.
+- `last_checked_at` (on the `cti:catalog:global` document): when Wazuh CTI last answered a request for changes. If it is much older than the sync interval (`plugins.content_manager.catalog.sync_interval`), either the sync job is not running (see [Sync not running](#sync-not-running)) or the Indexer cannot reach Wazuh CTI: look for the CTI API entries in the [logs](#log-monitoring).
 - `local_offset == 0`: Content has never been synced (snapshot required). With status `running` during a plan change, none of the new plan's content is live yet: it is being prepared (see [Every consumer shows `running` after a plan change](#every-consumer-shows-running-after-a-plan-change)).
 - `pending_sync_phases`: for the ruleset consumer, lists which of `integrations`, `rules`, and `detectors` still have to be synced to Ruleset Management and are retried on the next scheduled sync. They are recorded before the content changes and the ones that succeeded are removed when the sync ends, so a sync cut by a restart leaves them all listed. Empty means nothing is owed; a sync with nothing pending still recreates the detectors if any are missing (see [No detectors while the ruleset consumer is in sync](#no-detectors-while-the-ruleset-consumer-is-in-sync)). For the IoC consumer, it lists `ioc_load` while the IoC type hashes and the load of the IoCs into the engine are still owed: a sync cut by a restart or a failure leaves it listed, and the next sync runs it even without new CTI content.
 

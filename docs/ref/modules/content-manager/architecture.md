@@ -346,7 +346,7 @@ Example document structure in `wazuh-threatintel-rules` (the rule body under `do
 }
 ```
 
-The `.wazuh-cti-consumers` index stores one document per consumer type:
+The `.wazuh-cti-consumers` index stores one document per consumer type, and one document, `cti:catalog:global`, for the catalog as a whole:
 
 ```json
 {
@@ -361,7 +361,18 @@ The `.wazuh-cti-consumers` index stores one document per consumer type:
     "status": "ready",
     "local_offset": 3932,
     "remote_offset": 3932,
-    "pending_sync_phases": []
+    "pending_sync_phases": [],
+    "updated_at": "2026-10-21T12:26:16.581Z"
+  }
+}
+```
+
+```json
+{
+  "_index": ".wazuh-cti-consumers",
+  "_id": "cti:catalog:global",
+  "_source": {
+    "last_checked_at": "2026-10-21T15:30:02.114Z"
   }
 }
 ```
@@ -400,3 +411,8 @@ The offsets tell how far the content is synced. `local_offset` is the offset of 
 For the ruleset consumer, `pending_sync_phases` lists which of `integrations`, `rules`, and `detectors` still have to be synced to Ruleset Management. A sync records all of them before it changes the content, by a snapshot, incremental changes or a swap, and removes the ones that succeeded when it ends. A phase that fails stays listed, and a sync cut by a restart or an exception keeps all of them; they are retried on the next scheduled sync, even without new CTI content. A sync that resumes them after a cut also re-applies the user's overrides and reloads the `standard` space into the engines, which the cut sync may not have reached. A sync with nothing pending also checks that each integration with enabled rules has its detector, and syncs all three phases again when any is missing.
 
 For the IoC consumer, `pending_sync_phases` holds `ioc_load`, the storing of the IoC type hashes and the export of the IoCs to the engine. It is recorded before the content changes and removed once both finish, so a sync cut before them, by a restart or a failure, has the next sync run them even without new CTI content. The engine's answer does not keep it listed: the node running the sync may have no engine.
+
+Two timestamps, in UTC with millisecond precision, tell when the content last changed and when Wazuh CTI was last asked for changes:
+
+- `updated_at`, on each consumer document, is the time a sync cycle that changed the consumer's content ended `ready`: a snapshot load, incremental changes, a plan change or an offline update, scheduled or requested through the API. A cycle that finds nothing new, or that ends `failed`, keeps the time of the previous change. The field is absent until the first such cycle.
+- `last_checked_at`, on the `cti:catalog:global` document, is the last time the CTI catalog answered a request for a consumer's state, whether or not there was anything new. It does not change while Wazuh CTI cannot be reached, nor on an offline update, which does not contact it. The document is absent until the first answer.
