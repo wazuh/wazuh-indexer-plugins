@@ -22,6 +22,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.action.ActionResponse;
+import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.IdsQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
@@ -39,6 +43,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.securityanalytics.action.WIndexDetectorRequest;
 import org.mockito.ArgumentCaptor;
@@ -76,6 +82,7 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
+        PluginSettings.getInstance(Settings.EMPTY);
         this.service = new SecurityAnalyticsServiceImpl(this.client);
     }
 
@@ -464,5 +471,27 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         String raw = "{}";
         String result = SecurityAnalyticsServiceImpl.extractErrorMessage(raw);
         assertEquals(raw, result);
+    }
+
+    // ── Repro: missing metadata (#1714) ──────────────────────────────────────
+
+    /** Control: a document whose metadata is an object goes through the guard without throwing. */
+    public void testRepro_DetectorWithMetadataDoesNotThrow() throws Exception {
+        JsonNode doc = MAPPER.readTree("{\"id\":\"x\",\"metadata\":{\"title\":\"t\"},\"rules\":[]}");
+        this.service.buildDetectorRequest(doc, true, null);
+    }
+
+    /** A document without metadata must be rejected (null), not crash with a NullPointerException. */
+    public void testRepro_DetectorWithoutMetadataReturnsNull() throws Exception {
+        JsonNode doc = MAPPER.readTree("{\"id\":\"x\",\"rules\":[]}");
+        assertNull(this.service.buildDetectorRequest(doc, true, null));
+    }
+
+    /** Same guard in buildIntegrationRequest, reached through upsertIntegration. */
+    public void testRepro_IntegrationWithoutMetadataAnswersNull() throws Exception {
+        JsonNode doc = MAPPER.readTree("{\"id\":\"x\"}");
+        ActionListener<ActionResponse> listener = mock(ActionListener.class);
+        this.service.upsertIntegration(doc, Space.DRAFT, Method.POST, listener);
+        verify(listener).onResponse(null);
     }
 }
