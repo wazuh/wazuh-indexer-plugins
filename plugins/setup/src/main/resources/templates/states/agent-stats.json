@@ -13,8 +13,10 @@
         "query.default_field": [
           "wazuh.agent.id"
         ],
-        "refresh_interval": "5s"
-      }
+        "refresh_interval": "5s",
+        "max_docvalue_fields_search": 100
+      },
+      "mapping.total_fields.limit": 1000
     },
     "mappings": {
       "date_detection": false,
@@ -86,6 +88,42 @@
           "properties": {
             "agent": {
               "properties": {
+                "groups": {
+                  "ignore_above": 4096,
+                  "type": "keyword"
+                },
+                "host": {
+                  "properties": {
+                    "architecture": {
+                      "ignore_above": 4096,
+                      "type": "keyword"
+                    },
+                    "hostname": {
+                      "ignore_above": 4096,
+                      "type": "keyword"
+                    },
+                    "os": {
+                      "properties": {
+                        "name": {
+                          "ignore_above": 4096,
+                          "type": "keyword"
+                        },
+                        "platform": {
+                          "ignore_above": 4096,
+                          "type": "keyword"
+                        },
+                        "type": {
+                          "ignore_above": 4096,
+                          "type": "keyword"
+                        },
+                        "version": {
+                          "ignore_above": 4096,
+                          "type": "keyword"
+                        }
+                      }
+                    }
+                  }
+                },
                 "id": {
                   "ignore_above": 4096,
                   "type": "keyword"
