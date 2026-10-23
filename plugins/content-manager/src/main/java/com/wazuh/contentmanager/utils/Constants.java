@@ -64,6 +64,7 @@ public class Constants {
     public static final String E_400_POLICY_ID_MISMATCH =
             "Policy [%s] not found in the '%s' space. The policy update must use the space's policy id [%s].";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
+    public static final String E_400_UNSUPPORTED_SPACE = "Space [%s] is not supported.";
     public static final String E_409_DUPLICATE_NAME =
             "A %s with the name '%s' already exists in the %s space.";
     public static final String E_400_TOO_MANY_INTEGRATIONS =
@@ -902,6 +903,10 @@ public class Constants {
     public static final String KEY_CVES = "cves";
     public static final String KEY_FILTERS = "filters";
     public static final String KEY_ENRICHMENTS = "enrichments";
+
+    // Pipeline phase keys (policy resources response)
+    public static final String KEY_NORMALIZATION = "normalization";
+    public static final String KEY_DETECTION = "detection";
 
     // Resource Metadata Keys
     public static final String KEY_DOCUMENT = "document";
