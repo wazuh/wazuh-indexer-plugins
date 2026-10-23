@@ -23,6 +23,7 @@ import random
 import signal
 import sys
 import time
+import uuid
 
 import requests
 import urllib3
@@ -63,11 +64,17 @@ def now() -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
-def build_event(template: dict, agent: dict, cluster: dict, timestamp: str) -> dict:
+def event_id(rng: random.Random) -> str:
+    """Identifier the Wazuh engine gives every log it receives: a UUID version 4."""
+    return str(uuid.UUID(int=rng.getrandbits(128), version=4))
+
+
+def build_event(template: dict, agent: dict, cluster: dict, timestamp: str, log_id: str) -> dict:
     """Builds an event from a template, the agent that collected it and the cluster that processed it."""
     event = copy.deepcopy(template["event"])
     event["@timestamp"] = timestamp
     wazuh = event.setdefault("wazuh", {})
+    wazuh.setdefault("event", {})["id"] = log_id
     wazuh["agent"] = copy.deepcopy(agent)
     wazuh["cluster"] = copy.deepcopy(cluster)
     return event
@@ -179,7 +186,7 @@ def generate(client, samples: dict, categories, findings_ratio: float, rng: rand
     templates = [t for t in samples["events"] if t["event"]["wazuh"]["integration"]["category"] in categories]
     template = rng.choice(templates)
     agents = [a for a in samples["agents"]["agents"] if template.get("os", "any") in ("any", a["host"]["os"]["type"])]
-    event = build_event(template, rng.choice(agents), samples["agents"]["cluster"], now())
+    event = build_event(template, rng.choice(agents), samples["agents"]["cluster"], now(), event_id(rng))
 
     category = event["wazuh"]["integration"]["category"]
     result = client.index(stream_name("events", category), event)

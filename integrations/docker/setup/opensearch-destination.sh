@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Prepares the destination OpenSearch cluster of the development environment:
-# installs the index template of the Wazuh data streams and creates the role and
-# user that Logstash writes with. Running it again updates all of them.
+# installs the index template and the Index State Management policy of the Wazuh data
+# streams, and creates the role and user that Logstash writes with. Running it again
+# updates all of them.
 #
 # Environment:
 #   OPENSEARCH_URL               Destination URL, e.g. https://opensearch.node:9200.
@@ -11,10 +12,12 @@
 #   OPENSEARCH_LOGSTASH_PASSWORD Password of that user.
 #   OPENSEARCH_CA                CA certificate of the destination. Default: /setup/root-ca.pem.
 #   WAZUH_INDEX_TEMPLATE         Index template. Default: /setup/wazuh-index-template.json.
+#   WAZUH_ISM_POLICY             ISM policy. Default: /setup/wazuh-ism-policy.json.
 set -euo pipefail
 
 CA="${OPENSEARCH_CA:-/setup/root-ca.pem}"
 TEMPLATE="${WAZUH_INDEX_TEMPLATE:-/setup/wazuh-index-template.json}"
+POLICY="${WAZUH_ISM_POLICY:-/setup/wazuh-ism-policy.json}"
 ROLE="wazuh-logstash-writer"
 
 api() {
@@ -34,8 +37,23 @@ echo "Installing the Wazuh index template"
 api -X PUT "${OPENSEARCH_URL}/_index_template/wazuh" -d @"${TEMPLATE}"
 echo
 
+# The policy applies to the backing indices created after it, through its ism_template.
+# Updating an existing policy needs its sequence number and primary term.
+echo "Installing the Wazuh ISM policy"
+current=$(api "${OPENSEARCH_URL}/_plugins/_ism/policies/wazuh-logs" 2>/dev/null || true)
+if seq_no=$(echo "${current}" | grep -o '"_seq_no":[0-9]*' | cut -d: -f2) && [ -n "${seq_no}" ]; then
+  primary_term=$(echo "${current}" | grep -o '"_primary_term":[0-9]*' | cut -d: -f2)
+  api -X PUT "${OPENSEARCH_URL}/_plugins/_ism/policies/wazuh-logs?if_seq_no=${seq_no}&if_primary_term=${primary_term}" -d @"${POLICY}"
+else
+  api -X PUT "${OPENSEARCH_URL}/_plugins/_ism/policies/wazuh-logs" -d @"${POLICY}"
+fi
+echo
+
 # Append documents to the logs-wazuh.*-* data streams, creating them on the first write
-# and adding the mappings of the fields that appear for the first time.
+# and adding the mappings of the fields that appear for the first time. Every action is
+# needed: without any of them, the security plugin rejects the writes (create in a bulk
+# request is authorized as indices:data/write/index, the automatic creation of a data stream
+# as indices:admin/create, and a dynamic mapping update as indices:admin/mapping/put).
 echo "Creating the ${ROLE} role"
 api -X PUT "${OPENSEARCH_URL}/_plugins/_security/api/roles/${ROLE}" -d '{
   "description": "Write the Wazuh events and findings exported by Logstash",

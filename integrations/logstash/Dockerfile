@@ -3,9 +3,15 @@ FROM docker.elastic.co/logstash/logstash-oss:${LOGSTASH_OSS_VERSION}
 
 USER logstash
 
-# Input to read from the Wazuh indexer and output to write to OpenSearch.
+# Input to read from the Wazuh indexer and output to write to OpenSearch, at the versions
+# the integrations are tested with.
 # https://github.com/elastic/logstash/issues/6600
-RUN LS_JAVA_OPTS="-Xms1024m -Xmx1024m" logstash-plugin install logstash-input-opensearch logstash-output-opensearch
+ARG LOGSTASH_INPUT_OPENSEARCH_VERSION=1.0.0
+ARG LOGSTASH_OUTPUT_OPENSEARCH_VERSION=2.1.1
+RUN LS_JAVA_OPTS="-Xms1024m -Xmx1024m" logstash-plugin install \
+      --version ${LOGSTASH_INPUT_OPENSEARCH_VERSION} logstash-input-opensearch && \
+    LS_JAVA_OPTS="-Xms1024m -Xmx1024m" logstash-plugin install \
+      --version ${LOGSTASH_OUTPUT_OPENSEARCH_VERSION} logstash-output-opensearch
 
 # Keystore with the credentials of the Amazon Security Lake pipeline, until that
 # integration is adapted to the 5.x data schema. The other pipelines read their

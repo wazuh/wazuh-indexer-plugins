@@ -1,6 +1,10 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - Events overview</label>
+  <description>Normalized events exported from the Wazuh indexer.</description>
+  <definition><![CDATA[
 {
-  "title": "Wazuh - Findings overview",
-  "description": "Detection findings exported from the Wazuh indexer.",
+  "title": "Wazuh - Events overview",
+  "description": "Normalized events exported from the Wazuh indexer.",
   "inputs": {
     "input_global_trp": {
       "type": "input.timerange",
@@ -26,79 +30,79 @@
   "dataSources": {
     "ds_01": {
       "type": "ds.search",
-      "name": "Findings",
+      "name": "Events",
       "options": {
-        "query": "`wazuh_findings` | stats count"
+        "query": "`wazuh_events` | stats count"
       }
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "Critical and high",
+      "name": "Agents",
       "options": {
-        "query": "`wazuh_findings` (wazuh.rule.level=\"critical\" OR wazuh.rule.level=\"high\") | stats count"
+        "query": "`wazuh_events` | stats dc(wazuh.agent.name)"
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Agents with findings",
+      "name": "Integrations",
       "options": {
-        "query": "`wazuh_findings` | stats dc(wazuh.agent.name)"
+        "query": "`wazuh_events` | stats dc(wazuh.integration.name)"
       }
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Rules triggered",
+      "name": "Failed outcomes",
       "options": {
-        "query": "`wazuh_findings` | stats dc(wazuh.rule.id)"
+        "query": "`wazuh_events` event.outcome=\"failure\" | stats count"
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Findings over time by level",
+      "name": "Events over time by category",
       "options": {
-        "query": "`wazuh_findings` | timechart usenull=f useother=f count by wazuh.rule.level"
+        "query": "`wazuh_events` | timechart usenull=f useother=f count by wazuh.integration.category"
       }
     },
     "ds_06": {
       "type": "ds.search",
-      "name": "Findings by level",
+      "name": "Events by outcome",
       "options": {
-        "query": "`wazuh_findings` | stats count by wazuh.rule.level"
+        "query": "`wazuh_events` | eval outcome=coalesce('event.outcome', \"unknown\") | stats count by outcome"
       }
     },
     "ds_07": {
       "type": "ds.search",
-      "name": "Findings by category",
+      "name": "Top integrations",
       "options": {
-        "query": "`wazuh_findings` | stats count by wazuh.integration.category | sort - count"
+        "query": "`wazuh_events` | stats count by wazuh.integration.name | sort - count | head 10"
       }
     },
     "ds_08": {
       "type": "ds.search",
       "name": "Top agents",
       "options": {
-        "query": "`wazuh_findings` | stats count by wazuh.agent.name | sort - count | head 10"
+        "query": "`wazuh_events` | stats count by wazuh.agent.name | sort - count | head 10"
       }
     },
     "ds_09": {
       "type": "ds.search",
-      "name": "Top rules",
+      "name": "Authentication failures by source",
       "options": {
-        "query": "`wazuh_findings` | stats count, dc(wazuh.agent.name) as agents by wazuh.rule.title, wazuh.rule.level | eval level_order=case('wazuh.rule.level'=\"critical\",1,'wazuh.rule.level'=\"high\",2,'wazuh.rule.level'=\"medium\",3,'wazuh.rule.level'=\"low\",4,true(),5) | sort level_order, - count | fields - level_order | head 20"
+        "query": "`wazuh_events` \"event.category{}\"=\"authentication\" event.outcome=\"failure\" | stats count, values(user.name) as users, dc(wazuh.agent.name) as agents by source.ip | sort - count | head 20"
       }
     },
     "ds_10": {
       "type": "ds.search",
-      "name": "Latest findings",
+      "name": "Cloud activity",
       "options": {
-        "query": "`wazuh_findings` | sort - _time | table _time, wazuh.agent.name, wazuh.rule.level, wazuh.rule.title, wazuh.integration.name, source.ip, user.name | head 50"
+        "query": "`wazuh_events` wazuh.integration.category=\"cloud-services\" | stats count by cloud.provider, cloud.account.id, event.action, event.outcome | sort - count"
       }
     }
   },
   "visualizations": {
     "viz_01": {
       "type": "splunk.singlevalue",
-      "title": "Findings",
+      "title": "Events",
       "dataSources": {
         "primary": "ds_01"
       },
@@ -106,7 +110,7 @@
     },
     "viz_02": {
       "type": "splunk.singlevalue",
-      "title": "Critical and high",
+      "title": "Agents",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -114,7 +118,7 @@
     },
     "viz_03": {
       "type": "splunk.singlevalue",
-      "title": "Agents with findings",
+      "title": "Integrations",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -122,7 +126,7 @@
     },
     "viz_04": {
       "type": "splunk.singlevalue",
-      "title": "Rules triggered",
+      "title": "Failed outcomes",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -130,7 +134,7 @@
     },
     "viz_05": {
       "type": "splunk.column",
-      "title": "Findings over time by level",
+      "title": "Events over time by category",
       "dataSources": {
         "primary": "ds_05"
       },
@@ -141,7 +145,7 @@
     },
     "viz_06": {
       "type": "splunk.pie",
-      "title": "Findings by level",
+      "title": "Events by outcome",
       "dataSources": {
         "primary": "ds_06"
       },
@@ -149,7 +153,7 @@
     },
     "viz_07": {
       "type": "splunk.bar",
-      "title": "Findings by category",
+      "title": "Top integrations",
       "dataSources": {
         "primary": "ds_07"
       },
@@ -165,7 +169,7 @@
     },
     "viz_09": {
       "type": "splunk.table",
-      "title": "Top rules",
+      "title": "Authentication failures by source",
       "dataSources": {
         "primary": "ds_09"
       },
@@ -173,7 +177,7 @@
     },
     "viz_10": {
       "type": "splunk.table",
-      "title": "Latest findings",
+      "title": "Cloud activity",
       "dataSources": {
         "primary": "ds_10"
       },
@@ -273,7 +277,7 @@
         "position": {
           "x": 0,
           "y": 750,
-          "w": 1200,
+          "w": 600,
           "h": 320
         }
       },
@@ -281,12 +285,14 @@
         "item": "viz_10",
         "type": "block",
         "position": {
-          "x": 0,
-          "y": 1070,
-          "w": 1200,
-          "h": 360
+          "x": 600,
+          "y": 750,
+          "w": 600,
+          "h": 320
         }
       }
     ]
   }
 }
+]]></definition>
+</dashboard>

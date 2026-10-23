@@ -81,12 +81,13 @@ TABLE_PARAMS = {"perPage": 10, "showPartialRows": False, "showMetricsAtAllLevels
                 "totalFunc": "sum", "percentageCol": ""}
 
 
-def visualization(key, title, vis_type, params, aggs, source, kql=None):
+def visualization(key, title, vis_type, params, aggs, source, kql=None, name=None):
+    """name: what the id derives from, the title unless another panel of the dashboard has it."""
     for i, agg in enumerate(aggs, start=1):
         agg.setdefault("enabled", True)
         agg["id"] = str(i)
     return {
-        "id": uid("visualization", key, title),
+        "id": uid("visualization", key, name or title),
         "type": "visualization",
         "migrationVersion": {"visualization": "7.10.0"},
         "references": [{"id": INDEX_PATTERNS[source]["id"], "name": "kibanaSavedObjectMeta.searchSourceJSON.index", "type": "index-pattern"}],
@@ -133,7 +134,14 @@ def table(title, source, rows, metrics, size=20, kql=None):
 class Dashboard:
     def __init__(self, key, title, description):
         self.key, self.id, self.title, self.description = key, uid("dashboard", key), title, description
-        self.panels, self.references, self.visualizations, self.y = [], [], [], 0
+        self.panels, self.references, self.visualizations, self.searches, self.y = [], [], [], [], 0
+        self.names = set()
+
+    def _name(self, title, kind):
+        """What the ids of a panel derive from: its title, or its title and kind if another panel has the title."""
+        name = title if title not in self.names else f"{title}/{kind}"
+        self.names.add(name)
+        return name
 
     def row(self, h, *panels):
         widths = [p[6] for p in panels]
@@ -142,18 +150,40 @@ class Dashboard:
         x = 0
         for title, vis_type, params, aggs, source, kql, width in panels:
             w = width or rest // len(free)
-            vis = visualization(self.key, title, vis_type, json.loads(json.dumps(params)), json.loads(json.dumps(aggs)), source, kql)
+            name = self._name(title, vis_type)
+            vis = visualization(self.key, title, vis_type, json.loads(json.dumps(params)), json.loads(json.dumps(aggs)), source, kql, name)
             self.visualizations.append(vis)
             ref = f"panel_{len(self.panels)}"
-            pid = uid(self.id, title)
+            pid = uid(self.id, name)
             self.panels.append({"version": PANEL_VERSION, "gridData": {"x": x, "y": self.y, "w": w, "h": h, "i": pid},
                                 "panelIndex": pid, "embeddableConfig": {}, "panelRefName": ref})
             self.references.append({"id": vis["id"], "name": ref, "type": "visualization"})
             x += w
         self.y += h
 
+    def search(self, h, title, source, columns, kql=None):
+        """A full-width saved search: the latest documents, newest first, with the given columns."""
+        name = self._name(title, "search")
+        sid = uid("search", self.key, name)
+        self.searches.append({
+            "id": sid, "type": "search", "migrationVersion": {"search": "7.9.3"},
+            "references": [{"id": INDEX_PATTERNS[source]["id"], "name": "kibanaSavedObjectMeta.searchSourceJSON.index", "type": "index-pattern"}],
+            "attributes": {
+                "title": title, "description": "", "columns": columns, "sort": [["@timestamp", "desc"]], "hits": 0, "version": 1,
+                "kibanaSavedObjectMeta": {"searchSourceJSON": json.dumps({
+                    "query": {"query": kql or "", "language": "kuery"}, "filter": [],
+                    "indexRefName": "kibanaSavedObjectMeta.searchSourceJSON.index"})},
+            },
+        })
+        ref = f"panel_{len(self.panels)}"
+        pid = uid(self.id, name)
+        self.panels.append({"version": PANEL_VERSION, "gridData": {"x": 0, "y": self.y, "w": 48, "h": h, "i": pid},
+                            "panelIndex": pid, "embeddableConfig": {}, "panelRefName": ref})
+        self.references.append({"id": sid, "name": ref, "type": "search"})
+        self.y += h
+
     def saved_objects(self):
-        return self.visualizations + [{
+        return self.visualizations + self.searches + [{
             "id": self.id,
             "type": "dashboard",
             "migrationVersion": {"dashboard": "7.9.3"},
@@ -186,6 +216,7 @@ findings.row(16, table("Top rules", F, [("wazuh.rule.title", "Rule"), ("wazuh.ru
                        [count("Findings"), unique("wazuh.agent.name", "Agents")]))
 findings.row(16, table("Findings by agent and rule", F, [("wazuh.agent.name", "Agent"), ("wazuh.rule.title", "Rule"), ("wazuh.integration.name", "Integration")],
                        [count("Findings")]))
+findings.search(18, "Latest findings", F, ["wazuh.agent.name", "wazuh.rule.level", "wazuh.rule.title", "wazuh.integration.name", "source.ip", "user.name"])
 
 # MITRE ATT&CK: new.
 mitre = Dashboard("mitre-attack", "Wazuh - MITRE ATT&CK", "MITRE ATT&CK tactics and techniques of the rules that produced the findings.")
@@ -199,12 +230,15 @@ mitre.row(16, table("Techniques", F, [("wazuh.rule.mitre.technique.id", "Techniq
                     [count("Findings"), unique("wazuh.agent.name", "Agents"), unique("wazuh.rule.id", "Rules")]))
 
 # Compliance: replaces wazuh-pci-dss.
-FRAMEWORKS = [("pci_dss", "PCI DSS"), ("nist_800_53", "NIST 800-53"), ("gdpr", "GDPR"), ("hipaa", "HIPAA")]
+# Every framework of wazuh.rule.compliance in WCS.
+FRAMEWORKS = [("pci_dss", "PCI DSS"), ("nist_800_53", "NIST 800-53"), ("nist_800_171", "NIST 800-171"), ("gdpr", "GDPR"), ("hipaa", "HIPAA"),
+              ("iso_27001", "ISO 27001"), ("nis2", "NIS2"), ("tsc", "TSC"), ("cmmc", "CMMC"), ("fedramp", "FedRAMP")]
 compliance = Dashboard("compliance", "Wazuh - Compliance", "Regulatory requirements of the rules that produced the findings.")
-compliance.row(7, *[metric(f"{name} findings", F, count("Findings"), f"wazuh.rule.compliance.{key} : *") for key, name in FRAMEWORKS])
+for half in (FRAMEWORKS[:5], FRAMEWORKS[5:]):
+    compliance.row(7, *[metric(f"{name} findings", F, count("Findings"), f"wazuh.rule.compliance.{key} : *") for key, name in half])
 compliance.row(15, series_over_time("Findings by framework over time", F, [(name, f"wazuh.rule.compliance.{key} : *") for key, name in FRAMEWORKS]))
-compliance.row(15, *[top_bars(f"{name} requirements", F, f"wazuh.rule.compliance.{key}", "Requirement") for key, name in FRAMEWORKS[:2]])
-compliance.row(15, *[top_bars(f"{name} requirements", F, f"wazuh.rule.compliance.{key}", "Requirement") for key, name in FRAMEWORKS[2:]])
+for pair in zip(FRAMEWORKS[::2], FRAMEWORKS[1::2]):
+    compliance.row(15, *[top_bars(f"{name} requirements", F, f"wazuh.rule.compliance.{key}", "Requirement") for key, name in pair])
 compliance.row(16, table("PCI DSS requirements by rule", F, [("wazuh.rule.compliance.pci_dss", "PCI DSS"), ("wazuh.rule.title", "Rule")],
                          [count("Findings"), unique("wazuh.agent.name", "Agents")], kql="wazuh.rule.compliance.pci_dss : *"))
 

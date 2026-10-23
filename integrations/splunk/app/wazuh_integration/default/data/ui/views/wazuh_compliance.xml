@@ -1,0 +1,597 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - Compliance</label>
+  <description>Regulatory requirements of the rules that produced the findings.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - Compliance",
+  "description": "Regulatory requirements of the rules that produced the findings.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_01": {
+      "type": "ds.search",
+      "name": "PCI DSS findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.pci_dss{}\"=* | stats count"
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "NIST 800-53 findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_53{}\"=* | stats count"
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "NIST 800-171 findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_171{}\"=* | stats count"
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "GDPR findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.gdpr{}\"=* | stats count"
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "HIPAA findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.hipaa{}\"=* | stats count"
+      }
+    },
+    "ds_06": {
+      "type": "ds.search",
+      "name": "ISO 27001 findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.iso_27001{}\"=* | stats count"
+      }
+    },
+    "ds_07": {
+      "type": "ds.search",
+      "name": "NIS2 findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nis2{}\"=* | stats count"
+      }
+    },
+    "ds_08": {
+      "type": "ds.search",
+      "name": "TSC findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.tsc{}\"=* | stats count"
+      }
+    },
+    "ds_09": {
+      "type": "ds.search",
+      "name": "CMMC findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | stats count"
+      }
+    },
+    "ds_10": {
+      "type": "ds.search",
+      "name": "FedRAMP findings",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* | stats count"
+      }
+    },
+    "ds_11": {
+      "type": "ds.search",
+      "name": "Findings by framework over time",
+      "options": {
+        "query": "`wazuh_findings` | eval framework=mvappend(if(isnotnull('wazuh.rule.compliance.pci_dss{}'),\"PCI DSS\",null()), if(isnotnull('wazuh.rule.compliance.nist_800_53{}'),\"NIST 800-53\",null()), if(isnotnull('wazuh.rule.compliance.nist_800_171{}'),\"NIST 800-171\",null()), if(isnotnull('wazuh.rule.compliance.gdpr{}'),\"GDPR\",null()), if(isnotnull('wazuh.rule.compliance.hipaa{}'),\"HIPAA\",null()), if(isnotnull('wazuh.rule.compliance.iso_27001{}'),\"ISO 27001\",null()), if(isnotnull('wazuh.rule.compliance.nis2{}'),\"NIS2\",null()), if(isnotnull('wazuh.rule.compliance.tsc{}'),\"TSC\",null()), if(isnotnull('wazuh.rule.compliance.cmmc{}'),\"CMMC\",null()), if(isnotnull('wazuh.rule.compliance.fedramp{}'),\"FedRAMP\",null())) | where isnotnull(framework) | timechart usenull=f useother=f limit=0 count by framework"
+      }
+    },
+    "ds_12": {
+      "type": "ds.search",
+      "name": "PCI DSS requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.pci_dss{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_13": {
+      "type": "ds.search",
+      "name": "NIST 800-53 requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.nist_800_53{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_14": {
+      "type": "ds.search",
+      "name": "NIST 800-171 requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.nist_800_171{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_15": {
+      "type": "ds.search",
+      "name": "GDPR requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.gdpr{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_16": {
+      "type": "ds.search",
+      "name": "HIPAA requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.hipaa{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_17": {
+      "type": "ds.search",
+      "name": "ISO 27001 requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.iso_27001{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_18": {
+      "type": "ds.search",
+      "name": "NIS2 requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.nis2{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_19": {
+      "type": "ds.search",
+      "name": "TSC requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.tsc{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_20": {
+      "type": "ds.search",
+      "name": "CMMC requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.cmmc{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_21": {
+      "type": "ds.search",
+      "name": "FedRAMP requirements",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.fedramp{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+      }
+    },
+    "ds_22": {
+      "type": "ds.search",
+      "name": "Requirements by rule",
+      "options": {
+        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.pci_dss{}\" as pci_dss, \"wazuh.rule.compliance.nist_800_53{}\" as nist_800_53, \"wazuh.rule.compliance.nist_800_171{}\" as nist_800_171, \"wazuh.rule.compliance.gdpr{}\" as gdpr, \"wazuh.rule.compliance.hipaa{}\" as hipaa, \"wazuh.rule.compliance.iso_27001{}\" as iso_27001, \"wazuh.rule.compliance.nis2{}\" as nis2, \"wazuh.rule.compliance.tsc{}\" as tsc, \"wazuh.rule.compliance.cmmc{}\" as cmmc, \"wazuh.rule.compliance.fedramp{}\" as fedramp | where isnotnull(pci_dss) OR isnotnull(nist_800_53) OR isnotnull(nist_800_171) OR isnotnull(gdpr) OR isnotnull(hipaa) OR isnotnull(iso_27001) OR isnotnull(nis2) OR isnotnull(tsc) OR isnotnull(cmmc) OR isnotnull(fedramp) | stats count, dc(wazuh.agent.name) as agents, values(pci_dss) as pci_dss, values(nist_800_53) as nist_800_53, values(nist_800_171) as nist_800_171, values(gdpr) as gdpr, values(hipaa) as hipaa, values(iso_27001) as iso_27001, values(nis2) as nis2, values(tsc) as tsc, values(cmmc) as cmmc, values(fedramp) as fedramp by wazuh.rule.title | sort - count"
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.singlevalue",
+      "title": "PCI DSS findings",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {}
+    },
+    "viz_02": {
+      "type": "splunk.singlevalue",
+      "title": "NIST 800-53 findings",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {}
+    },
+    "viz_03": {
+      "type": "splunk.singlevalue",
+      "title": "NIST 800-171 findings",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {}
+    },
+    "viz_04": {
+      "type": "splunk.singlevalue",
+      "title": "GDPR findings",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {}
+    },
+    "viz_05": {
+      "type": "splunk.singlevalue",
+      "title": "HIPAA findings",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {}
+    },
+    "viz_06": {
+      "type": "splunk.singlevalue",
+      "title": "ISO 27001 findings",
+      "dataSources": {
+        "primary": "ds_06"
+      },
+      "options": {}
+    },
+    "viz_07": {
+      "type": "splunk.singlevalue",
+      "title": "NIS2 findings",
+      "dataSources": {
+        "primary": "ds_07"
+      },
+      "options": {}
+    },
+    "viz_08": {
+      "type": "splunk.singlevalue",
+      "title": "TSC findings",
+      "dataSources": {
+        "primary": "ds_08"
+      },
+      "options": {}
+    },
+    "viz_09": {
+      "type": "splunk.singlevalue",
+      "title": "CMMC findings",
+      "dataSources": {
+        "primary": "ds_09"
+      },
+      "options": {}
+    },
+    "viz_10": {
+      "type": "splunk.singlevalue",
+      "title": "FedRAMP findings",
+      "dataSources": {
+        "primary": "ds_10"
+      },
+      "options": {}
+    },
+    "viz_11": {
+      "type": "splunk.column",
+      "title": "Findings by framework over time",
+      "dataSources": {
+        "primary": "ds_11"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_12": {
+      "type": "splunk.bar",
+      "title": "PCI DSS requirements",
+      "dataSources": {
+        "primary": "ds_12"
+      },
+      "options": {}
+    },
+    "viz_13": {
+      "type": "splunk.bar",
+      "title": "NIST 800-53 requirements",
+      "dataSources": {
+        "primary": "ds_13"
+      },
+      "options": {}
+    },
+    "viz_14": {
+      "type": "splunk.bar",
+      "title": "NIST 800-171 requirements",
+      "dataSources": {
+        "primary": "ds_14"
+      },
+      "options": {}
+    },
+    "viz_15": {
+      "type": "splunk.bar",
+      "title": "GDPR requirements",
+      "dataSources": {
+        "primary": "ds_15"
+      },
+      "options": {}
+    },
+    "viz_16": {
+      "type": "splunk.bar",
+      "title": "HIPAA requirements",
+      "dataSources": {
+        "primary": "ds_16"
+      },
+      "options": {}
+    },
+    "viz_17": {
+      "type": "splunk.bar",
+      "title": "ISO 27001 requirements",
+      "dataSources": {
+        "primary": "ds_17"
+      },
+      "options": {}
+    },
+    "viz_18": {
+      "type": "splunk.bar",
+      "title": "NIS2 requirements",
+      "dataSources": {
+        "primary": "ds_18"
+      },
+      "options": {}
+    },
+    "viz_19": {
+      "type": "splunk.bar",
+      "title": "TSC requirements",
+      "dataSources": {
+        "primary": "ds_19"
+      },
+      "options": {}
+    },
+    "viz_20": {
+      "type": "splunk.bar",
+      "title": "CMMC requirements",
+      "dataSources": {
+        "primary": "ds_20"
+      },
+      "options": {}
+    },
+    "viz_21": {
+      "type": "splunk.bar",
+      "title": "FedRAMP requirements",
+      "dataSources": {
+        "primary": "ds_21"
+      },
+      "options": {}
+    },
+    "viz_22": {
+      "type": "splunk.table",
+      "title": "Requirements by rule",
+      "dataSources": {
+        "primary": "ds_22"
+      },
+      "options": {}
+    }
+  },
+  "layout": {
+    "type": "grid",
+    "options": {},
+    "globalInputs": [
+      "input_global_trp"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 240,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 240,
+          "y": 0,
+          "w": 240,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 480,
+          "y": 0,
+          "w": 240,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 720,
+          "y": 0,
+          "w": 240,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 960,
+          "y": 0,
+          "w": 240,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_06",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 110,
+          "w": 240,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_07",
+        "type": "block",
+        "position": {
+          "x": 240,
+          "y": 110,
+          "w": 240,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_08",
+        "type": "block",
+        "position": {
+          "x": 480,
+          "y": 110,
+          "w": 240,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_09",
+        "type": "block",
+        "position": {
+          "x": 720,
+          "y": 110,
+          "w": 240,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_10",
+        "type": "block",
+        "position": {
+          "x": 960,
+          "y": 110,
+          "w": 240,
+          "h": 110
+        }
+      },
+      {
+        "item": "viz_11",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 220,
+          "w": 1200,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_12",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 540,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_13",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 540,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_14",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 860,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_15",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 860,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_16",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 1180,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_17",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 1180,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_18",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 1500,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_19",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 1500,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_20",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 1820,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_21",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 1820,
+          "w": 600,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_22",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 2140,
+          "w": 1200,
+          "h": 360
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

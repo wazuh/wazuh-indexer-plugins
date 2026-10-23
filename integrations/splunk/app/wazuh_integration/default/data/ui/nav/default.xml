@@ -1,0 +1,10 @@
+<nav search_view="search">
+  <collection label="Dashboards">
+    <view name="wazuh_findings_overview" />
+    <view name="wazuh_mitre_attack" />
+    <view name="wazuh_compliance" />
+    <view name="wazuh_events_overview" />
+  </collection>
+  <view name="search" />
+  <view name="dashboards" />
+</nav>

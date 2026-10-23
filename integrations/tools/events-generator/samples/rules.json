@@ -6,7 +6,7 @@
     "tags": ["attack.credential_access", "attack.t1110.001"],
     "level": "medium",
     "status": "stable",
-    "compliance": { "pci_dss": ["10.2.4", "10.2.5"], "nist_800_53": ["AC.7", "AU.14"], "gdpr": ["IV_35.7.d", "IV_32.2"], "hipaa": ["164.312.b"] },
+    "compliance": { "pci_dss": ["10.2.4", "10.2.5"], "nist_800_53": ["AC.7", "AU.14"], "gdpr": ["IV_35.7.d", "IV_32.2"], "hipaa": ["164.312.b"], "nist_800_171": ["3.1.8"], "iso_27001": ["A.8.5"], "tsc": ["CC6.1"], "cmmc": ["AC.L2-3.1.8"], "fedramp": ["AC-7"], "nis2": ["21.2.i"] },
     "mitre": {
       "tactic": { "id": ["TA0006"], "name": ["Credential Access"] },
       "technique": { "id": ["T1110"], "name": ["Brute Force"] },
@@ -21,7 +21,7 @@
     "sigma_id": "e50e3952-1d4f-4f3a-9b2e-8c5f0a1d6c11",
     "level": "medium",
     "status": "test",
-    "compliance": { "pci_dss": ["10.2.4"], "nist_800_53": ["AC.7"] },
+    "compliance": { "pci_dss": ["10.2.4"], "nist_800_53": ["AC.7"], "iso_27001": ["A.8.15"], "tsc": ["CC7.2"] },
     "mitre": {
       "tactic": { "id": ["TA0006"], "name": ["Credential Access"] },
       "technique": { "id": ["T1110"], "name": ["Brute Force"] }
@@ -62,7 +62,7 @@
     "sigma_id": "f2ab8a4c-3e0e-4d71-9a41-6d7a4a31b2d0",
     "level": "medium",
     "status": "stable",
-    "compliance": { "nist_800_53": ["IA.2"], "pci_dss": ["8.4.2"] },
+    "compliance": { "nist_800_53": ["IA.2"], "pci_dss": ["8.4.2"], "fedramp": ["AU-2"], "cmmc": ["AU.L2-3.3.1"], "nis2": ["21.2.g"] },
     "mitre": {
       "tactic": { "id": ["TA0001", "TA0004"], "name": ["Initial Access", "Privilege Escalation"] },
       "technique": { "id": ["T1078"], "name": ["Valid Accounts"] },
@@ -115,7 +115,7 @@
     "tags": ["attack.initial_access", "attack.t1190"],
     "level": "high",
     "status": "stable",
-    "compliance": { "pci_dss": ["11.4"], "nist_800_53": ["SI.4"] },
+    "compliance": { "pci_dss": ["11.4"], "nist_800_53": ["SI.4"], "nist_800_171": ["3.14.6"], "iso_27001": ["A.8.16"] },
     "mitre": {
       "tactic": { "id": ["TA0001"], "name": ["Initial Access"] },
       "technique": { "id": ["T1190"], "name": ["Exploit Public-Facing Application"] }
@@ -129,7 +129,7 @@
     "sigma_id": "fe34868f-6e0e-4882-81f6-c43aa8f15b62",
     "level": "critical",
     "status": "stable",
-    "compliance": { "pci_dss": ["5.2", "5.3.4"], "nist_800_53": ["SI.3"], "hipaa": ["164.308.a.5.ii.B"] },
+    "compliance": { "pci_dss": ["5.2", "5.3.4"], "nist_800_53": ["SI.3"], "hipaa": ["164.308.a.5.ii.B"], "nis2": ["21.2.e"], "tsc": ["CC6.8"], "fedramp": ["SI-3"] },
     "mitre": {
       "tactic": { "id": ["TA0002"], "name": ["Execution"] },
       "technique": { "id": ["T1204"], "name": ["User Execution"] },

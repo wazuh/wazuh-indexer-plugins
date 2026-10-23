@@ -48,10 +48,17 @@ def terms(field, label, size, order_by):
 class Dashboard:
     def __init__(self, key, title, description):
         self.id, self.title, self.description = uid("dashboard", key), title, description
-        self.panels, self.references, self.y = [], [], 0
+        self.panels, self.references, self.searches, self.y = [], [], [], 0
+        self.names = set()
+
+    def _name(self, title, kind):
+        """What the ids of a panel derive from: its title, or its title and kind if another panel has the title."""
+        name = title if title not in self.names else f"{title}/{kind}"
+        self.names.add(name)
+        return name
 
     def _panel(self, title, source, vis_type, visualization, columns, order, kql, x, w, h):
-        pid = uid(self.id, title)
+        pid = uid(self.id, self._name(title, vis_type))
         layer = uid(pid, "layer")
         # Column ids are local to the panel: make them unique per panel.
         ids = {c: uid(pid, c) for c in columns}
@@ -104,6 +111,27 @@ class Dashboard:
             w = p.get("w") or rest // len(free)
             self._panel(p["title"], p["source"], p["type"], p["vis"], p["columns"], p["order"], p.get("kql"), x, w, h)
             x += w
+        self.y += h
+
+    def search(self, h, title, source, columns, kql=None):
+        """A full-width saved search: the latest documents, newest first, with the given columns."""
+        name = self._name(title, "search")
+        sid = uid(self.id, "search", name)
+        pid = uid(self.id, name)
+        self.searches.append({
+            "id": sid, "type": "search", "coreMigrationVersion": VERSION, "migrationVersion": {"search": "8.0.0"},
+            "references": [{"id": DATA_VIEWS[source]["id"], "name": "kibanaSavedObjectMeta.searchSourceJSON.index", "type": "index-pattern"}],
+            "attributes": {
+                "title": title, "description": "", "columns": columns, "sort": [["@timestamp", "desc"]], "grid": {}, "hideChart": True,
+                "isTextBasedQuery": False,
+                "kibanaSavedObjectMeta": {"searchSourceJSON": json.dumps({
+                    "query": {"query": kql or "", "language": "kuery"}, "filter": [],
+                    "indexRefName": "kibanaSavedObjectMeta.searchSourceJSON.index"})},
+            },
+        })
+        self.panels.append({"version": VERSION, "type": "search", "gridData": {"x": 0, "y": self.y, "w": 48, "h": h, "i": pid},
+                            "panelIndex": pid, "title": title, "embeddableConfig": {"enhancements": {}}, "panelRefName": f"panel_{pid}"})
+        self.references.append({"id": sid, "name": f"{pid}:panel_{pid}", "type": "search"})
         self.y += h
 
     def saved_object(self):
@@ -207,6 +235,7 @@ findings.row(16, table("Top rules", F, [("wazuh.rule.title", "Rule"), ("wazuh.ru
                        [("c", count("Findings")), ("a", unique("wazuh.agent.name", "Agents"))]))
 findings.row(16, table("Findings by agent and rule", F, [("wazuh.agent.name", "Agent"), ("wazuh.rule.title", "Rule"), ("wazuh.integration.name", "Integration")],
                        [("c", count("Findings"))]))
+findings.search(18, "Latest findings", F, ["wazuh.agent.name", "wazuh.rule.level", "wazuh.rule.title", "wazuh.integration.name", "source.ip", "user.name"])
 
 # MITRE ATT&CK: new.
 mitre = Dashboard("mitre-attack", "Wazuh - MITRE ATT&CK", "MITRE ATT&CK tactics and techniques of the rules that produced the findings.")
@@ -220,12 +249,15 @@ mitre.row(16, table("Techniques", F, [("wazuh.rule.mitre.technique.id", "Techniq
                     [("c", count("Findings")), ("a", unique("wazuh.agent.name", "Agents")), ("r", unique("wazuh.rule.id", "Rules"))]))
 
 # Compliance: replaces wazuh-pci-dss.
-FRAMEWORKS = [("pci_dss", "PCI DSS"), ("nist_800_53", "NIST 800-53"), ("gdpr", "GDPR"), ("hipaa", "HIPAA")]
+# Every framework of wazuh.rule.compliance in WCS.
+FRAMEWORKS = [("pci_dss", "PCI DSS"), ("nist_800_53", "NIST 800-53"), ("nist_800_171", "NIST 800-171"), ("gdpr", "GDPR"), ("hipaa", "HIPAA"),
+              ("iso_27001", "ISO 27001"), ("nis2", "NIS2"), ("tsc", "TSC"), ("cmmc", "CMMC"), ("fedramp", "FedRAMP")]
 compliance = Dashboard("compliance", "Wazuh - Compliance", "Regulatory requirements of the rules that produced the findings.")
-compliance.row(7, *[metric(f"{name} findings", F, count("Findings", f"wazuh.rule.compliance.{key} : *")) for key, name in FRAMEWORKS])
+for half in (FRAMEWORKS[:5], FRAMEWORKS[5:]):
+    compliance.row(7, *[metric(f"{name} findings", F, count("Findings", f"wazuh.rule.compliance.{key} : *")) for key, name in half])
 compliance.row(15, series_over_time("Findings by framework over time", F, [(name, f"wazuh.rule.compliance.{key} : *") for key, name in FRAMEWORKS]))
-compliance.row(15, *[top_bars(f"{name} requirements", F, f"wazuh.rule.compliance.{key}", "Requirement") for key, name in FRAMEWORKS[:2]])
-compliance.row(15, *[top_bars(f"{name} requirements", F, f"wazuh.rule.compliance.{key}", "Requirement") for key, name in FRAMEWORKS[2:]])
+for pair in zip(FRAMEWORKS[::2], FRAMEWORKS[1::2]):
+    compliance.row(15, *[top_bars(f"{name} requirements", F, f"wazuh.rule.compliance.{key}", "Requirement") for key, name in pair])
 compliance.row(16, table("PCI DSS requirements by rule", F, [("wazuh.rule.compliance.pci_dss", "PCI DSS"), ("wazuh.rule.title", "Rule")],
                          [("c", count("Findings")), ("a", unique("wazuh.agent.name", "Agents"))], kql="wazuh.rule.compliance.pci_dss : *"))
 
@@ -249,6 +281,7 @@ for view in DATA_VIEWS.values():
                        "fieldAttrs": "{}", "fieldFormatMap": "{}", "fields": "[]", "runtimeFieldMap": "{}", "sourceFilters": "[]", "typeMeta": "{}"},
     })
 for d in (findings, mitre, compliance, events):
+    objects.extend(d.searches)
     objects.append(d.saved_object())
 
 

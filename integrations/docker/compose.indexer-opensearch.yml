@@ -45,7 +45,8 @@ services:
       timeout: 5s
       retries: 60
 
-  # Installs the index template and creates the role and user that Logstash writes with.
+  # Installs the index template and the ISM policy, and creates the role and user that
+  # Logstash writes with.
   opensearch-setup:
     image: opensearchproject/opensearch:${OS_VERSION}
     depends_on:
@@ -60,6 +61,7 @@ services:
     volumes:
       - ./setup/opensearch-destination.sh:/setup/opensearch-destination.sh:ro
       - ../opensearch/templates/wazuh-index-template.json:/setup/wazuh-index-template.json:ro
+      - ../opensearch/templates/wazuh-ism-policy.json:/setup/wazuh-ism-policy.json:ro
       - ./certs/root-ca.pem:/setup/root-ca.pem:ro
 
   opensearch-dashboards:
@@ -108,6 +110,7 @@ services:
       WAZUH_INDEXER_CA: /usr/share/logstash/certs/wazuh-indexer-ca.pem
       WAZUH_EXPORT_INDICES: ${WAZUH_EXPORT_INDICES}
       WAZUH_EXPORT_LOOKBACK: ${WAZUH_EXPORT_LOOKBACK}
+      WAZUH_EXPORT_DELAY: ${WAZUH_EXPORT_DELAY}
       WAZUH_EXPORT_SCHEDULE: ${WAZUH_EXPORT_SCHEDULE}
       OPENSEARCH_HOST: https://opensearch.node:9200
       OPENSEARCH_USERNAME: ${OPENSEARCH_LOGSTASH_USERNAME}
