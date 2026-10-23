@@ -3,6 +3,10 @@ on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   # Checks if the email domain is @wazuh.com, if not the workflow will fail
   verify-email:
