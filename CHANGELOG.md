@@ -38,6 +38,7 @@
 | [#1277](https://github.com/wazuh/wazuh-indexer-plugins/issues/1277) | Add settings to disable on-demand updates and policy updates for every user |
 | [#1585](https://github.com/wazuh/wazuh-indexer-plugins/issues/1585) | Add plugin settings for the operational constants of the Setup and Content Manager plugins |
 | [#529](https://github.com/wazuh/wazuh-indexer-plugins/issues/529) [#1538](https://github.com/wazuh/wazuh-indexer/issues/1538) [#1927](https://github.com/wazuh/wazuh-indexer/issues/1927) [#1960](https://github.com/wazuh/wazuh-indexer/issues/1960) [#1975](https://github.com/wazuh/wazuh-indexer/issues/1975) [#1976](https://github.com/wazuh/wazuh-indexer/issues/1976) [#934](https://github.com/wazuh/wazuh-indexer-plugins/issues/934) [#1240](https://github.com/wazuh/wazuh-indexer-plugins/issues/1240) [#1530](https://github.com/wazuh/wazuh-indexer-plugins/issues/1530) [#1656](https://github.com/wazuh/wazuh-indexer-plugins/issues/1656) [#1692](https://github.com/wazuh/wazuh-indexer-plugins/issues/1692) | Add the Wazuh indexer 5.x documentation |
+| [#1716](https://github.com/wazuh/wazuh-indexer-plugins/issues/1716) | Add agent groups and host metadata fields to the `wazuh-agent-stats` and `wazuh-agent-config` indices |
 
 
 
