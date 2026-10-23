@@ -105,6 +105,8 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
 
         GetPolicyResourcesResponse response = execute("test");
 
+        // The requested space must be the one queried, not a hardcoded one.
+        verify(this.spaceService).getSpaceResourcesAsync(eq("test"), any());
         Assert.assertEquals(RestStatus.OK, response.getStatus());
         String json = toJson(response);
         Assert.assertTrue(
@@ -141,6 +143,7 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
 
         GetPolicyResourcesResponse response = execute("custom");
 
+        verify(this.spaceService).getSpaceResourcesAsync(eq("custom"), any());
         Assert.assertEquals(RestStatus.OK, response.getStatus());
         String json = toJson(response);
         Assert.assertTrue(json.contains("\"decoders\":[\"d-a\",\"d-b\"]"));
