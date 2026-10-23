@@ -1,0 +1,167 @@
+[
+  {
+    "integrations": ["sshd"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a01",
+    "title": "SSH authentication failure for an invalid user",
+    "tags": ["attack.credential_access", "attack.t1110.001"],
+    "level": "medium",
+    "status": "stable",
+    "compliance": { "pci_dss": ["10.2.4", "10.2.5"], "nist_800_53": ["AC.7", "AU.14"], "gdpr": ["IV_35.7.d", "IV_32.2"], "hipaa": ["164.312.b"], "nist_800_171": ["3.1.8"], "iso_27001": ["A.8.5"], "tsc": ["CC6.1"], "cmmc": ["AC.L2-3.1.8"], "fedramp": ["AC-7"], "nis2": ["21.2.i"] },
+    "mitre": {
+      "tactic": { "id": ["TA0006"], "name": ["Credential Access"] },
+      "technique": { "id": ["T1110"], "name": ["Brute Force"] },
+      "subtechnique": { "id": ["T1110.001"], "name": ["Password Guessing"] }
+    }
+  },
+  {
+    "integrations": ["windows"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a02",
+    "title": "Windows logon failure for a service account",
+    "tags": ["attack.credential_access", "attack.t1110"],
+    "sigma_id": "e50e3952-1d4f-4f3a-9b2e-8c5f0a1d6c11",
+    "level": "medium",
+    "status": "test",
+    "compliance": { "pci_dss": ["10.2.4"], "nist_800_53": ["AC.7"], "iso_27001": ["A.8.15"], "tsc": ["CC7.2"] },
+    "mitre": {
+      "tactic": { "id": ["TA0006"], "name": ["Credential Access"] },
+      "technique": { "id": ["T1110"], "name": ["Brute Force"] }
+    }
+  },
+  {
+    "integrations": ["nginx"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a03",
+    "title": "SQL injection attempt in a web request",
+    "tags": ["attack.initial_access", "attack.t1190"],
+    "sigma_id": "5513deaf-f49a-46c2-a6c8-3f111b5cb453",
+    "level": "high",
+    "status": "stable",
+    "compliance": { "pci_dss": ["6.5", "11.4"], "nist_800_53": ["SI.10", "SI.4"] },
+    "mitre": {
+      "tactic": { "id": ["TA0001"], "name": ["Initial Access"] },
+      "technique": { "id": ["T1190"], "name": ["Exploit Public-Facing Application"] }
+    }
+  },
+  {
+    "integrations": ["mysql"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a04",
+    "title": "Database access denied for a privileged account",
+    "tags": ["attack.credential_access", "attack.t1110"],
+    "level": "low",
+    "status": "experimental",
+    "compliance": { "pci_dss": ["10.2.4"] },
+    "mitre": {
+      "tactic": { "id": ["TA0006"], "name": ["Credential Access"] },
+      "technique": { "id": ["T1110"], "name": ["Brute Force"] }
+    }
+  },
+  {
+    "integrations": ["aws-cloudtrail"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a05",
+    "title": "AWS console login without MFA",
+    "tags": ["attack.initial_access", "attack.t1078.004"],
+    "sigma_id": "f2ab8a4c-3e0e-4d71-9a41-6d7a4a31b2d0",
+    "level": "medium",
+    "status": "stable",
+    "compliance": { "nist_800_53": ["IA.2"], "pci_dss": ["8.4.2"], "fedramp": ["AU-2"], "cmmc": ["AU.L2-3.3.1"], "nis2": ["21.2.g"] },
+    "mitre": {
+      "tactic": { "id": ["TA0001", "TA0004"], "name": ["Initial Access", "Privilege Escalation"] },
+      "technique": { "id": ["T1078"], "name": ["Valid Accounts"] },
+      "subtechnique": { "id": ["T1078.004"], "name": ["Cloud Accounts"] }
+    }
+  },
+  {
+    "integrations": ["gcp-audit"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a06",
+    "title": "Cloud storage bucket made public",
+    "tags": ["attack.exfiltration", "attack.t1537"],
+    "level": "high",
+    "status": "stable",
+    "compliance": { "nist_800_53": ["AC.3", "AC.6"], "gdpr": ["IV_32.2"] },
+    "mitre": {
+      "tactic": { "id": ["TA0010"], "name": ["Exfiltration"] },
+      "technique": { "id": ["T1537"], "name": ["Transfer Data to Cloud Account"] }
+    }
+  },
+  {
+    "integrations": ["iptables"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a07",
+    "title": "Inbound RDP connection blocked at the perimeter",
+    "tags": ["attack.discovery", "attack.t1046"],
+    "level": "low",
+    "status": "stable",
+    "compliance": { "pci_dss": ["1.4"] },
+    "mitre": {
+      "tactic": { "id": ["TA0007"], "name": ["Discovery"] },
+      "technique": { "id": ["T1046"], "name": ["Network Service Discovery"] }
+    }
+  },
+  {
+    "integrations": ["microsoft-dnsserver"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a08",
+    "title": "DNS query to a suspicious top-level domain",
+    "tags": ["attack.command_and_control", "attack.t1071.004"],
+    "level": "medium",
+    "status": "test",
+    "mitre": {
+      "tactic": { "id": ["TA0011"], "name": ["Command and Control"] },
+      "technique": { "id": ["T1071"], "name": ["Application Layer Protocol"] },
+      "subtechnique": { "id": ["T1071.004"], "name": ["DNS"] }
+    }
+  },
+  {
+    "integrations": ["suricata"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a09",
+    "title": "Network IDS alert with severity 1",
+    "tags": ["attack.initial_access", "attack.t1190"],
+    "level": "high",
+    "status": "stable",
+    "compliance": { "pci_dss": ["11.4"], "nist_800_53": ["SI.4"], "nist_800_171": ["3.14.6"], "iso_27001": ["A.8.16"] },
+    "mitre": {
+      "tactic": { "id": ["TA0001"], "name": ["Initial Access"] },
+      "technique": { "id": ["T1190"], "name": ["Exploit Public-Facing Application"] }
+    }
+  },
+  {
+    "integrations": ["windows-defender"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a10",
+    "title": "Malware detected by Microsoft Defender",
+    "tags": ["attack.execution", "attack.t1204.002"],
+    "sigma_id": "fe34868f-6e0e-4882-81f6-c43aa8f15b62",
+    "level": "critical",
+    "status": "stable",
+    "compliance": { "pci_dss": ["5.2", "5.3.4"], "nist_800_53": ["SI.3"], "hipaa": ["164.308.a.5.ii.B"], "nis2": ["21.2.e"], "tsc": ["CC6.8"], "fedramp": ["SI-3"] },
+    "mitre": {
+      "tactic": { "id": ["TA0002"], "name": ["Execution"] },
+      "technique": { "id": ["T1204"], "name": ["User Execution"] },
+      "subtechnique": { "id": ["T1204.002"], "name": ["Malicious File"] }
+    }
+  },
+  {
+    "integrations": ["auditd"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a11",
+    "title": "Process executed from a hidden directory under /tmp",
+    "tags": ["attack.execution", "attack.defense_evasion", "attack.t1059"],
+    "level": "high",
+    "status": "test",
+    "compliance": { "nist_800_53": ["CM.7", "SI.4"] },
+    "mitre": {
+      "tactic": { "id": ["TA0002", "TA0005"], "name": ["Execution", "Defense Evasion"] },
+      "technique": { "id": ["T1059", "T1564"], "name": ["Command and Scripting Interpreter", "Hide Artifacts"] },
+      "subtechnique": { "id": ["T1564.001"], "name": ["Hidden Files and Directories"] }
+    }
+  },
+  {
+    "integrations": ["journald"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a12",
+    "title": "Audit service stopped",
+    "tags": ["attack.defense_evasion", "attack.t1562.001"],
+    "level": "high",
+    "status": "stable",
+    "compliance": { "pci_dss": ["10.2.6"], "nist_800_53": ["AU.9"] },
+    "mitre": {
+      "tactic": { "id": ["TA0005"], "name": ["Defense Evasion"] },
+      "technique": { "id": ["T1562"], "name": ["Impair Defenses"] },
+      "subtechnique": { "id": ["T1562.001"], "name": ["Disable or Modify Tools"] }
+    }
+  }
+]
