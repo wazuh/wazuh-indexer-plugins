@@ -38,7 +38,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -161,6 +163,45 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
                 Assert.assertThrows(
                         RuntimeException.class, () -> this.consumersIndex.setConsumer(consumer));
         Assert.assertEquals("Index not ready", ex.getMessage());
+    }
+
+    /**
+     * Tests that setLastCheckedAt writes the time to the catalog document, refreshing immediately.
+     *
+     * @throws Exception
+     */
+    public void testSetLastCheckedAt() throws Exception {
+        // Mock
+        when(this.client
+                        .admin()
+                        .cluster()
+                        .prepareHealth()
+                        .setIndices(anyString())
+                        .setWaitForYellowStatus()
+                        .setWaitForActiveShards(anyInt())
+                        .setTimeout(any(TimeValue.class))
+                        .get())
+                .thenReturn(this.clusterHealthResponse);
+        when(this.clusterHealthResponse.getStatus()).thenReturn(ClusterHealthStatus.GREEN);
+        when(this.clusterHealthResponse.isTimedOut()).thenReturn(false);
+
+        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+
+        // Act
+        this.consumersIndex.setLastCheckedAt(Instant.parse("2026-10-21T15:30:02.114Z"));
+
+        // Assert
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+
+        IndexRequest request = captor.getValue();
+        Assert.assertEquals(ConsumersIndex.INDEX_NAME, request.index());
+        Assert.assertEquals("cti:catalog:global", request.id());
+        Assert.assertEquals(
+                Map.of("last_checked_at", "2026-10-21T15:30:02.114Z"), request.sourceAsMap());
+        Assert.assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, request.getRefreshPolicy());
     }
 
     /**

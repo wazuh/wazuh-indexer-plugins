@@ -23,6 +23,7 @@ import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -66,6 +67,12 @@ class InMemoryConsumersIndex extends ConsumersIndex {
 
     /** Whether single-document writes fail. */
     boolean writesFail;
+
+    /** Every time recorded as the last check of the CTI catalog, in order. */
+    final List<Instant> catalogChecks = new ArrayList<>();
+
+    /** Whether recording the last check of the CTI catalog fails. */
+    boolean catalogCheckFails;
 
     /** The consumer types whose document cannot be read while the others can. */
     final Set<String> unreadable = new HashSet<>();
@@ -119,6 +126,15 @@ class InMemoryConsumersIndex extends ConsumersIndex {
             this.events.add(
                     "bulk write " + consumers.stream().map(InMemoryConsumersIndex::describe).toList());
         }
+    }
+
+    @Override
+    public IndexResponse setLastCheckedAt(Instant checkedAt) {
+        if (this.catalogCheckFails) {
+            throw new IllegalStateException("write of [" + CATALOG_ID + "] failed");
+        }
+        this.catalogChecks.add(checkedAt);
+        return null;
     }
 
     /**

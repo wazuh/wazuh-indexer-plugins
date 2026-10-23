@@ -27,6 +27,8 @@ import org.junit.Before;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -53,6 +55,7 @@ public class AbstractConsumerServiceTests extends OpenSearchTestCase {
     private static final String IOCS = "iocs";
     private static final String OPEN_IOCS = resource("open-iocs");
     private static final String PRO_IOCS = resource("pro-iocs");
+    private static final String EARLIER = "2026-01-02T03:04:05.678Z";
 
     private List<String> events;
     private InMemoryConsumersIndex consumersIndex;
@@ -440,6 +443,216 @@ public class AbstractConsumerServiceTests extends OpenSearchTestCase {
         assertEquals(PRO_IOCS, document.getResource());
         assertEquals("failed 803322/803322", state(document));
         assertEquals(List.of("first", "second"), document.getPendingSyncPhases());
+    }
+
+    /**
+     * A pass that updates the content records the time in the write that completes it. Every write
+     * before that one, while the content is still changing, keeps the time of the previous change.
+     */
+    public void testUpdateRecordsTheTimeOfTheChange() {
+        this.consumersIndex.put(
+                document(OPEN_IOCS, LocalConsumer.Status.READY, 1000, 1000).withUpdatedAt(EARLIER));
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+        Instant start = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+
+        this.consumer.synchronize(SyncPass.withPlan(null));
+
+        List<String> times = this.writtenUpdateTimes();
+        assertEquals(
+                List.of("running 1000/1150", "running 1150/1150", "ready 1150/1150"), this.writtenStates());
+        assertEquals(List.of(EARLIER, EARLIER), times.subList(0, 2));
+        assertRecordedSince(start, times.get(2));
+    }
+
+    /** A pass that finds nothing new keeps the time of the previous change in every write. */
+    public void testPassWithNothingNewKeepsTheTimeOfTheLastChange() {
+        this.consumersIndex.put(
+                document(OPEN_IOCS, LocalConsumer.Status.READY, 1150, 1150).withUpdatedAt(EARLIER));
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+
+        this.consumer.synchronize(SyncPass.withPlan(null));
+
+        assertEquals(List.of(EARLIER, EARLIER), this.writtenUpdateTimes());
+    }
+
+    /**
+     * A consumer the swap moves to a new data source keeps the time of the previous change until the
+     * pass completes, and then records the time of the new content.
+     */
+    public void testSwappedConsumerRecordsTheTimeOfTheNewContent() {
+        this.consumersIndex.put(
+                document(OPEN_IOCS, LocalConsumer.Status.READY, 900120, 900120).withUpdatedAt(EARLIER));
+        this.consumer.setRemote(remote("pro-iocs", 803322, 803322));
+        SyncPass pass = SyncPass.withPlan(plan());
+        Instant start = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+        this.swap(pass);
+
+        assertTrue(this.writtenUpdateTimes().stream().allMatch(EARLIER::equals));
+
+        this.consumer.synchronize(pass);
+
+        assertRecordedSince(start, this.consumersIndex.documents.get(IOCS).getUpdatedAt());
+    }
+
+    /** An offline pass that reloads the consumer from its snapshot file records the time. */
+    public void testOfflineReloadRecordsTheTimeOfTheChange() throws Exception {
+        this.placeSnapshotFile();
+        this.consumer.swapService = this.stubSwapService();
+        this.consumersIndex.put(
+                document(OPEN_IOCS, LocalConsumer.Status.READY, 1000, 1000).withUpdatedAt(EARLIER));
+        Instant start = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+
+        this.consumer.synchronize(SyncPass.offline());
+
+        List<String> times = this.writtenUpdateTimes();
+        assertEquals(List.of(EARLIER, EARLIER), times.subList(0, 2));
+        assertRecordedSince(start, times.get(2));
+    }
+
+    /** An offline pass whose snapshot file cannot be loaded keeps the time of the last change. */
+    public void testOfflinePassThatChangesNothingKeepsTheTime() throws Exception {
+        this.placeSnapshotFile();
+        this.consumer.swapService = this.stubSwapService();
+        this.consumer.fileOffset = -1;
+        this.consumersIndex.put(
+                document(OPEN_IOCS, LocalConsumer.Status.READY, 1000, 1000).withUpdatedAt(EARLIER));
+
+        this.consumer.synchronize(SyncPass.offline());
+
+        assertEquals(List.of(EARLIER, EARLIER), this.writtenUpdateTimes());
+    }
+
+    /** A pass cut before it completes does not record a time: the update did not complete. */
+    public void testFailedPassKeepsTheTimeOfTheLastChange() {
+        this.consumersIndex.put(
+                document(OPEN_IOCS, LocalConsumer.Status.READY, 1000, 1000).withUpdatedAt(EARLIER));
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+        this.consumer.postSyncFailure = new IllegalStateException("cut");
+
+        expectThrows(RuntimeException.class, () -> this.consumer.synchronize(SyncPass.withPlan(null)));
+
+        LocalConsumer document = this.consumersIndex.documents.get(IOCS);
+        assertEquals("failed 1150/1150", state(document));
+        assertEquals(EARLIER, document.getUpdatedAt());
+    }
+
+    /**
+     * A pass that applies no new content but finishes the phases a prior content change left owed
+     * records the time: the content update that pass began completes here, even though the offset did
+     * not move.
+     */
+    public void testPassThatCompletesOwedPhasesRecordsTheTime() {
+        this.consumer.owedPhases = List.of("first");
+        this.consumer.completesOwedPhases = true;
+        this.consumersIndex.put(
+                new LocalConsumer(
+                                "open-iocs",
+                                "open-iocs",
+                                IOCS,
+                                OPEN_IOCS,
+                                true,
+                                LocalConsumer.Status.READY,
+                                1150,
+                                1150,
+                                List.of("first"))
+                        .withUpdatedAt(EARLIER));
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+        Instant start = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+
+        this.consumer.synchronize(SyncPass.withPlan(null));
+
+        LocalConsumer document = this.consumersIndex.documents.get(IOCS);
+        assertEquals(List.of(), document.getPendingSyncPhases());
+        assertRecordedSince(start, document.getUpdatedAt());
+    }
+
+    /**
+     * A pass that leaves the owed phases pending keeps the time of the last change: the content
+     * update they stand for has not completed.
+     */
+    public void testPassThatLeavesOwedPhasesPendingKeepsTheTime() {
+        this.consumer.owedPhases = List.of("first");
+        this.consumersIndex.put(
+                new LocalConsumer(
+                                "open-iocs",
+                                "open-iocs",
+                                IOCS,
+                                OPEN_IOCS,
+                                true,
+                                LocalConsumer.Status.READY,
+                                1150,
+                                1150,
+                                List.of("first"))
+                        .withUpdatedAt(EARLIER));
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+
+        this.consumer.synchronize(SyncPass.withPlan(null));
+
+        LocalConsumer document = this.consumersIndex.documents.get(IOCS);
+        assertEquals(List.of("first"), document.getPendingSyncPhases());
+        assertEquals(EARLIER, document.getUpdatedAt());
+    }
+
+    /** Each answer of the CTI catalog is recorded as its last check, content changed or not. */
+    public void testAnsweredCatalogRecordsTheCheck() {
+        this.consumersIndex.put(document(OPEN_IOCS, LocalConsumer.Status.READY, 1150, 1150));
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+        Instant start = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+
+        this.consumer.synchronize(SyncPass.withPlan(null));
+
+        assertEquals(1, this.consumersIndex.catalogChecks.size());
+        assertRecordedSince(start, this.consumersIndex.catalogChecks.get(0).toString());
+    }
+
+    /** A catalog that does not answer is not recorded as checked. */
+    public void testUnreachableCatalogRecordsNoCheck() {
+        this.consumersIndex.put(document(OPEN_IOCS, LocalConsumer.Status.READY, 1000, 1000));
+        this.consumer.setRemote(null);
+
+        assertTrue(this.consumer.synchronize(SyncPass.withPlan(null)));
+
+        assertTrue(this.consumersIndex.catalogChecks.isEmpty());
+    }
+
+    /** An offline pass does not ask the CTI catalog, so it is not recorded as checked. */
+    public void testOfflinePassRecordsNoCheck() throws Exception {
+        this.placeSnapshotFile();
+        this.consumer.swapService = this.stubSwapService();
+        this.consumersIndex.put(document(OPEN_IOCS, LocalConsumer.Status.READY, 1000, 1000));
+        this.consumer.setRemote(remote("open-iocs", 1500, 1400));
+
+        this.consumer.synchronize(SyncPass.offline());
+
+        assertTrue(this.consumersIndex.catalogChecks.isEmpty());
+    }
+
+    /** A check that cannot be recorded does not stop the pass. */
+    public void testUnrecordedCheckDoesNotStopThePass() {
+        this.consumersIndex.put(document(OPEN_IOCS, LocalConsumer.Status.READY, 1000, 1000));
+        this.consumersIndex.catalogCheckFails = true;
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+
+        assertFalse(this.consumer.synchronize(SyncPass.withPlan(null)));
+
+        assertEquals("ready 1150/1150", state(this.consumersIndex.documents.get(IOCS)));
+    }
+
+    /** Asserts that a recorded time is in milliseconds, at or after {@code start}, and not ahead. */
+    private static void assertRecordedSince(Instant start, String recorded) {
+        assertNotNull(recorded);
+        Instant time = Instant.parse(recorded);
+        assertEquals(time, time.truncatedTo(ChronoUnit.MILLIS));
+        assertFalse(recorded + " is before " + start, time.isBefore(start));
+        assertFalse(recorded + " is in the future", time.isAfter(Instant.now()));
+    }
+
+    /** The content update time of every write of the consumer's document, in order. */
+    private List<String> writtenUpdateTimes() {
+        return this.consumersIndex.writes.stream()
+                .flatMap(w -> w.documents().stream())
+                .map(LocalConsumer::getUpdatedAt)
+                .toList();
     }
 
     /** Runs the pass's swap for the consumer, without staging indices left from earlier passes. */
