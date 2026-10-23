@@ -3,11 +3,10 @@
 # Generates the index templates that the integrations install on the destination
 # platforms, from the Wazuh Common Schema (WCS) events and findings modules.
 #
-# The fields are never written by hand: they are read from the templates the WCS
-# generator produces (wcs/stateless/events/{main,findings}), and converted to
-# dynamic_templates with the WCS generator's own converter, as the setup plugin
-# does for the source data streams. Only the settings and mapping types that the
-# destination does not support are translated.
+# The fields are never written by hand: they are read from the index templates the setup
+# plugin installs for the source data streams (wazuh-events-v5-* and wazuh-findings-v5-*),
+# which hold the WCS events and findings modules as dynamic_templates. Only the settings
+# and mapping types that the destination does not support are translated.
 #
 # Usage:
 #   generate.py           write the templates
@@ -15,29 +14,22 @@
 
 import argparse
 import copy
-import glob
 import json
 import os
 import sys
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-WCS_EVENTS = os.path.join(REPO_ROOT, "wcs", "stateless", "events")
+STREAM_TEMPLATES = os.path.join(REPO_ROOT, "plugins", "setup", "src", "main", "resources", "templates", "streams")
 INTEGRATIONS = os.path.join(REPO_ROOT, "integrations")
 
-sys.path.insert(0, os.path.join(REPO_ROOT, "wcs", "generator"))
-from convert_to_dynamic_templates import convert_template  # noqa: E402
-
-# WCS modules whose fields the exported documents can carry.
-MODULES = ("main", "findings")
+# Index templates of the setup plugin whose fields the exported documents can carry.
+SOURCES = ("findings", "events")
 
 
-def load_wcs_template(module: str) -> dict:
-    """Template the WCS generator produces for a module."""
-    paths = glob.glob(os.path.join(WCS_EVENTS, module, "mappings", "*", "generated", "elasticsearch", "legacy", "template.json"))
-    if len(paths) != 1:
-        raise SystemExit(f"expected one generated template for the WCS module '{module}', found {len(paths)}")
-    with open(paths[0]) as fd:
-        return json.load(fd)
+def load_source_template(name: str) -> dict:
+    """Index template the setup plugin installs for a kind of source data stream."""
+    with open(os.path.join(STREAM_TEMPLATES, f"{name}.json")) as fd:
+        return json.load(fd)["template"]
 
 
 def merge_properties(target: dict, source: dict, path: str = "") -> dict:
@@ -49,12 +41,25 @@ def merge_properties(target: dict, source: dict, path: str = "") -> dict:
         elif "properties" in mapping and "properties" in target[name]:
             merge_properties(target[name]["properties"], mapping["properties"], f"{field}.")
         elif target[name] != mapping:
-            raise SystemExit(f"the WCS modules map '{field}' differently: {target[name]} and {mapping}")
+            raise SystemExit(f"the source templates map '{field}' differently: {target[name]} and {mapping}")
+    return target
+
+
+def merge_dynamic_templates(target: list, source: list) -> list:
+    """Union of two dynamic_templates lists, by name. A rule defined differently in both is an error."""
+    rules = {next(iter(rule)): rule for rule in target}
+    for rule in source:
+        name = next(iter(rule))
+        if name not in rules:
+            rules[name] = copy.deepcopy(rule)
+            target.append(rules[name])
+        elif rules[name] != rule:
+            raise SystemExit(f"the source templates define the dynamic template '{name}' differently")
     return target
 
 
 def merge_settings(templates: list) -> dict:
-    """Settings of the WCS templates, with the larger limits and every default query field."""
+    """Settings of the source templates, with the larger limits and every default query field."""
     settings = copy.deepcopy(templates[0]["settings"])
     index = settings["index"]
     for template in templates[1:]:
@@ -65,14 +70,14 @@ def merge_settings(templates: list) -> dict:
 
 
 def wcs_template() -> dict:
-    """WCS events and findings fields as one template, converted to dynamic_templates."""
-    templates = [load_wcs_template(module) for module in MODULES]
-    properties = {}
+    """WCS events and findings fields as one template, as dynamic_templates."""
+    templates = [load_source_template(name) for name in SOURCES]
+    properties, dynamic_templates = {}, []
     for template in templates:
         merge_properties(properties, template["mappings"]["properties"])
-    mappings = dict(templates[0]["mappings"], properties=properties)
-    converted, _ = convert_template({"template": {"settings": merge_settings(templates), "mappings": mappings}})
-    return converted["template"]
+        merge_dynamic_templates(dynamic_templates, template["mappings"]["dynamic_templates"])
+    mappings = dict(templates[0]["mappings"], properties=properties, dynamic_templates=dynamic_templates)
+    return {"settings": merge_settings(templates), "mappings": mappings}
 
 
 def destination_template(wcs: dict, mapping) -> dict:
@@ -82,7 +87,8 @@ def destination_template(wcs: dict, mapping) -> dict:
     """
     settings = copy.deepcopy(wcs["settings"])
     # The source data streams are managed with an Index State Management policy of the Wazuh
-    # indexer. Retention at the destination is up to its operator.
+    # indexer. The destination has its own lifecycle: see elastic_template, and the ISM policy
+    # of the OpenSearch integration.
     for key in [k for k in settings if k.startswith("plugins.")]:
         del settings[key]
     # zstd needs the OpenSearch custom-codecs plugin. best_compression is available everywhere,
@@ -118,7 +124,15 @@ def elastic_mapping(mapping: dict) -> dict:
 
 
 def elastic_template(wcs: dict) -> dict:
-    return destination_template(wcs, elastic_mapping)
+    template = destination_template(wcs, elastic_mapping)
+    # The template takes over the logs-*-* names from the built-in logs template (priority 100),
+    # so it composes the same component templates: logs@mappings (data_stream.* as
+    # constant_keyword) and logs@settings (the logs lifecycle policy: rollover, no deletion).
+    # logs-wazuh@custom, created by the operator, overrides any of them, and survives the
+    # template being installed again.
+    template["composed_of"] = ["logs@mappings", "logs@settings", "logs-wazuh@custom"]
+    template["ignore_missing_component_templates"] = ["logs-wazuh@custom"]
+    return template
 
 
 def opensearch_template(wcs: dict) -> dict:

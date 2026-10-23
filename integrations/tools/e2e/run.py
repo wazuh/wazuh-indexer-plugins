@@ -8,7 +8,7 @@
 #   - the documents of the exported sources reach the destination, once each;
 #   - the documents of the other sources do not;
 #   - every source reaches its own destination (data stream, or Splunk index and source).
-# Then imports the dashboards of the integration.
+# Then imports the dashboards of the integration (Splunk: checks the dashboards of its app).
 #
 # Usage: run.py {elastic,opensearch,splunk} [--keep] [--scenarios ...] [--generate SECONDS]
 
@@ -83,6 +83,17 @@ class Compose:
         return self.run(*args, capture=True, check=False).stdout
 
 
+# Documents a scenario can compare: one search page. The default generation produces far fewer.
+MAX_DOCUMENTS = 10000
+
+
+def complete(hits: dict, what: str) -> list:
+    """The hits of a search, failing if the page does not hold all of them."""
+    if hits["total"]["value"] > len(hits["hits"]):
+        raise RuntimeError(f"{hits['total']['value']} {what} in the range, more than the {MAX_DOCUMENTS} the test compares")
+    return hits["hits"]
+
+
 class Source:
     """The Wazuh indexer."""
 
@@ -92,10 +103,12 @@ class Source:
     def ids(self, kind, start, end) -> dict:
         """{_id: data stream} of the documents of a kind with @timestamp in [start, end)."""
         target = {"findings": "wazuh-findings-v5-*", "events": "wazuh-events-v5-*", "custom": CUSTOM_STREAM}[kind]
-        body = {"size": 10000, "_source": False, "query": {"range": {"@timestamp": {"gte": iso(start), "lt": iso(end)}}}}
+        body = {"size": MAX_DOCUMENTS, "track_total_hits": True, "_source": False,
+                "query": {"range": {"@timestamp": {"gte": iso(start), "lt": iso(end)}}}}
         r = requests.post(f"{self.url}/{target}/_search", json=body, auth=self.auth, verify=False, timeout=60)
         r.raise_for_status()
-        return {h["_id"]: h["_index"][len(".ds-"):].rsplit("-", 1)[0] for h in r.json()["hits"]["hits"]}
+        hits = complete(r.json()["hits"], f"{kind} in the Wazuh indexer")
+        return {h["_id"]: h["_index"][len(".ds-"):].rsplit("-", 1)[0] for h in hits}
 
 
 def expected_dataset(kind, stream):
@@ -111,13 +124,14 @@ class SearchDestination:
 
     def documents(self, kind, start, end):
         """[(_id, data stream)] of a kind with @timestamp in [start, end), duplicates included."""
-        body = {"size": 10000, "_source": False, "query": {"range": {"@timestamp": {"gte": iso(start), "lt": iso(end)}}}}
+        body = {"size": MAX_DOCUMENTS, "track_total_hits": True, "_source": False,
+                "query": {"range": {"@timestamp": {"gte": iso(start), "lt": iso(end)}}}}
         r = requests.post(f"{self.url}/logs-wazuh.{kind}.*-*/_search?ignore_unavailable=true", json=body,
                           auth=self.auth, verify=False, timeout=60)
         if r.status_code == 404:
             return []
         r.raise_for_status()
-        return [(h["_id"], h["_index"]) for h in r.json()["hits"]["hits"]]
+        return [(h["_id"], h["_index"]) for h in complete(r.json()["hits"], f"{kind} in the destination")]
 
     def check_routing(self, kind, docs, source):
         for doc_id, index in docs:
@@ -161,11 +175,24 @@ class SplunkDestination:
 
 
 INTEGRATIONS_CONFIG = {
-    "elastic": {"settle": 150, "destination": lambda c: SearchDestination("https://localhost:9201", ("elastic", ENV["ELASTIC_PASSWORD"]))},
-    "opensearch": {"settle": 150, "destination": lambda c: SearchDestination("https://localhost:9201", ("admin", ENV["OPENSEARCH_ADMIN_PASSWORD"]))},
-    # One-minute windows, two minutes behind: a window is read three minutes after it starts.
-    "splunk": {"settle": 270, "destination": lambda c: SplunkDestination(c)},
+    "elastic": {"destination": lambda c: SearchDestination("https://localhost:9201", ("elastic", ENV["ELASTIC_PASSWORD"]))},
+    "opensearch": {"destination": lambda c: SearchDestination("https://localhost:9201", ("admin", ENV["OPENSEARCH_ADMIN_PASSWORD"]))},
+    "splunk": {"destination": lambda c: SplunkDestination(c)},
 }
+
+
+def minutes(value: str) -> int:
+    """Minutes of a Logstash time setting of the environment, such as 5m or 1h."""
+    return int(value[:-1]) * {"m": 1, "h": 60}[value[-1]]
+
+
+# A window is read lookback + delay after it starts. The last window of a scenario is read by then,
+# with a margin for the run itself and the destination to make the documents searchable.
+SETTLE = (minutes(ENV["WAZUH_EXPORT_LOOKBACK"]) + minutes(ENV["WAZUH_EXPORT_DELAY"])) * 60 + 90
+# The generator indexes the finding of an event WAZUH_GENERATOR_FINDINGS_DELAY seconds after it,
+# and stopping it drops the findings still pending: only the events of the first part of a
+# scenario have their findings.
+GENERATE = int(ENV["WAZUH_GENERATOR_FINDINGS_DELAY"]) + 150
 
 
 def wait_for_pipeline(compose, since, timeout=600):
@@ -186,10 +213,12 @@ def wait_for_pipeline(compose, since, timeout=600):
 
 def export_errors(compose, since):
     lines = compose.logs("logstash", since).splitlines()
-    return [line for line in lines if "[ERROR]" in line or "non-2xx" in line or "security_exception" in line]
+    # The outputs log the writes they retry, rejected ones included, at the INFO level.
+    signs = ("[ERROR]", "non-2xx", "security_exception", "Retrying failed action")
+    return [line for line in lines if any(sign in line for sign in signs)]
 
 
-def run_scenario(name, compose, destination, settle, generate):
+def run_scenario(name, compose, destination, generate):
     scenario = SCENARIOS[name]
     log(f"scenario {name}: exporting {scenario['indices']}")
     since = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -203,7 +232,7 @@ def run_scenario(name, compose, destination, settle, generate):
     end = time.time()
     # Findings of the last events are indexed after the generator stops: they are not generated.
     # Wait for the export of the documents of the range, then compare.
-    time.sleep(settle)
+    time.sleep(SETTLE)
 
     source = {kind: Source().ids(kind, start, end) for kind in KINDS}
     problems = []
@@ -251,25 +280,25 @@ def import_dashboards(integration, compose):
                         return [f"dashboards import failed: {result.get('errors')}"]
                     log(f"dashboards imported: {result.get('successCount')} objects")
                     return []
+                # Up, but rejecting the file: retrying does not help.
+                if r.status_code == 400:
+                    return [f"dashboards import rejected: {r.text[:300]}"]
             except requests.RequestException:
                 pass
             time.sleep(10)
         return ["the dashboards UI did not become available"]
+    # Splunk: the dashboards are the views of the Wazuh app, installed with it.
     problems = []
-    for name in sorted(os.listdir(os.path.join(INTEGRATIONS, "splunk", "dashboards"))):
-        with open(os.path.join(INTEGRATIONS, "splunk", "dashboards", name)) as fd:
-            definition = json.load(fd)
-        view = name.removesuffix(".json").replace("-", "_")
-        xml = (f'<dashboard version="2" theme="dark"><label>{definition["title"]}</label>'
-               f"<definition><![CDATA[{json.dumps(definition)}]]></definition></dashboard>")
+    views = os.path.join(INTEGRATIONS, "splunk", "app", "wazuh_integration", "default", "data", "ui", "views")
+    for name in sorted(os.listdir(views)):
+        view = name.removesuffix(".xml")
         out = compose.run("exec", "-T", "splunk", "curl", "-sk", "-o", "/dev/null", "-w", "%{http_code}",
                           "-u", f"admin:{ENV['SPLUNK_PASSWORD']}",
-                          "https://localhost:8089/servicesNS/admin/search/data/ui/views",
-                          "-d", f"name={view}", "--data-urlencode", f"eai:data={xml}", capture=True).stdout
-        if out.strip() not in ("201", "409"):
-            problems.append(f"Splunk rejected the {name} dashboard: HTTP {out.strip()}")
+                          f"https://localhost:8089/servicesNS/nobody/wazuh_integration/data/ui/views/{view}", capture=True).stdout
+        if out.strip() != "200":
+            problems.append(f"the {view} dashboard of the Splunk app is not available: HTTP {out.strip()}")
     if not problems:
-        log("dashboards created in Splunk")
+        log("dashboards of the Splunk app available")
     return problems
 
 
@@ -277,7 +306,8 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="End-to-end test of an integration.")
     parser.add_argument("integration", choices=sorted(INTEGRATIONS_CONFIG))
     parser.add_argument("--scenarios", nargs="+", choices=list(SCENARIOS), default=list(SCENARIOS))
-    parser.add_argument("--generate", type=int, default=150, help="Seconds of events per scenario. Default: 150.")
+    parser.add_argument("--generate", type=int, default=GENERATE,
+                        help=f"Seconds of events per scenario. Default: {GENERATE}, the delay of the findings plus 150.")
     parser.add_argument("--keep", action="store_true", help="Keep the environment running at the end.")
     args = parser.parse_args(argv)
 
@@ -293,7 +323,7 @@ def main(argv=None) -> int:
         compose.run("stop", "events-generator")
         destination = config["destination"](compose)
         for name in args.scenarios:
-            found = run_scenario(name, compose, destination, config["settle"], args.generate)
+            found = run_scenario(name, compose, destination, args.generate)
             problems += [f"{name}: {p}" for p in found]
         problems += import_dashboards(args.integration, compose)
     except Exception as e:  # noqa: BLE001 - reported as a failure of the test

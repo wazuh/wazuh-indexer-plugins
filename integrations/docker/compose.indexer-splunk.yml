@@ -34,6 +34,15 @@ services:
         chown -R 1000:1000 /certs/splunk*
       '
 
+  # Packages the Wazuh app as it is distributed, for Splunk to install it: Splunk changes the
+  # owner of the apps it finds in place, which would change the files of the repository.
+  splunk-app:
+    image: alpine:3.24.3
+    volumes:
+      - ../splunk/app:/src:ro
+      - splunk-apps:/apps
+    command: sh -c "tar -czf /apps/wazuh_integration.tgz -C /src wazuh_integration && chmod 644 /apps/wazuh_integration.tgz"
+
   splunk:
     image: splunk/splunk:${SPLUNK_VERSION}
     user: root
@@ -41,12 +50,12 @@ services:
       - ./certs/splunk.key:/opt/splunk/etc/auth/custom/splunk.key
       - ./certs/splunk.pem:/opt/splunk/etc/auth/custom/splunk.pem
       - ./certs/splunkhec.pem:/opt/splunk/etc/auth/custom/splunkhec.pem
-      - ../splunk/config/indexes.conf:/opt/splunk/etc/system/local/indexes.conf
-      - ../splunk/config/props.conf:/opt/splunk/etc/system/local/props.conf
-      - ../splunk/config/macros.conf:/opt/splunk/etc/system/local/macros.conf
+      - splunk-apps:/tmp/apps:ro
       - ../splunk/config/default.yml:/tmp/defaults/default.yml
     depends_on:
       generator:
+        condition: service_completed_successfully
+      splunk-app:
         condition: service_completed_successfully
     ports:
       - "8000:8000"
@@ -60,6 +69,8 @@ services:
       SPLUNK_STANDALONE_URL: https://splunk:8080
       SPLUNK_GENERAL_TERMS: --accept-sgt-current-at-splunk-com
       SPLUNK_START_ARGS: --accept-license --run-as-root
+      # The Wazuh app: indexes, sourcetypes, search macros, search limits and dashboards.
+      SPLUNK_APPS_URL: /tmp/apps/wazuh_integration.tgz
 
   # =================================
   # Logstash
@@ -88,11 +99,9 @@ services:
       WAZUH_INDEXER_PASSWORD: ${WAZUH_EXPORT_PASSWORD}
       WAZUH_INDEXER_CA: /usr/share/logstash/certs/wazuh-indexer-ca.pem
       WAZUH_EXPORT_INDICES: ${WAZUH_EXPORT_INDICES}
-      # Splunk cannot drop duplicates: every run reads one minute, two minutes behind,
-      # so that every document is read once.
-      WAZUH_EXPORT_LOOKBACK: 1m
-      WAZUH_EXPORT_DELAY: 2m
-      WAZUH_EXPORT_SCHEDULE: "* * * * *"
+      WAZUH_EXPORT_LOOKBACK: ${WAZUH_EXPORT_LOOKBACK}
+      WAZUH_EXPORT_DELAY: ${WAZUH_EXPORT_DELAY}
+      WAZUH_EXPORT_SCHEDULE: ${WAZUH_EXPORT_SCHEDULE}
       SPLUNK_HEC_URL: https://splunk:8088/services/collector/event
       SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN}
       SPLUNK_CA: /usr/share/logstash/certs/splunk-ca.pem
@@ -107,3 +116,4 @@ services:
 
 volumes:
   logstash-data:
+  splunk-apps:

@@ -76,7 +76,8 @@ services:
     environment:
       - node.name=es01
       - cluster.name=${CLUSTER_NAME}
-      - cluster.initial_master_nodes=es01
+      # A single-node cluster skips the bootstrap checks, such as vm.max_map_count on the host.
+      - discovery.type=single-node
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - bootstrap.memory_lock=true
       - xpack.security.enabled=true
@@ -179,6 +180,7 @@ services:
       WAZUH_INDEXER_CA: /usr/share/logstash/certs/wazuh-indexer-ca.pem
       WAZUH_EXPORT_INDICES: ${WAZUH_EXPORT_INDICES}
       WAZUH_EXPORT_LOOKBACK: ${WAZUH_EXPORT_LOOKBACK}
+      WAZUH_EXPORT_DELAY: ${WAZUH_EXPORT_DELAY}
       WAZUH_EXPORT_SCHEDULE: ${WAZUH_EXPORT_SCHEDULE}
       ELASTIC_HOST: https://es01:9200
       ELASTIC_USERNAME: ${ELASTIC_LOGSTASH_USERNAME}

@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 
-# Generates the dashboards of the integrations: Splunk Dashboard Studio definitions, Kibana
-# saved objects and OpenSearch Dashboards saved objects. The dashboards are built from code because their export formats
-# are too verbose to maintain by hand: change them here, then regenerate.
+# Generates the dashboards of the integrations: the views of the Splunk app (Dashboard Studio
+# definitions), Kibana saved objects and OpenSearch Dashboards saved objects. The dashboards
+# are built from code because their export formats are too verbose to maintain by hand:
+# change them here, then regenerate.
 #
 # Usage:
 #   generate.py           write the dashboards
 #   generate.py --check   fail if a committed dashboard differs from what this code builds
 
 import argparse
+import json
 import os
 import sys
+from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import kibana  # noqa: E402
@@ -19,10 +22,20 @@ import splunk  # noqa: E402
 
 INTEGRATIONS = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 TARGETS = {
-    os.path.join(INTEGRATIONS, "splunk", "dashboards"): splunk.build,
+    os.path.join(INTEGRATIONS, "splunk", "app", "wazuh_integration", "default", "data", "ui"): splunk.build,
     os.path.join(INTEGRATIONS, "elastic"): kibana.build,
     os.path.join(INTEGRATIONS, "opensearch"): opensearch.build,
 }
+
+
+def duplicate_ids(ndjson: str) -> list:
+    """Ids that two saved objects, or two panels of a dashboard, share."""
+    objects = [json.loads(line) for line in ndjson.splitlines()]
+    ids = Counter((o["type"], o["id"]) for o in objects)
+    for o in objects:
+        if o["type"] == "dashboard":
+            ids.update((o["id"], p["panelIndex"]) for p in json.loads(o["attributes"]["panelsJSON"]))
+    return sorted(str(key) for key, count in ids.items() if count > 1)
 
 
 def main(argv=None) -> int:
@@ -33,6 +46,10 @@ def main(argv=None) -> int:
     outdated = []
     for directory, build in TARGETS.items():
         for name, content in build().items():
+            duplicated = duplicate_ids(content) if name.endswith(".ndjson") else []
+            if duplicated:
+                print(f"{name}: saved objects or panels with the same id, rejected by the import: {duplicated}")
+                return 1
             path = os.path.join(directory, name)
             relative = os.path.relpath(path, os.path.dirname(INTEGRATIONS))
             if args.check:
@@ -40,7 +57,7 @@ def main(argv=None) -> int:
                 if current != content:
                     outdated.append(relative)
                 continue
-            os.makedirs(directory, exist_ok=True)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w") as fd:
                 fd.write(content)
             print(f"written {relative}")

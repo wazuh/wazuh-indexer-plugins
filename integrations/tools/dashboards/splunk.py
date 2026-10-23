@@ -1,5 +1,6 @@
-"""Splunk Dashboard Studio definitions of the Wazuh dashboards."""
+"""Splunk Dashboard Studio definitions of the Wazuh dashboards, as the views of the Splunk app."""
 import json
+from xml.sax.saxutils import escape
 
 F = "`wazuh_findings`"
 E = "`wazuh_events`"
@@ -102,16 +103,23 @@ d.row(360, table("Techniques", f'{F} | rename "wazuh.rule.mitre.technique.id{{}}
 mitre = d
 
 # Compliance: replaces wazuh-pci-dss.
-FRAMEWORKS = [("pci_dss", "PCI DSS"), ("nist_800_53", "NIST 800-53"), ("gdpr", "GDPR"), ("hipaa", "HIPAA")]
+# Every framework of wazuh.rule.compliance in WCS.
+FRAMEWORKS = [("pci_dss", "PCI DSS"), ("nist_800_53", "NIST 800-53"), ("nist_800_171", "NIST 800-171"), ("gdpr", "GDPR"), ("hipaa", "HIPAA"),
+              ("iso_27001", "ISO 27001"), ("nis2", "NIS2"), ("tsc", "TSC"), ("cmmc", "CMMC"), ("fedramp", "FedRAMP")]
 d = Dashboard("Wazuh - Compliance", "Regulatory requirements of the rules that produced the findings.")
-d.row(110, *[single(f"{name} findings", f'{F} "wazuh.rule.compliance.{key}{{}}"=* | stats count') for key, name in FRAMEWORKS])
+for half in (FRAMEWORKS[:5], FRAMEWORKS[5:]):
+    d.row(110, *[single(f"{name} findings", f'{F} "wazuh.rule.compliance.{key}{{}}"=* | stats count') for key, name in half])
+FRAMEWORK_EVAL = ", ".join(f"if(isnotnull('wazuh.rule.compliance.{key}{{}}'),\"{name}\",null())" for key, name in FRAMEWORKS)
 d.row(320,
       chart("splunk.column", "Findings by framework over time",
-            f'{F} | eval framework=mvappend(if(isnotnull(\'wazuh.rule.compliance.pci_dss{{}}\'),"PCI DSS",null()), if(isnotnull(\'wazuh.rule.compliance.nist_800_53{{}}\'),"NIST 800-53",null()), if(isnotnull(\'wazuh.rule.compliance.gdpr{{}}\'),"GDPR",null()), if(isnotnull(\'wazuh.rule.compliance.hipaa{{}}\'),"HIPAA",null())) | where isnotnull(framework) | timechart usenull=f useother=f count by framework',
+            f'{F} | eval framework=mvappend({FRAMEWORK_EVAL}) | where isnotnull(framework) | timechart usenull=f useother=f limit=0 count by framework',
             stackMode="stacked"))
-d.row(320, *[chart("splunk.bar", f"{name} requirements", f'{F} | rename "wazuh.rule.compliance.{key}{{}}" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10') for key, name in FRAMEWORKS[:2]])
-d.row(320, *[chart("splunk.bar", f"{name} requirements", f'{F} | rename "wazuh.rule.compliance.{key}{{}}" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10') for key, name in FRAMEWORKS[2:]])
-d.row(360, table("Requirements by rule", f'{F} | rename "wazuh.rule.compliance.pci_dss{{}}" as pci_dss, "wazuh.rule.compliance.nist_800_53{{}}" as nist_800_53, "wazuh.rule.compliance.gdpr{{}}" as gdpr, "wazuh.rule.compliance.hipaa{{}}" as hipaa | where isnotnull(pci_dss) OR isnotnull(nist_800_53) OR isnotnull(gdpr) OR isnotnull(hipaa) | stats count, dc(wazuh.agent.name) as agents, values(pci_dss) as pci_dss, values(nist_800_53) as nist_800_53, values(gdpr) as gdpr, values(hipaa) as hipaa by wazuh.rule.title | sort - count'))
+for pair in zip(FRAMEWORKS[::2], FRAMEWORKS[1::2]):
+    d.row(320, *[chart("splunk.bar", f"{name} requirements", f'{F} | rename "wazuh.rule.compliance.{key}{{}}" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10') for key, name in pair])
+RENAMES = ", ".join(f'"wazuh.rule.compliance.{key}{{}}" as {key}' for key, _ in FRAMEWORKS)
+ANY = " OR ".join(f"isnotnull({key})" for key, _ in FRAMEWORKS)
+VALUES = ", ".join(f"values({key}) as {key}" for key, _ in FRAMEWORKS)
+d.row(360, table("Requirements by rule", f'{F} | rename {RENAMES} | where {ANY} | stats count, dc(wazuh.agent.name) as agents, {VALUES} by wazuh.rule.title | sort - count'))
 compliance = d
 
 # Events overview: replaces wazuh-amazon-aws (cloud panels).
@@ -134,10 +142,27 @@ events = d
 
 
 
+VIEWS = (("wazuh_findings_overview", findings), ("wazuh_mitre_attack", mitre),
+         ("wazuh_compliance", compliance), ("wazuh_events_overview", events))
+
+
+def view(dash: Dashboard) -> str:
+    """Simple XML view holding a Dashboard Studio definition."""
+    definition = json.dumps(dash.render(), indent=2)
+    return (f'<dashboard version="2" theme="dark">\n  <label>{escape(dash.title)}</label>\n'
+            f'  <description>{escape(dash.description)}</description>\n'
+            f"  <definition><![CDATA[\n{definition}\n]]></definition>\n</dashboard>\n")
+
+
+def navigation() -> str:
+    """Navigation menu of the app: the dashboards first, then search."""
+    items = "\n".join(f'    <view name="{name}" />' for name, _ in VIEWS)
+    return (f'<nav search_view="search">\n  <collection label="Dashboards">\n{items}\n  </collection>\n'
+            f'  <view name="search" />\n  <view name="dashboards" />\n</nav>\n')
+
+
 def build() -> dict:
-    """{file name: content} of the dashboards, one Dashboard Studio definition per file."""
-    files = {}
-    for name, dash in (("wazuh-findings-overview", findings), ("wazuh-mitre-attack", mitre),
-                       ("wazuh-compliance", compliance), ("wazuh-events-overview", events)):
-        files[f"{name}.json"] = json.dumps(dash.render(), indent=2) + "\n"
+    """{path under the app's default/data/ui: content} of the views and the navigation menu."""
+    files = {f"views/{name}.xml": view(dash) for name, dash in VIEWS}
+    files["nav/default.xml"] = navigation()
     return files

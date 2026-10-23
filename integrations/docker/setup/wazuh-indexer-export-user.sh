@@ -22,15 +22,19 @@ api() {
     -H "Content-Type: application/json" "$@"
 }
 
-echo "Waiting for the events and findings data streams"
+# The setup plugin marks its initialization ready once every index template, policy and data
+# stream exists, whatever the number of categories.
+echo "Waiting for the setup plugin to create the events and findings data streams"
+status=""
 for _ in $(seq 1 60); do
-  streams=$(api "${WAZUH_INDEXER_URL}/_data_stream/wazuh-events-v5-*,wazuh-findings-v5-*" 2>/dev/null |
-    grep -o '"name":"wazuh-[a-z-]*-v5-[a-z-]*"' | wc -l || true)
-  [ "${streams}" -ge 16 ] && break
+  status=$(api "${WAZUH_INDEXER_URL}/.wazuh-setup-status/_doc/setup-status" 2>/dev/null |
+    grep -o '"status":"[a-z]*"' | cut -d'"' -f4 || true)
+  [ "${status}" = "ready" ] && break
+  [ "${status}" = "failed" ] && break
   sleep 5
 done
-if [ "${streams}" -lt 16 ]; then
-  echo "Only ${streams} of the 16 events and findings data streams exist" >&2
+if [ "${status}" != "ready" ]; then
+  echo "The setup plugin did not finish its initialization: ${status:-no status}" >&2
   exit 1
 fi
 

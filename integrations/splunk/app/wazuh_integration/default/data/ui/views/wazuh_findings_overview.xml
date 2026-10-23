@@ -1,6 +1,10 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - Findings overview</label>
+  <description>Detection findings exported from the Wazuh indexer.</description>
+  <definition><![CDATA[
 {
-  "title": "Wazuh - MITRE ATT&CK",
-  "description": "MITRE ATT&CK tactics and techniques of the rules that produced the findings.",
+  "title": "Wazuh - Findings overview",
+  "description": "Detection findings exported from the Wazuh indexer.",
   "inputs": {
     "input_global_trp": {
       "type": "input.timerange",
@@ -26,72 +30,79 @@
   "dataSources": {
     "ds_01": {
       "type": "ds.search",
-      "name": "Findings with MITRE ATT&CK",
+      "name": "Findings",
       "options": {
-        "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | stats count"
+        "query": "`wazuh_findings` | stats count"
       }
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "Tactics",
+      "name": "Critical and high",
       "options": {
-        "query": "`wazuh_findings` | stats dc(\"wazuh.rule.mitre.tactic.id{}\")"
+        "query": "`wazuh_findings` (wazuh.rule.level=\"critical\" OR wazuh.rule.level=\"high\") | stats count"
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Techniques",
+      "name": "Agents with findings",
       "options": {
-        "query": "`wazuh_findings` | stats dc(\"wazuh.rule.mitre.technique.id{}\")"
+        "query": "`wazuh_findings` | stats dc(wazuh.agent.name)"
       }
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Sub-techniques",
+      "name": "Rules triggered",
       "options": {
-        "query": "`wazuh_findings` | stats dc(\"wazuh.rule.mitre.subtechnique.id{}\")"
+        "query": "`wazuh_findings` | stats dc(wazuh.rule.id)"
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Tactics over time",
+      "name": "Findings over time by level",
       "options": {
-        "query": "`wazuh_findings` | rename \"wazuh.rule.mitre.tactic.name{}\" as tactic | timechart usenull=f useother=f count by tactic"
+        "query": "`wazuh_findings` | timechart usenull=f useother=f count by wazuh.rule.level"
       }
     },
     "ds_06": {
       "type": "ds.search",
-      "name": "Findings by tactic",
+      "name": "Findings by level",
       "options": {
-        "query": "`wazuh_findings` | rename \"wazuh.rule.mitre.tactic.name{}\" as tactic | stats count by tactic"
+        "query": "`wazuh_findings` | stats count by wazuh.rule.level"
       }
     },
     "ds_07": {
       "type": "ds.search",
-      "name": "Top techniques",
+      "name": "Findings by category",
       "options": {
-        "query": "`wazuh_findings` | rename \"wazuh.rule.mitre.technique.name{}\" as technique | stats count by technique | sort - count | head 10"
+        "query": "`wazuh_findings` | stats count by wazuh.integration.category | sort - count"
       }
     },
     "ds_08": {
       "type": "ds.search",
-      "name": "Top sub-techniques",
+      "name": "Top agents",
       "options": {
-        "query": "`wazuh_findings` | rename \"wazuh.rule.mitre.subtechnique.name{}\" as subtechnique | where isnotnull(subtechnique) | stats count by subtechnique | sort - count | head 10"
+        "query": "`wazuh_findings` | stats count by wazuh.agent.name | sort - count | head 10"
       }
     },
     "ds_09": {
       "type": "ds.search",
-      "name": "Techniques",
+      "name": "Top rules",
       "options": {
-        "query": "`wazuh_findings` | rename \"wazuh.rule.mitre.technique.id{}\" as id, \"wazuh.rule.mitre.technique.name{}\" as technique, \"wazuh.rule.mitre.tactic.name{}\" as tactic | where isnotnull(id) | stats count, values(tactic) as tactics, dc(wazuh.agent.name) as agents, values(wazuh.rule.title) as rules by id, technique | sort - count"
+        "query": "`wazuh_findings` | stats count, dc(wazuh.agent.name) as agents by wazuh.rule.title, wazuh.rule.level | eval level_order=case('wazuh.rule.level'=\"critical\",1,'wazuh.rule.level'=\"high\",2,'wazuh.rule.level'=\"medium\",3,'wazuh.rule.level'=\"low\",4,true(),5) | sort level_order, - count | fields - level_order | head 20"
+      }
+    },
+    "ds_10": {
+      "type": "ds.search",
+      "name": "Latest findings",
+      "options": {
+        "query": "`wazuh_findings` | sort - _time | table _time, wazuh.agent.name, wazuh.rule.level, wazuh.rule.title, wazuh.integration.name, source.ip, user.name | head 50"
       }
     }
   },
   "visualizations": {
     "viz_01": {
       "type": "splunk.singlevalue",
-      "title": "Findings with MITRE ATT&CK",
+      "title": "Findings",
       "dataSources": {
         "primary": "ds_01"
       },
@@ -99,7 +110,7 @@
     },
     "viz_02": {
       "type": "splunk.singlevalue",
-      "title": "Tactics",
+      "title": "Critical and high",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -107,7 +118,7 @@
     },
     "viz_03": {
       "type": "splunk.singlevalue",
-      "title": "Techniques",
+      "title": "Agents with findings",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -115,7 +126,7 @@
     },
     "viz_04": {
       "type": "splunk.singlevalue",
-      "title": "Sub-techniques",
+      "title": "Rules triggered",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -123,7 +134,7 @@
     },
     "viz_05": {
       "type": "splunk.column",
-      "title": "Tactics over time",
+      "title": "Findings over time by level",
       "dataSources": {
         "primary": "ds_05"
       },
@@ -134,7 +145,7 @@
     },
     "viz_06": {
       "type": "splunk.pie",
-      "title": "Findings by tactic",
+      "title": "Findings by level",
       "dataSources": {
         "primary": "ds_06"
       },
@@ -142,7 +153,7 @@
     },
     "viz_07": {
       "type": "splunk.bar",
-      "title": "Top techniques",
+      "title": "Findings by category",
       "dataSources": {
         "primary": "ds_07"
       },
@@ -150,7 +161,7 @@
     },
     "viz_08": {
       "type": "splunk.bar",
-      "title": "Top sub-techniques",
+      "title": "Top agents",
       "dataSources": {
         "primary": "ds_08"
       },
@@ -158,9 +169,17 @@
     },
     "viz_09": {
       "type": "splunk.table",
-      "title": "Techniques",
+      "title": "Top rules",
       "dataSources": {
         "primary": "ds_09"
+      },
+      "options": {}
+    },
+    "viz_10": {
+      "type": "splunk.table",
+      "title": "Latest findings",
+      "dataSources": {
+        "primary": "ds_10"
       },
       "options": {}
     }
@@ -259,9 +278,21 @@
           "x": 0,
           "y": 750,
           "w": 1200,
+          "h": 320
+        }
+      },
+      {
+        "item": "viz_10",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 1070,
+          "w": 1200,
           "h": 360
         }
       }
     ]
   }
 }
+]]></definition>
+</dashboard>

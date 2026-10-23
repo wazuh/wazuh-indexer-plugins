@@ -1,6 +1,10 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - MITRE ATT&amp;CK</label>
+  <description>MITRE ATT&amp;CK tactics and techniques of the rules that produced the findings.</description>
+  <definition><![CDATA[
 {
-  "title": "Wazuh - Compliance",
-  "description": "Regulatory requirements of the rules that produced the findings.",
+  "title": "Wazuh - MITRE ATT&CK",
+  "description": "MITRE ATT&CK tactics and techniques of the rules that produced the findings.",
   "inputs": {
     "input_global_trp": {
       "type": "input.timerange",
@@ -26,79 +30,72 @@
   "dataSources": {
     "ds_01": {
       "type": "ds.search",
-      "name": "PCI DSS findings",
+      "name": "Findings with MITRE ATT&CK",
       "options": {
-        "query": "`wazuh_findings` \"wazuh.rule.compliance.pci_dss{}\"=* | stats count"
+        "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | stats count"
       }
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "NIST 800-53 findings",
+      "name": "Tactics",
       "options": {
-        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_53{}\"=* | stats count"
+        "query": "`wazuh_findings` | stats dc(\"wazuh.rule.mitre.tactic.id{}\")"
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "GDPR findings",
+      "name": "Techniques",
       "options": {
-        "query": "`wazuh_findings` \"wazuh.rule.compliance.gdpr{}\"=* | stats count"
+        "query": "`wazuh_findings` | stats dc(\"wazuh.rule.mitre.technique.id{}\")"
       }
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "HIPAA findings",
+      "name": "Sub-techniques",
       "options": {
-        "query": "`wazuh_findings` \"wazuh.rule.compliance.hipaa{}\"=* | stats count"
+        "query": "`wazuh_findings` | stats dc(\"wazuh.rule.mitre.subtechnique.id{}\")"
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Findings by framework over time",
+      "name": "Tactics over time",
       "options": {
-        "query": "`wazuh_findings` | eval framework=mvappend(if(isnotnull('wazuh.rule.compliance.pci_dss{}'),\"PCI DSS\",null()), if(isnotnull('wazuh.rule.compliance.nist_800_53{}'),\"NIST 800-53\",null()), if(isnotnull('wazuh.rule.compliance.gdpr{}'),\"GDPR\",null()), if(isnotnull('wazuh.rule.compliance.hipaa{}'),\"HIPAA\",null())) | where isnotnull(framework) | timechart usenull=f useother=f count by framework"
+        "query": "`wazuh_findings` | rename \"wazuh.rule.mitre.tactic.name{}\" as tactic | timechart usenull=f useother=f count by tactic"
       }
     },
     "ds_06": {
       "type": "ds.search",
-      "name": "PCI DSS requirements",
+      "name": "Findings by tactic",
       "options": {
-        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.pci_dss{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+        "query": "`wazuh_findings` | rename \"wazuh.rule.mitre.tactic.name{}\" as tactic | stats count by tactic"
       }
     },
     "ds_07": {
       "type": "ds.search",
-      "name": "NIST 800-53 requirements",
+      "name": "Top techniques",
       "options": {
-        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.nist_800_53{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+        "query": "`wazuh_findings` | rename \"wazuh.rule.mitre.technique.name{}\" as technique | stats count by technique | sort - count | head 10"
       }
     },
     "ds_08": {
       "type": "ds.search",
-      "name": "GDPR requirements",
+      "name": "Top sub-techniques",
       "options": {
-        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.gdpr{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
+        "query": "`wazuh_findings` | rename \"wazuh.rule.mitre.subtechnique.name{}\" as subtechnique | where isnotnull(subtechnique) | stats count by subtechnique | sort - count | head 10"
       }
     },
     "ds_09": {
       "type": "ds.search",
-      "name": "HIPAA requirements",
+      "name": "Techniques",
       "options": {
-        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.hipaa{}\" as requirement | where isnotnull(requirement) | stats count by requirement | sort - count | head 10"
-      }
-    },
-    "ds_10": {
-      "type": "ds.search",
-      "name": "Requirements by rule",
-      "options": {
-        "query": "`wazuh_findings` | rename \"wazuh.rule.compliance.pci_dss{}\" as pci_dss, \"wazuh.rule.compliance.nist_800_53{}\" as nist_800_53, \"wazuh.rule.compliance.gdpr{}\" as gdpr, \"wazuh.rule.compliance.hipaa{}\" as hipaa | where isnotnull(pci_dss) OR isnotnull(nist_800_53) OR isnotnull(gdpr) OR isnotnull(hipaa) | stats count, dc(wazuh.agent.name) as agents, values(pci_dss) as pci_dss, values(nist_800_53) as nist_800_53, values(gdpr) as gdpr, values(hipaa) as hipaa by wazuh.rule.title | sort - count"
+        "query": "`wazuh_findings` | rename \"wazuh.rule.mitre.technique.id{}\" as id, \"wazuh.rule.mitre.technique.name{}\" as technique, \"wazuh.rule.mitre.tactic.name{}\" as tactic | where isnotnull(id) | stats count, values(tactic) as tactics, dc(wazuh.agent.name) as agents, values(wazuh.rule.title) as rules by id, technique | sort - count"
       }
     }
   },
   "visualizations": {
     "viz_01": {
       "type": "splunk.singlevalue",
-      "title": "PCI DSS findings",
+      "title": "Findings with MITRE ATT&CK",
       "dataSources": {
         "primary": "ds_01"
       },
@@ -106,7 +103,7 @@
     },
     "viz_02": {
       "type": "splunk.singlevalue",
-      "title": "NIST 800-53 findings",
+      "title": "Tactics",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -114,7 +111,7 @@
     },
     "viz_03": {
       "type": "splunk.singlevalue",
-      "title": "GDPR findings",
+      "title": "Techniques",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -122,7 +119,7 @@
     },
     "viz_04": {
       "type": "splunk.singlevalue",
-      "title": "HIPAA findings",
+      "title": "Sub-techniques",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -130,17 +127,18 @@
     },
     "viz_05": {
       "type": "splunk.column",
-      "title": "Findings by framework over time",
+      "title": "Tactics over time",
       "dataSources": {
         "primary": "ds_05"
       },
       "options": {
-        "stackMode": "stacked"
+        "stackMode": "stacked",
+        "w": 800
       }
     },
     "viz_06": {
-      "type": "splunk.bar",
-      "title": "PCI DSS requirements",
+      "type": "splunk.pie",
+      "title": "Findings by tactic",
       "dataSources": {
         "primary": "ds_06"
       },
@@ -148,7 +146,7 @@
     },
     "viz_07": {
       "type": "splunk.bar",
-      "title": "NIST 800-53 requirements",
+      "title": "Top techniques",
       "dataSources": {
         "primary": "ds_07"
       },
@@ -156,25 +154,17 @@
     },
     "viz_08": {
       "type": "splunk.bar",
-      "title": "GDPR requirements",
+      "title": "Top sub-techniques",
       "dataSources": {
         "primary": "ds_08"
       },
       "options": {}
     },
     "viz_09": {
-      "type": "splunk.bar",
-      "title": "HIPAA requirements",
+      "type": "splunk.table",
+      "title": "Techniques",
       "dataSources": {
         "primary": "ds_09"
-      },
-      "options": {}
-    },
-    "viz_10": {
-      "type": "splunk.table",
-      "title": "Requirements by rule",
-      "dataSources": {
-        "primary": "ds_10"
       },
       "options": {}
     }
@@ -232,7 +222,7 @@
         "position": {
           "x": 0,
           "y": 110,
-          "w": 1200,
+          "w": 600,
           "h": 320
         }
       },
@@ -240,8 +230,8 @@
         "item": "viz_06",
         "type": "block",
         "position": {
-          "x": 0,
-          "y": 430,
+          "x": 600,
+          "y": 110,
           "w": 600,
           "h": 320
         }
@@ -250,7 +240,7 @@
         "item": "viz_07",
         "type": "block",
         "position": {
-          "x": 600,
+          "x": 0,
           "y": 430,
           "w": 600,
           "h": 320
@@ -260,8 +250,8 @@
         "item": "viz_08",
         "type": "block",
         "position": {
-          "x": 0,
-          "y": 750,
+          "x": 600,
+          "y": 430,
           "w": 600,
           "h": 320
         }
@@ -270,18 +260,8 @@
         "item": "viz_09",
         "type": "block",
         "position": {
-          "x": 600,
-          "y": 750,
-          "w": 600,
-          "h": 320
-        }
-      },
-      {
-        "item": "viz_10",
-        "type": "block",
-        "position": {
           "x": 0,
-          "y": 1070,
+          "y": 750,
           "w": 1200,
           "h": 360
         }
@@ -289,3 +269,5 @@
     ]
   }
 }
+]]></definition>
+</dashboard>

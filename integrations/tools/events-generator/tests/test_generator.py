@@ -2,6 +2,8 @@ import base64
 import csv
 import hashlib
 import json
+import random
+import uuid
 from pathlib import Path
 
 import pytest
@@ -12,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 WCS_EVENTS = REPO_ROOT / "wcs" / "stateless" / "events"
 SIGMA_LEVELS = {"informational", "low", "medium", "high", "critical"}
 SIGMA_STATUSES = {"stable", "test", "experimental", "deprecated", "unsupported"}
+LOG_ID = "0f8c2b6e-3d4a-4f1b-9c7e-5a2d8e6b1c40"
 
 
 def wcs_fields(module: str) -> dict:
@@ -48,14 +51,14 @@ def agent(samples):
 
 def test_events_follow_wcs(samples, agent):
     for template in samples["events"]:
-        event = run.build_event(template, agent, samples["agents"]["cluster"], run.now())
+        event = run.build_event(template, agent, samples["agents"]["cluster"], run.now(), LOG_ID)
         unknown = leaf_paths(event, EVENT_FIELDS) - EVENT_FIELDS.keys()
         assert not unknown, f"fields not in the WCS events module: {sorted(unknown)}"
 
 
 def test_findings_follow_wcs(samples, agent):
     for template in samples["events"]:
-        event = run.build_event(template, agent, samples["agents"]["cluster"], run.now())
+        event = run.build_event(template, agent, samples["agents"]["cluster"], run.now(), LOG_ID)
         for rule in run.rules_for(template, samples["rules"]):
             finding = run.build_finding(event, ".ds-wazuh-events-v5-x-000001", "doc-1", run.strip_rule(rule))
             unknown = leaf_paths(finding, FINDING_FIELDS) - FINDING_FIELDS.keys()
@@ -88,14 +91,22 @@ def test_rules(samples):
 def test_finding_points_to_its_event(samples, agent):
     template = next(t for t in samples["events"] if run.rules_for(t, samples["rules"]))
     rule = run.strip_rule(run.rules_for(template, samples["rules"])[0])
-    event = run.build_event(template, agent, samples["agents"]["cluster"], "2026-10-22T10:00:00.000Z")
+    event = run.build_event(template, agent, samples["agents"]["cluster"], "2026-10-22T10:00:00.000Z", LOG_ID)
     finding = run.build_finding(event, ".ds-wazuh-events-v5-security-000001", "abc", rule)
     assert finding["@timestamp"] == event["@timestamp"]
+    assert finding["wazuh"]["event"]["id"] == event["wazuh"]["event"]["id"] == LOG_ID
     assert finding["event"]["doc_id"] == "abc"
     assert finding["event"]["index"] == ".ds-wazuh-events-v5-security-000001"
     assert finding["wazuh"]["rule"] == rule
     assert "integrations" not in finding["wazuh"]["rule"]
     assert "rule" not in event["wazuh"], "building a finding must not modify the event"
+
+
+def test_event_ids_are_uuid4():
+    rng = random.Random(7)
+    ids = {run.event_id(rng) for _ in range(100)}
+    assert len(ids) == 100
+    assert all(uuid.UUID(i).version == 4 for i in ids)
 
 
 def expected_id(key: str) -> str:

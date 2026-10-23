@@ -64,6 +64,10 @@ services:
       - node.name=wazuh.indexer
       - cluster.initial_cluster_manager_nodes=wazuh.indexer
       - discovery.seed_hosts=wazuh.indexer
+      # A node whose transport is bound to the loopback interface skips the bootstrap checks,
+      # such as vm.max_map_count on the host. The REST API stays reachable from the other services.
+      - transport.host=127.0.0.1
+      - http.host=0.0.0.0
       - plugins.security.allow_default_init_securityindex=true
       - WAZUH_INDEXER_ADMIN_PASSWORD=${WAZUH_INDEXER_ADMIN_PASSWORD}
       - WAZUH_INDEXER_KIBANASERVER_PASSWORD=${WAZUH_INDEXER_KIBANASERVER_PASSWORD}
