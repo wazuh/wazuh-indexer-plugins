@@ -536,6 +536,63 @@ public class AbstractConsumerServiceTests extends OpenSearchTestCase {
         assertEquals(EARLIER, document.getUpdatedAt());
     }
 
+    /**
+     * A pass that applies no new content but finishes the phases a prior content change left owed
+     * records the time: the content update that pass began completes here, even though the offset did
+     * not move.
+     */
+    public void testPassThatCompletesOwedPhasesRecordsTheTime() {
+        this.consumer.owedPhases = List.of("first");
+        this.consumer.completesOwedPhases = true;
+        this.consumersIndex.put(
+                new LocalConsumer(
+                                "open-iocs",
+                                "open-iocs",
+                                IOCS,
+                                OPEN_IOCS,
+                                true,
+                                LocalConsumer.Status.READY,
+                                1150,
+                                1150,
+                                List.of("first"))
+                        .withUpdatedAt(EARLIER));
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+        Instant start = Instant.now().truncatedTo(ChronoUnit.MILLIS);
+
+        this.consumer.synchronize(SyncPass.withPlan(null));
+
+        LocalConsumer document = this.consumersIndex.documents.get(IOCS);
+        assertEquals(List.of(), document.getPendingSyncPhases());
+        assertRecordedSince(start, document.getUpdatedAt());
+    }
+
+    /**
+     * A pass that leaves the owed phases pending keeps the time of the last change: the content
+     * update they stand for has not completed.
+     */
+    public void testPassThatLeavesOwedPhasesPendingKeepsTheTime() {
+        this.consumer.owedPhases = List.of("first");
+        this.consumersIndex.put(
+                new LocalConsumer(
+                                "open-iocs",
+                                "open-iocs",
+                                IOCS,
+                                OPEN_IOCS,
+                                true,
+                                LocalConsumer.Status.READY,
+                                1150,
+                                1150,
+                                List.of("first"))
+                        .withUpdatedAt(EARLIER));
+        this.consumer.setRemote(remote("open-iocs", 1150, 900));
+
+        this.consumer.synchronize(SyncPass.withPlan(null));
+
+        LocalConsumer document = this.consumersIndex.documents.get(IOCS);
+        assertEquals(List.of("first"), document.getPendingSyncPhases());
+        assertEquals(EARLIER, document.getUpdatedAt());
+    }
+
     /** Each answer of the CTI catalog is recorded as its last check, content changed or not. */
     public void testAnsweredCatalogRecordsTheCheck() {
         this.consumersIndex.put(document(OPEN_IOCS, LocalConsumer.Status.READY, 1150, 1150));

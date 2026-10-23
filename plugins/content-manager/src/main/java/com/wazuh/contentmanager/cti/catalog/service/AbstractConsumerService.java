@@ -325,9 +325,20 @@ public abstract class AbstractConsumerService {
                 return true;
             }
             boolean contentChanged = result.updated() || swap == SyncPass.SwapOutcome.SWAPPED;
+            // A prior pass may have changed the content but been cut before onSyncComplete finished its
+            // post-sync phases, which it records as pending. This pass applies no new offset, so
+            // result.updated() is false, but when it completes those owed phases the content update
+            // they stand for finishes here. Record the time in that case too; otherwise updated_at
+            // would keep the value from before the change that this pass just finalized.
+            List<String> owedPhasesBefore = this.readPendingSyncPhases();
             this.onSyncComplete(contentChanged);
+            boolean completedOwedPhases =
+                    !owedPhasesBefore.isEmpty() && this.readPendingSyncPhases().isEmpty();
+            boolean contentUpdateRecorded = contentChanged || completedOwedPhases;
             this.setConsumerStatus(
-                    LocalConsumer.Status.READY, null, contentChanged ? currentTime().toString() : null);
+                    LocalConsumer.Status.READY,
+                    null,
+                    contentUpdateRecorded ? currentTime().toString() : null);
             return result.feedUnreachable()
                     || result.sourceChangePending()
                     || this.immediateRetryRequested;
