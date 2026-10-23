@@ -195,6 +195,41 @@ SETTLE = (minutes(ENV["WAZUH_EXPORT_LOOKBACK"]) + minutes(ENV["WAZUH_EXPORT_DELA
 GENERATE = int(ENV["WAZUH_GENERATOR_FINDINGS_DELAY"]) + 150
 
 
+# Lines of the log of every failed service printed when the test fails.
+LOG_LINES = 200
+
+
+def print_logs(compose, services):
+    for service in sorted(services):
+        print(f"----- last lines of the {service} log -----")
+        print("\n".join(compose.logs(service).splitlines()[-LOG_LINES:]))
+
+
+def reset(compose):
+    """Removes the environment, its volumes and the certificates it generated."""
+    compose.run("down", "-v", "--remove-orphans", check=False, capture=True)
+    subprocess.run(["docker", "run", "--rm", "-v", f"{DOCKER}:/w", "alpine:3.24.3", "sh", "-c", "rm -rf /w/certs /w/config"])
+
+
+def start(compose, attempts=2):
+    """
+    Starts the environment, from scratch. A destination platform can fail its own first start
+    now and then (the Splunk image on CI runners), so a failed start is retried once, after
+    printing the logs of the services that failed.
+    """
+    for attempt in range(1, attempts + 1):
+        reset(compose)
+        try:
+            compose.run("up", "-d", "--build", "--quiet-pull")
+            return
+        except RuntimeError:
+            failed = compose.failed_services()
+            if attempt == attempts:
+                raise
+            log(f"the environment did not start, retrying: services exited with an error: {failed}")
+            print_logs(compose, failed)
+
+
 def wait_for_pipeline(compose, since, timeout=600):
     """Waits until the Logstash pipeline runs. Fails on a crashed container or a pipeline error."""
     deadline = time.time() + timeout
@@ -316,9 +351,7 @@ def main(argv=None) -> int:
     problems = []
     try:
         log(f"starting the {args.integration} environment")
-        compose.run("down", "-v", "--remove-orphans", check=False, capture=True)
-        subprocess.run(["docker", "run", "--rm", "-v", f"{DOCKER}:/w", "alpine:3.24.3", "sh", "-c", "rm -rf /w/certs /w/config"], check=True)
-        compose.run("up", "-d", "--build", "--quiet-pull")
+        start(compose)
         wait_for_pipeline(compose, None)
         compose.run("stop", "events-generator")
         destination = config["destination"](compose)
@@ -331,12 +364,9 @@ def main(argv=None) -> int:
     finally:
         if problems:
             # Diagnostics before the environment is removed.
-            for service in sorted(set(compose.failed_services()) | {"logstash"}):
-                print(f"----- last lines of the {service} log -----")
-                print("\n".join(compose.logs(service).splitlines()[-60:]))
+            print_logs(compose, set(compose.failed_services()) | {"logstash"})
         if not args.keep:
-            compose.run("down", "-v", "--remove-orphans", check=False, capture=True)
-            subprocess.run(["docker", "run", "--rm", "-v", f"{DOCKER}:/w", "alpine:3.24.3", "sh", "-c", "rm -rf /w/certs /w/config"])
+            reset(compose)
 
     if problems:
         log("FAILED")
