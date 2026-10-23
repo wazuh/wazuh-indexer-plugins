@@ -820,6 +820,8 @@ public class Constants {
             "Engine rejected promotion payload: {}";
     public static final String D_LOG_ENGINE_VALIDATION_COMPLETE =
             "Engine validation for space [{}] completed successfully.";
+    public static final String D_LOG_ENGINE_PAYLOAD_WITHOUT_INTEGRATIONS =
+            "Space [{}] has no decoders, kvdbs or filters. Its integrations are left out of the Engine payload.";
     public static final String W_LOG_SNAPSHOT_OLD_VERSION_FAILED =
             "Failed to snapshot old version of [{}] in [{}]: {}";
     public static final String E_LOG_SNAPSHOT_DELETE_TARGET_FAILED =
