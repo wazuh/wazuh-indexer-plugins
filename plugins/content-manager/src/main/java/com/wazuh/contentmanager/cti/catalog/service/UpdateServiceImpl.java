@@ -116,6 +116,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             String effectiveResource = this.firstNonBlank(current.getResource(), this.consumerUri);
             boolean effectiveIsPublic = current.isPublic();
             List<String> effectivePendingSyncPhases = current.getPendingSyncPhases();
+            String effectiveUpdatedAt = current.getUpdatedAt();
 
             long currentFromOffset = fromOffset;
             long lastAppliedOffset = fromOffset;
@@ -175,7 +176,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 effectiveType,
                                 effectiveResource,
                                 effectiveIsPublic,
-                                effectivePendingSyncPhases);
+                                effectivePendingSyncPhases,
+                                effectiveUpdatedAt);
                         throw e;
                     }
                 }
@@ -195,7 +197,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                                 effectiveType,
                                 effectiveResource,
                                 effectiveIsPublic,
-                                effectivePendingSyncPhases);
+                                effectivePendingSyncPhases,
+                                effectiveUpdatedAt);
                         throw e;
                     }
                 }
@@ -205,15 +208,16 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
                 this.consumersIndex.setConsumer(
                         new LocalConsumer(
-                                effectiveContext,
-                                effectiveName,
-                                effectiveType,
-                                effectiveResource,
-                                effectiveIsPublic,
-                                LocalConsumer.Status.RUNNING,
-                                lastAppliedOffset,
-                                toOffset,
-                                effectivePendingSyncPhases),
+                                        effectiveContext,
+                                        effectiveName,
+                                        effectiveType,
+                                        effectiveResource,
+                                        effectiveIsPublic,
+                                        LocalConsumer.Status.RUNNING,
+                                        lastAppliedOffset,
+                                        toOffset,
+                                        effectivePendingSyncPhases)
+                                .withUpdatedAt(effectiveUpdatedAt),
                         true);
 
                 batchCount++;
@@ -385,20 +389,22 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             String effectiveType,
             String effectiveResource,
             boolean effectiveIsPublic,
-            List<String> effectivePendingSyncPhases) {
+            List<String> effectivePendingSyncPhases,
+            String effectiveUpdatedAt) {
         if (lastAppliedOffset > fromOffset) {
             try {
                 this.consumersIndex.setConsumer(
                         new LocalConsumer(
-                                effectiveContext,
-                                effectiveName,
-                                effectiveType,
-                                effectiveResource,
-                                effectiveIsPublic,
-                                LocalConsumer.Status.RUNNING,
-                                lastAppliedOffset,
-                                toOffset,
-                                effectivePendingSyncPhases),
+                                        effectiveContext,
+                                        effectiveName,
+                                        effectiveType,
+                                        effectiveResource,
+                                        effectiveIsPublic,
+                                        LocalConsumer.Status.RUNNING,
+                                        lastAppliedOffset,
+                                        toOffset,
+                                        effectivePendingSyncPhases)
+                                .withUpdatedAt(effectiveUpdatedAt),
                         true);
             } catch (Exception ce) {
                 log.error(
