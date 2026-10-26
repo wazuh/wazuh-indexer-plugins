@@ -76,5 +76,6 @@
 | [#1664](https://github.com/wazuh/wazuh-indexer-plugins/issues/1664) | Fix the catalog sync lock being renewed and deleted by a node that no longer holds it |
 | [#2007](https://github.com/wazuh/wazuh-indexer/issues/2007) | Fix the IoC hash computation and export being cancelled by search backpressure on a busy node, by reading 1000 documents per page sorted on `document.id` instead of `_id` |
 | [#40207](https://github.com/wazuh/wazuh/issues/40207) | Fix `host.os.kernel` being an object in the system inventory, against WCS, and replace `host.os.distribution.release` with `host.os.display_version` |
+| [#1714](https://github.com/wazuh/wazuh-indexer-plugins/issues/1714) | Fix the metadata guard in `SecurityAnalyticsServiceImpl` that threw `NullPointerException` instead of rejecting a document without a `metadata` object |
 
 ## Prior versions
