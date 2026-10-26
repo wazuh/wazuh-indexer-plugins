@@ -2,6 +2,13 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,state,state.document_version,integer,custom,,,Version of the document.
 9.1.0,true,state,state.modified_at,date,custom,,,Date/time when the state was last modified.
+9.1.0,true,wazuh,wazuh.agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
+9.1.0,true,wazuh,wazuh.agent.host.architecture,keyword,custom,,x86_64,Operating system architecture of the agent host.
+9.1.0,true,wazuh,wazuh.agent.host.hostname,keyword,custom,,wazuh-agent-01,"Hostname of the agent host, as returned by the host itself."
+9.1.0,true,wazuh,wazuh.agent.host.os.name,keyword,custom,,Ubuntu,"Operating system name, without the version."
+9.1.0,true,wazuh,wazuh.agent.host.os.platform,keyword,custom,,ubuntu,"Operating system platform (such as centos, ubuntu, windows)."
+9.1.0,true,wazuh,wazuh.agent.host.os.type,keyword,custom,,linux,"OS family (one of: linux, macos, unix, windows, ios, android)."
+9.1.0,true,wazuh,wazuh.agent.host.os.version,keyword,custom,,20.04.1 LTS (Focal Fossa),Operating system version as a raw string.
 9.1.0,true,wazuh,wazuh.agent.id,keyword,custom,,001,Unique identifier of the agent. Used as the document id.
 9.1.0,true,wazuh,wazuh.agent.statistics.agent.last_keepalive,date,custom,,2026-08-02T10:06:50Z,"Date/time of the last keepalive, stamped with the agent's own clock."
 9.1.0,true,wazuh,wazuh.agent.statistics.agent.messages.count,long,custom,,602,Number of messages held by the agent module. Not monotonic.

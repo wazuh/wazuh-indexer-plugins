@@ -38,6 +38,7 @@
 | [#1277](https://github.com/wazuh/wazuh-indexer-plugins/issues/1277) | Add settings to disable on-demand updates and policy updates for every user |
 | [#1585](https://github.com/wazuh/wazuh-indexer-plugins/issues/1585) | Add plugin settings for the operational constants of the Setup and Content Manager plugins |
 | [#529](https://github.com/wazuh/wazuh-indexer-plugins/issues/529) [#1538](https://github.com/wazuh/wazuh-indexer/issues/1538) [#1927](https://github.com/wazuh/wazuh-indexer/issues/1927) [#1960](https://github.com/wazuh/wazuh-indexer/issues/1960) [#1975](https://github.com/wazuh/wazuh-indexer/issues/1975) [#1976](https://github.com/wazuh/wazuh-indexer/issues/1976) [#934](https://github.com/wazuh/wazuh-indexer-plugins/issues/934) [#1240](https://github.com/wazuh/wazuh-indexer-plugins/issues/1240) [#1530](https://github.com/wazuh/wazuh-indexer-plugins/issues/1530) [#1656](https://github.com/wazuh/wazuh-indexer-plugins/issues/1656) [#1692](https://github.com/wazuh/wazuh-indexer-plugins/issues/1692) | Add the Wazuh indexer 5.x documentation |
+| [#1716](https://github.com/wazuh/wazuh-indexer-plugins/issues/1716) | Add agent groups and host metadata fields to the `wazuh-agent-stats` and `wazuh-agent-config` indices |
 | [#1198](https://github.com/wazuh/wazuh-indexer-plugins/issues/1198) | Record the time of the last content update of each CTI consumer and of the last CTI check |
 
 
@@ -76,5 +77,6 @@
 | [#2007](https://github.com/wazuh/wazuh-indexer/issues/2007) | Fix the IoC hash computation and export being cancelled by search backpressure on a busy node, by reading 1000 documents per page sorted on `document.id` instead of `_id` |
 | [#40207](https://github.com/wazuh/wazuh/issues/40207) | Fix `host.os.kernel` being an object in the system inventory, against WCS, and replace `host.os.distribution.release` with `host.os.display_version` |
 | [#1717](https://github.com/wazuh/wazuh-indexer-plugins/issues/1717) | Fix logtest logging an error with a stack trace and answering `PARSE_ERROR` when the Engine has no testing environment for the space; it now answers `ENGINE_ERROR` with the Engine's message and logs a single warning |
+| [#1714](https://github.com/wazuh/wazuh-indexer-plugins/issues/1714) | Fix the metadata guard in `SecurityAnalyticsServiceImpl` that threw `NullPointerException` instead of rejecting a document without a `metadata` object |
 
 ## Prior versions
