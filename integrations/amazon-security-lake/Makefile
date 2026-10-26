@@ -5,12 +5,11 @@ SRC = src
 
 # Main target
 .ONESHELL:
-$(ZIP_NAME).zip: $(TARGET) $(SRC)/lambda_function.py $(SRC)/wazuh_ocsf_converter.py
+$(ZIP_NAME).zip: $(TARGET) $(SRC)/lambda_function.py $(SRC)/wazuh_ocsf_converter.py $(SRC)/ocsf.py
 	@cd $(TARGET)
 	@zip -r ../$(ZIP_NAME).zip .
 	@cd ../$(SRC)
-	@zip ../$@ lambda_function.py wazuh_ocsf_converter.py
-	@zip ../$@ models -r
+	@zip ../$@ lambda_function.py wazuh_ocsf_converter.py ocsf.py
 
 $(TARGET):
 	docker run -v `pwd`:/src -w /src \
