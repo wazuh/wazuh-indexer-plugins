@@ -177,11 +177,12 @@ class Pending:
 
 
 def generate(client, samples: dict, categories, findings_ratio: float, rng: random.Random,
-             findings_delay: float = 0, pending: Pending = None, custom_stream: str = None, custom_ratio: float = 0) -> dict:
+             findings_delay: float = 0, pending: Pending = None, custom_stream: str = None, custom_ratio: float = 0,
+             custom_kind: str = "events") -> dict:
     """
     Indexes one event and, with the given probability, one finding for it. With a delay, the finding
-    is left in pending to be indexed later. With a custom data stream, a share of the events is also
-    indexed into it.
+    is left in pending to be indexed later. With a custom data stream, a share of the events (or of
+    the findings, with custom_kind "findings") is also indexed into it.
     """
     templates = [t for t in samples["events"] if t["event"]["wazuh"]["integration"]["category"] in categories]
     template = rng.choice(templates)
@@ -192,7 +193,7 @@ def generate(client, samples: dict, categories, findings_ratio: float, rng: rand
     result = client.index(stream_name("events", category), event)
     logger.info("event %s indexed into %s", result["_id"], result["_index"])
 
-    if custom_stream and rng.random() < custom_ratio:
+    if custom_stream and custom_kind == "events" and rng.random() < custom_ratio:
         copy_result = client.index(custom_stream, event)
         logger.info("event %s indexed into %s", copy_result["_id"], copy_result["_index"])
 
@@ -203,6 +204,8 @@ def generate(client, samples: dict, categories, findings_ratio: float, rng: rand
         doc_id = dedup_id(result["_index"], result["_id"], rule["id"])
         pending = pending if pending is not None else Pending()
         pending.add(time.time() + findings_delay, stream_name("findings", category), doc_id, finding)
+        if custom_stream and custom_kind == "findings" and rng.random() < custom_ratio:
+            pending.add(time.time() + findings_delay, custom_stream, doc_id, finding)
         if not findings_delay:
             pending.flush(client)
     return event
@@ -245,7 +248,12 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--custom-ratio", default=0.2, type=float,
-        help="Probability of an event being also indexed into the custom data stream. Default: 0.2.",
+        help="Probability of an event (or finding) being also indexed into the custom data stream. Default: 0.2.",
+    )
+    parser.add_argument(
+        "--custom-kind", default=os.environ.get("WAZUH_CUSTOM_KIND") or "events", choices=("events", "findings"),
+        help="What the custom data stream receives: a share of the events, or of the findings. "
+             "Default: $WAZUH_CUSTOM_KIND or events.",
     )
     parser.add_argument("--dry-run", action="store_true", help="Print the documents instead of indexing them.")
     parser.add_argument("--seed", type=int, help="Seed for the random choices, to get repeatable output.")
@@ -287,7 +295,7 @@ def main(argv=None):
     while args.count == 0 or count < args.count:
         try:
             generate(client, samples, args.categories, args.findings_ratio, rng,
-                     args.findings_delay, pending, args.custom_stream, args.custom_ratio)
+                     args.findings_delay, pending, args.custom_stream, args.custom_ratio, args.custom_kind)
             pending.flush(client, time.time())
         except requests.RequestException as e:
             logger.error("could not index the documents: %s", e)

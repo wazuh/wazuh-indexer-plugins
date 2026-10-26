@@ -1,253 +1,147 @@
+"""
+AWS Lambda function of the Amazon Security Lake integration.
+
+Invoked by the S3 event notifications of the bucket that Logstash writes the Wazuh findings
+to. Converts every file into OCSF Detection Findings, and writes them in Parquet into the
+location of the Wazuh custom source in the Security Lake bucket:
+
+    ext/<SOURCE_LOCATION>/region=<REGION>/accountId=<ACCOUNT_ID>/eventDay=<YYYYMMDD>/<file>.parquet
+
+The name of the Parquet file derives from the name of the source file, so a retried
+invocation overwrites its own output instead of duplicating it.
+
+Environment:
+    AWS_BUCKET        Security Lake bucket, e.g. aws-security-data-lake-us-east-1-xxxxxxxxxxxx.
+    SOURCE_LOCATION   Location of the custom source under ext/, as Security Lake shows it:
+                      the source name, or name/version, e.g. wazuh or wazuh/1.0.
+    ACCOUNT_ID        AWS account ID of the custom source.
+    REGION            AWS region of the custom source.
+    ROLE_ARN          Optional. Role of the custom source to write to the Security Lake bucket with,
+                      for a Security Lake in another account. Without it, the function writes
+                      with its own role.
+    EXTERNAL_ID       Optional. External ID of that role.
+    S3_BUCKET_OCSF    Optional. Bucket to also write the findings to, as OCSF JSON, for debugging.
+    AWS_ENDPOINT      Optional. Endpoint of S3 and STS, for S3-compatible storage in development.
+"""
+import gzip
+import io
+import json
 import logging
 import os
-from pathlib import Path
+import re
 import urllib.parse
-import json
-import gzip
+from datetime import datetime, timezone
+
 import boto3
 import pyarrow as pa
 import pyarrow.parquet as pq
-from botocore.exceptions import ClientError
+
+import ocsf
 import wazuh_ocsf_converter
 
-TMP_EVENTS = '/tmp/tmp.json'
-TMP_PARQUET = '/tmp/tmp.parquet'
 logger = logging.getLogger()
 logger.setLevel("INFO")
 
-
-def get_dev_credentials():
-    return {
-        'AccessKeyId': os.environ['AWS_ACCESS_KEY_ID'],
-        'SecretAccessKey': os.environ['AWS_SECRET_ACCESS_KEY'],
-        'Region': os.environ['REGION'],
-        'AWSEndpoint': os.environ['AWS_ENDPOINT']
-    }
+REQUIRED_VARIABLES = ("AWS_BUCKET", "SOURCE_LOCATION", "ACCOUNT_ID", "REGION")
+DAY = re.compile(r"^\d{8}$")
 
 
-def assume_role(arn: str, external_id: str, session_name: str) -> dict:
+class ConfigurationError(Exception):
+    pass
+
+
+def client(service: str, credentials: dict = None):
+    """A boto3 client, with the given temporary credentials, or the default ones of the function."""
+    kwargs = {}
+    if os.environ.get("AWS_ENDPOINT"):
+        kwargs["endpoint_url"] = os.environ["AWS_ENDPOINT"]
+    if os.environ.get("REGION"):
+        kwargs["region_name"] = os.environ["REGION"]
+    if credentials:
+        kwargs.update(aws_access_key_id=credentials["AccessKeyId"],
+                      aws_secret_access_key=credentials["SecretAccessKey"],
+                      aws_session_token=credentials["SessionToken"])
+    return boto3.client(service, **kwargs)
+
+
+def assume_role(arn: str, external_id: str = None, session_name: str = "wazuh-security-lake") -> dict:
+    """Temporary credentials of a role."""
+    kwargs = {"RoleArn": arn, "RoleSessionName": session_name}
+    if external_id:
+        kwargs["ExternalId"] = external_id
+    return client("sts").assume_role(**kwargs)["Credentials"]
+
+
+def read_lines(s3, bucket: str, key: str) -> list:
+    """Lines of an S3 object, gzip-compressed or not."""
+    data = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+    if data[:2] == b"\x1f\x8b":
+        data = gzip.decompress(data)
+    return data.decode("utf-8").splitlines()
+
+
+def to_parquet(findings: list) -> bytes:
+    """Findings as a Parquet file of the OCSF schema of the integration."""
+    buffer = io.BytesIO()
+    pq.write_table(pa.Table.from_pylist(findings, schema=ocsf.SCHEMA), buffer, compression="zstd")
+    return buffer.getvalue()
+
+
+def destination_key(key: str, source_location: str, region: str, account_id: str, extension: str) -> str:
     """
-    Assume a role and return temporary security credentials.
+    Key of the output of a source file, in the partition of its day. Logstash writes the files
+    under <kind>/<category>/<YYYYMMDD>/: the day is the day of the documents of the file.
+
+    findings/security/20261022/ls.s3.0c4e.2026-10-22T10.00.part0.txt.gz becomes
+    ext/wazuh/region=us-east-1/accountId=111111111111/eventDay=20261022/findings_security_ls.s3.0c4e.2026-10-22T10.00.part0.parquet
     """
-    sts_client = boto3.client('sts')
-    try:
-        response = sts_client.assume_role(
-            RoleArn=arn,
-            RoleSessionName=session_name,
-            ExternalId=external_id
-        )
-        credentials = response['Credentials']
-        return {
-            'AccessKeyId': credentials['AccessKeyId'],
-            'SecretAccessKey': credentials['SecretAccessKey'],
-            'SessionToken': credentials['SessionToken']
-        }
-    except ClientError as e:
-        exit_on_error(f"Failed to assume role {arn} with external ID {external_id}: {e}")
-
-
-def get_s3_client(credentials: dict = None, is_dev=False) -> boto3.client:
-    """
-    Return an S3 client using temporary credentials if provided, otherwise use default credentials.
-    """
-    if not credentials:
-        return boto3.client('s3')
-    if is_dev:
-        return boto3.client(
-            service_name='s3',
-            aws_access_key_id=credentials['AccessKeyId'],
-            aws_secret_access_key=credentials['SecretAccessKey'],
-            region_name=credentials['Region'],
-            endpoint_url=credentials['AWSEndpoint'],
-        )
-    return boto3.client(
-        service_name='s3',
-        aws_access_key_id=credentials['AccessKeyId'],
-        aws_secret_access_key=credentials['SecretAccessKey'],
-        aws_session_token=credentials['SessionToken']
-    )
-
-
-def get_events(bucket: str, key: str, client: boto3.client) -> list:
-    """
-    Retrieve events from S3 object.
-    """
-    logger.info(f"Reading {key}.")
-    try:
-        response = client.get_object(Bucket=bucket, Key=key)
-        encoded_data = response['Body'].read()
-        logger.debug(f"Decoding event data {encoded_data}")
-        # Check if data is gzip compressed
-        if is_gzip_compressed(encoded_data):
-            data = gzip.decompress(encoded_data).decode('utf-8')
-        else:
-            data = encoded_data.decode('utf-8')
-        return data.splitlines()
-    except ClientError as e:
-        exit_on_error(f"Failed to read S3 object {key} from bucket {bucket}: {e}")
-
-
-def write_parquet_file(ocsf_events: list, filename: str) -> None:
-    """
-    Write OCSF events to a Parquet file.
-    """
-    table = pa.Table.from_pylist(ocsf_events)
-    pq.write_table(table, filename, compression='ZSTD')
-
-
-def upload_to_s3(bucket: str, key: str, filename: str, client: boto3.client) -> bool:
-    """
-    Upload a file to S3 bucket.
-    """
-    logger.info(f"Uploading data to {bucket}.")
-    try:
-        with open(filename, 'rb') as data:
-            client.put_object(Bucket=bucket, Key=key, Body=data)
-        return True
-    except ClientError as e:
-        exit_on_error(f"Failed to upload file {filename} to bucket {bucket}: {e}")
-
-
-def exit_on_error(error_message):
-    """
-    Print error message and exit with non-zero status code.
-    Args:
-        error_message (str): Error message to display.
-    """
-    logger.error(f"Error: {error_message}")
-    exit(1)
-
-
-def check_environment_variables(variables):
-    """
-    Check if required environment variables are set.
-    Args:
-        variables (list): List of required environment variable names.
-    Returns:
-        bool: True if all required environment variables are set, False otherwise.
-    """
-    missing_variables = [var for var in variables if not os.environ.get(var)]
-    if missing_variables:
-        error_message = f"The following environment variables are not set: {', '.join(missing_variables)}"
-        exit_on_error(error_message)
-
-
-def is_gzip_compressed(data: bytes) -> bool:
-    """Check if data is gzip-compressed by inspecting its magic number."""
-    return data[:2] == b'\x1f\x8b'  # Gzip magic number
-
-
-def get_full_key(src_location: str, account_id: str, region: str, key: str, format: str) -> str:
-    """
-    Constructs a full S3 key path for storing a Parquet file based on event metadata.
-    Args:
-        src_location (str): Source location identifier.
-        account_id (str): AWS account ID associated with the event.
-        region (str): AWS region where the event occurred.
-        key (str): Event key containing metadata information.
-        format (str): File extension.
-    Returns:
-        str: Full S3 key path for storing the Parquet file.
-
-    Example:
-         If key is '20240417_ls.s3.0055f22e-200e-4259-b865-8ccea05812be.2024-04-17T15.45.part29.txt',
-         this function will return:
-
-
-         'ext/src_location/region=region/accountId=account_id/eventDay=20240417/0055f22e200e4259b8658ccea05812be.parquet'
-    """
-    # Extract event day from the key (first 8 characters)
-    event_day = key[:8]
-
-    # Extract filename (UUID) from the key and remove hyphens
-    filename_parts = key.split('.')
-    filename = ''.join(filename_parts[2].split('-'))
-
-    # Construct the full S3 key path for storing the file
-    key = f'ext/{src_location}/region={region}/accountId={account_id}/eventDay={event_day}/{filename}.{format}'
-
-    return key
+    parts = key.split("/")
+    day = next((p for p in reversed(parts[:-1]) if DAY.match(p)), None)
+    if day is None:
+        day = datetime.now(timezone.utc).strftime("%Y%m%d")
+        logger.warning("no day in the key %s: using the current day, %s", key, day)
+    base = re.sub(r"(\.txt)?(\.gz)?$", "", parts[-1])
+    name = "_".join([p for p in parts[:-1] if p != day] + [base])
+    return f"ext/{source_location.strip('/')}/region={region}/accountId={account_id}/eventDay={day}/{name}.{extension}"
 
 
 def lambda_handler(event, context):
+    missing = [name for name in REQUIRED_VARIABLES if not os.environ.get(name)]
+    if missing:
+        raise ConfigurationError(f"environment variables not set: {', '.join(missing)}")
+    lake_bucket = os.environ["AWS_BUCKET"]
+    source_location = os.environ["SOURCE_LOCATION"]
+    account_id = os.environ["ACCOUNT_ID"]
+    region = os.environ["REGION"]
+    ocsf_bucket = os.environ.get("S3_BUCKET_OCSF")
 
-    # Define required environment variables
-    required_variables = ['AWS_BUCKET', 'SOURCE_LOCATION', 'ACCOUNT_ID', 'REGION']
-
-    # Check if all required environment variables are set
-    check_environment_variables(required_variables)
-
-    # Retrieve environment variables
-    dst_bucket = os.environ['AWS_BUCKET']
-    src_location = os.environ['SOURCE_LOCATION']
-    account_id = os.environ['ACCOUNT_ID']
-    region = os.environ['REGION']
-    role_arn = os.environ.get('ROLE_ARN')
-    external_id = os.environ.get('EXTERNAL_ID')
-    ocsf_bucket = os.environ.get('S3_BUCKET_OCSF')
-    ocsf_class = os.environ.get('OCSF_CLASS', 'SECURITY_FINDING')
-    is_dev = os.environ.get('IS_DEV', 'false').lower() == 'true'
-
-    # Extract bucket and key from S3 event
-    src_bucket = event['Records'][0]['s3']['bucket']['name']
-    key = urllib.parse.unquote_plus(
-        event['Records'][0]['s3']['object']['key'], encoding='utf-8')
-    logger.info(f"Lambda function invoked due to {key}.")
-    logger.debug(f"Source bucket: {src_bucket}.")
-    logger.debug(f"Destination bucket: {dst_bucket}.")
-
-    # Assume role if ARN and External ID are provided
-    credentials = None
-    if is_dev:
-        logger.info("Running in development mode.")
-        credentials = get_dev_credentials()
-    elif role_arn and external_id:
-        logger.info(f"Assuming role {role_arn} with external ID {external_id}.")
-        credentials = assume_role(role_arn, external_id, 'lake-session')
-        if not credentials:
-            exit_on_error("Failed to assume role, cannot proceed.")
+    # The source files are read with the role of the function. The Security Lake bucket is
+    # written with the role of the custom source, when it is in another account.
+    source = client("s3")
+    if os.environ.get("ROLE_ARN"):
+        logger.info("assuming the role %s", os.environ["ROLE_ARN"])
+        destination = client("s3", assume_role(os.environ["ROLE_ARN"], os.environ.get("EXTERNAL_ID")))
     else:
-        # Log a warning if cross-account credentials are not used
-        logger.warning("Cross-account access is not used. Lambda running with default credentials.")
+        destination = source
 
-    # Create the S3 client
-    client = get_s3_client(credentials, is_dev)
+    results = []
+    for record in event.get("Records", []):
+        bucket = record["s3"]["bucket"]["name"]
+        key = urllib.parse.unquote_plus(record["s3"]["object"]["key"], encoding="utf-8")
+        logger.info("converting s3://%s/%s", bucket, key)
 
-    # Read events from source S3 bucket
-    logger.info(f"Src bucket: {src_bucket}")
-    raw_events = get_events(src_bucket, key, client)
-    if not raw_events:
-        logger.info("No events found in the source bucket.")
-        return
-
-    # Transform events to OCSF format
-    ocsf_events = wazuh_ocsf_converter.transform_events(raw_events, ocsf_class)
-
-    # Upload event in OCSF format
-    ocsf_upload = False
-    if ocsf_bucket:
-        with open(TMP_EVENTS, "w") as fd:
-            fd.write(json.dumps(ocsf_events))
-        ocsf_key = get_full_key(src_location, account_id, region, key, 'json')
-        ocsf_upload = upload_to_s3(ocsf_bucket, ocsf_key, TMP_EVENTS, client)
-
-    # Write OCSF events to Parquet file
-    write_parquet_file(ocsf_events, TMP_PARQUET)
-
-    # Upload Parquet file to destination S3 bucket
-    parquet_key = get_full_key(src_location, account_id, region, key, 'parquet')
-    upload_success = upload_to_s3(dst_bucket, parquet_key, TMP_PARQUET, client)
-
-    # Clean up temporary file
-    if Path(TMP_PARQUET).exists():
-        os.remove(TMP_PARQUET)
-    if Path(TMP_EVENTS).exists():
-        os.remove(TMP_EVENTS)
-
-    # Prepare response
-    response = {
-        'size': len(raw_events),
-        'upload_success': upload_success,
-        'ocsf_upload': ocsf_upload
-    }
-    return json.dumps(response)
+        findings, skipped = wazuh_ocsf_converter.transform_events(read_lines(source, bucket, key))
+        result = {"key": key, "findings": len(findings), "skipped": skipped}
+        if findings:
+            parquet_key = destination_key(key, source_location, region, account_id, "parquet")
+            destination.put_object(Bucket=lake_bucket, Key=parquet_key, Body=to_parquet(findings))
+            result["parquet"] = parquet_key
+            logger.info("wrote %d findings to s3://%s/%s", len(findings), lake_bucket, parquet_key)
+            if ocsf_bucket:
+                ocsf_key = destination_key(key, source_location, region, account_id, "json")
+                source.put_object(Bucket=ocsf_bucket, Key=ocsf_key, Body=json.dumps(findings).encode("utf-8"))
+                result["ocsf"] = ocsf_key
+        else:
+            logger.info("no findings in s3://%s/%s", bucket, key)
+        results.append(result)
+    return {"files": results}

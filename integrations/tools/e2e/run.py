@@ -7,15 +7,19 @@
 # run, pauses it, waits for the export to catch up, and compares the time range of the scenario:
 #   - the documents of the exported sources reach the destination, once each;
 #   - the documents of the other sources do not;
-#   - every source reaches its own destination (data stream, or Splunk index and source).
+#   - every source reaches its own destination (data stream, Splunk index and source, or
+#     Amazon Security Lake partition).
 # Then imports the dashboards of the integration (Splunk: checks the dashboards of its app).
 #
-# Usage: run.py {elastic,opensearch,splunk} [--keep] [--scenarios ...] [--generate SECONDS]
+# Amazon Security Lake receives findings only: its scenarios check that events never reach it.
+#
+# Usage: run.py {elastic,opensearch,splunk,amazon-security-lake} [--keep] [--scenarios ...] [--generate SECONDS]
 
 import argparse
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -50,6 +54,8 @@ SCENARIOS = {
     "custom": {"indices": CUSTOM_STREAM, "kinds": {"custom"}},
 }
 KINDS = ("findings", "events", "custom")
+# Amazon Security Lake: the kinds that must reach the destination in every scenario. Events never do.
+SECURITY_LAKE_KINDS = {"findings-and-events": {"findings"}, "findings": {"findings"}, "events": set(), "custom": {"custom"}}
 
 
 def log(message):
@@ -61,12 +67,15 @@ def iso(ts: float) -> str:
 
 
 class Compose:
-    def __init__(self, integration):
-        self.file = os.path.join(DOCKER, f"compose.indexer-{integration}.yml")
+    def __init__(self, integration, env=None):
+        name = "amazon-security-lake" if integration == "amazon-security-lake" else f"indexer-{integration}"
+        self.file = os.path.join(DOCKER, f"compose.{name}.yml")
+        # Settings of every command of this environment, e.g. for the events generator.
+        self.env = env or {}
 
     def run(self, *args, env=None, check=True, capture=False):
         cmd = ["docker", "compose", "-f", self.file, *args]
-        result = subprocess.run(cmd, env={**os.environ, **(env or {})}, text=True,
+        result = subprocess.run(cmd, env={**os.environ, **self.env, **(env or {})}, text=True,
                                 capture_output=capture, cwd=DOCKER)
         if check and result.returncode != 0:
             raise RuntimeError(f"{' '.join(cmd)} failed: {result.stderr if capture else ''}")
@@ -174,10 +183,59 @@ class SplunkDestination:
         return None
 
 
+class SecurityLakeDestination:
+    """Amazon Security Lake: the Parquet files of the custom source, in the stand-in bucket."""
+
+    PARTITION = re.compile(r"^ext/{source}/region={region}/accountId={account}/eventDay=(\d{{8}})/".format(
+        source=re.escape(ENV["SECURITY_LAKE_SOURCE_LOCATION"]), region=re.escape(ENV["AWS_REGION"]),
+        account=re.escape(ENV["SECURITY_LAKE_ACCOUNT_ID"])))
+    # Runs in the Lambda container, which has the client, the credentials and pyarrow.
+    READER = (
+        "import boto3, io, json, os, pyarrow.parquet as pq\n"
+        "s3 = boto3.client('s3', endpoint_url=os.environ['AWS_ENDPOINT'])\n"
+        "for page in s3.get_paginator('list_objects_v2').paginate(Bucket=os.environ['AWS_BUCKET']):\n"
+        "    for o in page.get('Contents', []):\n"
+        "        table = pq.read_table(io.BytesIO(s3.get_object(Bucket=os.environ['AWS_BUCKET'], Key=o['Key'])['Body'].read()),\n"
+        "                              columns=['time', 'finding_info', 'metadata'])\n"
+        "        for r in table.to_pylist():\n"
+        "            print(json.dumps([o['Key'], r['finding_info']['uid'], r['metadata']['log_name'], r['time']]))\n"
+        # pyarrow aborts at the shutdown of the interpreter of this image, after the output.
+        "import sys; sys.stdout.flush(); os._exit(0)\n"
+    )
+
+    def __init__(self, compose):
+        self.compose = compose
+
+    def documents(self, kind, start, end):
+        """[(finding uid, (key, data stream, time))] of a kind with a time in [start, end), duplicates included."""
+        out = self.compose.run("exec", "-T", "lambda", "python", "-c", self.READER, capture=True).stdout
+        docs = []
+        for line in out.splitlines():
+            key, uid, stream, ms = json.loads(line)
+            stream_kind = "findings" if stream.startswith("wazuh-findings-v5-") else "events" if stream.startswith("wazuh-events-v5-") else "custom"
+            if stream_kind == kind and start * 1000 <= ms < end * 1000:
+                docs.append((uid, (key, stream, ms)))
+        return docs
+
+    def check_routing(self, kind, docs, source):
+        for uid, (key, stream, ms) in docs:
+            match = self.PARTITION.match(key)
+            if not match:
+                return f"{uid} is in {key}, outside the partitions of the custom source"
+            day = datetime.datetime.fromtimestamp(ms / 1000, datetime.timezone.utc).strftime("%Y%m%d")
+            if match.group(1) != day:
+                return f"{uid} of {day} is in the partition of {match.group(1)}"
+            if uid in source and stream != source[uid]:
+                return f"{uid} is from {source[uid]}, but its log_name is {stream}"
+        return None
+
+
 INTEGRATIONS_CONFIG = {
     "elastic": {"destination": lambda c: SearchDestination("https://localhost:9201", ("elastic", ENV["ELASTIC_PASSWORD"]))},
     "opensearch": {"destination": lambda c: SearchDestination("https://localhost:9201", ("admin", ENV["OPENSEARCH_ADMIN_PASSWORD"]))},
     "splunk": {"destination": lambda c: SplunkDestination(c)},
+    "amazon-security-lake": {"destination": lambda c: SecurityLakeDestination(c), "env": {"WAZUH_CUSTOM_KIND": "findings"},
+                             "kinds": SECURITY_LAKE_KINDS},
 }
 
 
@@ -193,6 +251,9 @@ SETTLE = (minutes(ENV["WAZUH_EXPORT_LOOKBACK"]) + minutes(ENV["WAZUH_EXPORT_DELA
 # and stopping it drops the findings still pending: only the events of the first part of a
 # scenario have their findings.
 GENERATE = int(ENV["WAZUH_GENERATOR_FINDINGS_DELAY"]) + 150
+# Amazon Security Lake: Logstash also collects a file for S3_TIME_FILE minutes before uploading
+# it, and the notifier polls for it.
+SECURITY_LAKE_SETTLE = (int(ENV["S3_TIME_FILE"]) + 1) * 60
 
 
 # Lines of the log of every failed service printed when the test fails.
@@ -253,11 +314,14 @@ def export_errors(compose, since):
     return [line for line in lines if any(sign in line for sign in signs)]
 
 
-def run_scenario(name, compose, destination, generate):
+def run_scenario(name, compose, destination, generate, kinds=None, settle=0):
+    """kinds: the kinds that must reach the destination, if not those the scenario exports."""
     scenario = SCENARIOS[name]
+    expected = scenario["kinds"] if kinds is None else kinds
     log(f"scenario {name}: exporting {scenario['indices']}")
     since = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    compose.run("up", "-d", "--no-deps", "--force-recreate", "logstash", env={"WAZUH_EXPORT_INDICES": scenario["indices"]})
+    compose.run("up", "-d", "--no-deps", "--force-recreate", "logstash",
+                env={"WAZUH_EXPORT_INDICES": scenario["indices"], "SECURITY_LAKE_EXPORT_INDICES": scenario["indices"]})
     wait_for_pipeline(compose, since)
     compose.run("up", "-d", "--no-deps", "events-generator")
     # The range starts on the next minute, so every window of it is read by this configuration.
@@ -267,14 +331,14 @@ def run_scenario(name, compose, destination, generate):
     end = time.time()
     # Findings of the last events are indexed after the generator stops: they are not generated.
     # Wait for the export of the documents of the range, then compare.
-    time.sleep(SETTLE)
+    time.sleep(SETTLE + settle)
 
     source = {kind: Source().ids(kind, start, end) for kind in KINDS}
     problems = []
     for kind in KINDS:
         docs = destination.documents(kind, start, end)
         ids = [doc_id for doc_id, _ in docs]
-        if kind in scenario["kinds"]:
+        if kind in expected:
             missing = set(source[kind]) - set(ids)
             duplicates = len(ids) - len(set(ids))
             extra = set(ids) - set(source[kind])
@@ -299,6 +363,9 @@ def run_scenario(name, compose, destination, generate):
 
 def import_dashboards(integration, compose):
     """Imports the dashboards of the integration into its destination."""
+    if integration == "amazon-security-lake":
+        # Amazon Security Lake has no dashboards.
+        return []
     if integration in ("elastic", "opensearch"):
         url, auth, header = (("https://localhost:5602", ("elastic", ENV["ELASTIC_PASSWORD"]), {"kbn-xsrf": "true"})
                              if integration == "elastic" else
@@ -347,7 +414,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     config = INTEGRATIONS_CONFIG[args.integration]
-    compose = Compose(args.integration)
+    compose = Compose(args.integration, config.get("env"))
     problems = []
     try:
         log(f"starting the {args.integration} environment")
@@ -356,7 +423,8 @@ def main(argv=None) -> int:
         compose.run("stop", "events-generator")
         destination = config["destination"](compose)
         for name in args.scenarios:
-            found = run_scenario(name, compose, destination, args.generate)
+            found = run_scenario(name, compose, destination, args.generate, config.get("kinds", {}).get(name),
+                                 SECURITY_LAKE_SETTLE if args.integration == "amazon-security-lake" else 0)
             problems += [f"{name}: {p}" for p in found]
         problems += import_dashboards(args.integration, compose)
     except Exception as e:  # noqa: BLE001 - reported as a failure of the test
