@@ -1,2 +1,5 @@
 .venv
 Dockerfile
+tests
+pytest.ini
+__pycache__

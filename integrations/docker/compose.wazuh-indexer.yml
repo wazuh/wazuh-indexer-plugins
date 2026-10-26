@@ -1,0 +1,127 @@
+# Wazuh indexer, the source of the integrations, with the events generator that feeds it.
+# Included by the compose file of every integration (Docker Compose 2.20 or later).
+
+services:
+  generate-certs-config:
+    image: alpine:3.24.3
+    volumes:
+      - ./config:/config
+    command: |
+      sh -c "
+      echo '
+      nodes:
+        indexer:
+          - name: wazuh.indexer
+            ip: \"wazuh.indexer\"
+          - name: opensearch.node
+            ip: \"opensearch.node\"
+        server:
+          - name: wazuh.manager
+            ip: \"wazuh.manager\"
+        dashboard:
+          - name: wazuh.dashboard
+            ip: \"wazuh.dashboard\"
+          - name: opensearch.dashboards
+            ip: \"opensearch.dashboards\"
+      ' > /config/certs.yml
+      "
+
+  # Development certificates only. The Wazuh indexer reads its own from a directory,
+  # with the file names it expects, owned by its service user (uid 101).
+  wazuh-certs-generator:
+    image: wazuh/wazuh-certs-generator:${WAZUH_CERTS_GENERATOR_VERSION}
+    hostname: wazuh-certs-generator
+    depends_on:
+      generate-certs-config:
+        condition: service_completed_successfully
+    entrypoint: >
+      sh -c '
+        if [ -f /certificates/wazuh.indexer/indexer.pem ]; then echo "The certificates already exist"; exit 0; fi;
+        /entrypoint.sh &&
+        mkdir -p /certificates/wazuh.indexer &&
+        cp /certificates/root-ca.pem /certificates/admin.pem /certificates/admin-key.pem /certificates/wazuh.indexer/ &&
+        cp /certificates/wazuh.indexer.pem /certificates/wazuh.indexer/indexer.pem &&
+        cp /certificates/wazuh.indexer-key.pem /certificates/wazuh.indexer/indexer-key.pem &&
+        chown 1000:999 /certificates /certificates/*.pem /certificates/*.key &&
+        chmod 750 /certificates && chmod 440 /certificates/*.pem /certificates/*.key &&
+        chown -R 101:101 /certificates/wazuh.indexer &&
+        chmod 500 /certificates/wazuh.indexer && chmod 400 /certificates/wazuh.indexer/*
+      '
+    volumes:
+      - ./certs/:/certificates/
+      - ./config/certs.yml:/config/certs.yml
+
+  wazuh.indexer:
+    image: wazuh/wazuh-indexer:${WAZUH_INDEXER_VERSION}
+    hostname: wazuh.indexer
+    depends_on:
+      wazuh-certs-generator:
+        condition: service_completed_successfully
+    ports:
+      - 9200:9200
+    environment:
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+      - node.name=wazuh.indexer
+      - cluster.initial_cluster_manager_nodes=wazuh.indexer
+      - discovery.seed_hosts=wazuh.indexer
+      # A node whose transport is bound to the loopback interface skips the bootstrap checks,
+      # such as vm.max_map_count on the host. The REST API stays reachable from the other services.
+      - transport.host=127.0.0.1
+      - http.host=0.0.0.0
+      - plugins.security.allow_default_init_securityindex=true
+      - WAZUH_INDEXER_ADMIN_PASSWORD=${WAZUH_INDEXER_ADMIN_PASSWORD}
+      - WAZUH_INDEXER_KIBANASERVER_PASSWORD=${WAZUH_INDEXER_KIBANASERVER_PASSWORD}
+      - WAZUH_INDEXER_MANAGER_PASSWORD=${WAZUH_INDEXER_MANAGER_PASSWORD}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fks https://localhost:9200/_plugins/_security/health | grep -q '\"status\":\"UP\"'"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+    volumes:
+      - wazuh-indexer-data:/var/lib/wazuh-indexer
+      - ./certs/wazuh.indexer/:/usr/share/wazuh-indexer/config/certs/
+
+  # Waits for the events and findings data streams, then creates the read-only
+  # role and user that Logstash exports the data with.
+  wazuh-indexer-setup:
+    image: wazuh/wazuh-indexer:${WAZUH_INDEXER_VERSION}
+    depends_on:
+      wazuh.indexer:
+        condition: service_healthy
+    entrypoint: ["bash", "/setup/wazuh-indexer-export-user.sh"]
+    environment:
+      - WAZUH_INDEXER_URL=https://wazuh.indexer:9200
+      - WAZUH_INDEXER_ADMIN_PASSWORD=${WAZUH_INDEXER_ADMIN_PASSWORD}
+      - WAZUH_EXPORT_USERNAME=${WAZUH_EXPORT_USERNAME}
+      - WAZUH_EXPORT_PASSWORD=${WAZUH_EXPORT_PASSWORD}
+      - WAZUH_CUSTOM_STREAM=${WAZUH_CUSTOM_STREAM}
+    volumes:
+      - ./setup/wazuh-indexer-export-user.sh:/setup/wazuh-indexer-export-user.sh:ro
+      - ./certs/root-ca.pem:/setup/root-ca.pem:ro
+
+  events-generator:
+    image: wazuh/indexer-events-generator
+    build:
+      context: ../tools/events-generator
+    depends_on:
+      wazuh-indexer-setup:
+        condition: service_completed_successfully
+    environment:
+      - WAZUH_INDEXER_USERNAME=admin
+      - WAZUH_INDEXER_PASSWORD=${WAZUH_INDEXER_ADMIN_PASSWORD}
+      - WAZUH_GENERATOR_FINDINGS_DELAY=${WAZUH_GENERATOR_FINDINGS_DELAY}
+      - WAZUH_CUSTOM_STREAM=${WAZUH_CUSTOM_STREAM}
+    command: ["-a", "wazuh.indexer", "--ca", "/certs/root-ca.pem"]
+    volumes:
+      - ./certs/root-ca.pem:/certs/root-ca.pem:ro
+
+volumes:
+  wazuh-indexer-data:
