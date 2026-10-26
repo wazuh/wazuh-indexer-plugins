@@ -31,6 +31,7 @@ import org.junit.Before;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.action.GetPolicyResourcesRequest;
@@ -63,25 +64,17 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
         }
     }
 
-    /** Makes the mocked service answer the given resources for any space. */
+    /** Makes the mocked service answer the given resource ids for any space. */
     @SuppressWarnings("unchecked")
-    private void stubResources(Map<String, Map<String, String>> resources) {
+    private void stubResources(Map<String, List<String>> resources) {
         doAnswer(
                         invocation -> {
-                            ActionListener<Map<String, Map<String, String>>> listener = invocation.getArgument(1);
+                            ActionListener<Map<String, List<String>>> listener = invocation.getArgument(2);
                             listener.onResponse(resources);
                             return null;
                         })
                 .when(this.spaceService)
-                .getSpaceResourcesAsync(anyString(), any(ActionListener.class));
-    }
-
-    private static Map<String, String> idToHash(String... ids) {
-        Map<String, String> map = new HashMap<>();
-        for (String id : ids) {
-            map.put(id, "hash-" + id);
-        }
-        return map;
+                .getSpaceResourceIdsAsync(anyString(), anyList(), any(ActionListener.class));
     }
 
     @SuppressWarnings("unchecked")
@@ -96,17 +89,17 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
 
     /** An engine-empty space returns 200 with every resource list empty. */
     public void testDoExecute_emptySpace() {
-        Map<String, Map<String, String>> resources = new HashMap<>();
-        resources.put(Constants.KEY_DECODERS, new HashMap<>());
-        resources.put(Constants.KEY_FILTERS, new HashMap<>());
-        resources.put(Constants.KEY_KVDBS, new HashMap<>());
-        resources.put(Constants.KEY_RULES, new HashMap<>());
+        Map<String, List<String>> resources = new HashMap<>();
+        resources.put(Constants.KEY_DECODERS, List.of());
+        resources.put(Constants.KEY_FILTERS, List.of());
+        resources.put(Constants.KEY_KVDBS, List.of());
+        resources.put(Constants.KEY_RULES, List.of());
         stubResources(resources);
 
         GetPolicyResourcesResponse response = execute("test");
 
         // The requested space must be the one queried, not a hardcoded one.
-        verify(this.spaceService).getSpaceResourcesAsync(eq("test"), any());
+        verify(this.spaceService).getSpaceResourceIdsAsync(eq("test"), anyList(), any());
         Assert.assertEquals(RestStatus.OK, response.getStatus());
         String json = toJson(response);
         Assert.assertTrue(
@@ -117,11 +110,11 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
 
     /** A space holding only kvdbs and filters lists them under normalization. */
     public void testDoExecute_spaceWithOnlyKvdbsAndFilters() {
-        Map<String, Map<String, String>> resources = new HashMap<>();
-        resources.put(Constants.KEY_DECODERS, new HashMap<>());
-        resources.put(Constants.KEY_FILTERS, idToHash("filter-1"));
-        resources.put(Constants.KEY_KVDBS, idToHash("kvdb-1"));
-        resources.put(Constants.KEY_RULES, new HashMap<>());
+        Map<String, List<String>> resources = new HashMap<>();
+        resources.put(Constants.KEY_DECODERS, List.of());
+        resources.put(Constants.KEY_FILTERS, List.of("filter-1"));
+        resources.put(Constants.KEY_KVDBS, List.of("kvdb-1"));
+        resources.put(Constants.KEY_RULES, List.of());
         stubResources(resources);
 
         GetPolicyResourcesResponse response = execute("test");
@@ -134,16 +127,18 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
         Assert.assertTrue(json.contains("\"rules\":[]"));
     }
 
-    /** Ids are listed sorted, and a missing resource-type key yields an empty list. */
-    public void testDoExecute_sortsIdsAndToleratesMissingTypes() {
-        Map<String, Map<String, String>> resources = new HashMap<>();
-        resources.put(Constants.KEY_DECODERS, idToHash("d-b", "d-a"));
-        // filters, kvdbs and rules keys intentionally absent
+    /** The ids the service returns are passed through to the response, per type. */
+    public void testDoExecute_passesResourceIdsThrough() {
+        Map<String, List<String>> resources = new HashMap<>();
+        resources.put(Constants.KEY_DECODERS, List.of("d-a", "d-b"));
+        resources.put(Constants.KEY_FILTERS, List.of());
+        resources.put(Constants.KEY_KVDBS, List.of());
+        resources.put(Constants.KEY_RULES, List.of());
         stubResources(resources);
 
         GetPolicyResourcesResponse response = execute("custom");
 
-        verify(this.spaceService).getSpaceResourcesAsync(eq("custom"), any());
+        verify(this.spaceService).getSpaceResourceIdsAsync(eq("custom"), anyList(), any());
         Assert.assertEquals(RestStatus.OK, response.getStatus());
         String json = toJson(response);
         Assert.assertTrue(json.contains("\"decoders\":[\"d-a\",\"d-b\"]"));
@@ -152,12 +147,35 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
         Assert.assertTrue(json.contains("\"rules\":[]"));
     }
 
+    /**
+     * A failure reading a resource index is reported as a failure, never masked as a 200 with empty
+     * lists.
+     */
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_readFailureIsNotReportedAsEmpty() {
+        RuntimeException boom = new RuntimeException("search failed");
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Map<String, List<String>>> listener = invocation.getArgument(2);
+                            listener.onFailure(boom);
+                            return null;
+                        })
+                .when(this.spaceService)
+                .getSpaceResourceIdsAsync(anyString(), anyList(), any(ActionListener.class));
+
+        ActionListener<GetPolicyResourcesResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), new GetPolicyResourcesRequest("test"), listener);
+
+        verify(listener).onFailure(boom);
+        verify(listener, never()).onResponse(any());
+    }
+
     /** A missing space is rejected with 400. */
     public void testDoExecute_missingSpace() {
         GetPolicyResourcesResponse response = execute(null);
         Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
         Assert.assertTrue(response.getMessage().contains(Constants.KEY_SPACE));
-        verify(this.spaceService, never()).getSpaceResourcesAsync(anyString(), any());
+        verify(this.spaceService, never()).getSpaceResourceIdsAsync(anyString(), anyList(), any());
     }
 
     /** A blank space is rejected with 400. */
@@ -170,7 +188,7 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
     public void testDoExecute_unknownSpace() {
         GetPolicyResourcesResponse response = execute("bogus");
         Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
-        verify(this.spaceService, never()).getSpaceResourcesAsync(anyString(), any());
+        verify(this.spaceService, never()).getSpaceResourceIdsAsync(anyString(), anyList(), any());
     }
 
     /** The standard space is not supported and is rejected with 400. */
@@ -179,6 +197,6 @@ public class TransportGetPolicyResourcesActionTests extends OpenSearchTestCase {
         Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
         Assert.assertTrue(
                 response.getMessage().toLowerCase(java.util.Locale.ROOT).contains("standard"));
-        verify(this.spaceService, never()).getSpaceResourcesAsync(anyString(), any());
+        verify(this.spaceService, never()).getSpaceResourceIdsAsync(anyString(), anyList(), any());
     }
 }

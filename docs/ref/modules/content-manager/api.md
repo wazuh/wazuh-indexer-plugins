@@ -927,10 +927,15 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
 }
 ```
 
+#### Permissions
+
+The caller needs the `read` index privilege on the resource indices (`wazuh-threatintel-*`). A caller that cannot read them gets a `403` instead of an empty list, so an authorization error is never mistaken for an empty space.
+
 #### Status codes
 
 - **200** — resources returned.
 - **400** — missing, unknown, or unsupported `space` (the `standard` space is not supported).
+- **403** — the caller lacks the `read` privilege on the resource indices.
 - **500** — internal error.
 
 ---

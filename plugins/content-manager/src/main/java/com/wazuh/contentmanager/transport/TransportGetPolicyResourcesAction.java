@@ -26,10 +26,8 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import com.wazuh.contentmanager.action.GetPolicyResourcesAction;
 import com.wazuh.contentmanager.action.GetPolicyResourcesRequest;
@@ -42,7 +40,7 @@ import com.wazuh.contentmanager.utils.Constants;
  * Transport action for {@link GetPolicyResourcesAction}.
  *
  * <p>Validates the space and returns its resources grouped by pipeline phase, reusing {@link
- * SpaceService#getSpaceResourcesAsync}. The {@code standard} space is not supported: it holds the
+ * SpaceService#getSpaceResourceIdsAsync}. The {@code standard} space is not supported: it holds the
  * Wazuh base content and cannot be promoted.
  */
 public class TransportGetPolicyResourcesAction
@@ -92,35 +90,25 @@ public class TransportGetPolicyResourcesAction
                 return;
             }
 
-            this.spaceService.getSpaceResourcesAsync(
+            this.spaceService.getSpaceResourceIdsAsync(
                     space.toString(),
+                    List.of(
+                            Constants.KEY_DECODERS,
+                            Constants.KEY_FILTERS,
+                            Constants.KEY_KVDBS,
+                            Constants.KEY_RULES),
                     ActionListener.wrap(
-                            resources -> buildResponse(resources, listener), listener::onFailure));
+                            resources ->
+                                    listener.onResponse(
+                                            new GetPolicyResourcesResponse(
+                                                    resources.get(Constants.KEY_DECODERS),
+                                                    resources.get(Constants.KEY_FILTERS),
+                                                    resources.get(Constants.KEY_KVDBS),
+                                                    resources.get(Constants.KEY_RULES))),
+                            listener::onFailure));
         } catch (IllegalArgumentException e) {
             log.warn(Constants.W_LOG_VALIDATION_FAILED, e.getMessage());
             listener.onResponse(new GetPolicyResourcesResponse(e.getMessage(), RestStatus.BAD_REQUEST));
         }
-    }
-
-    private void buildResponse(
-            Map<String, Map<String, String>> resources,
-            ActionListener<GetPolicyResourcesResponse> listener) {
-        listener.onResponse(
-                new GetPolicyResourcesResponse(
-                        ids(resources, Constants.KEY_DECODERS),
-                        ids(resources, Constants.KEY_FILTERS),
-                        ids(resources, Constants.KEY_KVDBS),
-                        ids(resources, Constants.KEY_RULES)));
-    }
-
-    /** The sorted ids of a resource type, or an empty list when the type has none. */
-    private static List<String> ids(Map<String, Map<String, String>> resources, String resourceType) {
-        Map<String, String> items = resources.get(resourceType);
-        if (items == null) {
-            return List.of();
-        }
-        List<String> ids = new ArrayList<>(items.keySet());
-        ids.sort(String::compareTo);
-        return ids;
     }
 }
