@@ -325,18 +325,23 @@ git -C <repo> rev-parse -q --verify MERGE_HEAD   # prints something while uncomm
    ```
 
    Anything here stops the run: markers must never reach a PR.
-2. **Branch pins.** A clean merge can carry the source's pins into a workflow
-   with no conflict at all, so nothing warns about it (`REFERENCE.md`, "Branch
-   pins that arrive without a conflict"). Check it, fix it and report it. The
-   same silent carry can move `VERSION.json`, so restore the destination's and
-   report that too — those two are the only bookkeeping paths where the
-   destination must win, which is why the other three need no such check:
+2. **Branch pins, `VERSION.json` and `CHANGELOG.md`.** A clean merge can carry
+   the source's pins into a workflow with no conflict at all, so nothing warns
+   about it (`REFERENCE.md`, "Branch pins that arrive without a conflict").
+   Check it, fix it and report it. The same silent carry can move
+   `VERSION.json` and `CHANGELOG.md` — a clean merge happily brings the
+   source's changelog entries across — so restore the destination's version of
+   both and report it. Those are the bookkeeping files where the destination
+   must win outright, so they need this check; the `release-notes/*` union and
+   the spec's `%changelog` do not:
 
    ```bash
-   git -C <repo> diff --quiet origin/<higher> -- VERSION.json ||
-     git -C <repo> checkout origin/<higher> -- VERSION.json
+   git -C <repo> diff --quiet origin/<higher> -- VERSION.json CHANGELOG.md ||
+     git -C <repo> checkout origin/<higher> -- VERSION.json CHANGELOG.md
    ```
 
+   When the merge is already committed, diff against `origin/<higher> HEAD`
+   instead; restoring then needs the amend that sub-step 4 describes.
 3. **Anything left to merge?** Once the pins are back and the bookkeeping
    files keep the destination's side, a step can end up bringing nothing:
 
