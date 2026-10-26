@@ -234,6 +234,46 @@ public class SpaceServiceTests extends OpenSearchTestCase {
         assertTrue("Failure should be handled gracefully via onResponse", gotResponse.get());
     }
 
+    /**
+     * Tests that a create conflict (another writer already initialized the space) refreshes the
+     * policies index before responding, so the winner's document is searchable by the caller.
+     */
+    public void testInitializeSpace_ConflictRefreshesPoliciesIndexBeforeResponding() {
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<IndexResponse>>getArgument(1)
+                                    .onFailure(
+                                            new org.opensearch.index.engine.VersionConflictEngineException(
+                                                    new org.opensearch.core.index.shard.ShardId("idx", "uuid", 0),
+                                                    "id",
+                                                    "document already exists"));
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<org.opensearch.action.admin.indices.refresh.RefreshResponse>>
+                                            getArgument(1)
+                                    .onResponse(null);
+                            return null;
+                        })
+                .when(this.indicesAdminClient)
+                .refresh(any(org.opensearch.action.admin.indices.refresh.RefreshRequest.class), any());
+
+        AtomicReference<Boolean> gotResponse = new AtomicReference<>(false);
+        this.policyHashService.initializeSpace(
+                "draft", "test-doc-id", ActionListener.wrap(r -> gotResponse.set(true), e -> {}));
+
+        verify(this.indicesAdminClient)
+                .refresh(any(org.opensearch.action.admin.indices.refresh.RefreshRequest.class), any());
+        assertTrue(gotResponse.get());
+    }
+
     /** Tests that initializeSpace sets enabled=true for the draft space. */
     public void testInitializeSpace_DraftPolicyEnabledTrue() {
         // Arrange

@@ -6,28 +6,44 @@ on:
     paths:
       - "plugins/**/*.java"
       - "plugins/**/*.gradle"
+      - "gradle/coverage.gradle"
+  # Runs on the default and release branches too, to keep each branch's coverage badge current.
+  push:
+    branches: ["main", "[0-9]+.[0-9]+.[0-9]+"]
+    paths:
+      - "plugins/**/*.java"
+      - "plugins/**/*.gradle"
+      - "gradle/coverage.gradle"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   modified-plugins:
     if: ${{ !github.event.pull_request.draft }}
     runs-on:
       - codebuild-github-actions-codebuild-runner-indexer-amd-${{ github.run_id }}-${{ github.run_attempt }}
-    permissions:
-      contents: read
     outputs:
-      projects: ${{ steps.detect_changes.outputs.projects }}
+      projects: ${{ steps.detect_changes.outputs.projects || steps.all_plugins.outputs.projects }}
     steps:
       - uses: actions/checkout@v7
 
       - name: Detect modified plugins
         id: detect_changes
+        if: github.event_name == 'pull_request'
         uses: ./.github/actions/5_codeanalysis_detect_modified_plugins
         with:
           base_branch: ${{ github.event.repository.default_branch }}
+
+      # Outside a pull request the badge needs every plugin's coverage.
+      - name: Select every plugin
+        id: all_plugins
+        if: github.event_name != 'pull_request'
+        run: echo 'projects=["setup","content-manager"]' >> "$GITHUB_OUTPUT"
 
   branches:
     if: ${{ !github.event.pull_request.draft }}
@@ -219,4 +235,80 @@ jobs:
           cp -a "$HOME/.m2" /home/builder/.m2 2>/dev/null || true
           chown -R builder:builder "$GITHUB_WORKSPACE" /home/builder
           runuser -u builder -- env "JAVA_HOME=$JAVA_HOME" "PATH=$PATH" "GRADLE_USER_HOME=/home/builder/.gradle" \
-            ./gradlew check -PnumNodes=1
+            ./gradlew check jacocoTestReport -PnumNodes=1 -Dtests.coverage=true
+
+      - name: Coverage summary
+        if: ${{ !cancelled() }}
+        working-directory: ./plugins/${{ matrix.project }}
+        run: |
+          csv=build/reports/jacoco/test/jacocoTestReport.csv
+          [ -f "$csv" ] || { echo "No coverage report at $csv"; exit 0; }
+          {
+            echo "### Code coverage: ${{ matrix.project }}"
+            echo "| Lines | Branches | Instructions |"
+            echo "|---|---|---|"
+            awk -F, 'NR > 1 { im += $4; ic += $5; bm += $6; bc += $7; lm += $8; lc += $9 }
+              END { printf "| %.1f%% | %.1f%% | %.1f%% |\n", 100*lc/(lm+lc), 100*bc/(bm+bc), 100*ic/(im+ic) }' "$csv"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ matrix.project }}
+          path: plugins/${{ matrix.project }}/build/reports/jacoco/test/
+          if-no-files-found: warn
+
+  # Regenerates the pushed branch's coverage badge from its reports and stores it on the `badges`
+  # branch, under a folder named after the pushed branch. The README links to the default branch's
+  # badge. The `badges` branch is created on the first run.
+  coverage-badge:
+    needs: gradle-check
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download coverage reports
+        uses: actions/download-artifact@v7
+        with:
+          pattern: coverage-*
+          path: reports
+
+      - name: Generate badge
+        uses: cicirello/jacoco-badge-generator@v2.12.1
+        with:
+          jacoco-csv-file: reports/coverage-content-manager/jacocoTestReport.csv reports/coverage-setup/jacocoTestReport.csv
+          badges-directory: badges/${{ github.ref_name }}
+          generate-branches-badge: true
+          generate-coverage-endpoint: true
+
+      - name: Check out the repository
+        uses: actions/checkout@v7
+        with:
+          path: badges-branch
+
+      - name: Commit badge
+        working-directory: badges-branch
+        run: |
+          if git ls-remote --exit-code --heads origin badges > /dev/null; then
+            git fetch --depth 1 origin badges
+            git switch -c badges FETCH_HEAD
+          else
+            git switch --orphan badges
+          fi
+          cp -r ../badges/. .
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Badge unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update coverage badge of ${GITHUB_REF_NAME} for ${GITHUB_SHA::8}"
+          # Another branch's run may have updated its own folder in the meantime.
+          for _ in 1 2 3; do
+            git push origin badges && exit 0
+            git pull --rebase origin badges
+          done
+          exit 1

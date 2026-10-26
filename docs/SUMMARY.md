@@ -49,6 +49,7 @@
     - [Architecture](ref/modules/content-manager/architecture.md)
     - [Configuration](ref/modules/content-manager/configuration.md)
     - [API reference](ref/modules/content-manager/api.md)
+    - [Offline content updates](ref/modules/content-manager/offline-update.md)
     - [Logtest usage](ref/modules/content-manager/rule-testing.md)
     - [Troubleshooting](ref/modules/content-manager/troubleshooting.md)
   - [Reporting](ref/modules/reporting/index.md)

@@ -184,7 +184,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                                 + "\"type\":\"cti:catalog:consumer:ruleset\","
                                 + "\"resource\":\"https://cti.example/api/v1/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5\","
                                 + "\"is_public\":false,"
-                                + "\"local_offset\":9,\"remote_offset\":100}");
+                                + "\"local_offset\":9,\"remote_offset\":100,"
+                                + "\"updated_at\":\"2026-10-20T08:00:00.123Z\"}");
 
         // Act
         boolean result = this.updateService.update(9, 12);
@@ -212,6 +213,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         Assert.assertEquals(
                 "https://cti.example/api/v1/catalog/contexts/t1-ruleset-5/consumers/public-ruleset-5",
                 updated.getResource());
+        // The pass that runs the update records the new time once it completes.
+        Assert.assertEquals("2026-10-20T08:00:00.123Z", updated.getUpdatedAt());
     }
 
     /**
@@ -598,7 +601,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                                 + "\"type\":\"cti:catalog:consumer:ruleset\","
                                 + "\"resource\":\"https://cti.example/api\","
                                 + "\"is_public\":true,"
-                                + "\"local_offset\":100,\"remote_offset\":200}");
+                                + "\"local_offset\":100,\"remote_offset\":200,"
+                                + "\"updated_at\":\"2026-10-20T08:00:00.123Z\"}");
 
         LuceneTestCase.expectThrows(RuntimeException.class, () -> this.updateService.update(100, 200));
 
@@ -609,6 +613,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         Assert.assertEquals(102, checkpoint.getLocalOffset());
         Assert.assertEquals(200, checkpoint.getRemoteOffset());
         Assert.assertEquals(LocalConsumer.Status.RUNNING, checkpoint.getStatus());
+        Assert.assertEquals("2026-10-20T08:00:00.123Z", checkpoint.getUpdatedAt());
     }
 
     public void testUpdate_CreateTIdResourceIsIndexedAsCveWithDerivedType() throws Exception {

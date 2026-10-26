@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -37,6 +38,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.transport.client.Client;
@@ -48,9 +50,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -59,6 +61,7 @@ import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 
 /**
  * Handles synchronization logic for the IOC consumer. Processes IOCs and handles post-sync
@@ -67,6 +70,9 @@ import com.wazuh.contentmanager.utils.Constants;
 public class ConsumerIocService extends AbstractConsumerService {
     private static final Logger log = LogManager.getLogger(ConsumerIocService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /** Post-sync phase that stores the IOC type hashes and loads the IOCs into the Engine. */
+    static final String PHASE_IOC_LOAD = "ioc_load";
 
     /** The engine service for notifying the Engine about IOC updates. */
     private final EngineService engineService;
@@ -111,24 +117,58 @@ public class ConsumerIocService extends AbstractConsumerService {
     }
 
     @Override
-    public void onSyncComplete(boolean isUpdated) {
-        if (isUpdated) {
-            this.refreshIndices(Constants.INDEX_IOCS);
-            Map<String, String> typeHashes = this.computeAndStoreTypeHashes();
-            String combinedHash = Resource.computeSha256(String.join("", typeHashes.values()));
+    protected List<String> phasesOwedByContentChange() {
+        return List.of(PHASE_IOC_LOAD);
+    }
 
-            if ("true".equals(System.getProperty("INDEXER_TEST_ENV"))) {
-                log.debug(Constants.D_LOG_IOC_EXPORT_SKIPPED_TEST_ENV);
-                return;
-            }
-            // Export IoCs to NDJSON and load them into the Engine.
-            try {
-                Path exportPath = this.export();
-                this.notifyEngine(exportPath.toString(), combinedHash);
-            } catch (Exception e) {
-                log.error(Constants.E_LOG_IOC_EXPORT_FAILED, e.getMessage(), e);
-            }
+    /**
+     * Stores the IOC type hashes and loads the IOCs into the Engine when the content changed, or when
+     * a previous pass changed it but was cut before finishing this. The content change recorded
+     * {@link #PHASE_IOC_LOAD} as pending, so a failure leaves it there for the next pass, and only a
+     * completed load clears it.
+     *
+     * @param isUpdated True if the content changed in this pass.
+     */
+    @Override
+    public void onSyncComplete(boolean isUpdated) {
+        List<String> pendingPhases = this.readPendingSyncPhases();
+        if (!isUpdated && !pendingPhases.contains(PHASE_IOC_LOAD)) {
+            return;
         }
+        try {
+            this.loadIocs();
+        } catch (Exception e) {
+            Level level = NodeShutdown.levelFor(e, Level.ERROR);
+            log.log(level, Constants.E_LOG_IOC_LOAD_FAILED, e.getMessage(), e);
+            if (level == Level.ERROR) {
+                this.requestImmediateRetry();
+            }
+            return;
+        }
+        if (pendingPhases.contains(PHASE_IOC_LOAD)) {
+            this.setPendingSyncPhases(
+                    pendingPhases.stream().filter(phase -> !PHASE_IOC_LOAD.equals(phase)).toList());
+        }
+    }
+
+    /**
+     * Stores the IOC type hashes, exports the IOCs to NDJSON and asks the Engine to load them. The
+     * Engine's answer is logged, not thrown: the node running the sync may have no Engine, and the
+     * load would otherwise stay pending forever.
+     *
+     * @throws Exception if the hashes cannot be stored or the IOCs cannot be exported.
+     */
+    private void loadIocs() throws Exception {
+        this.refreshIndices(Constants.INDEX_IOCS);
+        Map<String, String> typeHashes = this.computeAndStoreTypeHashes();
+        String combinedHash = Resource.computeSha256(String.join("", typeHashes.values()));
+
+        if ("true".equals(System.getProperty("INDEXER_TEST_ENV"))) {
+            log.debug(Constants.D_LOG_IOC_EXPORT_SKIPPED_TEST_ENV);
+            return;
+        }
+        Path exportPath = this.export();
+        this.notifyEngine(exportPath.toString(), combinedHash);
     }
 
     /**
@@ -137,7 +177,7 @@ public class ConsumerIocService extends AbstractConsumerService {
      * over potentially millions of documents. Types are discovered dynamically by scanning all
      * documents sorted by {@code document.type}.
      *
-     * @return A map of IOC type names to their computed SHA-256 hashes, or an empty map on failure.
+     * @return A map of IOC type names to their computed SHA-256 hashes.
      */
     private Map<String, String> computeAndStoreTypeHashes() {
         long keepaliveSeconds = PluginSettings.getInstance().getPitKeepalive();
@@ -149,9 +189,8 @@ public class ConsumerIocService extends AbstractConsumerService {
                 this.client.execute(CreatePitAction.INSTANCE, createPitRequest).actionGet();
         String pitId = pitResponse.getId();
 
-        Map<String, String> typeHashes = Collections.emptyMap();
         try {
-            typeHashes = this.computeAllTypeHashes(pitId, keepalive);
+            Map<String, String> typeHashes = this.computeAllTypeHashes(pitId, keepalive);
 
             ObjectNode typeHashesNode = MAPPER.createObjectNode();
             for (Map.Entry<String, String> entry : typeHashes.entrySet()) {
@@ -172,12 +211,10 @@ public class ConsumerIocService extends AbstractConsumerService {
             this.client.index(indexRequest).actionGet();
 
             log.debug(Constants.D_LOG_IOC_TYPE_HASHES_STORED);
-        } catch (Exception e) {
-            log.error(Constants.E_LOG_IOC_TYPE_HASHES_FAILED, e.getMessage(), e);
+            return typeHashes;
         } finally {
             this.releasePit(pitId);
         }
-        return typeHashes;
     }
 
     /**
@@ -185,19 +222,23 @@ public class ConsumerIocService extends AbstractConsumerService {
      *
      * <p>Both PIT users call this from a {@code finally} block, so it must never throw: a failure to
      * release is not a failure of the work the PIT was opened for. Letting it propagate would either
-     * mask the exception that is already unwinding (in {@link #export()}, whose {@code try} has no
-     * {@code catch}) or turn a completed pass into a failed one (in {@link
-     * #computeAndStoreTypeHashes()}, where the {@code finally} is the only thing that can throw out
-     * of the method, which would mark the consumer FAILED and skip the Engine IOC update).
+     * mask the exception that is already unwinding or turn a completed load into a failed one, which
+     * would skip the Engine IOC update and keep the load pending.
      *
      * <p>Nothing is leaked by giving up: the context expires on its own after {@code
      * plugins.content_manager.pit_keepalive}, and contexts held by a node that has left the cluster
      * died with it. The most likely cause is exactly that — a node stopping or restarting while the
      * IOC sync runs — so this is logged at debug.
      *
+     * <p>While the local node is stopping the release is skipped: its contexts close with it, and the
+     * request could only fail, with core logging {@code PitService} "Delete PITs failed" at error.
+     *
      * @param pitId The identifier of the PIT to release.
      */
     private void releasePit(String pitId) {
+        if (NodeShutdown.isStopping()) {
+            return;
+        }
         try {
             DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
             this.client.execute(DeletePitAction.INSTANCE, deletePitRequest).actionGet();
@@ -209,8 +250,14 @@ public class ConsumerIocService extends AbstractConsumerService {
     /**
      * Computes SHA-256 hashes for all IOC types in a single paginated pass. Iterates over all
      * documents (excluding the hash summary document) sorted by {@code document.type} and {@code
-     * _id}, concatenating per-document SHA-256 values grouped by type. Each group's concatenation is
-     * then hashed to produce the final per-type SHA-256.
+     * document.id}, concatenating per-document SHA-256 values grouped by type. Each group's
+     * concatenation is then hashed to produce the final per-type SHA-256.
+     *
+     * <p>{@code document.id} is the document's {@code _id}, so the order, and the hashes, are the
+     * same as sorting on {@code _id}. Sorting on {@code _id} has no doc values to read from and costs
+     * hundreds of megabytes per page, enough for search backpressure to cancel the page on a busy
+     * node (wazuh-indexer#2007). The {@code _shard_doc} tiebreaker keeps {@code search_after}
+     * unambiguous within the PIT.
      *
      * @param pitId The PIT identifier for consistent reads.
      * @param keepalive The PIT keepalive duration.
@@ -227,8 +274,10 @@ public class ConsumerIocService extends AbstractConsumerService {
                                     QueryBuilders.boolQuery()
                                             .mustNot(QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
                             .sort(Constants.Q_DOCUMENT_TYPE, SortOrder.ASC)
-                            .sort("_id", SortOrder.ASC)
+                            .sort(Constants.Q_DOCUMENT_ID, SortOrder.ASC)
+                            .sort(SortBuilders.shardDocSort())
                             .size(PluginSettings.getInstance().getSearchPageSize())
+                            .fetchSource(new String[] {Constants.Q_DOCUMENT_TYPE, Constants.Q_HASH}, null)
                             .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));
             if (searchAfter != null) {
                 source.searchAfter(searchAfter);
@@ -330,7 +379,8 @@ public class ConsumerIocService extends AbstractConsumerService {
                                                         QueryBuilders.boolQuery()
                                                                 .mustNot(
                                                                         QueryBuilders.idsQuery().addIds(Constants.IOC_TYPE_HASHES_ID)))
-                                                .sort("_id", SortOrder.ASC)
+                                                .sort(Constants.Q_DOCUMENT_ID, SortOrder.ASC)
+                                                .sort(SortBuilders.shardDocSort())
                                                 .size(PluginSettings.getInstance().getSearchPageSize())
                                                 .fetchSource(new String[] {Constants.KEY_DOCUMENT}, null)
                                                 .pointInTimeBuilder(new PointInTimeBuilder(pitId).setKeepAlive(keepalive));

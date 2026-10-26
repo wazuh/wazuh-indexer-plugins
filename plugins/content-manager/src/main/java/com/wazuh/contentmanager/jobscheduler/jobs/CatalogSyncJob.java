@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.jobscheduler.jobs;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.AbstractConsumerService;
@@ -39,12 +41,15 @@ import com.wazuh.contentmanager.cti.catalog.service.ConsumerIocService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerRulesetService;
 import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.ShadowSwapService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.service.SyncPass;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 import com.wazuh.contentmanager.utils.SetupReadiness;
 
 /**
@@ -102,6 +107,7 @@ public class CatalogSyncJob implements JobExecutor {
     private final Client client;
     private final ThreadPool threadPool;
     private final List<AbstractConsumerService> synchronizers;
+    private final ShadowSwapService shadowSwapService;
     private final SetupReadiness setupReadiness;
     private final ResourceLockService resourceLockService;
 
@@ -129,11 +135,10 @@ public class CatalogSyncJob implements JobExecutor {
             SecurityAnalyticsService securityAnalyticsService,
             UserOverridesService userOverridesService,
             ResourceLockService resourceLockService) {
-        this.client = client;
-        this.setupReadiness = new SetupReadiness(client);
-        this.threadPool = threadPool;
-        this.resourceLockService = resourceLockService;
-        this.synchronizers =
+        this(
+                client,
+                threadPool,
+                resourceLockService,
                 List.of(
                         new ConsumerRulesetService(
                                 client,
@@ -143,7 +148,32 @@ public class CatalogSyncJob implements JobExecutor {
                                 securityAnalyticsService,
                                 userOverridesService),
                         new ConsumerIocService(client, consumersIndex, environment, engineService),
-                        new ConsumerCveService(client, consumersIndex, environment));
+                        new ConsumerCveService(client, consumersIndex, environment)),
+                new ShadowSwapService(client, consumersIndex));
+    }
+
+    /**
+     * Constructs a CatalogSyncJob over the given synchronizers. Package-private so tests can provide
+     * their own.
+     *
+     * @param client The OpenSearch client used for administrative index operations.
+     * @param threadPool The thread pool manager.
+     * @param resourceLockService The lock service holding the cluster-wide sync lock.
+     * @param synchronizers The consumers to synchronize, in order.
+     * @param shadowSwapService The service that moves consumers to a new data source.
+     */
+    CatalogSyncJob(
+            Client client,
+            ThreadPool threadPool,
+            ResourceLockService resourceLockService,
+            List<AbstractConsumerService> synchronizers,
+            ShadowSwapService shadowSwapService) {
+        this.client = client;
+        this.setupReadiness = new SetupReadiness(client);
+        this.threadPool = threadPool;
+        this.resourceLockService = resourceLockService;
+        this.synchronizers = synchronizers;
+        this.shadowSwapService = shadowSwapService;
     }
 
     /**
@@ -175,8 +205,8 @@ public class CatalogSyncJob implements JobExecutor {
                             }
                         },
                         e ->
-                                log.error(
-                                        "CatalogSyncJob (ID: {}) could not start: {}", jobId, e.getMessage(), e)));
+                                log.error("CatalogSyncJob (ID: {}) could not start: {}", jobId, e.getMessage(), e)),
+                false);
     }
 
     /**
@@ -327,7 +357,32 @@ public class CatalogSyncJob implements JobExecutor {
      *     running on this or any other node, or a failure if the cluster lock could not be requested.
      */
     public void trigger(ActionListener<Boolean> listener) {
-        this.start(listener);
+        this.start(listener, false);
+    }
+
+    /**
+     * Attempts to trigger a synchronization pass manually, optionally offline. An offline pass
+     * reloads every consumer that has a snapshot file in the snapshots directory of this node from
+     * that file, whatever its current offset, and does not contact Wazuh CTI. Consumers without one
+     * are left as they are. It is how an air-gapped deployment is updated with newer snapshots.
+     *
+     * @param listener Notified with {@code true} if a pass started, {@code false} if one is already
+     *     running on this or any other node, or a failure if the cluster lock could not be requested.
+     * @param offline Whether to run an offline pass.
+     */
+    public void trigger(ActionListener<Boolean> listener, boolean offline) {
+        this.start(listener, offline);
+    }
+
+    /**
+     * Reports whether any consumer has a snapshot file waiting to be loaded in the snapshots
+     * directory of this node, which an offline pass needs. See {@link
+     * AbstractConsumerService#hasLocalSnapshot()}.
+     *
+     * @return {@code true} if at least one consumer has one.
+     */
+    public boolean hasLocalSnapshots() {
+        return this.synchronizers.stream().anyMatch(AbstractConsumerService::hasLocalSnapshot);
     }
 
     /**
@@ -336,8 +391,9 @@ public class CatalogSyncJob implements JobExecutor {
      * #execute(JobExecutionContext)} and {@link #trigger(ActionListener)}.
      *
      * @param listener Notified with whether a pass started.
+     * @param offline Whether the pass is an offline one.
      */
-    private void start(ActionListener<Boolean> listener) {
+    private void start(ActionListener<Boolean> listener, boolean offline) {
         if (!this.semaphore.tryAcquire()) {
             CatalogSyncJob.notifyCaller(listener, false);
             return;
@@ -359,7 +415,7 @@ public class CatalogSyncJob implements JobExecutor {
                                     CatalogSyncJob.this
                                             .threadPool
                                             .generic()
-                                            .execute(CatalogSyncJob.this::runSynchronizationPass);
+                                            .execute(() -> CatalogSyncJob.this.runSynchronizationPass(offline));
                                 } catch (Exception e) {
                                     CatalogSyncJob.this.releaseClusterLock(CatalogSyncJob.this.semaphore::release);
                                     CatalogSyncJob.notifyCallerOfFailure(listener, e);
@@ -406,17 +462,23 @@ public class CatalogSyncJob implements JobExecutor {
      * Runs one synchronization pass, renewing the cluster lock while it runs, and, once the lock and
      * then the semaphore have been released, hands the outcome to {@link #handleOutcome(SyncOutcome)}
      * so a failed pass can immediately trigger a single retry.
+     *
+     * @param offline Whether the pass is an offline one.
      */
-    private void runSynchronizationPass() {
+    private void runSynchronizationPass(boolean offline) {
         // This pass looks the plan up after it starts, so it applies any registration made before.
         this.registrationPassPending.set(false);
         Scheduler.Cancellable renewal = null;
         SyncOutcome outcome = SyncOutcome.SETUP_NOT_READY;
         try {
             renewal = this.scheduleLockRenewal();
-            outcome = this.performSynchronization();
+            outcome = offline ? this.performOfflineSynchronization() : this.performSynchronization();
         } catch (Exception e) {
-            log.error("Error running CatalogSyncJob: {}", e.getMessage(), e);
+            log.log(
+                    NodeShutdown.levelFor(e, Level.ERROR),
+                    "Error running CatalogSyncJob: {}",
+                    e.getMessage(),
+                    e);
         } finally {
             if (renewal != null) {
                 renewal.cancel();
@@ -529,6 +591,8 @@ public class CatalogSyncJob implements JobExecutor {
             // cause the next unrelated FAILURE to be misread as that retry's outcome and skip its own
             // immediate retry.
             case SETUP_NOT_READY -> this.retryPending.set(false);
+            // The pass was cut by the node stopping: a retry would run on the closing node.
+            case NODE_STOPPING -> this.retryPending.set(false);
         }
     }
 
@@ -547,7 +611,8 @@ public class CatalogSyncJob implements JobExecutor {
     enum SyncOutcome {
         SUCCESS,
         FAILURE,
-        SETUP_NOT_READY
+        SETUP_NOT_READY,
+        NODE_STOPPING
     }
 
     /**
@@ -565,6 +630,27 @@ public class CatalogSyncJob implements JobExecutor {
     }
 
     SyncOutcome performSynchronization() {
+        return this.runPass(this::resolveSyncPass);
+    }
+
+    /**
+     * Runs an offline pass: like {@link #performSynchronization()}, but every consumer with a
+     * snapshot file in the snapshots directory of this node is reloaded from it, and Wazuh CTI is not
+     * contacted. See {@link SyncPass#offline()}.
+     *
+     * @return the outcome of the pass, as for {@link #performSynchronization()}.
+     */
+    SyncOutcome performOfflineSynchronization() {
+        return this.runPass(SyncPass::offline);
+    }
+
+    /**
+     * Waits for the Setup plugin and runs every synchronizer in one pass.
+     *
+     * @param passFactory Starts the pass, once the Setup plugin is ready.
+     * @return the outcome of the pass.
+     */
+    private SyncOutcome runPass(Supplier<SyncPass> passFactory) {
         try (ThreadContext.StoredContext ignored = this.stashContext()) {
             // Content download requires two things to be true: the Setup plugin reported ready, and
             // the target indices it provisions exist. This is the first; the second is checked per
@@ -576,15 +662,38 @@ public class CatalogSyncJob implements JobExecutor {
                                 + " synchronization; it will be retried on the next scheduled run.");
                 return SyncOutcome.SETUP_NOT_READY;
             }
+            // One plan lookup for the whole pass, so all consumers follow the same plan.
+            SyncPass pass = passFactory.get();
+            // Consumers whose data source changes move together, in one swap, before any of them
+            // synchronizes, so readers never see the content of two plans at once.
+            try {
+                this.shadowSwapService.swapChangedSources(this.synchronizers, pass);
+            } catch (Exception e) {
+                // Without the swap's outcome, a consumer's document may not describe its content:
+                // leave every consumer untouched in this pass.
+                log.log(
+                        NodeShutdown.levelFor(e, Level.ERROR),
+                        "Error while moving consumers to their data sources: {}",
+                        e.getMessage(),
+                        e);
+                return NodeShutdown.isStopping() ? SyncOutcome.NODE_STOPPING : SyncOutcome.FAILURE;
+            }
             boolean anyFailure = false;
             for (AbstractConsumerService synchronizer : this.synchronizers) {
+                if (NodeShutdown.isStopping()) {
+                    log.debug(
+                            "The node is stopping; ending the synchronization pass before {}.",
+                            synchronizer.getClass().getSimpleName());
+                    return SyncOutcome.NODE_STOPPING;
+                }
                 try {
                     // true means the pass did not fully complete for a transient reason — the
                     // configured CTI feed was unreachable (fell back to the local snapshot), the Setup
-                    // plugin had not yet provisioned this consumer's target indices, or the consumer
-                    // finished with a phase still pending and asked for a retry itself — and should be
-                    // retried immediately rather than waiting for the next scheduled run.
-                    boolean needsRetry = synchronizer.synchronize();
+                    // plugin had not yet provisioned this consumer's target indices, a change of data
+                    // source could not be applied yet, or the consumer finished with a phase still
+                    // pending and asked for a retry itself — and should be retried immediately rather
+                    // than waiting for the next scheduled run.
+                    boolean needsRetry = synchronizer.synchronize(pass);
                     if (needsRetry) {
                         anyFailure = true;
                         log.warn(
@@ -596,15 +705,30 @@ public class CatalogSyncJob implements JobExecutor {
                     }
                 } catch (Exception e) {
                     anyFailure = true;
-                    log.error(
+                    log.log(
+                            NodeShutdown.levelFor(e, Level.ERROR),
                             "Error during synchronization of {}: {}",
                             synchronizer.getClass().getSimpleName(),
                             e.getMessage(),
                             e);
                 }
             }
+            if (NodeShutdown.isStopping()) {
+                // A consumer that failed here was most likely cut by the stop.
+                return SyncOutcome.NODE_STOPPING;
+            }
             return anyFailure ? SyncOutcome.FAILURE : SyncOutcome.SUCCESS;
         }
+    }
+
+    /**
+     * Starts a pass by looking the subscription plan up. Package-private so tests can replace the CTI
+     * Console lookup.
+     *
+     * @return the pass.
+     */
+    SyncPass resolveSyncPass() {
+        return SyncPass.resolve();
     }
 
     /**

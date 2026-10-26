@@ -48,10 +48,8 @@ import com.wazuh.contentmanager.cti.catalog.model.Policy;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
-import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.utils.PayloadValidations;
 import com.wazuh.contentmanager.utils.Constants;
@@ -67,8 +65,6 @@ public class TransportUpdatePolicyAction
     private static final ObjectMapper mapper = new ObjectMapper();
 
     private final SpaceService spaceService;
-    private final EngineService engineService;
-    private final EngineContentLoader engineContentLoader;
     private final Client client;
     private final PayloadValidations payloadValidations;
     private final UserOverridesService userOverridesService;
@@ -78,14 +74,10 @@ public class TransportUpdatePolicyAction
             TransportService transportService,
             ActionFilters actionFilters,
             SpaceService spaceService,
-            EngineService engineService,
-            EngineContentLoader engineContentLoader,
             Client client,
             UserOverridesService userOverridesService) {
         super(UpdatePolicyAction.NAME, transportService, actionFilters, UpdatePolicyRequest::new);
         this.spaceService = spaceService;
-        this.engineService = engineService;
-        this.engineContentLoader = engineContentLoader;
         this.client = client;
         this.payloadValidations = new PayloadValidations();
         this.userOverridesService = userOverridesService;
@@ -368,12 +360,7 @@ public class TransportUpdatePolicyAction
                 List.of(spaceName),
                 ActionListener.wrap(
                         changedSpaces -> {
-                            TransportActionHelper.reloadStandardSpaceIntoEngine(
-                                    this.engineService,
-                                    this.spaceService,
-                                    changedSpaces,
-                                    this.engineContentLoader,
-                                    this.client);
+                            TransportActionHelper.reloadStandardSpaceIntoEngine(changedSpaces, this.client);
                             this.recordPolicySettings(
                                     pendingOverride,
                                     () -> listener.onResponse(new MessageStatusResponse(policyId, RestStatus.OK)));

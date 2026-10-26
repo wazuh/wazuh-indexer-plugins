@@ -310,6 +310,7 @@ gencert_ec
     ```bash
     echo "admin" | /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.mailpit.username
     echo "admin" | /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.mailpit.password
-    chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
+    chown root:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
+    chmod 640 /etc/wazuh-indexer/opensearch.keystore
     ```
 3. Ensure `mailpit` is accessible within the `server` VM (e.g `curl https://172.28.128.136:8025 -k -u admin:admin` should return HTML code). If not, add it to the list of known hosts in `/etc/hosts` (e.g `echo "172.28.128.136 mailpit mailpit" >> /etc/hosts`).

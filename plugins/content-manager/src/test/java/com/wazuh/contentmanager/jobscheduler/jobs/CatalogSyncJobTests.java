@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.jobscheduler.jobs;
 import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.common.lifecycle.AbstractLifecycleComponent;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -44,13 +45,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.AbstractConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.ShadowSwapService;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
+import com.wazuh.contentmanager.cti.catalog.service.SyncPass;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
+import com.wazuh.contentmanager.utils.NodeShutdownTests;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -60,6 +67,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -1040,5 +1048,130 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
         } finally {
             PluginSettings.getInstance().setUpdateOnSchedule(true);
         }
+    }
+
+    /**
+     * A pass looks the plan up once, moves the consumers whose data source changes before any of them
+     * synchronizes, and hands every consumer the same pass.
+     */
+    public void testPass_swapsChangedSourcesBeforeConsumersSynchronize() throws Exception {
+        AbstractConsumerService first = mock(AbstractConsumerService.class);
+        AbstractConsumerService second = mock(AbstractConsumerService.class);
+        ShadowSwapService swapService = mock(ShadowSwapService.class);
+        List<AbstractConsumerService> synchronizers = List.of(first, second);
+        CatalogSyncJob job =
+                spy(
+                        new CatalogSyncJob(
+                                this.client,
+                                this.threadPool,
+                                this.resourceLockService,
+                                synchronizers,
+                                swapService));
+        SyncPass pass = SyncPass.withPlan(null);
+        doReturn(true).when(job).waitForSetup();
+        doReturn(pass).when(job).resolveSyncPass();
+
+        Assert.assertEquals(CatalogSyncJob.SyncOutcome.SUCCESS, job.performSynchronization());
+
+        verify(job, times(1)).resolveSyncPass();
+        InOrder inOrder = inOrder(swapService, first, second);
+        inOrder.verify(swapService).swapChangedSources(synchronizers, pass);
+        inOrder.verify(first).synchronize(pass);
+        inOrder.verify(second).synchronize(pass);
+    }
+
+    /**
+     * Once the node is stopping, the pass ends before the next consumer: its sync would run on the
+     * closing node and log its own failures. The outcome asks for no retry.
+     */
+    public void testPass_endsBeforeTheNextConsumerOnceTheNodeStops() throws Exception {
+        AbstractLifecycleComponent clusterService = NodeShutdownTests.idleComponent();
+        NodeShutdown.watch(clusterService);
+        clusterService.start();
+        try {
+            AbstractConsumerService first = mock(AbstractConsumerService.class);
+            AbstractConsumerService second = mock(AbstractConsumerService.class);
+            // The stop starts while the first consumer synchronizes.
+            when(first.synchronize(any(SyncPass.class)))
+                    .thenAnswer(
+                            invocation -> {
+                                clusterService.stop();
+                                return false;
+                            });
+            CatalogSyncJob job =
+                    spy(
+                            new CatalogSyncJob(
+                                    this.client,
+                                    this.threadPool,
+                                    this.resourceLockService,
+                                    List.of(first, second),
+                                    mock(ShadowSwapService.class)));
+            doReturn(true).when(job).waitForSetup();
+            doReturn(SyncPass.withPlan(null)).when(job).resolveSyncPass();
+
+            Assert.assertEquals(CatalogSyncJob.SyncOutcome.NODE_STOPPING, job.performSynchronization());
+
+            verify(second, never()).synchronize(any(SyncPass.class));
+        } finally {
+            NodeShutdown.watch(NodeShutdownTests.idleComponent());
+        }
+    }
+
+    /** A pass cut by the node stopping does not trigger the immediate retry a failed pass gets. */
+    public void testHandleOutcome_nodeStoppingDoesNotRetry() {
+        CatalogSyncJob job = spy(this.catalogSyncJob);
+
+        job.handleOutcome(CatalogSyncJob.SyncOutcome.NODE_STOPPING);
+
+        verify(job, never()).trigger(any(ActionListener.class));
+        Assert.assertFalse(job.isRetryPending());
+    }
+
+    /**
+     * Without the outcome of the swap, a consumer's document may not describe its content: no
+     * consumer synchronizes, and the pass fails so it is retried.
+     */
+    public void testPass_swapErrorLeavesEveryConsumerUntouched() throws Exception {
+        AbstractConsumerService consumer = mock(AbstractConsumerService.class);
+        ShadowSwapService swapService = mock(ShadowSwapService.class);
+        CatalogSyncJob job =
+                spy(
+                        new CatalogSyncJob(
+                                this.client,
+                                this.threadPool,
+                                this.resourceLockService,
+                                List.of(consumer),
+                                swapService));
+        doReturn(true).when(job).waitForSetup();
+        doReturn(SyncPass.withPlan(null)).when(job).resolveSyncPass();
+        doThrow(new IllegalStateException("cluster unavailable"))
+                .when(swapService)
+                .swapChangedSources(any(), any());
+
+        Assert.assertEquals(CatalogSyncJob.SyncOutcome.FAILURE, job.performSynchronization());
+
+        verify(consumer, never()).synchronize(any(SyncPass.class));
+    }
+
+    /**
+     * A consumer that asks for a retry, for instance with its data source change pending, fails the
+     * pass.
+     */
+    public void testPass_consumerAskingForRetryFailsThePass() throws Exception {
+        AbstractConsumerService consumer = mock(AbstractConsumerService.class);
+        CatalogSyncJob job =
+                spy(
+                        new CatalogSyncJob(
+                                this.client,
+                                this.threadPool,
+                                this.resourceLockService,
+                                List.of(consumer),
+                                mock(ShadowSwapService.class)));
+        SyncPass pass = SyncPass.withPlan(null);
+        doReturn(true).when(job).waitForSetup();
+        doReturn(pass).when(job).resolveSyncPass();
+        doReturn(true).when(consumer).synchronize(pass);
+
+        Assert.assertEquals(CatalogSyncJob.SyncOutcome.FAILURE, job.performSynchronization());
     }
 }

@@ -51,7 +51,9 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
     @Override
     public void completed(SimpleHttpResponse response) {
         log.debug("{}->{}", this.httpRequest, new StatusLine(response));
-        log.debug("Got response: {} {}", response.getCode(), response.getBodyText());
+        if (log.isDebugEnabled()) {
+            log.debug("Got response: {} {}", response.getCode(), response.getBodyText());
+        }
         log.debug(
                 "CTI compression check: request Accept-Encoding=[{}] response Content-Encoding=[{}]"
                         + " wireContentLength=[{}] decodedBodyBytes=[{}]",
