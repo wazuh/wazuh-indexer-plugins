@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetResponse;
@@ -34,6 +35,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 
 /**
  * Implementation of the ConsumerService. Manages the retrieval and persistence of Local and Remote
@@ -88,7 +90,10 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
                     ? this.mapper.readValue(response.getSourceAsString(), LocalConsumer.class)
                     : this.setConsumer();
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            log.error("Couldn't obtain consumer from internal index: {}", e.getMessage());
+            log.log(
+                    NodeShutdown.levelFor(e, Level.ERROR),
+                    "Couldn't obtain consumer from internal index: {}",
+                    e.getMessage());
         } catch (IOException e) {
             log.error("Failed to parse local consumer: {}", e.getMessage());
         }

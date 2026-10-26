@@ -37,7 +37,6 @@ import java.util.function.UnaryOperator;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -80,7 +79,6 @@ public class TransportUpdateIntegrationActionTests extends OpenSearchTestCase {
                         mock(ActionFilters.class),
                         mock(Client.class),
                         mock(EngineService.class),
-                        mock(EngineContentLoader.class),
                         this.overridesService);
 
         doAnswer(

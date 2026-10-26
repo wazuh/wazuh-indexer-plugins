@@ -158,7 +158,7 @@ public class PluginSettings {
     // Defaults for batching and paging during catalog synchronization.
     private static final int DEFAULT_UPDATE_SUB_BATCH_SIZE = 50;
     private static final int DEFAULT_OFFSET_FLUSH_INTERVAL = 10;
-    private static final int DEFAULT_SEARCH_PAGE_SIZE = 10_000;
+    private static final int DEFAULT_SEARCH_PAGE_SIZE = 1_000;
 
     private static final Pattern CATALOG_URI_PATTERN =
             Pattern.compile(".*/catalog/contexts/([^/]+)/consumers/([^/?#]+)(?:[/?#].*)?$");
@@ -774,9 +774,11 @@ public class PluginSettings {
     /**
      * Page size for the IoC reconciliation scan, the one genuinely paginated search in the plugin
      * (PIT + {@code search_after}). Lowering it means more round trips over the same documents, not
-     * fewer documents. The remaining bulk reads fetch a complete set in one request and are bounded
-     * by {@link Constants#MAX_RESULT_WINDOW}, which is not configurable because lowering it would
-     * silently truncate them.
+     * fewer documents. Each page sorts the whole index, so a larger page costs more heap per search
+     * shard task and is more likely to be cancelled by search backpressure on a busy node
+     * (wazuh-indexer#2007). The remaining bulk reads fetch a complete set in one request and are
+     * bounded by {@link Constants#MAX_RESULT_WINDOW}, which is not configurable because lowering it
+     * would silently truncate them.
      */
     public static final Setting<Integer> SEARCH_PAGE_SIZE =
             Setting.intSetting(

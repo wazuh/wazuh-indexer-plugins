@@ -5,6 +5,50 @@
     Wazuh Inc. custom fields.
   type: group
   fields:
+    - name: agent.groups
+      type: keyword
+      level: custom
+      description: >
+        List of groups the agent belongs to.
+      normalize:
+        - array
+      example: "[\"group1\", \"group2\"]"
+    - name: agent.host.architecture
+      type: keyword
+      level: custom
+      description: >
+        Operating system architecture of the agent host.
+      example: "x86_64"
+    - name: agent.host.hostname
+      type: keyword
+      level: custom
+      description: >
+        Hostname of the agent host, as returned by the host itself.
+      example: "wazuh-agent-01"
+    - name: agent.host.os.name
+      type: keyword
+      level: custom
+      description: >
+        Operating system name, without the version.
+      example: "Ubuntu"
+    - name: agent.host.os.platform
+      type: keyword
+      level: custom
+      description: >
+        Operating system platform (such as centos, ubuntu, windows).
+      example: "ubuntu"
+    - name: agent.host.os.type
+      type: keyword
+      level: custom
+      description: >
+        OS family (one of: linux, macos, unix, windows, ios, android).
+      example: "linux"
+    - name: agent.host.os.version
+      type: keyword
+      level: custom
+      description: >
+        Operating system version as a raw string.
+      example: "20.04.1 LTS (Focal Fossa)"
     - name: agent.configuration.content.agent-info.integrity_interval
       type: long
       level: custom

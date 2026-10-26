@@ -68,6 +68,38 @@ For integration tests:
 plugins/<plugin-name>/build/reports/tests/integTest/index.html
 ```
 
+## Code coverage
+
+Code coverage is measured with [JaCoCo](https://www.jacoco.org/jacoco/). The configuration lives in `gradle/coverage.gradle`, which both plugins apply.
+
+Coverage of the unit tests:
+
+```bash
+./gradlew :wazuh-indexer-content-manager:jacocoTestReport
+```
+
+`jacocoTestReport` runs the unit tests first if needed. To also measure the plugin code that runs inside the integration test cluster, add `-Dtests.coverage=true`. This runs `integTest` as well:
+
+```bash
+./gradlew :wazuh-indexer-content-manager:jacocoTestReport -Dtests.coverage=true
+```
+
+The reports are written in three formats:
+
+```
+plugins/<plugin-name>/build/reports/jacoco/test/html/index.html
+plugins/<plugin-name>/build/reports/jacoco/test/jacocoTestReport.xml
+plugins/<plugin-name>/build/reports/jacoco/test/jacocoTestReport.csv
+```
+
+Open the HTML report in a browser to browse the coverage per package, class and source line.
+
+In CI, the [Gradle check workflow](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/.github/workflows/5_testintegration_gradlecheck.yml) runs `./gradlew check jacocoTestReport -PnumNodes=1 -Dtests.coverage=true` for each modified plugin. It adds a coverage table to the job summary and uploads the reports as the `coverage-<plugin-name>` workflow artifact.
+
+The workflow also runs on every push to `main` or to a release branch (`<major>.<minor>.<patch>`) that changes plugin code. There it measures both plugins, and its `coverage-badge` job generates the coverage and branches badges from the two CSV reports and commits them to the `badges` branch, in a folder named after the pushed branch (for example `5.0.0/jacoco.svg`). It creates the `badges` branch on the first run. The README's coverage badge shows `main/jacoco.svg`, the default branch's.
+
+> The integration test nodes are stopped with `SIGKILL`, so the JaCoCo agent on each node cannot write its data on exit. Instead, each node's agent serves its data over TCP on a free port, and `integTest` pulls it into `build/jacoco/integTestCluster.exec` after the last test, before the cluster stops.
+
 ## Running a single test class
 
 To run a specific test class:
@@ -94,6 +126,7 @@ The tests cover:
 - **Installation and removal** — the package installs, and removes (DEB: purges) without errors.
 - **Removal leftovers** — `build-scripts/ci/test_purge.sh`: a purge always removes the `wazuh-indexer` user and group; what the service account owned in the package's four directories belongs to root and keeps its mode, and the directories are closed to everyone but root; only a directory that still holds files is listed as kept; the engine's runtime files and the JVM's performance data in `/tmp` do not outlive the purge; the certificates issued from the removed CA go with it, and an operator's own pair stays; a custom `path.repo` is left exactly as it was; a directory that cannot be handed over is reported and not listed as kept; a reinstall restores every owner and mode, and the node's certificates chain to its CA; and the resolver refuses a pair the CA did not issue. See [When the package is purged](packages.md#when-the-package-is-purged).
 - **Credential and TLS resolution** — `build-scripts/ci/test_credentials.sh`. See [Credential and TLS resolution](packages.md#credential-and-tls-resolution).
+- **Host tools** — `build-scripts/ci/test_host_tools.sh`: the maintainer scripts and the scripts the package ships run no host tool outside the declared dependencies. See [Host dependencies](packages.md#host-dependencies).
 - **Upgrades** — from the previous version, with the indexer stopped and running. Only when a previous version exists.
 - **4.x upgrade block** — `build-scripts/ci/test_upgrade_block.sh`: the package refuses to upgrade a 4.x installation.
 

@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ExceptionsHelper;
@@ -54,6 +55,7 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 
 /**
  * Serializes the resource-creation-limit check-then-act sequence (count existing documents, then
@@ -394,7 +396,8 @@ public class ResourceLockService {
                                 } else {
                                     // The cause, not the message: on a RemoteTransportException the
                                     // message is only [node][address][action].
-                                    log.warn(
+                                    log.log(
+                                            NodeShutdown.levelFor(e, Level.WARN),
                                             "Failed to renew lock [{}]: {}",
                                             lockId,
                                             ExceptionsHelper.unwrapCause(e).getMessage(),
@@ -516,7 +519,11 @@ public class ResourceLockService {
                                 if (ExceptionsHelper.unwrap(e, VersionConflictEngineException.class) != null) {
                                     log.debug("Lock [{}] was taken over before this node released it.", lockId);
                                 } else {
-                                    log.warn("Failed to release lock [{}]: {}", lockId, e.getMessage());
+                                    log.log(
+                                            NodeShutdown.levelFor(e, Level.WARN),
+                                            "Failed to release lock [{}]: {}",
+                                            lockId,
+                                            e.getMessage());
                                 }
                                 onReleased.run();
                             }

@@ -16,11 +16,23 @@
  */
 package com.wazuh.contentmanager.rest.service;
 
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.ActionType;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.action.ActionResponse;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.test.client.NoOpNodeClient;
+import org.opensearch.test.rest.FakeRestChannel;
+import org.opensearch.test.rest.FakeRestRequest;
 import org.junit.Assert;
 import org.junit.Before;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import com.wazuh.contentmanager.action.TriggerUpdateRequest;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class RestPostUpdateActionTests extends OpenSearchTestCase {
@@ -44,5 +56,53 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
 
     public void testName() {
         Assert.assertEquals("content_manager_subscription_update", this.action.getName());
+    }
+
+    /** {@code ?offline=true} requests an offline update. */
+    public void testOfflineParameter() throws Exception {
+        Assert.assertTrue(this.dispatch(Map.of("offline", "true")).isOffline());
+    }
+
+    /** Without the parameter, or with it false, the update is a regular one. */
+    public void testOnlineByDefault() throws Exception {
+        Assert.assertFalse(this.dispatch(Map.of()).isOffline());
+        Assert.assertFalse(this.dispatch(Map.of("offline", "false")).isOffline());
+    }
+
+    /** A value that is not a boolean is rejected before any update starts. */
+    public void testInvalidOfflineValue() {
+        expectThrows(IllegalArgumentException.class, () -> this.dispatch(Map.of("offline", "maybe")));
+    }
+
+    /**
+     * Sends {@code POST /update} with the given query parameters through the handler, and returns the
+     * request it hands to the transport layer.
+     */
+    private TriggerUpdateRequest dispatch(Map<String, String> params) throws Exception {
+        try (CapturingNodeClient client = new CapturingNodeClient(getTestName())) {
+            RestRequest request =
+                    new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                            .withMethod(RestRequest.Method.POST)
+                            .withPath(PluginSettings.UPDATE_URI)
+                            .withParams(new HashMap<>(params))
+                            .build();
+            this.action.handleRequest(request, new FakeRestChannel(request, true, 1), client);
+            return client.captured;
+        }
+    }
+
+    /** Captures the dispatched request without answering it. */
+    private static class CapturingNodeClient extends NoOpNodeClient {
+        private TriggerUpdateRequest captured;
+
+        CapturingNodeClient(String testName) {
+            super(testName);
+        }
+
+        @Override
+        public <Request extends ActionRequest, Response extends ActionResponse> void doExecute(
+                ActionType<Response> action, Request request, ActionListener<Response> listener) {
+            this.captured = (TriggerUpdateRequest) request;
+        }
     }
 }

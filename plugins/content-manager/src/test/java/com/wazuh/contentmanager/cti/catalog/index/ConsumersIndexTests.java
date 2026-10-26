@@ -21,6 +21,8 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -35,6 +37,10 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -160,6 +166,45 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
     }
 
     /**
+     * Tests that setLastCheckedAt writes the time to the catalog document, refreshing immediately.
+     *
+     * @throws Exception
+     */
+    public void testSetLastCheckedAt() throws Exception {
+        // Mock
+        when(this.client
+                        .admin()
+                        .cluster()
+                        .prepareHealth()
+                        .setIndices(anyString())
+                        .setWaitForYellowStatus()
+                        .setWaitForActiveShards(anyInt())
+                        .setTimeout(any(TimeValue.class))
+                        .get())
+                .thenReturn(this.clusterHealthResponse);
+        when(this.clusterHealthResponse.getStatus()).thenReturn(ClusterHealthStatus.GREEN);
+        when(this.clusterHealthResponse.isTimedOut()).thenReturn(false);
+
+        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+
+        // Act
+        this.consumersIndex.setLastCheckedAt(Instant.parse("2026-10-21T15:30:02.114Z"));
+
+        // Assert
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+
+        IndexRequest request = captor.getValue();
+        Assert.assertEquals(ConsumersIndex.INDEX_NAME, request.index());
+        Assert.assertEquals("cti:catalog:global", request.id());
+        Assert.assertEquals(
+                Map.of("last_checked_at", "2026-10-21T15:30:02.114Z"), request.sourceAsMap());
+        Assert.assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, request.getRefreshPolicy());
+    }
+
+    /**
      * Tests getConsumer retrieves the correct document ID based on type.
      *
      * @throws Exception
@@ -272,5 +317,78 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
                         RuntimeException.class,
                         () -> this.consumersIndex.getConsumer("cti:catalog:consumer:ruleset"));
         Assert.assertEquals("Index not ready", ex.getMessage());
+    }
+
+    /**
+     * setConsumers writes every document in one bulk request, keyed by consumer type, with a single
+     * immediate refresh, so a reader sees them change together.
+     *
+     * @throws Exception
+     */
+    public void testSetConsumers_WritesAllDocumentsInOneRefreshedBulk() throws Exception {
+        this.mockClusterHealth(ClusterHealthStatus.GREEN);
+        BulkResponse bulkResponse = mock(BulkResponse.class);
+        when(bulkResponse.hasFailures()).thenReturn(false);
+        PlainActionFuture<BulkResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(bulkResponse);
+        when(this.client.bulk(any(BulkRequest.class))).thenReturn(future);
+
+        this.consumersIndex.setConsumers(
+                List.of(
+                        new LocalConsumer(
+                                "ctx-a", "name-a", "cti:catalog:consumer:ruleset", "https://cti/a", false, 0, 10),
+                        new LocalConsumer(
+                                "ctx-b", "name-b", "cti:catalog:consumer:iocs", "https://cti/b", false, 0, 20)));
+
+        ArgumentCaptor<BulkRequest> captor = ArgumentCaptor.forClass(BulkRequest.class);
+        verify(this.client).bulk(captor.capture());
+        BulkRequest request = captor.getValue();
+        Assert.assertEquals(WriteRequest.RefreshPolicy.IMMEDIATE, request.getRefreshPolicy());
+        Assert.assertEquals(2, request.numberOfActions());
+        Assert.assertEquals("cti:catalog:consumer:ruleset", request.requests().get(0).id());
+        Assert.assertEquals("cti:catalog:consumer:iocs", request.requests().get(1).id());
+        Assert.assertEquals(ConsumersIndex.INDEX_NAME, request.requests().get(0).index());
+    }
+
+    /** setConsumers fails when any of the documents could not be written. */
+    public void testSetConsumers_FailsWhenAnyDocumentFails() {
+        this.mockClusterHealth(ClusterHealthStatus.GREEN);
+        BulkResponse bulkResponse = mock(BulkResponse.class);
+        when(bulkResponse.hasFailures()).thenReturn(true);
+        when(bulkResponse.buildFailureMessage()).thenReturn("failure in bulk execution");
+        PlainActionFuture<BulkResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(bulkResponse);
+        when(this.client.bulk(any(BulkRequest.class))).thenReturn(future);
+
+        IllegalStateException ex =
+                Assert.assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                this.consumersIndex.setConsumers(
+                                        List.of(
+                                                new LocalConsumer(
+                                                        "ctx",
+                                                        "name",
+                                                        "cti:catalog:consumer:iocs",
+                                                        "https://cti/b",
+                                                        false,
+                                                        0,
+                                                        20))));
+        Assert.assertEquals("failure in bulk execution", ex.getMessage());
+    }
+
+    private void mockClusterHealth(ClusterHealthStatus status) {
+        when(this.client
+                        .admin()
+                        .cluster()
+                        .prepareHealth()
+                        .setIndices(anyString())
+                        .setWaitForYellowStatus()
+                        .setWaitForActiveShards(anyInt())
+                        .setTimeout(any(TimeValue.class))
+                        .get())
+                .thenReturn(this.clusterHealthResponse);
+        when(this.clusterHealthResponse.getStatus()).thenReturn(status);
+        when(this.clusterHealthResponse.isTimedOut()).thenReturn(false);
     }
 }

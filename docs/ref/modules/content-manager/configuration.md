@@ -54,7 +54,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.security_analytics.detector_interval`** (Integer, default `2`, range 1–10080, dynamic) — detector schedule interval, in minutes, applied when the CTI integration document does not specify one, or specifies one outside the bounds Ruleset Management accepts.
 - **`plugins.content_manager.update_sub_batch_size`** (Integer, default `50`, range 1–1000) — maximum number of UPDATE offsets batched into a single MultiGet + bulk request while applying a catalog changeset.
 - **`plugins.content_manager.offset_flush_interval`** (Integer, default `10`, range 1–1000) — how many batches (changeset application) or bulks (snapshot load) are processed between consumer-offset checkpoints. A smaller value narrows the window of work replayed after a crash, at the cost of more writes to the consumer-state document.
-- **`plugins.content_manager.search_page_size`** (Integer, default `10000`, range 100–10000) — page size used by the paginated IoC reconciliation scan. Lower values mean more round trips over the same documents, not fewer documents.
+- **`plugins.content_manager.search_page_size`** (Integer, default `1000`, range 100–10000) — page size used by the paginated IoC reconciliation scan and the IoC export to the Engine. Lower values mean more round trips over the same documents, not fewer documents. Higher values cost more heap per search, and on a busy node search backpressure may cancel the page.
 
 Settings marked *dynamic* can be changed on a running cluster and take effect on the next operation:
 
@@ -94,12 +94,16 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_
 }'
 ```
 
-Disabling scheduled synchronization takes effect immediately and applies to an already-initialized node as well as a fresh one: the plugin updates the periodic job accordingly, and a run that is already scheduled is refused rather than reaching Wazuh CTI. See [Job scheduler](architecture.md#job-scheduler).
+Disabling scheduled synchronization takes effect immediately and applies to an already-initialized node as well as a fresh one: the plugin updates the periodic job accordingly, and a run that is already scheduled is refused rather than reaching Wazuh CTI.
 
 Disabling scheduled synchronization does not remove content that has already been downloaded. It only stops further updates from Wazuh CTI.
 
 `plugins.content_manager.catalog.update_on_start` is not dynamic — it only governs the synchronization triggered as the plugin starts, so it takes effect on the next node start.
 <!-- // ANCHOR_END: offline-config -->
+
+To keep the content of an offline installation up to date, load newer snapshots as described in [Offline content updates](offline-update.md).
+
+How the plugin keeps the periodic job in step with `update_on_schedule`, and refuses a run while it is disabled, is described in [Job scheduler](architecture.md#job-scheduler).
 
 On online installations, manual synchronization can be performed on demand using the Content Manager API:
 
