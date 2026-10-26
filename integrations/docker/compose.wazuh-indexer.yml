@@ -119,6 +119,8 @@ services:
       - WAZUH_INDEXER_PASSWORD=${WAZUH_INDEXER_ADMIN_PASSWORD}
       - WAZUH_GENERATOR_FINDINGS_DELAY=${WAZUH_GENERATOR_FINDINGS_DELAY}
       - WAZUH_CUSTOM_STREAM=${WAZUH_CUSTOM_STREAM}
+      # What the custom data stream receives: events, or findings (Amazon Security Lake).
+      - WAZUH_CUSTOM_KIND=${WAZUH_CUSTOM_KIND:-events}
     command: ["-a", "wazuh.indexer", "--ca", "/certs/root-ca.pem"]
     volumes:
       - ./certs/root-ca.pem:/certs/root-ca.pem:ro

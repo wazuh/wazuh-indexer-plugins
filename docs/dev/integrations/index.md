@@ -1,10 +1,11 @@
 # Integrations
 
-The [`integrations`](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/integrations) folder holds the integrations that export the Wazuh indexer data to Elasticsearch, OpenSearch and Splunk, their development environments and their tests. This section is for developers of the integrations. To deploy them, see the [reference manual](../../ref/integrations/index.md).
+The [`integrations`](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/integrations) folder holds the integrations that export the Wazuh indexer data to Elasticsearch, OpenSearch, Splunk and Amazon Security Lake, their development environments and their tests. This section is for developers of the integrations. To deploy them, see the [reference manual](../../ref/integrations/index.md).
 
 - [Elasticsearch](elastic.md)
 - [OpenSearch](opensearch.md)
 - [Splunk](splunk.md)
+- [Amazon Security Lake](amazon-security-lake.md)
 
 ## Layout
 
@@ -18,7 +19,7 @@ The [`integrations`](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/in
 | `tools/templates/` | Generator of the index templates. |
 | `tools/dashboards/` | Generator of the dashboards. |
 | `tools/e2e/` | End-to-end test of an integration. |
-| `amazon-security-lake/` | The Amazon Security Lake integration, **not adapted to Wazuh 5.x yet.** |
+| `amazon-security-lake/` | The output of the integration, the AWS Lambda function that converts the findings into OCSF (`src/`), its tests, and the stand-in for the S3 event notifications of the development environment (`dev/`). |
 
 ## Development environments
 
@@ -121,7 +122,7 @@ python3 integrations/tools/dashboards/generate.py --check
 - no document of the other sources did;
 - every document reached the destination of its source.
 
-Then it imports the dashboards (Elasticsearch and OpenSearch) or checks the dashboards of the Splunk app.
+Then it imports the dashboards (Elasticsearch and OpenSearch) or checks the dashboards of the Splunk app. Amazon Security Lake has no dashboards, and its scenarios check that no event reaches it.
 
 ```bash
 python3 integrations/tools/e2e/run.py elastic
@@ -132,6 +133,6 @@ python3 integrations/tools/e2e/run.py splunk --scenarios findings custom --keep
 
 ## Continuous integration
 
-The `(5.x) Test the integrations` workflow (`.github/workflows/5_testintegration_integrations.yml`) runs on pull requests that change the integrations or the source index templates: the unit tests of the events generator, the `--check` of the templates and dashboards generators, and the end-to-end test of every integration.
+The `(5.x) Test the integrations` workflow (`.github/workflows/5_testintegration_integrations.yml`) runs on pull requests that change the integrations or the source index templates: the unit tests of the events generator and of the Amazon Security Lake conversion, the `--check` of the templates and dashboards generators, and the end-to-end test of every integration.
 
-What it cannot test: the deployment on production platforms (managed Elasticsearch, Splunk Cloud), and the behavior of the real detectors. The environments do not run detectors: the events generator writes the findings itself.
+What it cannot test: the deployment on production platforms (managed Elasticsearch, Splunk Cloud, Amazon Security Lake itself: see [Testing on AWS](amazon-security-lake.md#testing-on-aws)), and the behavior of the real detectors. The environments do not run detectors: the events generator writes the findings itself.
