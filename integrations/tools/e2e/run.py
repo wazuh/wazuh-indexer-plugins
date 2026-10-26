@@ -205,6 +205,31 @@ def print_logs(compose, services):
         print("\n".join(compose.logs(service).splitlines()[-LOG_LINES:]))
 
 
+def print_diagnostics(compose, services):
+    """
+    State of the containers of failed services: how they ended, what they mount, and the owners
+    and permissions of the mounted directories, read from a container that shares their volumes.
+    """
+    def run(*cmd):
+        result = subprocess.run(cmd, text=True, capture_output=True)
+        return (result.stdout + result.stderr).strip()
+
+    print("----- docker -----")
+    print(run("docker", "info", "--format", "{{.ServerVersion}} {{.Driver}} {{.SecurityOptions}} {{.DockerRootDir}}"))
+    print(run("df", "-h", "/", "/var/lib/docker"))
+    for service in sorted(services):
+        container = compose.run("ps", "-a", "-q", service, capture=True, check=False).stdout.strip()
+        if not container:
+            continue
+        print(f"----- state of the {service} container -----")
+        print(run("docker", "inspect", "--format",
+                  "{{json .State}}\nuser={{.Config.User}}\n{{range .Mounts}}{{.Type}} {{.Destination}} rw={{.RW}}\n{{end}}", container))
+        destinations = run("docker", "inspect", "--format", "{{range .Mounts}}{{.Destination}} {{end}}", container).split()
+        listing = " ".join(f"{d} {d}/*" for d in destinations)
+        print(run("docker", "run", "--rm", "--volumes-from", container, "alpine:3.24.3", "sh", "-c",
+                  f"ls -land {listing} 2>&1 | head -60"))
+
+
 def reset(compose):
     """Removes the environment, its volumes and the certificates it generated."""
     compose.run("down", "-v", "--remove-orphans", check=False, capture=True)
@@ -228,6 +253,7 @@ def start(compose, attempts=2):
                 raise
             log(f"the environment did not start, retrying: services exited with an error: {failed}")
             print_logs(compose, failed)
+            print_diagnostics(compose, failed)
 
 
 def wait_for_pipeline(compose, since, timeout=600):
@@ -364,7 +390,9 @@ def main(argv=None) -> int:
     finally:
         if problems:
             # Diagnostics before the environment is removed.
-            print_logs(compose, set(compose.failed_services()) | {"logstash"})
+            failed = compose.failed_services()
+            print_logs(compose, set(failed) | {"logstash"})
+            print_diagnostics(compose, failed)
         if not args.keep:
             reset(compose)
 
