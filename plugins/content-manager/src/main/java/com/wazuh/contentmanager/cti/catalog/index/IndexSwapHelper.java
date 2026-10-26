@@ -22,11 +22,14 @@ import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.refresh.RefreshResponse;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.index.reindex.ReindexRequestBuilder;
+import org.opensearch.index.reindex.ScrollableHitSource;
 import org.opensearch.transport.client.Client;
 
 import java.util.*;
@@ -173,11 +176,14 @@ public final class IndexSwapHelper {
     /**
      * Reindexes user-edited content (documents where {@code space.name != "standard"}) from the live
      * physical indices to the shadow physical indices. This preserves draft, test, and custom space
-     * content across the swap.
+     * content across the swap. A reindex that does not copy every document (a document rejected by
+     * the shadow mapping, a search failure on the live index, or a timeout) fails the call: the live
+     * index is deleted after the swap, so a document left behind would be lost with it.
      *
      * @param client The OpenSearch client.
      * @param liveToShadow A map of live physical index name → shadow physical index name.
      * @param timeoutSeconds The timeout for each reindex operation.
+     * @throws IllegalStateException If a reindex reports failures or times out.
      */
     public static void reindexUserContent(
             Client client, Map<String, String> liveToShadow, long timeoutSeconds) {
@@ -187,20 +193,61 @@ public final class IndexSwapHelper {
 
             log.debug(Constants.D_LOG_REINDEX_USER_CONTENT_START, livePhysical, shadowPhysical);
 
-            new ReindexRequestBuilder(client, ReindexAction.INSTANCE)
-                    .source(livePhysical)
-                    .destination(shadowPhysical)
-                    // This also carries the user-overrides registry document across the swap: it has no
-                    // space.name, so it satisfies this must_not and lands in the new physical index
-                    // alongside the user's own spaces.
-                    .filter(
-                            QueryBuilders.boolQuery()
-                                    .mustNot(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, "standard")))
-                    .refresh(true)
-                    .get();
+            BulkByScrollResponse response =
+                    new ReindexRequestBuilder(client, ReindexAction.INSTANCE)
+                            .source(livePhysical)
+                            .destination(shadowPhysical)
+                            // This also carries the user-overrides registry document across the
+                            // swap: it has no space.name, so it satisfies this must_not and lands in
+                            // the new physical index alongside the user's own spaces.
+                            .filter(
+                                    QueryBuilders.boolQuery()
+                                            .mustNot(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, "standard")))
+                            .refresh(true)
+                            .get(TimeValue.timeValueSeconds(timeoutSeconds));
+            checkReindexResponse(response, livePhysical, shadowPhysical);
 
             log.debug(Constants.D_LOG_REINDEX_USER_CONTENT_COMPLETE, livePhysical, shadowPhysical);
         }
+    }
+
+    /**
+     * Fails when a reindex did not copy every document it matched.
+     *
+     * @param response The reindex response.
+     * @param source The physical index the documents were copied from.
+     * @param destination The physical index the documents were copied to.
+     * @throws IllegalStateException If the reindex reports bulk or search failures, or timed out.
+     */
+    private static void checkReindexResponse(
+            BulkByScrollResponse response, String source, String destination) {
+        List<BulkItemResponse.Failure> bulkFailures = response.getBulkFailures();
+        List<ScrollableHitSource.SearchFailure> searchFailures = response.getSearchFailures();
+        if (bulkFailures.isEmpty() && searchFailures.isEmpty() && !response.isTimedOut()) {
+            return;
+        }
+        String reason;
+        if (!bulkFailures.isEmpty()) {
+            BulkItemResponse.Failure first = bulkFailures.get(0);
+            reason = "document [" + first.getId() + "]: " + first.getMessage();
+        } else if (!searchFailures.isEmpty()) {
+            reason = searchFailures.get(0).getReason().getMessage();
+        } else {
+            reason = "timed out";
+        }
+        throw new IllegalStateException(
+                "copying user content from ["
+                        + source
+                        + "] to ["
+                        + destination
+                        + "] failed ("
+                        + bulkFailures.size()
+                        + " bulk failures, "
+                        + searchFailures.size()
+                        + " search failures, timed out: "
+                        + response.isTimedOut()
+                        + "), first: "
+                        + reason);
     }
 
     /**

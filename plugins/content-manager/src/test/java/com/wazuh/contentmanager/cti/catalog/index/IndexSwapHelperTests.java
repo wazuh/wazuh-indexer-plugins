@@ -22,9 +22,14 @@ import org.opensearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.refresh.RefreshRequestBuilder;
 import org.opensearch.action.admin.indices.refresh.RefreshResponse;
+import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.reindex.BulkByScrollResponse;
+import org.opensearch.index.reindex.ReindexAction;
+import org.opensearch.index.reindex.ReindexRequest;
+import org.opensearch.index.reindex.ScrollableHitSource;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -41,7 +46,9 @@ import org.mockito.MockitoAnnotations;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -217,5 +224,80 @@ public class IndexSwapHelperTests extends OpenSearchTestCase {
         expectThrows(
                 IllegalStateException.class,
                 () -> IndexSwapHelper.refreshIndices(this.client, List.of("rules-b"), 30));
+    }
+
+    /**
+     * Stubs the reindex of user content to answer with the given counts of failures.
+     *
+     * @return the future the reindex waits on.
+     */
+    @SuppressWarnings("unchecked")
+    private ActionFuture<BulkByScrollResponse> stubReindex(
+            List<BulkItemResponse.Failure> bulkFailures,
+            List<ScrollableHitSource.SearchFailure> searchFailures,
+            boolean timedOut) {
+        BulkByScrollResponse response = mock(BulkByScrollResponse.class);
+        when(response.getBulkFailures()).thenReturn(bulkFailures);
+        when(response.getSearchFailures()).thenReturn(searchFailures);
+        when(response.isTimedOut()).thenReturn(timedOut);
+        ActionFuture<BulkByScrollResponse> future = mock(ActionFuture.class);
+        when(future.actionGet(any(TimeValue.class))).thenReturn(response);
+        when(this.client.execute(eq(ReindexAction.INSTANCE), any(ReindexRequest.class)))
+                .thenReturn(future);
+        return future;
+    }
+
+    /** A clean reindex copies every live index into its staging index, within the timeout. */
+    public void testReindexUserContent_CopiesEveryIndex() {
+        ActionFuture<BulkByScrollResponse> future = this.stubReindex(List.of(), List.of(), false);
+
+        IndexSwapHelper.reindexUserContent(
+                this.client, Map.of("rules-a", "rules-b", "decoders-a", "decoders-b"), 30);
+
+        verify(future, times(2)).actionGet(TimeValue.timeValueSeconds(30));
+    }
+
+    /**
+     * A user document the staging mapping rejects fails the call, so the swap rolls back instead of
+     * deleting the live index that still holds the document.
+     */
+    public void testReindexUserContent_BulkFailureThrows() {
+        this.stubReindex(
+                List.of(
+                        new BulkItemResponse.Failure(
+                                "filters-b",
+                                "user-filter",
+                                new IllegalArgumentException("strict_dynamic_mapping_exception"))),
+                List.of(),
+                false);
+
+        IllegalStateException e =
+                expectThrows(
+                        IllegalStateException.class,
+                        () ->
+                                IndexSwapHelper.reindexUserContent(
+                                        this.client, Map.of("filters-a", "filters-b"), 30));
+        assertTrue(e.getMessage(), e.getMessage().contains("user-filter"));
+    }
+
+    /** A live index that cannot be read in full fails the call. */
+    public void testReindexUserContent_SearchFailureThrows() {
+        this.stubReindex(
+                List.of(),
+                List.of(new ScrollableHitSource.SearchFailure(new IllegalStateException("shard failed"))),
+                false);
+
+        expectThrows(
+                IllegalStateException.class,
+                () -> IndexSwapHelper.reindexUserContent(this.client, Map.of("rules-a", "rules-b"), 30));
+    }
+
+    /** A reindex that timed out may have copied only part of the documents: it fails the call. */
+    public void testReindexUserContent_TimeoutThrows() {
+        this.stubReindex(List.of(), List.of(), true);
+
+        expectThrows(
+                IllegalStateException.class,
+                () -> IndexSwapHelper.reindexUserContent(this.client, Map.of("rules-a", "rules-b"), 30));
     }
 }
