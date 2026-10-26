@@ -332,16 +332,19 @@ git -C <repo> rev-parse -q --verify MERGE_HEAD   # prints something while uncomm
    `VERSION.json` and `CHANGELOG.md` — a clean merge happily brings the
    source's changelog entries across — so restore the destination's version of
    both and report it. Those are the bookkeeping files where the destination
-   must win outright, so they need this check; the `release-notes/*` union and
-   the spec's `%changelog` do not:
+   must win outright, so they need this check; the spec's `%changelog` does
+   not:
 
    ```bash
    git -C <repo> diff --quiet origin/<higher> -- VERSION.json CHANGELOG.md ||
      git -C <repo> checkout origin/<higher> -- VERSION.json CHANGELOG.md
    ```
 
+   Where the repository ships `release-notes/`, restore it the same way.
+
    When the merge is already committed, diff against `origin/<higher> HEAD`
    instead; restoring then needs the amend that sub-step 4 describes.
+
 3. **Anything left to merge?** Once the pins are back and the bookkeeping
    files keep the destination's side, a step can end up bringing nothing:
 
