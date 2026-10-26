@@ -121,7 +121,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_nodes/reload_secure_settings"
 ```
 
-If the reload reports `access_denied_exception`, the keystore is owned by `root`. Run `sudo chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore` and reload again. See [Email destination secure settings](configuration.md#email-destination-secure-settings).
+If the reload reports `access_denied_exception`, the Wazuh Indexer cannot read the keystore. Run `sudo chown root:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore && sudo chmod 640 /etc/wazuh-indexer/opensearch.keystore` and reload again. See [Email destination secure settings](configuration.md#email-destination-secure-settings).
 
 ---
 

@@ -114,6 +114,7 @@ import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.MockEngineService;
 import com.wazuh.contentmanager.utils.MockSecurityAnalyticsService;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 import com.wazuh.contentmanager.utils.SetupReadiness;
 
 /** Main class of the Content Manager Plugin */
@@ -193,6 +194,9 @@ public class ContentManagerPlugin extends Plugin
         this.clusterService = clusterService;
         this.client = client;
         this.threadPool = threadPool;
+        // The cluster service stops before the services a sync depends on, so failures after its stop
+        // starts are logged as shutdown noise rather than errors.
+        NodeShutdown.watch(clusterService);
 
         // Check whether the credentials index is declared as a system index.
         // When not protected, registration is blocked and any stored token is wiped on startup.

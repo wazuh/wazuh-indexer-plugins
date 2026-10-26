@@ -88,7 +88,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
             return null;
         }
-        if (!doc.has(Constants.KEY_METADATA) && !doc.get(Constants.KEY_METADATA).isObject()) {
+        if (!doc.has(Constants.KEY_METADATA) || !doc.get(Constants.KEY_METADATA).isObject()) {
             log.error(Constants.E_LOG_MISSING_OBJECT, Constants.KEY_METADATA);
             return null;
         }
@@ -282,7 +282,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             log.error(Constants.E_LOG_MISSING_FIELD, Constants.KEY_ID);
             return null;
         }
-        if (!doc.has(Constants.KEY_METADATA) && !doc.get(Constants.KEY_METADATA).isObject()) {
+        if (!doc.has(Constants.KEY_METADATA) || !doc.get(Constants.KEY_METADATA).isObject()) {
             log.error(Constants.E_LOG_MISSING_OBJECT, Constants.KEY_METADATA);
             return null;
         }

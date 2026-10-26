@@ -300,10 +300,18 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 Triggers an immediate content synchronization with the CTI API. A registered instance synchronizes the content of its subscription plan; an unregistered one synchronizes the public content.
 
+With `offline=true`, the update does not contact the CTI API. Instead, every consumer that has a snapshot file (`ruleset.zip`, `iocs.zip` or `vulnerabilities.zip`) in the `plugins/wazuh-indexer-content-manager/snapshots` directory of the node that receives the request is reloaded from that file, whatever its current offset. Consumers without a file are left as they are. This is how air-gapped deployments are kept up to date; see [Offline content updates](offline-update.md).
+
 #### Request
 
 - Method: `POST`
 - Path: `/_plugins/_content_manager/update`
+
+#### Parameters
+
+| Name | In | Type | Required | Description |
+|---|---|---|---|---|
+| `offline` | query | boolean | No | Load the snapshot files placed in the snapshots directory of the node instead of synchronizing with the CTI API. Defaults to `false`. |
 
 #### Example request
 
@@ -330,9 +338,26 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 }
 ```
 
+#### Example request (offline update)
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  "https://127.0.0.1:9200/_plugins/_content_manager/update?offline=true"
+```
+
+#### Example response (offline update without snapshot files on the node)
+
+```json
+{
+  "message": "No snapshot file to load in [plugins/wazuh-indexer-content-manager/snapshots] on node [node-1]. Place the new snapshot files in that directory, on every node, before requesting an offline update.",
+  "status": 400
+}
+```
+
 #### Status codes
 
 - **202** — update request accepted for processing.
+- **400** — `offline=true` was requested but the node has no snapshot file to load, or the `offline` value is not a boolean.
 - **403** — on-demand updates are disabled (`plugins.content_manager.catalog.update_on_demand: false`); returned for every caller, regardless of role.
 - **409** — a content update is already in progress.
 - **500** — internal error during sync.

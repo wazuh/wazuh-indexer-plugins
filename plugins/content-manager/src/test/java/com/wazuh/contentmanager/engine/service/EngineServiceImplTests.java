@@ -20,9 +20,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
 import org.junit.Before;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.wazuh.contentmanager.engine.client.EngineSocketClient;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -213,5 +223,138 @@ public class EngineServiceImplTests extends OpenSearchTestCase {
                                                 && json.get("path").asText().equals(filePath)
                                                 && json.has("hash")
                                                 && json.get("hash").asText().equals(hash)));
+    }
+
+    /**
+     * Runs {@code test} against an engine service whose generic pool has several threads, so promotes
+     * that were not queued would run concurrently.
+     */
+    private void withConcurrentPool(ThrowingConsumer<EngineServiceImpl> test) throws Exception {
+        ExecutorService generic = Executors.newFixedThreadPool(4);
+        try {
+            ThreadPool threadPool = mock(ThreadPool.class);
+            when(threadPool.generic()).thenReturn(generic);
+            test.accept(new EngineServiceImpl(this.socket, threadPool));
+        } finally {
+            generic.shutdownNow();
+            assertTrue(generic.awaitTermination(10, TimeUnit.SECONDS));
+        }
+    }
+
+    /** A consumer that may throw, for {@link #withConcurrentPool}. */
+    private interface ThrowingConsumer<T> {
+        void accept(T value) throws Exception;
+    }
+
+    private ObjectNode payloadFor(String space) {
+        ObjectNode payload = this.mapper.createObjectNode();
+        payload.put("space", space);
+        return payload;
+    }
+
+    /**
+     * Promotes are sent to the Engine one at a time, in the order they were requested. The Engine
+     * fails two promotes of the same space that overlap (wazuh-indexer#2032).
+     */
+    public void testPromotesAreSentOneAtATimeInOrder() throws Exception {
+        this.withConcurrentPool(
+                service -> {
+                    CountDownLatch firstStarted = new CountDownLatch(1);
+                    CountDownLatch releaseFirst = new CountDownLatch(1);
+                    CountDownLatch secondStarted = new CountDownLatch(1);
+                    List<String> order = Collections.synchronizedList(new ArrayList<>());
+                    when(this.socket.sendRequest(
+                                    eq(EngineServiceImpl.PROMOTE), eq("POST"), any(JsonNode.class)))
+                            .thenAnswer(
+                                    inv -> {
+                                        String space = inv.<JsonNode>getArgument(2).get("space").asText();
+                                        order.add(space);
+                                        if (order.size() == 1) {
+                                            firstStarted.countDown();
+                                            assertTrue(releaseFirst.await(10, TimeUnit.SECONDS));
+                                        } else {
+                                            secondStarted.countDown();
+                                        }
+                                        return new RestResponse("OK", 200);
+                                    });
+                    CountDownLatch done = new CountDownLatch(3);
+                    ActionListener<RestResponse> countDown =
+                            ActionListener.wrap(r -> done.countDown(), e -> done.countDown());
+
+                    service.promoteAsync(this.payloadFor("standard"), countDown);
+                    service.promoteAsync(this.payloadFor("test"), countDown);
+                    service.promoteAsync(this.payloadFor("custom"), countDown);
+
+                    assertTrue(firstStarted.await(10, TimeUnit.SECONDS));
+                    // While the first promote is in the Engine, the others wait for it.
+                    assertFalse(secondStarted.await(200, TimeUnit.MILLISECONDS));
+                    releaseFirst.countDown();
+
+                    assertTrue(done.await(10, TimeUnit.SECONDS));
+                    assertEquals(List.of("standard", "test", "custom"), order);
+                });
+    }
+
+    /** A promote that fails reaches its listener, and the promotes queued behind it still run. */
+    public void testFailedPromoteDoesNotStopTheQueue() throws Exception {
+        this.withConcurrentPool(
+                service -> {
+                    when(this.socket.sendRequest(
+                                    eq(EngineServiceImpl.PROMOTE), eq("POST"), any(JsonNode.class)))
+                            .thenThrow(new IllegalStateException("socket unavailable"))
+                            .thenReturn(new RestResponse("OK", 200));
+                    AtomicReference<Exception> failure = new AtomicReference<>();
+                    AtomicReference<RestResponse> response = new AtomicReference<>();
+                    CountDownLatch done = new CountDownLatch(2);
+
+                    service.promoteAsync(
+                            this.payloadFor("standard"),
+                            ActionListener.wrap(
+                                    r -> done.countDown(),
+                                    e -> {
+                                        failure.set(e);
+                                        done.countDown();
+                                    }));
+                    service.promoteAsync(
+                            this.payloadFor("test"),
+                            ActionListener.wrap(
+                                    r -> {
+                                        response.set(r);
+                                        done.countDown();
+                                    },
+                                    e -> done.countDown()));
+
+                    assertTrue(done.await(10, TimeUnit.SECONDS));
+                    assertTrue(failure.get() instanceof IllegalStateException);
+                    assertEquals("socket unavailable", failure.get().getMessage());
+                    assertEquals(200, response.get().getStatus());
+                });
+    }
+
+    /** A listener that throws does not stop the promotes queued behind it. */
+    public void testThrowingListenerDoesNotStopTheQueue() throws Exception {
+        this.withConcurrentPool(
+                service -> {
+                    when(this.socket.sendRequest(
+                                    eq(EngineServiceImpl.PROMOTE), eq("POST"), any(JsonNode.class)))
+                            .thenReturn(new RestResponse("OK", 200));
+                    CountDownLatch second = new CountDownLatch(1);
+
+                    service.promoteAsync(
+                            this.payloadFor("standard"),
+                            new ActionListener<>() {
+                                @Override
+                                public void onResponse(RestResponse r) {
+                                    throw new IllegalStateException("listener bug");
+                                }
+
+                                @Override
+                                public void onFailure(Exception e) {}
+                            });
+                    service.promoteAsync(
+                            this.payloadFor("test"), ActionListener.wrap(r -> second.countDown(), e -> {}));
+
+                    assertTrue(second.await(10, TimeUnit.SECONDS));
+                });
     }
 }

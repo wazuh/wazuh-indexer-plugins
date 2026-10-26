@@ -6,11 +6,11 @@ All other stateless index templates inherit and reference the field definitions 
 
 ### Fields summary
 
-For this stage, we are using all the fields of the ECS. Dynamic mode is temporarily set to `false` to avoid the creation of new fields while allowing the indexing of events containing fields not in the schema. These fields can be retrieved from the original event (`_source`).
+For this stage, we are using all the fields of the ECS. The mapping is `strict_allow_templates`: every field is mapped through a dynamic template the first time a document uses it, and a document carrying a field outside the schema is rejected.
 
 - [ECS main mappings](https://github.com/elastic/ecs/blob/v9.1.0/schemas/subsets/main.yml)
 
-The detail of the fields can be found in csv file [Stateless Fields](fields.csv).
+The detail of the fields can be found in csv file [Stateless Fields](fields.csv). The [Wazuh Common Schema](https://wazuh.github.io/wazuh-indexer-plugins/ref/modules/setup/schema.html) page of the documentation explains how Wazuh fills the key fields of events and findings.
 
 ### WCS-specific fields
 
@@ -18,7 +18,7 @@ The Wazuh Common Schema (WCS) extends ECS with additional field sets specific to
 
 #### `wazuh` — Wazuh agent and platform metadata
 
-Core field set for Wazuh-specific context. Contains agent identity and host details (`wazuh.agent.*`), cluster topology (`wazuh.cluster.*`), integration metadata linking events to their source integration, decoders, and rules (`wazuh.integration.*`), ingestion protocol details (`wazuh.protocol.*`), and schema versioning (`wazuh.schema.*`).
+Core field set for Wazuh-specific context, set by Wazuh components rather than parsed from the log. Contains agent identity and host details (`wazuh.agent.*`), the identifier of the received log shared by its raw event, normalized event and findings (`wazuh.event.id`), cluster topology (`wazuh.cluster.*`), integration metadata linking events to their source integration and decoders (`wazuh.integration.*`), the policy space that processed the event (`wazuh.space.*`), ingestion protocol details (`wazuh.protocol.*`), and schema versioning (`wazuh.schema.*`).
 
 #### `check` and `policy` — SCA (Security Configuration Assessment)
 
@@ -44,7 +44,11 @@ Extends observer ingress/egress interface fields with MTU, state, and type infor
 
 #### `event` extensions
 
-Two additional event fields: `event.changed_fields` (fields updated since the last scan) and `event.collector` (collector used to retrieve the event).
+Four additional event fields: `event.changed_fields` (fields updated since the last scan), `event.collector` (collector used to retrieve the event), and `event.doc_id` and `event.index`, which a finding uses to point to the `_id` and backing index of the event that matched the rule.
+
+#### Wazuh descriptions of ECS fields
+
+Some ECS fields keep their ECS type but carry a Wazuh description, because Wazuh fills them in a specific way: `@timestamp` and `message` (`custom/base.yml`), `event.start`, `event.end`, `event.created`, `event.ingested`, `event.original` and `event.id` (`custom/event.yml`), and `rule.id` (`custom/rule.yml`). For example, `@timestamp` is the time the Wazuh Engine received the event, while the time found in the original log is in `event.start`.
 
 #### `file.diff`
 

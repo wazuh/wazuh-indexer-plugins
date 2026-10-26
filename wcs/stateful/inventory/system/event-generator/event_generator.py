@@ -75,15 +75,9 @@ def generate_random_host(is_root_level=False):
             "os": {
                 "build": f"{random.randint(0, 1000)}",
                 "codename": random.choice(["Jammy", "Noble", "Ventura"]),
-                "distribution": {
-                    "release": f"{random.randint(1, 20)}.{random.randint(1, 100)}"
-                },
+                "display_version": random.choice(["22H2", "23H2", "24H2", "1809"]),
                 "full": f"{random.choice(['debian', 'ubuntu', 'macos', 'ios', 'android', 'RHEL'])} {random.randint(0, 99)}.{random.randint(0, 99)}",
-                "kernel": {
-                    "name": random.choice(["Linux", "Darwin", "NT"]),
-                    "release": f"{random.randint(1, 1000)}",
-                    "version": f"{random.randint(1, 1000)}",
-                },
+                "kernel": f"{random.randint(1, 6)}.{random.randint(0, 20)}.{random.randint(0, 200)}-generic",
                 "major": f"{random.randint(1, 100)}",
                 "minor": f"{random.randint(1, 100)}",
                 "name": random.choice(["Linux", "Windows", "macOS"]),

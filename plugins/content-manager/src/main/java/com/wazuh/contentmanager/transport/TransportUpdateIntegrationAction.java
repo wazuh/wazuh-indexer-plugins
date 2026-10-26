@@ -36,7 +36,6 @@ import com.wazuh.contentmanager.action.UpdateIntegrationAction;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
@@ -75,15 +74,8 @@ public class TransportUpdateIntegrationAction extends AbstractTransportUpdateAct
             ActionFilters actionFilters,
             Client client,
             EngineService engine,
-            EngineContentLoader engineContentLoader,
             UserOverridesService userOverridesService) {
-        super(
-                UpdateIntegrationAction.NAME,
-                transportService,
-                actionFilters,
-                client,
-                engine,
-                engineContentLoader);
+        super(UpdateIntegrationAction.NAME, transportService, actionFilters, client, engine);
         this.userOverridesService = userOverridesService;
     }
 

@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.opensearch.test.OpenSearchTestCase;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
@@ -114,5 +115,28 @@ public class YamlUtilsTests extends OpenSearchTestCase {
         for (JsonNode el : arr) {
             assertTrue("Array float element scale should be >= 1", el.decimalValue().scale() >= 1);
         }
+    }
+
+    public void testFixDecimalScale_hugeExponentIsLeftUntouched() throws IOException {
+        JsonNode node = YamlUtils.fromYaml("v: 1e+256000000\n");
+        assertTrue("Node should be floating-point", node.get("v").isFloatingPointNumber());
+        assertEquals(-256000000, node.get("v").decimalValue().scale());
+    }
+
+    public void testFixDecimalScale_hugeExponentInArrayIsLeftUntouched() throws IOException {
+        JsonNode node = YamlUtils.fromYaml("values:\n  - 1e+256000000\n  - 2.0\n");
+        JsonNode arr = node.get("values");
+        assertEquals(-256000000, arr.get(0).decimalValue().scale());
+        assertEquals("2.0", arr.get(1).decimalValue().toPlainString());
+    }
+
+    public void testFixDecimalScale_exponentStaysFloat() throws IOException {
+        JsonNode node = YamlUtils.fromYaml("v: 1e3\n");
+        assertTrue("Node should be floating-point", node.get("v").isFloatingPointNumber());
+        assertEquals(0, new BigDecimal("1000").compareTo(node.get("v").decimalValue()));
+
+        JsonNode reparsed = YamlUtils.fromYaml(YamlUtils.toYaml(node));
+        assertTrue("Round trip should keep a float", reparsed.get("v").isFloatingPointNumber());
+        assertEquals(0, node.get("v").decimalValue().compareTo(reparsed.get("v").decimalValue()));
     }
 }

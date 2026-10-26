@@ -31,7 +31,6 @@ import java.util.Set;
 
 import com.wazuh.contentmanager.action.UpdateFilterAction;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.UserOverridesService;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -50,15 +49,8 @@ public class TransportUpdateFilterAction extends AbstractTransportUpdateActionSp
             ActionFilters actionFilters,
             Client client,
             EngineService engine,
-            EngineContentLoader engineContentLoader,
             UserOverridesService userOverridesService) {
-        super(
-                UpdateFilterAction.NAME,
-                transportService,
-                actionFilters,
-                client,
-                engine,
-                engineContentLoader);
+        super(UpdateFilterAction.NAME, transportService, actionFilters, client, engine);
         this.userOverridesService = userOverridesService;
     }
 
