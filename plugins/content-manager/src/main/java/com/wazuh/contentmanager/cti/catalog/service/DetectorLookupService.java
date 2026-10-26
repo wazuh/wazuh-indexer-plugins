@@ -35,13 +35,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.utils.Constants;
 
 /**
  * Reads the data needed to decide whether a promotion would leave a detector without enabled rules:
- * the detectors currently running and the {@code enabled} state of rules in a given space.
+ * the detectors currently running and the {@code enabled} state of rules in a given space. Also
+ * tells the catalog sync which standard detectors are missing.
  *
  * <p>Contains no decision logic; see {@link
  * com.wazuh.contentmanager.cti.catalog.utils.DetectorRuleGuard}.
@@ -164,6 +166,46 @@ public class DetectorLookupService {
                             log.warn(Constants.W_LOG_DETECTOR_LOOKUP_FAILED, e.getMessage());
                             listener.onFailure(e);
                         }));
+    }
+
+    /**
+     * Returns those of the given detector ids that have no detector. A standard detector's id is the
+     * {@code document.id} of the integration it is built from, so this tells which integrations are
+     * left without their detector.
+     *
+     * <p>A cluster with no detectors index yet reports every id as missing, because the search uses
+     * {@code LENIENT_EXPAND_OPEN}. A failed search is propagated to the caller.
+     *
+     * @param detectorIds the detector ids to look up.
+     * @param listener receives the ids that have no detector, or the failure that prevented reading
+     *     them.
+     */
+    public void findMissingDetectors(Set<String> detectorIds, ActionListener<Set<String>> listener) {
+        if (detectorIds.isEmpty()) {
+            listener.onResponse(Collections.emptySet());
+            return;
+        }
+
+        SearchRequest request =
+                new SearchRequest(DETECTORS_INDEX)
+                        .source(
+                                new SearchSourceBuilder()
+                                        .query(QueryBuilders.idsQuery().addIds(detectorIds.toArray(String[]::new)))
+                                        .fetchSource(false)
+                                        .size(detectorIds.size()))
+                        .indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
+
+        this.client.search(
+                request,
+                ActionListener.wrap(
+                        response -> {
+                            Set<String> missing = new TreeSet<>(detectorIds);
+                            for (SearchHit hit : response.getHits()) {
+                                missing.remove(hit.getId());
+                            }
+                            listener.onResponse(missing);
+                        },
+                        listener::onFailure));
     }
 
     /** Extracts the name, enabled flag and referenced custom rule ids from a detector document. */

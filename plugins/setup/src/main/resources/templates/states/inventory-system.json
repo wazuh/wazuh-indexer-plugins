@@ -17,11 +17,9 @@
           "host.hostname",
           "host.os.build",
           "host.os.codename",
-          "host.os.distribution.release",
+          "host.os.display_version",
           "host.os.full",
-          "host.os.kernel.name",
-          "host.os.kernel.release",
-          "host.os.kernel.version",
+          "host.os.kernel",
           "host.os.major",
           "host.os.minor",
           "host.os.name",
@@ -83,33 +81,17 @@
                   "ignore_above": 4096,
                   "type": "keyword"
                 },
-                "distribution": {
-                  "properties": {
-                    "release": {
-                      "ignore_above": 4096,
-                      "type": "keyword"
-                    }
-                  }
+                "display_version": {
+                  "ignore_above": 4096,
+                  "type": "keyword"
                 },
                 "full": {
                   "ignore_above": 4096,
                   "type": "keyword"
                 },
                 "kernel": {
-                  "properties": {
-                    "name": {
-                      "ignore_above": 4096,
-                      "type": "keyword"
-                    },
-                    "release": {
-                      "ignore_above": 4096,
-                      "type": "keyword"
-                    },
-                    "version": {
-                      "ignore_above": 4096,
-                      "type": "keyword"
-                    }
-                  }
+                  "ignore_above": 4096,
+                  "type": "keyword"
                 },
                 "major": {
                   "ignore_above": 4096,

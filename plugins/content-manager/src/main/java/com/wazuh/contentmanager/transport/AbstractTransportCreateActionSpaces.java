@@ -46,7 +46,6 @@ import com.wazuh.contentmanager.action.ContentCreateRequest;
 import com.wazuh.contentmanager.action.ContentResponse;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
-import com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader;
 import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
 import com.wazuh.contentmanager.cti.catalog.service.ResourceLockTimeoutException;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -70,7 +69,6 @@ public abstract class AbstractTransportCreateActionSpaces
     protected final PayloadValidations documentValidations = new PayloadValidations();
     protected final Client client;
     protected final EngineService engine;
-    protected final EngineContentLoader engineContentLoader;
     protected final ResourceLockService resourceLockService;
 
     protected AbstractTransportCreateActionSpaces(
@@ -78,12 +76,10 @@ public abstract class AbstractTransportCreateActionSpaces
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
-            EngineService engine,
-            EngineContentLoader engineContentLoader) {
+            EngineService engine) {
         super(actionName, transportService, actionFilters, ContentCreateRequest::new);
         this.client = client;
         this.engine = engine;
-        this.engineContentLoader = engineContentLoader;
         this.resourceLockService = new ResourceLockService(client, transportService.getThreadPool());
     }
 
@@ -208,7 +204,9 @@ public abstract class AbstractTransportCreateActionSpaces
                 return;
             }
 
-            final String spaceName = this.getSpaceName();
+            // Read from this request's own payload: the action is a singleton shared by every
+            // in-flight request, so nothing request-scoped may be kept in its fields.
+            final String spaceName = this.getSpaceName(rootNode);
 
             createWithLimitGuard(
                     rootNode, resourceNode, rawYaml, spaceName, client, spaceService, listener);
@@ -413,6 +411,7 @@ public abstract class AbstractTransportCreateActionSpaces
                                         client,
                                         id,
                                         rootNode,
+                                        spaceName,
                                         ActionListener.wrap(
                                                 v ->
                                                         // Update Hash (async)
@@ -421,11 +420,7 @@ public abstract class AbstractTransportCreateActionSpaces
                                                                 ActionListener.wrap(
                                                                         changed -> {
                                                                             TransportActionHelper.reloadStandardSpaceIntoEngine(
-                                                                                    this.engine,
-                                                                                    spaceService,
-                                                                                    changed,
-                                                                                    this.engineContentLoader,
-                                                                                    this.client);
+                                                                                    changed, this.client);
                                                                             log.info(
                                                                                     Constants.I_LOG_SUCCESS,
                                                                                     "Created",
@@ -516,7 +511,14 @@ public abstract class AbstractTransportCreateActionSpaces
 
     protected abstract String getResourceType();
 
-    protected abstract String getSpaceName();
+    /**
+     * Returns the space the request creates the resource in. Called only after {@link
+     * #validatePayload} has accepted the payload.
+     *
+     * @param root the request payload.
+     * @return the target space name.
+     */
+    protected abstract String getSpaceName(JsonNode root);
 
     /**
      * @return The configured maximum number of resources of this type allowed per space.
@@ -544,6 +546,16 @@ public abstract class AbstractTransportCreateActionSpaces
     protected abstract void syncExternalServices(
             String id, JsonNode resource, ActionListener<RestResponse> listener);
 
+    /**
+     * Links the newly indexed resource to its parent.
+     *
+     * @param client The OpenSearch client.
+     * @param id The new resource's document id.
+     * @param root The request payload.
+     * @param spaceName The space the resource was created in, as returned by {@link
+     *     #getSpaceName(JsonNode)} for this request.
+     * @param listener Notified once the parent has been updated.
+     */
     protected abstract void linkToParent(
-            Client client, String id, JsonNode root, ActionListener<Void> listener);
+            Client client, String id, JsonNode root, String spaceName, ActionListener<Void> listener);
 }

@@ -22,6 +22,8 @@ import org.opensearch.ExceptionsHelper;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -29,11 +31,14 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -49,6 +54,12 @@ public class ConsumersIndex {
 
     /** The name of the Contexts index */
     public static final String INDEX_NAME = ".wazuh-cti-consumers";
+
+    /**
+     * Id of the document that holds the state of the CTI catalog as a whole, next to the documents of
+     * each consumer type.
+     */
+    public static final String CATALOG_ID = "cti:catalog:global";
 
     /** Path of the index mapping file */
     private static final String MAPPING_PATH = "/mappings/consumers-mapping.json";
@@ -112,6 +123,71 @@ public class ConsumersIndex {
                         .id(id)
                         .source(consumer.toXContent())
                         .setRefreshPolicy(refreshPolicy);
+
+        return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+    }
+
+    /**
+     * Persists several consumer documents in one request. A single refresh makes them visible
+     * together, so a reader never sees some of them changed and the others not.
+     *
+     * @param consumers The consumers to persist.
+     * @throws ExecutionException If the client failed to execute the request.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException If the operation exceeded the configured client timeout.
+     * @throws IOException If there is an error serializing a consumer to XContent.
+     * @throws IllegalStateException If any of the documents could not be written.
+     * @throws RuntimeException If the target index is not currently ready or available.
+     */
+    public void setConsumers(Collection<LocalConsumer> consumers)
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
+        if (!ClusterInfo.indexStatusCheck(
+                this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
+            throw new RuntimeException("Index not ready");
+        }
+        BulkRequest request = new BulkRequest().setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        for (LocalConsumer consumer : consumers) {
+            request.add(
+                    new IndexRequest()
+                            .index(INDEX_NAME)
+                            .id(consumer.getType())
+                            .source(consumer.toXContent()));
+        }
+        BulkResponse response =
+                this.client.bulk(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        if (response.hasFailures()) {
+            throw new IllegalStateException(response.buildFailureMessage());
+        }
+    }
+
+    /**
+     * Records the time the Wazuh Indexer last got an answer from the CTI catalog when it asked for
+     * updates, in the {@link #CATALOG_ID} document.
+     *
+     * @param checkedAt The time of the answer.
+     * @return The {@link IndexResponse} indicating the result of the operation.
+     * @throws ExecutionException If the client failed to execute the request.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException If the operation exceeded the configured client timeout.
+     * @throws IOException If the document cannot be built.
+     * @throws RuntimeException If the target index is not currently ready or available.
+     */
+    public IndexResponse setLastCheckedAt(Instant checkedAt)
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
+        if (!ClusterInfo.indexStatusCheck(
+                this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
+            throw new RuntimeException("Index not ready");
+        }
+        IndexRequest request =
+                new IndexRequest()
+                        .index(INDEX_NAME)
+                        .id(CATALOG_ID)
+                        .source(
+                                XContentFactory.jsonBuilder()
+                                        .startObject()
+                                        .field(Constants.KEY_LAST_CHECKED_AT, checkedAt.toString())
+                                        .endObject())
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
 
         return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }

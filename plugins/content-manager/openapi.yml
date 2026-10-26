@@ -200,12 +200,42 @@ paths:
         The update process runs in the background and may take several minutes to complete
         depending on the volume of new threat intelligence data.
         If a content update is already in progress, the request is rejected with a 409 response.
+
+        With `offline=true`, the update does not contact Wazuh CTI. Every consumer that has a
+        snapshot file (`ruleset.zip`, `iocs.zip` or `vulnerabilities.zip`) in the
+        `plugins/wazuh-indexer-content-manager/snapshots` directory of the node that receives the
+        request is reloaded from that file, whatever its current offset. Consumers without one are
+        left as they are. This is how an air-gapped deployment is updated with newer snapshots.
       operationId: updateContent
       tags:
         - Content Updates
+      parameters:
+        - name: offline
+          in: query
+          required: false
+          description: |
+            Load the snapshot files placed in the snapshots directory of the node instead of
+            synchronizing with Wazuh CTI. Defaults to `false`.
+          schema:
+            type: boolean
+            default: false
       responses:
         "202":
           $ref: "#/components/responses/UpdateAccepted"
+        "400":
+          description: |
+            Bad Request - `offline=true` was requested but the node has no snapshot file to load,
+            or the `offline` value is not a boolean.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                no_snapshot_files:
+                  summary: No snapshot file on the node
+                  value:
+                    message: "No snapshot file to load in [plugins/wazuh-indexer-content-manager/snapshots] on node [node-1]. Place the new snapshot files in that directory, on every node, before requesting an offline update."
+                    status: 400
         "403":
           $ref: "#/components/responses/Forbidden"
         "409":

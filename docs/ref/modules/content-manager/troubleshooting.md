@@ -42,6 +42,22 @@ A successful registration returns `{"message":"Access token received successfull
 
 Check that the node can reach the URL in `plugins.content_manager.cti.api`, then repeat the request. You don't need to register again. The credentials are only deleted when the CTI Console rejects the token with `401`; `GET /subscription` then reports `"is_registered": false`.
 
+### Every consumer shows `running` after a plan change
+
+This is expected while the content of the new plan is prepared. After a subscription plan change, every consumer whose data source changes reports `running` under its new data source, with `local_offset` `0`, until the content of all of them is ready and switched in one operation. The previous content stays live meanwhile. A full plan change usually takes several minutes, mostly to download the vulnerabilities and IoCs, and temporarily needs disk space for a second copy of the content. See [Plan change handling](architecture.md#plan-change-handling-bluegreen-swap).
+
+If the new content cannot be prepared, the consumers return to their previous data source and content, and the change is retried on every sync. The node log shows why, in a `could not be prepared` or `could not be determined` warning, or a `Failed to prepare the new content of consumers` error. Consumers that stay `running` with `local_offset` `0` across several syncs belong to a swap that was interrupted, for example by a restart, and could not be redone yet; the log shows the same messages, and a `waiting for a swap to complete` warning for each of them. The next sync redoes an interrupted swap; to redo it without waiting for the scheduled sync, trigger a sync on demand as shown in [Sync not running](#sync-not-running).
+
+### No detectors while the ruleset consumer is in sync
+
+`GET _plugins/_security_analytics/detectors/_search` returns fewer detectors than the integrations that have rules, while the ruleset consumer is `ready` with equal offsets and an empty `pending_sync_phases`. No findings are produced for the integrations without a detector.
+
+Every sync checks that each integration with enabled rules has its detector. When some are missing, it syncs the integrations, rules and detectors to Ruleset Management again, and the node log shows a `detector(s) missing from the Security Analytics plugin although nothing is pending` warning that lists them. If the detectors can't be created, `detectors` stays in `pending_sync_phases` and the sync retries it, as for any other failed phase.
+
+#### Resolution
+
+Wait for the next scheduled sync, or trigger one on demand as shown in [Sync not running](#sync-not-running). If the warning repeats with the same integrations, look in the log for the error that keeps their detectors from being created, for example missing `wazuh-events-v5-*` source indices. The check is skipped while `plugins.content_manager.catalog.create_detectors` is `false`.
+
 ### Sync not running
 
 Content is not being updated despite having a valid subscription.
@@ -217,7 +233,14 @@ Example output:
           "status": "ready",
           "local_offset": 3932,
           "remote_offset": 3932,
-          "pending_sync_phases": []
+          "pending_sync_phases": [],
+          "updated_at": "2026-10-21T12:26:16.581Z"
+        }
+      },
+      {
+        "_id": "cti:catalog:global",
+        "_source": {
+          "last_checked_at": "2026-10-21T15:30:02.114Z"
         }
       }
     ]
@@ -228,10 +251,12 @@ Example output:
 - `status == ready`: Sync is complete; content is safe to read.
 - `status == running`: Sync is in progress. If this persists after a sync should have finished, the node process may have been interrupted (e.g. killed) mid-cycle without a chance to record `failed`.
 - `status == failed`: The previous sync cycle was interrupted by an unexpected exception. Check the Content Manager logs around the time this consumer was last synced; the job retries automatically on its next scheduled run.
-- `local_offset == remote_offset`: Content is up-to-date.
-- `local_offset < remote_offset`: Content needs updating.
-- `local_offset == 0`: Content has never been synced (snapshot required).
-- `pending_sync_phases`: for the ruleset consumer, lists which of `integrations`, `rules`, and `detectors` failed to sync to Ruleset Management and are retried on the next scheduled sync; empty means all sub-phases are in sync.
+- `local_offset == remote_offset`: Content is up-to-date. While the consumer is `running`, the sync has no changes left to apply: it is checking for new ones or finishing its post-sync work.
+- `local_offset < remote_offset`: Content needs updating. While the consumer is `running`, `remote_offset` is the offset the sync in progress updates to.
+- `updated_at`: when a sync last changed the consumer's content. A sync that finds nothing new leaves it as it is.
+- `last_checked_at` (on the `cti:catalog:global` document): when Wazuh CTI last answered a request for changes. If it is much older than the sync interval (`plugins.content_manager.catalog.sync_interval`), either the sync job is not running (see [Sync not running](#sync-not-running)) or the Indexer cannot reach Wazuh CTI: look for the CTI API entries in the [logs](#log-monitoring).
+- `local_offset == 0`: Content has never been synced (snapshot required). With status `running` during a plan change, none of the new plan's content is live yet: it is being prepared (see [Every consumer shows `running` after a plan change](#every-consumer-shows-running-after-a-plan-change)).
+- `pending_sync_phases`: for the ruleset consumer, lists which of `integrations`, `rules`, and `detectors` still have to be synced to Ruleset Management and are retried on the next scheduled sync. They are recorded before the content changes and the ones that succeeded are removed when the sync ends, so a sync cut by a restart leaves them all listed. Empty means nothing is owed; a sync with nothing pending still recreates the detectors if any are missing (see [No detectors while the ruleset consumer is in sync](#no-detectors-while-the-ruleset-consumer-is-in-sync)). For the IoC consumer, it lists `ioc_load` while the IoC type hashes and the load of the IoCs into the engine are still owed: a sync cut by a restart or a failure leaves it listed, and the next sync runs it even without new CTI content.
 
 ### Check sync job
 

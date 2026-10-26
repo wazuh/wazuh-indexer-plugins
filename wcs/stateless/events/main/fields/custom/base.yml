@@ -1,0 +1,38 @@
+---
+- name: base
+  title: Base
+  root: true
+  fields:
+    - name: "@timestamp"
+      type: date
+      level: core
+      short: Time the Wazuh Engine received the event, in UTC. The time in the original log is in `event.start`.
+      description: >
+        Date and time, in UTC with millisecond precision, at which the Wazuh
+        Engine received the event and started processing it. The Engine sets it
+        once for every log it receives, before any decoder runs, so the raw
+        event and the normalized event carry the same value.
+
+        This is not the time at which the logged activity happened: the
+        decoders of the Wazuh ruleset store the time found in the original log
+        in `event.start`. The gap between both fields is the collection and
+        transport delay, usually a few seconds. Events whose source has no
+        timestamp of its own, such as inventory or rootcheck events, only carry
+        `@timestamp`.
+
+        Findings keep the `@timestamp` of the event that matched the rule. The
+        Wazuh Dashboard filters events and findings by this field.
+      example: "2026-10-16T15:53:03.843Z"
+    - name: message
+      type: keyword
+      level: core
+      short: Human-readable message extracted by the decoder. The complete raw log is in `event.original`.
+      description: >
+        Human-readable message of the event, extracted by the decoder from the
+        original log (for example, the free-text part of a syslog line) or
+        composed from other fields when the source is structured. Not every
+        decoder sets it.
+
+        The complete raw log, as received by the Wazuh Engine, is in
+        `event.original`.
+      example: "pam_unix(sshd:session): session opened for user vagrant(uid=1000) by (uid=0)"

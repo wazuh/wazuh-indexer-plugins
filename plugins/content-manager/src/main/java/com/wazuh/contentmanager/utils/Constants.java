@@ -101,6 +101,10 @@ public class Constants {
             "This promotion would leave %d detectors without enabled rules: %s. "
                     + "Disable or delete them, or keep one of their rules enabled.";
 
+    public static final String E_400_NO_OFFLINE_SNAPSHOTS =
+            "No snapshot file to load in [%s] on node [%s]. Place the new snapshot files in that"
+                    + " directory, on every node, before requesting an offline update.";
+
     public static final String E_404_RESOURCE_NOT_FOUND = "Resource not found.";
     public static final String E_412_UNPROTECTED_CREDENTIALS_INDEX =
             "Registration is disabled because the '"
@@ -118,6 +122,9 @@ public class Constants {
     public static final String E_SECURITY_ANALYTICS_ERROR =
             "Error in Security Analytics."; // Used for both BAD_REQUEST and INTERNAL_SERVER_ERROR
     public static final String E_500_MISSING_DRAFT_POLICY = "Draft policy not found.";
+    public static final String E_500_POLICY_NOT_FOUND_FOR_SPACE = "Policy of space [%s] not found.";
+    public static final String E_500_POLICY_LINKS_RETRIES_EXHAUSTED =
+            "Could not update the [%s] list of the [%s] policy after %d conflicting attempts.";
     public static final String E_500_VERSION_NOT_FOUND = "Unable to determine current Wazuh version.";
     public static final String E_500_CTI_UNREACHABLE =
             "Unable to reach the CTI API to check for updates.";
@@ -193,6 +200,11 @@ public class Constants {
     public static final String D_LOG_CONSUMER_DOC_ABSENT =
             "Consumer [{}] doc not present; skipping status update to [{}]";
     public static final String D_LOG_CONSUMER_STATUS_SET = "Consumer [{}] status set to [{}]";
+    public static final String D_LOG_CONSUMER_CONTENT_UPDATED_AT =
+            "Consumer [{}] content updated at [{}]";
+    public static final String D_LOG_CATALOG_CHECKED_AT = "CTI catalog checked at [{}]";
+    public static final String W_LOG_CATALOG_CHECKED_AT_FAILED =
+            "Failed to record the time of the last CTI catalog check: {}";
     public static final String W_LOG_CONSUMER_STATUS_FAILED =
             "Failed to set consumer [{}] status to [{}]: {}";
     public static final String D_LOG_CONSUMER_PENDING_PHASES_DOC_ABSENT =
@@ -201,6 +213,8 @@ public class Constants {
             "Could not read pending sync phases for [{}]: {}";
     public static final String W_LOG_CONSUMER_PENDING_PHASES_FAILED =
             "Failed to persist pending sync phases for [{}]: {}";
+    public static final String D_LOG_CONSUMER_PHASES_OWED_RECORDED =
+            "Consumer [{}] content is about to change; pending sync phases recorded as {}";
     public static final String D_LOG_CONSUMER_RESOURCE_READ_FAILED =
             "Could not read existing consumer resource for [{}]: {}";
     public static final String D_LOG_CONSUMER_T0_WRITTEN =
@@ -261,6 +275,14 @@ public class Constants {
             "Remote snapshot initialization failed for consumer [{}] and no local snapshot was found at [{}].";
     public static final String W_LOG_CATALOG_UNREACHABLE_FALLBACK =
             "Could not reach catalog URL [{}] for consumer [{}]. Falling back to local snapshot [{}].";
+    public static final String I_LOG_OFFLINE_RELOAD =
+            "Offline update: rebuilding consumer [{}] from local snapshot [{}] (local offset {}).";
+    public static final String I_LOG_OFFLINE_RELOADED =
+            "Offline update: consumer [{}] rebuilt from its local snapshot, now at offset {}.";
+    public static final String E_LOG_OFFLINE_RELOAD_FAILED =
+            "Offline update: consumer [{}] could not be rebuilt from local snapshot [{}]; its current content was kept.";
+    public static final String D_LOG_OFFLINE_PASS_NO_PLAN =
+            "Offline update: the subscription plan is not looked up.";
     public static final String D_LOG_INIT_FROM_LOCAL_SNAPSHOT =
             "Initializing consumer [{}] from local snapshot [{}]";
     public static final String E_LOG_LOCAL_SNAPSHOT_INIT_FAILED =
@@ -301,18 +323,40 @@ public class Constants {
             "Failed to download the new content for consumer [{}]; keeping the current content.";
     public static final String D_LOG_REINDEX_USER_CONTENT =
             "Copying custom content into the staging indices for consumer [{}].";
+    public static final String D_LOG_REFRESH_STAGING_INDICES =
+            "Refreshing the new content indices of consumers {} so they are searchable when switched.";
     public static final String D_LOG_ATOMIC_ALIAS_SWAP =
-            "Switching aliases to the new content indices for consumer [{}].";
-    public static final String E_LOG_SHADOW_SWAP_FAILED_BEFORE_SWAP =
-            "Failed to rebuild content in staging indices for consumer [{}]: {}. Cleaning up.";
+            "Switching aliases to the new content indices for consumers {}.";
     public static final String D_LOG_CONSUMER_DOC_REWRITTEN =
             "Updated consumer [{}] record to the new content source [{}] (offset {}).";
-    public static final String E_LOG_CONSUMER_DOC_REWRITE_FAILED =
-            "Content for consumer [{}] was switched over but its record could not be saved: {}. It will be retried on the next sync.";
     public static final String W_LOG_OLD_INDICES_DELETE_FAILED =
             "Failed to remove the previous content indices for consumer [{}]: {}";
     public static final String I_LOG_CONTENT_UPDATED_NEW_SOURCE =
             "Content updated to the new source for consumer [{}].";
+    public static final String I_LOG_SWAP_SWITCHED =
+            "Switched the content of consumers {} in one operation ({} aliases).";
+    public static final String W_LOG_SWAP_POSTPONED =
+            "The data source of consumers {} changes, but {} could not be prepared. Their current content is kept and the change is retried.";
+    public static final String W_LOG_SWAP_POSTPONED_UNDECIDED =
+            "The data source of consumers {} changes, but whether {} changes too could not be determined. Their current content is kept and the change is retried.";
+    public static final String E_LOG_SWAP_FAILED_BEFORE_SWITCH =
+            "Failed to prepare the new content of consumers {}: {}. Their current content is kept; cleaning up.";
+    public static final String E_LOG_SWAP_ROLLBACK_FAILED =
+            "Could not restore the records of consumers {} after a failed swap: {}. Their staging indices are kept so the next sync redoes the swap.";
+    public static final String E_LOG_SWAP_RECORDS_FAILED =
+            "The content of consumers {} was switched over but their records could not be saved: {}. The previous indices are kept and the next sync redoes the swap.";
+    public static final String W_LOG_SWAP_INTERRUPTED =
+            "Consumer [{}] was left in the middle of a swap by an interrupted sync; redoing the swap.";
+    public static final String W_LOG_SWAP_DECISION_FAILED =
+            "Could not determine whether consumer [{}] changes data source: {}. Its content is left untouched in this sync.";
+    public static final String W_LOG_SWAP_HELD =
+            "Consumer [{}] is waiting for a swap to complete; its content and record are left untouched in this sync.";
+    public static final String D_LOG_SOURCE_CHANGE_PENDING =
+            "The data source of consumer [{}] changes; its current content is kept until every changing consumer can switch together.";
+    public static final String D_LOG_CONSUMER_REMOTE_OFFSET_SET =
+            "Consumer [{}] is syncing from offset {} to {}.";
+    public static final String W_LOG_STAGING_INDEX_CLEANUP_FAILED =
+            "Could not check or delete the staging index of alias [{}]: {}";
 
     // Log messages - Security Analytics sync (SecurityAnalyticsServiceImpl, ConsumerRulesetService)
     public static final String D_LOG_SAP_DETECTOR_DELETED_THEN_INTEGRATION =
@@ -350,6 +394,10 @@ public class Constants {
             "Engine content load still deferred after [{}] of retries; the content indices are not "
                     + "serving reads ({}). The shared content spaces stay unloaded on this node until "
                     + "this clears.";
+    public static final String D_LOG_ENGINE_RELOAD_RETRY_SCHEDULED =
+            "An Engine content load failed; retrying the out-of-date spaces in [{}].";
+    public static final String D_LOG_ENGINE_RELOAD_REPEATED =
+            "Engine content reload triggered again while running; checking the spaces once more.";
     public static final String W_LOG_ENGINE_RELOAD_TIMED_OUT =
             "Engine content reload did not complete within [{}]; releasing the in-flight guard.";
     public static final String D_LOG_ENGINE_SPACE_NO_POLICY =
@@ -358,12 +406,6 @@ public class Constants {
             "No aggregate hash for {} space yet; skipping Engine load.";
     public static final String D_LOG_ENGINE_SPACE_UNCHANGED =
             "Content hash unchanged for {} space; Engine already up to date.";
-    public static final String I_LOG_ENGINE_STANDARD_LOADED =
-            "Standard space reloaded into Engine after content mutation.";
-    public static final String W_LOG_ENGINE_STANDARD_LOAD_STATUS =
-            "Engine returned status [{}] when reloading standard space: {}";
-    public static final String E_LOG_ENGINE_STANDARD_LOAD_FAILED =
-            "Failed to reload standard space into Engine: {}";
     public static final String D_LOG_ENGINE_RELOAD_BROADCAST_SENT =
             "Broadcast engine content reload to all nodes after content update.";
     public static final String W_LOG_ENGINE_RELOAD_BROADCAST_FAILED =
@@ -394,6 +436,11 @@ public class Constants {
             "Syncing {} detectors ({} sequentially, {} in parallel)";
     public static final String D_LOG_SAP_DETECTORS_NO_INTEGRATIONS =
             "Integration documents could not be read; keeping the detectors phase pending.";
+    public static final String W_LOG_SAP_DETECTORS_MISSING =
+            "{} detector(s) missing from the Security Analytics plugin although nothing is pending:"
+                    + " {}. Syncing integrations, rules and detectors again.";
+    public static final String W_LOG_SAP_DETECTORS_CHECK_FAILED =
+            "Could not check whether the detectors exist; trusting the pending sync phases: {}";
     public static final String E_LOG_DETECTOR_WAIT_INTERRUPTED =
             "Interrupted while waiting for detector sync to complete.";
     public static final String E_LOG_SAP_DETECTORS_STILL_IN_FLIGHT =
@@ -449,6 +496,15 @@ public class Constants {
     public static final String W_LOG_USER_OVERRIDES_RECORD_FAILED =
             "Failed to record {} [{}] in the user overrides registry. The change itself is fine, but it"
                     + " will not survive the next content rebuild of the standard space: {}";
+
+    // Log messages - a policy's id lists (PolicyLinks)
+    public static final String D_LOG_POLICY_LINKS_CONFLICT =
+            "Write of the [{}] policy's [{}] list conflicted on attempt {}; re-reading and retrying in {}.";
+    public static final String W_LOG_POLICY_LINKS_RETRIES_EXHAUSTED =
+            "Gave up writing the [{}] policy's [{}] list after {} conflicting attempts: {}";
+    public static final String E_LOG_POLICY_LINKS_OPERATION_FAILED =
+            "A queued change to a policy's id list failed before running: {}";
+
     public static final String D_LOG_SNAPSHOT_NO_INDEX_FOR_TYPE =
             "No ContentIndex found for type [{}]. Skipping.";
     public static final String D_LOG_SNAPSHOT_PARSE_LINE_FAILED =
@@ -457,6 +513,19 @@ public class Constants {
             "Skipped {} snapshot entries (missing payload: {}, unknown type: {}, unmapped type: {}, parse errors: {}).";
     public static final String E_LOG_SNAPSHOT_READ_FILE_FAILED =
             "Error reading snapshot file [{}]: {}";
+    public static final String E_LOG_SNAPSHOT_FILE_REJECTED =
+            "Snapshot file [{}] rejected for consumer [{}]: {}. Nothing was loaded.";
+    public static final String E_LOG_SNAPSHOT_FILE_CONTENT_REJECTED =
+            "Snapshot file [{}] rejected for consumer [{}]: {} document(s) indexed, {} line(s) that are not content of this consumer, {} line(s) without offset. It was neither promoted nor recorded.";
+    // Why a snapshot file is rejected, completing E_LOG_SNAPSHOT_FILE_REJECTED.
+    public static final String REASON_SNAPSHOT_NOT_A_ZIP = "it cannot be read as a ZIP archive (%s)";
+    public static final String REASON_SNAPSHOT_NO_JSON_ENTRY = "it holds no .json entry";
+    public static final String REASON_SNAPSHOT_EMPTY = "it is empty";
+    public static final String REASON_SNAPSHOT_NOT_CONTENT =
+            "its first line is not a CTI content document";
+    public static final String REASON_SNAPSHOT_NO_OFFSET = "its first line has no offset";
+    public static final String REASON_SNAPSHOT_OTHER_CONSUMER =
+            "its content is of type [%s], which this consumer does not hold";
     public static final String E_LOG_SNAPSHOT_INDEXING_INCOMPLETE =
             "Snapshot indexing for consumer [{}] dropped {} document(s); local_offset was not advanced so the next sync retries the snapshot.";
     public static final String D_LOG_SNAPSHOT_LOCAL_INIT_START =
@@ -522,8 +591,6 @@ public class Constants {
     public static final String D_LOG_IOC_EXPORT_SKIPPED_TEST_ENV =
             "IOCs export skipped: test environment";
     public static final String D_LOG_IOC_TYPE_HASHES_STORED = "IOC type hashes stored successfully.";
-    public static final String E_LOG_IOC_TYPE_HASHES_FAILED =
-            "Failed to compute and store IOC type hashes: {}";
     public static final String D_LOG_IOC_ENGINE_REPLY = "Engine reply to IOC load request: {}";
     public static final String D_LOG_IOC_PIT_RELEASE_FAILED =
             "Failed to release the IOC point-in-time context [{}]: {}";
@@ -603,6 +670,8 @@ public class Constants {
             "Bulk indexing dropped {} document(s) after {} retries. Last failure: {}";
     public static final String E_LOG_BULK_ITEMS_NOT_RETRYABLE =
             "Bulk indexing dropped {} document(s) with non-retryable failures. Last failure: {}";
+    public static final String D_LOG_BULK_RETRY_SKIPPED_NODE_STOPPING =
+            "The node is stopping; dropped {} bulk operation(s) instead of retrying them. Last failure: {}";
     public static final String E_LOG_BULK_RETRY_SCHEDULE_FAILED =
             "Bulk indexing dropped {} document(s): retry could not be scheduled: {}";
     public static final String W_LOG_BULK_RETRY_TOPOLOGY =
@@ -823,11 +892,13 @@ public class Constants {
     // Index settings
     public static final String KEY_INDEX_CODEC = "index.codec";
     public static final String CODEC_ZSTD = "zstd";
+    public static final String CODEC_BEST_COMPRESSION = "best_compression";
     public static final String KEY_INDEX_REFRESH_INTERVAL = "index.refresh_interval";
     public static final String REFRESH_INTERVAL_DISABLED = "-1";
 
     // Resource Types Keys
     public static final String KEY_POLICY = "policy";
+    public static final String KEY_OFFLINE = "offline";
     public static final String KEY_INTEGRATIONS = "integrations";
     public static final String KEY_KVDBS = "kvdbs";
     public static final String KEY_RULES = "rules";
@@ -887,6 +958,8 @@ public class Constants {
     public static final String KEY_CONTEXT = "context";
     public static final String KEY_LOCAL_OFFSET = "local_offset";
     public static final String KEY_REMOTE_OFFSET = "remote_offset";
+    public static final String KEY_UPDATED_AT = "updated_at";
+    public static final String KEY_LAST_CHECKED_AT = "last_checked_at";
 
     // API request content fields
     public static final String KEY_TYPE = "type";
@@ -974,7 +1047,8 @@ public class Constants {
     // IOC export
     public static final String IOC_EXPORT_FILENAME = "iocs.ndjson";
     public static final String D_LOG_IOC_EXPORT_COMPLETE = "IOC export completed: {}";
-    public static final String E_LOG_IOC_EXPORT_FAILED = "Failed to export IOCs to NDJSON: {}";
+    public static final String E_LOG_IOC_LOAD_FAILED =
+            "Failed to store the IOC type hashes or export the IOCs: {}";
     public static final String I_LOG_IOC_ENGINE_NOTIFIED =
             "Notified the Wazuh Engine to load the updated IOCs.";
     public static final String E_LOG_IOC_ENGINE_NOTIFY_FAILED =
@@ -1004,6 +1078,19 @@ public class Constants {
     // one week.
     public static final int DETECTOR_INTERVAL_MIN_MINUTES = 1;
     public static final int DETECTOR_INTERVAL_MAX_MINUTES = 60 * 24 * 7;
+
+    /**
+     * How many times a filter or integration link or unlink re-reads and rewrites a space's policy
+     * after losing a version conflict to a concurrent writer of the same policy. Each conflict means
+     * another writer succeeded, so this bounds the number of concurrent writers one request can
+     * outlast.
+     */
+    public static final int POLICY_LINKS_MAX_UPDATE_ATTEMPTS = 10;
+
+    // Randomized exponential backoff between those attempts, in milliseconds: retry n waits up to
+    // min(MAX, BASE * 2^(n-1)).
+    public static final long POLICY_LINKS_RETRY_BASE_DELAY_MS = 20;
+    public static final long POLICY_LINKS_RETRY_MAX_DELAY_MS = 1_000;
 
     // Setup plugin readiness marker (written by the Setup plugin once all its
     // index templates, indices and data streams have been created).

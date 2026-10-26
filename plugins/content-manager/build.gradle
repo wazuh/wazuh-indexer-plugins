@@ -515,3 +515,6 @@ def waitForClusterSetup(OpenSearchCluster cluster, Boolean securityEnabled) {
   cluster.@waitConditions.put("cluster health yellow", pred)
   cluster.waitForAllConditions()
 }
+
+// Code coverage (JaCoCo): reports, and integTest cluster coverage with -Dtests.coverage=true.
+apply from: file("../../gradle/coverage.gradle")

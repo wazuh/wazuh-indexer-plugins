@@ -26,6 +26,12 @@
     },
     "pending_sync_phases": {
       "type": "keyword"
+    },
+    "updated_at": {
+      "type": "date"
+    },
+    "last_checked_at": {
+      "type": "date"
     }
   }
 }

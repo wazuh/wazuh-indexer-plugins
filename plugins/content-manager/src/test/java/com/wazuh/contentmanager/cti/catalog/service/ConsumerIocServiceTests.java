@@ -19,8 +19,10 @@ package com.wazuh.contentmanager.cti.catalog.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.logging.log4j.Level;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.CreatePitAction;
@@ -30,13 +32,19 @@ import org.opensearch.action.search.DeletePitAction;
 import org.opensearch.action.search.DeletePitRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.lifecycle.AbstractLifecycleComponent;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.node.NodeClosedException;
 import org.opensearch.search.DocValueFormat;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.sort.FieldSortBuilder;
+import org.opensearch.search.sort.ShardDocSortBuilder;
+import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
 import org.junit.After;
@@ -48,13 +56,18 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.CapturingAppender;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
+import com.wazuh.contentmanager.utils.NodeShutdownTests;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -93,6 +106,7 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
         PluginSettings.getInstance(Settings.EMPTY);
+        NodeShutdown.watch(NodeShutdownTests.idleComponent());
         when(this.environment.tmpDir()).thenReturn(LuceneTestCase.createTempDir());
         when(this.environment.sharedDataDir()).thenReturn(LuceneTestCase.createTempDir());
 
@@ -354,12 +368,179 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         // Should not throw — exception is caught internally
         this.service.onSyncComplete(true);
 
-        // PITs should still be deleted despite the exception (hash + export both attempt PIT)
-        verify(this.client, times(2))
+        // The hash pass's PIT is still deleted despite the exception. The export never opens one:
+        // without the hashes there is nothing to hand the Engine.
+        verify(this.client, times(1))
+                .execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class));
+        verify(this.client, times(1))
                 .execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
 
         // Index should NOT have been called since the exception happened before indexing
         verify(this.client, never()).index(any(IndexRequest.class));
+        verify(this.engineService, never()).updateIoc(anyString(), anyString());
+    }
+
+    /**
+     * Stubs {@code consumersIndex.getConsumer(...)} to return an IOC consumer document with the given
+     * pending phases.
+     */
+    private void mockExistingConsumerDoc(List<String> pendingPhases) throws Exception {
+        GetResponse response = mock(GetResponse.class);
+        when(response.isExists()).thenReturn(true);
+        when(response.getSourceAsString())
+                .thenReturn(
+                        "{\"name\":\"iocs\",\"context\":\"ctx\",\"status\":\"ready\","
+                                + "\"type\":\"cti:catalog:consumer:iocs\","
+                                + "\"resource\":\"\",\"is_public\":true,"
+                                + "\"local_offset\":42,\"remote_offset\":42,"
+                                + "\"pending_sync_phases\":"
+                                + MAPPER.writeValueAsString(pendingPhases)
+                                + "}");
+        when(this.consumersIndex.getConsumer(any())).thenReturn(response);
+    }
+
+    /** Returns the pending phases of the last consumer document written. */
+    private List<String> lastWrittenPendingPhases() throws Exception {
+        ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
+        verify(this.consumersIndex).setConsumer(captor.capture());
+        return captor.getValue().getPendingSyncPhases();
+    }
+
+    /** A content change owes the IOC load, so it is recorded before the content changes. */
+    public void testContentChangeOwesIocLoad() {
+        assertEquals(
+                List.of(ConsumerIocService.PHASE_IOC_LOAD), this.service.phasesOwedByContentChange());
+    }
+
+    /**
+     * A load left pending by a pass that was cut, for instance by the node stopping after the content
+     * was written, runs on the next pass even though the offsets are already up to date, and is
+     * cleared once it has run.
+     */
+    public void testPendingLoadRunsWithoutUpdateAndIsCleared() throws Exception {
+        this.mockExistingConsumerDoc(List.of(ConsumerIocService.PHASE_IOC_LOAD));
+        this.mockPitLifecycle();
+        this.mockEmptySearch();
+        this.mockIndexResponse();
+
+        this.service.onSyncComplete(false);
+
+        verify(this.client).index(any(IndexRequest.class));
+        verify(this.engineService).updateIoc(anyString(), anyString());
+        assertEquals(List.of(), this.lastWrittenPendingPhases());
+    }
+
+    /** A pass with nothing new and nothing pending leaves the pending phases untouched. */
+    public void testNothingPendingWritesNothing() throws Exception {
+        this.mockExistingConsumerDoc(List.of());
+
+        this.service.onSyncComplete(false);
+
+        verify(this.client, never()).execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class));
+        verify(this.consumersIndex, never()).setConsumer(any());
+    }
+
+    /** Failed hashes skip the export and leave the load pending for the next pass. */
+    public void testFailedHashesKeepLoadPending() throws Exception {
+        this.mockExistingConsumerDoc(List.of(ConsumerIocService.PHASE_IOC_LOAD));
+        this.mockPitLifecycle();
+        when(this.client.search(any(SearchRequest.class)))
+                .thenThrow(new RuntimeException("Search failed"));
+
+        this.service.onSyncComplete(false);
+
+        verify(this.engineService, never()).updateIoc(anyString(), anyString());
+        verify(this.consumersIndex, never()).setConsumer(any());
+    }
+
+    /** A failed export leaves the load pending, with the hashes already stored. */
+    @SuppressWarnings("unchecked")
+    public void testFailedExportKeepsLoadPending() throws Exception {
+        this.mockExistingConsumerDoc(List.of(ConsumerIocService.PHASE_IOC_LOAD));
+        this.mockPitLifecycle();
+        this.mockIndexResponse();
+        SearchResponse emptySearchResponse = mock(SearchResponse.class);
+        when(emptySearchResponse.getHits()).thenReturn(SearchHits.empty());
+        ActionFuture<SearchResponse> emptyFuture = mock(ActionFuture.class);
+        when(emptyFuture.actionGet()).thenReturn(emptySearchResponse);
+        ActionFuture<SearchResponse> failingFuture = mock(ActionFuture.class);
+        when(failingFuture.actionGet()).thenThrow(new RuntimeException("Search failed"));
+        when(this.client.search(any(SearchRequest.class)))
+                .thenReturn(emptyFuture) // hash pass
+                .thenReturn(failingFuture); // export
+
+        this.service.onSyncComplete(false);
+
+        verify(this.client).index(any(IndexRequest.class));
+        verify(this.engineService, never()).updateIoc(anyString(), anyString());
+        verify(this.consumersIndex, never()).setConsumer(any());
+    }
+
+    /**
+     * The Engine's answer does not keep the load pending: the node holding the sync may have no
+     * Engine, and the load would otherwise be retried on every pass.
+     */
+    public void testEngineRefusalDoesNotKeepLoadPending() throws Exception {
+        this.mockExistingConsumerDoc(List.of(ConsumerIocService.PHASE_IOC_LOAD));
+        this.mockPitLifecycle();
+        this.mockEmptySearch();
+        this.mockIndexResponse();
+        when(this.engineService.updateIoc(anyString(), anyString()))
+                .thenReturn(new RestResponse("Engine unavailable", 503));
+
+        this.service.onSyncComplete(false);
+
+        assertEquals(List.of(), this.lastWrittenPendingPhases());
+    }
+
+    /**
+     * Failures caused by the node stopping are logged at debug, not as errors: here the hash pass's
+     * point-in-time search and the status writes after it, as in the stop window of
+     * wazuh-indexer#2029.
+     */
+    public void testShutdownFailureIsNotLoggedAsError() {
+        this.mockPitLifecycle();
+        when(this.client.search(any(SearchRequest.class)))
+                .thenThrow(new RuntimeException(new NodeClosedException((DiscoveryNode) null)));
+
+        try (CapturingAppender appender = CapturingAppender.attach(ConsumerIocService.class)) {
+            this.service.onSyncComplete(true);
+
+            assertEquals(0, appender.count(Level.ERROR));
+            assertEquals(0, appender.count(Level.WARN));
+        }
+    }
+
+    /**
+     * While the node stops, the PIT is not released: its contexts close with the node, and core logs
+     * {@code PitService} "Delete PITs failed" at error for a release that can only fail.
+     */
+    public void testPitNotReleasedWhileNodeStops() {
+        AbstractLifecycleComponent clusterService = NodeShutdownTests.idleComponent();
+        NodeShutdown.watch(clusterService);
+        clusterService.start();
+        clusterService.stop();
+        this.mockPitLifecycle();
+        when(this.client.search(any(SearchRequest.class)))
+                .thenThrow(new RuntimeException(new NodeClosedException((DiscoveryNode) null)));
+
+        this.service.onSyncComplete(true);
+
+        verify(this.client).execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class));
+        verify(this.client, never()).execute(eq(DeletePitAction.INSTANCE), any(DeletePitRequest.class));
+    }
+
+    /** The same failure on a running node is still an error. */
+    public void testRealFailureIsLoggedAsError() {
+        this.mockPitLifecycle();
+        when(this.client.search(any(SearchRequest.class)))
+                .thenThrow(new RuntimeException("Search failed"));
+
+        try (CapturingAppender appender = CapturingAppender.attach(ConsumerIocService.class)) {
+            this.service.onSyncComplete(true);
+
+            assertEquals(1, appender.count(Level.ERROR));
+        }
     }
 
     /**
@@ -619,5 +800,49 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
                 "type_hashes should be empty when no documents exist",
                 0,
                 root.get(Constants.KEY_TYPE_HASHES).size());
+    }
+
+    /**
+     * Both IoC passes sort on {@code document.id} with a {@code _shard_doc} tiebreaker, never on
+     * {@code _id}: an {@code _id} sort has no doc values and makes every page expensive enough for
+     * search backpressure to cancel it on a busy node (wazuh-indexer#2007). The hash pass also
+     * fetches only the two fields it reads.
+     */
+    public void testIocPassesSortOnDocValuesFields() {
+        this.mockPitLifecycle();
+        this.mockEmptySearch();
+        this.mockIndexResponse();
+
+        this.service.onSyncComplete(true);
+
+        ArgumentCaptor<SearchRequest> searchCaptor = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(this.client, times(2)).search(searchCaptor.capture());
+        SearchRequest hashPass = searchCaptor.getAllValues().get(0);
+        SearchRequest exportPass = searchCaptor.getAllValues().get(1);
+
+        assertEquals(
+                List.of(Constants.Q_DOCUMENT_TYPE, Constants.Q_DOCUMENT_ID, "_shard_doc"),
+                sortKeys(hashPass));
+        assertEquals(List.of(Constants.Q_DOCUMENT_ID, "_shard_doc"), sortKeys(exportPass));
+        assertArrayEquals(
+                new String[] {Constants.Q_DOCUMENT_TYPE, Constants.Q_HASH},
+                hashPass.source().fetchSource().includes());
+        assertEquals(1_000, hashPass.source().size());
+    }
+
+    private static List<String> sortKeys(SearchRequest request) {
+        return request.source().sorts().stream()
+                .map(ConsumerIocServiceTests::sortKey)
+                .collect(Collectors.toList());
+    }
+
+    private static String sortKey(SortBuilder<?> sort) {
+        if (sort instanceof FieldSortBuilder field) {
+            return field.getFieldName();
+        }
+        if (sort instanceof ShardDocSortBuilder) {
+            return ShardDocSortBuilder.NAME;
+        }
+        return sort.toString();
     }
 }
