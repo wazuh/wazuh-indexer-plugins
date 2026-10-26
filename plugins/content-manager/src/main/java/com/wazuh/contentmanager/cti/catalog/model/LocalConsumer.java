@@ -29,11 +29,14 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import com.wazuh.contentmanager.utils.Constants;
+
 /**
  * Data Transfer Object representing the local state of a CTI Catalog Consumer.
  *
  * <p>This class tracks the synchronization status of a specific CTI consumer. It stores
- * local/remote offsets and the consumer metadata persisted in `.wazuh-cti-consumers`.
+ * local/remote offsets, the time its content was last updated and the consumer metadata persisted
+ * in `.wazuh-cti-consumers`.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LocalConsumer extends AbstractConsumer implements ToXContent {
@@ -87,6 +90,9 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
 
     @JsonProperty("pending_sync_phases")
     private List<String> pendingSyncPhases = Collections.emptyList();
+
+    @JsonProperty(Constants.KEY_UPDATED_AT)
+    private String updatedAt;
 
     /** Default constructor. */
     public LocalConsumer() {
@@ -263,6 +269,41 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
         return this.pendingSyncPhases;
     }
 
+    /**
+     * Gets the time a synchronization pass last changed this consumer's content, whether the pass was
+     * scheduled or requested through the API.
+     *
+     * @return The time as an ISO-8601 string, or {@code null} if no pass has changed the content
+     *     since the field was introduced.
+     */
+    public String getUpdatedAt() {
+        return this.updatedAt;
+    }
+
+    /**
+     * Returns a copy of this consumer with the given content update time. Every write of a consumer
+     * document replaces the whole document, so a write that does not change the content must carry
+     * the time over from the document it read.
+     *
+     * @param updatedAt The time as an ISO-8601 string, or {@code null} for none.
+     * @return The copy.
+     */
+    public LocalConsumer withUpdatedAt(String updatedAt) {
+        LocalConsumer copy =
+                new LocalConsumer(
+                        this.context,
+                        this.name,
+                        this.type,
+                        this.resource,
+                        this.isPublic,
+                        this.status,
+                        this.localOffset,
+                        this.remoteOffset,
+                        this.pendingSyncPhases);
+        copy.updatedAt = updatedAt;
+        return copy;
+    }
+
     @Override
     public String toString() {
         return "LocalConsumer{"
@@ -280,6 +321,9 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
                 + '\''
                 + ", isPublic="
                 + this.isPublic
+                + ", updatedAt='"
+                + this.updatedAt
+                + '\''
                 + ", context='"
                 + this.context
                 + '\''
@@ -319,8 +363,11 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
                 .field("status", this.status != null ? this.status.toString() : Status.READY.toString())
                 .field("local_offset", this.localOffset)
                 .field("remote_offset", this.remoteOffset)
-                .field("pending_sync_phases", this.pendingSyncPhases)
-                .endObject();
+                .field("pending_sync_phases", this.pendingSyncPhases);
+        if (this.updatedAt != null) {
+            builder.field(Constants.KEY_UPDATED_AT, this.updatedAt);
+        }
+        builder.endObject();
 
         return builder;
     }

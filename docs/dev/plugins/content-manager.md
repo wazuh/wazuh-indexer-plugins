@@ -91,7 +91,7 @@ The plugin manages the following indices. The 8 content indices marked "alias-ba
 
 | Alias or index name                  | Purpose                                   | Hidden | Alias-backed |
 | ------------------------------------ | ----------------------------------------- | ------ | ------------ |
-| `.wazuh-cti-consumers`               | Sync state (status, offsets) per consumer | yes    | no           |
+| `.wazuh-cti-consumers`               | Sync state (status, offsets, `updated_at`) per consumer; `last_checked_at` in the `cti:catalog:global` document | yes    | no           |
 | `.wazuh-internal-state`              | Persisted CTI access token                | yes    | no           |
 | `wazuh-threatintel-policies`         | Policy documents                          | no     | yes          |
 | `wazuh-threatintel-integrations`     | Integration definitions                   | no     | yes          |
@@ -699,7 +699,9 @@ When `local_offset > 0` and `local_offset < remote_offset`:
 2. Re-applies the [user overrides](#user-overrides-in-the-standard-space) to the `standard` space, before anything reads the rebuilt content.
 3. Upserts integrations, rules, and detectors into the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 4. Recalculates SHA-256 hashes for policy integrity verification.
-5. Sets consumer `status` to `ready` in `.wazuh-cti-consumers` (or `failed` if an unexpected exception interrupted the cycle). See the [Reference Manual's architecture page](../../ref/modules/content-manager/architecture.md) for the full `ready` / `running` / `failed` lifecycle.
+5. Sets consumer `status` to `ready` in `.wazuh-cti-consumers` (or `failed` if an unexpected exception interrupted the cycle). See the [Reference Manual's architecture page](../../ref/modules/content-manager/architecture.md) for the full `ready` / `running` / `failed` lifecycle. When the cycle changed the content, the same write sets `updated_at` to the current time.
+
+Every write of a consumer document replaces the whole document. A write that does not change the content (status, checkpoints, pending phases, the swap's rewrites) builds the document from the one it read and carries `updated_at` over with `LocalConsumer.withUpdatedAt`; only the `ready` write above sets a new one. Each time `ConsumerService.getRemoteConsumer` gets an answer, `AbstractConsumerService` writes the time to `last_checked_at` in the `cti:catalog:global` document through `ConsumersIndex.setLastCheckedAt`; a failure there is logged and does not stop the pass.
 
 ### Error handling
 
