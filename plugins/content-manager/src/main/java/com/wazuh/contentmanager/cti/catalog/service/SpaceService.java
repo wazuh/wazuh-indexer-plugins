@@ -117,8 +117,24 @@ public class SpaceService {
      * @param listener notified on completion or failure.
      */
     public void deleteSpaceResources(Space space, ActionListener<Void> listener) {
+        deleteSpaceResources(space, new ArrayList<>(Constants.RESOURCE_INDICES.values()), listener);
+    }
+
+    /**
+     * Deletes all documents related to a specific space across the given resource indices only.
+     *
+     * <p>Used by the scoped space clears, which wipe only one side of the draft (normalization or
+     * detection) instead of every resource index. The full reset calls the no-subset overload, which
+     * delegates here with the complete {@link Constants#RESOURCE_INDICES} list.
+     *
+     * @param space The space to wipe.
+     * @param indexNames The resource indices to delete from (a subset of {@link
+     *     Constants#RESOURCE_INDICES}).
+     * @param listener notified on completion or failure.
+     */
+    public void deleteSpaceResources(
+            Space space, List<String> indexNames, ActionListener<Void> listener) {
         String spaceName = space.toString();
-        List<String> indexNames = new ArrayList<>(Constants.RESOURCE_INDICES.values());
         BulkRequest bulkRequest = new BulkRequest();
         collectDeleteRequestsAsync(
                 spaceName,

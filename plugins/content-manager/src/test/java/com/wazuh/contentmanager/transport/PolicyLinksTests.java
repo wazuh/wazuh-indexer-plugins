@@ -252,6 +252,100 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         return failure.get();
     }
 
+    /** Queues a policy version with the given root decoder and empty lists for the next GET. */
+    private void serveRootDecoder(long seqNo, String rootDecoder) {
+        ObjectNode document = MAPPER.createObjectNode().put("id", "p");
+        document.put(Constants.KEY_ROOT_DECODER, rootDecoder);
+        document.putArray(Constants.KEY_FILTERS);
+        String source =
+                "{\"document\":"
+                        + document
+                        + ",\"hash\":{\"sha256\":\"old\"},\"space\":{\"name\":\"draft\"}}";
+        this.gets.add(
+                new GetResponse(
+                        new GetResult(
+                                Constants.INDEX_POLICIES,
+                                POLICY_DOC_ID,
+                                seqNo,
+                                1L,
+                                seqNo + 1,
+                                true,
+                                new BytesArray(source),
+                                Collections.emptyMap(),
+                                Collections.emptyMap())));
+    }
+
+    private static String writtenRootDecoder(IndexRequest request) throws Exception {
+        return MAPPER
+                .readTree(request.source().utf8ToString())
+                .path(Constants.KEY_DOCUMENT)
+                .path(Constants.KEY_ROOT_DECODER)
+                .asText();
+    }
+
+    private Exception runClearRootDecoder(String space) {
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        AtomicReference<Boolean> done = new AtomicReference<>(false);
+        ActionListener<Void> listener = ActionListener.wrap(v -> done.set(true), failure::set);
+        PolicyLinks.clearRootDecoder(this.client, space, MISSING_POLICY, listener);
+        assertTrue("listener must be notified", done.get() || failure.get() != null);
+        return failure.get();
+    }
+
+    private Exception runClearList(String space, String listKey) {
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        AtomicReference<Boolean> done = new AtomicReference<>(false);
+        ActionListener<Void> listener = ActionListener.wrap(v -> done.set(true), failure::set);
+        PolicyLinks.clearList(this.client, space, listKey, MISSING_POLICY, listener);
+        assertTrue("listener must be notified", done.get() || failure.get() != null);
+        return failure.get();
+    }
+
+    /** clearRootDecoder blanks a set root decoder and rewrites the hash, guarded by the seqNo. */
+    public void testClearRootDecoder_setsEmptyAndRewritesHash() throws Exception {
+        this.serveRootDecoder(7, "dec1");
+
+        assertNull(this.runClearRootDecoder("draft"));
+
+        assertEquals(1, this.writes.size());
+        IndexRequest write = this.writes.get(0);
+        assertEquals(7L, write.ifSeqNo());
+        assertEquals("", writtenRootDecoder(write));
+        JsonNode written = MAPPER.readTree(write.source().utf8ToString());
+        assertNotEquals("old", written.at("/hash/sha256").asText());
+    }
+
+    /** clearRootDecoder on an already-empty root decoder writes nothing. */
+    @SuppressWarnings("unchecked")
+    public void testClearRootDecoder_noopWhenAlreadyEmpty() {
+        this.serveRootDecoder(7, "");
+
+        assertNull(this.runClearRootDecoder("draft"));
+
+        verify(this.client, never()).index(any(IndexRequest.class), any(ActionListener.class));
+    }
+
+    /** clearList empties a populated list and keeps the rest of the document. */
+    public void testClearList_emptiesFilters() throws Exception {
+        this.servePolicy(3, "a", "b");
+
+        assertNull(this.runClearList("draft", Constants.KEY_FILTERS));
+
+        assertEquals(1, this.writes.size());
+        assertEquals(List.of(), writtenFilters(this.writes.get(0)));
+        assertEquals(3L, this.writes.get(0).ifSeqNo());
+    }
+
+    /** clearList on an already-empty list writes nothing. */
+    @SuppressWarnings("unchecked")
+    public void testClearList_noopWhenAlreadyEmpty() {
+        this.servePolicy(3);
+
+        assertNull(this.runClearList("draft", Constants.KEY_FILTERS));
+
+        verify(this.client, never()).index(any(IndexRequest.class), any(ActionListener.class));
+    }
+
     /** Link targets the given space's policy and writes with the sequence number it read. */
     public void testLink_appendsAndWritesGuardedBySeqNo() throws Exception {
         this.servePolicy(7, "a");

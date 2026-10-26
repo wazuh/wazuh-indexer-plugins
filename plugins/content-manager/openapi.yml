@@ -1494,6 +1494,69 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /space/{space}/normalization:
+    delete:
+      tags: [ Spaces ]
+      summary: Clear a space's normalization resources
+      description: |
+        Clears only the normalization resources (decoders, kvdbs, filters and the policy root
+        decoder) of the draft space, leaving the detection resources (rules) untouched. Integrations
+        left empty are removed; protected integrations are kept. Reuses the Reset space permission
+        (cluster:admin/content_manager/space/delete), so no new role grant is required.
+        Unlike a full reset, the policy's own settings (enrichments, enabled, the index_* flags and
+        metadata) are preserved; only resource references (root decoder, integrations, filters) are
+        cleared. Clearing normalization then detection empties the draft of every resource but keeps
+        those policy settings, which a full reset would reset.
+      operationId: clearSpaceNormalization
+      parameters:
+        - name: space
+          in: path
+          required: true
+          description: The name of the user space to clear.
+          schema:
+            type: string
+            enum:
+              - draft
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /space/{space}/detection:
+    delete:
+      tags: [ Spaces ]
+      summary: Clear a space's detection resources
+      description: |
+        Clears only the detection resources (rules) of the draft space, leaving the normalization
+        resources untouched. Integrations left empty are removed; protected integrations are kept.
+        Reuses the Reset space permission (cluster:admin/content_manager/space/delete), so no new
+        role grant is required. Unlike a full reset, the policy's own settings (enrichments, enabled,
+        the index_* flags and metadata) are preserved; only resource references are cleared.
+      operationId: clearSpaceDetection
+      parameters:
+        - name: space
+          in: path
+          required: true
+          description: The name of the user space to clear.
+          schema:
+            type: string
+            enum:
+              - draft
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
 components:
   # Shared path parameters for resource identifiers (UUIDs)
   parameters:

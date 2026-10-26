@@ -109,7 +109,8 @@ final class PolicyLinks {
         submit(
                 client,
                 new Target(spaceName, listKey, missingPolicyMessage),
-                ids -> {
+                document -> {
+                    ArrayNode ids = arrayField(document, listKey);
                     for (JsonNode existing : ids) {
                         if (existing.asText().equals(id)) {
                             return false;
@@ -144,7 +145,8 @@ final class PolicyLinks {
         submit(
                 client,
                 new Target(spaceName, listKey, missingPolicyMessage),
-                ids -> {
+                document -> {
+                    ArrayNode ids = arrayField(document, listKey);
                     boolean removed = false;
                     for (int i = ids.size() - 1; i >= 0; i--) {
                         if (ids.get(i).asText().equals(id)) {
@@ -155,6 +157,70 @@ final class PolicyLinks {
                     return removed;
                 },
                 listener);
+    }
+
+    /**
+     * Blanks the {@code root_decoder} of the policy of {@code spaceName}, setting it to {@code ""}. A
+     * policy whose root decoder is already empty is left untouched. Used by the scoped normalization
+     * clear.
+     *
+     * @param client OpenSearch client.
+     * @param spaceName the space whose policy is changed.
+     * @param missingPolicyMessage message of the {@link IllegalStateException} the listener fails
+     *     with when the space has no policy.
+     * @param listener notified once the policy has been written.
+     */
+    static void clearRootDecoder(
+            Client client, String spaceName, String missingPolicyMessage, ActionListener<Void> listener) {
+        submit(
+                client,
+                new Target(spaceName, Constants.KEY_ROOT_DECODER, missingPolicyMessage),
+                document -> {
+                    if (document.path(Constants.KEY_ROOT_DECODER).asText("").isEmpty()) {
+                        return false;
+                    }
+                    document.put(Constants.KEY_ROOT_DECODER, "");
+                    return true;
+                },
+                listener);
+    }
+
+    /**
+     * Empties the {@code listKey} list of the policy of {@code spaceName}. A policy whose list is
+     * already empty or absent is left untouched. Used by the scoped normalization clear to drop the
+     * policy's filter references.
+     *
+     * @param client OpenSearch client.
+     * @param spaceName the space whose policy is changed.
+     * @param listKey the policy document's list, e.g. {@link Constants#KEY_FILTERS}.
+     * @param missingPolicyMessage message of the {@link IllegalStateException} the listener fails
+     *     with when the space has no policy.
+     * @param listener notified once the policy has been written.
+     */
+    static void clearList(
+            Client client,
+            String spaceName,
+            String listKey,
+            String missingPolicyMessage,
+            ActionListener<Void> listener) {
+        submit(
+                client,
+                new Target(spaceName, listKey, missingPolicyMessage),
+                document -> {
+                    JsonNode current = document.get(listKey);
+                    if (!(current instanceof ArrayNode array) || array.isEmpty()) {
+                        return false;
+                    }
+                    document.putArray(listKey);
+                    return true;
+                },
+                listener);
+    }
+
+    /** The {@code listKey} array of {@code document}, created empty if absent or not an array. */
+    private static ArrayNode arrayField(ObjectNode document, String listKey) {
+        JsonNode current = document.get(listKey);
+        return current instanceof ArrayNode array ? array : document.putArray(listKey);
     }
 
     /** Which list of which space's policy is being changed, and how to report a missing policy. */
@@ -171,7 +237,7 @@ final class PolicyLinks {
      * from there on carries that context.
      */
     private static void submit(
-            Client client, Target target, Predicate<ArrayNode> mutator, ActionListener<Void> listener) {
+            Client client, Target target, Predicate<ObjectNode> mutator, ActionListener<Void> listener) {
         Supplier<ThreadContext.StoredContext> callerContext =
                 client.threadPool().getThreadContext().newRestorableContext(false);
         QUEUES
@@ -255,7 +321,7 @@ final class PolicyLinks {
     private static void update(
             Client client,
             Target target,
-            Predicate<ArrayNode> mutator,
+            Predicate<ObjectNode> mutator,
             int attempt,
             ActionListener<Void> listener) {
         SearchRequest search =
@@ -287,7 +353,7 @@ final class PolicyLinks {
     private static void write(
             Client client,
             Target target,
-            Predicate<ArrayNode> mutator,
+            Predicate<ObjectNode> mutator,
             int attempt,
             GetResponse policy,
             ActionListener<Void> listener)
@@ -300,11 +366,8 @@ final class PolicyLinks {
 
         ObjectNode wrapper = (ObjectNode) MAPPER.readTree(policy.getSourceAsString());
         ObjectNode document = (ObjectNode) wrapper.get(Constants.KEY_DOCUMENT);
-        JsonNode current = document.get(target.listKey());
-        ArrayNode ids =
-                current instanceof ArrayNode array ? array : document.putArray(target.listKey());
 
-        if (!mutator.test(ids)) {
+        if (!mutator.test(document)) {
             listener.onResponse(null);
             return;
         }

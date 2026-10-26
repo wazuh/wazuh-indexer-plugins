@@ -908,6 +908,7 @@ public class Constants {
     public static final String KEY_CVES = "cves";
     public static final String KEY_FILTERS = "filters";
     public static final String KEY_ENRICHMENTS = "enrichments";
+    public static final String KEY_ROOT_DECODER = "root_decoder";
 
     // Pipeline phase keys (policy resources response)
     public static final String KEY_NORMALIZATION = "normalization";

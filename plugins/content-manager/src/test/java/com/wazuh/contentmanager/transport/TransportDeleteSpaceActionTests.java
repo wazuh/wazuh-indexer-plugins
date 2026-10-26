@@ -16,24 +16,43 @@
  */
 package com.wazuh.contentmanager.transport;
 
+import org.apache.lucene.search.TotalHits;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.get.GetResult;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.tasks.Task;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportService;
+import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
+import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 
 import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.Locale;
 
 import com.wazuh.contentmanager.action.DeleteSpaceRequest;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
+import com.wazuh.contentmanager.action.SpaceClearScope;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.Mockito.*;
 
@@ -115,5 +134,158 @@ public class TransportDeleteSpaceActionTests extends OpenSearchTestCase {
                                     Assert.assertTrue(response.getMessage().contains("Cannot reset"));
                                     return true;
                                 }));
+    }
+
+    /** The draft-only restriction applies to the scoped normalization clear too. */
+    public void testDoExecute_NormalizationScopeNonDraftRejected() {
+        DeleteSpaceRequest request = new DeleteSpaceRequest("test", SpaceClearScope.NORMALIZATION);
+
+        @SuppressWarnings("unchecked")
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), request, listener);
+
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+                                    Assert.assertTrue(response.getMessage().contains("Cannot reset"));
+                                    return true;
+                                }));
+    }
+
+    /** The draft-only restriction applies to the scoped detection clear too. */
+    public void testDoExecute_DetectionScopeNonDraftRejected() {
+        DeleteSpaceRequest request = new DeleteSpaceRequest("standard", SpaceClearScope.DETECTION);
+
+        @SuppressWarnings("unchecked")
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), request, listener);
+
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.BAD_REQUEST, response.getStatus());
+                                    Assert.assertTrue(response.getMessage().contains("Cannot reset"));
+                                    return true;
+                                }));
+    }
+
+    /** scope=NORMALIZATION on draft routes to the normalization clear and reports success. */
+    public void testDoExecute_NormalizationScopeClearsAndReports() {
+        TransportDeleteSpaceAction act = actionWith(stubbedClient());
+        DeleteSpaceRequest request = new DeleteSpaceRequest("draft", SpaceClearScope.NORMALIZATION);
+
+        @SuppressWarnings("unchecked")
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        act.doExecute(mock(Task.class), request, listener);
+
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.OK, response.getStatus());
+                                    Assert.assertTrue(
+                                            response.getMessage().toLowerCase(Locale.ROOT).contains("normalization"));
+                                    return true;
+                                }));
+    }
+
+    /** scope=DETECTION on draft routes to the detection clear and reports success. */
+    public void testDoExecute_DetectionScopeClearsAndReports() {
+        TransportDeleteSpaceAction act = actionWith(stubbedClient());
+        DeleteSpaceRequest request = new DeleteSpaceRequest("draft", SpaceClearScope.DETECTION);
+
+        @SuppressWarnings("unchecked")
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        act.doExecute(mock(Task.class), request, listener);
+
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.OK, response.getStatus());
+                                    Assert.assertTrue(
+                                            response.getMessage().toLowerCase(Locale.ROOT).contains("detection"));
+                                    return true;
+                                }));
+    }
+
+    private TransportDeleteSpaceAction actionWith(Client client) {
+        return new TransportDeleteSpaceAction(
+                mock(TransportService.class), mock(ActionFilters.class), client);
+    }
+
+    /** A client wired so a scoped clear of an empty draft completes without touching real indices. */
+    @SuppressWarnings("unchecked")
+    private static Client stubbedClient() {
+        Client client = mock(Client.class);
+        AdminClient adminClient = mock(AdminClient.class);
+        IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
+        when(client.admin()).thenReturn(adminClient);
+        when(adminClient.indices()).thenReturn(indicesAdminClient);
+        IndicesExistsResponse notExists = mock(IndicesExistsResponse.class);
+        when(notExists.isExists()).thenReturn(false);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
+                                    .onResponse(notExists);
+                            return null;
+                        })
+                .when(indicesAdminClient)
+                .exists(any(IndicesExistsRequest.class), any());
+
+        ThreadPool threadPool = mock(ThreadPool.class);
+        when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
+        when(client.threadPool()).thenReturn(threadPool);
+
+        doAnswer(
+                        invocation -> {
+                            SearchRequest request = invocation.getArgument(0);
+                            SearchHit[] hits =
+                                    Constants.INDEX_POLICIES.equals(request.indices()[0])
+                                            ? new SearchHit[] {
+                                                new SearchHit(
+                                                        0, "draft-policy-doc", Collections.emptyMap(), Collections.emptyMap())
+                                            }
+                                            : new SearchHit[0];
+                            SearchResponse response = mock(SearchResponse.class);
+                            when(response.getHits())
+                                    .thenReturn(
+                                            new SearchHits(
+                                                    hits, new TotalHits(hits.length, TotalHits.Relation.EQUAL_TO), 0.0f));
+                            invocation.<ActionListener<SearchResponse>>getArgument(1).onResponse(response);
+                            return null;
+                        })
+                .when(client)
+                .search(any(SearchRequest.class), any());
+
+        doAnswer(
+                        invocation -> {
+                            String source =
+                                    "{\"document\":{\"id\":\"p\"},\"hash\":{\"sha256\":\"old\"},"
+                                            + "\"space\":{\"name\":\"draft\"}}";
+                            invocation
+                                    .<ActionListener<GetResponse>>getArgument(1)
+                                    .onResponse(
+                                            new GetResponse(
+                                                    new GetResult(
+                                                            Constants.INDEX_POLICIES,
+                                                            "draft-policy-doc",
+                                                            1L,
+                                                            1L,
+                                                            2L,
+                                                            true,
+                                                            new BytesArray(source),
+                                                            Collections.emptyMap(),
+                                                            Collections.emptyMap())));
+                            return null;
+                        })
+                .when(client)
+                .get(any(GetRequest.class), any());
+
+        return client;
     }
 }

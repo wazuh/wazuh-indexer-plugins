@@ -35,6 +35,7 @@ import com.wazuh.contentmanager.action.DeleteSpaceAction;
 import com.wazuh.contentmanager.action.DeleteSpaceRequest;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
+import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -48,14 +49,18 @@ public class TransportDeleteSpaceAction
 
     private static final Logger log = LogManager.getLogger(TransportDeleteSpaceAction.class);
 
+    private final Client client;
     private final SpaceService spaceService;
+    private final IntegrationService integrationService;
     private final SecurityAnalyticsService securityAnalyticsService;
 
     @Inject
     public TransportDeleteSpaceAction(
             TransportService transportService, ActionFilters actionFilters, Client client) {
         super(DeleteSpaceAction.NAME, transportService, actionFilters, DeleteSpaceRequest::new);
+        this.client = client;
         this.spaceService = new SpaceService(client);
+        this.integrationService = new IntegrationService(client);
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             this.securityAnalyticsService = new MockSecurityAnalyticsService();
         } else {
@@ -83,6 +88,44 @@ public class TransportDeleteSpaceAction
                     new MessageStatusResponse(
                             "Cannot reset the '" + space + "' space.", RestStatus.BAD_REQUEST));
             return;
+        }
+
+        switch (request.getScope()) {
+            case NORMALIZATION:
+                log.info("Starting normalization clear for space [{}]", space);
+                SpaceClearer.clearNormalization(
+                        this.client,
+                        this.spaceService,
+                        this.integrationService,
+                        this.securityAnalyticsService,
+                        space.toString(),
+                        ActionListener.wrap(
+                                v ->
+                                        respondSuccess(
+                                                listener,
+                                                space,
+                                                "Successfully cleared normalization resources for space [%s]."),
+                                e -> respondWithError(listener, space, e)));
+                return;
+            case DETECTION:
+                log.info("Starting detection clear for space [{}]", space);
+                SpaceClearer.clearDetection(
+                        this.client,
+                        this.spaceService,
+                        this.integrationService,
+                        this.securityAnalyticsService,
+                        space.toString(),
+                        ActionListener.wrap(
+                                v ->
+                                        respondSuccess(
+                                                listener,
+                                                space,
+                                                "Successfully cleared detection resources for space [%s]."),
+                                e -> respondWithError(listener, space, e)));
+                return;
+            case FULL:
+            default:
+                break;
         }
 
         log.info("Starting reset operation for space [{}]", space);
@@ -120,6 +163,13 @@ public class TransportDeleteSpaceAction
                                             e -> respondWithError(listener, space, e)));
                         },
                         e -> respondWithError(listener, space, e)));
+    }
+
+    private void respondSuccess(
+            ActionListener<MessageStatusResponse> listener, Space space, String template) {
+        String message = String.format(Locale.ROOT, template, space);
+        log.info(message);
+        listener.onResponse(new MessageStatusResponse(message, RestStatus.OK));
     }
 
     private void respondWithError(

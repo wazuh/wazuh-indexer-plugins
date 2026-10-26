@@ -58,6 +58,7 @@ import org.mockito.MockitoAnnotations;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -105,6 +106,50 @@ public class SpaceServiceTests extends OpenSearchTestCase {
             this.closeable.close();
         }
         super.tearDown();
+    }
+
+    /**
+     * The subset overload of deleteSpaceResources only searches (and therefore only deletes from) the
+     * indices it is given, never the rest of RESOURCE_INDICES.
+     */
+    public void testDeleteSpaceResources_subsetOnlyTargetsGivenIndices() {
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
+                                    .onResponse(this.indicesExistsResponse);
+                            return null;
+                        })
+                .when(this.indicesAdminClient)
+                .exists(any(IndicesExistsRequest.class), any());
+        when(this.searchResponse.getHits()).thenReturn(SearchHits.empty());
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onResponse(this.searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
+
+        List<String> subset =
+                List.of(Constants.INDEX_DECODERS, Constants.INDEX_KVDBS, Constants.INDEX_FILTERS);
+        this.policyHashService.deleteSpaceResources(
+                Space.DRAFT, subset, ActionListener.wrap(r -> {}, e -> fail(e.getMessage())));
+
+        ArgumentCaptor<SearchRequest> captor = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(this.client, times(subset.size())).search(captor.capture(), any());
+        Set<String> searched = new java.util.HashSet<>();
+        for (SearchRequest req : captor.getAllValues()) {
+            searched.addAll(List.of(req.indices()));
+        }
+        assertEquals(new java.util.HashSet<>(subset), searched);
+        assertFalse(searched.contains(Constants.INDEX_RULES));
+        assertFalse(searched.contains(Constants.INDEX_INTEGRATIONS));
     }
 
     /** Tests that calculateAndUpdate skips execution when the policy index does not exist. */

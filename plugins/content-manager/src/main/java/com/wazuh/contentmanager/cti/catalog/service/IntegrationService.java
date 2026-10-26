@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -32,6 +33,7 @@ import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -39,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -311,4 +314,110 @@ public class IntegrationService {
                                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE))
                 .actionGet();
     }
+
+    /**
+     * Empties the given list fields of an integration document and reports whether the integration is
+     * left with no decoders, rules or kvdbs. Used by the scoped space clears to keep the integration
+     * documents consistent after a bulk delete of their resources.
+     *
+     * @param integrationId The integration document id.
+     * @param listKeys The list fields to empty (e.g. {@code decoders}, {@code kvdbs}).
+     * @param listener receives the {@link EmptyResult} once the document has been written (or
+     *     immediately, when nothing changed).
+     */
+    @SuppressWarnings("unchecked")
+    public void emptyFieldsAsync(
+            String integrationId, Set<String> listKeys, ActionListener<EmptyResult> listener) {
+        this.client.get(
+                new GetRequest(Constants.INDEX_INTEGRATIONS, integrationId),
+                ActionListener.wrap(
+                        response -> {
+                            if (!response.isExists()) {
+                                listener.onFailure(
+                                        new IOException("Integration [" + integrationId + "] not found."));
+                                return;
+                            }
+                            Map<String, Object> source = response.getSourceAsMap();
+                            Map<String, Object> document =
+                                    (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
+                            if (document == null) {
+                                listener.onResponse(new EmptyResult(false, true));
+                                return;
+                            }
+                            boolean isProtected =
+                                    Constants.MODE_PROTECTED.equals(document.get(Constants.KEY_MODE));
+                            boolean changed = false;
+                            for (String key : listKeys) {
+                                if (!isEmptyList(document.get(key))) {
+                                    document.put(key, new ArrayList<>());
+                                    changed = true;
+                                }
+                            }
+                            boolean nowEmpty =
+                                    isEmptyList(document.get(Constants.KEY_DECODERS))
+                                            && isEmptyList(document.get(Constants.KEY_RULES))
+                                            && isEmptyList(document.get(Constants.KEY_KVDBS));
+                            if (changed) {
+                                this.updateIntegrationSourceAsync(
+                                        response.getId(),
+                                        document,
+                                        source,
+                                        ActionListener.wrap(
+                                                v -> listener.onResponse(new EmptyResult(isProtected, nowEmpty)),
+                                                listener::onFailure));
+                            } else {
+                                listener.onResponse(new EmptyResult(isProtected, nowEmpty));
+                            }
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Deletes an integration document by its id.
+     *
+     * @param integrationId The integration document id.
+     * @param listener notified once the document has been deleted.
+     */
+    public void deleteIntegrationDocAsync(String integrationId, ActionListener<Void> listener) {
+        this.client.delete(
+                new DeleteRequest(Constants.INDEX_INTEGRATIONS, integrationId)
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE),
+                ActionListener.wrap(response -> listener.onResponse(null), listener::onFailure));
+    }
+
+    /**
+     * Lists the OpenSearch document ids of every integration in a space.
+     *
+     * @param spaceName The space to filter by.
+     * @param listener receives the integration ids.
+     */
+    public void listIntegrationIdsAsync(String spaceName, ActionListener<List<String>> listener) {
+        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_INTEGRATIONS);
+        searchRequest.source(
+                new SearchSourceBuilder()
+                        .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName))
+                        .fetchSource(false)
+                        .size(Constants.MAX_RESULT_WINDOW));
+        this.client.search(
+                searchRequest,
+                ActionListener.wrap(
+                        response -> {
+                            List<String> ids = new ArrayList<>();
+                            for (SearchHit hit : response.getHits().getHits()) {
+                                ids.add(hit.getId());
+                            }
+                            listener.onResponse(ids);
+                        },
+                        listener::onFailure));
+    }
+
+    private static boolean isEmptyList(Object value) {
+        return !(value instanceof List<?> list) || list.isEmpty();
+    }
+
+    /**
+     * Outcome of {@link #emptyFieldsAsync}: whether the integration is protected, and whether its
+     * decoders, rules and kvdbs lists are all empty after the edit.
+     */
+    public record EmptyResult(boolean isProtected, boolean nowEmpty) {}
 }

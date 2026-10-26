@@ -28,15 +28,22 @@ import static org.opensearch.action.ValidateActions.addValidationError;
 public class DeleteSpaceRequest extends ActionRequest {
 
     private final String spaceName;
+    private final SpaceClearScope scope;
 
     public DeleteSpaceRequest(String spaceName) {
+        this(spaceName, SpaceClearScope.FULL);
+    }
+
+    public DeleteSpaceRequest(String spaceName, SpaceClearScope scope) {
         super();
         this.spaceName = spaceName;
+        this.scope = scope;
     }
 
     public DeleteSpaceRequest(StreamInput sin) throws IOException {
         super(sin);
         this.spaceName = sin.readString();
+        this.scope = sin.readEnum(SpaceClearScope.class);
     }
 
     @Override
@@ -55,9 +62,14 @@ public class DeleteSpaceRequest extends ActionRequest {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeString(spaceName);
+        out.writeEnum(scope);
     }
 
     public String getSpaceName() {
         return spaceName;
+    }
+
+    public SpaceClearScope getScope() {
+        return scope;
     }
 }
