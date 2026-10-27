@@ -358,6 +358,10 @@ being used.
 The security plugin walks the whole configuration directory at start and logs a warning for every
 file readable by others and every directory others can enter. Nothing under `/etc/wazuh-indexer`
 is therefore world-readable, including the CA certificates, which the other packages read as root.
+For the same reason `export/` and `ca/` stay `root:wazuh-indexer 0750` and cannot be `0700 root:root`
+like the manager's directories: the walk fails with `AccessDeniedException` on a directory the
+service account cannot enter, and the node does not start. What the group can read there is only
+the public CA certificate; every private key and `credentials.env` is root's alone.
 
 ### Resolution happens once
 
