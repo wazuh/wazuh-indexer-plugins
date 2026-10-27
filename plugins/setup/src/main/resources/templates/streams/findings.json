@@ -22065,7 +22065,7 @@
           }
         },
         "@timestamp": {
-          "type": "date"
+          "type": "date_nanos"
         },
         "labels": {
           "type": "object"
