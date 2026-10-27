@@ -59,6 +59,7 @@
 | [#775](https://github.com/wazuh/wazuh-indexer-plugins/issues/775) | Move `agent` fields under `wazuh` |
 | [#477](https://github.com/wazuh/wazuh-indexer-plugins/issues/477) [#539](https://github.com/wazuh/wazuh-indexer-plugins/issues/539) [#547](https://github.com/wazuh/wazuh-indexer-plugins/issues/547) [#562](https://github.com/wazuh/wazuh-indexer-plugins/issues/562) [#582](https://github.com/wazuh/wazuh-indexer-plugins/issues/582) [#641](https://github.com/wazuh/wazuh-indexer-plugins/issues/641) [#697](https://github.com/wazuh/wazuh-indexer-plugins/issues/697) [#741](https://github.com/wazuh/wazuh-indexer-plugins/issues/741) [#811](https://github.com/wazuh/wazuh-indexer-plugins/issues/811) [#906](https://github.com/wazuh/wazuh-indexer-plugins/issues/906) [#1015](https://github.com/wazuh/wazuh-indexer-plugins/issues/1015) [#1123](https://github.com/wazuh/wazuh-indexer-plugins/issues/1123) [#298](https://github.com/wazuh/wazuh-indexer-plugins/issues/298) [#372](https://github.com/wazuh/wazuh-indexer-plugins/issues/372) [#1653](https://github.com/wazuh/wazuh-indexer-plugins/issues/1653) | Update third-party integrations to their latest versions |
 | [#1635](https://github.com/wazuh/wazuh-indexer-plugins/issues/1635) | Include the consumer name in the snapshot download log messages |
+| [#1736](https://github.com/wazuh/wazuh-indexer-plugins/issues/1736) | Swap `@timestamp` to `date_nanos` |
 
 
 ### Removed
