@@ -1,5 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,@timestamp,date,core,,2026-10-16T15:53:03.843Z,"Time the Wazuh Engine received the event, in UTC. The time in the original log is in `event.start`."
+9.1.0,true,base,@timestamp,date_nanos,core,,2026-10-16T15:53:03.843123456Z,"Time the Wazuh Engine received the event, in UTC. The time in the original log is in `event.start`."
 9.1.0,false,event,event.original,keyword,core,,Oct 13 13:00:57 wazuh-aio sshd[9538]: pam_unix(sshd:session): session opened for user vagrant(uid=1000) by (uid=0),Raw log as received by the Wazuh Engine. Not searchable; read it from `_source`.
 9.1.0,true,wazuh,wazuh.agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,wazuh,wazuh.agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.

@@ -1,0 +1,15 @@
+---
+- name: base
+  title: Base
+  root: true
+  fields:
+    - name: "@timestamp"
+      type: date_nanos
+      level: core
+      short: Date/time when the event originated, with nanosecond precision.
+      description: >
+        Date/time when the event originated, in UTC with nanosecond precision.
+        This is the date/time at which the Wazuh Manager generated the metric.
+
+        Required field for all events.
+      example: "2026-10-16T15:53:03.843123456Z"
