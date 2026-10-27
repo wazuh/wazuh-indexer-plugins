@@ -1,5 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,@timestamp,date,core,,2026-10-16T15:53:03.843Z,"Time the Wazuh Engine received the event, in UTC. The time in the original log is in `event.start`."
+9.1.0,true,base,@timestamp,date_nanos,core,,2026-10-16T15:53:03.843123456Z,"Time the Wazuh Engine received the event, in UTC. The time in the original log is in `event.start`."
 9.1.0,true,base,labels,object,core,,"{""application"": ""foo-bar"", ""env"": ""production""}",Custom key/value pairs.
 9.1.0,true,base,message,keyword,core,,pam_unix(sshd:session): session opened for user vagrant(uid=1000) by (uid=0),Human-readable message extracted by the decoder. The complete raw log is in `event.original`.
 9.1.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.

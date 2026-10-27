@@ -48,7 +48,7 @@ Four additional event fields: `event.changed_fields` (fields updated since the l
 
 #### Wazuh descriptions of ECS fields
 
-Some ECS fields keep their ECS type but carry a Wazuh description, because Wazuh fills them in a specific way: `@timestamp` and `message` (`custom/base.yml`), `event.start`, `event.end`, `event.created`, `event.ingested`, `event.original` and `event.id` (`custom/event.yml`), and `rule.id` (`custom/rule.yml`). For example, `@timestamp` is the time the Wazuh Engine received the event, while the time found in the original log is in `event.start`.
+Some ECS fields keep their ECS type but carry a Wazuh description, because Wazuh fills them in a specific way: `message` (`custom/base.yml`), `event.start`, `event.end`, `event.created`, `event.ingested`, `event.original` and `event.id` (`custom/event.yml`), and `rule.id` (`custom/rule.yml`). `@timestamp` (`custom/base.yml`) is the exception to the type: it is mapped as `date_nanos` instead of `date`, to keep the nanosecond precision with which the Engine stamps it. It is the time the Wazuh Engine received the event, while the time found in the original log is in `event.start`.
 
 #### `file.diff`
 
