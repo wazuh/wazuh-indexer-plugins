@@ -1,6 +1,6 @@
 # Permissions
 
-This page lists the permissions registered by the Wazuh Indexer plugins, to grant in the roles you define. The [default roles](./access-control.md) use only a few of them. Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual transport actions registered by the plugin: `cluster:admin/content_manager/*` for the actions that change state, and `cluster:monitor/content_manager/*` for the read-only ones (subscription get, logtest, promote get and version check); the Setup entries are raw cluster actions, each also exposed as an action group; the Ruleset Management entries are raw cluster actions.
+This page lists the permissions registered by the Wazuh Indexer plugins, to grant in the roles you define. The [default roles](./access-control.md) use only a few of them. Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual transport actions registered by the plugin: `cluster:admin/content_manager/*` for the actions that change state, and `cluster:monitor/content_manager/*` for the read-only ones (subscription get, logtest, promote get, policy resources get and version check); the Setup entries are raw cluster actions, each also exposed as an action group; the Ruleset Management entries are raw cluster actions.
 
 ## Setup plugin permissions
 
@@ -22,6 +22,7 @@ Each resource exposes `create`, `update` and `delete`, plus a `*` action group t
 Other Content Manager permissions:
 
 - `plugin:content_manager/policy/update` — create/update a policy (`PUT /_plugins/_content_manager/policy/{space}`)
+- `plugin:content_manager/policy/resources/get` — list a space's resources grouped by pipeline phase (`GET /_plugins/_content_manager/policy/resources`)
 - `plugin:content_manager/update` — trigger an on-demand CTI catalog sync (`POST /_plugins/_content_manager/update`)
 - `plugin:content_manager/subscription/get` — read the CTI subscription
 - `plugin:content_manager/subscription/post` — create/update the CTI subscription. Also the permission evaluated by `POST /_plugins/_content_manager/subscription?perform_permission_check=true`, which reports whether the caller holds it instead of registering.
