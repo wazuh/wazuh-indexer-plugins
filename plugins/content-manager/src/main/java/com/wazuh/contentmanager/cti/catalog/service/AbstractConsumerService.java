@@ -32,6 +32,8 @@ import org.opensearch.transport.client.Client;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -289,6 +291,10 @@ public abstract class AbstractConsumerService {
      * not yet provisioned this consumer's target indices, the status is left at {@code RUNNING}
      * rather than {@code READY} — nothing was synced, so nothing completed.
      *
+     * <p>When the pass changed the content, the same write that moves the status to {@link
+     * LocalConsumer.Status#READY} records the time as {@code updated_at}. A pass that finds nothing
+     * new keeps the time of the previous change.
+     *
      * @param pass The pass this synchronization belongs to.
      * @return {@code true} when the caller should retry this consumer immediately instead of waiting
      *     for the next scheduled run: a catalog URL was configured but the remote feed could not be
@@ -318,8 +324,21 @@ public abstract class AbstractConsumerService {
                 // provisioning within seconds.
                 return true;
             }
-            this.onSyncComplete(result.updated() || swap == SyncPass.SwapOutcome.SWAPPED);
-            this.setConsumerStatus(LocalConsumer.Status.READY);
+            boolean contentChanged = result.updated() || swap == SyncPass.SwapOutcome.SWAPPED;
+            // A prior pass may have changed the content but been cut before onSyncComplete finished its
+            // post-sync phases, which it records as pending. This pass applies no new offset, so
+            // result.updated() is false, but when it completes those owed phases the content update
+            // they stand for finishes here. Record the time in that case too; otherwise updated_at
+            // would keep the value from before the change that this pass just finalized.
+            List<String> owedPhasesBefore = this.readPendingSyncPhases();
+            this.onSyncComplete(contentChanged);
+            boolean completedOwedPhases =
+                    !owedPhasesBefore.isEmpty() && this.readPendingSyncPhases().isEmpty();
+            boolean contentUpdateRecorded = contentChanged || completedOwedPhases;
+            this.setConsumerStatus(
+                    LocalConsumer.Status.READY,
+                    null,
+                    contentUpdateRecorded ? currentTime().toString() : null);
             return result.feedUnreachable()
                     || result.sourceChangePending()
                     || this.immediateRetryRequested;
@@ -397,6 +416,21 @@ public abstract class AbstractConsumerService {
      *     one.
      */
     private void setConsumerStatus(LocalConsumer.Status status, Long remoteOffset) {
+        this.setConsumerStatus(status, remoteOffset, null);
+    }
+
+    /**
+     * Updates the consumer status in the {@code .wazuh-cti-consumers} index and, in the same write,
+     * the remote offset and the content update time when they are given. This is a partial update:
+     * every other field keeps its current value.
+     *
+     * @param status The new {@link LocalConsumer.Status} to persist.
+     * @param remoteOffset The remote offset to persist with it, or {@code null} to keep the current
+     *     one.
+     * @param updatedAt The content update time to persist with it, or {@code null} to keep the
+     *     current one.
+     */
+    private void setConsumerStatus(LocalConsumer.Status status, Long remoteOffset, String updatedAt) {
         String consumerType = this.getConsumerType();
         try {
             GetResponse response = this.consumersIndex.getConsumer(consumerType);
@@ -407,17 +441,21 @@ public abstract class AbstractConsumerService {
             LocalConsumer current = MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class);
             LocalConsumer updated =
                     new LocalConsumer(
-                            current.getContext(),
-                            current.getName(),
-                            current.getType(),
-                            current.getResource(),
-                            current.isPublic(),
-                            status,
-                            current.getLocalOffset(),
-                            remoteOffset != null ? remoteOffset : current.getRemoteOffset(),
-                            current.getPendingSyncPhases());
+                                    current.getContext(),
+                                    current.getName(),
+                                    current.getType(),
+                                    current.getResource(),
+                                    current.isPublic(),
+                                    status,
+                                    current.getLocalOffset(),
+                                    remoteOffset != null ? remoteOffset : current.getRemoteOffset(),
+                                    current.getPendingSyncPhases())
+                            .withUpdatedAt(updatedAt != null ? updatedAt : current.getUpdatedAt());
             this.consumersIndex.setConsumer(updated);
             log.debug(Constants.D_LOG_CONSUMER_STATUS_SET, consumerType, status);
+            if (updatedAt != null) {
+                log.debug(Constants.D_LOG_CONSUMER_CONTENT_UPDATED_AT, consumerType, updatedAt);
+            }
             if (remoteOffset != null) {
                 log.debug(
                         Constants.D_LOG_CONSUMER_REMOTE_OFFSET_SET,
@@ -433,6 +471,29 @@ public abstract class AbstractConsumerService {
                     status,
                     e.getMessage());
         }
+    }
+
+    /**
+     * Records that the CTI catalog answered this consumer's request for updates, as the {@code
+     * last_checked_at} of the {@link ConsumersIndex#CATALOG_ID} document. A failure is logged and
+     * does not stop the pass: the time is informative only.
+     */
+    private void recordCatalogChecked() {
+        try {
+            Instant checkedAt = currentTime();
+            this.consumersIndex.setLastCheckedAt(checkedAt);
+            log.debug(Constants.D_LOG_CATALOG_CHECKED_AT, checkedAt);
+        } catch (Exception e) {
+            log.warn(Constants.W_LOG_CATALOG_CHECKED_AT_FAILED, e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the current time in milliseconds, the precision of a {@code date} field. Its {@code
+     * toString()} is the ISO-8601 form recorded in {@code .wazuh-cti-consumers}.
+     */
+    static Instant currentTime() {
+        return Instant.now().truncatedTo(ChronoUnit.MILLIS);
     }
 
     /**
@@ -493,15 +554,16 @@ public abstract class AbstractConsumerService {
             LocalConsumer current = MAPPER.readValue(response.getSourceAsString(), LocalConsumer.class);
             LocalConsumer updated =
                     new LocalConsumer(
-                            current.getContext(),
-                            current.getName(),
-                            current.getType(),
-                            current.getResource(),
-                            current.isPublic(),
-                            current.getStatus(),
-                            current.getLocalOffset(),
-                            current.getRemoteOffset(),
-                            phases);
+                                    current.getContext(),
+                                    current.getName(),
+                                    current.getType(),
+                                    current.getResource(),
+                                    current.isPublic(),
+                                    current.getStatus(),
+                                    current.getLocalOffset(),
+                                    current.getRemoteOffset(),
+                                    phases)
+                            .withUpdatedAt(current.getUpdatedAt());
             this.consumersIndex.setConsumer(updated);
         } catch (Exception e) {
             log.warn(Constants.W_LOG_CONSUMER_PENDING_PHASES_FAILED, consumerType, e.getMessage());
@@ -535,15 +597,16 @@ public abstract class AbstractConsumerService {
             }
             this.consumersIndex.setConsumer(
                     new LocalConsumer(
-                            current.getContext(),
-                            current.getName(),
-                            current.getType(),
-                            current.getResource(),
-                            current.isPublic(),
-                            current.getStatus(),
-                            current.getLocalOffset(),
-                            current.getRemoteOffset(),
-                            pending));
+                                    current.getContext(),
+                                    current.getName(),
+                                    current.getType(),
+                                    current.getResource(),
+                                    current.isPublic(),
+                                    current.getStatus(),
+                                    current.getLocalOffset(),
+                                    current.getRemoteOffset(),
+                                    pending)
+                            .withUpdatedAt(current.getUpdatedAt()));
             log.debug(Constants.D_LOG_CONSUMER_PHASES_OWED_RECORDED, consumerType, pending);
         } catch (Exception e) {
             throw new IllegalStateException(
@@ -616,12 +679,18 @@ public abstract class AbstractConsumerService {
      *
      * <p>If neither the remote consumer nor the manifest entry is available, the write is skipped;
      * the existing fatal log branches in {@code syncConsumerServices} apply.
+     *
+     * <p>The content has not changed yet, so the document keeps the content update time of the
+     * document it replaces.
+     *
+     * @param updatedAt The content update time of the document it replaces, or {@code null}.
      */
     private void writeInitialConsumer(
             RemoteConsumer remoteConsumer,
             JsonNode manifestEntry,
             String catalogUri,
-            String consumerType) {
+            String consumerType,
+            String updatedAt) {
         try {
             LocalConsumer t0;
             if (remoteConsumer != null) {
@@ -655,7 +724,7 @@ public abstract class AbstractConsumerService {
             } else {
                 return;
             }
-            this.consumersIndex.setConsumer(t0);
+            this.consumersIndex.setConsumer(t0.withUpdatedAt(updatedAt));
             log.debug(Constants.D_LOG_CONSUMER_T0_WRITTEN, consumerType, t0.getRemoteOffset());
         } catch (Exception e) {
             log.log(
@@ -974,6 +1043,9 @@ public abstract class AbstractConsumerService {
             // getRemoteConsumer() swallows the network failure and returns null, so this is the only
             // place the unreachable-feed condition is observable.
             boolean feedUnreachable = catalogConfigured && remoteConsumer == null && !pass.isOffline();
+            if (remoteConsumer != null) {
+                this.recordCatalogChecked();
+            }
 
             // Mark the pass as running before anything is applied. When the remote head is known, the
             // same write records the offset this pass syncs to, so that from the first running read
@@ -1075,7 +1147,12 @@ public abstract class AbstractConsumerService {
                 // can see the in-progress state. Identity fields come from the remote response when a
                 // catalog URL is available (either setting or existing doc's resource), otherwise from
                 // the manifest entry.
-                this.writeInitialConsumer(remoteConsumer, manifestEntry, catalogUri, consumerType);
+                this.writeInitialConsumer(
+                        remoteConsumer,
+                        manifestEntry,
+                        catalogUri,
+                        consumerType,
+                        localConsumer != null ? localConsumer.getUpdatedAt() : null);
                 // After t0, which writes the document afresh, and before anything is cleared or loaded.
                 this.recordPhasesOwedByContentChange();
 

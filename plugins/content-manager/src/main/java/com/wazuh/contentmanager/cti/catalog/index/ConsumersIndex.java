@@ -31,11 +31,13 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +54,12 @@ public class ConsumersIndex {
 
     /** The name of the Contexts index */
     public static final String INDEX_NAME = ".wazuh-cti-consumers";
+
+    /**
+     * Id of the document that holds the state of the CTI catalog as a whole, next to the documents of
+     * each consumer type.
+     */
+    public static final String CATALOG_ID = "cti:catalog:global";
 
     /** Path of the index mapping file */
     private static final String MAPPING_PATH = "/mappings/consumers-mapping.json";
@@ -150,6 +158,38 @@ public class ConsumersIndex {
         if (response.hasFailures()) {
             throw new IllegalStateException(response.buildFailureMessage());
         }
+    }
+
+    /**
+     * Records the time the Wazuh Indexer last got an answer from the CTI catalog when it asked for
+     * updates, in the {@link #CATALOG_ID} document.
+     *
+     * @param checkedAt The time of the answer.
+     * @return The {@link IndexResponse} indicating the result of the operation.
+     * @throws ExecutionException If the client failed to execute the request.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException If the operation exceeded the configured client timeout.
+     * @throws IOException If the document cannot be built.
+     * @throws RuntimeException If the target index is not currently ready or available.
+     */
+    public IndexResponse setLastCheckedAt(Instant checkedAt)
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
+        if (!ClusterInfo.indexStatusCheck(
+                this.client, INDEX_NAME, this.pluginSettings.getClientTimeout())) {
+            throw new RuntimeException("Index not ready");
+        }
+        IndexRequest request =
+                new IndexRequest()
+                        .index(INDEX_NAME)
+                        .id(CATALOG_ID)
+                        .source(
+                                XContentFactory.jsonBuilder()
+                                        .startObject()
+                                        .field(Constants.KEY_LAST_CHECKED_AT, checkedAt.toString())
+                                        .endObject())
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+        return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**

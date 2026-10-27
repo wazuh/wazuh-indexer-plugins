@@ -625,6 +625,55 @@ public class SpaceServiceTests extends OpenSearchTestCase {
         assertEquals(2, fullPolicy.get(Constants.KEY_RESOURCES).get(Constants.KEY_INTEGRATIONS).size());
     }
 
+    /**
+     * The resource ids a space holds are returned sorted, read straight from the resource index with
+     * no {@code indices:admin/exists} pre-check (only the {@code read} privilege is needed).
+     */
+    public void testGetSpaceResourceIdsAsync_returnsSortedIdsWithoutExistsCheck() {
+        mockPolicySearch(searchResponse(resourceHit("d-b"), resourceHit("d-a")));
+
+        AtomicReference<Map<String, List<String>>> result = new AtomicReference<>(null);
+        this.policyHashService.getSpaceResourceIdsAsync(
+                "test", List.of(Constants.KEY_DECODERS), ActionListener.wrap(result::set, e -> {}));
+
+        assertNotNull("Listener should have been notified", result.get());
+        assertEquals(List.of("d-a", "d-b"), result.get().get(Constants.KEY_DECODERS));
+        verify(this.client, never()).admin();
+    }
+
+    /**
+     * A failure reading a resource index must reach the caller. The earlier endpoint swallowed every
+     * read failure into an empty map, so a permission or shard error looked identical to an empty
+     * space (wazuh-indexer-plugins#1715).
+     */
+    public void testGetSpaceResourceIdsAsync_readFailureIsNotMaskedAsEmpty() {
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onFailure(new RuntimeException("index read not permitted"));
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
+
+        AtomicReference<Map<String, List<String>>> result = new AtomicReference<>(null);
+        AtomicReference<Exception> failure = new AtomicReference<>(null);
+        this.policyHashService.getSpaceResourceIdsAsync(
+                "test", List.of(Constants.KEY_DECODERS), ActionListener.wrap(result::set, failure::set));
+
+        assertNotNull("A read failure must reach the caller, not be masked as empty", failure.get());
+        assertNull("onResponse must not be called on a read failure", result.get());
+    }
+
+    private SearchHit resourceHit(String docId) {
+        SearchHit hit = new SearchHit(1, docId, Collections.emptyMap(), Collections.emptyMap());
+        hit.sourceRef(
+                new BytesArray(
+                        ("{\"document\":{\"id\":\"" + docId + "\"}}").getBytes(StandardCharsets.UTF_8)));
+        return hit;
+    }
+
     private SearchHit policyHit(String sourceJson) {
         SearchHit hit =
                 new SearchHit(1, "standard-policy-id", Collections.emptyMap(), Collections.emptyMap());

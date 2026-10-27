@@ -889,6 +889,55 @@ The `message` field contains the OpenSearch document ID of the updated policy.
 - **400** — invalid space, missing `resource` field, missing required fields, invalid enrichments, or disallowed modification of `integrations`/`filters`.
 - **500** — internal error.
 
+### List space resources
+
+Lists the resources of a space grouped by pipeline phase. `normalization` holds the ids of the space's decoders, filters and kvdbs — the resources that make the Engine require a root decoder — and `detection` holds its rules. A resource type with no documents in the space returns an empty array.
+
+Use it to find what a space still holds when a promotion fails with `Missing root decoder`: the decoders, kvdbs or filters left in the space must be deleted (or a new root decoder set) before the space can be promoted.
+
+#### Request
+
+- Method: `GET`
+- Path: `/_plugins/_content_manager/policy/resources`
+
+#### Query parameters
+
+- **`space`** (String, required) — the space to list (`draft`, `test`, or `custom`). The `standard` space is not supported.
+
+#### Example request
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
+  "https://127.0.0.1:9200/_plugins/_content_manager/policy/resources?space=test"
+```
+
+#### Example response
+
+```json
+{
+  "normalization": {
+    "decoders": ["5d1f34c6-7b8d-466f-9027-820ed0ead71d"],
+    "filters": ["6e2a45d7-8c9e-4a1b-9138-931fe1fbe82e"],
+    "kvdbs": ["7f3b56e8-9daf-4b2c-a249-a42af2fcf93f"]
+  },
+  "detection": {
+    "rules": []
+  },
+  "status": 200
+}
+```
+
+#### Permissions
+
+The caller needs the `read` index privilege on the resource indices (`wazuh-threatintel-*`). A caller that cannot read them gets a `403` instead of an empty list, so an authorization error is never mistaken for an empty space.
+
+#### Status codes
+
+- **200** — resources returned.
+- **400** — missing, unknown, or unsupported `space` (the `standard` space is not supported).
+- **403** — the caller lacks the `read` privilege on the resource indices.
+- **500** — internal error.
+
 ---
 
 ## Rules

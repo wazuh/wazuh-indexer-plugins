@@ -189,4 +189,70 @@ public class LocalConsumerTests extends OpenSearchTestCase {
                 "pending_sync_phases should default to empty for legacy documents",
                 consumer.getPendingSyncPhases().isEmpty());
     }
+
+    /** Tests that updated_at is serialized when set and left out when there is none. */
+    public void testToXContentWritesUpdatedAtOnlyWhenSet() throws Exception {
+        LocalConsumer consumer =
+                new LocalConsumer(
+                        "ctx",
+                        "name",
+                        "cti:catalog:consumer:iocs",
+                        "https://cti/iocs",
+                        true,
+                        LocalConsumer.Status.READY,
+                        5L,
+                        5L);
+
+        Assert.assertFalse(consumer.toXContent().toString().contains("updated_at"));
+        Assert.assertTrue(
+                consumer
+                        .withUpdatedAt("2026-10-21T12:26:16.581Z")
+                        .toXContent()
+                        .toString()
+                        .contains("\"updated_at\":\"2026-10-21T12:26:16.581Z\""));
+    }
+
+    /** Tests that updated_at round-trips through JSON, and is null for documents without it. */
+    public void testUpdatedAtDeserialization() throws Exception {
+        String json =
+                "{\"name\":\"name\",\"context\":\"ctx\",\"status\":\"ready\","
+                        + "\"type\":\"cti:catalog:consumer:iocs\","
+                        + "\"resource\":\"https://cti/iocs\",\"is_public\":true,"
+                        + "\"local_offset\":5,\"remote_offset\":5";
+        Assert.assertEquals(
+                "2026-10-21T12:26:16.581Z",
+                this.mapper
+                        .readValue(json + ",\"updated_at\":\"2026-10-21T12:26:16.581Z\"}", LocalConsumer.class)
+                        .getUpdatedAt());
+        Assert.assertNull(this.mapper.readValue(json + "}", LocalConsumer.class).getUpdatedAt());
+    }
+
+    /** Tests that withUpdatedAt copies every other field and leaves the original unchanged. */
+    public void testWithUpdatedAtCopiesTheOtherFields() {
+        LocalConsumer consumer =
+                new LocalConsumer(
+                        "ctx",
+                        "name",
+                        "cti:catalog:consumer:ruleset",
+                        "https://cti/rules",
+                        false,
+                        LocalConsumer.Status.FAILED,
+                        10L,
+                        20L,
+                        List.of("rules"));
+
+        LocalConsumer copy = consumer.withUpdatedAt("2026-10-21T12:26:16.581Z");
+
+        Assert.assertEquals("2026-10-21T12:26:16.581Z", copy.getUpdatedAt());
+        Assert.assertNull(consumer.getUpdatedAt());
+        Assert.assertEquals(consumer.getContext(), copy.getContext());
+        Assert.assertEquals(consumer.getName(), copy.getName());
+        Assert.assertEquals(consumer.getType(), copy.getType());
+        Assert.assertEquals(consumer.getResource(), copy.getResource());
+        Assert.assertEquals(consumer.isPublic(), copy.isPublic());
+        Assert.assertEquals(consumer.getStatus(), copy.getStatus());
+        Assert.assertEquals(consumer.getLocalOffset(), copy.getLocalOffset());
+        Assert.assertEquals(consumer.getRemoteOffset(), copy.getRemoteOffset());
+        Assert.assertEquals(consumer.getPendingSyncPhases(), copy.getPendingSyncPhases());
+    }
 }

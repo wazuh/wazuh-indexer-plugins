@@ -650,18 +650,20 @@ public class ShadowSwapService {
          */
         private LocalConsumer document(long localOffset) {
             return new LocalConsumer(
-                    PluginSettings.getContextFromCatalogUri(this.resource),
-                    PluginSettings.getConsumerFromCatalogUri(this.resource),
-                    this.type(),
-                    this.resource,
-                    this.snapshotFile != null ? this.filePublic : this.remoteConsumer.isPublic(),
-                    LocalConsumer.Status.RUNNING,
-                    localOffset,
-                    // A snapshot file says nothing of the data source's head beyond its own offset.
-                    this.snapshotFile != null ? this.fileOffset : this.remoteConsumer.getOffset(),
-                    AbstractConsumerService.mergePhases(
-                            this.before != null ? this.before.getPendingSyncPhases() : null,
-                            this.consumer.phasesOwedByContentChange()));
+                            PluginSettings.getContextFromCatalogUri(this.resource),
+                            PluginSettings.getConsumerFromCatalogUri(this.resource),
+                            this.type(),
+                            this.resource,
+                            this.snapshotFile != null ? this.filePublic : this.remoteConsumer.isPublic(),
+                            LocalConsumer.Status.RUNNING,
+                            localOffset,
+                            // A snapshot file says nothing of the data source's head beyond its own offset.
+                            this.snapshotFile != null ? this.fileOffset : this.remoteConsumer.getOffset(),
+                            AbstractConsumerService.mergePhases(
+                                    this.before != null ? this.before.getPendingSyncPhases() : null,
+                                    this.consumer.phasesOwedByContentChange()))
+                    // The pass that follows the swap records the new content's update time.
+                    .withUpdatedAt(this.before != null ? this.before.getUpdatedAt() : null);
         }
 
         private void close() {

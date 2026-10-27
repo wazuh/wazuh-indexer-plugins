@@ -125,11 +125,13 @@ Left out: <sha> <subject> (<why>)
 ```
 
 The only label is `no-changelog`, and only when the merge does not touch
-`CHANGELOG.md`. It exists in all seven repositories.
+`CHANGELOG.md`. Since the destination's changelog is always kept whole, that is
+normally every merge; the check stays as a safeguard. It exists in all seven
+repositories.
 
 ## Resolving the bookkeeping conflicts
 
-These five are the only conflicts the skill resolves. Anything else belongs to
+These five are the only conflicts the skill resolves (`CHANGELOG.md` is restored outright, never merged). Anything else belongs to
 the user, however trivial it looks — a workflow is bookkeeping, a build file
 is not.
 
@@ -137,8 +139,8 @@ is not.
 |---|---|
 | `VERSION.json` | Keep the destination's: `git checkout origin/<higher> -- VERSION.json`. Each branch owns its version and stage, and taking the incoming one downgrades the branch. |
 | `.github/**` | Keep the destination's. Every branch pins its workflows to its own actions and sibling repositories, so the destination's file is the right one by definition. A genuine workflow improvement that has to travel upwards goes in its own PR, not inside a merge. |
-| `CHANGELOG.md` | Union, keeping the destination's structure: its version headings and its `## Prior versions` section stay, and the incoming entries go under the matching `### Added` / `### Changed` / `### Fixed` / `### Removed` heading, with no duplicates. `tools/changelog_sync.sh` rewrites this file on bumps, so the two branches can be structurally different; the destination's shape wins. |
-| `release-notes/*` | Additive lists — same union treatment. Only some repositories have them (not `wazuh-indexer` or `wazuh-indexer-plugins`). |
+| `CHANGELOG.md` | Keep the destination's, whole: `git checkout origin/<higher> -- CHANGELOG.md`. Changelog entries describe the version of the branch they were written on, so the source's entries are never carried up — not as a union, not under the matching heading. Drop every change the source made to the file, in conflicting and in clean merges alike. Never let it be the reason a step has something to merge: after restoring it, a step whose only difference was the changelog is a "no changes" step. |
+| `release-notes/*` | Keep the destination's, whole: `git checkout origin/<higher> -- release-notes/`. These describe what a released version shipped, so they belong to the branch they were written on for the same reason the changelog does, and the source's are never carried up. Only some repositories have them (not `wazuh-indexer` or `wazuh-indexer-plugins`). |
 | `distribution/packages/src/rpm/wazuh-indexer.rpm.spec`, `%changelog` only | Union of the entries, and **the incoming side wins an entry both sides have** — this is the one rule that is not destination-wins. Release dates are corrected on the lower line and have to travel up. Anything in that spec outside `%changelog` is the user's. |
 
 The spec's `%changelog` is worth a worked example, because it is the one that
@@ -295,7 +297,12 @@ that apply, as in #1706, #1784, #1802 and #1933.
    `--no-track` for the same reason as in a plain merge: without it a bare
    `git push` aims at the release branch. `-x` records where each commit came
    from, which makes the next round's bookkeeping easier. An empty commit
-   needs `--allow-empty` or is left out.
+   needs `--allow-empty` or is left out. A picked commit that touches
+   `CHANGELOG.md` keeps none of that file's changes: on a conflict
+   `git checkout origin/<higher> -- CHANGELOG.md` before continuing, and on a
+   pick that applied cleanly the same restore plus `git commit -S --amend`,
+   because the commit already exists with the entries inside. If that leaves it
+   empty, it is skipped.
 
    On a conflict, stop and hand the repository over exactly as a merge
    conflict is handed over in `SKILL.md` step 4; a bump usually applies only

@@ -68,6 +68,12 @@ class TestConsumer extends AbstractConsumerService {
     RuntimeException postSyncFailure;
 
     /**
+     * When true, the post-synchronization work finishes the owed phases, clearing the pending list,
+     * as a real consumer's does once its content work completes.
+     */
+    boolean completesOwedPhases;
+
+    /**
      * Constructs a TestConsumer.
      *
      * @param consumersIndex The consumers index holding its document.
@@ -165,6 +171,9 @@ class TestConsumer extends AbstractConsumerService {
             throw this.postSyncFailure;
         }
         this.events.add("post-sync " + this.type + " updated=" + isUpdated);
+        if (this.completesOwedPhases) {
+            this.setPendingSyncPhases(List.of());
+        }
     }
 
     @Override
@@ -205,15 +214,16 @@ class TestConsumer extends AbstractConsumerService {
             LocalConsumer current = this.readConsumerDocument();
             this.consumersIndex.setConsumer(
                     new LocalConsumer(
-                            current.getContext(),
-                            current.getName(),
-                            current.getType(),
-                            current.getResource(),
-                            current.isPublic(),
-                            LocalConsumer.Status.RUNNING,
-                            toOffset,
-                            toOffset,
-                            current.getPendingSyncPhases()),
+                                    current.getContext(),
+                                    current.getName(),
+                                    current.getType(),
+                                    current.getResource(),
+                                    current.isPublic(),
+                                    LocalConsumer.Status.RUNNING,
+                                    toOffset,
+                                    toOffset,
+                                    current.getPendingSyncPhases())
+                            .withUpdatedAt(current.getUpdatedAt()),
                     true);
         } catch (Exception e) {
             throw new IllegalStateException(e);

@@ -34,6 +34,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.GroupedActionListener;
+import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
@@ -351,6 +352,59 @@ public class SpaceService {
         List<Map.Entry<String, String>> entries =
                 new ArrayList<>(Constants.RESOURCE_INDICES.entrySet());
         fetchResourceTypeAsync(spaceName, entries, 0, new HashMap<>(), listener);
+    }
+
+    /**
+     * Fetches the document ids of the given resource types in a space, sorted.
+     *
+     * <p>Unlike {@link #getSpaceResourcesAsync}, a resource index that cannot be read fails the
+     * listener instead of being reported as empty, so a caller can tell "none" from "not readable". A
+     * missing index counts as empty, and only the {@code read} privilege is needed (no {@code
+     * indices:admin/exists} pre-check).
+     *
+     * @param spaceName The space to filter by.
+     * @param resourceTypes The resource types to list (keys of {@link Constants#RESOURCE_INDICES}).
+     * @param listener receives a map of resource type to its sorted ids.
+     */
+    public void getSpaceResourceIdsAsync(
+            String spaceName,
+            List<String> resourceTypes,
+            ActionListener<Map<String, List<String>>> listener) {
+        GroupedActionListener<Map.Entry<String, List<String>>> group =
+                new GroupedActionListener<>(
+                        ActionListener.wrap(
+                                entries -> {
+                                    Map<String, List<String>> result = new HashMap<>();
+                                    entries.forEach(e -> result.put(e.getKey(), e.getValue()));
+                                    listener.onResponse(result);
+                                },
+                                listener::onFailure),
+                        resourceTypes.size());
+        for (String resourceType : resourceTypes) {
+            SearchRequest searchRequest =
+                    new SearchRequest(Constants.RESOURCE_INDICES.get(resourceType))
+                            .indicesOptions(IndicesOptions.lenientExpandOpen());
+            searchRequest.source(
+                    new SearchSourceBuilder()
+                            .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName))
+                            .fetchSource(new String[] {Constants.Q_DOCUMENT_ID}, null)
+                            .size(Constants.MAX_RESULT_WINDOW));
+            this.client.search(
+                    searchRequest,
+                    ActionListener.wrap(
+                            response -> {
+                                List<String> ids = new ArrayList<>();
+                                for (SearchHit hit : response.getHits().getHits()) {
+                                    String docId = this.getDocumentId(hit.getSourceAsMap());
+                                    if (docId != null) {
+                                        ids.add(docId);
+                                    }
+                                }
+                                ids.sort(String::compareTo);
+                                group.onResponse(Map.entry(resourceType, ids));
+                            },
+                            group::onFailure));
+        }
     }
 
     private void fetchResourceTypeAsync(

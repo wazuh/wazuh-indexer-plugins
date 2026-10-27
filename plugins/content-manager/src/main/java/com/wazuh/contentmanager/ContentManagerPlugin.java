@@ -542,6 +542,7 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostLogtestNormalizationAction(),
                 new RestPostLogtestDetectionAction(),
                 new RestPutPolicyAction(),
+                new RestGetPolicyResourcesAction(),
                 new RestPostRuleAction(),
                 new RestPutRuleAction(),
                 new RestDeleteRuleAction(),
@@ -1266,6 +1267,8 @@ public class ContentManagerPlugin extends Plugin
                 new ActionHandler<>(VersionCheckAction.INSTANCE, TransportVersionCheckAction.class),
                 // Group 6: Policy
                 new ActionHandler<>(UpdatePolicyAction.INSTANCE, TransportUpdatePolicyAction.class),
+                new ActionHandler<>(
+                        GetPolicyResourcesAction.INSTANCE, TransportGetPolicyResourcesAction.class),
                 // Phase 2: CRUD - Decoders
                 new ActionHandler<>(CreateDecoderAction.INSTANCE, TransportCreateDecoderAction.class),
                 new ActionHandler<>(UpdateDecoderAction.INSTANCE, TransportUpdateDecoderAction.class),
