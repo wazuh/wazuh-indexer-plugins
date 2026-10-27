@@ -1,5 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,@timestamp,date_nanos,core,,2026-10-16T15:53:03.843123456Z,"Date/time when the event originated, with nanosecond precision."
 9.1.0,true,discarded,discarded.total,long,custom,,0,Cumulative number of discarded messages.
 9.1.0,true,event,event.module,keyword,core,,apache,Name of the module this data is coming from.
 9.1.0,true,events,events.failed.total,long,custom,,0,Agent events that could not be delivered to wazuh-analysisd.
