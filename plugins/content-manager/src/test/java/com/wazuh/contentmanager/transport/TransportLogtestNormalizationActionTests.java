@@ -33,6 +33,8 @@ import com.wazuh.contentmanager.action.LogtestNormalizationRequest;
 import com.wazuh.contentmanager.action.LogtestResponse;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.Mockito.*;
 
@@ -159,5 +161,38 @@ public class TransportLogtestNormalizationActionTests extends OpenSearchTestCase
                                     Assert.assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.getStatus());
                                     return true;
                                 }));
+    }
+
+    public void testDoExecute_MissingTraceLevelDefaultsToNone() {
+        ObjectNode payload = this.executeAndCaptureEnginePayload("{\"space\":\"test\"}");
+        Assert.assertEquals(
+                Constants.TRACE_LEVEL_NONE, payload.get(Constants.KEY_TRACE_LEVEL).asText());
+    }
+
+    public void testDoExecute_NullTraceLevelDefaultsToNone() {
+        ObjectNode payload =
+                this.executeAndCaptureEnginePayload("{\"space\":\"test\",\"trace_level\":null}");
+        Assert.assertEquals(
+                Constants.TRACE_LEVEL_NONE, payload.get(Constants.KEY_TRACE_LEVEL).asText());
+    }
+
+    public void testDoExecute_GivenTraceLevelIsKept() {
+        ObjectNode payload =
+                this.executeAndCaptureEnginePayload("{\"space\":\"test\",\"trace_level\":\"ALL\"}");
+        Assert.assertEquals("ALL", payload.get(Constants.KEY_TRACE_LEVEL).asText());
+    }
+
+    /** Runs a request and returns the payload the transport action handed to the Engine. */
+    @SuppressWarnings("unchecked")
+    private ObjectNode executeAndCaptureEnginePayload(String body) {
+        when(this.logtestService.executeNormalization(any(ObjectNode.class)))
+                .thenReturn(new RestResponse("OK", RestStatus.OK.getStatus()));
+
+        this.action.doExecute(
+                mock(Task.class), new LogtestNormalizationRequest(body), mock(ActionListener.class));
+
+        ArgumentCaptor<ObjectNode> captor = ArgumentCaptor.forClass(ObjectNode.class);
+        verify(this.logtestService).executeNormalization(captor.capture());
+        return captor.getValue();
     }
 }
