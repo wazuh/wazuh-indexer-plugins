@@ -381,6 +381,32 @@ public class SpaceServiceTests extends OpenSearchTestCase {
         }
     }
 
+    /** A full reset must keep the existing metadata: initializeSpace writes the provided block. */
+    public void testInitializeSpace_PreservesProvidedMetadata() {
+        org.mockito.ArgumentCaptor<IndexRequest> captor =
+                org.mockito.ArgumentCaptor.forClass(IndexRequest.class);
+        IndexResponse mockResponse = org.mockito.Mockito.mock(IndexResponse.class);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<IndexResponse>>getArgument(1).onResponse(mockResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
+
+        java.util.Map<String, Object> preservedMetadata =
+                java.util.Map.<String, Object>of("title", "keep-me", "author", "zeus");
+
+        this.policyHashService.initializeSpace(
+                "draft", "test-doc-id", preservedMetadata, ActionListener.wrap(r -> {}, e -> {}));
+
+        verify(this.client).index(captor.capture(), any());
+        String sourceJson = captor.getValue().source().utf8ToString();
+        assertTrue("Should keep the provided title", sourceJson.contains("\"title\":\"keep-me\""));
+        assertTrue("Should keep the provided author", sourceJson.contains("\"author\":\"zeus\""));
+        assertFalse("Should not fall back to the default title", sourceJson.contains("Custom space"));
+    }
+
     /**
      * Tests that recalculateSpaceHashIfMissing does nothing when the space has no policy document
      * yet, which is the state of a fresh cluster before the catalog has been synchronized.

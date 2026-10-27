@@ -245,6 +245,26 @@ public class SpaceService {
      * @param listener notified on completion or failure.
      */
     public void initializeSpace(String spaceName, String documentId, ActionListener<Void> listener) {
+        this.initializeSpace(spaceName, documentId, null, listener);
+    }
+
+    /**
+     * Same as {@link #initializeSpace(String, String, ActionListener)}, but keeps the given metadata
+     * block (title, author, description, references, documentation, …) on the re-seeded policy
+     * instead of the default. The full space reset uses this so a reset does not wipe the space's own
+     * metadata. Pass {@code null} to get the default metadata.
+     *
+     * @param spaceName The space name.
+     * @param documentId Shared policy ID stored inside the document to link all default spaces.
+     * @param preservedMetadata The {@code document.metadata} block to keep, or {@code null} for the
+     *     default.
+     * @param listener notified on completion or failure.
+     */
+    public void initializeSpace(
+            String spaceName,
+            String documentId,
+            Map<String, Object> preservedMetadata,
+            ActionListener<Void> listener) {
         String spaceDocId =
                 UUID.nameUUIDFromBytes(("wazuh-space-" + spaceName).getBytes(StandardCharsets.UTF_8))
                         .toString();
@@ -273,6 +293,12 @@ public class SpaceService {
 
             ObjectNode docNode = this.objectMapper.valueToTree(policy);
             Resource.nestMetadataFields(docNode);
+
+            // Keep the previous metadata (title, author, description, …) when the caller provides it,
+            // e.g. a full reset that must not wipe the space's own metadata.
+            if (preservedMetadata != null && !preservedMetadata.isEmpty()) {
+                docNode.set(Constants.KEY_METADATA, this.objectMapper.valueToTree(preservedMetadata));
+            }
 
             String docJson = this.objectMapper.writeValueAsString(docNode);
             String docHash = Resource.computeSha256(docJson);

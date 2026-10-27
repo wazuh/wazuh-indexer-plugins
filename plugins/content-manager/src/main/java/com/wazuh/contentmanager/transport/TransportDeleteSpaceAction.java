@@ -29,6 +29,7 @@ import org.opensearch.transport.client.Client;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import com.wazuh.contentmanager.action.DeleteSpaceAction;
@@ -130,39 +131,77 @@ public class TransportDeleteSpaceAction
 
         log.info("Starting reset operation for space [{}]", space);
 
+        // Read the policy's metadata first so the reset can preserve it: a reset must not wipe the
+        // space's own title, author, description, etc. On a read failure, fall back to the default.
+        this.spaceService.getPolicy(
+                space.toString(),
+                ActionListener.wrap(
+                        policySource -> resetSpace(space, extractMetadata(policySource), listener),
+                        e -> {
+                            log.warn(
+                                    "Could not read the policy metadata before resetting [{}]; using the default. {}",
+                                    space,
+                                    e.getMessage());
+                            resetSpace(space, null, listener);
+                        }));
+    }
+
+    /**
+     * Runs the full reset chain: clear Security Analytics, clear the {@code wazuh-threatintel-*}
+     * resources (including the policy document), and re-seed the policy, keeping {@code
+     * preservedMetadata} if present.
+     */
+    private void resetSpace(
+            Space space,
+            Map<String, Object> preservedMetadata,
+            ActionListener<MessageStatusResponse> listener) {
         // 1. Remove resources belonging to the space in Security Analytics.
         this.securityAnalyticsService.deleteSpaceResources(
                 space,
                 ActionListener.wrap(
-                        sapResponse -> {
-                            // 2. Remove resources belonging to space in the wazuh-threatintel-*
-                            // indices.
-                            this.spaceService.deleteSpaceResources(
-                                    space,
-                                    ActionListener.wrap(
-                                            v -> {
-                                                // 3. Re-generate the default policy for the space
-                                                String sharedDocumentId =
-                                                        UUID.nameUUIDFromBytes(
-                                                                        "wazuh-default-policy".getBytes(StandardCharsets.UTF_8))
-                                                                .toString();
-                                                this.spaceService.initializeSpace(
-                                                        space.toString(),
-                                                        sharedDocumentId,
-                                                        ActionListener.wrap(
-                                                                v2 -> {
-                                                                    String message =
-                                                                            String.format(
-                                                                                    Locale.ROOT, "Successfully reset space [%s].", space);
-                                                                    log.info(message);
-                                                                    listener.onResponse(
-                                                                            new MessageStatusResponse(message, RestStatus.OK));
-                                                                },
-                                                                e -> respondWithError(listener, space, e)));
-                                            },
-                                            e -> respondWithError(listener, space, e)));
-                        },
+                        sapResponse ->
+                                // 2. Remove resources belonging to the space in the
+                                // wazuh-threatintel-* indices.
+                                this.spaceService.deleteSpaceResources(
+                                        space,
+                                        ActionListener.wrap(
+                                                v -> {
+                                                    // 3. Re-generate the policy for the space, keeping its metadata.
+                                                    String sharedDocumentId =
+                                                            UUID.nameUUIDFromBytes(
+                                                                            "wazuh-default-policy".getBytes(StandardCharsets.UTF_8))
+                                                                    .toString();
+                                                    this.spaceService.initializeSpace(
+                                                            space.toString(),
+                                                            sharedDocumentId,
+                                                            preservedMetadata,
+                                                            ActionListener.wrap(
+                                                                    v2 -> {
+                                                                        String message =
+                                                                                String.format(
+                                                                                        Locale.ROOT, "Successfully reset space [%s].", space);
+                                                                        log.info(message);
+                                                                        listener.onResponse(
+                                                                                new MessageStatusResponse(message, RestStatus.OK));
+                                                                    },
+                                                                    e -> respondWithError(listener, space, e)));
+                                                },
+                                                e -> respondWithError(listener, space, e))),
                         e -> respondWithError(listener, space, e)));
+    }
+
+    /** Extracts the {@code document.metadata} block from a raw policy {@code _source}, or null. */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> extractMetadata(Map<String, Object> policySource) {
+        if (policySource == null) {
+            return null;
+        }
+        Object document = policySource.get(Constants.KEY_DOCUMENT);
+        if (document instanceof Map == false) {
+            return null;
+        }
+        Object metadata = ((Map<String, Object>) document).get(Constants.KEY_METADATA);
+        return metadata instanceof Map ? (Map<String, Object>) metadata : null;
     }
 
     private void respondSuccess(

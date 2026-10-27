@@ -1468,11 +1468,11 @@ paths:
       tags: [ Spaces ]
       summary: Reset a user space
       description: |
-        Resets a user space (draft) to its initial state.
+        Resets a user space (draft): removes its content and resets the policy's settings to default, while keeping the space's metadata (title, author, description, ...).
 
         This operation will:
         - Remove all documents (integrations, rules, decoders, kvdbs, filters, and the space's policy document) belonging to the given space.
-        - Re-generate the default policy for the given space.
+        - Re-generate the policy for the given space with default settings, preserving its metadata.
 
       operationId: deleteSpace
       parameters:
