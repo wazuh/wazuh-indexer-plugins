@@ -19,13 +19,18 @@ package com.wazuh.contentmanager.transport;
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
@@ -174,7 +179,8 @@ public class TransportDeleteSpaceActionTests extends OpenSearchTestCase {
 
     /** scope=NORMALIZATION on draft routes to the normalization clear and reports success. */
     public void testDoExecute_NormalizationScopeClearsAndReports() {
-        TransportDeleteSpaceAction act = actionWith(stubbedClient());
+        ThreadPool threadPool = lockThreadPool();
+        TransportDeleteSpaceAction act = actionWith(stubbedClient(threadPool), threadPool);
         DeleteSpaceRequest request = new DeleteSpaceRequest("draft", SpaceClearScope.NORMALIZATION);
 
         @SuppressWarnings("unchecked")
@@ -194,7 +200,8 @@ public class TransportDeleteSpaceActionTests extends OpenSearchTestCase {
 
     /** scope=DETECTION on draft routes to the detection clear and reports success. */
     public void testDoExecute_DetectionScopeClearsAndReports() {
-        TransportDeleteSpaceAction act = actionWith(stubbedClient());
+        ThreadPool threadPool = lockThreadPool();
+        TransportDeleteSpaceAction act = actionWith(stubbedClient(threadPool), threadPool);
         DeleteSpaceRequest request = new DeleteSpaceRequest("draft", SpaceClearScope.DETECTION);
 
         @SuppressWarnings("unchecked")
@@ -212,34 +219,66 @@ public class TransportDeleteSpaceActionTests extends OpenSearchTestCase {
                                 }));
     }
 
-    private TransportDeleteSpaceAction actionWith(Client client) {
-        return new TransportDeleteSpaceAction(
-                mock(TransportService.class), mock(ActionFilters.class), client);
+    private TransportDeleteSpaceAction actionWith(Client client, ThreadPool threadPool) {
+        TransportService transportService = mock(TransportService.class);
+        when(transportService.getThreadPool()).thenReturn(threadPool);
+        return new TransportDeleteSpaceAction(transportService, mock(ActionFilters.class), client);
+    }
+
+    /** A thread pool whose context is available and whose schedule() runs the task immediately. */
+    private static ThreadPool lockThreadPool() {
+        ThreadPool threadPool = mock(ThreadPool.class);
+        when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
+        doAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(0)).run();
+                            return null;
+                        })
+                .when(threadPool)
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+        return threadPool;
     }
 
     /** A client wired so a scoped clear of an empty draft completes without touching real indices. */
     @SuppressWarnings("unchecked")
-    private static Client stubbedClient() {
+    private static Client stubbedClient(ThreadPool threadPool) {
         Client client = mock(Client.class);
         AdminClient adminClient = mock(AdminClient.class);
         IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
         when(client.admin()).thenReturn(adminClient);
         when(adminClient.indices()).thenReturn(indicesAdminClient);
-        IndicesExistsResponse notExists = mock(IndicesExistsResponse.class);
-        when(notExists.isExists()).thenReturn(false);
+        // The resource-lock index is reported as already existing so the space lock can be acquired.
+        IndicesExistsResponse exists = mock(IndicesExistsResponse.class);
+        when(exists.isExists()).thenReturn(true);
         doAnswer(
                         invocation -> {
-                            invocation
-                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
-                                    .onResponse(notExists);
+                            invocation.<ActionListener<IndicesExistsResponse>>getArgument(1).onResponse(exists);
                             return null;
                         })
                 .when(indicesAdminClient)
                 .exists(any(IndicesExistsRequest.class), any());
 
-        ThreadPool threadPool = mock(ThreadPool.class);
-        when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
         when(client.threadPool()).thenReturn(threadPool);
+
+        // The space lock: acquire indexes the lock document, release deletes it. Both succeed here.
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<IndexResponse>>getArgument(1)
+                                    .onResponse(mock(IndexResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .index(any(IndexRequest.class), any());
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<DeleteResponse>>getArgument(1)
+                                    .onResponse(mock(DeleteResponse.class));
+                            return null;
+                        })
+                .when(client)
+                .delete(any(DeleteRequest.class), any());
 
         doAnswer(
                         invocation -> {

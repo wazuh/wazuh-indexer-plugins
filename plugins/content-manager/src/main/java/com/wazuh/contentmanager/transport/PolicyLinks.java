@@ -168,10 +168,15 @@ final class PolicyLinks {
      * @param spaceName the space whose policy is changed.
      * @param missingPolicyMessage message of the {@link IllegalStateException} the listener fails
      *     with when the space has no policy.
-     * @param listener notified once the policy has been written.
+     * @param listener receives whether the root decoder was actually blanked ({@code false} when it
+     *     was already empty), or a failure.
      */
     static void clearRootDecoder(
-            Client client, String spaceName, String missingPolicyMessage, ActionListener<Void> listener) {
+            Client client,
+            String spaceName,
+            String missingPolicyMessage,
+            ActionListener<Boolean> listener) {
+        AtomicBoolean changed = new AtomicBoolean(false);
         submit(
                 client,
                 new Target(spaceName, Constants.KEY_ROOT_DECODER, missingPolicyMessage),
@@ -180,9 +185,10 @@ final class PolicyLinks {
                         return false;
                     }
                     document.put(Constants.KEY_ROOT_DECODER, "");
+                    changed.set(true);
                     return true;
                 },
-                listener);
+                ActionListener.wrap(v -> listener.onResponse(changed.get()), listener::onFailure));
     }
 
     /**
@@ -195,14 +201,16 @@ final class PolicyLinks {
      * @param listKey the policy document's list, e.g. {@link Constants#KEY_FILTERS}.
      * @param missingPolicyMessage message of the {@link IllegalStateException} the listener fails
      *     with when the space has no policy.
-     * @param listener notified once the policy has been written.
+     * @param listener receives whether the list was actually emptied ({@code false} when it was
+     *     already empty or absent), or a failure.
      */
     static void clearList(
             Client client,
             String spaceName,
             String listKey,
             String missingPolicyMessage,
-            ActionListener<Void> listener) {
+            ActionListener<Boolean> listener) {
+        AtomicBoolean changed = new AtomicBoolean(false);
         submit(
                 client,
                 new Target(spaceName, listKey, missingPolicyMessage),
@@ -212,9 +220,10 @@ final class PolicyLinks {
                         return false;
                     }
                     document.putArray(listKey);
+                    changed.set(true);
                     return true;
                 },
-                listener);
+                ActionListener.wrap(v -> listener.onResponse(changed.get()), listener::onFailure));
     }
 
     /** The {@code listKey} array of {@code document}, created empty if absent or not an array. */

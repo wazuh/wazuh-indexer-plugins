@@ -1491,6 +1491,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/SpaceBusy"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1524,6 +1526,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/SpaceBusy"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1554,6 +1558,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/SpaceBusy"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -3070,6 +3076,21 @@ components:
                 status: 201
 
     # --- Error Responses ---
+    SpaceBusy:
+      description: |
+        Too Many Requests - another reset or scoped clear is already running on this space. The full
+        reset and the two scoped clears run one at a time per space (a space lock); retry shortly.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            busy:
+              summary: The space is being cleared concurrently
+              value:
+                message: "Too many concurrent requests clearing this space. Please retry."
+                status: 429
+
     BadRequest:
       description: |
         Bad Request - The request could not be processed due to invalid input.

@@ -2200,6 +2200,8 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 
 ## Spaces
 
+> **Concurrency**: the full reset and the two scoped clears run one at a time per space (a space lock), so they cannot interleave and leave an integration half-reconciled. A request that arrives while another reset or clear is already running on the same space is answered `429` (`Too many concurrent requests clearing this space. Please retry.`); retry shortly.
+
 ### Reset space
 
 Resets a user space (`draft`): removes its content and resets the policy's settings to default, while **keeping the space's metadata** (title, author, description, …).
@@ -2239,6 +2241,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 - **200** — space reset successfully.
 - **400** — invalid space identifier, or attempted to reset a space different from `draft`.
+- **429** — another reset or clear is already running on this space; retry shortly.
 - **500** — internal error (e.g., Engine unavailable or deletion failure).
 
 ---
@@ -2280,6 +2283,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 - **200** — normalization resources cleared successfully.
 - **400** — invalid space identifier, or attempted to clear a space different from `draft`.
+- **429** — another reset or clear is already running on this space; retry shortly.
 - **500** — internal error (e.g., Engine unavailable or deletion failure).
 
 ---
@@ -2321,6 +2325,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 - **200** — detection resources cleared successfully.
 - **400** — invalid space identifier, or attempted to clear a space different from `draft`.
+- **429** — another reset or clear is already running on this space; retry shortly.
 - **500** — internal error (e.g., Engine unavailable or deletion failure).
 
 ---

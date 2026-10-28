@@ -341,7 +341,7 @@ public class IntegrationService {
                             Map<String, Object> document =
                                     (Map<String, Object>) source.get(Constants.KEY_DOCUMENT);
                             if (document == null) {
-                                listener.onResponse(new EmptyResult(false, true));
+                                listener.onResponse(new EmptyResult(false, true, false));
                                 return;
                             }
                             boolean isProtected =
@@ -363,10 +363,10 @@ public class IntegrationService {
                                         document,
                                         source,
                                         ActionListener.wrap(
-                                                v -> listener.onResponse(new EmptyResult(isProtected, nowEmpty)),
+                                                v -> listener.onResponse(new EmptyResult(isProtected, nowEmpty, true)),
                                                 listener::onFailure));
                             } else {
-                                listener.onResponse(new EmptyResult(isProtected, nowEmpty));
+                                listener.onResponse(new EmptyResult(isProtected, nowEmpty, false));
                             }
                         },
                         listener::onFailure));
@@ -416,8 +416,13 @@ public class IntegrationService {
     }
 
     /**
-     * Outcome of {@link #emptyFieldsAsync}: whether the integration is protected, and whether its
-     * decoders, rules and kvdbs lists are all empty after the edit.
+     * Outcome of {@link #emptyFieldsAsync}.
+     *
+     * @param isProtected whether the integration is protected, so it is kept even when left empty.
+     * @param nowEmpty whether the integration's decoders, rules and kvdbs lists are all empty after
+     *     the edit.
+     * @param changed whether this call actually modified the integration document (at least one
+     *     cleared list was non-empty), so callers can tell a real change from a no-op.
      */
-    public record EmptyResult(boolean isProtected, boolean nowEmpty) {}
+    public record EmptyResult(boolean isProtected, boolean nowEmpty, boolean changed) {}
 }

@@ -286,7 +286,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
     private Exception runClearRootDecoder(String space) {
         AtomicReference<Exception> failure = new AtomicReference<>();
         AtomicReference<Boolean> done = new AtomicReference<>(false);
-        ActionListener<Void> listener = ActionListener.wrap(v -> done.set(true), failure::set);
+        ActionListener<Boolean> listener = ActionListener.wrap(v -> done.set(true), failure::set);
         PolicyLinks.clearRootDecoder(this.client, space, MISSING_POLICY, listener);
         assertTrue("listener must be notified", done.get() || failure.get() != null);
         return failure.get();
@@ -295,7 +295,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
     private Exception runClearList(String space, String listKey) {
         AtomicReference<Exception> failure = new AtomicReference<>();
         AtomicReference<Boolean> done = new AtomicReference<>(false);
-        ActionListener<Void> listener = ActionListener.wrap(v -> done.set(true), failure::set);
+        ActionListener<Boolean> listener = ActionListener.wrap(v -> done.set(true), failure::set);
         PolicyLinks.clearList(this.client, space, listKey, MISSING_POLICY, listener);
         assertTrue("listener must be notified", done.get() || failure.get() != null);
         return failure.get();

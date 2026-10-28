@@ -41,6 +41,11 @@ public class Constants {
     // REST API responses. Pattern: <type>_<http_status_code>_<name>. Type is: E for error, S for
     // success.
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
+    public static final String S_200_SPACE_RESET = "Successfully reset space [%s].";
+    public static final String S_200_CLEAR_NORMALIZATION =
+            "Successfully cleared normalization resources for space [%s].";
+    public static final String S_200_CLEAR_DETECTION =
+            "Successfully cleared detection resources for space [%s].";
     public static final String S_201_ACCESS_TOKEN_RECEIVED = "Access token received successfully.";
     public static final String S_200_PERMISSION_CHECK_ALLOWED =
             "Permission check passed: security plugin disabled.";
@@ -1122,4 +1127,10 @@ public class Constants {
     // and PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS.
     public static final String E_429_RESOURCE_LOCK_TIMEOUT =
             "Too many concurrent requests creating this resource. Please retry.";
+
+    /** Lock type that serializes the full reset and the scoped clears on a single space. */
+    public static final String LOCK_TYPE_SPACE = "space";
+
+    public static final String E_429_SPACE_BUSY =
+            "Too many concurrent requests clearing this space. Please retry.";
 }

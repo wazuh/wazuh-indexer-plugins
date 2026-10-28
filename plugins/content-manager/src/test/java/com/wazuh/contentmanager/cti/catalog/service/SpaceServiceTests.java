@@ -154,25 +154,29 @@ public class SpaceServiceTests extends OpenSearchTestCase {
         assertFalse(searched.contains(Constants.INDEX_INTEGRATIONS));
     }
 
-    /** Tests that calculateAndUpdate skips execution when the policy index does not exist. */
-    public void testCalculateAndUpdateSkipsWhenPolicyIndexDoesNotExist() {
-        when(this.client.admin()).thenReturn(this.adminClient);
-        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
-        when(this.indicesExistsResponse.isExists()).thenReturn(false);
+    /**
+     * calculateAndUpdate no longer pre-checks the policies index with indices:admin/exists. A missing
+     * or empty index (the lenient search returns no hits) yields an empty result and performs no
+     * bulk, so the recompute needs only read on the index.
+     */
+    public void testCalculateAndUpdateNoExistsPrecheckOnEmptyIndex() {
+        when(this.searchResponse.getHits()).thenReturn(SearchHits.empty());
         doAnswer(
                         invocation -> {
                             invocation
-                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
-                                    .onResponse(this.indicesExistsResponse);
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onResponse(this.searchResponse);
                             return null;
                         })
-                .when(this.indicesAdminClient)
-                .exists(any(IndicesExistsRequest.class), any());
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
 
         this.policyHashService.calculateAndUpdate(
-                List.of(Space.DRAFT.toString()), ActionListener.wrap(r -> {}, e -> {}));
+                List.of(Space.DRAFT.toString()), ActionListener.wrap(r -> {}, e -> fail(e.getMessage())));
 
-        verify(this.client, never()).search(any(SearchRequest.class), any());
+        verify(this.client, never()).admin(); // no indices:admin/exists pre-check
+        verify(this.client).search(any(SearchRequest.class), any());
+        verify(this.client, never()).bulk(any(), any());
     }
 
     /**
@@ -260,17 +264,15 @@ public class SpaceServiceTests extends OpenSearchTestCase {
 
     /** Tests that calculateAndUpdate handles exceptions gracefully without propagating them. */
     public void testCalculateAndUpdateHandlesException() {
-        when(this.client.admin()).thenReturn(this.adminClient);
-        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
         doAnswer(
                         invocation -> {
                             invocation
-                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
+                                    .<ActionListener<SearchResponse>>getArgument(1)
                                     .onFailure(new RuntimeException("Test exception"));
                             return null;
                         })
-                .when(this.indicesAdminClient)
-                .exists(any(IndicesExistsRequest.class), any());
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
 
         AtomicReference<Boolean> gotResponse = new AtomicReference<>(false);
         // Should not propagate the exception - it should be handled and reported as an empty result.

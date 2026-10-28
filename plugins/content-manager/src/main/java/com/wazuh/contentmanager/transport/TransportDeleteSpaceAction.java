@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.transport;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
@@ -37,6 +38,8 @@ import com.wazuh.contentmanager.action.DeleteSpaceRequest;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.IntegrationService;
+import com.wazuh.contentmanager.cti.catalog.service.ResourceLockService;
+import com.wazuh.contentmanager.cti.catalog.service.ResourceLockTimeoutException;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
@@ -54,6 +57,7 @@ public class TransportDeleteSpaceAction
     private final SpaceService spaceService;
     private final IntegrationService integrationService;
     private final SecurityAnalyticsService securityAnalyticsService;
+    private final ResourceLockService resourceLockService;
 
     @Inject
     public TransportDeleteSpaceAction(
@@ -62,6 +66,7 @@ public class TransportDeleteSpaceAction
         this.client = client;
         this.spaceService = new SpaceService(client);
         this.integrationService = new IntegrationService(client);
+        this.resourceLockService = new ResourceLockService(client, transportService.getThreadPool());
         if (PluginSettings.getInstance().isEngineMockEnabled()) {
             this.securityAnalyticsService = new MockSecurityAnalyticsService();
         } else {
@@ -91,6 +96,35 @@ public class TransportDeleteSpaceAction
             return;
         }
 
+        // Serialize every mutation of a space (full reset and both scoped clears) behind one lock, so
+        // two concurrent clears cannot leave an integration emptied but not removed. Released on
+        // completion (success or failure); taken as the plugin, so the caller needs no extra privilege.
+        this.resourceLockService.acquire(
+                Constants.LOCK_TYPE_SPACE,
+                space.toString(),
+                ActionListener.wrap(
+                        lockId ->
+                                runScopedClear(
+                                        request,
+                                        space,
+                                        ActionListener.runAfter(
+                                                listener, () -> this.resourceLockService.release(lockId))),
+                        e -> {
+                            if (ExceptionsHelper.unwrap(e, ResourceLockTimeoutException.class) != null) {
+                                log.warn(
+                                        "Could not acquire the lock to clear space [{}]: {}", space, e.getMessage());
+                                listener.onResponse(
+                                        new MessageStatusResponse(
+                                                Constants.E_429_SPACE_BUSY, RestStatus.TOO_MANY_REQUESTS));
+                            } else {
+                                respondWithError(listener, space, "lock", e);
+                            }
+                        }));
+    }
+
+    /** Dispatches the requested scope's clear or reset. Runs while holding the space lock. */
+    private void runScopedClear(
+            DeleteSpaceRequest request, Space space, ActionListener<MessageStatusResponse> listener) {
         switch (request.getScope()) {
             case NORMALIZATION:
                 log.info("Starting normalization clear for space [{}]", space);
@@ -101,12 +135,8 @@ public class TransportDeleteSpaceAction
                         this.securityAnalyticsService,
                         space.toString(),
                         ActionListener.wrap(
-                                v ->
-                                        respondSuccess(
-                                                listener,
-                                                space,
-                                                "Successfully cleared normalization resources for space [%s]."),
-                                e -> respondWithError(listener, space, e)));
+                                v -> respondSuccess(listener, space, Constants.S_200_CLEAR_NORMALIZATION),
+                                e -> respondWithError(listener, space, "clear normalization resources for", e)));
                 return;
             case DETECTION:
                 log.info("Starting detection clear for space [{}]", space);
@@ -117,12 +147,8 @@ public class TransportDeleteSpaceAction
                         this.securityAnalyticsService,
                         space.toString(),
                         ActionListener.wrap(
-                                v ->
-                                        respondSuccess(
-                                                listener,
-                                                space,
-                                                "Successfully cleared detection resources for space [%s]."),
-                                e -> respondWithError(listener, space, e)));
+                                v -> respondSuccess(listener, space, Constants.S_200_CLEAR_DETECTION),
+                                e -> respondWithError(listener, space, "clear detection resources for", e)));
                 return;
             case FULL:
             default:
@@ -179,15 +205,15 @@ public class TransportDeleteSpaceAction
                                                                     v2 -> {
                                                                         String message =
                                                                                 String.format(
-                                                                                        Locale.ROOT, "Successfully reset space [%s].", space);
+                                                                                        Locale.ROOT, Constants.S_200_SPACE_RESET, space);
                                                                         log.info(message);
                                                                         listener.onResponse(
                                                                                 new MessageStatusResponse(message, RestStatus.OK));
                                                                     },
-                                                                    e -> respondWithError(listener, space, e)));
+                                                                    e -> respondWithError(listener, space, "reset", e)));
                                                 },
-                                                e -> respondWithError(listener, space, e))),
-                        e -> respondWithError(listener, space, e)));
+                                                e -> respondWithError(listener, space, "reset", e))),
+                        e -> respondWithError(listener, space, "reset", e)));
     }
 
     /** Extracts the {@code document.metadata} block from a raw policy {@code _source}, or null. */
@@ -212,16 +238,16 @@ public class TransportDeleteSpaceAction
     }
 
     private void respondWithError(
-            ActionListener<MessageStatusResponse> listener, Space space, Exception e) {
+            ActionListener<MessageStatusResponse> listener, Space space, String operation, Exception e) {
         RestResponse classified = TransportActionHelper.classifyException(e);
         if (classified != null) {
-            log.warn("Failed to reset space [{}]: {}", space, classified.getMessage());
+            log.warn("Failed to {} space [{}]: {}", operation, space, classified.getMessage());
             listener.onResponse(
                     new MessageStatusResponse(
                             classified.getMessage(), RestStatus.fromCode(classified.getStatus())));
             return;
         }
-        log.error("Failed to reset space [{}]: {}", space, e.getMessage());
+        log.error("Failed to {} space [{}]: {}", operation, space, e.getMessage());
         listener.onResponse(
                 new MessageStatusResponse(
                         Constants.E_500_INTERNAL_SERVER_ERROR, RestStatus.INTERNAL_SERVER_ERROR));

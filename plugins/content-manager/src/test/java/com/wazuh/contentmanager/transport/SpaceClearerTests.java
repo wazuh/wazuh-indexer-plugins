@@ -25,6 +25,7 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
@@ -54,10 +55,12 @@ import org.mockito.ArgumentCaptor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -84,10 +87,11 @@ public class SpaceClearerTests extends OpenSearchTestCase {
         this.securityAnalyticsService = mock(SecurityAnalyticsService.class);
         this.spaceService = mock(SpaceService.class);
 
-        // SpaceService bulk delete + hash recompute succeed by default.
+        // SpaceService bulk delete + hash recompute succeed by default. The delete reports that it
+        // removed something (true) so the normal path recomputes the hash; no-op tests override this.
         doAnswer(
                         invocation -> {
-                            invocation.<ActionListener<Void>>getArgument(2).onResponse(null);
+                            invocation.<ActionListener<Boolean>>getArgument(2).onResponse(true);
                             return null;
                         })
                 .when(this.spaceService)
@@ -106,6 +110,14 @@ public class SpaceClearerTests extends OpenSearchTestCase {
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         ThreadPool threadPool = mock(ThreadPool.class);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
+        // The log-type-delete retry schedules itself; run it immediately in tests.
+        doAnswer(
+                        invocation -> {
+                            ((Runnable) invocation.getArgument(0)).run();
+                            return null;
+                        })
+                .when(threadPool)
+                .schedule(any(Runnable.class), any(TimeValue.class), anyString());
         when(this.client.threadPool()).thenReturn(threadPool);
         doAnswer(
                         invocation -> {
@@ -236,8 +248,9 @@ public class SpaceClearerTests extends OpenSearchTestCase {
     public void testReconcileEmptyIntegrations_deletesOnlyThoseLeftEmpty() {
         this.stubList(List.of("A", "B"));
         Map<String, IntegrationService.EmptyResult> results = new HashMap<>();
-        results.put("A", new IntegrationService.EmptyResult(false, true)); // empty, not protected
-        results.put("B", new IntegrationService.EmptyResult(false, false)); // still has resources
+        results.put("A", new IntegrationService.EmptyResult(false, true, true)); // empty, not protected
+        results.put(
+                "B", new IntegrationService.EmptyResult(false, false, false)); // still has resources
         this.stubEmptyResults(results);
 
         assertTrue(this.runReconcile(NORMALIZATION_FIELDS));
@@ -252,7 +265,7 @@ public class SpaceClearerTests extends OpenSearchTestCase {
     public void testReconcileEmptyIntegrations_skipsProtected() {
         this.stubList(List.of("A"));
         this.stubEmptyResults(
-                Map.of("A", new IntegrationService.EmptyResult(true, true))); // protected, empty
+                Map.of("A", new IntegrationService.EmptyResult(true, true, true))); // protected, empty
 
         assertTrue(this.runReconcile(NORMALIZATION_FIELDS));
 
@@ -268,6 +281,38 @@ public class SpaceClearerTests extends OpenSearchTestCase {
 
         verify(this.integrationService, never()).emptyFieldsAsync(any(), any(), any());
         verify(this.integrationService, never()).deleteIntegrationDocAsync(any(), any());
+    }
+
+    /**
+     * When Security Analytics transiently reports that the integration still has active rules, the
+     * log-type delete is retried and the integration is removed without the caller re-running.
+     */
+    @SuppressWarnings("unchecked")
+    public void testReconcileEmptyIntegrations_retriesActiveRulesConflictThenDeletes() {
+        this.stubList(List.of("A"));
+        this.stubEmptyResults(Map.of("A", new IntegrationService.EmptyResult(false, true, true)));
+        AtomicReference<Integer> calls = new AtomicReference<>(0);
+        doAnswer(
+                        invocation -> {
+                            int n = calls.get() + 1;
+                            calls.set(n);
+                            ActionListener<Object> l = invocation.getArgument(2);
+                            if (n == 1) {
+                                l.onFailure(
+                                        new IllegalStateException(
+                                                "Log Type with id A cannot be deleted because active rules exist"));
+                            } else {
+                                l.onResponse(null);
+                            }
+                            return null;
+                        })
+                .when(this.securityAnalyticsService)
+                .deleteIntegration(eq("A"), any(), any());
+
+        assertTrue(this.runReconcile(NORMALIZATION_FIELDS));
+
+        verify(this.securityAnalyticsService, times(2)).deleteIntegration(eq("A"), any(), any());
+        verify(this.integrationService).deleteIntegrationDocAsync(eq("A"), any());
     }
 
     private Exception runClearNormalization() {
@@ -305,15 +350,26 @@ public class SpaceClearerTests extends OpenSearchTestCase {
     }
 
     /**
-     * On a draft with no integrations, clearNormalization still completes and recomputes the hash.
+     * A no-op clear (nothing deleted or unlinked) completes but leaves the hash untouched: the
+     * recompute is skipped entirely (issue #1722's no-op requirement).
      */
-    public void testClearNormalization_onEmptyDraftIsNoop() {
+    @SuppressWarnings("unchecked")
+    public void testClearNormalization_onEmptyDraftSkipsHashRecompute() {
         this.stubList(List.of());
+        // Nothing to delete: the bulk reports it removed no documents, and the policy's root decoder
+        // and filters are already empty (served by the default policy get), so no step changes state.
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Boolean>>getArgument(2).onResponse(false);
+                            return null;
+                        })
+                .when(this.spaceService)
+                .deleteSpaceResources(any(Space.class), anyList(), any());
 
         assertNull(this.runClearNormalization());
 
         verify(this.integrationService, never()).emptyFieldsAsync(any(), any(), any());
-        verify(this.spaceService).calculateAndUpdate(eq(List.of(Space.DRAFT.toString())), any());
+        verify(this.spaceService, never()).calculateAndUpdate(any(), any());
     }
 
     /** A failure is propagated (never swallowed), and a re-run after the fault converges. */
@@ -324,7 +380,7 @@ public class SpaceClearerTests extends OpenSearchTestCase {
         doAnswer(
                         invocation -> {
                             invocation
-                                    .<ActionListener<Void>>getArgument(2)
+                                    .<ActionListener<Boolean>>getArgument(2)
                                     .onFailure(new IllegalStateException("boom"));
                             return null;
                         })
@@ -337,7 +393,7 @@ public class SpaceClearerTests extends OpenSearchTestCase {
         // Second run: the transient fault is gone and the clear converges.
         doAnswer(
                         invocation -> {
-                            invocation.<ActionListener<Void>>getArgument(2).onResponse(null);
+                            invocation.<ActionListener<Boolean>>getArgument(2).onResponse(true);
                             return null;
                         })
                 .when(this.spaceService)
@@ -378,15 +434,53 @@ public class SpaceClearerTests extends OpenSearchTestCase {
         verify(this.spaceService).calculateAndUpdate(eq(List.of(Space.DRAFT.toString())), any());
     }
 
-    /** With no rules, clearDetection still deletes the rules index scope and completes. */
-    public void testClearDetection_noRulesStillCompletes() {
+    /**
+     * With no rules and nothing to reconcile, clearDetection completes and skips the hash recompute.
+     */
+    @SuppressWarnings("unchecked")
+    public void testClearDetection_noRulesSkipsHashRecompute() {
         this.stubRuleIds(List.of());
         this.stubList(List.of());
+        // Nothing to delete: the bulk reports it removed no documents.
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Boolean>>getArgument(2).onResponse(false);
+                            return null;
+                        })
+                .when(this.spaceService)
+                .deleteSpaceResources(any(Space.class), anyList(), any());
 
         assertNull(this.runClearDetection());
 
         verify(this.securityAnalyticsService, never()).deleteRule(any(), any(), any());
-        verify(this.spaceService).calculateAndUpdate(eq(List.of(Space.DRAFT.toString())), any());
+        verify(this.spaceService, never()).calculateAndUpdate(any(), any());
+    }
+
+    /**
+     * clearDetection deletes the rule documents LAST: if the integration reconcile fails, the rule
+     * documents must survive (not be bulk-deleted) so a re-run can re-find them and finish the
+     * Security Analytics cleanup. Otherwise the clear could never converge after a partial failure.
+     */
+    @SuppressWarnings("unchecked")
+    public void testClearDetection_reconcileFailureKeepsRuleDocsForRerun() {
+        this.stubRuleIds(List.of("r1"));
+        // Reconcile fails before the rule documents are deleted: listing the integrations errors out.
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<List<String>>>getArgument(1)
+                                    .onFailure(new IllegalStateException("boom"));
+                            return null;
+                        })
+                .when(this.integrationService)
+                .listIntegrationIdsAsync(any(), any());
+
+        Exception failure = this.runClearDetection();
+        assertNotNull("the reconcile failure must propagate", failure);
+
+        // The rule documents must NOT have been deleted, so a re-run re-finds them.
+        verify(this.spaceService, never()).deleteSpaceResources(any(Space.class), anyList(), any());
+        verify(this.spaceService, never()).calculateAndUpdate(any(), any());
     }
 
     private static OpenSearchStatusException notFound() {
@@ -414,7 +508,7 @@ public class SpaceClearerTests extends OpenSearchTestCase {
     @SuppressWarnings("unchecked")
     public void testReconcileEmptyIntegrations_unlinkFailureKeepsDocumentForRerun() {
         this.stubList(List.of("A"));
-        this.stubEmptyResults(Map.of("A", new IntegrationService.EmptyResult(false, true)));
+        this.stubEmptyResults(Map.of("A", new IntegrationService.EmptyResult(false, true, true)));
         // Make the policy unlink fail: the policy document cannot be found.
         doAnswer(
                         invocation -> {
@@ -457,7 +551,7 @@ public class SpaceClearerTests extends OpenSearchTestCase {
     @SuppressWarnings("unchecked")
     public void testReconcileEmptyIntegrations_toleratesSecurityAnalyticsIntegrationNotFound() {
         this.stubList(List.of("A"));
-        this.stubEmptyResults(Map.of("A", new IntegrationService.EmptyResult(false, true)));
+        this.stubEmptyResults(Map.of("A", new IntegrationService.EmptyResult(false, true, true)));
         doAnswer(
                         invocation -> {
                             invocation.<ActionListener<Object>>getArgument(2).onFailure(notFound());

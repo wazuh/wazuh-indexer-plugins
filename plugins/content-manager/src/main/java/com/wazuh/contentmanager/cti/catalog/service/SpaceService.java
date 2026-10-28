@@ -117,7 +117,10 @@ public class SpaceService {
      * @param listener notified on completion or failure.
      */
     public void deleteSpaceResources(Space space, ActionListener<Void> listener) {
-        deleteSpaceResources(space, new ArrayList<>(Constants.RESOURCE_INDICES.values()), listener);
+        deleteSpaceResources(
+                space,
+                new ArrayList<>(Constants.RESOURCE_INDICES.values()),
+                ActionListener.wrap(deleted -> listener.onResponse(null), listener::onFailure));
     }
 
     /**
@@ -130,10 +133,12 @@ public class SpaceService {
      * @param space The space to wipe.
      * @param indexNames The resource indices to delete from (a subset of {@link
      *     Constants#RESOURCE_INDICES}).
-     * @param listener notified on completion or failure.
+     * @param listener receives {@code true} if any document was deleted, {@code false} if there was
+     *     nothing to delete, or a failure. The scoped clears use this to skip the hash recompute on a
+     *     no-op (issue #1722).
      */
     public void deleteSpaceResources(
-            Space space, List<String> indexNames, ActionListener<Void> listener) {
+            Space space, List<String> indexNames, ActionListener<Boolean> listener) {
         String spaceName = space.toString();
         BulkRequest bulkRequest = new BulkRequest();
         collectDeleteRequestsAsync(
@@ -144,7 +149,7 @@ public class SpaceService {
                 ActionListener.wrap(
                         v -> {
                             if (bulkRequest.numberOfActions() == 0) {
-                                listener.onResponse(null);
+                                listener.onResponse(false);
                                 return;
                             }
                             bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
@@ -157,7 +162,7 @@ public class SpaceService {
                                                             new IOException(
                                                                     "Bulk deletion failed: " + bulkResponse.buildFailureMessage()));
                                                 } else {
-                                                    listener.onResponse(null);
+                                                    listener.onResponse(true);
                                                 }
                                             },
                                             listener::onFailure));
@@ -180,57 +185,30 @@ public class SpaceService {
             return;
         }
         String indexName = indexNames.get(idx);
-        this.client
-                .admin()
-                .indices()
-                .exists(
-                        new IndicesExistsRequest(indexName),
-                        ActionListener.wrap(
-                                existsResponse -> {
-                                    if (!existsResponse.isExists()) {
-                                        collectDeleteRequestsAsync(
-                                                spaceName, indexNames, idx + 1, bulkRequest, listener);
-                                        return;
-                                    }
-                                    SearchRequest searchRequest = new SearchRequest(indexName);
-                                    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-                                    // Selecting by space is also what keeps the user-overrides registry
-                                    // document alive: it carries no space.name on purpose. Widening this to
-                                    // match every document in the index would delete it, and silently lose
-                                    // the user's policy settings and the filters they created.
-                                    sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
-                                    sourceBuilder.size(Constants.MAX_RESULT_WINDOW);
-                                    sourceBuilder.fetchSource(false);
-                                    searchRequest.source(sourceBuilder);
+        // No indices:admin/exists pre-check: lenient options treat a missing index as empty, and a real
+        // failure propagates instead of being swallowed, which would let a scoped clear report success
+        // after deleting nothing.
+        SearchRequest searchRequest =
+                new SearchRequest(indexName).indicesOptions(IndicesOptions.lenientExpandOpen());
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        // Selecting by space is also what keeps the user-overrides registry document alive: it carries
+        // no space.name on purpose. Widening this to match every document in the index would delete it,
+        // and silently lose the user's policy settings and the filters they created.
+        sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+        sourceBuilder.size(Constants.MAX_RESULT_WINDOW);
+        sourceBuilder.fetchSource(false);
+        searchRequest.source(sourceBuilder);
 
-                                    this.client.search(
-                                            searchRequest,
-                                            ActionListener.wrap(
-                                                    searchResponse -> {
-                                                        for (SearchHit hit : searchResponse.getHits().getHits()) {
-                                                            bulkRequest.add(new DeleteRequest(indexName, hit.getId()));
-                                                        }
-                                                        collectDeleteRequestsAsync(
-                                                                spaceName, indexNames, idx + 1, bulkRequest, listener);
-                                                    },
-                                                    e -> {
-                                                        log.warn(
-                                                                "Failed to search index [{}] for space [{}] during delete, skipping: {}",
-                                                                indexName,
-                                                                spaceName,
-                                                                e.getMessage());
-                                                        collectDeleteRequestsAsync(
-                                                                spaceName, indexNames, idx + 1, bulkRequest, listener);
-                                                    }));
-                                },
-                                e -> {
-                                    log.warn(
-                                            "Failed to check existence of index [{}] for space [{}] during delete, skipping: {}",
-                                            indexName,
-                                            spaceName,
-                                            e.getMessage());
-                                    collectDeleteRequestsAsync(spaceName, indexNames, idx + 1, bulkRequest, listener);
-                                }));
+        this.client.search(
+                searchRequest,
+                ActionListener.wrap(
+                        searchResponse -> {
+                            for (SearchHit hit : searchResponse.getHits().getHits()) {
+                                bulkRequest.add(new DeleteRequest(indexName, hit.getId()));
+                            }
+                            collectDeleteRequestsAsync(spaceName, indexNames, idx + 1, bulkRequest, listener);
+                        },
+                        listener::onFailure));
     }
 
     /**
@@ -1229,29 +1207,17 @@ public class SpaceService {
      * @param listener The listener to notify with the set of changed space names.
      */
     public void calculateAndUpdate(List<String> targetSpaces, ActionListener<Set<String>> listener) {
-        this.client
-                .admin()
-                .indices()
-                .exists(
-                        new IndicesExistsRequest(Constants.INDEX_POLICIES),
-                        ActionListener.wrap(
-                                existsResponse -> {
-                                    if (!existsResponse.isExists()) {
-                                        log.warn(Constants.W_LOG_POLICY_INDEX_MISSING, Constants.INDEX_POLICIES);
-                                        listener.onResponse(new HashSet<>());
-                                        return;
-                                    }
-                                    searchPoliciesAndProcessAsync(targetSpaces, listener);
-                                },
-                                e -> {
-                                    log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
-                                    listener.onResponse(new HashSet<>());
-                                }));
+        // No indices:admin/exists pre-check: the lenient search treats a missing policies index as
+        // empty, so the recompute needs only read. The old pre-check needed indices:admin/exists and
+        // swallowed a permission failure as success, leaving the hash stale after a scoped clear.
+        searchPoliciesAndProcessAsync(targetSpaces, listener);
     }
 
     private void searchPoliciesAndProcessAsync(
             List<String> targetSpaces, ActionListener<Set<String>> listener) {
-        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+        SearchRequest searchRequest =
+                new SearchRequest(Constants.INDEX_POLICIES)
+                        .indicesOptions(IndicesOptions.lenientExpandOpen());
         // Only actual policies. Every policy carries space.name -- it is how the wipe, getPolicy and
         // the promotion flow all find them -- so requiring it here keeps documents that merely live in
         // this index from being processed as if they were policies. The user-overrides registry is one
