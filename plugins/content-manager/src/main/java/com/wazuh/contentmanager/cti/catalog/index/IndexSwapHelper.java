@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.refresh.RefreshResponse;
@@ -49,6 +50,9 @@ import com.wazuh.contentmanager.utils.Constants;
 public final class IndexSwapHelper {
 
     private static final Logger log = LogManager.getLogger(IndexSwapHelper.class);
+
+    /** How many failing documents a failed copy of user content names before it stops listing. */
+    private static final int MAX_REPORTED_FAILURES = 5;
 
     private IndexSwapHelper() {
         // utility class
@@ -193,18 +197,35 @@ public final class IndexSwapHelper {
 
             log.debug(Constants.D_LOG_REINDEX_USER_CONTENT_START, livePhysical, shadowPhysical);
 
-            BulkByScrollResponse response =
-                    new ReindexRequestBuilder(client, ReindexAction.INSTANCE)
-                            .source(livePhysical)
-                            .destination(shadowPhysical)
-                            // This also carries the user-overrides registry document across the
-                            // swap: it has no space.name, so it satisfies this must_not and lands in
-                            // the new physical index alongside the user's own spaces.
-                            .filter(
-                                    QueryBuilders.boolQuery()
-                                            .mustNot(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, "standard")))
-                            .refresh(true)
-                            .get(TimeValue.timeValueSeconds(timeoutSeconds));
+            BulkByScrollResponse response;
+            try {
+                response =
+                        new ReindexRequestBuilder(client, ReindexAction.INSTANCE)
+                                .source(livePhysical)
+                                .destination(shadowPhysical)
+                                // This also carries the user-overrides registry document across the
+                                // swap: it has no space.name, so it satisfies this must_not and lands
+                                // in the new physical index alongside the user's own spaces.
+                                .filter(
+                                        QueryBuilders.boolQuery()
+                                                .mustNot(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, "standard")))
+                                .refresh(true)
+                                .get(TimeValue.timeValueSeconds(timeoutSeconds));
+            } catch (OpenSearchTimeoutException e) {
+                // The wait ends here, not the reindex: it is still running on the node. Without this
+                // the swap fails with a bare "Timeout waiting for task." that names no index and does
+                // not say what timed out or what the deadline was.
+                throw new IllegalStateException(
+                        "copying user content from ["
+                                + livePhysical
+                                + "] to ["
+                                + shadowPhysical
+                                + "] did not finish within "
+                                + timeoutSeconds
+                                + "s (plugins.content_manager.client.timeout); the reindex may still be"
+                                + " running on this node",
+                        e);
+            }
             checkReindexResponse(response, livePhysical, shadowPhysical);
 
             log.debug(Constants.D_LOG_REINDEX_USER_CONTENT_COMPLETE, livePhysical, shadowPhysical);
@@ -226,14 +247,34 @@ public final class IndexSwapHelper {
         if (bulkFailures.isEmpty() && searchFailures.isEmpty() && !response.isTimedOut()) {
             return;
         }
-        String reason;
+        // Every failure, not only the first: a copy that several documents block would otherwise
+        // take one swap per document to clear, since the operator only learns of the next one once
+        // the previous is fixed. Capped, because a reindex can fail by the thousand.
+        StringBuilder reasons = new StringBuilder();
+        int total = 0;
         if (!bulkFailures.isEmpty()) {
-            BulkItemResponse.Failure first = bulkFailures.get(0);
-            reason = "document [" + first.getId() + "]: " + first.getMessage();
+            total = bulkFailures.size();
+            for (int i = 0; i < total && i < MAX_REPORTED_FAILURES; i++) {
+                BulkItemResponse.Failure failure = bulkFailures.get(i);
+                reasons
+                        .append(i == 0 ? "" : "; ")
+                        .append("document [")
+                        .append(failure.getId())
+                        .append("]: ")
+                        .append(failure.getMessage());
+            }
         } else if (!searchFailures.isEmpty()) {
-            reason = searchFailures.get(0).getReason().getMessage();
-        } else {
-            reason = "timed out";
+            total = searchFailures.size();
+            for (int i = 0; i < total && i < MAX_REPORTED_FAILURES; i++) {
+                // getReason() is a bare Throwable, whose getMessage() can be null; the bulk branch
+                // above renders the cause through Failure.getMessage(), which never comes back empty.
+                reasons
+                        .append(i == 0 ? "" : "; ")
+                        .append(String.valueOf(searchFailures.get(i).getReason()));
+            }
+        }
+        if (total > MAX_REPORTED_FAILURES) {
+            reasons.append(" (and ").append(total - MAX_REPORTED_FAILURES).append(" more)");
         }
         throw new IllegalStateException(
                 "copying user content from ["
@@ -246,8 +287,10 @@ public final class IndexSwapHelper {
                         + searchFailures.size()
                         + " search failures, timed out: "
                         + response.isTimedOut()
-                        + "), first: "
-                        + reason);
+                        + ")"
+                        // Nothing to name when the only problem is the timed-out flag, which the
+                        // counts above already report.
+                        + (reasons.length() == 0 ? "" : ", failures: " + reasons));
     }
 
     /**

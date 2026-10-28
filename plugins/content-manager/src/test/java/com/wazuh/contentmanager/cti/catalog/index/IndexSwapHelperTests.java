@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequestBuilder;
@@ -299,5 +300,53 @@ public class IndexSwapHelperTests extends OpenSearchTestCase {
         expectThrows(
                 IllegalStateException.class,
                 () -> IndexSwapHelper.reindexUserContent(this.client, Map.of("rules-a", "rules-b"), 30));
+    }
+
+    /**
+     * A reindex that does not answer within the timeout fails the call naming the indices and the
+     * deadline: the wait ends there, but the reindex is still running on the node, so a bare "Timeout
+     * waiting for task." would leave nothing to act on.
+     */
+    @SuppressWarnings("unchecked")
+    public void testReindexUserContent_ClientTimeoutThrows() {
+        ActionFuture<BulkByScrollResponse> future = mock(ActionFuture.class);
+        when(future.actionGet(any(TimeValue.class)))
+                .thenThrow(new OpenSearchTimeoutException("Timeout waiting for task."));
+        when(this.client.execute(eq(ReindexAction.INSTANCE), any(ReindexRequest.class)))
+                .thenReturn(future);
+
+        IllegalStateException e =
+                expectThrows(
+                        IllegalStateException.class,
+                        () ->
+                                IndexSwapHelper.reindexUserContent(
+                                        this.client, Map.of("filters-a", "filters-b"), 30));
+        assertTrue(e.getMessage(), e.getMessage().contains("filters-a"));
+        assertTrue(e.getMessage(), e.getMessage().contains("filters-b"));
+        assertTrue(e.getMessage(), e.getMessage().contains("30"));
+    }
+
+    /**
+     * Every failing document is named, not only the first: otherwise a copy that several documents
+     * block takes one swap per document to clear.
+     */
+    public void testReindexUserContent_NamesEveryFailingDocument() {
+        this.stubReindex(
+                List.of(
+                        new BulkItemResponse.Failure(
+                                "filters-b", "first-filter", new IllegalArgumentException("rejected")),
+                        new BulkItemResponse.Failure(
+                                "filters-b", "second-filter", new IllegalArgumentException("rejected"))),
+                List.of(),
+                false);
+
+        IllegalStateException e =
+                expectThrows(
+                        IllegalStateException.class,
+                        () ->
+                                IndexSwapHelper.reindexUserContent(
+                                        this.client, Map.of("filters-a", "filters-b"), 30));
+        assertTrue(e.getMessage(), e.getMessage().contains("first-filter"));
+        assertTrue(e.getMessage(), e.getMessage().contains("second-filter"));
     }
 }
