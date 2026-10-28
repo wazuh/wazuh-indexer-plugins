@@ -385,7 +385,7 @@ Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is pr
 - **`location`** (String, required) — log file path or logical source location.
 - **`event`** (String, required) — raw log event to test.
 - **`metadata`** (Object, optional) — optional metadata passed to the Engine.
-- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`.
+- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`. Defaults to `NONE`.
 
 #### Example request
 
@@ -578,7 +578,7 @@ Sends a log event to the Wazuh Engine for decoding and normalization without per
 - **`location`** (String, optional) — log file path or logical source location.
 - **`event`** (String, optional) — raw log event to normalize.
 - **`metadata`** (Object, optional) — optional metadata passed to the Engine.
-- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`.
+- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`. Defaults to `NONE`.
 
 #### Example request
 
@@ -2110,6 +2110,8 @@ The response lists changes grouped by content type. Each change includes:
 Promotes content from the source space to the next space in the promotion chain (Draft → Test → Custom). The request body must include the source space and the changes to apply (typically obtained from the preview endpoint).
 
 Both promotion targets (`test` and `custom`) are validated by the local Wazuh Engine. The Engine is called when the changeset includes decoders, kvdbs, or filters, and also when it does not but the target space already holds engine resources; a changeset limited to integrations, rules, or the policy against an empty target space skips the call.
+
+A target space left without decoders, kvdbs, or filters, for example after its root decoder is unset and the decoder deleted, is sent to the Engine without integrations, even if it still holds empty or rule-only integrations. The Engine then removes the space's testing environment instead of asking for a root decoder, so the promotion succeeds. From then on `POST /logtest` against that space reports `The '<space>' environment does not exist.` in its `normalization` section, while `POST /logtest/detection` keeps evaluating the space's rules.
 
 In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Ruleset Management plugin. For each promoted resource, a new document is created in the target space with:
 - A newly generated UUID as the primary ID.

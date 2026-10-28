@@ -128,9 +128,12 @@ public class TransportLogtestAction
                 integrationId = jsonNode.get(Constants.KEY_INTEGRATION).asText();
             }
 
-            // 5. Build engine payload (remove integration field)
+            // 5. Build engine payload (remove integration field, default trace_level to NONE)
             ObjectNode enginePayload = jsonNode.deepCopy();
             enginePayload.remove(Constants.KEY_INTEGRATION);
+            if (!enginePayload.hasNonNull(Constants.KEY_TRACE_LEVEL)) {
+                enginePayload.put(Constants.KEY_TRACE_LEVEL, Constants.TRACE_LEVEL_NONE);
+            }
 
             // 6. Delegate execution to Service
             this.logtestService.executeLogtest(

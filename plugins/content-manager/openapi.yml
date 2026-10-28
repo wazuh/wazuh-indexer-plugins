@@ -1711,9 +1711,10 @@ components:
     LogtestRequest:
       type: object
       description: |
-        Only `space` is validated by the Content Manager plugin itself; `queue`,
-        `location`, `event`, and `trace_level` are forwarded as-is to the Wazuh Engine,
-        which rejects missing/invalid values (e.g. an empty `trace_level`) with its own
+        Only `space` is validated by the Content Manager plugin itself, and a missing
+        or null `trace_level` defaults to `NONE`; `queue`, `location`, `event`, and
+        `trace_level` are forwarded as-is to the Wazuh Engine,
+        which rejects missing/invalid values (e.g. an unknown `trace_level`) with its own
         `400 Bad Request` message format, not the plugin's standard `"Missing [x] field."`
         format. Fields not listed below are also forwarded to the Engine rather than
         rejected by the plugin.
@@ -1722,7 +1723,6 @@ components:
         - queue
         - location
         - event
-        - trace_level
       properties:
         integration:
           type: string
@@ -1769,16 +1769,18 @@ components:
             - NONE
             - ASSET_ONLY
             - ALL
-          description: Trace verbosity level
+          default: "NONE"
+          description: Trace verbosity level. Defaults to `NONE` when omitted or null.
           example: "NONE"
 
     # Request body for normalization-only logtest
     LogtestNormalizationRequest:
       type: object
       description: |
-        Only `space` is validated by the Content Manager plugin itself; `queue`,
-        `location`, `event`, and `trace_level` are forwarded as-is to the Wazuh Engine,
-        which rejects missing/invalid values (e.g. an empty `trace_level`) with its own
+        Only `space` is validated by the Content Manager plugin itself, and a missing
+        or null `trace_level` defaults to `NONE`; `queue`, `location`, `event`, and
+        `trace_level` are forwarded as-is to the Wazuh Engine,
+        which rejects missing/invalid values (e.g. an unknown `trace_level`) with its own
         `400 Bad Request` message format, not the plugin's standard `"Missing [x] field."`
         format. Fields not listed below are also forwarded to the Engine rather than
         rejected by the plugin.
@@ -1786,7 +1788,6 @@ components:
         - space
         - queue
         - event
-        - trace_level
       properties:
         space:
           type: string
@@ -1825,7 +1826,8 @@ components:
             - NONE
             - ASSET_ONLY
             - ALL
-          description: Trace verbosity level
+          default: "NONE"
+          description: Trace verbosity level. Defaults to `NONE` when omitted or null.
           example: "NONE"
 
     # Request body for detection-only logtest
