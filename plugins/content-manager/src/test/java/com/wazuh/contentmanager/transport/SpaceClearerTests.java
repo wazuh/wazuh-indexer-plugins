@@ -299,8 +299,9 @@ public class SpaceClearerTests extends OpenSearchTestCase {
                             ActionListener<Object> l = invocation.getArgument(2);
                             if (n == 1) {
                                 l.onFailure(
-                                        new IllegalStateException(
-                                                "Log Type with id A cannot be deleted because active rules exist"));
+                                        new OpenSearchStatusException(
+                                                "Log Type with id A cannot be deleted because active rules exist",
+                                                RestStatus.BAD_REQUEST));
                             } else {
                                 l.onResponse(null);
                             }

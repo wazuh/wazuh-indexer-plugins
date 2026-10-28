@@ -400,15 +400,17 @@ final class SpaceClearer {
     }
 
     /**
-     * Whether {@code e} (or a cause) is Security Analytics refusing to delete a log type because it
-     * still sees active rules for it — a transient state right after the integration's rules were
-     * deleted.
+     * Whether {@code e} (or a cause) is Security Analytics refusing the log-type delete with a {@code
+     * 400}. Detected by status, not by message text: when clearing an empty draft integration the
+     * only {@code 400} the delete can raise is that it still sees the rules just deleted (a transient
+     * after the rule delete — draft integrations have no detectors and no sigma source), which is the
+     * one case worth retrying. A {@code 404} is tolerated earlier; anything else propagates.
      */
     private static boolean isActiveRulesConflict(Exception e) {
         Throwable cause = e;
         while (cause != null) {
-            String message = cause.getMessage();
-            if (message != null && message.contains("active rules exist")) {
+            if (cause instanceof OpenSearchStatusException statusException
+                    && statusException.status() == RestStatus.BAD_REQUEST) {
                 return true;
             }
             cause = cause.getCause();
