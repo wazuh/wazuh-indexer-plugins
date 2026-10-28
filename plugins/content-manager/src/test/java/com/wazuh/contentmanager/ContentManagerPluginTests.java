@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager;
 
+import org.apache.logging.log4j.Level;
 import org.opensearch.action.get.GetRequestBuilder;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.cluster.ClusterState;
@@ -49,6 +50,7 @@ import com.wazuh.contentmanager.cti.catalog.service.SpaceService;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.jobscheduler.jobs.TelemetryPingJob;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.CapturingAppender;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.contentmanager.utils.SetupReadiness;
 import org.mockito.ArgumentCaptor;
@@ -157,7 +159,11 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         verify(this.catalogSyncJob).triggerOnStartup();
     }
 
-    /** Tests that catalogSyncJob.triggerOnStartup() is NOT called when update_on_start is false. */
+    /**
+     * Tests that catalogSyncJob.triggerOnStartup() is NOT called when update_on_start is false, and
+     * that the skip is logged at INFO: it also skips loading the packaged snapshots, so a node left
+     * with no content must say why at the default log level.
+     */
     public void testOnNodeStartedTriggerDisabled() {
         Settings settings =
                 Settings.builder()
@@ -166,10 +172,14 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
                         .build();
         PluginSettings.getInstance(settings);
 
-        this.plugin.onNodeStarted(this.discoveryNode);
-        this.simulateClusterManagerElection();
+        try (CapturingAppender logs = CapturingAppender.attach(ContentManagerPlugin.class)) {
+            this.plugin.onNodeStarted(this.discoveryNode);
+            this.simulateClusterManagerElection();
 
-        verify(this.catalogSyncJob, never()).triggerOnStartup();
+            verify(this.catalogSyncJob, never()).triggerOnStartup();
+            assertTrue(
+                    logs.messages(Level.INFO).contains(Constants.I_LOG_CATALOG_SYNC_SKIPPED_ON_START));
+        }
     }
 
     /**

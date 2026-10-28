@@ -765,7 +765,6 @@ public class Constants {
     // AbstractContentAction)
     public static final String W_LOG_CREDENTIALS_INDEX_NOT_PROTECTED =
             "[{}] index is not configured as a system index. Registration will be disabled and any stored token will be removed on startup. Add it to plugins.security.system_indices.indices in opensearch.yml and ensure plugins.security.system_indices.enabled is true, then restart.";
-    public static final String D_LOG_SKIP_CATALOG_SYNC_TRIGGER = "Skipping catalog sync job trigger";
     public static final String I_LOG_PLUGIN_INDEX_CREATED = "Index created: {} acknowledged={}";
     public static final String E_LOG_PLUGIN_INDEX_CREATE_FAILED =
             "Failed to create {} index, due to: {}";
@@ -795,6 +794,8 @@ public class Constants {
             "Could not parse the existing Catalog Sync Job document; rewriting it from the current settings: {}";
     public static final String I_LOG_CATALOG_SYNC_SKIPPED_DISABLED =
             "Scheduled catalog synchronization (ID: {}) skipped: plugins.content_manager.catalog.update_on_schedule is false.";
+    public static final String I_LOG_CATALOG_SYNC_SKIPPED_ON_START =
+            "Content update on start skipped: plugins.content_manager.catalog.update_on_start is false. Content not loaded yet, including the snapshots packaged with the Wazuh Indexer, is loaded by POST /_plugins/_content_manager/update.";
     public static final String I_LOG_REGISTRATION_UPDATE_STARTED =
             "Access token registered; content update started to apply the environment's plan.";
     public static final String I_LOG_REGISTRATION_UPDATE_WAITING =
