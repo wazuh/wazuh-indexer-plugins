@@ -703,6 +703,15 @@ public class SpaceService {
                         listener::onFailure));
     }
 
+    /**
+     * Assembles the {@code /content/validate/policy} payload of a space.
+     *
+     * <p>A space without decoders, kvdbs or filters (see {@link #hasEngineResourcesAsync}) is sent
+     * without integrations, both in the policy and in the resources, even when it still holds some
+     * (empty, or with rules only). The Engine builds a testing session only for a policy that lists
+     * integrations, and such a policy is rejected without a root decoder. With none listed, the
+     * Engine drops the space's testing session instead (wazuh-indexer#2026).
+     */
     private JsonNode assembleEnginePayload(
             Map<String, Object> policyDocument,
             String targetSpace,
@@ -710,6 +719,12 @@ public class SpaceService {
             Map<String, Map<String, Object>> targetKvdbs,
             Map<String, Map<String, Object>> targetDecoders,
             Map<String, Map<String, Object>> targetFilters) {
+
+        boolean engineEmpty =
+                targetDecoders.isEmpty() && targetKvdbs.isEmpty() && targetFilters.isEmpty();
+        if (engineEmpty && !targetIntegrations.isEmpty()) {
+            log.debug(Constants.D_LOG_ENGINE_PAYLOAD_WITHOUT_INTEGRATIONS, targetSpace);
+        }
 
         ObjectNode rootPayload = this.objectMapper.createObjectNode();
         boolean isTesterSpace = !Space.DRAFT.toString().equals(targetSpace);
@@ -726,10 +741,15 @@ public class SpaceService {
             JsonNode policyContentNode = this.objectMapper.valueToTree(policyDoc);
             policyNode.setAll((ObjectNode) policyContentNode);
         }
+        if (engineEmpty) {
+            policyNode.set(Constants.KEY_INTEGRATIONS, this.objectMapper.createArrayNode());
+        }
         fullPolicyNode.set(Constants.KEY_POLICY, policyNode);
 
         ObjectNode resourcesNode = this.objectMapper.createObjectNode();
-        resourcesNode.set(Constants.KEY_INTEGRATIONS, this.buildResourceArray(targetIntegrations));
+        resourcesNode.set(
+                Constants.KEY_INTEGRATIONS,
+                this.buildResourceArray(engineEmpty ? Collections.emptyMap() : targetIntegrations));
         resourcesNode.set(Constants.KEY_KVDBS, this.buildResourceArray(targetKvdbs));
         resourcesNode.set(Constants.KEY_DECODERS, this.buildResourceArray(targetDecoders));
         resourcesNode.set(Constants.KEY_FILTERS, this.buildResourceArray(targetFilters));

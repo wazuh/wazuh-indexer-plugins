@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
@@ -534,6 +536,93 @@ public class SpaceServiceTests extends OpenSearchTestCase {
         assertTrue(
                 "Non-policy resources must still be resolved by document.id",
                 query.contains(Constants.Q_DOCUMENT_ID));
+    }
+
+    // ── Engine payload (wazuh-indexer#2026) ──────────────────────────────────
+
+    /**
+     * Builds the payload of a promotion to {@code test} whose target indices are absent, so the
+     * target space holds exactly what the promotion applies.
+     */
+    private JsonNode enginePayload(
+            Map<String, Map<String, Object>> integrations,
+            Map<String, Map<String, Object>> kvdbs,
+            Map<String, Map<String, Object>> decoders,
+            Set<String> decodersToDelete) {
+        mockPolicyIndexExists(false);
+        Map<String, Object> policy = new HashMap<>();
+        policy.put(Constants.KEY_ID, "policy-id");
+        policy.put("root_decoder", null);
+        policy.put(Constants.KEY_INTEGRATIONS, List.of("int-a", "int-b"));
+        policy.put(Constants.KEY_ENABLED, true);
+
+        AtomicReference<JsonNode> payload = new AtomicReference<>();
+        this.policyHashService.buildEnginePayload(
+                Map.of(Constants.KEY_DOCUMENT, policy),
+                Space.TEST.toString(),
+                integrations,
+                kvdbs,
+                decoders,
+                Map.of(),
+                Set.of(),
+                Set.of(),
+                decodersToDelete,
+                Set.of(),
+                ActionListener.wrap(payload::set, e -> fail(e.getMessage())));
+        assertNotNull("The payload should be built", payload.get());
+        return payload.get();
+    }
+
+    private static Map<String, Map<String, Object>> resources(String... ids) {
+        Map<String, Map<String, Object>> resources = new HashMap<>();
+        for (String id : ids) {
+            resources.put(id, Map.of(Constants.KEY_DOCUMENT, Map.of(Constants.KEY_ID, id)));
+        }
+        return resources;
+    }
+
+    /**
+     * A promotion that removes the space's last decoder, leaving an empty integration and one holding
+     * only a rule, must send no integrations to the Engine, neither in the policy nor in the
+     * resources. Sent with integrations, the Engine tries to build a testing session and rejects the
+     * policy with "Missing root decoder", so the promotion could never go through
+     * (wazuh-indexer#2026).
+     */
+    public void testEnginePayloadLeavesOutIntegrationsOfAnEngineEmptySpace() {
+        JsonNode payload =
+                enginePayload(resources("int-a", "int-b"), Map.of(), Map.of(), Set.of("dec-1"));
+
+        assertTrue(payload.get(Constants.KEY_PROMOTE).asBoolean());
+        JsonNode fullPolicy = payload.get(Constants.KEY_FULL_POLICY);
+        JsonNode policy = fullPolicy.get(Constants.KEY_POLICY);
+        assertEquals(0, policy.get(Constants.KEY_INTEGRATIONS).size());
+        assertEquals(0, fullPolicy.get(Constants.KEY_RESOURCES).get(Constants.KEY_INTEGRATIONS).size());
+        assertEquals(0, fullPolicy.get(Constants.KEY_RESOURCES).get(Constants.KEY_DECODERS).size());
+        assertEquals("The rest of the policy is sent as is", "policy-id", policy.get("id").asText());
+        assertTrue(policy.get(Constants.KEY_ENABLED).asBoolean());
+    }
+
+    /** A space that keeps a decoder is sent with all its integrations. */
+    public void testEnginePayloadKeepsIntegrationsWhenTheSpaceHoldsADecoder() {
+        JsonNode payload =
+                enginePayload(resources("int-a", "int-b"), Map.of(), resources("dec-2"), Set.of("dec-1"));
+
+        JsonNode fullPolicy = payload.get(Constants.KEY_FULL_POLICY);
+        assertEquals(2, fullPolicy.get(Constants.KEY_POLICY).get(Constants.KEY_INTEGRATIONS).size());
+        assertEquals(2, fullPolicy.get(Constants.KEY_RESOURCES).get(Constants.KEY_INTEGRATIONS).size());
+    }
+
+    /**
+     * Kvdbs count as engine resources, as in {@link SpaceService#hasEngineResourcesAsync}, so a space
+     * holding one keeps its integrations.
+     */
+    public void testEnginePayloadKeepsIntegrationsWhenTheSpaceHoldsAKvdb() {
+        JsonNode payload =
+                enginePayload(resources("int-a", "int-b"), resources("kvdb-1"), Map.of(), Set.of());
+
+        JsonNode fullPolicy = payload.get(Constants.KEY_FULL_POLICY);
+        assertEquals(2, fullPolicy.get(Constants.KEY_POLICY).get(Constants.KEY_INTEGRATIONS).size());
+        assertEquals(2, fullPolicy.get(Constants.KEY_RESOURCES).get(Constants.KEY_INTEGRATIONS).size());
     }
 
     /**
