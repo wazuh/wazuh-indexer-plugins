@@ -421,6 +421,8 @@ Loading the result into the cluster stays a manual step, `indexer-security-init.
 
 `-q` / `--quiet` silences the progress lines, and is not a mode. The maintainer scripts pass it so that the install ends with the next steps an operator needs — where the passwords are, how to start and enable the service, and that the security configuration is loaded once from one node — rather than with a list of resolved keys. Anything that could not be resolved still prints.
 
+Those closing lines depend on the completion marker. A fresh install that resolved everything says the node is not running yet and gives the start and security-init commands. One that did not says the indexer is installed but not configured, still gives both commands, and leaves the reason to the resolver's error printed just above it. With no keystore, the certificates did not resolve, so it adds where to stage the node's pair and its `root-ca.pem`: `certs/`, `root:wazuh-indexer 0640`. With a keystore, the certificates resolved and the cause is elsewhere, such as a password the policy rejected, so it only asks the operator to correct what is reported. The install exits 0 either way: the package is installed, and the operator stages the prerequisites and starts the service, with no reinstall.
+
 ### Certificate resolution
 
 Which case applies is decided entirely by what is present in the certificate authority (CA) directory, with no mode flag — the presence of a private key beside the trust anchor is the signal, so a host never given one cannot sign:
@@ -486,8 +488,13 @@ The same reasoning applies outside the product tree. `/etc/default/wazuh-indexer
 The configuration directory, `/etc/wazuh-indexer`, is root's as well: directories
 `root:wazuh-indexer 0750`, files `0640`, so the service reads its configuration, its keystore and
 its trust material through its group and can rewrite none of them. The one file the node used to
-write there, `opensearch.keystore`, is created by `postinst` / `%post` when absent and upgraded
-when its format changed, as root, so the node never writes it. The admin certificate pair is
+write there, `opensearch.keystore`, is created as root, so the node never writes it. On a resolved
+node (the completion marker exists) `postinst` / `%post` create it when absent and upgrade it when
+its format changed. On a node whose prerequisites are not staged yet they leave it alone and print
+nothing: the keystore tool loads `opensearch.yml` and refuses it while the DN settings are empty.
+The resolver creates it instead, in the same run once the certificates resolve, or at the
+pre-start step once the operator stages them. A failure of the tool is one `WARNING:` line,
+never its stack trace. An upgrade of a node that is still pending skips the format upgrade. The admin certificate pair is
 root's alone (`0600`): `indexer-security-init.sh` runs `securityadmin.sh` as root, and the service
 account must not be able to act as the security administrator. The ownership is set by a walk in
 `postinst` / `%post` that touches regular files and directories only, never through a symbolic
@@ -554,8 +561,8 @@ The purge deletes only what the package itself created:
   own it.
 - `export/`, `ca/` and the completion marker: what the package published for the other
   components, its CA, and the record that it resolved its credentials.
-- `opensearch.keystore`, when it is still exactly as the package created it. `postinst` / `%post`
-  record its digest in `.wazuh-indexer-keystore` at creation; a keystore the operator added
+- `opensearch.keystore`, when it is still exactly as the package created it. Whichever created
+  it, `postinst` / `%post` or the resolver, records its digest in `.wazuh-indexer-keystore`; a keystore the operator added
   secrets to has another digest and is kept, with the marker.
 - The certificates it issued from that CA. Without it they are an identity nothing trusts, and a
   reinstall would find them beside a new one. Only a CA with its key in `ca/` issued anything on
