@@ -6,7 +6,7 @@ Amazon Security Lake receives **findings only**: the `wazuh-findings-v5-*` data 
 
 ## Architecture
 
-<!-- TODO: add a diagram of the architecture with the AWS service icons, drawn with the 5.x wording (findings, not events), together with its editable source (.drawio or .svg). -->
+![Overview diagram of the Wazuh integration with Amazon Security Lake](../../img/integrations/wazuh-amazon-security-lake.jpg)
 
 ```mermaid
 flowchart LR
@@ -51,11 +51,15 @@ In the account of Security Lake, from **Security Lake** > **Custom sources** > *
 - **AWS account ID** and **External ID**: the account the Lambda function runs in, and an external ID of your choice.
 - **Service access**: a role that allows Security Lake to invoke AWS Glue.
 
+![*Custom source* creation form](../../img/integrations/asl-custom-source-form.jpeg)
+
 Security Lake creates the location of the source in its bucket, and an IAM role that the account of the function can assume, with the external ID, to write there. Note:
 
 - The bucket, for example `aws-security-data-lake-us-east-1-xxxxxxxxxxxx`.
 - The location of the source under `ext/`, for example `wazuh` or `wazuh/1.0`.
 - The ARN of the role of the source.
+
+![*Custom source* after creation](../../img/integrations/asl-custom-source.jpeg)
 
 ## 2. Create the bucket of the raw findings
 
@@ -107,6 +111,8 @@ Give the execution role of the function:
 ## 4. Trigger the function
 
 On the raw bucket, from **Properties** > **Event notifications** > **Create event notification**, add a notification for **All object create events** (`s3:ObjectCreated:*`), with no prefix or suffix (the files end in `.txt.gz`), and the function as destination. A failed invocation is retried: the function writes the same output file again, so a retry never duplicates findings.
+
+![AWS Lambda trigger](../../img/integrations/asl-lambda-trigger.jpeg)
 
 ## 5. Configure Logstash
 
