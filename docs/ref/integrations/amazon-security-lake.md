@@ -57,8 +57,6 @@ Security Lake creates the location of the source in its bucket, and an IAM role 
 - The location of the source under `ext/`, for example `wazuh` or `wazuh/1.0`.
 - The ARN of the role of the source.
 
-<!-- TODO: add screenshots taken during the test on a real AWS account (docs/img/integrations/): the "Create custom data source" form with the Detection Finding class, and the list of custom sources with the Location and the Provider role ARN of the Wazuh source. -->
-
 ## 2. Create the bucket of the raw findings
 
 In the account of the function, create an S3 bucket for Logstash to write to, for example `wazuh-findings-raw`, in the region of Security Lake, with default encryption. The function reads every file once, so a lifecycle rule that expires the objects after a few days keeps the bucket small.
@@ -108,9 +106,7 @@ Give the execution role of the function:
 
 ## 4. Trigger the function
 
-<!-- TODO: add a screenshot of the S3 trigger of the function taken during the test on a real AWS account: All object create events, with no suffix filter (the files end in .txt.gz). -->
-
-On the raw bucket, add an event notification for **All object create events** (`s3:ObjectCreated:*`), with the function as destination. A failed invocation is retried: the function writes the same output file again, so a retry never duplicates findings.
+On the raw bucket, from **Properties** > **Event notifications** > **Create event notification**, add a notification for **All object create events** (`s3:ObjectCreated:*`), with no prefix or suffix (the files end in `.txt.gz`), and the function as destination. A failed invocation is retried: the function writes the same output file again, so a retry never duplicates findings.
 
 ## 5. Configure Logstash
 
@@ -170,9 +166,7 @@ After the delay of the export (5 minutes by default) and `S3_TIME_FILE`, the raw
 aws s3 ls --recursive s3://<Security Lake bucket>/ext/<source location>/
 ```
 
-<!-- TODO: add a screenshot of the Athena query below, taken during the test on a real AWS account. -->
-
-Once Security Lake has catalogued them, query them from Athena, in the table of the custom source in the Security Lake database of AWS Glue:
+Once Security Lake has catalogued them, query them from Athena, in the table of the custom source in the Security Lake database of AWS Glue (`amazon_security_lake_table_<region>_ext_<source name>`). Querying it needs the Lake Formation `SELECT` and `DESCRIBE` permissions on the table.
 
 ```sql
 SELECT from_unixtime(time / 1000) AS time, severity, finding_info.title, metadata.log_name
@@ -216,6 +210,7 @@ Every Parquet file has the same columns, whatever attributes its findings carry:
 | --- | --- |
 | No file in the raw bucket, and the Logstash log shows `security_exception` from the Wazuh indexer | The export user cannot read the data streams in `WAZUH_EXPORT_INDICES`. Add them to its role. |
 | No file in the raw bucket, and the Logstash log shows `AccessDenied` | The credentials of Logstash cannot write to the raw bucket. |
+| Parquet files in the location of the source, but the table of the custom source in AWS Glue has no columns, and Athena returns nothing | The crawler of the custom source has not catalogued the files yet. Run it once, from **AWS Glue** > **Crawlers** (it has the name of the source), or with `aws glue start-crawler --name <source name>`. |
 | Files in the raw bucket, none in Security Lake | The event notification does not invoke the function, or the function fails: see its logs in CloudWatch. |
 | `AccessDenied` on `AssumeRole` in the logs of the function | The account or the external ID differ from those of the custom source, or the execution role lacks `sts:AssumeRole`. |
 | `AccessDenied` on `PutObject` in the logs of the function | `SOURCE_LOCATION` differs from the location of the custom source. |
