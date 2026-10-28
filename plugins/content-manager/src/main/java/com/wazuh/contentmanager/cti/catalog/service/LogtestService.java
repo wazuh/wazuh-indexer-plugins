@@ -289,20 +289,18 @@ public class LogtestService {
             return buildEngineErrorResult("ENGINE_ERROR", e.getMessage(), engineResult);
         }
 
+        // Checked before parsing: the Engine's error text reaches us as plain text, not JSON.
+        if (engineResponse.getStatus() >= 400) {
+            String errorMsg = extractEngineErrorMessage(mapper, engineResponse.getMessage());
+            log.warn(
+                    "Engine rejected logtest payload (status {}): {}",
+                    engineResponse.getStatus(),
+                    errorMsg);
+            return buildEngineErrorResult("ENGINE_ERROR", errorMsg, engineResult);
+        }
+
         try {
             JsonNode engineJson = mapper.readTree(engineResponse.getMessage());
-
-            if (engineResponse.getStatus() >= 400) {
-                String errorMsg =
-                        engineJson.has("message")
-                                ? engineJson.get("message").asText()
-                                : engineResponse.getMessage();
-                log.warn(
-                        "Engine rejected logtest payload (status {}): {}",
-                        engineResponse.getStatus(),
-                        errorMsg);
-                return buildEngineErrorResult("ENGINE_ERROR", errorMsg, engineResult);
-            }
 
             Map<String, Object> processedEvent = mapper.readValue(engineResponse.getMessage(), Map.class);
             engineResult.putAll(processedEvent);
@@ -316,6 +314,28 @@ public class LogtestService {
         }
 
         return engineResult;
+    }
+
+    /**
+     * Extracts the error text from an Engine error response. The socket client already unwraps the
+     * Engine's {@code error} field into plain text (for example {@code The 'test' environment does
+     * not exist.}), so a message that is not JSON is returned as is. A JSON object with a {@code
+     * message} field yields that field.
+     *
+     * @param mapper the mapper used to try parsing the message
+     * @param message the Engine response message
+     * @return the error text
+     */
+    private String extractEngineErrorMessage(ObjectMapper mapper, String message) {
+        try {
+            JsonNode errorJson = mapper.readTree(message);
+            if (errorJson.has("message")) {
+                return errorJson.get("message").asText();
+            }
+        } catch (Exception e) {
+            // Plain text: the message is the error itself.
+        }
+        return message;
     }
 
     /**
