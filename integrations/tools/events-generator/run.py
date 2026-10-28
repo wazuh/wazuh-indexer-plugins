@@ -104,15 +104,39 @@ def build_finding(event: dict, event_index: str, event_doc_id: str, rule: dict) 
     return finding
 
 
+# Values of the case of a finding, managed by the users of the Wazuh dashboard.
+CASE_STATUSES = ("active", "acknowledged", "completed")
+CASE_SEVERITIES = ("low", "medium", "high", "critical")
+CASE_PRIORITIES = ("low", "medium", "high", "urgent")
+CASE_TLPS = ("TLP:CLEAR", "TLP:GREEN", "TLP:AMBER")
+
+
+def build_case(rng: random.Random, timestamp: str) -> dict:
+    """A case for a finding, under wazuh.case, as a user opens one in the Wazuh dashboard."""
+    return {
+        "title": "Investigation of the finding",
+        "status": rng.choice(CASE_STATUSES),
+        "severity": rng.choice(CASE_SEVERITIES),
+        "priority": rng.choice(CASE_PRIORITIES),
+        "tlp": rng.choice(CASE_TLPS),
+        "user": {"name": "analyst"},
+        "created_at": timestamp,
+        "updated_at": timestamp,
+    }
+
+
 def rules_for(template: dict, rules: list) -> list:
-    """Rules that can match the events of a template, by integration name."""
+    """Rules that can match the events of a template, by integration name, and by event action for
+    the rules that list their actions."""
     integration = template["event"].get("wazuh", {}).get("integration", {}).get("name")
-    return [rule for rule in rules if integration in rule.get("integrations", [])]
+    action = template["event"].get("event", {}).get("action")
+    return [rule for rule in rules
+            if integration in rule.get("integrations", []) and action in rule.get("actions", [action])]
 
 
 def strip_rule(rule: dict) -> dict:
     """The rule as it appears under wazuh.rule, without the generator's own metadata."""
-    return {key: value for key, value in rule.items() if key != "integrations"}
+    return {key: value for key, value in rule.items() if key not in ("integrations", "actions")}
 
 
 class Indexer:
@@ -177,11 +201,12 @@ class Pending:
 
 
 def generate(client, samples: dict, categories, findings_ratio: float, rng: random.Random,
-             findings_delay: float = 0, pending: Pending = None, custom_stream: str = None, custom_ratio: float = 0) -> dict:
+             findings_delay: float = 0, pending: Pending = None, custom_stream: str = None, custom_ratio: float = 0,
+             case_ratio: float = 0) -> dict:
     """
-    Indexes one event and, with the given probability, one finding for it. With a delay, the finding
-    is left in pending to be indexed later. With a custom data stream, a share of the events is also
-    indexed into it.
+    Indexes one event and, with the given probability, one finding for it, with a case attached to
+    a share of the findings. With a delay, the finding is left in pending to be indexed later. With
+    a custom data stream, a share of the events is also indexed into it.
     """
     templates = [t for t in samples["events"] if t["event"]["wazuh"]["integration"]["category"] in categories]
     template = rng.choice(templates)
@@ -200,6 +225,8 @@ def generate(client, samples: dict, categories, findings_ratio: float, rng: rand
     if candidates and rng.random() < findings_ratio:
         rule = strip_rule(rng.choice(candidates))
         finding = build_finding(event, result["_index"], result["_id"], rule)
+        if rng.random() < case_ratio:
+            finding["wazuh"]["case"] = build_case(rng, event["@timestamp"])
         doc_id = dedup_id(result["_index"], result["_id"], rule["id"])
         pending = pending if pending is not None else Pending()
         pending.add(time.time() + findings_delay, stream_name("findings", category), doc_id, finding)
@@ -247,6 +274,10 @@ def parse_args(argv=None):
         "--custom-ratio", default=0.2, type=float,
         help="Probability of an event being also indexed into the custom data stream. Default: 0.2.",
     )
+    parser.add_argument(
+        "--case-ratio", default=0.2, type=float,
+        help="Probability of a finding having a case, as the users of the Wazuh dashboard open them. Default: 0.2.",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Print the documents instead of indexing them.")
     parser.add_argument("--seed", type=int, help="Seed for the random choices, to get repeatable output.")
     args = parser.parse_args(argv)
@@ -260,6 +291,8 @@ def parse_args(argv=None):
         parser.error("--findings-ratio must be between 0 and 1")
     if not 0 <= args.custom_ratio <= 1:
         parser.error("--custom-ratio must be between 0 and 1")
+    if not 0 <= args.case_ratio <= 1:
+        parser.error("--case-ratio must be between 0 and 1")
     if args.findings_delay < 0:
         parser.error("--findings-delay cannot be negative")
     if not args.dry_run and not args.password:
@@ -287,7 +320,7 @@ def main(argv=None):
     while args.count == 0 or count < args.count:
         try:
             generate(client, samples, args.categories, args.findings_ratio, rng,
-                     args.findings_delay, pending, args.custom_stream, args.custom_ratio)
+                     args.findings_delay, pending, args.custom_stream, args.custom_ratio, args.case_ratio)
             pending.flush(client, time.time())
         except requests.RequestException as e:
             logger.error("could not index the documents: %s", e)

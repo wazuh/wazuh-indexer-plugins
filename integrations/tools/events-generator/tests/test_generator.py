@@ -88,6 +88,25 @@ def test_rules(samples):
             assert len(kind["id"]) == len(kind["name"])
 
 
+def test_cases_follow_wcs():
+    finding = {"wazuh": {"case": run.build_case(random.Random(3), "2026-10-22T10:00:00.000Z")}}
+    unknown = leaf_paths(finding, FINDING_FIELDS) - FINDING_FIELDS.keys()
+    assert not unknown, f"fields not in the WCS findings module: {sorted(unknown)}"
+    assert finding["wazuh"]["case"]["status"] in run.CASE_STATUSES
+
+
+def test_case_ratio(samples):
+    documents = []
+
+    class Documents(Recorder):
+        def create(self, stream, doc_id, document):
+            documents.append(document)
+            return super().create(stream, doc_id, document)
+
+    run.generate(Documents(), samples, ["security"], 1.0, random.Random(1), case_ratio=1.0)
+    assert documents and documents[0]["wazuh"]["case"]["status"] in run.CASE_STATUSES
+
+
 def test_finding_points_to_its_event(samples, agent):
     template = next(t for t in samples["events"] if run.rules_for(t, samples["rules"]))
     rule = run.strip_rule(run.rules_for(template, samples["rules"])[0])
@@ -214,3 +233,12 @@ def test_dry_run_flushes_delayed_findings_at_the_end(capsys):
 def test_rejects_negative_delay():
     with pytest.raises(SystemExit):
         run.parse_args(["--dry-run", "--findings-delay", "-1"])
+
+
+def test_rules_for_actions():
+    rules = [{"integrations": ["gcp"], "id": "any"}, {"integrations": ["gcp"], "actions": ["dns_query"], "id": "dns"}]
+    template = {"event": {"event": {"action": "storage.setIamPermissions"}, "wazuh": {"integration": {"name": "gcp"}}}}
+    assert [r["id"] for r in run.rules_for(template, rules)] == ["any"]
+    template["event"]["event"]["action"] = "dns_query"
+    assert [r["id"] for r in run.rules_for(template, rules)] == ["any", "dns"]
+    assert "actions" not in run.strip_rule(rules[1])

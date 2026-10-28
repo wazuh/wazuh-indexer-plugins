@@ -1,0 +1,205 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - Azure - Overview dashboard</label>
+  <description>Azure - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - Azure - Overview dashboard",
+  "description": "Azure - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_01": {
+      "type": "ds.search",
+      "name": "Top 5 activity results (overview)",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"azure\" | eval f1='event.outcome' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"event.outcome\", metric as \"Count\""
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "Top 5 resource providers (overview)",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"azure\" | eval f1='cloud.service.name' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"cloud.service.name\", metric as \"Count\""
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "viz_03",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"azure\" | eval f1='wazuh.rule.name' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Top 5 rules by name\", metric as \"Count\""
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "Events by category over time (overview)",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"azure\" | eval f1='event.category{}' | timechart useother=f usenull=f limit=5 count by f1"
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "Top 5 activity operations types (overview)",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"azure\" | eval f1='event.action' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Activity operation type\", metric as \"Count\""
+      }
+    },
+    "ds_06": {
+      "type": "ds.search",
+      "name": "Top Source IPs by Activity (overview)",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"azure\" | eval f1='source.ip', f2='event.action' | stats count as metric by f1, f2 | sort - metric | head 75 | rename f1 as \"Source IP\", f2 as \"Top Actions\", metric as \"Event Count\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.pie",
+      "title": "Top 5 activity results (overview)",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_02": {
+      "type": "splunk.pie",
+      "title": "Top 5 resource providers (overview)",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_03": {
+      "type": "splunk.table",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {}
+    },
+    "viz_04": {
+      "type": "splunk.area",
+      "title": "Events by category over time (overview)",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_05": {
+      "type": "splunk.bar",
+      "title": "Top 5 activity operations types (overview)",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {}
+    },
+    "viz_06": {
+      "type": "splunk.table",
+      "title": "Top Source IPs by Activity (overview)",
+      "dataSources": {
+        "primary": "ds_06"
+      },
+      "options": {}
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 676,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 296,
+          "h": 176
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 300,
+          "y": 0,
+          "w": 296,
+          "h": 176
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 0,
+          "w": 596,
+          "h": 176
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 180,
+          "w": 596,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 180,
+          "w": 596,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_06",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 420,
+          "w": 1196,
+          "h": 236
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

@@ -1,0 +1,261 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - CMMC - Overview dashboard</label>
+  <description>CMMC - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - CMMC - Overview dashboard",
+  "description": "CMMC - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_01": {
+      "type": "ds.search",
+      "name": "Findings volume by agent",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.agent.id', f2='wazuh.rule.compliance.cmmc{}' | stats count as metric by f1, f2 | sort - metric | head 50 | rename f1 as \"Agent ID\", f2 as \"Requirement\", metric as \"Count\""
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "Most common requirements",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.rule.compliance.cmmc{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Requirement\", metric as \"Count\""
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "Top 10 requirements",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.rule.compliance.cmmc{}' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"wazuh.rule.compliance.cmmc\", metric as \"Count\""
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "Most active agents",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.agent.name' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"Agent\", metric as \"Count\""
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "Stats",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | stats count as value"
+      }
+    },
+    "ds_06": {
+      "type": "ds.search",
+      "name": "viz_06",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.rule.compliance.cmmc{}' | stats dc(f1) as value"
+      }
+    },
+    "ds_07": {
+      "type": "ds.search",
+      "name": "Requirements evolution over time",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.rule.compliance.cmmc{}' | timechart useother=f usenull=f limit=10 count by f1"
+      }
+    },
+    "ds_08": {
+      "type": "ds.search",
+      "name": "Requirements distribution by agent",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* | eval f1='wazuh.agent.name', f2='wazuh.rule.compliance.cmmc{}' | chart count over f1 by f2 useother=f usenull=f limit=10 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"wazuh.agent.name\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.punchcard",
+      "title": "Findings volume by agent",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {}
+    },
+    "viz_02": {
+      "type": "splunk.bar",
+      "title": "Most common requirements",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {}
+    },
+    "viz_03": {
+      "type": "splunk.pie",
+      "title": "Top 10 requirements",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_04": {
+      "type": "splunk.pie",
+      "title": "Most active agents",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_05": {
+      "type": "splunk.singlevalue",
+      "title": "Stats",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {
+        "underLabel": "Total findings"
+      }
+    },
+    "viz_06": {
+      "type": "splunk.singlevalue",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_06"
+      },
+      "options": {
+        "underLabel": "Unique requirements"
+      }
+    },
+    "viz_07": {
+      "type": "splunk.column",
+      "title": "Requirements evolution over time",
+      "dataSources": {
+        "primary": "ds_07"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_08": {
+      "type": "splunk.column",
+      "title": "Requirements distribution by agent",
+      "dataSources": {
+        "primary": "ds_08"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 696,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 596,
+          "h": 396
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 0,
+          "w": 296,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 900,
+          "y": 0,
+          "w": 296,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 200,
+          "w": 296,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 900,
+          "y": 200,
+          "w": 146,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_06",
+        "type": "block",
+        "position": {
+          "x": 1050,
+          "y": 200,
+          "w": 146,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_07",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 400,
+          "w": 596,
+          "h": 276
+        }
+      },
+      {
+        "item": "viz_08",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 400,
+          "w": 596,
+          "h": 276
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

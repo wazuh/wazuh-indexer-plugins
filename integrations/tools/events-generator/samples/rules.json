@@ -70,7 +70,8 @@
     }
   },
   {
-    "integrations": ["gcp-audit"],
+    "integrations": ["gcp"],
+    "actions": ["storage.setIamPermissions"],
     "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a06",
     "title": "Cloud storage bucket made public",
     "tags": ["attack.exfiltration", "attack.t1537"],
@@ -162,6 +163,74 @@
       "tactic": { "id": ["TA0005"], "name": ["Defense Evasion"] },
       "technique": { "id": ["T1562"], "name": ["Impair Defenses"] },
       "subtechnique": { "id": ["T1562.001"], "name": ["Disable or Modify Tools"] }
+    }
+  },
+  {
+    "integrations": ["docker"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a13",
+    "title": "Container started from an untrusted image",
+    "tags": ["attack.execution", "attack.t1610"],
+    "level": "medium",
+    "status": "experimental",
+    "compliance": { "nist_800_53": ["CM.7"], "pci_dss": ["2.2"] },
+    "mitre": {
+      "tactic": { "id": ["TA0002"], "name": ["Execution"] },
+      "technique": { "id": ["T1610"], "name": ["Deploy Container"] }
+    }
+  },
+  {
+    "integrations": ["azure"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a14",
+    "title": "Role assignment created in Azure",
+    "tags": ["attack.persistence", "attack.t1098"],
+    "level": "high",
+    "status": "stable",
+    "compliance": { "nist_800_53": ["AC.2"], "iso_27001": ["A.5.18"] },
+    "mitre": {
+      "tactic": { "id": ["TA0003"], "name": ["Persistence"] },
+      "technique": { "id": ["T1098"], "name": ["Account Manipulation"] }
+    }
+  },
+  {
+    "integrations": ["github"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a15",
+    "title": "Repository visibility changed to public",
+    "tags": ["attack.exfiltration", "attack.t1567"],
+    "level": "high",
+    "status": "stable",
+    "compliance": { "gdpr": ["IV_32.2"], "tsc": ["CC6.1"] },
+    "mitre": {
+      "tactic": { "id": ["TA0010"], "name": ["Exfiltration"] },
+      "technique": { "id": ["T1567"], "name": ["Exfiltration Over Web Service"] }
+    }
+  },
+  {
+    "integrations": ["o365"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a16",
+    "title": "Inbox rule created in Exchange Online",
+    "tags": ["attack.collection", "attack.t1114.003"],
+    "level": "medium",
+    "status": "stable",
+    "compliance": { "hipaa": ["164.312.b"], "nis2": ["21.2.d"] },
+    "mitre": {
+      "tactic": { "id": ["TA0009"], "name": ["Collection"] },
+      "technique": { "id": ["T1114"], "name": ["Email Collection"] },
+      "subtechnique": { "id": ["T1114.003"], "name": ["Email Forwarding Rule"] }
+    }
+  },
+  {
+    "integrations": ["gcp"],
+    "actions": ["dns_query"],
+    "id": "5b2c1c0a-7a51-4c0e-9e0b-3f1f6f3c2a17",
+    "title": "DNS query to a dynamic DNS domain from a cloud instance",
+    "tags": ["attack.command_and_control", "attack.t1071.004"],
+    "level": "medium",
+    "status": "stable",
+    "compliance": { "nist_800_53": ["SC.7"], "pci_dss": ["1.4"] },
+    "mitre": {
+      "tactic": { "id": ["TA0011"], "name": ["Command and Control"] },
+      "technique": { "id": ["T1071"], "name": ["Application Layer Protocol"] },
+      "subtechnique": { "id": ["T1071.004"], "name": ["DNS"] }
     }
   }
 ]
