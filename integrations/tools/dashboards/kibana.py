@@ -1,9 +1,11 @@
 """Kibana saved objects (data views and dashboards) of the Wazuh dashboards.
 
-Lens panels are written in the 8.6 saved object format, which Kibana migrates on import.
+The Lens panels of the events overview are written in the 8.6 saved object format, which Kibana migrates on import.
 """
 import json
 import uuid
+
+import wazuh_dashboard
 
 NS = uuid.UUID("6f2a4c3e-9b1d-4e57-8c2a-0d5e7f9a1b3c")
 VERSION = "8.6.2"
@@ -48,7 +50,7 @@ def terms(field, label, size, order_by):
 class Dashboard:
     def __init__(self, key, title, description):
         self.id, self.title, self.description = uid("dashboard", key), title, description
-        self.panels, self.references, self.searches, self.y = [], [], [], 0
+        self.panels, self.references, self.y = [], [], 0
         self.names = set()
 
     def _name(self, title, kind):
@@ -113,27 +115,6 @@ class Dashboard:
             x += w
         self.y += h
 
-    def search(self, h, title, source, columns, kql=None):
-        """A full-width saved search: the latest documents, newest first, with the given columns."""
-        name = self._name(title, "search")
-        sid = uid(self.id, "search", name)
-        pid = uid(self.id, name)
-        self.searches.append({
-            "id": sid, "type": "search", "coreMigrationVersion": VERSION, "migrationVersion": {"search": "8.0.0"},
-            "references": [{"id": DATA_VIEWS[source]["id"], "name": "kibanaSavedObjectMeta.searchSourceJSON.index", "type": "index-pattern"}],
-            "attributes": {
-                "title": title, "description": "", "columns": columns, "sort": [["@timestamp", "desc"]], "grid": {}, "hideChart": True,
-                "isTextBasedQuery": False,
-                "kibanaSavedObjectMeta": {"searchSourceJSON": json.dumps({
-                    "query": {"query": kql or "", "language": "kuery"}, "filter": [],
-                    "indexRefName": "kibanaSavedObjectMeta.searchSourceJSON.index"})},
-            },
-        })
-        self.panels.append({"version": VERSION, "type": "search", "gridData": {"x": 0, "y": self.y, "w": 48, "h": h, "i": pid},
-                            "panelIndex": pid, "title": title, "embeddableConfig": {"enhancements": {}}, "panelRefName": f"panel_{pid}"})
-        self.references.append({"id": sid, "name": f"{pid}:panel_{pid}", "type": "search"})
-        self.y += h
-
     def saved_object(self):
         return {
             "id": self.id,
@@ -174,21 +155,6 @@ def over_time(title, source, split_field, split_label, kql=None, w=None):
             "order": ["s", "x", "c"]}
 
 
-def series_over_time(title, source, series, kql=None):
-    """Stacked bars over time, one series per filtered count: [(label, kql)]."""
-    columns = {"x": histogram()}
-    accessors = []
-    for i, (label, filter_kql) in enumerate(series):
-        columns[f"c{i}"] = count(label, filter_kql)
-        accessors.append(f"%c{i}%")
-    return {"title": title, "source": source, "type": "lnsXY", "kql": kql,
-            "vis": {"legend": {"isVisible": True, "position": "right"}, "valueLabels": "hide", "fittingFunction": "None",
-                    "preferredSeriesType": "bar_stacked",
-                    "layers": [{"layerId": "%LAYER%", "accessors": accessors, "position": "top", "seriesType": "bar_stacked",
-                                "showGridlines": False, "layerType": "data", "xAccessor": "%x%"}]},
-            "columns": columns, "order": ["x"] + [f"c{i}" for i in range(len(series))]}
-
-
 def donut(title, source, field, label, kql=None):
     return {"title": title, "source": source, "type": "lnsPie", "kql": kql,
             "vis": {"shape": "donut", "layers": [{"layerId": "%LAYER%", "primaryGroups": ["%g%"], "metrics": ["%c%"],
@@ -223,45 +189,21 @@ def table(title, source, rows, metrics, size=20, kql=None):
 
 
 F, E = "findings", "events"
-HIGH = 'wazuh.rule.level : ("critical" or "high")'
 
-# Findings overview: replaces wazuh-security-events, wazuh-incident-response and wazuh-malware-detection.
-findings = Dashboard("findings-overview", "Wazuh - Findings overview", "Detection findings exported from the Wazuh indexer.")
-findings.row(7, metric("Findings", F, count("Findings")), metric("Critical and high", F, count("Critical and high", HIGH)),
-             metric("Agents with findings", F, unique("wazuh.agent.name", "Agents")), metric("Rules triggered", F, unique("wazuh.rule.id", "Rules")))
-findings.row(15, over_time("Findings over time by level", F, "wazuh.rule.level", "Level", w=32), donut("Findings by level", F, "wazuh.rule.level", "Level"))
-findings.row(15, top_bars("Findings by category", F, "wazuh.integration.category", "Category"), top_bars("Top agents", F, "wazuh.agent.name", "Agent"))
-findings.row(16, table("Top rules", F, [("wazuh.rule.title", "Rule"), ("wazuh.rule.level", "Level")],
-                       [("c", count("Findings")), ("a", unique("wazuh.agent.name", "Agents"))]))
-findings.row(16, table("Findings by agent and rule", F, [("wazuh.agent.name", "Agent"), ("wazuh.rule.title", "Rule"), ("wazuh.integration.name", "Integration")],
-                       [("c", count("Findings"))]))
-findings.search(18, "Latest findings", F, ["wazuh.agent.name", "wazuh.rule.level", "wazuh.rule.title", "wazuh.integration.name", "source.ip", "user.name"])
+# The findings: the dashboards of the Wazuh dashboard, converted (see wazuh_dashboard.py). Kibana
+# still renders the aggregation-based visualizations of OpenSearch Dashboards, from which they
+# come, and migrates them on import: only the parameters OpenSearch Dashboards renamed differ.
+# The events: the Wazuh dashboard has no dashboard of events, so the integration has its own.
+RENAMED = {"useNormalizedOpenSearchInterval": "useNormalizedEsInterval"}
 
-# MITRE ATT&CK: new.
-mitre = Dashboard("mitre-attack", "Wazuh - MITRE ATT&CK", "MITRE ATT&CK tactics and techniques of the rules that produced the findings.")
-mitre.row(7, metric("Findings with MITRE ATT&CK", F, count("Findings", "wazuh.rule.mitre.technique.id : *")),
-          metric("Tactics", F, unique("wazuh.rule.mitre.tactic.id", "Tactics")), metric("Techniques", F, unique("wazuh.rule.mitre.technique.id", "Techniques")),
-          metric("Sub-techniques", F, unique("wazuh.rule.mitre.subtechnique.id", "Sub-techniques")))
-mitre.row(15, over_time("Tactics over time", F, "wazuh.rule.mitre.tactic.name", "Tactic", w=32), donut("Findings by tactic", F, "wazuh.rule.mitre.tactic.name", "Tactic"))
-mitre.row(15, top_bars("Top techniques", F, "wazuh.rule.mitre.technique.name", "Technique"),
-          top_bars("Top sub-techniques", F, "wazuh.rule.mitre.subtechnique.name", "Sub-technique"))
-mitre.row(16, table("Techniques", F, [("wazuh.rule.mitre.technique.id", "Technique ID"), ("wazuh.rule.mitre.technique.name", "Technique")],
-                    [("c", count("Findings")), ("a", unique("wazuh.agent.name", "Agents")), ("r", unique("wazuh.rule.id", "Rules"))]))
 
-# Compliance: replaces wazuh-pci-dss.
-# Every framework of wazuh.rule.compliance in WCS.
-FRAMEWORKS = [("pci_dss", "PCI DSS"), ("nist_800_53", "NIST 800-53"), ("nist_800_171", "NIST 800-171"), ("gdpr", "GDPR"), ("hipaa", "HIPAA"),
-              ("iso_27001", "ISO 27001"), ("nis2", "NIS2"), ("tsc", "TSC"), ("cmmc", "CMMC"), ("fedramp", "FedRAMP")]
-compliance = Dashboard("compliance", "Wazuh - Compliance", "Regulatory requirements of the rules that produced the findings.")
-for half in (FRAMEWORKS[:5], FRAMEWORKS[5:]):
-    compliance.row(7, *[metric(f"{name} findings", F, count("Findings", f"wazuh.rule.compliance.{key} : *")) for key, name in half])
-compliance.row(15, series_over_time("Findings by framework over time", F, [(name, f"wazuh.rule.compliance.{key} : *") for key, name in FRAMEWORKS]))
-for pair in zip(FRAMEWORKS[::2], FRAMEWORKS[1::2]):
-    compliance.row(15, *[top_bars(f"{name} requirements", F, f"wazuh.rule.compliance.{key}", "Requirement") for key, name in pair])
-compliance.row(16, table("PCI DSS requirements by rule", F, [("wazuh.rule.compliance.pci_dss", "PCI DSS"), ("wazuh.rule.title", "Rule")],
-                         [("c", count("Findings")), ("a", unique("wazuh.agent.name", "Agents"))], kql="wazuh.rule.compliance.pci_dss : *"))
+def from_opensearch(o: dict) -> dict:
+    content = json.dumps(o)
+    for old, new in RENAMED.items():
+        content = content.replace(old, new)
+    return json.loads(content)
 
-# Events overview: replaces wazuh-amazon-aws (cloud panels).
+
 events = Dashboard("events-overview", "Wazuh - Events overview", "Normalized events exported from the Wazuh indexer.")
 events.row(7, metric("Events", E, count("Events")), metric("Agents", E, unique("wazuh.agent.name", "Agents")),
            metric("Integrations", E, unique("wazuh.integration.name", "Integrations")), metric("Failed outcomes", E, count("Events", 'event.outcome : "failure"')))
@@ -280,9 +222,8 @@ for view in DATA_VIEWS.values():
         "attributes": {"title": view["title"], "name": view["name"], "timeFieldName": "@timestamp", "allowNoIndex": True,
                        "fieldAttrs": "{}", "fieldFormatMap": "{}", "fields": "[]", "runtimeFieldMap": "{}", "sourceFilters": "[]", "typeMeta": "{}"},
     })
-for d in (findings, mitre, compliance, events):
-    objects.extend(d.searches)
-    objects.append(d.saved_object())
+objects.extend(from_opensearch(o) for o in wazuh_dashboard.dashboards(DATA_VIEWS["findings"]["id"]))
+objects.append(events.saved_object())
 
 
 

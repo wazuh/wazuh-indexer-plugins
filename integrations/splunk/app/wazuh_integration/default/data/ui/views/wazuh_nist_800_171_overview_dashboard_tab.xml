@@ -1,0 +1,234 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - NIST 800-171 - Overview dashboard</label>
+  <description>NIST 800-171 - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - NIST 800-171 - Overview dashboard",
+  "description": "NIST 800-171 - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_01": {
+      "type": "ds.search",
+      "name": "Most active agents",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_171{}\"=* | eval f1='wazuh.agent.name' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"Agent\", metric as \"Count\""
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "Top 10 requirements over time",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_171{}\"=* | eval f1='wazuh.rule.compliance.nist_800_171{}' | timechart useother=f usenull=f limit=8 count by f1"
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "Requirements distribution by agent",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_171{}\"=* | eval f1='wazuh.agent.id', f2='wazuh.rule.compliance.nist_800_171{}' | chart count over f1 by f2 useother=f usenull=f limit=9 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"Agent\""
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "Events volume by agent",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_171{}\"=* | eval f1='wazuh.rule.compliance.nist_800_171{}', f2='wazuh.agent.id' | stats count as metric by f1, f2 | sort - metric | head 50 | rename f1 as \"Requirement\", f2 as \"Agent\", metric as \"Count\""
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "viz_05",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_171{}\"=* | stats count as value"
+      }
+    },
+    "ds_06": {
+      "type": "ds.search",
+      "name": "viz_06",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_171{}\"=* | eval f1='wazuh.integration.name' | stats dc(f1) as value"
+      }
+    },
+    "ds_07": {
+      "type": "ds.search",
+      "name": "Top 10 requirements",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_171{}\"=* | eval f1='wazuh.rule.compliance.nist_800_171{}' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"Requirement\", metric as \"Count\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.pie",
+      "title": "Most active agents",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_02": {
+      "type": "splunk.column",
+      "title": "Top 10 requirements over time",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {}
+    },
+    "viz_03": {
+      "type": "splunk.area",
+      "title": "Requirements distribution by agent",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_04": {
+      "type": "splunk.punchcard",
+      "title": "Events volume by agent",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {}
+    },
+    "viz_05": {
+      "type": "splunk.singlevalue",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {
+        "underLabel": "Total events"
+      }
+    },
+    "viz_06": {
+      "type": "splunk.singlevalue",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_06"
+      },
+      "options": {
+        "underLabel": "Unique integrations"
+      }
+    },
+    "viz_07": {
+      "type": "splunk.pie",
+      "title": "Top 10 requirements",
+      "dataSources": {
+        "primary": "ds_07"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 536,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 271,
+          "h": 276
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 275,
+          "y": 0,
+          "w": 596,
+          "h": 276
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 875,
+          "y": 0,
+          "w": 321,
+          "h": 276
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 280,
+          "w": 596,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 280,
+          "w": 134,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_06",
+        "type": "block",
+        "position": {
+          "x": 738,
+          "y": 280,
+          "w": 134,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_07",
+        "type": "block",
+        "position": {
+          "x": 875,
+          "y": 280,
+          "w": 321,
+          "h": 236
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

@@ -1,0 +1,220 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - FedRAMP - Agent Dashboard</label>
+  <description>FedRAMP - Agent Dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer. Pick the agent in the Agent input, as the Wazuh dashboard does.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - FedRAMP - Agent Dashboard",
+  "description": "FedRAMP - Agent Dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer. Pick the agent in the Agent input, as the Wazuh dashboard does.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    },
+    "input_scope": {
+      "type": "input.dropdown",
+      "title": "Agent",
+      "dataSources": {
+        "primary": "ds_input_01"
+      },
+      "options": {
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()",
+        "token": "scope",
+        "defaultValue": "*"
+      },
+      "context": {
+        "formattedConfig": {
+          "number": {
+            "prefix": ""
+          }
+        },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [
+          [
+            "All"
+          ],
+          [
+            "*"
+          ]
+        ],
+        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"value\") | renameSeries(\"value\") | formatByType(formattedConfig)"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_input_01": {
+      "type": "ds.search",
+      "name": "Agent",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* \"wazuh.agent.name\"=* | eval value='wazuh.agent.name' | stats count by value | sort - count | head 500 | eval label=value | fields label, value"
+      }
+    },
+    "ds_01": {
+      "type": "ds.search",
+      "name": "Top 5 categories",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.integration.category' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"wazuh.integration.category\", metric as \"Count\""
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "Fedramp Requirements",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.fedramp{}' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"FEDRAMP Requirements\", metric as \"Count\""
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "Top 5 decoders",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.integration.decoders{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"wazuh.integration.decoders\", metric as \"Count\""
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "Requirements evolution over time",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.fedramp{}' | timechart span=30m useother=f usenull=f limit=10 count by f1"
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "Integration distribution",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.fedramp{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.fedramp{}', f2='wazuh.integration.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"Requirements\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.pie",
+      "title": "Top 5 categories",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_02": {
+      "type": "splunk.column",
+      "title": "Fedramp Requirements",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {}
+    },
+    "viz_03": {
+      "type": "splunk.pie",
+      "title": "Top 5 decoders",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_04": {
+      "type": "splunk.column",
+      "title": "Requirements evolution over time",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_05": {
+      "type": "splunk.column",
+      "title": "Integration distribution",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 516,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp",
+      "input_scope"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 346,
+          "h": 256
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 350,
+          "y": 0,
+          "w": 471,
+          "h": 256
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 825,
+          "y": 0,
+          "w": 371,
+          "h": 256
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 260,
+          "w": 821,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 825,
+          "y": 260,
+          "w": 371,
+          "h": 236
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

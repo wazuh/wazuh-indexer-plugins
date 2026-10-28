@@ -1,0 +1,155 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - NIS2 - Overview dashboard</label>
+  <description>NIS2 - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - NIS2 - Overview dashboard",
+  "description": "NIS2 - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_01": {
+      "type": "ds.search",
+      "name": "NIS2 requirements",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nis2{}\"=* | eval f1='wazuh.rule.compliance.nis2{}' | timechart useother=f usenull=f limit=10 count by f1"
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "Top 10 agents by events count",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nis2{}\"=* | eval f1='wazuh.agent.name' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"wazuh.agent.name\", metric as \"Count\""
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "Requirements evolution over time",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nis2{}\"=* | eval f1='wazuh.rule.compliance.nis2{}' | timechart useother=f usenull=f limit=10 count by f1"
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "Requirements by agent",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.nis2{}\"=* | eval f1='wazuh.rule.compliance.nis2{}', f2='wazuh.agent.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"Requirements\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.line",
+      "title": "NIS2 requirements",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {}
+    },
+    "viz_02": {
+      "type": "splunk.pie",
+      "title": "Top 10 agents by events count",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_03": {
+      "type": "splunk.column",
+      "title": "Requirements evolution over time",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_04": {
+      "type": "splunk.column",
+      "title": "Requirements by agent",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 836,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 721,
+          "h": 296
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 725,
+          "y": 0,
+          "w": 471,
+          "h": 296
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 300,
+          "w": 1196,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 520,
+          "w": 1196,
+          "h": 296
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

@@ -1,0 +1,236 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - GitHub - Overview dashboard</label>
+  <description>GitHub - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - GitHub - Overview dashboard",
+  "description": "GitHub - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_01": {
+      "type": "ds.search",
+      "name": "viz_01",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"github\" | eval f1='organization.name' | stats dc(f1) as value"
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "viz_02",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"github\" | eval f1='url.original' | stats dc(f1) as value"
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "viz_03",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"github\" | eval f1='user.name' | stats dc(f1) as value"
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "Audits evolution by organization",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"github\" | eval f1='organization.name' | timechart useother=f usenull=f limit=5 count by f1"
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "Top 5 organizations by audits",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"github\" | eval f1='organization.name' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"organization.name\", metric as \"Count\""
+      }
+    },
+    "ds_06": {
+      "type": "ds.search",
+      "name": "Top audits by action type and organization",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"github\" | eval f1='organization.name', f2='event.action' | stats count as metric by f1, f2 | sort - metric | head 15 | eval value=f1 . \" / \" . f2 | table value metric | rename value as \"organization.name / event.action\", metric as \"Count\""
+      }
+    },
+    "ds_07": {
+      "type": "ds.search",
+      "name": "Users with more audits",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"github\" | eval f1='organization.name', f2='user.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"organization.name\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.singlevalue",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {
+        "underLabel": "Organizations"
+      }
+    },
+    "viz_02": {
+      "type": "splunk.singlevalue",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {
+        "underLabel": "Repositories"
+      }
+    },
+    "viz_03": {
+      "type": "splunk.singlevalue",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {
+        "underLabel": "Actors"
+      }
+    },
+    "viz_04": {
+      "type": "splunk.area",
+      "title": "Audits evolution by organization",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {}
+    },
+    "viz_05": {
+      "type": "splunk.pie",
+      "title": "Top 5 organizations by audits",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_06": {
+      "type": "splunk.pie",
+      "title": "Top audits by action type and organization",
+      "dataSources": {
+        "primary": "ds_06"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_07": {
+      "type": "splunk.line",
+      "title": "Users with more audits",
+      "dataSources": {
+        "primary": "ds_07"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 656,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 396,
+          "h": 116
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 400,
+          "y": 0,
+          "w": 396,
+          "h": 116
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 800,
+          "y": 0,
+          "w": 396,
+          "h": 116
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 120,
+          "w": 721,
+          "h": 256
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 725,
+          "y": 120,
+          "w": 471,
+          "h": 256
+        }
+      },
+      {
+        "item": "viz_06",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 380,
+          "w": 471,
+          "h": 256
+        }
+      },
+      {
+        "item": "viz_07",
+        "type": "block",
+        "position": {
+          "x": 475,
+          "y": 380,
+          "w": 721,
+          "h": 256
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

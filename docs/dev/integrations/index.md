@@ -97,14 +97,34 @@ python3 integrations/tools/templates/generate.py --check   # fails if a committe
 
 ## Dashboards
 
-The dashboards of the three integrations are built from code in `integrations/tools/dashboards`, one module per platform (`kibana.py`, `opensearch.py`, `splunk.py`), with the same panels on every platform:
+The dashboards are built from code in `integrations/tools/dashboards`, one module per platform (`kibana.py`, `opensearch.py`, `splunk.py`).
 
-| Dashboard | Data | Contents |
-| --- | --- | --- |
-| Findings overview | Findings | Findings by level, category, agent and rule, and the latest findings. |
-| MITRE ATT&CK | Findings | Tactics, techniques and sub-techniques of the rules that produced the findings. |
-| Compliance | Findings | Findings and requirements of every compliance framework of WCS. |
-| Events overview | Events | Events by category, outcome, integration and agent, authentication failures and cloud activity. |
+The three integrations reuse the dashboards of the Wazuh dashboard: the integrations export the findings with the same WCS fields it reads.
+
+- `wazuh_dashboard.py` lists the dashboards of the Wazuh dashboard built on the findings, except those it embeds in other pages, with the filter the Wazuh dashboard applies to the module of each one. Their definitions are copied from `wazuh-dashboard-plugins`, at the version of `VERSION`, in `wazuh-dashboard/<version>/`, with the paths of the source.
+- A visualization shared by several definitions is one object, resolved as the Wazuh dashboard does: it loads the definitions in the order of their paths, and the last one wins.
+- The Wazuh dashboard renders the saved dashboards as they are, so the conversion keeps their panels, layout and options, and changes only:
+  - the index pattern, to that of the exported findings;
+  - the filter of the module, added to the dashboard;
+  - the ids, prefixed with `wazuh-`, so that they never clash with the objects of a Wazuh dashboard;
+  - the titles: `Wazuh - ` before the dashboards, and a name for the visualizations without one, whose panels keep no title;
+  - a panel on top of the dashboards scoped to one value, to pick it as the Wazuh dashboard does: an options list of the agents in the agent dashboards, and a table of the values of the module in the drilldowns (an options list would offer the values of every module).
+- **OpenSearch** (`opensearch.py`) imports those saved objects. The generator fails if a visualization aggregates on a field that is not an aggregatable WCS field.
+- **Elasticsearch** (`kibana.py`) imports the same saved objects: Kibana still renders the aggregation-based visualizations of OpenSearch Dashboards and migrates them on import. Only the parameters OpenSearch Dashboards renamed are changed back (`RENAMED`).
+- **Splunk** (`splunk.py`) translates every visualization to a search and a visualization of Dashboard Studio, in the same place of the same layout:
+  - the aggregations to `stats`, `chart` and `timechart`, the heatmaps to punchcards, the metrics to single values;
+  - the fields to their Splunk names, with `{}` after every array of the WCS findings fields (`wazuh.rule.compliance.pci_dss{}`);
+  - the panel that picks the value of a dashboard to a dropdown input, which only lists the values of the module.
+  The generator fails on an aggregation or a query it does not translate.
+
+To follow a new version of the Wazuh dashboard, set `VERSION`, download its definitions and regenerate:
+
+```bash
+python3 integrations/tools/dashboards/wazuh_dashboard.py
+python3 integrations/tools/dashboards/generate.py
+```
+
+The Wazuh dashboard has no dashboard of events, so every integration keeps its own **Events overview**, with the same panels: events by category, outcome, integration and agent, authentication failures and cloud activity.
 
 Change a dashboard in its module, then regenerate:
 

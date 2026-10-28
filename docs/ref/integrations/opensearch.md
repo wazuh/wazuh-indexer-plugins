@@ -154,7 +154,15 @@ curl --cacert opensearch-ca.pem -u admin -X POST "https://<dashboards>:5601/api/
   -H 'osd-xsrf: true' --form file=@integrations/opensearch/dashboards.ndjson
 ```
 
-It holds the `logs-wazuh.findings.*-*` and `logs-wazuh.events.*-*` index patterns, four dashboards (**Findings overview**, **MITRE ATT&CK**, **Compliance** and **Events overview**) and the **Latest findings** saved search. With multi-tenancy enabled, the API imports them into the tenant of the request: add `-H 'securitytenant: global'` to share them with every user.
+It holds the `logs-wazuh.findings.*-*` and `logs-wazuh.events.*-*` index patterns, and the dashboards of the Wazuh dashboard built on the findings, the same and with the same layout, each one filtered as the Wazuh dashboard filters it:
+
+- **Threat hunting**, **MITRE ATT&CK**, **Malware detection** and **Case management**.
+- **Docker**, **AWS**, **Azure**, **Google Cloud**, **GitHub** and **Office**: the findings of each integration, with the drilldowns of GitHub and Office.
+- **PCI**, **GDPR**, **HIPAA**, **NIST 800-53**, **NIST 800-171**, **ISO 27001**, **TSC**, **CMMC**, **FedRAMP** and **NIS2**: the findings of the rules of each compliance framework.
+- The **Agent dashboard** of each module, which the Wazuh dashboard shows when an agent is pinned: pick the agent in the control on top.
+- The **drilldowns** of GitHub and Office, which the Wazuh dashboard shows when a value of a table is clicked: filter for one value (actor, organization, user, IP address...) in the table on top.
+
+Their titles start with `Wazuh - `. The **Wazuh - Events overview** dashboard, of the integration, shows the events. With multi-tenancy enabled, the API imports them into the tenant of the request: add `-H 'securitytenant: global'` to share them with every user.
 
 ## 4. Validate
 

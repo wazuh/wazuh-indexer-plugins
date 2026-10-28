@@ -1,0 +1,220 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - TSC - Agent dashboard</label>
+  <description>TSC - Agent dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer. Pick the agent in the Agent input, as the Wazuh dashboard does.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - TSC - Agent dashboard",
+  "description": "TSC - Agent dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer. Pick the agent in the Agent input, as the Wazuh dashboard does.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    },
+    "input_scope": {
+      "type": "input.dropdown",
+      "title": "Agent",
+      "dataSources": {
+        "primary": "ds_input_01"
+      },
+      "options": {
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()",
+        "token": "scope",
+        "defaultValue": "*"
+      },
+      "context": {
+        "formattedConfig": {
+          "number": {
+            "prefix": ""
+          }
+        },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [
+          [
+            "All"
+          ],
+          [
+            "*"
+          ]
+        ],
+        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"value\") | renameSeries(\"value\") | formatByType(formattedConfig)"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_input_01": {
+      "type": "ds.search",
+      "name": "Agent",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.tsc{}\"=* \"wazuh.agent.name\"=* | eval value='wazuh.agent.name' | stats count by value | sort - count | head 500 | eval label=value | fields label, value"
+      }
+    },
+    "ds_01": {
+      "type": "ds.search",
+      "name": "Top 5 categories",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.tsc{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.integration.category' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"wazuh.integration.category\", metric as \"Count\""
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "Top 5 decoders",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.tsc{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.integration.decoders{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"wazuh.integration.decoders\", metric as \"Count\""
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "Top 5 TSC requirements",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.tsc{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.tsc{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"wazuh.rule.compliance.tsc\", metric as \"Count\""
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "TSC requirements",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.tsc{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.tsc{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"wazuh.rule.compliance.tsc\", metric as \"Count\""
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "Top integrations",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.compliance.tsc{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.integration.name' | stats count as metric by f1 | sort - metric | head 15 | rename f1 as \"wazuh.integration.name\", metric as \"Count\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.pie",
+      "title": "Top 5 categories",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_02": {
+      "type": "splunk.pie",
+      "title": "Top 5 decoders",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_03": {
+      "type": "splunk.pie",
+      "title": "Top 5 TSC requirements",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_04": {
+      "type": "splunk.column",
+      "title": "TSC requirements",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {}
+    },
+    "viz_05": {
+      "type": "splunk.pie",
+      "title": "Top integrations",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 456,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp",
+      "input_scope"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 396,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 400,
+          "y": 0,
+          "w": 396,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 800,
+          "y": 0,
+          "w": 396,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 220,
+          "w": 896,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 900,
+          "y": 220,
+          "w": 296,
+          "h": 216
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>
