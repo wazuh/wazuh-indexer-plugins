@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.logging.log4j.Level;
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
@@ -44,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.CapturingAppender;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -245,6 +247,91 @@ public class LogtestServiceTests extends OpenSearchTestCase {
         Assert.assertTrue(response.getMessage().contains("socket timeout"));
         verify(this.securityAnalytics, never())
                 .evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any());
+    }
+
+    /**
+     * The Engine answers 400 when the space has no testing environment, and the socket client hands
+     * its error over as plain text. Without an integration, the response carries ENGINE_ERROR and
+     * the Engine's text, and the log has one WARN line with no stack trace.
+     */
+    public void testEnvironmentNotFoundReturnsEngineError() throws Exception {
+        String engineError = "The 'test' environment does not exist.";
+        when(this.engine.logtest(any(JsonNode.class)))
+                .thenReturn(new RestResponse(engineError, RestStatus.BAD_REQUEST.getStatus()));
+
+        try (CapturingAppender appender = CapturingAppender.attach(LogtestService.class)) {
+            RestResponse response = executeAndCapture(null, Space.TEST, createEnginePayload());
+
+            Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+            JsonNode body = MAPPER.readTree(response.getMessage());
+            Assert.assertEquals("error", body.at("/normalization/status").asText());
+            Assert.assertEquals("ENGINE_ERROR", body.at("/normalization/error/code").asText());
+            Assert.assertEquals(engineError, body.at("/normalization/error/message").asText());
+            Assert.assertEquals("skipped", body.at("/detection/status").asText());
+
+            Assert.assertEquals(0, appender.count(Level.ERROR));
+            Assert.assertEquals(1, appender.count(Level.WARN));
+            Assert.assertTrue(appender.messages(Level.WARN).get(0).contains(engineError));
+            Assert.assertEquals(0, appender.countWithThrowable());
+        }
+    }
+
+    /**
+     * Same Engine answer with an integration: ENGINE_ERROR, SAP skipped, and no ERROR or stack trace
+     * in the log.
+     */
+    public void testEnvironmentNotFoundWithIntegrationSkipsSA() throws Exception {
+        // spotless:off
+        SearchHit integrationHit = createHit(1, "int-1",
+            """
+            {"document": {"rules": [], "category": "test", "metadata": {"title": "Test Integration"}}}
+            """);
+        // spotless:on
+        mockClientSearchAsync(createSearchResponse(integrationHit));
+        String engineError = "The 'test' environment does not exist.";
+        when(this.engine.logtest(any(JsonNode.class)))
+                .thenReturn(new RestResponse(engineError, RestStatus.BAD_REQUEST.getStatus()));
+
+        try (CapturingAppender appender = CapturingAppender.attach(LogtestService.class)) {
+            RestResponse response = executeAndCapture(INTEGRATION_ID, Space.TEST, createEnginePayload());
+
+            Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+            JsonNode body = MAPPER.readTree(response.getMessage());
+            Assert.assertEquals("ENGINE_ERROR", body.at("/normalization/error/code").asText());
+            Assert.assertEquals(engineError, body.at("/normalization/error/message").asText());
+            Assert.assertEquals("skipped", body.at("/detection/status").asText());
+            verify(this.securityAnalytics, never())
+                    .evaluateRulesAsync(anyString(), anyList(), anyString(), anyString(), anyList(), any());
+
+            Assert.assertEquals(0, appender.count(Level.ERROR));
+            Assert.assertEquals(1, appender.count(Level.WARN));
+            Assert.assertEquals(0, appender.countWithThrowable());
+        }
+    }
+
+    /** An Engine error body that is a JSON object yields its message field, not the raw JSON. */
+    public void testEngineJsonErrorBodyReturnsItsMessage() throws Exception {
+        when(this.engine.logtest(any(JsonNode.class)))
+                .thenReturn(createEngineError("Engine processing failed"));
+
+        RestResponse response = executeAndCapture(null, Space.TEST, createEnginePayload());
+
+        JsonNode body = MAPPER.readTree(response.getMessage());
+        Assert.assertEquals("ENGINE_ERROR", body.at("/normalization/error/code").asText());
+        Assert.assertEquals(
+                "Engine processing failed", body.at("/normalization/error/message").asText());
+    }
+
+    /** A 2xx Engine answer that is not JSON is still reported as PARSE_ERROR. */
+    public void testNonJsonEngineSuccessReturnsParseError() throws Exception {
+        when(this.engine.logtest(any(JsonNode.class))).thenReturn(createEngineSuccess("not json"));
+
+        RestResponse response = executeAndCapture(null, Space.TEST, createEnginePayload());
+
+        Assert.assertEquals(RestStatus.OK.getStatus(), response.getStatus());
+        JsonNode body = MAPPER.readTree(response.getMessage());
+        Assert.assertEquals("PARSE_ERROR", body.at("/normalization/error/code").asText());
+        Assert.assertEquals("not json", body.at("/normalization/error/message").asText());
     }
 
     /** Integration with no rules returns success with zero matches. */
