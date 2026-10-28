@@ -28,7 +28,7 @@
       "dynamic": "strict",
       "properties": {
         "@timestamp": {
-          "type": "date"
+          "type": "date_nanos"
         },
         "discarded": {
           "properties": {

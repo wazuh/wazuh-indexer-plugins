@@ -35,6 +35,8 @@ import com.wazuh.contentmanager.action.LogtestResponse;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.LogtestService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.utils.Constants;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.Mockito.*;
 
@@ -223,5 +225,44 @@ public class TransportLogtestActionTests extends OpenSearchTestCase {
                                     Assert.assertEquals("Unexpected failure", response.getMessage());
                                     return true;
                                 }));
+    }
+
+    public void testDoExecute_MissingTraceLevelDefaultsToNone() {
+        ObjectNode payload = this.executeAndCaptureEnginePayload("{\"space\":\"test\"}");
+        Assert.assertEquals(
+                Constants.TRACE_LEVEL_NONE, payload.get(Constants.KEY_TRACE_LEVEL).asText());
+    }
+
+    public void testDoExecute_NullTraceLevelDefaultsToNone() {
+        ObjectNode payload =
+                this.executeAndCaptureEnginePayload("{\"space\":\"test\",\"trace_level\":null}");
+        Assert.assertEquals(
+                Constants.TRACE_LEVEL_NONE, payload.get(Constants.KEY_TRACE_LEVEL).asText());
+    }
+
+    public void testDoExecute_GivenTraceLevelIsKept() {
+        ObjectNode payload =
+                this.executeAndCaptureEnginePayload("{\"space\":\"test\",\"trace_level\":\"ALL\"}");
+        Assert.assertEquals("ALL", payload.get(Constants.KEY_TRACE_LEVEL).asText());
+    }
+
+    /** Runs a request and returns the payload the transport action handed to the Engine. */
+    @SuppressWarnings("unchecked")
+    private ObjectNode executeAndCaptureEnginePayload(String body) {
+        doAnswer(
+                        invocation -> {
+                            ActionListener<RestResponse> l = invocation.getArgument(3);
+                            l.onResponse(new RestResponse("OK", RestStatus.OK.getStatus()));
+                            return null;
+                        })
+                .when(this.logtestService)
+                .executeLogtest(any(), any(), any(ObjectNode.class), any(ActionListener.class));
+
+        this.action.doExecute(mock(Task.class), new LogtestRequest(body), mock(ActionListener.class));
+
+        ArgumentCaptor<ObjectNode> captor = ArgumentCaptor.forClass(ObjectNode.class);
+        verify(this.logtestService)
+                .executeLogtest(any(), any(), captor.capture(), any(ActionListener.class));
+        return captor.getValue();
     }
 }

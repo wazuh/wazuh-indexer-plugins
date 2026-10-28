@@ -826,6 +826,8 @@ public class Constants {
             "Engine rejected promotion payload: {}";
     public static final String D_LOG_ENGINE_VALIDATION_COMPLETE =
             "Engine validation for space [{}] completed successfully.";
+    public static final String D_LOG_ENGINE_PAYLOAD_WITHOUT_INTEGRATIONS =
+            "Space [{}] has no decoders, kvdbs or filters. Its integrations are left out of the Engine payload.";
     public static final String W_LOG_SNAPSHOT_OLD_VERSION_FAILED =
             "Failed to snapshot old version of [{}] in [{}]: {}";
     public static final String E_LOG_SNAPSHOT_DELETE_TARGET_FAILED =
@@ -977,6 +979,10 @@ public class Constants {
     public static final String KEY_PRODUCT = "product";
     public static final String KEY_CATEGORY = "category";
     public static final String KEY_FILTER = "filter";
+    public static final String KEY_TRACE_LEVEL = "trace_level";
+
+    // Logtest trace level sent to the Engine when the request omits it.
+    public static final String TRACE_LEVEL_NONE = "NONE";
 
     // Integration mode values. Protected integrations cannot be modified; user-managed ones can.
     public static final String MODE_PROTECTED = "protected";
