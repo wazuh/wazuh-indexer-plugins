@@ -979,6 +979,10 @@ public class Constants {
     public static final String KEY_PRODUCT = "product";
     public static final String KEY_CATEGORY = "category";
     public static final String KEY_FILTER = "filter";
+    public static final String KEY_TRACE_LEVEL = "trace_level";
+
+    // Logtest trace level sent to the Engine when the request omits it.
+    public static final String TRACE_LEVEL_NONE = "NONE";
 
     // Integration mode values. Protected integrations cannot be modified; user-managed ones can.
     public static final String MODE_PROTECTED = "protected";

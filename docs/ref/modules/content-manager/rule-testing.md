@@ -254,7 +254,7 @@ The response has two sections:
 
 ### Trace levels
 
-The `trace_level` field controls how much detail the Engine returns:
+The optional `trace_level` field controls how much detail the Engine returns (`NONE` when omitted):
 
 - **`NONE`** — only the final normalized output. Use for quick checks.
 - **`ASSET_ONLY`** — output plus the list of decoders that matched (asset traces).

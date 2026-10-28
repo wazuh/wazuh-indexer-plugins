@@ -385,7 +385,7 @@ Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is pr
 - **`location`** (String, required) — log file path or logical source location.
 - **`event`** (String, required) — raw log event to test.
 - **`metadata`** (Object, optional) — optional metadata passed to the Engine.
-- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`.
+- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`. Defaults to `NONE`.
 
 #### Example request
 
@@ -578,7 +578,7 @@ Sends a log event to the Wazuh Engine for decoding and normalization without per
 - **`location`** (String, optional) — log file path or logical source location.
 - **`event`** (String, optional) — raw log event to normalize.
 - **`metadata`** (Object, optional) — optional metadata passed to the Engine.
-- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`.
+- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`. Defaults to `NONE`.
 
 #### Example request
 

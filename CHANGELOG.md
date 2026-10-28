@@ -80,5 +80,6 @@
 | [#2026](https://github.com/wazuh/wazuh-indexer/issues/2026) | Fix promoting a user space that no longer holds decoders, kvdbs or filters failing with `Missing root decoder`, by sending it to the Engine without integrations |
 | [#40207](https://github.com/wazuh/wazuh/issues/40207) | Fix `host.os.kernel` being an object in the system inventory, against WCS, and replace `host.os.distribution.release` with `host.os.display_version` |
 | [#1714](https://github.com/wazuh/wazuh-indexer-plugins/issues/1714) | Fix the metadata guard in `SecurityAnalyticsServiceImpl` that threw `NullPointerException` instead of rejecting a document without a `metadata` object |
+| [#1727](https://github.com/wazuh/wazuh-indexer-plugins/issues/1727) | Fix logtest requests without `trace_level` failing with `Invalid trace level: .`, by defaulting it to `NONE` |
 
 ## Prior versions
