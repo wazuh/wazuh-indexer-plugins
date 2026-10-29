@@ -1,0 +1,13 @@
+---
+- name: error
+  fields:
+    - name: message
+      type: match_only_text
+      level: core
+      short: Error message. Searchable by word.
+      description: >
+        Error message.
+
+        The field is `match_only_text`: a free-text search with no field
+        name matches any word of it, but it cannot be aggregated or sorted.
+      example: "Connection refused while sending the event to the indexer"

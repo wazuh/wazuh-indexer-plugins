@@ -83,5 +83,6 @@
 | [#1714](https://github.com/wazuh/wazuh-indexer-plugins/issues/1714) | Fix the metadata guard in `SecurityAnalyticsServiceImpl` that threw `NullPointerException` instead of rejecting a document without a `metadata` object |
 | [#1727](https://github.com/wazuh/wazuh-indexer-plugins/issues/1727) | Fix logtest requests without `trace_level` failing with `Invalid trace level: .`, by defaulting it to `NONE` |
 | [#1713](https://github.com/wazuh/wazuh-indexer-plugins/issues/1713) | Fix CTI content swaps deleting user content that could not be copied to the new indices: a reindex with failures or a timeout now rolls the swap back |
+| [#1688](https://github.com/wazuh/wazuh-indexer-plugins/issues/1688) | Fix free-text searches on events and findings matching nothing, by mapping `message` and `error.message` as `match_only_text` and adding them to `index.query.default_field` |
 
 ## Prior versions
