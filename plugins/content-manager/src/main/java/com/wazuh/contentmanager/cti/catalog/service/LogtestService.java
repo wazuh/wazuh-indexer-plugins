@@ -293,9 +293,7 @@ public class LogtestService {
         if (engineResponse.getStatus() >= 400) {
             String errorMsg = extractEngineErrorMessage(mapper, engineResponse.getMessage());
             log.warn(
-                    "Engine rejected logtest payload (status {}): {}",
-                    engineResponse.getStatus(),
-                    errorMsg);
+                    "Engine rejected logtest payload (status {}): {}", engineResponse.getStatus(), errorMsg);
             return buildEngineErrorResult("ENGINE_ERROR", errorMsg, engineResult);
         }
 

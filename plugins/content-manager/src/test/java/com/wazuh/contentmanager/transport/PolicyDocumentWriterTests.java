@@ -64,8 +64,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/** Unit tests for {@link PolicyLinks}. */
-public class PolicyLinksTests extends OpenSearchTestCase {
+/** Unit tests for {@link PolicyDocumentWriter}. */
+public class PolicyDocumentWriterTests extends OpenSearchTestCase {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String POLICY_DOC_ID = "draft-policy-doc";
@@ -244,12 +244,106 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         ActionListener<Void> listener = ActionListener.wrap(v -> done.set(true), e -> failure.set(e));
         if (link) {
-            PolicyLinks.link(this.client, space, listKey, id, MISSING_POLICY, listener);
+            PolicyDocumentWriter.link(this.client, space, listKey, id, MISSING_POLICY, listener);
         } else {
-            PolicyLinks.unlink(this.client, space, listKey, id, MISSING_POLICY, listener);
+            PolicyDocumentWriter.unlink(this.client, space, listKey, id, MISSING_POLICY, listener);
         }
         assertTrue("listener must be notified", done.get() || failure.get() != null);
         return failure.get();
+    }
+
+    /** Queues a policy version with the given root decoder and empty lists for the next GET. */
+    private void serveRootDecoder(long seqNo, String rootDecoder) {
+        ObjectNode document = MAPPER.createObjectNode().put("id", "p");
+        document.put(Constants.KEY_ROOT_DECODER, rootDecoder);
+        document.putArray(Constants.KEY_FILTERS);
+        String source =
+                "{\"document\":"
+                        + document
+                        + ",\"hash\":{\"sha256\":\"old\"},\"space\":{\"name\":\"draft\"}}";
+        this.gets.add(
+                new GetResponse(
+                        new GetResult(
+                                Constants.INDEX_POLICIES,
+                                POLICY_DOC_ID,
+                                seqNo,
+                                1L,
+                                seqNo + 1,
+                                true,
+                                new BytesArray(source),
+                                Collections.emptyMap(),
+                                Collections.emptyMap())));
+    }
+
+    private static String writtenRootDecoder(IndexRequest request) throws Exception {
+        return MAPPER
+                .readTree(request.source().utf8ToString())
+                .path(Constants.KEY_DOCUMENT)
+                .path(Constants.KEY_ROOT_DECODER)
+                .asText();
+    }
+
+    private Exception runClearRootDecoder(String space) {
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        AtomicReference<Boolean> done = new AtomicReference<>(false);
+        ActionListener<Boolean> listener = ActionListener.wrap(v -> done.set(true), failure::set);
+        PolicyDocumentWriter.clearRootDecoder(this.client, space, MISSING_POLICY, listener);
+        assertTrue("listener must be notified", done.get() || failure.get() != null);
+        return failure.get();
+    }
+
+    private Exception runClearList(String space, String listKey) {
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        AtomicReference<Boolean> done = new AtomicReference<>(false);
+        ActionListener<Boolean> listener = ActionListener.wrap(v -> done.set(true), failure::set);
+        PolicyDocumentWriter.clearList(this.client, space, listKey, MISSING_POLICY, listener);
+        assertTrue("listener must be notified", done.get() || failure.get() != null);
+        return failure.get();
+    }
+
+    /** clearRootDecoder blanks a set root decoder and rewrites the hash, guarded by the seqNo. */
+    public void testClearRootDecoder_setsEmptyAndRewritesHash() throws Exception {
+        this.serveRootDecoder(7, "dec1");
+
+        assertNull(this.runClearRootDecoder("draft"));
+
+        assertEquals(1, this.writes.size());
+        IndexRequest write = this.writes.get(0);
+        assertEquals(7L, write.ifSeqNo());
+        assertEquals("", writtenRootDecoder(write));
+        JsonNode written = MAPPER.readTree(write.source().utf8ToString());
+        assertNotEquals("old", written.at("/hash/sha256").asText());
+    }
+
+    /** clearRootDecoder on an already-empty root decoder writes nothing. */
+    @SuppressWarnings("unchecked")
+    public void testClearRootDecoder_noopWhenAlreadyEmpty() {
+        this.serveRootDecoder(7, "");
+
+        assertNull(this.runClearRootDecoder("draft"));
+
+        verify(this.client, never()).index(any(IndexRequest.class), any(ActionListener.class));
+    }
+
+    /** clearList empties a populated list and keeps the rest of the document. */
+    public void testClearList_emptiesFilters() throws Exception {
+        this.servePolicy(3, "a", "b");
+
+        assertNull(this.runClearList("draft", Constants.KEY_FILTERS));
+
+        assertEquals(1, this.writes.size());
+        assertEquals(List.of(), writtenFilters(this.writes.get(0)));
+        assertEquals(3L, this.writes.get(0).ifSeqNo());
+    }
+
+    /** clearList on an already-empty list writes nothing. */
+    @SuppressWarnings("unchecked")
+    public void testClearList_noopWhenAlreadyEmpty() {
+        this.servePolicy(3);
+
+        assertNull(this.runClearList("draft", Constants.KEY_FILTERS));
+
+        verify(this.client, never()).index(any(IndexRequest.class), any(ActionListener.class));
     }
 
     /** Link targets the given space's policy and writes with the sequence number it read. */
@@ -450,7 +544,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
                             Constants.POLICY_LINKS_RETRY_MAX_DELAY_MS,
                             Constants.POLICY_LINKS_RETRY_BASE_DELAY_MS << Math.min(attempt - 1, 20));
             for (int i = 0; i < 50; i++) {
-                long millis = PolicyLinks.backoff(attempt).millis();
+                long millis = PolicyDocumentWriter.backoff(attempt).millis();
                 assertTrue(millis >= 1 && millis <= ceiling);
             }
         }
@@ -470,7 +564,8 @@ public class PolicyLinksTests extends OpenSearchTestCase {
     private void linkAs(String user, String id, ActionListener<Void> listener) {
         try (ThreadContext.StoredContext ignored = this.threadContext.stashContext()) {
             this.threadContext.putHeader(USER_HEADER, user);
-            PolicyLinks.link(this.client, "draft", Constants.KEY_FILTERS, id, MISSING_POLICY, listener);
+            PolicyDocumentWriter.link(
+                    this.client, "draft", Constants.KEY_FILTERS, id, MISSING_POLICY, listener);
         }
     }
 
@@ -497,10 +592,10 @@ public class PolicyLinksTests extends OpenSearchTestCase {
                                 this.heldGets.add(
                                         new HeldGet(
                                                 invocation.getArgument(1),
-                                                PolicyLinksTests.this.threadContext.newRestorableContext(false)));
+                                                PolicyDocumentWriterTests.this.threadContext.newRestorableContext(false)));
                                 return null;
                             })
-                    .when(PolicyLinksTests.this.client)
+                    .when(PolicyDocumentWriterTests.this.client)
                     .get(any(GetRequest.class), any(ActionListener.class));
             doAnswer(
                             invocation -> {
@@ -521,7 +616,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
                                 l.onResponse(mock(IndexResponse.class));
                                 return null;
                             })
-                    .when(PolicyLinksTests.this.client)
+                    .when(PolicyDocumentWriterTests.this.client)
                     .index(any(IndexRequest.class), any(ActionListener.class));
         }
 
@@ -571,9 +666,9 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         ActionListener<Void> listener = ActionListener.wrap(v -> succeeded[0]++, failures::add);
 
         for (int i = 0; i < 10; i++) {
-            PolicyLinks.link(
+            PolicyDocumentWriter.link(
                     this.client, "draft", Constants.KEY_FILTERS, "f" + i, MISSING_POLICY, listener);
-            PolicyLinks.link(
+            PolicyDocumentWriter.link(
                     this.client, "draft", Constants.KEY_INTEGRATIONS, "i" + i, MISSING_POLICY, listener);
         }
 
@@ -591,7 +686,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
 
         // And the unlinks, likewise.
         for (int i = 0; i < 10; i++) {
-            PolicyLinks.unlink(
+            PolicyDocumentWriter.unlink(
                     this.client, "draft", Constants.KEY_FILTERS, "f" + i, MISSING_POLICY, listener);
         }
         for (int round = 0; round < 10; round++) {
@@ -608,8 +703,10 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         Store store = new Store();
         ActionListener<Void> listener = ActionListener.wrap(v -> {}, e -> fail(e.getMessage()));
 
-        PolicyLinks.link(this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
-        PolicyLinks.link(this.client, "standard", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(
+                this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(
+                this.client, "standard", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
 
         assertEquals(2, store.heldGets.size());
         store.releaseGet();
@@ -622,8 +719,10 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         List<Exception> failures = new ArrayList<>();
         ActionListener<Void> listener = ActionListener.wrap(v -> {}, failures::add);
 
-        PolicyLinks.link(this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
-        PolicyLinks.link(this.client, "draft", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(
+                this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(
+                this.client, "draft", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
 
         assertEquals(2, failures.size());
         assertEquals(List.of("draft", "draft"), this.searchedSpaces);

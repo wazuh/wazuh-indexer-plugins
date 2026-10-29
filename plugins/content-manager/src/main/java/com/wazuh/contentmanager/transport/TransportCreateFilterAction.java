@@ -156,7 +156,7 @@ public class TransportCreateFilterAction extends AbstractTransportCreateActionSp
     @Override
     protected void linkToParent(
             Client client, String id, JsonNode root, String spaceName, ActionListener<Void> listener) {
-        PolicyLinks.link(
+        PolicyDocumentWriter.link(
                 client,
                 spaceName,
                 Constants.KEY_FILTERS,
