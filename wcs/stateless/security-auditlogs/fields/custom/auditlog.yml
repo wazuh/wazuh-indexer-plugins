@@ -2,7 +2,7 @@
 - name: base
   title: Security audit log
   description: >
-    Fields of the audit events the security plugin writes to the security-auditlog data stream. The
+    Fields of the audit events the security plugin writes to the security-auditlogs data stream. The
     security plugin sets the field names, so they don't follow ECS. The template maps the fields
     below and keeps any other field in _source only (dynamic: false).
   type: group

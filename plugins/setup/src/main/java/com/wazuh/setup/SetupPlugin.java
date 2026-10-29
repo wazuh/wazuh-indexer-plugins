@@ -171,7 +171,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         // plugin on the first audit event, so that its backing index gets the retention policy. The
         // name stays outside wazuh-*, which the dashboard_server role reads on behalf of every
         // dashboard user.
-        this.indices.add(new StreamIndex("security-auditlog", "templates/streams/security-auditlog"));
+        this.indices.add(new StreamIndex("security-auditlogs", "templates/streams/security-auditlogs"));
 
         // State indices
         this.indices.add(new StateIndex("wazuh-agent-config", "templates/states/agent-config"));

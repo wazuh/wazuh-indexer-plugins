@@ -1,5 +1,5 @@
 ---
-name: security-auditlog
+name: security-auditlogs
 fields:
   base:
     fields:

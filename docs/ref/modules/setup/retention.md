@@ -29,7 +29,7 @@ retention ≈ max(deletion age, time to fill 20 GB per primary shard)
 
 ## Per-stream values
 
-Every stream rolls over at 20 GB per primary shard or 200,000,000 documents. Only the AI assistant sessions and security audit log policies add an age condition (`min_index_age: 1d`) to the rollover itself.
+Every stream rolls over at 20 GB per primary shard or 200,000,000 documents. Only the AI assistant sessions and security audit log policies add an age condition to the rollover itself: `min_index_age: 1d` and `min_index_age: 30d`.
 
 | Policy | Streams | Rollover | Deletion age (floor) |
 | --- | --- | --- | --- |
@@ -39,9 +39,9 @@ Every stream rolls over at 20 GB per primary shard or 200,000,000 documents. Onl
 | `stream-metrics-policy` | `wazuh-metrics-*` | 20 GB / 200M docs | 30 days |
 | `stream-active-responses-policy` | `wazuh-active-responses` | 20 GB / 200M docs | 3 days |
 | `ai-assistant-sessions-policy` | `wazuh-ai-assistant-sessions` | 1 day, or 20 GB / 200M docs | 7 days |
-| `security-auditlog-policy` | `security-auditlog` | 1 day, or 20 GB / 200M docs | 7 days |
+| `security-auditlogs-policy` | `security-auditlogs` | 30 days, or 20 GB / 200M docs | 90 days |
 
-The AI assistant sessions and security audit log policies are the exception on purpose: a 7-day retention only means something if indices roll over on a daily schedule, so those streams rotate by age. The audit log is also small, so without the daily rollover it would never reach 20 GB and never be deleted. The other five rotate by volume.
+The AI assistant sessions and security audit log policies are the exception on purpose: a fixed retention only means something if indices roll over on a schedule, so those streams rotate by age. The audit log is also small, so without the monthly rollover it would never reach 20 GB and never be deleted. The other five rotate by volume.
 
 ## Disk sizing
 

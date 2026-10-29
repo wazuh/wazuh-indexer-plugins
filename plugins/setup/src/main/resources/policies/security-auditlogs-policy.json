@@ -1,7 +1,7 @@
 {
   "policy": {
-    "policy_id": "security-auditlog-policy",
-    "description": "ISM policy for the security plugin's audit log data stream. Rolls over backing indices daily, or earlier at 20 GB per primary shard (or 200,000,000 documents), then deletes each rolled-over index once it reaches 7 days of age. The daily rollover bounds retention: the deletion age runs from index creation and an index only takes writes during its first day, so an audit event is kept for at most 7 days regardless of volume.",
+    "policy_id": "security-auditlogs-policy",
+    "description": "ISM policy for the security plugin's audit log data stream. Rolls over backing indices monthly, or earlier at 20 GB per primary shard (or 200,000,000 documents), then deletes each rolled-over index once it reaches 90 days of age. The monthly rollover bounds retention: the deletion age runs from index creation, so an audit event is kept for at most 90 days regardless of volume.",
     "last_updated_time": 1772122150000,
     "schema_version": 1,
     "default_state": "hot",
@@ -16,7 +16,7 @@
               "delay": "1m"
             },
             "rollover": {
-              "min_index_age": "1d",
+              "min_index_age": "30d",
               "min_doc_count": 200000000,
               "min_primary_shard_size": "20gb"
             }
@@ -26,7 +26,7 @@
           {
             "state_name": "delete",
             "conditions": {
-              "min_index_age": "7d"
+              "min_index_age": "90d"
             }
           }
         ]
@@ -49,8 +49,8 @@
     "ism_template": [
       {
         "index_patterns": [
-          ".ds-security-auditlog-*",
-          "security-auditlog*"
+          ".ds-security-auditlogs-*",
+          "security-auditlogs*"
         ],
         "priority": 0
       }

@@ -1,19 +1,19 @@
 # Audit logs
 
-The security plugin records security-relevant activity as audit events: failed logins, requests denied for missing privileges, and changes to the security configuration (users, roles, role mappings, action groups and the rest of the security index). Wazuh Indexer stores these events as documents in the `security-auditlog` data stream.
+The security plugin records security-relevant activity as audit events: failed logins, requests denied for missing privileges, and changes to the security configuration (users, roles, role mappings, action groups and the rest of the security index). Wazuh Indexer stores these events as documents in the `security-auditlogs` data stream.
 
 ## Where the events are stored
 
-The packaged `/etc/wazuh-indexer/opensearch.yml` sends audit events to the `security-auditlog` data stream:
+The packaged `/etc/wazuh-indexer/opensearch.yml` sends audit events to the `security-auditlogs` data stream:
 
 ```yaml
 plugins.security.audit.type: internal_opensearch_data_stream
-plugins.security.audit.config.data_stream.name: security-auditlog
+plugins.security.audit.config.data_stream.name: security-auditlogs
 ```
 
-The Setup plugin creates the data stream and its index template at startup, and manages it with the `security-auditlog-policy` ISM policy: the backing index rolls over daily and each one is deleted at 7 days of age. See [Retention](../modules/setup/retention.md) to keep the events for a different period.
+The Setup plugin creates the data stream and its index template at startup, and manages it with the `security-auditlogs-policy` ISM policy: the backing index rolls over monthly and each one is deleted at 90 days of age. See [Retention](../modules/setup/retention.md) to keep the events for a different period.
 
-Only users with access to the `security-auditlog` data stream can read the events. By default that is the `admin` user (`all_access`). The data stream name is deliberately outside `wazuh-*`, which the Wazuh Dashboard reads on behalf of every dashboard user.
+Only users with access to the `security-auditlogs` data stream can read the events. By default that is the `admin` user (`all_access`). The data stream name is deliberately outside `wazuh-*`, which the Wazuh Dashboard reads on behalf of every dashboard user.
 
 <div class="warning">
 
@@ -23,7 +23,7 @@ Only users with access to the `security-auditlog` data stream can read the event
 
 ## Viewing the events
 
-In the Wazuh Dashboard, create an index pattern for `security-auditlog*` with `@timestamp` as the time field, and open it in **Discover**. The [`stateless/security-auditlog`](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/wcs/stateless/security-auditlog/docs/fields.csv) WCS module describes every mapped field. Useful fields:
+In the Wazuh Dashboard, create an index pattern for `security-auditlogs*` with `@timestamp` as the time field, and open it in **Discover**. The [`stateless/security-auditlogs`](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/wcs/stateless/security-auditlogs/docs/fields.csv) WCS module describes every mapped field. Useful fields:
 
 | Field | Content |
 | --- | --- |
@@ -44,17 +44,17 @@ The audit configuration is stored in the security index and can be changed at ru
 - The `kibanaserver` user, used by the Wazuh Dashboard for its own requests, is ignored.
 - Compliance auditing of the security configuration (`internal_config`) enabled: every change to users, roles, role mappings and the rest of the security index is recorded with the user who made it.
 
-To record successful logins too, enable the `AUTHENTICATED` category, and check the size of the backing indices with `GET _cat/indices/.ds-security-auditlog-*?v` before keeping it on.
+To record successful logins too, enable the `AUTHENTICATED` category, and check the size of the backing indices with `GET _cat/indices/.ds-security-auditlogs-*?v` before keeping it on.
 
 ## Enabling audit logs on an existing installation
 
-Package upgrades keep the installed `opensearch.yml`, so installations created before this setting was shipped don't store audit events. The upgraded Setup plugin already creates the `security-auditlog` data stream and its retention policy; only the node setting is missing.
+Package upgrades keep the installed `opensearch.yml`, so installations created before this setting was shipped don't store audit events. The upgraded Setup plugin already creates the `security-auditlogs` data stream and its retention policy; only the node setting is missing.
 
 1. On every node, add these lines to `/etc/wazuh-indexer/opensearch.yml`:
 
     ```yaml
     plugins.security.audit.type: internal_opensearch_data_stream
-    plugins.security.audit.config.data_stream.name: security-auditlog
+    plugins.security.audit.config.data_stream.name: security-auditlogs
     ```
 
 2. Restart the nodes one at a time:
@@ -66,7 +66,7 @@ Package upgrades keep the installed `opensearch.yml`, so installations created b
 3. Check that events arrive, for example after a failed login:
 
     ```bash
-    curl -sk -u admin:<password> "https://<node>:9200/security-auditlog/_search?size=1&sort=@timestamp:desc&pretty"
+    curl -sk -u admin:<password> "https://<node>:9200/security-auditlogs/_search?size=1&sort=@timestamp:desc&pretty"
     ```
 
-Keep the data stream name `security-auditlog`. Under any other name the security plugin creates the data stream without the retention policy, and its backing index is never deleted.
+Keep the data stream name `security-auditlogs`. Under any other name the security plugin creates the data stream without the retention policy, and its backing index is never deleted.

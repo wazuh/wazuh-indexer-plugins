@@ -116,7 +116,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         // Verify that the index was created with the correct request
         verify(this.indicesAdminClient).create(any(CreateIndexRequest.class));
         // Verify that the policies were indexed (7 policies: events, findings, raw-events,
-        // active-responses, metrics, ai-assistant-sessions, security-auditlog)
+        // active-responses, metrics, ai-assistant-sessions, security-auditlogs)
         verify(this.client, times(7)).index(any(IndexRequest.class));
     }
 
@@ -235,7 +235,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
                         IndexStateManagement.ACTIVE_RESPONSES_POLICY,
                         IndexStateManagement.METRICS_POLICY,
                         IndexStateManagement.AI_ASSISTANT_SESSIONS_POLICY,
-                        IndexStateManagement.SECURITY_AUDITLOG_POLICY);
+                        IndexStateManagement.SECURITY_AUDITLOGS_POLICY);
 
         for (String name : shipped) {
             Map<String, Object> policyFile =

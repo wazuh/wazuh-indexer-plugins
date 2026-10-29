@@ -35,16 +35,16 @@ import static org.hamcrest.Matchers.not;
 
 /**
  * Integration tests verifying that the setup plugin creates the security audit log resources: the
- * {@code security-auditlog} data stream, its index template and its ISM policy. The test cluster
+ * {@code security-auditlogs} data stream, its index template and its ISM policy. The test cluster
  * has no security plugin, so the audit sink itself is not exercised here; the documents indexed
  * below have the shape of the security plugin's audit messages.
  */
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
-public class SecurityAuditLogIT extends OpenSearchRestTestCase {
+public class SecurityAuditLogsIT extends OpenSearchRestTestCase {
 
-    private static final String AUDIT_DATA_STREAM = "security-auditlog";
+    private static final String AUDIT_DATA_STREAM = "security-auditlogs";
     private static final String AUDIT_TEMPLATE = AUDIT_DATA_STREAM + "-template";
-    private static final String AUDIT_POLICY = "security-auditlog-policy";
+    private static final String AUDIT_POLICY = "security-auditlogs-policy";
     private static final String SETTINGS_INDEX = ".wazuh-settings";
 
     private static final int MAX_WAIT_SECONDS = 120;
@@ -154,7 +154,7 @@ public class SecurityAuditLogIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * Verifies that the audit log ISM policy is indexed with a daily rollover and a 7-day retention.
+     * Verifies that the audit log ISM policy is indexed with a monthly rollover and a 90-day retention.
      *
      * @throws IOException if there is an issue with the HTTP request
      * @throws ParseException if there is an issue parsing the response
@@ -165,8 +165,8 @@ public class SecurityAuditLogIT extends OpenSearchRestTestCase {
         String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
         logger.info("ISM policy response for [{}]: {}", AUDIT_POLICY, body);
-        assertThat(body, containsString("\"min_index_age\":\"1d\""));
-        assertThat(body, containsString("\"min_index_age\":\"7d\""));
+        assertThat(body, containsString("\"min_index_age\":\"30d\""));
+        assertThat(body, containsString("\"min_index_age\":\"90d\""));
         assertThat(body, containsString(".ds-" + AUDIT_DATA_STREAM + "-*"));
     }
 

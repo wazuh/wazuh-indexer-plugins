@@ -1,10 +1,10 @@
 {
   "index_patterns": [
-    "security-auditlog*"
+    "security-auditlogs*"
   ],
   "order": 1,
   "settings": {
-    "plugins.index_state_management.policy_id": "security-auditlog-policy",
+    "plugins.index_state_management.policy_id": "security-auditlogs-policy",
     "index": {
       "codec": "zstd",
       "number_of_shards": "1",
