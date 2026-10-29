@@ -421,6 +421,8 @@ Loading the result into the cluster stays a manual step, `indexer-security-init.
 
 `-q` / `--quiet` silences the progress lines, and is not a mode. The maintainer scripts pass it so that the install ends with the next steps an operator needs — where the passwords are, how to start and enable the service, and that the security configuration is loaded once from one node — rather than with a list of resolved keys. Anything that could not be resolved still prints.
 
+Those closing lines depend on the completion marker. A fresh install that resolved everything says the node is not running yet and gives the start and security-init commands. One that did not says the indexer is installed but not configured, still gives both commands, and leaves the reason to the resolver's error printed just above it. With no keystore, the certificates did not resolve, so it adds where to stage the node's pair and its `root-ca.pem`: `certs/`, `root:wazuh-indexer 0640`. With a keystore, the certificates resolved and the cause is elsewhere, such as a password the policy rejected, so it only asks the operator to correct what is reported. The install exits 0 either way: the package is installed, and the operator stages the prerequisites and starts the service, with no reinstall.
+
 ### Certificate resolution
 
 Which case applies is decided entirely by what is present in the certificate authority (CA) directory, with no mode flag — the presence of a private key beside the trust anchor is the signal, so a host never given one cannot sign:
@@ -437,7 +439,7 @@ A pair already in place is used only once `openssl verify` confirms that it chai
 
 A staged pair must be root's, like everything else in `certs/`: `root:wazuh-indexer 0640` for the node's pair and the anchor, `root:root 0600` for the admin pair. One owned by the service account is reported as `UNSAFE` and refused, never chowned: a repair would turn a planted file into a trusted one.
 
-The Subject Alternative Names (SANs) default to the hostname, the fully qualified domain name (FQDN), loopback and the global addresses of default-route interfaces. `WAZUH_INDEXER_CERT_SANS`, from the process environment or from `local.env`, replaces that list wholesale: a comma-separated list in OpenSSL's form, each entry a `DNS:` name or an `IP:` address, for example `WAZUH_INDEXER_CERT_SANS=DNS:node-1.example.com,IP:10.0.0.1`. `localhost` and the loopback addresses are always appended; an empty list, or an entry without one of those prefixes, is refused with a message that names the variable.
+The Subject Alternative Names (SANs) default to the hostname, the fully qualified domain name (FQDN), loopback and every global address of every interface, as `ip -o addr show scope global` lists them, whether or not the interface carries the default route, is virtual or is down (loopback and link-local addresses left out, and IPv6 addresses that are deprecated or tentative), the same rule the manager follows for its certificates. A container bridge's address is named too. `WAZUH_INDEXER_CERT_SANS`, from the process environment or from `local.env`, replaces that list wholesale: a comma-separated list in OpenSSL's form, each entry a `DNS:` name or an `IP:` address, for example `WAZUH_INDEXER_CERT_SANS=DNS:node-1.example.com,IP:10.0.0.1`. `localhost` and the loopback addresses are always appended; an empty list, or an entry without one of those prefixes, is refused with a message that names the variable.
 
 The host name comes from the kernel (`/proc/sys/kernel/hostname`) and the FQDN from `getent hosts`, the addresses from `ip`: the resolver runs no other host tool, and every text transformation is shell. The certificates are issued with `openssl`, because the bundled JDK has no tool that issues PEM certificates.
 
@@ -486,10 +488,17 @@ The same reasoning applies outside the product tree. `/etc/default/wazuh-indexer
 The configuration directory, `/etc/wazuh-indexer`, is root's as well: directories
 `root:wazuh-indexer 0750`, files `0640`, so the service reads its configuration, its keystore and
 its trust material through its group and can rewrite none of them. The one file the node used to
-write there, `opensearch.keystore`, is created by `postinst` / `%post` when absent and upgraded
-when its format changed, as root, so the node never writes it. The admin certificate pair is
-root's alone (`0600`): `indexer-security-init.sh` runs `securityadmin.sh` as root, and the service
-account must not be able to act as the security administrator. The ownership is set by a walk in
+write there, `opensearch.keystore`, is created as root, so the node never writes it. On a resolved
+node (the completion marker is a regular file, not a link, as the resolver requires) `postinst` /
+`%post` create it when absent and upgrade it when its format changed. On a node whose
+prerequisites are not staged yet they leave it alone and print nothing: the keystore tool loads
+`opensearch.yml` and refuses it while the DN settings are empty. The resolver creates it instead,
+in the same run once the certificates resolve, or at the pre-start step once the operator stages
+them. Wherever it runs, a failure of the tool is reported in one line, a `WARNING:` from
+`postinst` / `%post` or an error from the resolver, never with its stack trace. An upgrade of a
+node that is still pending skips the format upgrade. The admin certificate pair is root's alone
+(`0600`): `indexer-security-init.sh` runs `securityadmin.sh` as root, and the service account must
+not be able to act as the security administrator. The ownership is set by a walk in
 `postinst` / `%post` that touches regular files and directories only, never through a symbolic
 link, with `chown -h`, and the spec's `%files` attributes say the same, so `rpm -V` reports no
 ownership or mode change.
@@ -554,8 +563,8 @@ The purge deletes only what the package itself created:
   own it.
 - `export/`, `ca/` and the completion marker: what the package published for the other
   components, its CA, and the record that it resolved its credentials.
-- `opensearch.keystore`, when it is still exactly as the package created it. `postinst` / `%post`
-  record its digest in `.wazuh-indexer-keystore` at creation; a keystore the operator added
+- `opensearch.keystore`, when it is still exactly as the package created it. Whichever created
+  it, `postinst` / `%post` or the resolver, records its digest in `.wazuh-indexer-keystore`; a keystore the operator added
   secrets to has another digest and is kept, with the marker.
 - The certificates it issued from that CA. Without it they are an identity nothing trusts, and a
   reinstall would find them beside a new one. Only a CA with its key in `ca/` issued anything on
@@ -584,7 +593,7 @@ shell builtin or coreutils, which `rpm` itself requires and which is Essential o
 | Command | Provided by (yum / apt) | Used for |
 | --- | --- | --- |
 | `openssl` | `openssl` | Minting the CA and issuing this node's certificate pair; the bundled JDK has no tool that issues PEM certificates |
-| `ip` | `iproute` / `iproute2` | Deriving the certificate's Subject Alternative Names from the default-route interfaces |
+| `ip` | `iproute` / `iproute2` | Deriving the certificate's Subject Alternative Names from the global addresses of the interfaces |
 | `groupadd`, `useradd`, `userdel`, `groupdel` | `shadow-utils` / `passwd` | Creating the service account at install and removing it at purge. The RPM requires the four by path, in `%pre` and `%postun`; `passwd` is `required` priority on Debian but not Essential, so the DEB declares it |
 
 `coreutils` is not listed: `rpm` requires it, and it is Essential on Debian. The DEB maintainer

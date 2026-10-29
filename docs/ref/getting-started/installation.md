@@ -145,6 +145,14 @@ rpm -ivh --replacepkgs wazuh-indexer-<VERSION>-<REVISION>.<ARCH>.rpm
 dpkg -i wazuh-indexer_<VERSION>-<REVISION>_<ARCH>.deb
 ```
 
+The installation ends by saying where the passwords are and what to run next. When it could not configure the node, it says so instead, and the lines just above it name what is missing. For example:
+
+```
+The indexer is installed but not configured: it has no usable TLS certificate.
+```
+
+The package is installed all the same, and there is no need to reinstall it: correct what is reported, then start the service, as described in [Starting the service](#starting-the-service). The most common cause is a certificate pair staged without the authority that issued it; see [On every other Wazuh indexer node](#on-every-other-wazuh-indexer-node).
+
 #### Retrieving the generated credentials
 
 The installation publishes one password per internal user in `/etc/wazuh-indexer/export/credentials.env`, readable only by root — the ones it generated, and the ones it was given:
@@ -281,6 +289,25 @@ The installation gives the node's pair and the authority to the `wazuh-indexer` 
 ```
 resolve-credentials: the certificate pair in /etc/wazuh-indexer/certs was not issued by /etc/wazuh-indexer/ca/root-ca.pem
 ```
+
+The installation reads only `/etc/wazuh-indexer/`. When the pair is staged without `root-ca.pem`, for example with the authority left in another directory, nothing can verify the pair, so the installation does not configure the node. It leaves `plugins.security.nodes_dn` and `plugins.security.authcz.admin_dn` empty and ends with:
+
+```
+resolve-credentials: a certificate pair is staged in /etc/wazuh-indexer/certs, but no CA certificate to verify it
+...
+The indexer is installed but not configured: it has no usable TLS certificate.
+Stage the node's certificate pair and its root-ca.pem in /etc/wazuh-indexer/certs/ (root:wazuh-indexer 0640),
+```
+
+Stage the authority beside the pair, then start the service, as described in [Starting the service](#starting-the-service):
+
+```bash
+tar -xf ./wazuh-certificates.tar -C /etc/wazuh-indexer/certs/ ./root-ca.pem
+chown root:wazuh-indexer /etc/wazuh-indexer/certs/root-ca.pem
+chmod 640 /etc/wazuh-indexer/certs/root-ca.pem
+```
+
+The start finishes what the installation left undone: it checks that the authority issued the pair, writes this node's subject and the admin subject into the two settings, and creates the keystore. There is no need to fill them in by hand or to reinstall the package.
 
 The installation publishes the authority as `/etc/wazuh-indexer/export/ca.pem` for the Wazuh manager and the Wazuh dashboard on this host. Its key stays on the node that generated the certificates, so this node issues no client pairs for them: copy the client pairs from `/etc/wazuh-indexer/export/` on that node, as described in [Retrieving the generated credentials](#retrieving-the-generated-credentials).
 
