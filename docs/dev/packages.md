@@ -489,14 +489,16 @@ The configuration directory, `/etc/wazuh-indexer`, is root's as well: directorie
 `root:wazuh-indexer 0750`, files `0640`, so the service reads its configuration, its keystore and
 its trust material through its group and can rewrite none of them. The one file the node used to
 write there, `opensearch.keystore`, is created as root, so the node never writes it. On a resolved
-node (the completion marker exists) `postinst` / `%post` create it when absent and upgrade it when
-its format changed. On a node whose prerequisites are not staged yet they leave it alone and print
-nothing: the keystore tool loads `opensearch.yml` and refuses it while the DN settings are empty.
-The resolver creates it instead, in the same run once the certificates resolve, or at the
-pre-start step once the operator stages them. A failure of the tool is one `WARNING:` line,
-never its stack trace. An upgrade of a node that is still pending skips the format upgrade. The admin certificate pair is
-root's alone (`0600`): `indexer-security-init.sh` runs `securityadmin.sh` as root, and the service
-account must not be able to act as the security administrator. The ownership is set by a walk in
+node (the completion marker is a regular file, not a link, as the resolver requires) `postinst` /
+`%post` create it when absent and upgrade it when its format changed. On a node whose
+prerequisites are not staged yet they leave it alone and print nothing: the keystore tool loads
+`opensearch.yml` and refuses it while the DN settings are empty. The resolver creates it instead,
+in the same run once the certificates resolve, or at the pre-start step once the operator stages
+them. Wherever it runs, a failure of the tool is reported in one line, a `WARNING:` from
+`postinst` / `%post` or an error from the resolver, never with its stack trace. An upgrade of a
+node that is still pending skips the format upgrade. The admin certificate pair is root's alone
+(`0600`): `indexer-security-init.sh` runs `securityadmin.sh` as root, and the service account must
+not be able to act as the security administrator. The ownership is set by a walk in
 `postinst` / `%post` that touches regular files and directories only, never through a symbolic
 link, with `chown -h`, and the spec's `%files` attributes say the same, so `rpm -V` reports no
 ownership or mode change.
