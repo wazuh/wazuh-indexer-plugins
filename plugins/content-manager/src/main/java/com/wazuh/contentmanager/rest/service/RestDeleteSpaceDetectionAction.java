@@ -33,7 +33,7 @@ import java.util.List;
 import com.wazuh.contentmanager.action.DeleteSpaceAction;
 import com.wazuh.contentmanager.action.DeleteSpaceRequest;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
-import com.wazuh.contentmanager.action.SpaceClearScope;
+import com.wazuh.contentmanager.rest.model.SpaceClearScope;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 

@@ -22,6 +22,8 @@ import org.opensearch.test.OpenSearchTestCase;
 
 import java.io.IOException;
 
+import com.wazuh.contentmanager.rest.model.SpaceClearScope;
+
 /** Unit tests for {@link DeleteSpaceRequest}. */
 public class DeleteSpaceRequestTests extends OpenSearchTestCase {
 

@@ -14,10 +14,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.action;
+package com.wazuh.contentmanager.rest.model;
 
 /**
- * The portion of a space a {@link DeleteSpaceRequest} targets.
+ * The portion of a space a {@code DeleteSpaceRequest} targets.
  *
  * <p>The enum ordinal is serialized on the wire by {@code DeleteSpaceRequest}, so new values must
  * be appended, never reordered.

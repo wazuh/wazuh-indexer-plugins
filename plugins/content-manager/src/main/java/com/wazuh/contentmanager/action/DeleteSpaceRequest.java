@@ -23,6 +23,8 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
+import com.wazuh.contentmanager.rest.model.SpaceClearScope;
+
 import static org.opensearch.action.ValidateActions.addValidationError;
 
 public class DeleteSpaceRequest extends ActionRequest {
