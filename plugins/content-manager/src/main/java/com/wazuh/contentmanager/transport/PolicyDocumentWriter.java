@@ -76,15 +76,15 @@ import com.wazuh.contentmanager.utils.Constants;
  * <p>Every writer of these lists must go through here: a single unguarded writer overwrites the
  * others' changes.
  */
-final class PolicyLinks {
+final class PolicyDocumentWriter {
 
-    private static final Logger log = LogManager.getLogger(PolicyLinks.class);
+    private static final Logger log = LogManager.getLogger(PolicyDocumentWriter.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /** The per-space queues of this node's pending changes, keyed by space name. */
     private static final ConcurrentMap<String, SpaceQueue> QUEUES = new ConcurrentHashMap<>();
 
-    private PolicyLinks() {}
+    private PolicyDocumentWriter() {}
 
     /**
      * Appends {@code id} to the {@code listKey} list of the policy of {@code spaceName}, unless it is

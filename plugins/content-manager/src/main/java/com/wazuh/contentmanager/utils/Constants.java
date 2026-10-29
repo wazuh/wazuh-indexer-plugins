@@ -503,7 +503,7 @@ public class Constants {
             "Failed to record {} [{}] in the user overrides registry. The change itself is fine, but it"
                     + " will not survive the next content rebuild of the standard space: {}";
 
-    // Log messages - a policy's id lists (PolicyLinks)
+    // Log messages - a policy's id lists (PolicyDocumentWriter)
     public static final String D_LOG_POLICY_LINKS_CONFLICT =
             "Write of the [{}] policy's [{}] list conflicted on attempt {}; re-reading and retrying in {}.";
     public static final String W_LOG_POLICY_LINKS_RETRIES_EXHAUSTED =

@@ -106,7 +106,7 @@ public class SpaceClearerTests extends OpenSearchTestCase {
                 .when(this.spaceService)
                 .calculateAndUpdate(anyList(), any());
 
-        // Client policy store so PolicyLinks.unlink completes for a deleted integration.
+        // Client policy store so PolicyDocumentWriter.unlink completes for a deleted integration.
         ThreadContext threadContext = new ThreadContext(Settings.EMPTY);
         ThreadPool threadPool = mock(ThreadPool.class);
         when(threadPool.getThreadContext()).thenReturn(threadContext);
@@ -231,7 +231,7 @@ public class SpaceClearerTests extends OpenSearchTestCase {
     private boolean runReconcile(Set<String> clearedFields) {
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         AtomicReference<Exception> failure = new AtomicReference<>();
-        SpaceClearer.reconcileEmptyIntegrations(
+        TransportDeleteSpaceAction.SpaceClearer.reconcileEmptyIntegrations(
                 this.client,
                 this.integrationService,
                 this.securityAnalyticsService,
@@ -319,7 +319,7 @@ public class SpaceClearerTests extends OpenSearchTestCase {
     private Exception runClearNormalization() {
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         AtomicReference<Exception> failure = new AtomicReference<>();
-        SpaceClearer.clearNormalization(
+        TransportDeleteSpaceAction.SpaceClearer.clearNormalization(
                 this.client,
                 this.spaceService,
                 this.integrationService,
@@ -406,7 +406,7 @@ public class SpaceClearerTests extends OpenSearchTestCase {
     private Exception runClearDetection() {
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         AtomicReference<Exception> failure = new AtomicReference<>();
-        SpaceClearer.clearDetection(
+        TransportDeleteSpaceAction.SpaceClearer.clearDetection(
                 this.client,
                 this.spaceService,
                 this.integrationService,
@@ -491,7 +491,7 @@ public class SpaceClearerTests extends OpenSearchTestCase {
     private Exception runReconcileCapture(Set<String> clearedFields) {
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         AtomicReference<Exception> failure = new AtomicReference<>();
-        SpaceClearer.reconcileEmptyIntegrations(
+        TransportDeleteSpaceAction.SpaceClearer.reconcileEmptyIntegrations(
                 this.client,
                 this.integrationService,
                 this.securityAnalyticsService,

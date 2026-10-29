@@ -64,8 +64,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/** Unit tests for {@link PolicyLinks}. */
-public class PolicyLinksTests extends OpenSearchTestCase {
+/** Unit tests for {@link PolicyDocumentWriter}. */
+public class PolicyDocumentWriterTests extends OpenSearchTestCase {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String POLICY_DOC_ID = "draft-policy-doc";
@@ -244,9 +244,9 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         ActionListener<Void> listener = ActionListener.wrap(v -> done.set(true), e -> failure.set(e));
         if (link) {
-            PolicyLinks.link(this.client, space, listKey, id, MISSING_POLICY, listener);
+            PolicyDocumentWriter.link(this.client, space, listKey, id, MISSING_POLICY, listener);
         } else {
-            PolicyLinks.unlink(this.client, space, listKey, id, MISSING_POLICY, listener);
+            PolicyDocumentWriter.unlink(this.client, space, listKey, id, MISSING_POLICY, listener);
         }
         assertTrue("listener must be notified", done.get() || failure.get() != null);
         return failure.get();
@@ -287,7 +287,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         AtomicReference<Exception> failure = new AtomicReference<>();
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         ActionListener<Boolean> listener = ActionListener.wrap(v -> done.set(true), failure::set);
-        PolicyLinks.clearRootDecoder(this.client, space, MISSING_POLICY, listener);
+        PolicyDocumentWriter.clearRootDecoder(this.client, space, MISSING_POLICY, listener);
         assertTrue("listener must be notified", done.get() || failure.get() != null);
         return failure.get();
     }
@@ -296,7 +296,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         AtomicReference<Exception> failure = new AtomicReference<>();
         AtomicReference<Boolean> done = new AtomicReference<>(false);
         ActionListener<Boolean> listener = ActionListener.wrap(v -> done.set(true), failure::set);
-        PolicyLinks.clearList(this.client, space, listKey, MISSING_POLICY, listener);
+        PolicyDocumentWriter.clearList(this.client, space, listKey, MISSING_POLICY, listener);
         assertTrue("listener must be notified", done.get() || failure.get() != null);
         return failure.get();
     }
@@ -544,7 +544,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
                             Constants.POLICY_LINKS_RETRY_MAX_DELAY_MS,
                             Constants.POLICY_LINKS_RETRY_BASE_DELAY_MS << Math.min(attempt - 1, 20));
             for (int i = 0; i < 50; i++) {
-                long millis = PolicyLinks.backoff(attempt).millis();
+                long millis = PolicyDocumentWriter.backoff(attempt).millis();
                 assertTrue(millis >= 1 && millis <= ceiling);
             }
         }
@@ -564,7 +564,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
     private void linkAs(String user, String id, ActionListener<Void> listener) {
         try (ThreadContext.StoredContext ignored = this.threadContext.stashContext()) {
             this.threadContext.putHeader(USER_HEADER, user);
-            PolicyLinks.link(this.client, "draft", Constants.KEY_FILTERS, id, MISSING_POLICY, listener);
+            PolicyDocumentWriter.link(this.client, "draft", Constants.KEY_FILTERS, id, MISSING_POLICY, listener);
         }
     }
 
@@ -591,10 +591,10 @@ public class PolicyLinksTests extends OpenSearchTestCase {
                                 this.heldGets.add(
                                         new HeldGet(
                                                 invocation.getArgument(1),
-                                                PolicyLinksTests.this.threadContext.newRestorableContext(false)));
+                                                PolicyDocumentWriterTests.this.threadContext.newRestorableContext(false)));
                                 return null;
                             })
-                    .when(PolicyLinksTests.this.client)
+                    .when(PolicyDocumentWriterTests.this.client)
                     .get(any(GetRequest.class), any(ActionListener.class));
             doAnswer(
                             invocation -> {
@@ -615,7 +615,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
                                 l.onResponse(mock(IndexResponse.class));
                                 return null;
                             })
-                    .when(PolicyLinksTests.this.client)
+                    .when(PolicyDocumentWriterTests.this.client)
                     .index(any(IndexRequest.class), any(ActionListener.class));
         }
 
@@ -665,9 +665,9 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         ActionListener<Void> listener = ActionListener.wrap(v -> succeeded[0]++, failures::add);
 
         for (int i = 0; i < 10; i++) {
-            PolicyLinks.link(
+            PolicyDocumentWriter.link(
                     this.client, "draft", Constants.KEY_FILTERS, "f" + i, MISSING_POLICY, listener);
-            PolicyLinks.link(
+            PolicyDocumentWriter.link(
                     this.client, "draft", Constants.KEY_INTEGRATIONS, "i" + i, MISSING_POLICY, listener);
         }
 
@@ -685,7 +685,7 @@ public class PolicyLinksTests extends OpenSearchTestCase {
 
         // And the unlinks, likewise.
         for (int i = 0; i < 10; i++) {
-            PolicyLinks.unlink(
+            PolicyDocumentWriter.unlink(
                     this.client, "draft", Constants.KEY_FILTERS, "f" + i, MISSING_POLICY, listener);
         }
         for (int round = 0; round < 10; round++) {
@@ -702,8 +702,8 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         Store store = new Store();
         ActionListener<Void> listener = ActionListener.wrap(v -> {}, e -> fail(e.getMessage()));
 
-        PolicyLinks.link(this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
-        PolicyLinks.link(this.client, "standard", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(this.client, "standard", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
 
         assertEquals(2, store.heldGets.size());
         store.releaseGet();
@@ -716,8 +716,8 @@ public class PolicyLinksTests extends OpenSearchTestCase {
         List<Exception> failures = new ArrayList<>();
         ActionListener<Void> listener = ActionListener.wrap(v -> {}, failures::add);
 
-        PolicyLinks.link(this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
-        PolicyLinks.link(this.client, "draft", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(this.client, "draft", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
 
         assertEquals(2, failures.size());
         assertEquals(List.of("draft", "draft"), this.searchedSpaces);
