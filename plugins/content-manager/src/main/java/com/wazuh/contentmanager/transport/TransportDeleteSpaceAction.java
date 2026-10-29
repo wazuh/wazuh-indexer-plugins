@@ -262,19 +262,19 @@ public class TransportDeleteSpaceAction
 
     /**
      * Orchestrates the scoped space clears: wiping only the normalization resources (decoders, kvdbs,
-     * filters and the policy root decoder) or only the detection resources (rules) of a space, instead
-     * of the whole space.
+     * filters and the policy root decoder) or only the detection resources (rules) of a space,
+     * instead of the whole space.
      *
-     * <p>Nested in the action it serves so the reconciliation can reach the package-private
-     * {@link PolicyDocumentWriter}, the single guarded writer of the policy document.
+     * <p>Nested in the action it serves so the reconciliation can reach the package-private {@link
+     * PolicyDocumentWriter}, the single guarded writer of the policy document.
      *
-     * <p>Unlike the full reset (the enclosing action with the {@code FULL} scope), which
-     * deletes the policy document and re-seeds a default one, the scoped clears only remove resources
-     * and the policy's references to them (root decoder, integration and filter references). The
-     * policy's own settings ({@code enrichments}, {@code enabled}, the {@code index_*} flags and the
-     * metadata) are intentionally PRESERVED, as issue #1722 specifies per endpoint ("unset the root
-     * decoder" only). Do not add a policy re-seed here: that would turn a one-sided clear into a reset
-     * of unrelated space settings.
+     * <p>Unlike the full reset (the enclosing action with the {@code FULL} scope), which deletes the
+     * policy document and re-seeds a default one, the scoped clears only remove resources and the
+     * policy's references to them (root decoder, integration and filter references). The policy's own
+     * settings ({@code enrichments}, {@code enabled}, the {@code index_*} flags and the metadata) are
+     * intentionally PRESERVED, as issue #1722 specifies per endpoint ("unset the root decoder" only).
+     * Do not add a policy re-seed here: that would turn a one-sided clear into a reset of unrelated
+     * space settings.
      */
     static final class SpaceClearer {
 
@@ -290,11 +290,11 @@ public class TransportDeleteSpaceAction
 
         /**
          * Clears the normalization side of a space: deletes its decoders, kvdbs and filters, blanks the
-         * policy root decoder, drops the policy's filter references, removes any integration left empty,
-         * and recomputes the space hash. The detection side (rules) is left untouched.
+         * policy root decoder, drops the policy's filter references, removes any integration left
+         * empty, and recomputes the space hash. The detection side (rules) is left untouched.
          *
-         * <p>Best-effort and re-runnable: there is no multi-document transaction, and a failed run can be
-         * repeated. Failures are propagated to {@code listener}, never swallowed.
+         * <p>Best-effort and re-runnable: there is no multi-document transaction, and a failed run can
+         * be repeated. Failures are propagated to {@code listener}, never swallowed.
          *
          * @param client OpenSearch client.
          * @param spaceService bulk resource deletes and the space hash recompute.
@@ -311,7 +311,8 @@ public class TransportDeleteSpaceAction
                 String spaceName,
                 ActionListener<Void> listener) {
             Space space = Space.fromValue(spaceName);
-            // Set by any step that changed something; a no-op clear then skips the hash recompute (#1722).
+            // Set by any step that changed something; a no-op clear then skips the hash recompute
+            // (#1722).
             AtomicBoolean touched = new AtomicBoolean(false);
             // 1. Delete the normalization resources: decoders, kvdbs and filters.
             spaceService.deleteSpaceResources(
@@ -369,12 +370,15 @@ public class TransportDeleteSpaceAction
         }
 
         /**
-         * Recomputes the space's aggregate hash after a scoped clear, unless the clear changed nothing. A
-         * no-op clear must leave the hash unchanged (issue #1722); a fresh reset stores the policy's own
-         * hash, which a recompute to the aggregate hash would otherwise move.
+         * Recomputes the space's aggregate hash after a scoped clear, unless the clear changed nothing.
+         * A no-op clear must leave the hash unchanged (issue #1722); a fresh reset stores the policy's
+         * own hash, which a recompute to the aggregate hash would otherwise move.
          */
         private static void recomputeHashIfChanged(
-                SpaceService spaceService, String spaceName, boolean changed, ActionListener<Void> listener) {
+                SpaceService spaceService,
+                String spaceName,
+                boolean changed,
+                ActionListener<Void> listener) {
             if (changed == false) {
                 listener.onResponse(null);
                 return;
@@ -408,7 +412,8 @@ public class TransportDeleteSpaceAction
                 String spaceName,
                 ActionListener<Void> listener) {
             Space space = Space.fromValue(spaceName);
-            // Set by any step that changed something; a no-op clear then skips the hash recompute (#1722).
+            // Set by any step that changed something; a no-op clear then skips the hash recompute
+            // (#1722).
             AtomicBoolean touched = new AtomicBoolean(false);
             // 1. Mirror the single-rule delete's external cleanup for every rule in the space.
             spaceService.getSpaceResourceIdsAsync(
@@ -448,7 +453,10 @@ public class TransportDeleteSpaceAction
                                                                                                 }
                                                                                                 // 4. Recompute the hash, unless nothing changed.
                                                                                                 recomputeHashIfChanged(
-                                                                                                        spaceService, spaceName, touched.get(), listener);
+                                                                                                        spaceService,
+                                                                                                        spaceName,
+                                                                                                        touched.get(),
+                                                                                                        listener);
                                                                                             },
                                                                                             listener::onFailure));
                                                                         },
@@ -557,7 +565,8 @@ public class TransportDeleteSpaceAction
         }
 
         /**
-         * Deletes an empty integration everywhere it is referenced: index, policy and Security Analytics.
+         * Deletes an empty integration everywhere it is referenced: index, policy and Security
+         * Analytics.
          */
         private static void deleteEmptyIntegration(
                 Client client,
@@ -622,11 +631,12 @@ public class TransportDeleteSpaceAction
         }
 
         /**
-         * Whether {@code e} (or a cause) is Security Analytics refusing the log-type delete with a {@code
-         * 400}. Detected by status, not by message text: when clearing an empty draft integration the
-         * only {@code 400} the delete can raise is that it still sees the rules just deleted (a transient
-         * after the rule delete — draft integrations have no detectors and no sigma source), which is the
-         * one case worth retrying. A {@code 404} is tolerated earlier; anything else propagates.
+         * Whether {@code e} (or a cause) is Security Analytics refusing the log-type delete with a
+         * {@code 400}. Detected by status, not by message text: when clearing an empty draft
+         * integration the only {@code 400} the delete can raise is that it still sees the rules just
+         * deleted (a transient after the rule delete — draft integrations have no detectors and no
+         * sigma source), which is the one case worth retrying. A {@code 404} is tolerated earlier;
+         * anything else propagates.
          */
         private static boolean isActiveRulesConflict(Exception e) {
             Throwable cause = e;
@@ -658,7 +668,8 @@ public class TransportDeleteSpaceAction
         }
 
         /**
-         * Whether {@code e} or one of its causes is an OpenSearch 404, as the single-delete path checks.
+         * Whether {@code e} or one of its causes is an OpenSearch 404, as the single-delete path
+         * checks.
          */
         private static boolean isNotFoundException(Exception e) {
             Throwable cause = e;

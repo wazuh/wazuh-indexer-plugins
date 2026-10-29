@@ -564,7 +564,8 @@ public class PolicyDocumentWriterTests extends OpenSearchTestCase {
     private void linkAs(String user, String id, ActionListener<Void> listener) {
         try (ThreadContext.StoredContext ignored = this.threadContext.stashContext()) {
             this.threadContext.putHeader(USER_HEADER, user);
-            PolicyDocumentWriter.link(this.client, "draft", Constants.KEY_FILTERS, id, MISSING_POLICY, listener);
+            PolicyDocumentWriter.link(
+                    this.client, "draft", Constants.KEY_FILTERS, id, MISSING_POLICY, listener);
         }
     }
 
@@ -702,8 +703,10 @@ public class PolicyDocumentWriterTests extends OpenSearchTestCase {
         Store store = new Store();
         ActionListener<Void> listener = ActionListener.wrap(v -> {}, e -> fail(e.getMessage()));
 
-        PolicyDocumentWriter.link(this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
-        PolicyDocumentWriter.link(this.client, "standard", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(
+                this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(
+                this.client, "standard", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
 
         assertEquals(2, store.heldGets.size());
         store.releaseGet();
@@ -716,8 +719,10 @@ public class PolicyDocumentWriterTests extends OpenSearchTestCase {
         List<Exception> failures = new ArrayList<>();
         ActionListener<Void> listener = ActionListener.wrap(v -> {}, failures::add);
 
-        PolicyDocumentWriter.link(this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
-        PolicyDocumentWriter.link(this.client, "draft", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(
+                this.client, "draft", Constants.KEY_FILTERS, "a", MISSING_POLICY, listener);
+        PolicyDocumentWriter.link(
+                this.client, "draft", Constants.KEY_FILTERS, "b", MISSING_POLICY, listener);
 
         assertEquals(2, failures.size());
         assertEquals(List.of("draft", "draft"), this.searchedSpaces);
