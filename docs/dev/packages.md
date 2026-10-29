@@ -439,7 +439,7 @@ A pair already in place is used only once `openssl verify` confirms that it chai
 
 A staged pair must be root's, like everything else in `certs/`: `root:wazuh-indexer 0640` for the node's pair and the anchor, `root:root 0600` for the admin pair. One owned by the service account is reported as `UNSAFE` and refused, never chowned: a repair would turn a planted file into a trusted one.
 
-The Subject Alternative Names (SANs) default to the hostname, the fully qualified domain name (FQDN), loopback and the global addresses of default-route interfaces. `WAZUH_INDEXER_CERT_SANS`, from the process environment or from `local.env`, replaces that list wholesale: a comma-separated list in OpenSSL's form, each entry a `DNS:` name or an `IP:` address, for example `WAZUH_INDEXER_CERT_SANS=DNS:node-1.example.com,IP:10.0.0.1`. `localhost` and the loopback addresses are always appended; an empty list, or an entry without one of those prefixes, is refused with a message that names the variable.
+The Subject Alternative Names (SANs) default to the hostname, the fully qualified domain name (FQDN), loopback and every global address of every interface, as `ip -o addr show scope global` lists them, whether or not the interface carries the default route, is virtual or is down (loopback and link-local addresses left out, and IPv6 addresses that are deprecated or tentative), the same rule the manager follows for its certificates. A container bridge's address is named too. `WAZUH_INDEXER_CERT_SANS`, from the process environment or from `local.env`, replaces that list wholesale: a comma-separated list in OpenSSL's form, each entry a `DNS:` name or an `IP:` address, for example `WAZUH_INDEXER_CERT_SANS=DNS:node-1.example.com,IP:10.0.0.1`. `localhost` and the loopback addresses are always appended; an empty list, or an entry without one of those prefixes, is refused with a message that names the variable.
 
 The host name comes from the kernel (`/proc/sys/kernel/hostname`) and the FQDN from `getent hosts`, the addresses from `ip`: the resolver runs no other host tool, and every text transformation is shell. The certificates are issued with `openssl`, because the bundled JDK has no tool that issues PEM certificates.
 
@@ -591,7 +591,7 @@ shell builtin or coreutils, which `rpm` itself requires and which is Essential o
 | Command | Provided by (yum / apt) | Used for |
 | --- | --- | --- |
 | `openssl` | `openssl` | Minting the CA and issuing this node's certificate pair; the bundled JDK has no tool that issues PEM certificates |
-| `ip` | `iproute` / `iproute2` | Deriving the certificate's Subject Alternative Names from the default-route interfaces |
+| `ip` | `iproute` / `iproute2` | Deriving the certificate's Subject Alternative Names from the global addresses of the interfaces |
 | `groupadd`, `useradd`, `userdel`, `groupdel` | `shadow-utils` / `passwd` | Creating the service account at install and removing it at purge. The RPM requires the four by path, in `%pre` and `%postun`; `passwd` is `required` priority on Debian but not Essential, so the DEB declares it |
 
 `coreutils` is not listed: `rpm` requires it, and it is Essential on Debian. The DEB maintainer
