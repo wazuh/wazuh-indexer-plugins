@@ -1,0 +1,165 @@
+{
+  "index_patterns": [
+    "security-auditlog*"
+  ],
+  "priority": 1,
+  "data_stream": {},
+  "template": {
+    "settings": {
+      "index": {
+        "auto_expand_replicas": "0-1",
+        "codec": "zstd",
+        "max_docvalue_fields_search": 100,
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "query.default_field": [
+          "audit_category",
+          "audit_request_effective_user",
+          "audit_request_initiating_user",
+          "audit_request_privilege",
+          "audit_request_remote_address",
+          "audit_rest_request_path",
+          "audit_trace_indices",
+          "audit_trace_resolved_indices",
+          "audit_transport_action"
+        ],
+        "refresh_interval": "5s"
+      },
+      "mapping.total_fields.limit": 1000,
+      "plugins.index_state_management.policy_id": "security-auditlog-policy"
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": false,
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "audit_category": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_cluster_name": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_compliance_diff_content": {
+          "norms": false,
+          "type": "text"
+        },
+        "audit_compliance_diff_is_noop": {
+          "type": "boolean"
+        },
+        "audit_compliance_doc_version": {
+          "type": "long"
+        },
+        "audit_compliance_operation": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_format_version": {
+          "type": "integer"
+        },
+        "audit_node_host_address": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_node_host_name": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_node_id": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_node_name": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_request_body": {
+          "norms": false,
+          "type": "text"
+        },
+        "audit_request_effective_user": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_request_effective_user_is_admin": {
+          "type": "boolean"
+        },
+        "audit_request_exception_stacktrace": {
+          "norms": false,
+          "type": "text"
+        },
+        "audit_request_initiating_user": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_request_layer": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_request_origin": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_request_privilege": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_request_remote_address": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_rest_request_headers": {
+          "type": "flat_object"
+        },
+        "audit_rest_request_method": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_rest_request_params": {
+          "type": "flat_object"
+        },
+        "audit_rest_request_path": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_trace_doc_id": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_trace_indices": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_trace_resolved_indices": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_trace_shard_id": {
+          "type": "integer"
+        },
+        "audit_trace_task_id": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_trace_task_parent_id": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_transport_action": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        },
+        "audit_transport_headers": {
+          "type": "flat_object"
+        },
+        "audit_transport_request_type": {
+          "ignore_above": 4096,
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}

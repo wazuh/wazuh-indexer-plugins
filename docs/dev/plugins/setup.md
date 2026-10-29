@@ -298,7 +298,7 @@ Use epoch timestamps (in milliseconds) for `last_updated_time` fields. Update th
 ISM policies and templates must be properly deployed before the indices are created.
 
 `IndexStateManagement.initialize()` runs on every cluster-manager election, and `indexPolicy()`
-writes each policy with a plain `IndexRequest` keyed by policy id, so **the six shipped policies
+writes each policy with a plain `IndexRequest` keyed by policy id, so **the seven shipped policies
 are overwritten on every restart**. Any edit an operator makes to one of them through the ISM API
 is reverted on the next boot. This is why
 [Retention](../../ref/modules/setup/retention.md#opting-in-to-a-hard-time-ceiling) tells operators
@@ -360,6 +360,7 @@ Some data streams use their own dedicated templates instead of the shared `event
 | `wazuh-events-raw-v5`          | `templates/streams/raw.json`              | Stores original unprocessed events            |
 | `wazuh-active-responses`       | `templates/streams/active-responses.json` | Active Response execution requests            |
 | `wazuh-ai-assistant-sessions`  | `templates/streams/ai-assistant-sessions.json` | AI assistant conversation history        |
+| `security-auditlog`            | `templates/streams/security-auditlog.json` | Security plugin audit events             |
 
 These are registered with the two-arg constructor:
 
@@ -367,7 +368,15 @@ These are registered with the two-arg constructor:
 new StreamIndex("wazuh-events-raw-v5", "templates/streams/raw");
 new StreamIndex("wazuh-active-responses", "templates/streams/active-responses");
 new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-sessions");
+new StreamIndex("security-auditlog", "templates/streams/security-auditlog");
 ```
+
+The security plugin writes to `security-auditlog` when `plugins.security.audit.type` is `internal_opensearch_data_stream` and `plugins.security.audit.config.data_stream.name` is `security-auditlog`, as the packaged `opensearch.yml` sets. The security plugin can create that data stream itself on the first audit event, but the backing index would then have no retention policy, so the setup plugin creates it first. The template is generated from the `wcs/stateless/security-auditlog` WCS module. The security plugin sets the field names, so they don't follow ECS: the module declares them as custom root-level fields. Two details of the template depend on the security plugin:
+
+- **`priority: 1`.** On every node start the security plugin puts its own template, `opensearch-security-auditlog`, for the same data stream at priority 0. That put fails if another matching template has the same priority, and the security plugin then drops every audit event.
+- **`dynamic: false`, with the header and parameter fields as `flat_object`.** Audit events carry the request's headers and URL parameters, whose names the client chooses, including on requests that fail authentication. Mapping them dynamically would let any client fill the field limit, after which every audit event is rejected. Fields the template doesn't map are kept in `_source`.
+
+The name stays outside `wazuh-*` on purpose: the `dashboard_server` role reads `wazuh-*` on behalf of every dashboard user.
 
 ---
 

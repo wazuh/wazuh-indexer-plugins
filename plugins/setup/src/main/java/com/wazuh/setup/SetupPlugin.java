@@ -165,6 +165,14 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
         // AI assistant sessions data stream (stores the users' conversations with the AI assistant)
         this.indices.add(new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-sessions"));
 
+        // Security audit log data stream. The security plugin writes audit events here when
+        // plugins.security.audit.type is internal_opensearch_data_stream with this data stream name
+        // (the packaged opensearch.yml sets both). Created here, rather than lazily by the security
+        // plugin on the first audit event, so that its backing index gets the retention policy. The
+        // name stays outside wazuh-*, which the dashboard_server role reads on behalf of every
+        // dashboard user.
+        this.indices.add(new StreamIndex("security-auditlog", "templates/streams/security-auditlog"));
+
         // State indices
         this.indices.add(new StateIndex("wazuh-agent-config", "templates/states/agent-config"));
         this.indices.add(new StateIndex("wazuh-agent-stats", "templates/states/agent-stats"));

@@ -90,6 +90,9 @@ function map_stateless_modules() {
   if [[ -d "wcs/stateless/active-responses" ]]; then
     all_modules["stateless/active-responses"]="templates/streams/active-responses.json"
   fi
+  if [[ -d "wcs/stateless/security-auditlog" ]]; then
+    all_modules["stateless/security-auditlog"]="templates/streams/security-auditlog.json"
+  fi
 
   # Map metrics submodules explicitly
   if [[ -d "wcs/stateless/metrics/agents" ]]; then

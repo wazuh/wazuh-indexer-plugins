@@ -29,8 +29,7 @@ retention ≈ max(deletion age, time to fill 20 GB per primary shard)
 
 ## Per-stream values
 
-Every stream rolls over at 20 GB per primary shard or 200,000,000 documents. Only the AI
-assistant sessions policy adds an age condition (`min_index_age: 1d`) to the rollover itself.
+Every stream rolls over at 20 GB per primary shard or 200,000,000 documents. Only the AI assistant sessions and security audit log policies add an age condition (`min_index_age: 1d`) to the rollover itself.
 
 | Policy | Streams | Rollover | Deletion age (floor) |
 | --- | --- | --- | --- |
@@ -40,10 +39,9 @@ assistant sessions policy adds an age condition (`min_index_age: 1d`) to the rol
 | `stream-metrics-policy` | `wazuh-metrics-*` | 20 GB / 200M docs | 30 days |
 | `stream-active-responses-policy` | `wazuh-active-responses` | 20 GB / 200M docs | 3 days |
 | `ai-assistant-sessions-policy` | `wazuh-ai-assistant-sessions` | 1 day, or 20 GB / 200M docs | 7 days |
+| `security-auditlog-policy` | `security-auditlog` | 1 day, or 20 GB / 200M docs | 7 days |
 
-The AI assistant sessions policy is the exception on purpose: 7-day conversation retention only
-means something if indices roll over on a daily schedule, so that stream rotates by age. The
-other five rotate by volume.
+The AI assistant sessions and security audit log policies are the exception on purpose: a 7-day retention only means something if indices roll over on a daily schedule, so those streams rotate by age. The audit log is also small, so without the daily rollover it would never reach 20 GB and never be deleted. The other five rotate by volume.
 
 ## Disk sizing
 
@@ -93,7 +91,7 @@ for deletion.
 
 ## The shipped policies are rewritten on every restart
 
-The Setup plugin re-indexes its six policy documents whenever a node is elected cluster manager,
+The Setup plugin re-indexes its seven policy documents whenever a node is elected cluster manager,
 which includes every restart. It writes each one by policy id, so the write **overwrites whatever
 is there** — an edit made to a shipped policy through the ISM API is silently reverted on the next
 boot, and the plugin logs `ISM policy [<name>] created` for all six as if they were new.
@@ -103,7 +101,7 @@ of the policy it was registered with, so indices already moved onto an edited po
 while every backing index created afterwards gets the shipped one. The result is two retention
 regimes in the same data stream, with nothing to signal it.
 
-**Never edit one of the six shipped policies in place.** To change retention, create your own
+**Never edit one of the seven shipped policies in place.** To change retention, create your own
 policy instead, as described next.
 
 ## Opting in to a hard time ceiling
@@ -112,7 +110,7 @@ If your deployment needs retention bounded in *time* rather than in volume — a
 or a data-minimization requirement — put an age condition on the **rollover** action, the way
 `ai-assistant-sessions-policy` does.
 
-Do it in a policy of your own. The plugin only ever rewrites its own six policy ids, so a policy
+Do it in a policy of your own. The plugin only ever rewrites its own seven policy ids, so a policy
 under a different id is never touched.
 
 **1. Create the policy under its own `policy_id`.** Put `min_index_age` on the rollover action,

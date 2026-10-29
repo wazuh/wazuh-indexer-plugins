@@ -1,0 +1,35 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,audit_category,keyword,custom,,FAILED_LOGIN,Type of audit event.
+9.1.0,true,base,audit_cluster_name,keyword,custom,,wazuh-cluster,Name of the cluster the event was recorded in.
+9.1.0,true,base,audit_compliance_diff_content,text,custom,,"[{""op"":""replace"",""path"":""/description"",""value"":""new""}]","Changes made to the document, when write diffs are enabled in the audit configuration."
+9.1.0,true,base,audit_compliance_diff_is_noop,boolean,custom,,False,Whether the write left the document unchanged.
+9.1.0,true,base,audit_compliance_doc_version,long,custom,,7,Version of the document the event refers to.
+9.1.0,true,base,audit_compliance_operation,keyword,custom,,UPDATE,"Write operation on a watched document: CREATE, UPDATE or DELETE."
+9.1.0,true,base,audit_format_version,integer,custom,,4,Version of the audit message format.
+9.1.0,true,base,audit_node_host_address,keyword,custom,,192.0.2.21,Address of the node that recorded the event.
+9.1.0,true,base,audit_node_host_name,keyword,custom,,indexer-1,Host name of the node that recorded the event.
+9.1.0,true,base,audit_node_id,keyword,custom,,Fo6s6WJ1Qp6TtKZ0ZNkY3w,ID of the node that recorded the event.
+9.1.0,true,base,audit_node_name,keyword,custom,,node-1,Name of the node that recorded the event.
+9.1.0,true,base,audit_request_body,text,custom,,"{""query"":{""match_all"":{}}}","Body of the request, or the security configuration document read or written."
+9.1.0,true,base,audit_request_effective_user,keyword,custom,,admin,User the request ran as.
+9.1.0,true,base,audit_request_effective_user_is_admin,boolean,custom,,False,Whether the request was authenticated with the admin certificate.
+9.1.0,true,base,audit_request_exception_stacktrace,text,custom,,org.opensearch.OpenSearchSecurityException: no permissions for [indices:data/read/search],"Stack trace of the exception raised by the request, on events that record one."
+9.1.0,true,base,audit_request_initiating_user,keyword,custom,,admin,"User that sent the request, when it differs from the effective user (impersonation)."
+9.1.0,true,base,audit_request_layer,keyword,custom,,TRANSPORT,Layer the event was recorded on: REST or TRANSPORT.
+9.1.0,true,base,audit_request_origin,keyword,custom,,REST,"Layer the request entered the cluster through: REST, TRANSPORT or LOCAL."
+9.1.0,true,base,audit_request_privilege,keyword,custom,,indices:data/read/search,Permission checked for the request.
+9.1.0,true,base,audit_request_remote_address,keyword,custom,,192.0.2.10,Address the request came from.
+9.1.0,true,base,audit_rest_request_headers,flat_object,custom,,"{""user-agent"":[""curl/7.81.0""]}","Headers of the REST request, without Authorization, as a flat object."
+9.1.0,true,base,audit_rest_request_method,keyword,custom,,GET,HTTP method of the REST request.
+9.1.0,true,base,audit_rest_request_params,flat_object,custom,,"{""pretty"":""true""}","URL parameters of the REST request, as a flat object."
+9.1.0,true,base,audit_rest_request_path,keyword,custom,,/_plugins/_security/authinfo,Path of the REST request.
+9.1.0,true,base,audit_trace_doc_id,keyword,custom,,internalusers,ID of the document the request read or wrote.
+9.1.0,true,base,audit_trace_indices,keyword,custom,array,"[""wazuh-*""]",Indices named in the request.
+9.1.0,true,base,audit_trace_resolved_indices,keyword,custom,array,"[""wazuh-states-vulnerabilities""]","Indices the request touched, after resolving aliases and wildcards."
+9.1.0,true,base,audit_trace_shard_id,integer,custom,,0,Shard the request read or wrote.
+9.1.0,true,base,audit_trace_task_id,keyword,custom,,Fo6s6WJ1Qp6TtKZ0ZNkY3w:1234,ID of the task that handled the request.
+9.1.0,true,base,audit_trace_task_parent_id,keyword,custom,,Fo6s6WJ1Qp6TtKZ0ZNkY3w:1233,ID of the parent of the task that handled the request.
+9.1.0,true,base,audit_transport_action,keyword,custom,,indices:data/read/search,Transport action of the request.
+9.1.0,true,base,audit_transport_headers,flat_object,custom,,"{""_system_index_access_allowed"":""false""}","Headers of the transport request, stored as a flat object."
+9.1.0,true,base,audit_transport_request_type,keyword,custom,,SearchRequest,Class name of the transport request.
