@@ -404,69 +404,118 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * Verifies that an event can be found by its complete {@code message}.
+     * Verifies that a free-text search with no field name matches a word of the message, in events
+     * and in findings.
      *
-     * <p>{@code message} is a {@code keyword} (#1599 reverted it from {@code match_only_text}), so
-     * the whole line is a single term: a {@code term} query on the complete value is how it is
-     * matched.
+     * <p>A {@code query_string} with no field searches {@code index.query.default_field}. {@code
+     * message} and {@code error.message} are {@code match_only_text} and listed there, so a single
+     * word of either one finds the document (#1688). Before, both were {@code keyword} and missing
+     * from the list, and the same search matched nothing.
      *
      * @throws IOException if there is an issue with the HTTP request
      * @throws ParseException if there is an issue parsing the response
      */
-    public void testMessageIsSearchableByExactValue() throws IOException, ParseException {
-        String message = "Failed password for invalid user oracle from 198.51.100.9 port 52814 ssh2";
-        indexEvent(
-                String.format(
-                        Locale.ROOT,
-                        """
-                        {
-                          "@timestamp": "2026-08-05T10:00:00.000Z",
-                          "message": "%s",
-                          "process": {"name": "wcs-test-message-exact-search"}
-                        }
-                        """,
-                        message));
+    public void testFreeTextSearchMatchesWordsOfTheMessage() throws IOException, ParseException {
+        for (String prefix : List.of(EVENTS_PREFIX, FINDINGS_PREFIX)) {
+            String marker = "wcs-test-free-text-" + prefix;
+            index(
+                    prefix,
+                    String.format(
+                            Locale.ROOT,
+                            """
+                            {
+                              "@timestamp": "2026-08-05T10:00:00.000Z",
+                              "message": "Failed password for invalid user oracle from 198.51.100.9 port 52814 ssh2",
+                              "error": {"message": "Connection refused wcserroronlyword"},
+                              "process": {"name": "%s"}
+                            }
+                            """,
+                            marker));
 
-        String body =
-                searchEvents(
-                        String.format(
-                                Locale.ROOT,
-                                """
-                                {
-                                  "size": 0,
-                                  "query": {
-                                    "bool": {
-                                      "filter": [
-                                        {"term": {"process.name": "wcs-test-message-exact-search"}},
-                                        {"term": {"message": "%s"}}
-                                      ]
-                                    }
-                                  }
-                                }
-                                """,
-                                message));
+            // One word of message, two words of message, and a word only error.message has.
+            for (String text : List.of("password", "failed oracle", "wcserroronlyword")) {
+                String body =
+                        search(
+                                prefix,
+                                String.format(
+                                        Locale.ROOT,
+                                        """
+                                        {
+                                          "size": 0,
+                                          "query": {
+                                            "bool": {
+                                              "filter": [
+                                                {"term": {"process.name": "%s"}},
+                                                {"query_string": {"query": "%s"}}
+                                              ]
+                                            }
+                                          }
+                                        }
+                                        """,
+                                        marker,
+                                        text));
 
-        logger.info("message exact-search response: {}", body);
-        assertThat(
-                "a term query on the complete message must find the event that carries it",
-                body,
-                containsString("\"value\":1"));
+                logger.info("free-text search [{}] on [{}] response: {}", text, prefix, body);
+                assertThat(
+                        "a free-text search for [" + text + "] must find the document in [" + prefix + "]",
+                        body,
+                        containsString("\"value\":1"));
+            }
+        }
     }
 
     /**
-     * Verifies that a message longer than the old {@code ignore_above: 1024} is indexed.
+     * Verifies that the rule title of a finding stays aggregatable.
      *
-     * <p>Under that mapping such a message was still returned in {@code _source}, so the data looked
-     * present and was simply unfindable. The {@code keyword} mapping now indexes values up to 4096
-     * characters. The message is longer than 1024 characters on purpose: a shorter probe would pass
-     * either way.
+     * <p>{@code wazuh.rule.title} is the target of the Dashboard's top rules visualization, so it
+     * stays {@code keyword}: a {@code match_only_text} field has no doc values and fails every
+     * aggregation (#1586). Only {@code message} and {@code error.message} were made searchable by
+     * word (#1688).
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testFindingsRuleTitleStaysAggregatable() throws IOException, ParseException {
+        index(
+                FINDINGS_PREFIX,
+                """
+                {
+                  "@timestamp": "2026-08-05T10:00:00.000Z",
+                  "message": "Failed password for invalid user oracle",
+                  "process": {"name": "wcs-test-rule-title-aggregation"},
+                  "wazuh": {"rule": {"title": "Failed authentication attempt - oracle"}}
+                }
+                """);
+
+        String body =
+                search(
+                        FINDINGS_PREFIX,
+                        """
+                        {
+                          "size": 0,
+                          "query": {"term": {"process.name": "wcs-test-rule-title-aggregation"}},
+                          "aggs": {"top_rules": {"terms": {"field": "wazuh.rule.title"}}}
+                        }
+                        """);
+
+        logger.info("rule title aggregation response: {}", body);
+        assertThat(body, containsString("\"key\":\"Failed authentication attempt - oracle\""));
+    }
+
+    /**
+     * Verifies that a message longer than the old {@code keyword} ceiling of 4096 characters is
+     * indexed.
+     *
+     * <p>Under {@code keyword} with {@code ignore_above: 4096}, such a message was returned in {@code
+     * _source} and matched no query at all. {@code match_only_text} has no length ceiling. The word
+     * searched is the last one of the message, so a probe that only indexed a prefix would fail.
      *
      * @throws IOException if there is an issue with the HTTP request
      * @throws ParseException if there is an issue parsing the response
      */
     public void testMessageIsIndexedPastTheOldKeywordLengthCeiling() throws IOException, ParseException {
-        // ~1600 characters, past the old 1024 ceiling and within the current 4096 one.
-        String message = "sshd authentication failure " + "padding ".repeat(200) + "wcstestneedle";
+        // ~5000 characters, past the old 4096 ceiling.
+        String message = "sshd authentication failure " + "padding ".repeat(620) + "wcstestneedle";
         indexEvent(
                 String.format(
                         Locale.ROOT,
@@ -481,26 +530,23 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
 
         String body =
                 searchEvents(
-                        String.format(
-                                Locale.ROOT,
-                                """
-                                {
-                                  "size": 0,
-                                  "query": {
-                                    "bool": {
-                                      "filter": [
-                                        {"term": {"process.name": "wcs-test-message-long"}},
-                                        {"term": {"message": "%s"}}
-                                      ]
-                                    }
-                                  }
-                                }
-                                """,
-                                message));
+                        """
+                        {
+                          "size": 0,
+                          "query": {
+                            "bool": {
+                              "filter": [
+                                {"term": {"process.name": "wcs-test-message-long"}},
+                                {"match": {"message": "wcstestneedle"}}
+                              ]
+                            }
+                          }
+                        }
+                        """);
 
         logger.info("long-message search response: {}", body);
         assertThat(
-                "a message past 1024 characters must still be indexed",
+                "a message past 4096 characters must still be indexed",
                 body,
                 containsString("\"value\":1"));
     }
@@ -574,10 +620,7 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
      * @throws IOException if there is an issue with the HTTP request
      */
     private void indexEvent(String document) throws IOException {
-        Request index = new Request("POST", "/" + EVENTS_PREFIX + "security/_doc");
-        index.addParameter("refresh", "true");
-        index.setJsonEntity(document);
-        client().performRequest(index);
+        index(EVENTS_PREFIX, document);
     }
 
     /**
@@ -589,7 +632,35 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
      * @throws ParseException if there is an issue parsing the response
      */
     private String searchEvents(String query) throws IOException, ParseException {
-        Request search = new Request("GET", "/" + EVENTS_PREFIX + "security/_search");
+        return search(EVENTS_PREFIX, query);
+    }
+
+    /**
+     * Indexes one document into the security stream of the given prefix and refreshes, so the next
+     * search sees it.
+     *
+     * @param prefix the data stream prefix, {@link #EVENTS_PREFIX} or {@link #FINDINGS_PREFIX}.
+     * @param document the document to index.
+     * @throws IOException if there is an issue with the HTTP request
+     */
+    private void index(String prefix, String document) throws IOException {
+        Request index = new Request("POST", "/" + prefix + "security/_doc");
+        index.addParameter("refresh", "true");
+        index.setJsonEntity(document);
+        client().performRequest(index);
+    }
+
+    /**
+     * Runs a search against the security stream of the given prefix.
+     *
+     * @param prefix the data stream prefix, {@link #EVENTS_PREFIX} or {@link #FINDINGS_PREFIX}.
+     * @param query the search body.
+     * @return the raw response body.
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    private String search(String prefix, String query) throws IOException, ParseException {
+        Request search = new Request("GET", "/" + prefix + "security/_search");
         search.setJsonEntity(query);
         Response response = client().performRequest(search);
         return EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
