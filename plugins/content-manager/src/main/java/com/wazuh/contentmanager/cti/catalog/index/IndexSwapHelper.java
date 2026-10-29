@@ -18,15 +18,19 @@ package com.wazuh.contentmanager.cti.catalog.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.refresh.RefreshResponse;
 import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.ReindexAction;
 import org.opensearch.index.reindex.ReindexRequestBuilder;
+import org.opensearch.index.reindex.ScrollableHitSource;
 import org.opensearch.transport.client.Client;
 
 import java.util.*;
@@ -46,6 +50,9 @@ import com.wazuh.contentmanager.utils.Constants;
 public final class IndexSwapHelper {
 
     private static final Logger log = LogManager.getLogger(IndexSwapHelper.class);
+
+    /** How many failing documents a failed copy of user content names before it stops listing. */
+    private static final int MAX_REPORTED_FAILURES = 5;
 
     private IndexSwapHelper() {
         // utility class
@@ -173,11 +180,14 @@ public final class IndexSwapHelper {
     /**
      * Reindexes user-edited content (documents where {@code space.name != "standard"}) from the live
      * physical indices to the shadow physical indices. This preserves draft, test, and custom space
-     * content across the swap.
+     * content across the swap. A reindex that does not copy every document (a document rejected by
+     * the shadow mapping, a search failure on the live index, or a timeout) fails the call: the live
+     * index is deleted after the swap, so a document left behind would be lost with it.
      *
      * @param client The OpenSearch client.
      * @param liveToShadow A map of live physical index name → shadow physical index name.
      * @param timeoutSeconds The timeout for each reindex operation.
+     * @throws IllegalStateException If a reindex reports failures or times out.
      */
     public static void reindexUserContent(
             Client client, Map<String, String> liveToShadow, long timeoutSeconds) {
@@ -187,20 +197,100 @@ public final class IndexSwapHelper {
 
             log.debug(Constants.D_LOG_REINDEX_USER_CONTENT_START, livePhysical, shadowPhysical);
 
-            new ReindexRequestBuilder(client, ReindexAction.INSTANCE)
-                    .source(livePhysical)
-                    .destination(shadowPhysical)
-                    // This also carries the user-overrides registry document across the swap: it has no
-                    // space.name, so it satisfies this must_not and lands in the new physical index
-                    // alongside the user's own spaces.
-                    .filter(
-                            QueryBuilders.boolQuery()
-                                    .mustNot(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, "standard")))
-                    .refresh(true)
-                    .get();
+            BulkByScrollResponse response;
+            try {
+                response =
+                        new ReindexRequestBuilder(client, ReindexAction.INSTANCE)
+                                .source(livePhysical)
+                                .destination(shadowPhysical)
+                                // This also carries the user-overrides registry document across the
+                                // swap: it has no space.name, so it satisfies this must_not and lands
+                                // in the new physical index alongside the user's own spaces.
+                                .filter(
+                                        QueryBuilders.boolQuery()
+                                                .mustNot(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, "standard")))
+                                .refresh(true)
+                                .get(TimeValue.timeValueSeconds(timeoutSeconds));
+            } catch (OpenSearchTimeoutException e) {
+                // The wait ends here, not the reindex: it is still running on the node. Without this
+                // the swap fails with a bare "Timeout waiting for task." that names no index and does
+                // not say what timed out or what the deadline was.
+                throw new IllegalStateException(
+                        "copying user content from ["
+                                + livePhysical
+                                + "] to ["
+                                + shadowPhysical
+                                + "] did not finish within "
+                                + timeoutSeconds
+                                + "s (plugins.content_manager.client.timeout); the reindex may still be"
+                                + " running on this node",
+                        e);
+            }
+            checkReindexResponse(response, livePhysical, shadowPhysical);
 
             log.debug(Constants.D_LOG_REINDEX_USER_CONTENT_COMPLETE, livePhysical, shadowPhysical);
         }
+    }
+
+    /**
+     * Fails when a reindex did not copy every document it matched.
+     *
+     * @param response The reindex response.
+     * @param source The physical index the documents were copied from.
+     * @param destination The physical index the documents were copied to.
+     * @throws IllegalStateException If the reindex reports bulk or search failures, or timed out.
+     */
+    private static void checkReindexResponse(
+            BulkByScrollResponse response, String source, String destination) {
+        List<BulkItemResponse.Failure> bulkFailures = response.getBulkFailures();
+        List<ScrollableHitSource.SearchFailure> searchFailures = response.getSearchFailures();
+        if (bulkFailures.isEmpty() && searchFailures.isEmpty() && !response.isTimedOut()) {
+            return;
+        }
+        // Every failure, not only the first: a copy that several documents block would otherwise
+        // take one swap per document to clear, since the operator only learns of the next one once
+        // the previous is fixed. Capped, because a reindex can fail by the thousand.
+        StringBuilder reasons = new StringBuilder();
+        int total = 0;
+        if (!bulkFailures.isEmpty()) {
+            total = bulkFailures.size();
+            for (int i = 0; i < total && i < MAX_REPORTED_FAILURES; i++) {
+                BulkItemResponse.Failure failure = bulkFailures.get(i);
+                reasons
+                        .append(i == 0 ? "" : "; ")
+                        .append("document [")
+                        .append(failure.getId())
+                        .append("]: ")
+                        .append(failure.getMessage());
+            }
+        } else if (!searchFailures.isEmpty()) {
+            total = searchFailures.size();
+            for (int i = 0; i < total && i < MAX_REPORTED_FAILURES; i++) {
+                // getReason() is a bare Throwable, whose getMessage() can be null; the bulk branch
+                // above renders the cause through Failure.getMessage(), which never comes back empty.
+                reasons
+                        .append(i == 0 ? "" : "; ")
+                        .append(String.valueOf(searchFailures.get(i).getReason()));
+            }
+        }
+        if (total > MAX_REPORTED_FAILURES) {
+            reasons.append(" (and ").append(total - MAX_REPORTED_FAILURES).append(" more)");
+        }
+        throw new IllegalStateException(
+                "copying user content from ["
+                        + source
+                        + "] to ["
+                        + destination
+                        + "] failed ("
+                        + bulkFailures.size()
+                        + " bulk failures, "
+                        + searchFailures.size()
+                        + " search failures, timed out: "
+                        + response.isTimedOut()
+                        + ")"
+                        // Nothing to name when the only problem is the timed-out flag, which the
+                        // counts above already report.
+                        + (reasons.length() == 0 ? "" : ", failures: " + reasons));
     }
 
     /**
