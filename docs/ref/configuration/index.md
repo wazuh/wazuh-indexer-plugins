@@ -144,27 +144,27 @@ curl -k -u <INDEXER_USERNAME>:<INDEXER_PASSWORD> "https://<INDEXER_IP_ADDRESS>:9
 
 On Debian and Ubuntu systems with `needrestart` installed, Wazuh Indexer may get restarted automatically every time `apt` installs or upgrades **any** package, even one unrelated to Wazuh Indexer. On Ubuntu 24.04 and 26.04 this happens silently, without asking for confirmation.
 
-This happens because some bundled Java native libraries (used for compression and networking) extract a shared object file into `/var/lib/wazuh-indexer/tmp/` and delete it right after loading it, keeping it mapped in memory but no longer present on disk. `needrestart` interprets processes with deleted mapped libraries as running outdated code and restarts them.
+This happens because some bundled Java native libraries (used for compression and networking) extract a shared object file into `/var/lib/wazuh-indexer/tmp/` and delete it right after loading it, keeping it mapped in memory but no longer present on disk. `needrestart` interprets processes with deleted mapped libraries as running outdated code and restarts them. The DEB package prevents this by default.
 
-To stop `needrestart` from restarting Wazuh Indexer on unrelated `apt` operations, add one of the following to `/etc/needrestart/conf.d/`:
+### Ignore only the affected temporary files (default)
 
-### Ignore only the affected temporary files (recommended)
+The DEB package installs `/etc/needrestart/conf.d/wazuh-indexer-tmp.conf`, which tells `needrestart` to ignore the mappings under `/var/lib/wazuh-indexer/tmp/`. `needrestart` still checks the service for other legitimate reasons to restart:
 
-`needrestart` still checks the service for other legitimate reasons to restart:
-
-```console
-echo 'push(@{$nrconf{blacklist_mappings}}, qr(^/var/lib/wazuh-indexer/tmp/));' > /etc/needrestart/conf.d/wazuh-indexer-tmp.conf
+```perl
+push(@{$nrconf{blacklist_mappings}}, qr(^/var/lib/wazuh-indexer/tmp/));
 ```
+
+The file is a configuration file of the package: upgrades keep your changes to it, removing the package keeps it, and purging the package deletes it. If you change `OPENSEARCH_TMPDIR` in `/etc/default/wazuh-indexer`, update the path in this file to match.
 
 ### Ignore the service entirely
 
-`needrestart` will never flag Wazuh Indexer for restart, including for legitimate reasons such as a libc update:
+To stop `needrestart` from ever flagging Wazuh Indexer for restart, including for legitimate reasons such as a libc update, add the following to `/etc/needrestart/conf.d/`:
 
 ```console
 echo 'push(@{$nrconf{blacklist_rc}}, qr(^wazuh-indexer));' > /etc/needrestart/conf.d/wazuh-indexer.conf
 ```
 
-Verify the change:
+Verify the configuration:
 
 ```console
 needrestart -v
