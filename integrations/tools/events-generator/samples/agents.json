@@ -1,0 +1,68 @@
+{
+  "cluster": {
+    "name": "wazuh",
+    "node": "wazuh-manager-1"
+  },
+  "agents": [
+    {
+      "id": "001",
+      "name": "web-01",
+      "version": "5.0.0",
+      "groups": ["default", "web"],
+      "host": {
+        "hostname": "web-01",
+        "ip": ["10.0.1.11"],
+        "architecture": "x86_64",
+        "os": { "platform": "ubuntu", "name": "Ubuntu", "version": "24.04", "type": "linux" }
+      }
+    },
+    {
+      "id": "002",
+      "name": "db-01",
+      "version": "5.0.0",
+      "groups": ["default", "databases"],
+      "host": {
+        "hostname": "db-01",
+        "ip": ["10.0.2.21"],
+        "architecture": "x86_64",
+        "os": { "platform": "rhel", "name": "Red Hat Enterprise Linux", "version": "9.4", "type": "linux" }
+      }
+    },
+    {
+      "id": "003",
+      "name": "dc-01",
+      "version": "5.0.0",
+      "groups": ["default", "windows"],
+      "host": {
+        "hostname": "dc-01",
+        "ip": ["10.0.3.5"],
+        "architecture": "x86_64",
+        "os": { "platform": "windows", "name": "Microsoft Windows Server 2022 Datacenter", "version": "10.0.20348", "type": "windows" }
+      }
+    },
+    {
+      "id": "004",
+      "name": "laptop-ana",
+      "version": "5.0.0",
+      "groups": ["default", "endpoints"],
+      "host": {
+        "hostname": "laptop-ana",
+        "ip": ["192.168.10.34"],
+        "architecture": "arm64",
+        "os": { "platform": "darwin", "name": "macOS", "version": "15.1", "type": "macos" }
+      }
+    },
+    {
+      "id": "005",
+      "name": "gw-01",
+      "version": "5.0.0",
+      "groups": ["default", "network"],
+      "host": {
+        "hostname": "gw-01",
+        "ip": ["10.0.0.1", "203.0.113.10"],
+        "architecture": "x86_64",
+        "os": { "platform": "debian", "name": "Debian GNU/Linux", "version": "12", "type": "linux" }
+      }
+    }
+  ]
+}

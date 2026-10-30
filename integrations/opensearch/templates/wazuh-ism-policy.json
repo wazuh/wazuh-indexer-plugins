@@ -1,0 +1,26 @@
+{
+  "policy": {
+    "description": "Rolls over the logs-wazuh.*-* data streams exported from the Wazuh indexer, as the logs lifecycle policy of Elasticsearch does. Add a delete state to enforce a retention.",
+    "default_state": "hot",
+    "states": [
+      {
+        "name": "hot",
+        "actions": [
+          {
+            "rollover": {
+              "min_index_age": "30d",
+              "min_primary_shard_size": "50gb"
+            }
+          }
+        ],
+        "transitions": []
+      }
+    ],
+    "ism_template": [
+      {
+        "index_patterns": ["logs-wazuh.*-*"],
+        "priority": 200
+      }
+    ]
+  }
+}

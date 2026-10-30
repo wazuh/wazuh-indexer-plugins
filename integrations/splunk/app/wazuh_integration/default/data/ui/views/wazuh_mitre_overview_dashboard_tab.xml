@@ -1,0 +1,182 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - MITRE ATT&amp;CK - Overview dashboard</label>
+  <description>MITRE ATT&amp;CK - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - MITRE ATT&CK - Overview dashboard",
+  "description": "MITRE ATT&CK - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_01": {
+      "type": "ds.search",
+      "name": "Findings evolution over time",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | eval f1='wazuh.rule.mitre.technique.name{}' | timechart useother=f usenull=f limit=5 count by f1"
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "Top tactics",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | eval f1='wazuh.rule.mitre.tactic.name{}' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"wazuh.rule.mitre.tactic.name\", metric as \"Count\""
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "Top techniques",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | eval f1='wazuh.rule.mitre.technique.name{}' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"wazuh.rule.mitre.technique.name\", metric as \"Count\""
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "Top tactics by agent",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | eval f1='wazuh.rule.mitre.tactic.name{}', f2='wazuh.agent.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"wazuh.rule.mitre.tactic.name\""
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "Top techniques by agent",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.mitre.technique.id{}\"=* | eval f1='wazuh.rule.mitre.technique.name{}', f2='wazuh.agent.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"wazuh.rule.mitre.technique.name\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.line",
+      "title": "Findings evolution over time",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {}
+    },
+    "viz_02": {
+      "type": "splunk.pie",
+      "title": "Top tactics",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_03": {
+      "type": "splunk.pie",
+      "title": "Top techniques",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_04": {
+      "type": "splunk.column",
+      "title": "Top tactics by agent",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_05": {
+      "type": "splunk.column",
+      "title": "Top techniques by agent",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 496,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 896,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 900,
+          "y": 0,
+          "w": 296,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 240,
+          "w": 396,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 400,
+          "y": 240,
+          "w": 396,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 800,
+          "y": 240,
+          "w": 396,
+          "h": 236
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

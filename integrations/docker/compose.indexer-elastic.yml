@@ -1,113 +1,11 @@
 name: "elastic-integration"
 
+include:
+  - compose.wazuh-indexer.yml
+
 services:
-  events-generator:
-    image: wazuh/indexer-events-generator
-    build:
-      context: ../tools/events-generator
-    depends_on:
-      wazuh.indexer:
-        condition: service_healthy
-    command: bash -c "python run.py -a wazuh.indexer"
-
-  wazuh.indexer:
-    image: opensearchproject/opensearch:${WAZUH_INDEXER_VERSION}
-    depends_on:
-      wazuh-certs-generator:
-        condition: service_completed_successfully
-    hostname: wazuh.indexer
-    ports:
-      - 9200:9200
-    environment:
-      - WAZUH_INDEXER_VERSION=${WAZUH_INDEXER_VERSION}
-      - node.name=wazuh.indexer
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
-      - "DISABLE_INSTALL_DEMO_CONFIG=true"
-      - plugins.security.ssl.http.enabled=true
-      - plugins.security.allow_default_init_securityindex=true
-      - plugins.security.ssl.http.pemcert_filepath=/usr/share/opensearch/config/wazuh.indexer.pem
-      - plugins.security.ssl.transport.pemcert_filepath=/usr/share/opensearch/config/wazuh.indexer.pem
-      - plugins.security.ssl.http.pemkey_filepath=/usr/share/opensearch/config/wazuh.indexer-key.pem
-      - plugins.security.ssl.transport.pemkey_filepath=/usr/share/opensearch/config/wazuh.indexer-key.pem
-      - plugins.security.ssl.http.pemtrustedcas_filepath=/usr/share/opensearch/config/root-ca.pem
-      - plugins.security.ssl.transport.pemtrustedcas_filepath=/usr/share/opensearch/config/root-ca.pem
-      - plugins.security.authcz.admin_dn="CN=wazuh.indexer,OU=Wazuh,O=Wazuh,L=California, C=US"
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    healthcheck:
-      test: curl -sku admin:admin https://localhost:9200/_cat/health | grep -q docker-cluster
-      start_period: 10s
-      start_interval: 3s
-    volumes:
-      - data:/usr/share/opensearch/data
-      - ./certs/wazuh.indexer.pem:/usr/share/opensearch/config/wazuh.indexer.pem
-      - ./certs/wazuh.indexer-key.pem:/usr/share/opensearch/config/wazuh.indexer-key.pem
-      - ./certs/root-ca.pem:/usr/share/opensearch/config/root-ca.pem
-
-  wazuh.dashboard:
-    image: opensearchproject/opensearch-dashboards:${WAZUH_DASHBOARD_VERSION}
-    depends_on:
-      - wazuh.indexer
-    hostname: wazuh.dashboard
-    ports:
-      - 5601:5601 # Map host port 5601 to container port 5601
-    expose:
-      - "5601" # Expose port 5601 for web access to OpenSearch Dashboards
-    volumes:
-      - ./certs/:/usr/share/opensearch-dashboards/config/certs/
-      - ./certs/wazuh.dashboard-key.pem:/usr/share/opensearch-dashboards/config/certs/opensearch.key
-      - ./certs/wazuh.dashboard.pem:/usr/share/opensearch-dashboards/config/certs/opensearch.pem
-      - ./certs/root-ca.pem:/usr/share/opensearch-dashboards/config/certs/root-ca.pem
-    environment:
-      WAZUH_DASHBOARD_VERSION: ${WAZUH_DASHBOARD_VERSION}
-      OPENSEARCH_HOSTS: '["https://wazuh.indexer:9200"]' # Define the OpenSearch nodes that OpenSearch Dashboards will query
-      SERVER_SSL_ENABLED: "true"
-      SERVER_SSL_KEY: "/usr/share/opensearch-dashboards/config/certs/opensearch.key"
-      SERVER_SSL_CERTIFICATE: "/usr/share/opensearch-dashboards/config/certs/opensearch.pem"
-      OPENSEARCH_SSL_CERTIFICATEAUTHORITIES: "/usr/share/opensearch-dashboards/config/certs/root-ca.pem"
-
-  generate-certs-config:
-    image: alpine:latest
-    volumes:
-      - ./config:/config
-    command: |
-      sh -c "
-      echo '
-      nodes:
-        indexer:
-          - name: wazuh.indexer
-            ip: \"wazuh.indexer\"
-        server:
-          - name: wazuh.manager
-            ip: \"wazuh.manager\"
-        dashboard:
-          - name: wazuh.dashboard
-            ip: \"wazuh.dashboard\"
-      ' > /config/certs.yml
-      "
-
-  wazuh-certs-generator:
-    image: wazuh/wazuh-certs-generator:${WAZUH_CERTS_GENERATOR_VERSION}
-    hostname: wazuh-certs-generator
-    environment:
-      - WAZUH_CERTS_GENERATOR_VERSION=${WAZUH_CERTS_GENERATOR_VERSION}
-    depends_on:
-      generate-certs-config:
-        condition: service_completed_successfully
-    entrypoint: sh -c "/entrypoint.sh; chown -R 1000:999 /certificates; chmod 740 /certificates; chmod 440 /certificates/*"
-    volumes:
-      - ./certs/:/certificates/
-      - ./config/certs.yml:/config/certs.yml
-
   # =================================
-  # Elasticsearch, Kibana and Logstash
+  # Elasticsearch and Kibana
   # =================================
   # https://www.elastic.co/guide/en/elastic-stack-get-started/current/get-started-docker.html
 
@@ -178,7 +76,8 @@ services:
     environment:
       - node.name=es01
       - cluster.name=${CLUSTER_NAME}
-      - cluster.initial_master_nodes=es01
+      # A single-node cluster skips the bootstrap checks, such as vm.max_map_count on the host.
+      - discovery.type=single-node
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - bootstrap.memory_lock=true
       - xpack.security.enabled=true
@@ -206,6 +105,23 @@ services:
       interval: 10s
       timeout: 10s
       retries: 120
+
+  # Installs the index template and creates the role and user that Logstash writes with.
+  elastic-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    depends_on:
+      es01:
+        condition: service_healthy
+    entrypoint: ["bash", "/setup/elastic-destination.sh"]
+    environment:
+      - ELASTIC_URL=https://es01:9200
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - ELASTIC_LOGSTASH_USERNAME=${ELASTIC_LOGSTASH_USERNAME}
+      - ELASTIC_LOGSTASH_PASSWORD=${ELASTIC_LOGSTASH_PASSWORD}
+    volumes:
+      - ./setup/elastic-destination.sh:/setup/elastic-destination.sh:ro
+      - ../elastic/templates/wazuh-index-template.json:/setup/wazuh-index-template.json:ro
+      - es_certs:/setup/certs:ro
 
   kibana:
     depends_on:
@@ -236,10 +152,16 @@ services:
       timeout: 10s
       retries: 120
 
+  # =================================
+  # Logstash
+  # =================================
+
   logstash:
     depends_on:
-      es01:
-        condition: service_healthy
+      wazuh-indexer-setup:
+        condition: service_completed_successfully
+      elastic-setup:
+        condition: service_completed_successfully
     image: logstash-oss:${LOGSTASH_OSS_VERSION}
     build:
       context: ../logstash
@@ -248,12 +170,32 @@ services:
     environment:
       LOG_LEVEL: info
       MONITORING_ENABLED: false
+      # Events read but not delivered yet survive a restart. Documents that the destination
+      # rejects (other than duplicates) are kept in the dead letter queue.
+      QUEUE_TYPE: persisted
+      DEAD_LETTER_QUEUE_ENABLE: "true"
+      WAZUH_INDEXER_HOST: wazuh.indexer:9200
+      WAZUH_INDEXER_USERNAME: ${WAZUH_EXPORT_USERNAME}
+      WAZUH_INDEXER_PASSWORD: ${WAZUH_EXPORT_PASSWORD}
+      WAZUH_INDEXER_CA: /usr/share/logstash/certs/wazuh-indexer-ca.pem
+      WAZUH_EXPORT_INDICES: ${WAZUH_EXPORT_INDICES}
+      WAZUH_EXPORT_LOOKBACK: ${WAZUH_EXPORT_LOOKBACK}
+      WAZUH_EXPORT_DELAY: ${WAZUH_EXPORT_DELAY}
+      WAZUH_EXPORT_SCHEDULE: ${WAZUH_EXPORT_SCHEDULE}
+      ELASTIC_HOST: https://es01:9200
+      ELASTIC_USERNAME: ${ELASTIC_LOGSTASH_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_LOGSTASH_PASSWORD}
+      ELASTIC_CA: /usr/share/logstash/certs/elastic/ca/ca.crt
     volumes:
-      - ../elastic/logstash/pipeline:/usr/share/logstash/pipeline
-      - ./certs/root-ca.pem:/usr/share/logstash/root-ca.pem
-      - es_certs:/etc/certs/elastic
-    command: logstash -f /usr/share/logstash/pipeline/indexer-to-elastic.conf
+      - ../logstash/pipeline/wazuh-indexer-input.conf:/usr/share/logstash/pipeline-wazuh/10-wazuh-indexer-input.conf:ro
+      - ../logstash/pipeline/wazuh-source.conf:/usr/share/logstash/pipeline-wazuh/20-wazuh-source.conf:ro
+      - ../logstash/pipeline/wazuh-data-stream.conf:/usr/share/logstash/pipeline-wazuh/30-wazuh-data-stream.conf:ro
+      - ../elastic/logstash/pipeline/indexer-to-elastic.conf:/usr/share/logstash/pipeline-wazuh/40-indexer-to-elastic.conf:ro
+      - ./certs/root-ca.pem:/usr/share/logstash/certs/wazuh-indexer-ca.pem:ro
+      - es_certs:/usr/share/logstash/certs/elastic:ro
+      - logstash-data:/usr/share/logstash/data
+    command: logstash -f "/usr/share/logstash/pipeline-wazuh/*.conf"
 
 volumes:
-  data:
+  logstash-data:
   es_certs:
