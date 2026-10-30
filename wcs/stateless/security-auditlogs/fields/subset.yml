@@ -1,0 +1,39 @@
+---
+name: security-auditlogs
+fields:
+  base:
+    fields:
+      "@timestamp": {}
+      audit_format_version: {}
+      audit_category: {}
+      audit_cluster_name: {}
+      audit_node_id: {}
+      audit_node_name: {}
+      audit_node_host_name: {}
+      audit_node_host_address: {}
+      audit_request_origin: {}
+      audit_request_layer: {}
+      audit_request_effective_user: {}
+      audit_request_initiating_user: {}
+      audit_request_effective_user_is_admin: {}
+      audit_request_remote_address: {}
+      audit_request_privilege: {}
+      audit_request_body: {}
+      audit_request_exception_stacktrace: {}
+      audit_rest_request_method: {}
+      audit_rest_request_path: {}
+      audit_rest_request_params: {}
+      audit_rest_request_headers: {}
+      audit_transport_action: {}
+      audit_transport_request_type: {}
+      audit_transport_headers: {}
+      audit_trace_task_id: {}
+      audit_trace_task_parent_id: {}
+      audit_trace_doc_id: {}
+      audit_trace_indices: {}
+      audit_trace_resolved_indices: {}
+      audit_trace_shard_id: {}
+      audit_compliance_operation: {}
+      audit_compliance_doc_version: {}
+      audit_compliance_diff_is_noop: {}
+      audit_compliance_diff_content: {}

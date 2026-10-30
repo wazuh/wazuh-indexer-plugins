@@ -28,6 +28,7 @@ module_to_file=(
   [stateless/metrics/agents]=templates/streams/metrics-agents.json
   [stateless/metrics/comms]=templates/streams/metrics-comms.json
   [stateless/metrics/engine]=templates/streams/metrics-normalization.json
+  [stateless/security-auditlogs]=templates/streams/security-auditlogs.json
   # Settings module
   [settings]=templates/settings.json
   # Content modules

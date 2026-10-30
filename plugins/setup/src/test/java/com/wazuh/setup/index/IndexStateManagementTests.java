@@ -115,9 +115,9 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
 
         // Verify that the index was created with the correct request
         verify(this.indicesAdminClient).create(any(CreateIndexRequest.class));
-        // Verify that the policies were indexed (6 policies: events, findings, raw-events,
-        // active-responses, metrics, ai-assistant-sessions)
-        verify(this.client, times(6)).index(any(IndexRequest.class));
+        // Verify that the policies were indexed (7 policies: events, findings, raw-events,
+        // active-responses, metrics, ai-assistant-sessions, security-auditlogs)
+        verify(this.client, times(7)).index(any(IndexRequest.class));
     }
 
     /**
@@ -234,7 +234,8 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
                         IndexStateManagement.RAW_EVENTS_POLICY,
                         IndexStateManagement.ACTIVE_RESPONSES_POLICY,
                         IndexStateManagement.METRICS_POLICY,
-                        IndexStateManagement.AI_ASSISTANT_SESSIONS_POLICY);
+                        IndexStateManagement.AI_ASSISTANT_SESSIONS_POLICY,
+                        IndexStateManagement.SECURITY_AUDITLOGS_POLICY);
 
         for (String name : shipped) {
             Map<String, Object> policyFile =
@@ -292,7 +293,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
 
     /**
      * Every policy times out once and then succeeds. The retry budget is per policy, so with the
-     * default of one retry all six recover; a budget shared across policies would rethrow on the
+     * default of one retry all seven recover; a budget shared across policies would rethrow on the
      * second one.
      */
     public void testInitialize_EachPolicyGetsItsOwnRetryBudget() throws IOException {
@@ -317,7 +318,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
 
         this.ismIndex.initialize();
 
-        // Six policies, each one timeout plus one successful retry.
-        verify(this.client, times(12)).index(any(IndexRequest.class));
+        // Seven policies, each one timeout plus one successful retry.
+        verify(this.client, times(14)).index(any(IndexRequest.class));
     }
 }

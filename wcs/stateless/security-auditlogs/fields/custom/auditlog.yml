@@ -1,0 +1,220 @@
+---
+- name: base
+  title: Security audit log
+  description: >
+    Fields of the audit events the security plugin writes to the security-auditlogs data stream. The
+    security plugin sets the field names, so they don't follow ECS. The template maps the fields
+    below and keeps any other field in _source only (dynamic: false).
+  type: group
+  group: 2
+  fields:
+    - name: audit_format_version
+      type: integer
+      level: custom
+      description: >
+        Version of the audit message format.
+      example: 4
+    - name: audit_category
+      type: keyword
+      level: custom
+      short: Type of audit event.
+      description: >
+        Type of audit event, for example FAILED_LOGIN, MISSING_PRIVILEGES, INDEX_EVENT,
+        COMPLIANCE_INTERNAL_CONFIG_WRITE or COMPLIANCE_INTERNAL_CONFIG_READ.
+      example: "FAILED_LOGIN"
+    - name: audit_cluster_name
+      type: keyword
+      level: custom
+      description: >
+        Name of the cluster the event was recorded in.
+      example: "wazuh-cluster"
+    - name: audit_node_id
+      type: keyword
+      level: custom
+      description: >
+        ID of the node that recorded the event.
+      example: "Fo6s6WJ1Qp6TtKZ0ZNkY3w"
+    - name: audit_node_name
+      type: keyword
+      level: custom
+      description: >
+        Name of the node that recorded the event.
+      example: "node-1"
+    - name: audit_node_host_name
+      type: keyword
+      level: custom
+      description: >
+        Host name of the node that recorded the event.
+      example: "indexer-1"
+    - name: audit_node_host_address
+      type: keyword
+      level: custom
+      description: >
+        Address of the node that recorded the event.
+      example: "192.0.2.21"
+    - name: audit_request_origin
+      type: keyword
+      level: custom
+      description: >
+        Layer the request entered the cluster through: REST, TRANSPORT or LOCAL.
+      example: "REST"
+    - name: audit_request_layer
+      type: keyword
+      level: custom
+      description: >
+        Layer the event was recorded on: REST or TRANSPORT.
+      example: "TRANSPORT"
+    - name: audit_request_effective_user
+      type: keyword
+      level: custom
+      description: >
+        User the request ran as.
+      example: "admin"
+    - name: audit_request_initiating_user
+      type: keyword
+      level: custom
+      description: >
+        User that sent the request, when it differs from the effective user (impersonation).
+      example: "admin"
+    - name: audit_request_effective_user_is_admin
+      type: boolean
+      level: custom
+      description: >
+        Whether the request was authenticated with the admin certificate.
+      example: false
+    - name: audit_request_remote_address
+      type: keyword
+      level: custom
+      description: >
+        Address the request came from.
+      example: "192.0.2.10"
+    - name: audit_request_privilege
+      type: keyword
+      level: custom
+      description: >
+        Permission checked for the request.
+      example: "indices:data/read/search"
+    - name: audit_request_body
+      type: text
+      level: custom
+      short: Body of the request, or the security configuration document read or written.
+      description: >
+        Body of the request, or the security configuration document read or written. Passwords sent
+        to the security REST API are replaced with __SENSITIVE__ and password hashes with __HASH__.
+      example: '{"query":{"match_all":{}}}'
+    - name: audit_request_exception_stacktrace
+      type: text
+      level: custom
+      description: >
+        Stack trace of the exception raised by the request, on events that record one.
+      example: "org.opensearch.OpenSearchSecurityException: no permissions for [indices:data/read/search]"
+    - name: audit_rest_request_method
+      type: keyword
+      level: custom
+      description: >
+        HTTP method of the REST request.
+      example: "GET"
+    - name: audit_rest_request_path
+      type: keyword
+      level: custom
+      description: >
+        Path of the REST request.
+      example: "/_plugins/_security/authinfo"
+    - name: audit_rest_request_params
+      type: flat_object
+      level: custom
+      short: URL parameters of the REST request, as a flat object.
+      description: >
+        URL parameters of the REST request. The client chooses their names, so they are stored as a
+        flat object and never become fields of the mapping.
+      example: '{"pretty":"true"}'
+    - name: audit_rest_request_headers
+      type: flat_object
+      level: custom
+      short: Headers of the REST request, without Authorization, as a flat object.
+      description: >
+        Headers of the REST request, without the Authorization header. The client chooses their
+        names, so they are stored as a flat object and never become fields of the mapping.
+      example: '{"user-agent":["curl/7.81.0"]}'
+    - name: audit_transport_action
+      type: keyword
+      level: custom
+      description: >
+        Transport action of the request.
+      example: "indices:data/read/search"
+    - name: audit_transport_request_type
+      type: keyword
+      level: custom
+      description: >
+        Class name of the transport request.
+      example: "SearchRequest"
+    - name: audit_transport_headers
+      type: flat_object
+      level: custom
+      description: >
+        Headers of the transport request, stored as a flat object.
+      example: '{"_system_index_access_allowed":"false"}'
+    - name: audit_trace_task_id
+      type: keyword
+      level: custom
+      description: >
+        ID of the task that handled the request.
+      example: "Fo6s6WJ1Qp6TtKZ0ZNkY3w:1234"
+    - name: audit_trace_task_parent_id
+      type: keyword
+      level: custom
+      description: >
+        ID of the parent of the task that handled the request.
+      example: "Fo6s6WJ1Qp6TtKZ0ZNkY3w:1233"
+    - name: audit_trace_doc_id
+      type: keyword
+      level: custom
+      description: >
+        ID of the document the request read or wrote.
+      example: "internalusers"
+    - name: audit_trace_indices
+      type: keyword
+      level: custom
+      normalize:
+        - array
+      description: >
+        Indices named in the request.
+      example: '["wazuh-*"]'
+    - name: audit_trace_resolved_indices
+      type: keyword
+      level: custom
+      normalize:
+        - array
+      description: >
+        Indices the request touched, after resolving aliases and wildcards.
+      example: '["wazuh-states-vulnerabilities"]'
+    - name: audit_trace_shard_id
+      type: integer
+      level: custom
+      description: >
+        Shard the request read or wrote.
+      example: 0
+    - name: audit_compliance_operation
+      type: keyword
+      level: custom
+      description: >
+        Write operation on a watched document: CREATE, UPDATE or DELETE.
+      example: "UPDATE"
+    - name: audit_compliance_doc_version
+      type: long
+      level: custom
+      description: >
+        Version of the document the event refers to.
+      example: 7
+    - name: audit_compliance_diff_is_noop
+      type: boolean
+      level: custom
+      description: >
+        Whether the write left the document unchanged.
+      example: false
+    - name: audit_compliance_diff_content
+      type: text
+      level: custom
+      description: >
+        Changes made to the document, when write diffs are enabled in the audit configuration.
+      example: '[{"op":"replace","path":"/description","value":"new"}]'
