@@ -82,7 +82,7 @@ public class TransportDeleteFilterAction extends AbstractTransportDeleteActionSp
     @Override
     protected void unlinkFromParent(
             Client client, String id, String spaceName, ActionListener<Void> listener) {
-        PolicyLinks.unlink(
+        PolicyDocumentWriter.unlink(
                 client,
                 spaceName,
                 Constants.KEY_FILTERS,

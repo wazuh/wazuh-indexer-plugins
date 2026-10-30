@@ -2200,13 +2200,15 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 
 ## Spaces
 
+> **Concurrency**: the full reset and the two scoped clears run one at a time per space (a space lock), so they cannot interleave and leave an integration half-reconciled. A request that arrives while another reset or clear is already running on the same space is answered `429` (`Too many concurrent requests clearing this space. Please retry.`); retry shortly.
+
 ### Reset space
 
-Resets a user space (`draft`) to its initial state.
+Resets a user space (`draft`): removes its content and resets the policy's settings to default, while **keeping the space's metadata** (title, author, description, …).
 
 When resetting the `draft` space, this operation will:
 - Remove all documents (integrations, rules, decoders, kvdbs, filters, and the space's policy document) that belong to the given space.
-- Re-generate the default policy for the given space.
+- Re-generate the policy for the given space with default settings (`enrichments`, `enabled`, the `index_*` flags), **preserving its metadata**.
 
 > **Note**: Only the `draft` space can be reset.
 
@@ -2239,6 +2241,91 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 - **200** — space reset successfully.
 - **400** — invalid space identifier, or attempted to reset a space different from `draft`.
+- **429** — another reset or clear is already running on this space; retry shortly.
+- **500** — internal error (e.g., Engine unavailable or deletion failure).
+
+---
+
+### Clear space normalization resources
+
+Clears only the **normalization** resources of the `draft` space: decoders, kvdbs, filters, and the policy's root decoder. The detection resources (rules) are left untouched. Any integration left with no decoders, rules or kvdbs is removed; protected integrations are kept.
+
+> **Note**: Only the `draft` space can be cleared, and like [Reset space](#reset-space) it is authorized by the `cluster:admin/content_manager/space/delete` action, so it adds no new permission; see the [permissions reference](../../security/permissions.md) for the actions this action group grants.
+>
+> **Scope compared to a full reset**: the scoped clears remove resources and the policy's references to them (the root decoder, and integration and filter references) only. They do **not** reset the policy's own settings (`enrichments`, `enabled`, `index_unclassified_events`, `index_discarded_events`), which [Reset space](#reset-space) re-seeds to default. The policy metadata (title, author, description, …) is kept by both. Clearing normalization and then detection therefore empties the draft of every resource (the same resource end state a reset leaves) but keeps the space-level policy settings that a full reset would reset.
+
+#### Request
+
+- Method: `DELETE`
+- Path: `/_plugins/_content_manager/space/{space}/normalization`
+
+#### Parameters
+
+- **`space`** (Path, String, required) — the name of the user space to clear (`draft`).
+
+#### Example request
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
+  "https://127.0.0.1:9200/_plugins/_content_manager/space/draft/normalization"
+```
+
+#### Example response
+
+```json
+{
+  "message": "Successfully cleared normalization resources for space [draft].",
+  "status": 200
+}
+```
+
+#### Status codes
+
+- **200** — normalization resources cleared successfully.
+- **400** — invalid space identifier, or attempted to clear a space different from `draft`.
+- **429** — another reset or clear is already running on this space; retry shortly.
+- **500** — internal error (e.g., Engine unavailable or deletion failure).
+
+---
+
+### Clear space detection resources
+
+Clears only the **detection** resources of the `draft` space: rules, removed from both the index and Security Analytics. The normalization resources (decoders, kvdbs, filters and the root decoder) are left untouched. Any integration left with no decoders, rules or kvdbs is removed; protected integrations are kept.
+
+> **Note**: Only the `draft` space can be cleared, and like [Reset space](#reset-space) it is authorized by the `cluster:admin/content_manager/space/delete` action, so it adds no new permission; see the [permissions reference](../../security/permissions.md) for the actions this action group grants.
+>
+> Like the normalization clear, this endpoint removes resources and their policy references only; it does **not** reset the policy's own settings (`enrichments`, `enabled`, the `index_*` flags), which a full [Reset space](#reset-space) re-seeds to default (both keep the policy metadata). See [Clear space normalization resources](#clear-space-normalization-resources) for the full comparison.
+
+#### Request
+
+- Method: `DELETE`
+- Path: `/_plugins/_content_manager/space/{space}/detection`
+
+#### Parameters
+
+- **`space`** (Path, String, required) — the name of the user space to clear (`draft`).
+
+#### Example request
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
+  "https://127.0.0.1:9200/_plugins/_content_manager/space/draft/detection"
+```
+
+#### Example response
+
+```json
+{
+  "message": "Successfully cleared detection resources for space [draft].",
+  "status": 200
+}
+```
+
+#### Status codes
+
+- **200** — detection resources cleared successfully.
+- **400** — invalid space identifier, or attempted to clear a space different from `draft`.
+- **429** — another reset or clear is already running on this space; retry shortly.
 - **500** — internal error (e.g., Engine unavailable or deletion failure).
 
 ---
