@@ -251,8 +251,8 @@ public class LogtestServiceTests extends OpenSearchTestCase {
 
     /**
      * The Engine answers 400 when the space has no testing environment, and the socket client hands
-     * its error over as plain text. Without an integration, the response carries ENGINE_ERROR and
-     * the Engine's text, and the log has one WARN line with no stack trace.
+     * its error over as plain text. Without an integration, the response carries ENGINE_ERROR and the
+     * Engine's text, and the log has one WARN line with no stack trace.
      */
     public void testEnvironmentNotFoundReturnsEngineError() throws Exception {
         String engineError = "The 'test' environment does not exist.";

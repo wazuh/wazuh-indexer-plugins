@@ -41,6 +41,7 @@
 | [#529](https://github.com/wazuh/wazuh-indexer-plugins/issues/529) [#1538](https://github.com/wazuh/wazuh-indexer/issues/1538) [#1927](https://github.com/wazuh/wazuh-indexer/issues/1927) [#1960](https://github.com/wazuh/wazuh-indexer/issues/1960) [#1975](https://github.com/wazuh/wazuh-indexer/issues/1975) [#1976](https://github.com/wazuh/wazuh-indexer/issues/1976) [#934](https://github.com/wazuh/wazuh-indexer-plugins/issues/934) [#1240](https://github.com/wazuh/wazuh-indexer-plugins/issues/1240) [#1530](https://github.com/wazuh/wazuh-indexer-plugins/issues/1530) [#1656](https://github.com/wazuh/wazuh-indexer-plugins/issues/1656) [#1692](https://github.com/wazuh/wazuh-indexer-plugins/issues/1692) | Add the Wazuh indexer 5.x documentation |
 | [#1716](https://github.com/wazuh/wazuh-indexer-plugins/issues/1716) | Add agent groups and host metadata fields to the `wazuh-agent-stats` and `wazuh-agent-config` indices |
 | [#1198](https://github.com/wazuh/wazuh-indexer-plugins/issues/1198) | Record the time of the last content update of each CTI consumer and of the last CTI check |
+| [#1722](https://github.com/wazuh/wazuh-indexer-plugins/issues/1722) | Add endpoints to clear a space's normalization or detection resources separately (`DELETE /_plugins/_content_manager/space/{space}/normalization`, `DELETE /_plugins/_content_manager/space/{space}/detection`) |
 
 
 
@@ -57,7 +58,6 @@
 | [#506](https://github.com/wazuh/wazuh-indexer-plugins/issues/506) | Rework the FIM indices |
 | [#775](https://github.com/wazuh/wazuh-indexer-plugins/issues/775) | Move `agent` fields under `wazuh` |
 | [#477](https://github.com/wazuh/wazuh-indexer-plugins/issues/477) [#539](https://github.com/wazuh/wazuh-indexer-plugins/issues/539) [#547](https://github.com/wazuh/wazuh-indexer-plugins/issues/547) [#562](https://github.com/wazuh/wazuh-indexer-plugins/issues/562) [#582](https://github.com/wazuh/wazuh-indexer-plugins/issues/582) [#641](https://github.com/wazuh/wazuh-indexer-plugins/issues/641) [#697](https://github.com/wazuh/wazuh-indexer-plugins/issues/697) [#741](https://github.com/wazuh/wazuh-indexer-plugins/issues/741) [#811](https://github.com/wazuh/wazuh-indexer-plugins/issues/811) [#906](https://github.com/wazuh/wazuh-indexer-plugins/issues/906) [#1015](https://github.com/wazuh/wazuh-indexer-plugins/issues/1015) [#1123](https://github.com/wazuh/wazuh-indexer-plugins/issues/1123) [#298](https://github.com/wazuh/wazuh-indexer-plugins/issues/298) [#372](https://github.com/wazuh/wazuh-indexer-plugins/issues/372) [#1653](https://github.com/wazuh/wazuh-indexer-plugins/issues/1653) | Update third-party integrations to their latest versions |
-| [#1635](https://github.com/wazuh/wazuh-indexer-plugins/issues/1635) | Include the consumer name in the snapshot download log messages |
 | [#1736](https://github.com/wazuh/wazuh-indexer-plugins/issues/1736) | Swap `@timestamp` to `date_nanos` |
 
 
@@ -73,14 +73,6 @@
 
 | Issue | Comment |
 |-------|---------|
-| [#1632](https://github.com/wazuh/wazuh-indexer-plugins/issues/1632) | Fix vulnerabilities content updates failing with `Target for add operation is not a container` |
-| [#1633](https://github.com/wazuh/wazuh-indexer-plugins/issues/1633) | Fix CTI content updates getting stuck on an offset that cannot be applied, by rebuilding the content from a newer snapshot |
-| [#1664](https://github.com/wazuh/wazuh-indexer-plugins/issues/1664) | Fix the catalog sync lock being renewed and deleted by a node that no longer holds it |
-| [#2007](https://github.com/wazuh/wazuh-indexer/issues/2007) | Fix the IoC hash computation and export being cancelled by search backpressure on a busy node, by reading 1000 documents per page sorted on `document.id` instead of `_id` |
-| [#2026](https://github.com/wazuh/wazuh-indexer/issues/2026) | Fix promoting a user space that no longer holds decoders, kvdbs or filters failing with `Missing root decoder`, by sending it to the Engine without integrations |
 | [#40207](https://github.com/wazuh/wazuh/issues/40207) | Fix `host.os.kernel` being an object in the system inventory, against WCS, and replace `host.os.distribution.release` with `host.os.display_version` |
-| [#1714](https://github.com/wazuh/wazuh-indexer-plugins/issues/1714) | Fix the metadata guard in `SecurityAnalyticsServiceImpl` that threw `NullPointerException` instead of rejecting a document without a `metadata` object |
-| [#1727](https://github.com/wazuh/wazuh-indexer-plugins/issues/1727) | Fix logtest requests without `trace_level` failing with `Invalid trace level: .`, by defaulting it to `NONE` |
-| [#1713](https://github.com/wazuh/wazuh-indexer-plugins/issues/1713) | Fix CTI content swaps deleting user content that could not be copied to the new indices: a reindex with failures or a timeout now rolls the swap back |
 
 ## Prior versions

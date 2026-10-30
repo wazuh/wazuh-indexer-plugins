@@ -94,7 +94,7 @@ public class TransportCreateIntegrationActionTests extends OpenSearchTestCase {
                 .when(threadPool)
                 .schedule(any(Runnable.class), any(TimeValue.class), anyString());
         when(transportService.getThreadPool()).thenReturn(threadPool);
-        // PolicyLinks captures the caller's context from the client's thread pool.
+        // PolicyDocumentWriter captures the caller's context from the client's thread pool.
         when(this.client.threadPool()).thenReturn(threadPool);
         this.action =
                 new TransportCreateIntegrationAction(
