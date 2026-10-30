@@ -297,12 +297,9 @@ Use epoch timestamps (in milliseconds) for `last_updated_time` fields. Update th
 
 ISM policies and templates must be properly deployed before the indices are created.
 
-`IndexStateManagement.initialize()` runs on every cluster-manager election, and `indexPolicy()`
-writes each policy with a plain `IndexRequest` keyed by policy id, so **the six shipped policies
-are overwritten on every restart**. Any edit an operator makes to one of them through the ISM API
-is reverted on the next boot. This is why
-[Retention](../../ref/modules/setup/retention.md#opting-in-to-a-hard-time-ceiling) tells operators
-to create a policy under their own id rather than editing a shipped one.
+`IndexStateManagement.initialize()` runs on every cluster-manager election, and `indexPolicy()` writes each policy with a plain `IndexRequest` keyed by policy id, so **the six shipped policies are overwritten on every restart**. This is intended: they are Wazuh's default policies, and the overwrite is how a release delivers a new version of them. Any edit an operator makes to one of them through the ISM API is reverted on the next boot, which is why [Retention](../../ref/modules/setup/retention.md#creating-a-custom-policy) tells operators to create a policy under their own id rather than editing a default one. Each policy's description says the same and links to that page, so keep that sentence when you change a description.
+
+A new version of a policy reaches only the backing indices created after it. The existing ones keep the copy they were attached with until someone runs `change_policy` on them (see [Retention](../../ref/modules/setup/retention.md#existing-indices-keep-the-policy-version-they-started-with)).
 
 ---
 
