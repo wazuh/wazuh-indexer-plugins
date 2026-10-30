@@ -2,7 +2,51 @@
 
 In this section you can find instructions on how to create and restore a backup of your Wazuh Indexer key files, preserving file permissions, ownership, and path. Later, you can move this folder contents back to the corresponding location to restore your certificates and configurations. Backing up these files is useful in cases such as moving your Wazuh installation to another system.
 
-> **Note**: This backup only restores the configuration files, not the data. To back up data stored in the indexer, use [snapshots](https://docs.opensearch.org/3.6/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-restore/).
+> **Note**: This backup only restores the configuration files, not the data. To back up the data stored in the indexer, use snapshots, as described in [Backing up the data](#backing-up-the-data).
+
+## Backing up the data
+
+Data is backed up with [snapshots](https://docs.opensearch.org/3.6/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-restore/), which are written to a repository. A filesystem repository can only be registered under a directory named in `path.repo`, a setting the node reads at start and that cannot be changed through the API.
+
+The installation writes one into `/etc/wazuh-indexer/opensearch.yml`, so a repository can be registered from the Wazuh dashboard or the API with no edit and no restart:
+
+```yaml
+path.repo: ["/var/lib/wazuh-indexer/backup"]
+```
+
+An upgrade adds it to a node installed before the setting existed, and only when the key is absent: a location you changed is never corrected, and one you removed on purpose comes back at the next upgrade, not at the next start.
+
+The package creates `/var/lib/wazuh-indexer/backup` empty, `wazuh-indexer:wazuh-indexer` with mode `750`, and writes nothing to it. Once it holds snapshots, removing or purging the package keeps it, handed over to root; while it is still empty it goes with the rest of the package. In the Docker image the directory is `/usr/share/wazuh-indexer/backup` instead, and `path.repo` names that one.
+
+Register the repository once, from any node of the cluster:
+
+```bash
+curl -k -u <INDEXER_USERNAME>:<INDEXER_PASSWORD> -XPUT "https://<INDEXER_IP_ADDRESS>:9200/_snapshot/<REPOSITORY_NAME>" \
+  -H 'Content-Type: application/json' \
+  -d '{"type": "fs", "settings": {"location": "/var/lib/wazuh-indexer/backup"}}'
+```
+
+### Where the snapshots are written
+
+**The directory is on the data disk.** A snapshot there covers the most common restores: an index deleted by mistake, a failed upgrade, corrupted data. It does not survive the loss of the disk it sits on, which is what a backup is for.
+
+**For anything beyond that, point `path.repo` somewhere else.** `/var/lib/wazuh-indexer/backup` is inside a directory the package manages: installing takes ownership of everything in it, and removing the package hands it over to root. That is right for a directory of this node's own making, and wrong for a volume you mounted or for a repository shared with other nodes. Give those a location outside `/etc/wazuh-indexer`, `/usr/share/wazuh-indexer`, `/var/lib/wazuh-indexer` and `/var/log/wazuh-indexer`, which the package never touches, and name it in `path.repo`:
+
+```yaml
+path.repo: ["/srv/wazuh-indexer-backup"]
+```
+
+**On a cluster it has to be a shared filesystem.** Every node writes the shards it holds into the repository, so an `fs` repository must be the same filesystem, mounted at the same path, on every node, over NFS for example. A directory that is local to one node is rejected as soon as another node has to write to it. Mount it outside the package's directories for the reason above, give it the same user and group IDs on every node, because each node writes as its own `wazuh-indexer` account, and list it in `path.repo` on every node.
+
+**Snapshots on the data disk count toward the disk watermarks.** The indexer measures the filesystem, not the directory, so snapshots kept beside the data push it toward the low watermark, where it stops allocating new shards, the high watermark, where it moves shards off the node, and the flood-stage watermark, where it makes indices read-only. A volume of its own keeps the two apart.
+
+### Nodes installed before this setting
+
+The upgrade adds `path.repo` and creates the directory, but the setting is read at start, so the node picks it up at its next restart:
+
+```bash
+systemctl restart wazuh-indexer
+```
 
 ## Creating a backup
 

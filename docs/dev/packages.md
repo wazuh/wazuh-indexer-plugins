@@ -510,6 +510,25 @@ renaming a fresh file over whatever the entry is, and a link is not read as a ma
 rule covers the SysV script, which reads a pid from a file the service account owns and therefore
 confirms the process is the indexer's before signalling it.
 
+`path.repo` names `/var/lib/wazuh-indexer/backup`, the only directory a filesystem snapshot
+repository may be registered under, so that backing up the data needs no edit of `opensearch.yml`
+and no restart. The package creates it empty and writes nothing to it, as a directory entry of its
+own, so a purge takes it back when nothing was ever written there and keeps it when it holds
+snapshots. It is a directory of this node's own making, inside one the package manages, so the
+install takes ownership of what is in it and the purge hands that over to root, like the rest of
+the data directory. A repository that is a volume of its own, or one shared by every node of a
+cluster, belongs outside the four directories the package manages, where nothing it does reaches
+it; the reference documentation says so.
+
+The setting is written by the resolver at install and at upgrade rather than shipped in
+`opensearch.yml`, and only when the key is absent. The maintainer scripts already write that file,
+so dpkg has recorded it as the operator's since the first install, and a shipped line that changed
+would make every upgrade of an existing DEB node stop at a conffile prompt. Written from the
+resolver, the shipped bytes never change, so there is no prompt to answer, and a node installed
+before the setting existed gets it from the upgrade rather than from a manual edit. The RPM never
+prompts either way, `%config(noreplace)` keeps the file and leaves the new one as `.rpmnew`, but
+the setting would then not reach an existing node at all.
+
 ### When the package is purged
 
 A purge (DEB `purge`, RPM erase) always deletes the `wazuh-indexer` user and group. That frees
