@@ -1,8 +1,6 @@
 # Retention
 
-Stream indices (events, raw events, findings, metrics, active responses and AI assistant
-sessions) are data streams managed by [Index State Management (ISM)](https://docs.opensearch.org/3.6/im-plugin/ism/index/)
-policies shipped by the Setup plugin. Each policy has two states:
+Stream indices (events, raw events, findings, metrics, active responses and AI assistant sessions) are data streams managed by [Index State Management (ISM)](https://docs.opensearch.org/3.6/im-plugin/ism/index/) policies shipped by the Setup plugin. These are Wazuh's [default policies](#default-policies): do not edit them, create a [custom policy](#creating-a-custom-policy) instead. Each policy has two states:
 
 - **`hot`** — runs a `rollover` action. The write index is closed and a new backing index is
   created once the index reaches **20 GB per primary shard** (or 200,000,000 documents,
@@ -80,6 +78,8 @@ stating plainly:
 > primary shard. On a quiet deployment, raw events persist until the index rolls over or is
 > removed by hand.
 
+The same holds for findings, metrics and active responses. On a deployment that never fills a shard, findings are kept well past the 90-day deletion age. To delete them on a schedule, put an age condition on the rollover in a [custom policy](#creating-a-custom-policy).
+
 You can confirm what a given backing index is doing:
 
 ```bash
@@ -91,113 +91,99 @@ A response showing `"step": {"name": "attempt_rollover", "step_status": "conditi
 `"rolled_over": false` means the index has not yet met a rollover condition and is not eligible
 for deletion.
 
-## The shipped policies are rewritten on every restart
+## Default policies
 
-The Setup plugin re-indexes its six policy documents whenever a node is elected cluster manager,
-which includes every restart. It writes each one by policy id, so the write **overwrites whatever
-is there** — an edit made to a shipped policy through the ISM API is silently reverted on the next
-boot, and the plugin logs `ISM policy [<name>] created` for all six as if they were new.
+The six policies above are Wazuh's default policies. The Setup plugin indexes them by policy id whenever a node is elected cluster manager, which includes every restart and every upgrade, so the policies a new release ships always reach the deployment. Each write overwrites whatever is stored under that id: an edit made to a default policy, through the ISM API or the dashboard, is reverted on the next restart. ISM cannot mark a policy as read-only, so nothing stops the edit in the first place.
 
-It reverts *partially*, which is the dangerous part. Each managed index holds its own embedded copy
-of the policy it was registered with, so indices already moved onto an edited policy keep the edit
-while every backing index created afterwards gets the shipped one. The result is two retention
-regimes in the same data stream, with nothing to signal it.
+**Do not edit the default policies.** To change retention, [create a custom policy](#creating-a-custom-policy) instead. The Setup plugin only ever writes its own six policy ids, so a policy stored under any other id is never touched.
 
-**Never edit one of the six shipped policies in place.** To change retention, create your own
-policy instead, as described next.
+## Existing indices keep the policy version they started with
 
-## Opting in to a hard time ceiling
+Each managed index runs on its own copy of the policy, taken when the index was attached to it and reported as `policy_seq_no` by the explain API. Storing a new version of the policy, whether by an edit, a restart or an upgrade, changes neither that copy nor the retention of the indices already managed. Only backing indices created afterwards start on the new version. This has two consequences:
 
-If your deployment needs retention bounded in *time* rather than in volume — a regulatory maximum,
-or a data-minimization requirement — put an age condition on the **rollover** action, the way
-`ai-assistant-sessions-policy` does.
+- A retention change applies to the existing indices only once you move them with `change_policy`, as shown in [Creating a custom policy](#creating-a-custom-policy).
+- After an upgrade that ships a new version of a default policy, the existing backing indices keep running the old version. On a low-volume deployment the write index never rolls over, so it can run the old version indefinitely.
 
-Do it in a policy of your own. The plugin only ever rewrites its own six policy ids, so a policy
-under a different id is never touched.
-
-**1. Create the policy under its own `policy_id`.** Put `min_index_age` on the rollover action,
-shorter than the deletion age that follows it, and give its `ism_template` the same index patterns
-as the shipped policy at `priority: 1`, so it wins over the shipped policy (`priority: 0`) for
-newly created backing indices:
-
-```bash
-curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
-  'https://localhost:9200/_plugins/_ism/policies/custom-events-24h-ceiling' \
-  -H 'Content-Type: application/json' -d '{
-  "policy": {
-    "policy_id": "custom-events-24h-ceiling",
-    "description": "Events, capped at 24 hours of retention.",
-    "default_state": "hot",
-    "states": [
-      {
-        "name": "hot",
-        "actions": [
-          {
-            "retry": { "count": 3, "backoff": "exponential", "delay": "1m" },
-            "rollover": {
-              "min_index_age": "1h",
-              "min_doc_count": 200000000,
-              "min_primary_shard_size": "20gb"
-            }
-          }
-        ],
-        "transitions": [
-          { "state_name": "delete", "conditions": { "min_index_age": "1d" } }
-        ]
-      },
-      {
-        "name": "delete",
-        "actions": [
-          {
-            "retry": { "count": 3, "backoff": "exponential", "delay": "1m" },
-            "delete": {}
-          }
-        ],
-        "transitions": []
-      }
-    ],
-    "ism_template": [
-      {
-        "index_patterns": [".ds-wazuh-events-v5-*", "wazuh-events-v5*"],
-        "priority": 1
-      }
-    ]
-  }
-}'
-```
-
-**2. Move the already-managed backing indices onto it.** The `ism_template` only applies to indices
-created from now on; existing ones keep the policy they were registered with:
-
-```bash
-curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
-  'https://localhost:9200/_plugins/_ism/change_policy/.ds-wazuh-events-v5-*' \
-  -H 'Content-Type: application/json' -d '{"policy_id": "custom-events-24h-ceiling"}'
-```
-
-**3. Wait for the change to actually apply, and verify it.** `change_policy` is asynchronous: the
-response reports the indices it queued, not indices it changed. The switch happens on the managed
-index's next ISM run, roughly a minute later. Confirm before going further:
+To see which version each index runs, compare its `policy_seq_no` with the `_seq_no` of the stored policy:
 
 ```bash
 curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
-  'https://localhost:9200/_plugins/_ism/explain/.ds-wazuh-events-v5-*?pretty'
+  'https://localhost:9200/_plugins/_ism/policies/stream-findings-policy' | jq '._seq_no'
+
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
+  'https://localhost:9200/_plugins/_ism/explain/.ds-wazuh-findings-v5-*' \
+  | jq -r 'to_entries[] | select(.value | type == "object") | [.key, .value.policy_id, .value.policy_seq_no] | @tsv'
 ```
 
-Every index must report your `policy_id`. **Do not restart the cluster until it does** — a restart
-while the change is still pending drops it, and you are left with some indices on your policy and
-some on the shipped one, which is the split described above.
+Every restart rewrites the default policies, so their `_seq_no` grows even when their content does not change, and a lower `policy_seq_no` does not by itself mean that the index runs different rules. Add `?show_policy=true` to the explain request to see the copy the index runs.
 
-Two trade-offs to weigh before doing this:
+To move the existing indices onto the current version of a policy, run `change_policy` with the same policy id, then verify the switch as described in step 4 of [Creating a custom policy](#creating-a-custom-policy):
 
-- **More indices, more shards.** Rolling over on a schedule on a quiet deployment produces many
-  small backing indices, each with its own shard overhead.
-- **Data loss relative to today.** A deployment that currently keeps months of events inside a
-  single 20 GB shard will start ageing them out at the ceiling you choose.
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  'https://localhost:9200/_plugins/_ism/change_policy/.ds-wazuh-findings-v5-*' \
+  -H 'Content-Type: application/json' -d '{"policy_id": "stream-findings-policy"}'
+```
 
-Do **not** use `min_rollover_age` in the transition instead: it expresses "N after rollover",
-stacking the retention window on top of an already-full generation, which costs more disk at
-exactly the ingest rates where disk matters.
+## Creating a custom policy
+
+ISM cannot clone a policy, so a custom policy starts as a copy of the default one. The steps below delete findings 30 days after their backing index is created, on any deployment, including those that never fill a shard. The same steps apply to any other stream: use its policy and index patterns from the [per-stream table](#per-stream-values). The commands use `jq`.
+
+**1. Copy the default policy and change the copy.** Two changes set the retention, and a third makes the policy win over the default one:
+
+- `min_index_age` on the **rollover** action makes the write index roll over daily, so it becomes eligible for deletion even when it never fills a shard. Keep it shorter than the deletion age.
+- `min_index_age` on the **transition** to `delete` is the deletion age, measured from index creation.
+- `priority: 1` in the `ism_template` makes ISM attach new backing indices to this policy instead of the default one (`priority: 0`).
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
+  'https://localhost:9200/_plugins/_ism/policies/stream-findings-policy' \
+  | jq '{policy: (.policy
+      | del(.policy_id, .last_updated_time, .schema_version, .error_notification)
+      | .description = "Custom findings policy: deletes findings 30 days after their backing index is created."
+      | .states[0].actions[0].rollover.min_index_age = "1d"
+      | .states[0].transitions[0].conditions.min_index_age = "30d"
+      | .ism_template[].priority = 1)}' > custom-findings-policy.json
+```
+
+Review `custom-findings-policy.json` before going further.
+
+**2. Store the copy under its own policy id.**
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
+  'https://localhost:9200/_plugins/_ism/policies/custom-findings-policy' \
+  -H 'Content-Type: application/json' -d @custom-findings-policy.json
+```
+
+From now on, new findings backing indices are attached to `custom-findings-policy`.
+
+**3. Move the existing indices onto it.** The `ism_template` applies only to indices created from now on, and the existing ones keep the policy they started with:
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  'https://localhost:9200/_plugins/_ism/change_policy/.ds-wazuh-findings-v5-*' \
+  -H 'Content-Type: application/json' -d '{"policy_id": "custom-findings-policy"}'
+```
+
+**4. Wait for the change to apply, and verify it.** `change_policy` is asynchronous: the response lists the indices it queued, not the indices it changed. Each index switches on its next ISM run (every 5 minutes by default) and reports `Attempting to change policy to custom-findings-policy` until the following run resumes the policy, so the switch can take two runs or more. It is complete when every index reports the new `policy_id` and a step name:
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
+  'https://localhost:9200/_plugins/_ism/explain/.ds-wazuh-findings-v5-*' \
+  | jq -r 'to_entries[] | select(.value | type == "object") | [.key, .value.policy_id, (.value.step.name // "pending")] | @tsv'
+```
+
+**Do not restart the cluster until every index has switched.** A restart while the change is still pending drops it, and you are left with some indices on your policy and some on the default one.
+
+To go back to the default retention, run step 3 with `"policy_id": "stream-findings-policy"`, wait for the switch as in step 4, then delete `custom-findings-policy`.
+
+Weigh two trade-offs before you shorten retention this way:
+
+- **More indices, more shards.** Rolling over on a schedule on a quiet deployment produces many small backing indices, each with its own shard overhead.
+- **Data loss relative to today.** A deployment that currently keeps months of data inside a single 20 GB shard starts deleting it at the age you choose, existing data included once step 3 applies.
+
+Do **not** use `min_rollover_age` in the transition instead of the rollover condition: it expresses "N after rollover", stacking the retention window on top of an already-full generation, which costs more disk at exactly the ingest rates where disk matters.
 
 ## Related
 
