@@ -3465,11 +3465,7 @@ error.id:
   type: keyword
 error.message:
   dashed_name: error-message
-  description: 'Error message.
-
-    The field is `match_only_text`: a free-text search with no field name matches
-    any word of it, but it cannot be aggregated or sorted.'
-  example: Connection refused while sending the event to the indexer
+  description: Error message.
   flat_name: error.message
   level: core
   name: message
@@ -3478,7 +3474,7 @@ error.message:
   - attribute: exception.message
     relation: equivalent
     stability: stable
-  short: Error message. Searchable by word.
+  short: Error message.
   type: match_only_text
 error.stack_trace:
   dashed_name: error-stack-trace

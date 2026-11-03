@@ -267,7 +267,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,email,email.x_mailer,keyword,extended,,Spambot v2.5,Application that drafted email.
 9.1.0,true,error,error.code,keyword,core,,,Error code describing the error.
 9.1.0,true,error,error.id,keyword,core,,,Unique identifier for the error.
-9.1.0,true,error,error.message,match_only_text,core,,Connection refused while sending the event to the indexer,Error message. Searchable by word.
+9.1.0,true,error,error.message,match_only_text,core,,,Error message.
 9.1.0,true,error,error.stack_trace,keyword,extended,,,The stack trace of this error in plain text.
 9.1.0,true,error,error.type,keyword,extended,,java.lang.NullPointerException,"The type of the error, for example the class name of the exception."
 9.1.0,true,event,event.action,keyword,core,,user-password-change,The action captured by the event.
