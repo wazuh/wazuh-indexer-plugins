@@ -8,7 +8,7 @@ The Wazuh Indexer packages include a snapshot of each consumer, loaded by the fi
 
 ## Before you start
 
-Leave the `plugins.content_manager.catalog` settings as shipped, as described in [Offline installations](configuration.md#offline-installations). This procedure does not need them disabled, and disabling `plugins.content_manager.catalog.update_on_start` keeps the node from loading the packaged snapshots.
+Configure the node as described in [Offline installations](configuration.md#offline-installations): scheduled synchronization disabled, and `plugins.content_manager.catalog.update_on_start` left enabled. Disabling `plugins.content_manager.catalog.update_on_start` keeps the node from loading the packaged snapshots.
 
 On-demand updates must be enabled. They are by default; check that `plugins.content_manager.catalog.update_on_demand` is not set to `false`.
 

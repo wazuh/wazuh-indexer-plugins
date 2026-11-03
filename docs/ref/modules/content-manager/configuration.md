@@ -17,7 +17,7 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.pit_keepalive`** (Long, default `120`, range 60–600) — point-in-time keepalive in seconds used during paginated index scans.
 - **`plugins.content_manager.engine.mock`** (Boolean, default `false`) — bypasses real Engine socket calls, returning mocked responses instead. Intended for testing only.
 - **`plugins.content_manager.catalog.update_on_start`** (Boolean, default `true`) — trigger content sync when the plugin starts. That sync also loads the snapshots packaged with the Wazuh Indexer: keep it enabled on offline installations.
-- **`plugins.content_manager.catalog.update_on_schedule`** (Boolean, default `true`, dynamic) — enable the periodic sync job. When `false` the job is disabled and any scheduled run is refused, so no content is fetched from Wazuh CTI on a schedule. Registering a CTI access token does not start a content update either. On-demand updates (`POST /update`) are unaffected — they are controlled by `plugins.content_manager.catalog.update_on_demand`.
+- **`plugins.content_manager.catalog.update_on_schedule`** (Boolean, default `true`, dynamic) — enable the periodic sync job. When `false` the job is disabled and any scheduled run is refused, so no content is fetched from Wazuh CTI on a schedule. Registering a CTI access token does not start a content update either. On-demand updates (`POST /update`) are unaffected — they are controlled by `plugins.content_manager.catalog.update_on_demand`. Disable it on offline installations, where content is updated on demand.
 - **`plugins.content_manager.catalog.ruleset`** (String, default `""`) — full CTI consumer URL for ruleset content.
 - **`plugins.content_manager.catalog.iocs`** (String, default `""`) — full CTI consumer URL for IoC content.
 - **`plugins.content_manager.catalog.vulnerabilities`** (String, default `""`) — full CTI consumer URL for vulnerabilities content.
@@ -73,9 +73,18 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_
 ### Offline installations
 
 <!-- // ANCHOR: offline-config -->
-On installations without internet access, leave the `plugins.content_manager.catalog` settings as shipped.
+On installations without internet access, disable the scheduled synchronization and leave `plugins.content_manager.catalog.update_on_start` as shipped:
 
-Each Wazuh Indexer package includes a snapshot of every content consumer: ruleset, IoCs and vulnerabilities. The content update that runs when the node starts loads them. Offline, it cannot reach Wazuh CTI, so it falls back to the packaged snapshots. The ruleset loads in about a minute, the IoCs and vulnerabilities take a few minutes more.
+```yaml
+# opensearch.yml
+plugins.content_manager.catalog.update_on_schedule: false
+# Optional: stops the daily update-check ping.
+plugins.content_manager.telemetry.enabled: false
+```
+
+Each Wazuh Indexer package includes a snapshot of every content consumer: ruleset, IoCs and vulnerabilities. The content update that runs when the node starts loads them, also with the scheduled synchronization disabled. Offline, it cannot reach Wazuh CTI, so it falls back to the packaged snapshots. The ruleset loads in about a minute, the IoCs and vulnerabilities take a few minutes more.
+
+The scheduled synchronization only fetches new content from Wazuh CTI, so offline it brings nothing. Offline content updates are requested on demand instead, with `POST /_plugins/_content_manager/update?offline=true`.
 
 > **Warning:** Do not set `plugins.content_manager.catalog.update_on_start` to `false` on an offline installation. Skipping the update on start also skips loading the packaged snapshots, and the node is left with no rules, no decoders and no vulnerability content. The node logs `Content update on start skipped` at `INFO`. To load the packaged snapshots on such a node, request an offline update:
 >
@@ -83,24 +92,18 @@ Each Wazuh Indexer package includes a snapshot of every content consumer: rulese
 > curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST "https://127.0.0.1:9200/_plugins/_content_manager/update?offline=true"
 > ```
 
-Offline, the attempts to reach Wazuh CTI are logged in `/var/log/wazuh-indexer/wazuh-cluster.log` as `WARN` and `ERROR` lines. They are expected, and they do not affect the content loaded from the snapshots:
+While the update on start loads the snapshots, its attempts to reach Wazuh CTI are logged in `/var/log/wazuh-indexer/wazuh-cluster.log` as `WARN` and `ERROR` lines. They are expected, and they do not affect the content loaded from the snapshots:
 
 ```
 WARN  ... Could not reach catalog URL [<catalog_url>] for consumer [cti:catalog:consumer:ruleset]. Falling back to local snapshot [ruleset.zip].
+ERROR ... GET <catalog_url>->java.net.UnknownHostException: <cti_host>: Temporary failure in name resolution
 ERROR ... Couldn't obtain consumer from CTI: java.net.UnknownHostException: <cti_host>
 WARN  ... ConsumerRulesetService did not fully synchronize this pass (unreachable feed, indices not yet provisioned, or a phase left pending); retrying.
 ERROR ... Immediate retry also failed; waiting for the next scheduled run.
 ERROR ... Telemetry Ping failed due to network error: <cti_host>
 ```
 
-Each scheduled synchronization, every `plugins.content_manager.catalog.sync_interval` minutes, logs them again, except the `Falling back to local snapshot` line, which only appears while a snapshot is loaded.
-
-Optionally, disable the daily update-check ping. It is the only effect of this setting, and it is dynamic:
-
-```yaml
-# opensearch.yml
-plugins.content_manager.telemetry.enabled: false
-```
+With the scheduled synchronization disabled, no scheduled run follows, so these lines are not logged again until the next node start. The `Telemetry Ping` line is not logged with `plugins.content_manager.telemetry.enabled` set to `false`.
 
 To keep the content of an offline installation current, load newer snapshots with `POST /_plugins/_content_manager/update?offline=true`, as described in Offline content updates.
 <!-- // ANCHOR_END: offline-config -->
@@ -125,7 +128,7 @@ Disabling scheduled synchronization takes effect immediately and applies to an a
 
 Disabling scheduled synchronization does not remove content that has already been downloaded. It only stops further updates from Wazuh CTI.
 
-`plugins.content_manager.catalog.update_on_start` is not dynamic — it only governs the synchronization triggered as the plugin starts, so it takes effect on the next node start. That synchronization is also the one that loads the snapshots packaged with the Wazuh Indexer, so a node that starts with it disabled and no content loaded holds no content until `POST /_plugins/_content_manager/update` is requested.
+`plugins.content_manager.catalog.update_on_start` is not dynamic — it only governs the synchronization triggered as the plugin starts, so it takes effect on the next node start. That synchronization is also the one that loads the snapshots packaged with the Wazuh Indexer, so a node that starts with it disabled and no content loaded holds no content until an update is requested: `POST /_plugins/_content_manager/update?offline=true` loads the packaged snapshots.
 
 How the plugin keeps the periodic job in step with `update_on_schedule`, and refuses a run while it is disabled, is described in [Job scheduler](architecture.md#job-scheduler).
 

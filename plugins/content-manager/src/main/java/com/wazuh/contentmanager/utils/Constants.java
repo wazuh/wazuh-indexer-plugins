@@ -800,7 +800,7 @@ public class Constants {
     public static final String I_LOG_CATALOG_SYNC_SKIPPED_DISABLED =
             "Scheduled catalog synchronization (ID: {}) skipped: plugins.content_manager.catalog.update_on_schedule is false.";
     public static final String I_LOG_CATALOG_SYNC_SKIPPED_ON_START =
-            "Content update on start skipped: plugins.content_manager.catalog.update_on_start is false. Content not loaded yet, including the snapshots packaged with the Wazuh Indexer, is loaded by POST /_plugins/_content_manager/update.";
+            "Content update on start skipped: plugins.content_manager.catalog.update_on_start is false. Content not loaded yet, including the snapshots packaged with the Wazuh Indexer, is loaded by POST /_plugins/_content_manager/update?offline=true.";
     public static final String I_LOG_REGISTRATION_UPDATE_STARTED =
             "Access token registered; content update started to apply the environment's plan.";
     public static final String I_LOG_REGISTRATION_UPDATE_WAITING =

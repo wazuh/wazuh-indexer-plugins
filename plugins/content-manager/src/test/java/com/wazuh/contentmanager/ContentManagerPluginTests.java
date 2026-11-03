@@ -177,8 +177,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
             this.simulateClusterManagerElection();
 
             verify(this.catalogSyncJob, never()).triggerOnStartup();
-            assertTrue(
-                    logs.messages(Level.INFO).contains(Constants.I_LOG_CATALOG_SYNC_SKIPPED_ON_START));
+            assertTrue(logs.messages(Level.INFO).contains(Constants.I_LOG_CATALOG_SYNC_SKIPPED_ON_START));
         }
     }
 
