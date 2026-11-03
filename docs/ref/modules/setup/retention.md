@@ -93,31 +93,31 @@ for deletion.
 
 ## Default policies
 
-The six policies above are Wazuh's default policies. The Setup plugin indexes them by policy id whenever a node is elected cluster manager, which includes every restart and every upgrade, so the policies a new release ships always reach the deployment. Each write overwrites whatever is stored under that id: an edit made to a default policy, through the ISM API or the dashboard, is reverted on the next restart. ISM cannot mark a policy as read-only, so nothing stops the edit in the first place.
+The six policies above are Wazuh's default policies. The Setup plugin indexes them by policy id whenever a node that has just started is elected cluster manager, which includes a full restart and every upgrade, so the policies a new release ships always reach the deployment. Each write overwrites whatever is stored under that id: an edit made to a default policy, through the ISM API or the dashboard, is reverted on the next full restart or upgrade. ISM cannot mark a policy as read-only, so nothing stops the edit in the first place.
 
 **Do not edit the default policies.** To change retention, [create a custom policy](#creating-a-custom-policy) instead. The Setup plugin only ever writes its own six policy ids, so a policy stored under any other id is never touched.
 
 ## Existing indices keep the policy version they started with
 
-Each managed index runs on its own copy of the policy, taken when the index was attached to it and reported as `policy_seq_no` by the explain API. Storing a new version of the policy, whether by an edit, a restart or an upgrade, changes neither that copy nor the retention of the indices already managed. Only backing indices created afterwards start on the new version. This has two consequences:
+Each managed index runs on its own copy of the policy, taken when the index was attached to it and returned by the explain API with `?show_policy=true`. Storing a new version of the policy, whether by an edit, a restart or an upgrade, changes neither that copy nor the retention of the indices already managed. Only backing indices created afterwards start on the new version. This has two consequences:
 
 - A retention change applies to the existing indices only once you move them with `change_policy`, as shown in [Creating a custom policy](#creating-a-custom-policy).
 - After an upgrade that ships a new version of a default policy, the existing backing indices keep running the old version. On a low-volume deployment the write index never rolls over, so it can run the old version indefinitely.
 
-To see which version each index runs, compare its `policy_seq_no` with the `_seq_no` of the stored policy:
+To see which version each index runs, compare the `last_updated_time` of the stored policy with the one in the copy each index runs:
 
 ```bash
 curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
-  'https://localhost:9200/_plugins/_ism/policies/stream-findings-policy' | jq '._seq_no'
+  'https://localhost:9200/_plugins/_ism/policies/stream-findings-policy' | jq '.policy.last_updated_time'
 
 curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
-  'https://localhost:9200/_plugins/_ism/explain/.ds-wazuh-findings-v5-*' \
-  | jq -r 'to_entries[] | select(.value | type == "object") | [.key, .value.policy_id, .value.policy_seq_no] | @tsv'
+  'https://localhost:9200/_plugins/_ism/explain/.ds-wazuh-findings-v5-*?show_policy=true' \
+  | jq -r 'to_entries[] | select(.value | type == "object") | [.key, .value.policy_id, .value.policy.last_updated_time] | @tsv'
 ```
 
-Every restart rewrites the default policies, so their `_seq_no` grows even when their content does not change, and a lower `policy_seq_no` does not by itself mean that the index runs different rules. Add `?show_policy=true` to the explain request to see the copy the index runs.
+The Setup plugin writes the `last_updated_time` shipped with the release, so it changes only when a release changes the policy, and an index with an older value runs an older version. An edit through the ISM API or the dashboard sets it to the time of the edit. Do not compare the `_seq_no` of the policy with the `policy_seq_no` of the index: every restart rewrites the default policies and raises their `_seq_no` even when their content does not change.
 
-To move the existing indices onto the current version of a policy, run `change_policy` with the same policy id, then verify the switch as described in step 4 of [Creating a custom policy](#creating-a-custom-policy):
+To move the existing indices onto the current version of a policy, run `change_policy` with the same policy id, then verify the switch as described in step 4 of [Creating a custom policy](#creating-a-custom-policy). The same restart warning applies:
 
 ```bash
 curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
@@ -156,7 +156,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
   -H 'Content-Type: application/json' -d @custom-findings-policy.json
 ```
 
-From now on, new findings backing indices are attached to `custom-findings-policy`.
+From now on, new findings backing indices are attached to `custom-findings-policy`. Their `index.plugins.index_state_management.policy_id` setting still names the default policy, because the index template sets it: the `policy_id` that the explain API reports is the one ISM runs.
 
 **3. Move the existing indices onto it.** The `ism_template` applies only to indices created from now on, and the existing ones keep the policy they started with:
 
@@ -174,9 +174,26 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
   | jq -r 'to_entries[] | select(.value | type == "object") | [.key, .value.policy_id, (.value.step.name // "pending")] | @tsv'
 ```
 
-**Do not restart the cluster until every index has switched.** A restart while the change is still pending drops it, and you are left with some indices on your policy and some on the default one.
+**Do not restart the cluster until every index has switched.** A pending change survives a restart, but an index whose ISM run is interrupted while it switches stays on `Attempting to change policy to <policy_id>` for about an hour, then fails with `There is a version conflict between your previous execution and your managed index` and is no longer managed, so none of its retention applies. To list the indices in that state:
 
-To go back to the default retention, run step 3 with `"policy_id": "stream-findings-policy"`, wait for the switch as in step 4, then delete `custom-findings-policy`.
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
+  'https://localhost:9200/_plugins/_ism/explain/.ds-wazuh-findings-v5-*' \
+  | jq -r 'to_entries[] | select(.value | type == "object") | select(.value.retry_info.failed == true) | [.key, .value.policy_id, .value.info.message] | @tsv'
+```
+
+`_plugins/_ism/retry` and a new `change_policy` do not fix such an index. Remove the policy from it and add it back, with the policy you were moving it to as `<policy_id>`:
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  'https://localhost:9200/_plugins/_ism/remove/<index>'
+
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
+  'https://localhost:9200/_plugins/_ism/add/<index>' \
+  -H 'Content-Type: application/json' -d '{"policy_id": "<policy_id>"}'
+```
+
+To go back to the default retention, run step 3 with `"policy_id": "stream-findings-policy"`, wait for the switch as in step 4 (the restart warning applies here too), then delete `custom-findings-policy`.
 
 Weigh two trade-offs before you shorten retention this way:
 
