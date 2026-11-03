@@ -8,13 +8,12 @@ In this section you can find instructions on how to create and restore a backup 
 
 Data is backed up with [snapshots](https://docs.opensearch.org/3.6/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-restore/), which are written to a repository. A filesystem repository can only be registered under a directory named in `path.repo`, a setting the node reads at start and that cannot be changed through the API.
 
-The installation writes one into `/etc/wazuh-indexer/opensearch.yml`, so a repository can be registered from the Wazuh dashboard or the API with no edit and no restart:
+The packaged `/etc/wazuh-indexer/opensearch.yml` sets one, so on a new installation a repository can be registered from the Wazuh dashboard or the API with no edit and no restart:
 
 ```yaml
 path.repo: ["/var/lib/wazuh-indexer/backup"]
 ```
 
-An upgrade adds it to a node installed before the setting existed, and only when the key is absent: a location you changed is never corrected, and one you removed on purpose comes back at the next upgrade, not at the next start.
 
 The package creates `/var/lib/wazuh-indexer/backup` empty, `wazuh-indexer:wazuh-indexer` with mode `750`, and writes nothing to it. Once it holds snapshots, removing or purging the package keeps it, handed over to root; while it is still empty it goes with the rest of the package. In the Docker image the directory is `/usr/share/wazuh-indexer/backup` instead, and `path.repo` names that one.
 
@@ -42,7 +41,15 @@ path.repo: ["/srv/wazuh-indexer-backup"]
 
 ### Nodes installed before this setting
 
-The upgrade adds `path.repo` and creates the directory, but the setting is read at start, so the node picks it up at its next restart:
+`path.repo` is a static setting that ships in the packaged configuration, and an upgrade keeps the `opensearch.yml` you already have. A node installed before the setting existed therefore does not get it, even though the upgrade does create the directory. Add the line by hand on every node:
+
+```yaml
+path.repo: ["/var/lib/wazuh-indexer/backup"]
+```
+
+On a DEB node the package manager offers you its own copy of the file during the upgrade; keeping yours is what preserves this node's settings, and the line above is then yours to add. On an RPM node the new file is left beside it as `/etc/wazuh-indexer/opensearch.yml.rpmnew` and nothing is replaced.
+
+The setting is read at start, so the node picks it up at its next restart:
 
 ```bash
 systemctl restart wazuh-indexer

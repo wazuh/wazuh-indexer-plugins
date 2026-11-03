@@ -520,14 +520,7 @@ the data directory. A repository that is a volume of its own, or one shared by e
 cluster, belongs outside the four directories the package manages, where nothing it does reaches
 it; the reference documentation says so.
 
-The setting is written by the resolver at install and at upgrade rather than shipped in
-`opensearch.yml`, and only when the key is absent. The maintainer scripts already write that file,
-so dpkg has recorded it as the operator's since the first install, and a shipped line that changed
-would make every upgrade of an existing DEB node stop at a conffile prompt. Written from the
-resolver, the shipped bytes never change, so there is no prompt to answer, and a node installed
-before the setting existed gets it from the upgrade rather than from a manual edit. The RPM never
-prompts either way, `%config(noreplace)` keeps the file and leaves the new one as `.rpmnew`, but
-the setting would then not reach an existing node at all.
+The setting ships in `opensearch.prod.yml`, so a new installation can register a repository with no edit and no restart. An existing node keeps the `opensearch.yml` it already has, as it does for every other setting of that file, so it does not get `path.repo` from an upgrade: the reference documentation covers the manual step. On DEB the package manager offers its copy of the file during the upgrade; on RPM `%config(noreplace)` keeps the installed one and leaves the new one as `.rpmnew`.
 
 ### When the package is purged
 
