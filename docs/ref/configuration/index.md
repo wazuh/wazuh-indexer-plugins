@@ -152,15 +152,9 @@ To prevent this, the DEB package installs `/etc/needrestart/conf.d/wazuh-indexer
 push(@{$nrconf{blacklist_mappings}}, qr(^/var/lib/wazuh-indexer/tmp/));
 ```
 
-`needrestart` keeps every other check on the service, so an update of a system library that Wazuh Indexer uses, such as libc, still restarts it. The rule matches the default temporary directory set by `OPENSEARCH_TMPDIR` in `/etc/default/wazuh-indexer`.
+`needrestart` keeps every other check on the service, so an update of a system library that Wazuh Indexer uses, such as libc, still restarts it. The rule names the temporary directory `OPENSEARCH_TMPDIR` sets in `/etc/default/wazuh-indexer`, and a node that changes that variable without changing this path gets the restarts back.
 
 The file is a configuration file of the package: upgrades keep local changes to it, removing the package keeps it, and purging the package deletes it.
-
-To ignore the service entirely instead, replace the rule in that same file with the one below. `needrestart` then never restarts Wazuh Indexer, not even for a libc update:
-
-```perl
-push(@{$nrconf{blacklist_rc}}, qr(^wazuh-indexer));
-```
 
 ## Related documentation
 
