@@ -560,7 +560,9 @@ public class ContentManagerPlugin extends Plugin
                 new RestPostFilterAction(),
                 new RestPutFilterAction(),
                 new RestDeleteFilterAction(),
-                new RestDeleteSpaceAction());
+                new RestDeleteSpaceAction(),
+                new RestDeleteSpaceNormalizationAction(),
+                new RestDeleteSpaceDetectionAction());
     }
 
     /**

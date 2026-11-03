@@ -60,6 +60,7 @@ import org.mockito.MockitoAnnotations;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -109,11 +110,14 @@ public class SpaceServiceTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
-    /** Tests that calculateAndUpdate skips execution when the policy index does not exist. */
-    public void testCalculateAndUpdateSkipsWhenPolicyIndexDoesNotExist() {
+    /**
+     * The subset overload of deleteSpaceResources only searches (and therefore only deletes from) the
+     * indices it is given, never the rest of RESOURCE_INDICES.
+     */
+    public void testDeleteSpaceResources_subsetOnlyTargetsGivenIndices() {
         when(this.client.admin()).thenReturn(this.adminClient);
         when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
-        when(this.indicesExistsResponse.isExists()).thenReturn(false);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
         doAnswer(
                         invocation -> {
                             invocation
@@ -123,11 +127,56 @@ public class SpaceServiceTests extends OpenSearchTestCase {
                         })
                 .when(this.indicesAdminClient)
                 .exists(any(IndicesExistsRequest.class), any());
+        when(this.searchResponse.getHits()).thenReturn(SearchHits.empty());
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onResponse(this.searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
+
+        List<String> subset =
+                List.of(Constants.INDEX_DECODERS, Constants.INDEX_KVDBS, Constants.INDEX_FILTERS);
+        this.policyHashService.deleteSpaceResources(
+                Space.DRAFT, subset, ActionListener.wrap(r -> {}, e -> fail(e.getMessage())));
+
+        ArgumentCaptor<SearchRequest> captor = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(this.client, times(subset.size())).search(captor.capture(), any());
+        Set<String> searched = new java.util.HashSet<>();
+        for (SearchRequest req : captor.getAllValues()) {
+            searched.addAll(List.of(req.indices()));
+        }
+        assertEquals(new java.util.HashSet<>(subset), searched);
+        assertFalse(searched.contains(Constants.INDEX_RULES));
+        assertFalse(searched.contains(Constants.INDEX_INTEGRATIONS));
+    }
+
+    /**
+     * calculateAndUpdate no longer pre-checks the policies index with indices:admin/exists. A missing
+     * or empty index (the lenient search returns no hits) yields an empty result and performs no
+     * bulk, so the recompute needs only read on the index.
+     */
+    public void testCalculateAndUpdateNoExistsPrecheckOnEmptyIndex() {
+        when(this.searchResponse.getHits()).thenReturn(SearchHits.empty());
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onResponse(this.searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
 
         this.policyHashService.calculateAndUpdate(
-                List.of(Space.DRAFT.toString()), ActionListener.wrap(r -> {}, e -> {}));
+                List.of(Space.DRAFT.toString()), ActionListener.wrap(r -> {}, e -> fail(e.getMessage())));
 
-        verify(this.client, never()).search(any(SearchRequest.class), any());
+        verify(this.client, never()).admin(); // no indices:admin/exists pre-check
+        verify(this.client).search(any(SearchRequest.class), any());
+        verify(this.client, never()).bulk(any(), any());
     }
 
     /**
@@ -215,17 +264,15 @@ public class SpaceServiceTests extends OpenSearchTestCase {
 
     /** Tests that calculateAndUpdate handles exceptions gracefully without propagating them. */
     public void testCalculateAndUpdateHandlesException() {
-        when(this.client.admin()).thenReturn(this.adminClient);
-        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
         doAnswer(
                         invocation -> {
                             invocation
-                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
+                                    .<ActionListener<SearchResponse>>getArgument(1)
                                     .onFailure(new RuntimeException("Test exception"));
                             return null;
                         })
-                .when(this.indicesAdminClient)
-                .exists(any(IndicesExistsRequest.class), any());
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
 
         AtomicReference<Boolean> gotResponse = new AtomicReference<>(false);
         // Should not propagate the exception - it should be handled and reported as an empty result.
@@ -336,6 +383,32 @@ public class SpaceServiceTests extends OpenSearchTestCase {
                     "Policy for space '" + spaceName + "' should contain enabled: true",
                     sourceJson.contains("\"enabled\":true"));
         }
+    }
+
+    /** A full reset must keep the existing metadata: initializeSpace writes the provided block. */
+    public void testInitializeSpace_PreservesProvidedMetadata() {
+        org.mockito.ArgumentCaptor<IndexRequest> captor =
+                org.mockito.ArgumentCaptor.forClass(IndexRequest.class);
+        IndexResponse mockResponse = org.mockito.Mockito.mock(IndexResponse.class);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<IndexResponse>>getArgument(1).onResponse(mockResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
+
+        java.util.Map<String, Object> preservedMetadata =
+                java.util.Map.<String, Object>of("title", "keep-me", "author", "zeus");
+
+        this.policyHashService.initializeSpace(
+                "draft", "test-doc-id", preservedMetadata, ActionListener.wrap(r -> {}, e -> {}));
+
+        verify(this.client).index(captor.capture(), any());
+        String sourceJson = captor.getValue().source().utf8ToString();
+        assertTrue("Should keep the provided title", sourceJson.contains("\"title\":\"keep-me\""));
+        assertTrue("Should keep the provided author", sourceJson.contains("\"author\":\"zeus\""));
+        assertFalse("Should not fall back to the default title", sourceJson.contains("Custom space"));
     }
 
     /**

@@ -1468,11 +1468,11 @@ paths:
       tags: [ Spaces ]
       summary: Reset a user space
       description: |
-        Resets a user space (draft) to its initial state.
+        Resets a user space (draft): removes its content and resets the policy's settings to default, while keeping the space's metadata (title, author, description, ...).
 
         This operation will:
         - Remove all documents (integrations, rules, decoders, kvdbs, filters, and the space's policy document) belonging to the given space.
-        - Re-generate the default policy for the given space.
+        - Re-generate the policy for the given space with default settings, preserving its metadata.
 
       operationId: deleteSpace
       parameters:
@@ -1491,6 +1491,75 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/SpaceBusy"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /space/{space}/normalization:
+    delete:
+      tags: [ Spaces ]
+      summary: Clear a space's normalization resources
+      description: |
+        Clears only the normalization resources (decoders, kvdbs, filters and the policy root
+        decoder) of the draft space, leaving the detection resources (rules) untouched. Integrations
+        left empty are removed; protected integrations are kept. Reuses the Reset space permission
+        (cluster:admin/content_manager/space/delete), so no new role grant is required.
+        Unlike a full reset, the policy's own settings (enrichments, enabled, the index_* flags and
+        metadata) are preserved; only resource references (root decoder, integrations, filters) are
+        cleared. Clearing normalization then detection empties the draft of every resource but keeps
+        those policy settings, which a full reset would reset.
+      operationId: clearSpaceNormalization
+      parameters:
+        - name: space
+          in: path
+          required: true
+          description: The name of the user space to clear.
+          schema:
+            type: string
+            enum:
+              - draft
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/SpaceBusy"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /space/{space}/detection:
+    delete:
+      tags: [ Spaces ]
+      summary: Clear a space's detection resources
+      description: |
+        Clears only the detection resources (rules) of the draft space, leaving the normalization
+        resources untouched. Integrations left empty are removed; protected integrations are kept.
+        Reuses the Reset space permission (cluster:admin/content_manager/space/delete), so no new
+        role grant is required. Unlike a full reset, the policy's own settings (enrichments, enabled,
+        the index_* flags and metadata) are preserved; only resource references are cleared.
+      operationId: clearSpaceDetection
+      parameters:
+        - name: space
+          in: path
+          required: true
+          description: The name of the user space to clear.
+          schema:
+            type: string
+            enum:
+              - draft
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/SpaceBusy"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -3007,6 +3076,21 @@ components:
                 status: 201
 
     # --- Error Responses ---
+    SpaceBusy:
+      description: |
+        Too Many Requests - another reset or scoped clear is already running on this space. The full
+        reset and the two scoped clears run one at a time per space (a space lock); retry shortly.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            busy:
+              summary: The space is being cleared concurrently
+              value:
+                message: "Too many concurrent requests clearing this space. Please retry."
+                status: 429
+
     BadRequest:
       description: |
         Bad Request - The request could not be processed due to invalid input.

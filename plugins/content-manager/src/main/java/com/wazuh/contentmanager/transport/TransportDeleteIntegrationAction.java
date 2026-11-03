@@ -120,7 +120,7 @@ public class TransportDeleteIntegrationAction extends AbstractTransportDeleteAct
             String id,
             IntegrationService integrationService,
             ActionListener<Void> listener) {
-        PolicyLinks.unlink(
+        PolicyDocumentWriter.unlink(
                 client,
                 Space.DRAFT.toString(),
                 Constants.KEY_INTEGRATIONS,

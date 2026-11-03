@@ -41,6 +41,11 @@ public class Constants {
     // REST API responses. Pattern: <type>_<http_status_code>_<name>. Type is: E for error, S for
     // success.
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
+    public static final String S_200_SPACE_RESET = "Successfully reset space [%s].";
+    public static final String S_200_CLEAR_NORMALIZATION =
+            "Successfully cleared normalization resources for space [%s].";
+    public static final String S_200_CLEAR_DETECTION =
+            "Successfully cleared detection resources for space [%s].";
     public static final String S_201_ACCESS_TOKEN_RECEIVED = "Access token received successfully.";
     public static final String S_200_PERMISSION_CHECK_ALLOWED =
             "Permission check passed: security plugin disabled.";
@@ -498,7 +503,7 @@ public class Constants {
             "Failed to record {} [{}] in the user overrides registry. The change itself is fine, but it"
                     + " will not survive the next content rebuild of the standard space: {}";
 
-    // Log messages - a policy's id lists (PolicyLinks)
+    // Log messages - a policy's id lists (PolicyDocumentWriter)
     public static final String D_LOG_POLICY_LINKS_CONFLICT =
             "Write of the [{}] policy's [{}] list conflicted on attempt {}; re-reading and retrying in {}.";
     public static final String W_LOG_POLICY_LINKS_RETRIES_EXHAUSTED =
@@ -910,6 +915,7 @@ public class Constants {
     public static final String KEY_CVES = "cves";
     public static final String KEY_FILTERS = "filters";
     public static final String KEY_ENRICHMENTS = "enrichments";
+    public static final String KEY_ROOT_DECODER = "root_decoder";
 
     // Pipeline phase keys (policy resources response)
     public static final String KEY_NORMALIZATION = "normalization";
@@ -1121,4 +1127,10 @@ public class Constants {
     // and PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS.
     public static final String E_429_RESOURCE_LOCK_TIMEOUT =
             "Too many concurrent requests creating this resource. Please retry.";
+
+    /** Lock type that serializes the full reset and the scoped clears on a single space. */
+    public static final String LOCK_TYPE_SPACE = "space";
+
+    public static final String E_429_SPACE_BUSY =
+            "Too many concurrent requests clearing this space. Please retry.";
 }

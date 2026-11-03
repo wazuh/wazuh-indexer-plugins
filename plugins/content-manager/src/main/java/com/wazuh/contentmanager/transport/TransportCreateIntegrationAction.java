@@ -191,7 +191,7 @@ public class TransportCreateIntegrationAction extends AbstractTransportCreateAct
             JsonNode root,
             IntegrationService integrationService,
             ActionListener<Void> listener) {
-        PolicyLinks.link(
+        PolicyDocumentWriter.link(
                 client,
                 Space.DRAFT.toString(),
                 Constants.KEY_INTEGRATIONS,
