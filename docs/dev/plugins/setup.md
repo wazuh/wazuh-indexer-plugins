@@ -360,7 +360,6 @@ Some data streams use their own dedicated templates instead of the shared `event
 | `wazuh-events-raw-v5`          | `templates/streams/raw.json`              | Stores original unprocessed events            |
 | `wazuh-active-responses`       | `templates/streams/active-responses.json` | Active Response execution requests            |
 | `wazuh-ai-assistant-sessions`  | `templates/streams/ai-assistant-sessions.json` | AI assistant conversation history        |
-| `security-auditlogs`            | `templates/streams/security-auditlogs.json` | Security plugin audit events             |
 
 These are registered with the two-arg constructor:
 
@@ -368,15 +367,7 @@ These are registered with the two-arg constructor:
 new StreamIndex("wazuh-events-raw-v5", "templates/streams/raw");
 new StreamIndex("wazuh-active-responses", "templates/streams/active-responses");
 new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-sessions");
-new StreamIndex("security-auditlogs", "templates/streams/security-auditlogs");
 ```
-
-The security plugin writes to `security-auditlogs` when `plugins.security.audit.type` is `internal_opensearch_data_stream` and `plugins.security.audit.config.data_stream.name` is `security-auditlogs`, as the packaged `opensearch.yml` sets. The security plugin can create that data stream itself on the first audit event, but the backing index would then have no retention policy, so the setup plugin creates it first. The template is generated from the `wcs/stateless/security-auditlogs` WCS module. The security plugin sets the field names, so they don't follow ECS: the module declares them as custom root-level fields. Two details of the template depend on the security plugin:
-
-- **`priority: 1`.** On every node start the security plugin puts its own template, `opensearch-security-auditlog`, for the same data stream at priority 0. That put fails if another matching template has the same priority, and the security plugin then drops every audit event.
-- **`dynamic: false`, with the header and parameter fields as `flat_object`.** Audit events carry the request's headers and URL parameters, whose names the client chooses, including on requests that fail authentication. Mapping them dynamically would let any client fill the field limit, after which every audit event is rejected. Fields the template doesn't map are kept in `_source`.
-
-The name stays outside `wazuh-*` on purpose: the `dashboard_server` role reads `wazuh-*` on behalf of every dashboard user.
 
 ---
 
@@ -537,6 +528,36 @@ The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
    - Transition Condition: Transitions to `delete` once the index reaches an age of 30 days
+
+2. **Delete State**
+   - Actions: Deletes the index
+   - Retry Policy: 3 attempts with exponential backoff (1-minute initial delay)
+
+---
+
+## Security audit log ISM policy (`security-auditlogs-policy`)
+
+### Overview
+
+The **security-auditlogs-policy** manages the `security-auditlogs` data stream, where the security plugin writes audit events: the packaged `opensearch.yml` sets `plugins.security.audit.type` to `internal_opensearch_data_stream` and `plugins.security.audit.config.data_stream.name` to `security-auditlogs`. Rolled-over indices are deleted once they reach 90 days of age. See [Retention](../../ref/modules/setup/retention.md).
+
+Unlike the other streams, the setup plugin creates neither this data stream nor an index template for it. The security plugin creates the data stream on the first audit event, from its own index template `opensearch-security-auditlog` (one shard, no replicas, no field mappings), and the policy's `ism_template` attaches it to each backing index. If the first audit event arrives before the setup plugin has indexed the policy, the ISM background sweep attaches it later.
+
+The name stays outside `wazuh-*` on purpose: the `dashboard_server` role reads `wazuh-*` on behalf of every dashboard user.
+
+### Policy details
+- **Policy Name**: `security-auditlogs-policy`
+- **Location**: `plugins/setup/src/main/resources/policies/security-auditlogs-policy.json`
+- **Index Pattern**: `.ds-security-auditlogs-*`, `security-auditlogs*`
+- **Deletion age**: 90 days
+- **Rollover Conditions**: 30 days of age, 20 GB primary shard size or 200,000,000 documents
+- **ISM template priority**: 0
+
+### Policy states
+
+1. **Hot State**
+   - Actions: Rollover after 30 days, or earlier when the primary shard reaches 20 GB or 200M documents
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 90 days
 
 2. **Delete State**
    - Actions: Deletes the index

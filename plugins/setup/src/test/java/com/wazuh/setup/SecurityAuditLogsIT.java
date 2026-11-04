@@ -31,20 +31,20 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 
 /**
- * Integration tests verifying that the setup plugin creates the security audit log resources: the
- * {@code security-auditlogs} data stream, its index template and its ISM policy. The test cluster
- * has no security plugin, so the audit sink itself is not exercised here; the documents indexed
- * below have the shape of the security plugin's audit messages.
+ * Integration tests for the retention of the security audit log. The security plugin creates the
+ * {@code security-auditlogs} data stream itself, from its own index template, on the first audit
+ * event; the setup plugin only ships the ISM policy that manages it. The test cluster has no
+ * security plugin, so the tests create the template and the data stream the way the security
+ * plugin does.
  */
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 public class SecurityAuditLogsIT extends OpenSearchRestTestCase {
 
     private static final String AUDIT_DATA_STREAM = "security-auditlogs";
-    private static final String AUDIT_TEMPLATE = AUDIT_DATA_STREAM + "-template";
     private static final String AUDIT_POLICY = "security-auditlogs-policy";
+    private static final String SECURITY_PLUGIN_TEMPLATE = "opensearch-security-auditlog";
     private static final String SETTINGS_INDEX = ".wazuh-settings";
 
     private static final int MAX_WAIT_SECONDS = 120;
@@ -63,7 +63,7 @@ public class SecurityAuditLogsIT extends OpenSearchRestTestCase {
 
     /**
      * Preserves data streams upon test completion. The SetupPlugin creates data streams during
-     * initialization, and these need to persist across all tests in this class.
+     * initialization, and these need to persist across all tests.
      *
      * @return true to preserve data streams
      */
@@ -118,42 +118,6 @@ public class SecurityAuditLogsIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * Verifies that the audit log data stream is created during plugin initialization, before the
-     * security plugin's first audit event would create it without the retention policy.
-     *
-     * @throws IOException if there is an issue with the HTTP request
-     * @throws ParseException if there is an issue parsing the response
-     */
-    public void testAuditDataStreamCreated() throws IOException, ParseException {
-        Response response =
-                client().performRequest(new Request("GET", "/_data_stream/" + AUDIT_DATA_STREAM));
-        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-
-        logger.info("Data stream response for [{}]: {}", AUDIT_DATA_STREAM, body);
-        assertThat(body, containsString(".ds-" + AUDIT_DATA_STREAM));
-    }
-
-    /**
-     * Verifies that the audit log index template carries the ISM policy and a priority above 0. The
-     * security plugin puts its own template for the same data stream at priority 0 on every node
-     * start, and that put fails when another template matching the name has the same priority,
-     * which stops audit logging altogether.
-     *
-     * @throws IOException if there is an issue with the HTTP request
-     * @throws ParseException if there is an issue parsing the response
-     */
-    public void testAuditTemplateCreated() throws IOException, ParseException {
-        Response response =
-                client().performRequest(new Request("GET", "/_index_template/" + AUDIT_TEMPLATE));
-        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
-
-        logger.info("Template response for [{}]: {}", AUDIT_TEMPLATE, body);
-        assertThat(body, containsString("\"priority\":1"));
-        assertThat(body, containsString("\"dynamic\":false"));
-        assertThat(body, containsString(AUDIT_POLICY));
-    }
-
-    /**
      * Verifies that the audit log ISM policy is indexed with a monthly rollover and a 90-day retention.
      *
      * @throws IOException if there is an issue with the HTTP request
@@ -171,63 +135,49 @@ public class SecurityAuditLogsIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * Verifies that an audit message is stored and searchable by its mapped fields, and that the
-     * request headers, whose names the client chooses, do not become fields of the mapping. A
-     * client sending made-up headers on unauthenticated requests could otherwise fill the field
-     * limit, after which every audit event is rejected.
+     * Verifies that the audit log data stream, created as the security plugin creates it, is managed
+     * by the audit log ISM policy. The security plugin puts its own template for the data stream at
+     * the default priority, which fails if another template matching the name has the same priority,
+     * so the put also proves that the setup plugin ships no such template.
      *
-     * @throws IOException if there is an issue with the HTTP request
-     * @throws ParseException if there is an issue parsing the response
+     * @throws Exception if there is an issue with the HTTP requests or the wait is interrupted
      */
-    public void testAuditMessageIsStoredWithoutMappingHeaderNames() throws IOException, ParseException {
-        Request index = new Request("POST", "/" + AUDIT_DATA_STREAM + "/_doc");
-        index.addParameter("refresh", "true");
-        index.setJsonEntity(
+    public void testSecurityPluginDataStreamIsManagedByAuditPolicy() throws Exception {
+        Request template = new Request("PUT", "/_index_template/" + SECURITY_PLUGIN_TEMPLATE);
+        template.setJsonEntity(
                 """
                 {
-                  "@timestamp": "2026-08-05T10:00:00.000Z",
-                  "audit_format_version": 4,
-                  "audit_category": "FAILED_LOGIN",
-                  "audit_request_layer": "REST",
-                  "audit_request_effective_user": "audit-test-user",
-                  "audit_request_effective_user_is_admin": false,
-                  "audit_request_remote_address": "192.0.2.10",
-                  "audit_rest_request_path": "/_plugins/_security/authinfo",
-                  "audit_rest_request_method": "GET",
-                  "audit_rest_request_headers": {"X-Made-Up-Header-1": ["a"], "X-Made-Up-Header-2": ["b"]},
-                  "audit_field_unknown_to_the_template": "kept in _source"
+                  "index_patterns": ["security-auditlogs"],
+                  "data_stream": {"timestamp_field": {"name": "@timestamp"}},
+                  "template": {"settings": {"number_of_shards": 1, "number_of_replicas": 0}}
                 }
                 """);
-        client().performRequest(index);
+        client().performRequest(template);
 
-        Request search = new Request("GET", "/" + AUDIT_DATA_STREAM + "/_search");
-        search.setJsonEntity(
-                """
-                {
-                  "query": {
-                    "bool": {
-                      "filter": [
-                        {"term": {"audit_category": "FAILED_LOGIN"}},
-                        {"term": {"audit_request_effective_user": "audit-test-user"}}
-                      ]
-                    }
-                  }
-                }
-                """);
-        String hits =
-                EntityUtils.toString(
-                        client().performRequest(search).getEntity(), StandardCharsets.UTF_8);
-        logger.info("Audit search response: {}", hits);
-        assertThat(hits, containsString("\"audit_field_unknown_to_the_template\""));
+        try {
+            client().performRequest(new Request("PUT", "/_data_stream/" + AUDIT_DATA_STREAM));
+        } catch (ResponseException e) {
+            String error = EntityUtils.toString(e.getResponse().getEntity(), StandardCharsets.UTF_8);
+            assertThat(error, containsString("resource_already_exists_exception"));
+        }
 
-        String mapping =
-                EntityUtils.toString(
-                        client()
-                                .performRequest(new Request("GET", "/" + AUDIT_DATA_STREAM + "/_mapping"))
-                                .getEntity(),
-                        StandardCharsets.UTF_8);
-        logger.info("Audit mapping response: {}", mapping);
-        assertThat(mapping, not(containsString("X-Made-Up-Header-1")));
-        assertThat(mapping, not(containsString("audit_field_unknown_to_the_template")));
+        String explain = "";
+        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(MAX_WAIT_SECONDS);
+        while (System.currentTimeMillis() < deadline) {
+            explain =
+                    EntityUtils.toString(
+                            client()
+                                    .performRequest(
+                                            new Request(
+                                                    "GET", "/_plugins/_ism/explain/.ds-" + AUDIT_DATA_STREAM + "-*"))
+                                    .getEntity(),
+                            StandardCharsets.UTF_8);
+            if (explain.contains(AUDIT_POLICY)) {
+                break;
+            }
+            Thread.sleep(POLL_INTERVAL_MS);
+        }
+        logger.info("ISM explain response for [{}]: {}", AUDIT_DATA_STREAM, explain);
+        assertThat(explain, containsString(AUDIT_POLICY));
     }
 }

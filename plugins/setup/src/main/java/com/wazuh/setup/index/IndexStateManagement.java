@@ -52,6 +52,9 @@ public class IndexStateManagement extends Index {
     static final String ACTIVE_RESPONSES_POLICY = "stream-active-responses-policy";
     static final String METRICS_POLICY = "stream-metrics-policy";
     static final String AI_ASSISTANT_SESSIONS_POLICY = "ai-assistant-sessions-policy";
+    // The security plugin creates the security-auditlogs data stream itself, from its own index
+    // template, on the first audit event. The policy's ism_template attaches it to every backing
+    // index; the setup plugin creates no template or data stream for it.
     static final String SECURITY_AUDITLOGS_POLICY = "security-auditlogs-policy";
 
     /** Base path for ISM policy files */

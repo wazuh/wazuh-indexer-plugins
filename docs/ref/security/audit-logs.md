@@ -11,7 +11,7 @@ plugins.security.audit.type: internal_opensearch_data_stream
 plugins.security.audit.config.data_stream.name: security-auditlogs
 ```
 
-The Setup plugin creates the data stream and its index template at startup, and manages it with the `security-auditlogs-policy` ISM policy: the backing index rolls over monthly and each one is deleted at 90 days of age. See [Retention](../modules/setup/retention.md) to keep the events for a different period.
+The security plugin creates the data stream on the first audit event, from its own index template (`opensearch-security-auditlog`). The Setup plugin ships the `security-auditlogs-policy` ISM policy, which manages the data stream: the backing index rolls over monthly and each one is deleted at 90 days of age. See [Retention](../modules/setup/retention.md) to keep the events for a different period.
 
 Only users with access to the `security-auditlogs` data stream can read the events. By default that is the `admin` user (`all_access`). The data stream name is deliberately outside `wazuh-*`, which the Wazuh Dashboard reads on behalf of every dashboard user.
 
@@ -23,7 +23,7 @@ Only users with access to the `security-auditlogs` data stream can read the even
 
 ## Viewing the events
 
-In the Wazuh Dashboard, create an index pattern for `security-auditlogs*` with `@timestamp` as the time field, and open it in **Discover**. The [`stateless/security-auditlogs`](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/wcs/stateless/security-auditlogs/docs/fields.csv) WCS module describes every mapped field. Useful fields:
+In the Wazuh Dashboard, create an index pattern for `security-auditlogs*` with `@timestamp` as the time field, and open it in **Discover**. The security plugin's template defines no field mappings, so OpenSearch maps each field from the first event that carries it. Text fields get a `.keyword` sub-field for exact matches and aggregations, for example `audit_category.keyword`. Useful fields:
 
 | Field | Content |
 | --- | --- |
@@ -48,7 +48,7 @@ To record successful logins too, enable the `AUTHENTICATED` category, and check 
 
 ## Enabling audit logs on an existing installation
 
-Package upgrades keep the installed `opensearch.yml`, so installations created before this setting was shipped don't store audit events. The upgraded Setup plugin already creates the `security-auditlogs` data stream and its retention policy; only the node setting is missing.
+Package upgrades keep the installed `opensearch.yml`, so installations created before this setting was shipped don't store audit events. The upgraded Setup plugin already ships the retention policy; only the node setting is missing.
 
 1. On every node, add these lines to `/etc/wazuh-indexer/opensearch.yml`:
 
