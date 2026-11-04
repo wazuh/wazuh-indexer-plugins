@@ -101,7 +101,10 @@ it to `artifacts/dist/` under the name given with `-n`.
    [Security](plugins/security.md)), deletes the demo users and role mappings the product does not
    use, replaces the `admin` and `kibanaserver` hashes with credential placeholders (see
    [How a password reaches the cluster](#how-a-password-reaches-the-cluster)) and disables
-   multi-tenancy. It then installs `opensearch.prod.yml` as `opensearch.yml`, and removes
+   multi-tenancy. It inserts `auth_failure_listeners.wazuh.yml` under `config.dynamic` in
+   `config.yml`, which enables the rate limiting of failed logins per user (see
+   [Rate limiting of failed logins](../ref/security/index.md#rate-limiting-of-failed-logins)), and
+   stops the build if upstream moved `config.dynamic` or already defines the key. It then installs `opensearch.prod.yml` as `opensearch.yml`, and removes
    symbolic links, `.bat` files and the Security plugin's `install_demo_configuration.sh`.
 6. Builds the installation assistant tools from that repository's sources: `config.yml`,
    `wazuh-passwords-tool.sh` and `wazuh-certs-tool.sh` go into `tools/`, with the indexer's own
