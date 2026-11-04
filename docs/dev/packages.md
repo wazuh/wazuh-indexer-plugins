@@ -510,8 +510,8 @@ renaming a fresh file over whatever the entry is, and a link is not read as a ma
 rule covers the SysV script, which reads a pid from a file the service account owns and therefore
 confirms the process is the indexer's before signalling it.
 
-`path.repo` names `/var/lib/wazuh-indexer/backup`, the only directory a filesystem snapshot
-repository may be registered under, so that backing up the data needs no edit of `opensearch.yml`
+`path.repo` names `/var/lib/wazuh-indexer/backup`, the default location for filesystem snapshot
+repositories, so that backing up the data needs no edit of `opensearch.yml`
 and no restart. The package creates it empty and writes nothing to it, as a directory entry of its
 own, so a purge takes it back when nothing was ever written there and keeps it when it holds
 snapshots. It is a directory of this node's own making, inside one the package manages, so the
