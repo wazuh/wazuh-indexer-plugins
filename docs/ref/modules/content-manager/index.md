@@ -28,7 +28,7 @@ These behaviors are configurable in `opensearch.yml`:
 - **`plugins.content_manager.catalog.update_on_schedule`** (Boolean, default `true`, dynamic) — whether the periodic sync runs at all.
 - **`plugins.content_manager.catalog.sync_interval`** (Integer, default `60`, dynamic) — how often periodic sync runs, in minutes.
 
-The last two are dynamic: they can be changed on a running deployment through the Cluster Settings API, and take effect without a restart. See [Configuration](configuration.md#offline-configuration--disabling-automatic-updates) for turning scheduled updates off.
+The last two are dynamic: they can be changed on a running deployment through the Cluster Settings API, and take effect without a restart. See [Configuration](configuration.md#disabling-automatic-updates) for turning scheduled updates off.
 
 When telemetry is enabled (the default), the plugin also sends a daily heartbeat to the Wazuh CTI service with the cluster UUID and the deployed Wazuh version. This powers the update notification shown in the Wazuh Dashboard when a newer release is available. To opt out, set `plugins.content_manager.telemetry.enabled` to `false`.
 

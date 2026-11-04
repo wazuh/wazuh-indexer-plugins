@@ -459,7 +459,7 @@ public class ContentManagerPlugin extends Plugin
                                         // 3. Initialize
                                         ContentManagerPlugin.this.catalogSyncJob.triggerOnStartup();
                                     } else {
-                                        log.debug(Constants.D_LOG_SKIP_CATALOG_SYNC_TRIGGER);
+                                        log.info(Constants.I_LOG_CATALOG_SYNC_SKIPPED_ON_START);
                                     }
                                     ContentManagerPlugin.this.scheduleCatalogSyncJob();
                                     ContentManagerPlugin.this.scheduleTelemetryPingJob();
