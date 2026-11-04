@@ -12,8 +12,8 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.max_bulk_bytes`** (Long, default `5242880` / 5 MB, range 1048576–104857600 / 1–100 MB) — maximum request body size, in bytes, for a single bulk indexing request.
 - **`plugins.content_manager.logtest.max_body_bytes`** (Long, default `1048576` / 1 MiB, range 1024–16777216 / 1 KiB–16 MiB, dynamic) — maximum size, in bytes, of a logtest request body (`POST /logtest`, `/logtest/normalization`, `/logtest/detection`). Requests whose body exceeds this are rejected with HTTP 413 at the REST layer, before parsing or dispatch, so an oversized event cannot be amplified into the response and exhaust the indexer's heap.
 - **`plugins.content_manager.client.timeout`** (Long, default `10`, range 10–50) — HTTP client timeout in seconds for CTI API requests.
-- **`plugins.content_manager.client.max_retries`** (Integer, default `3`, range 0–10) — number of times a CTI API request is retried after an HTTP 429 (Too Many Requests) response, before the 429 is returned to the caller.
-- **`plugins.content_manager.client.retry_backoff_base_seconds`** (Integer, default `30`, range 1–300) — base delay, in seconds, for the exponential backoff used between 429 retries when the response carries no usable `Retry-After` header (delay for retry `n` is `base * 2^n`).
+- **`plugins.content_manager.client.max_retries`** (Integer, default `3`, range 0–10) — number of times a CTI API request is retried after an HTTP 429 (Too Many Requests) response, a timeout or a closed or reset connection, before the 429 or the error is returned to the caller. Both kinds of retry share this budget.
+- **`plugins.content_manager.client.retry_backoff_base_seconds`** (Integer, default `30`, range 1–300) — base delay, in seconds, for the exponential backoff used between retries after a timeout or a closed or reset connection, and after a 429 whose response carries no usable `Retry-After` header (delay for retry `n` is `base * 2^n`).
 - **`plugins.content_manager.pit_keepalive`** (Long, default `120`, range 60–600) — point-in-time keepalive in seconds used during paginated index scans.
 - **`plugins.content_manager.engine.mock`** (Boolean, default `false`) — bypasses real Engine socket calls, returning mocked responses instead. Intended for testing only.
 - **`plugins.content_manager.catalog.update_on_start`** (Boolean, default `true`) — trigger content sync when the plugin starts.
@@ -147,11 +147,13 @@ plugins.content_manager.setup_wait.backoff_base_seconds: 30
 
 The example above raises the total worst-case wait to 30+60+120+240 = 450s (7.5 min).
 
-### CTI rate-limit retries (HTTP 429)
+### CTI request retries
 
 When the CTI API rate-limits a request it responds with HTTP 429 and a `Retry-After` header. The HTTP client honors that header: it waits the indicated time and retries the request, so a rate-limit no longer fails the synchronization pass. If the response carries no usable `Retry-After` header, it falls back to exponential backoff (`base * 2^n`).
 
-The behavior is controlled by `plugins.content_manager.client.max_retries` and `plugins.content_manager.client.retry_backoff_base_seconds`. With the defaults (3 retries, 30s base), the fallback schedule is 30s, 60s, 120s — 210s (3.5 min) worst case before the 429 is surfaced and the pass defers to the next scheduled run:
+The client also retries a request that times out (`plugins.content_manager.client.timeout`) or whose connection is closed or reset before the response arrives, such as the slow download of a large `/changes` page. These retries always use the exponential backoff and share the retry budget with the 429 retries, so a request makes at most `max_retries + 1` attempts whatever made them fail. Only `GET` requests are retried this way.
+
+The behavior is controlled by `plugins.content_manager.client.max_retries` and `plugins.content_manager.client.retry_backoff_base_seconds`. With the defaults (3 retries, 30s base), the fallback schedule is 30s, 60s, 120s — 210s (3.5 min) worst case before the 429 or the error is surfaced and the pass defers to the next scheduled run:
 
 ```yaml
 # opensearch.yml

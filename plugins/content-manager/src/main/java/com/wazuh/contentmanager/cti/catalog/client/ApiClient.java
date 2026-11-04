@@ -22,9 +22,12 @@ import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.utils.DateUtils;
+import org.apache.hc.core5.http.ConnectionClosedException;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Method;
+import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.ssl.TLS;
 import org.apache.hc.core5.io.CloseMode;
@@ -36,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.util.concurrent.FutureUtils;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -243,8 +247,8 @@ public class ApiClient implements AutoCloseable {
      * Retrieves available release updates for a given version tag from the CTI API.
      *
      * <p>Serves an interactive request, so it makes a single attempt: a 429 is returned to the caller
-     * instead of being slept off, keeping the call bounded by one {@link
-     * PluginSettings#getClientTimeout()}.
+     * instead of being slept off, and a failed exchange is not retried, keeping the call bounded by
+     * one {@link PluginSettings#getClientTimeout()}.
      *
      * @param tag The release tag to query updates for (e.g., "v5.0.0").
      * @return A {@link SimpleHttpResponse} containing the API response with available updates.
@@ -264,15 +268,15 @@ public class ApiClient implements AutoCloseable {
     }
 
     /**
-     * Executes an HTTP request, retrying on HTTP 429 up to {@link
+     * Executes an HTTP request, retrying on HTTP 429 and on transient transport errors up to {@link
      * PluginSettings#getClientMaxRetries()} times.
      *
      * @param request the request to execute.
      * @return the {@link SimpleHttpResponse} of the first non-429 attempt, or the last 429 response
      *     if all retries are exhausted.
-     * @throws ExecutionException If the computation threw an exception.
+     * @throws ExecutionException If an attempt failed and was not retried.
      * @throws InterruptedException If the current thread was interrupted while waiting.
-     * @throws TimeoutException If a single attempt exceeded the client timeout.
+     * @throws TimeoutException If an attempt exceeded the client timeout and was not retried.
      * @see #executeWithRetry(SimpleHttpRequest, int)
      */
     SimpleHttpResponse executeWithRetry(SimpleHttpRequest request)
@@ -281,45 +285,84 @@ public class ApiClient implements AutoCloseable {
     }
 
     /**
-     * Executes an HTTP request, retrying on HTTP 429 (Too Many Requests) responses.
+     * Executes an HTTP request, retrying on HTTP 429 (Too Many Requests) responses and on transient
+     * transport errors.
      *
      * <p>Each attempt blocks up to {@link PluginSettings#getClientTimeout()} seconds on a single
      * round-trip. When the API responds with 429 and retries remain, the wait is derived from the
      * {@code Retry-After} header (or an exponential-backoff fallback) via {@link
-     * #computeRetryDelaySeconds}, slept off on the calling thread, and the request is re-issued.
-     * Retries are bounded by {@code maxRetries}; once exhausted the last 429 response is returned to
-     * the caller, which handles the non-200 status as before.
+     * #computeRetryDelaySeconds}, slept off on the calling thread, and the request is re-issued. A
+     * {@code GET} that times out or whose connection is closed or reset (see {@link
+     * #isTransientFailure}) is re-issued the same way after {@link #computeBackoffSeconds}. The async
+     * client's own retry strategy does not retry a closed connection, and a wait inside it would run
+     * against the {@code future.get(...)} deadline of the attempt.
+     *
+     * <p>Both kinds of retry share {@code maxRetries}. Once it is exhausted, the last 429 response is
+     * returned to the caller, which handles the non-200 status as before, and the last transport
+     * error is rethrown unchanged.
      *
      * @param request the request to execute.
-     * @param maxRetries the number of 429 retries allowed; {@code 0} makes a single attempt.
+     * @param maxRetries the number of retries allowed; {@code 0} makes a single attempt.
      * @return the {@link SimpleHttpResponse} of the first non-429 attempt, or the last 429 response
      *     if all retries are exhausted.
-     * @throws ExecutionException If the computation threw an exception.
+     * @throws ExecutionException If an attempt failed and was not retried.
      * @throws InterruptedException If the current thread was interrupted while waiting.
-     * @throws TimeoutException If a single attempt exceeded the client timeout.
+     * @throws TimeoutException If an attempt exceeded the client timeout and was not retried.
      */
     SimpleHttpResponse executeWithRetry(SimpleHttpRequest request, int maxRetries)
             throws ExecutionException, InterruptedException, TimeoutException {
         long clientTimeout = PluginSettings.getInstance().getClientTimeout();
 
-        SimpleHttpResponse response = null;
-        for (int attempt = 0; attempt <= maxRetries; attempt++) {
-            response = this.executeOnce(request, clientTimeout);
-
-            if (response.getCode() != HttpStatus.SC_TOO_MANY_REQUESTS || attempt == maxRetries) {
-                return response;
+        for (int attempt = 0; ; attempt++) {
+            long delaySeconds;
+            try {
+                SimpleHttpResponse response = this.executeOnce(request, clientTimeout);
+                if (response.getCode() != HttpStatus.SC_TOO_MANY_REQUESTS || attempt >= maxRetries) {
+                    return response;
+                }
+                delaySeconds = this.computeRetryDelaySeconds(response, attempt);
+                log.warn(
+                        Constants.W_LOG_CTI_RATE_LIMITED,
+                        request.getRequestUri(),
+                        delaySeconds,
+                        attempt + 1,
+                        maxRetries);
+            } catch (ExecutionException | TimeoutException e) {
+                if (attempt >= maxRetries || !isTransientFailure(request, e)) {
+                    throw e;
+                }
+                delaySeconds = this.computeBackoffSeconds(attempt);
+                log.warn(
+                        Constants.W_LOG_CTI_TRANSIENT_ERROR,
+                        request.getRequestUri(),
+                        e.getMessage(),
+                        delaySeconds,
+                        attempt + 1,
+                        maxRetries);
             }
-
-            long delaySeconds = this.computeRetryDelaySeconds(response, attempt);
-            log.warn(
-                    Constants.W_LOG_CTI_RATE_LIMITED,
-                    request.getRequestUri(),
-                    delaySeconds,
-                    attempt + 1,
-                    maxRetries);
             Thread.sleep(TimeUnit.SECONDS.toMillis(delaySeconds));
         }
-        return response;
+    }
+
+    /**
+     * Tells whether a failed attempt can be retried: the request must be an idempotent {@code GET},
+     * and the attempt must have timed out or failed because the connection was closed, got no
+     * response, or was reset.
+     *
+     * @param request the request that failed.
+     * @param e the exception thrown by {@link #executeOnce}.
+     * @return {@code true} if the request can be re-issued.
+     */
+    static boolean isTransientFailure(SimpleHttpRequest request, Exception e) {
+        if (!Method.GET.isSame(request.getMethod())) {
+            return false;
+        }
+        Throwable cause = e.getCause();
+        return e instanceof TimeoutException
+                || cause instanceof ConnectionClosedException
+                || cause instanceof NoHttpResponseException
+                || (cause instanceof SocketException
+                        && String.valueOf(cause.getMessage()).contains("Connection reset"));
     }
 
     /**
@@ -358,16 +401,14 @@ public class ApiClient implements AutoCloseable {
      *
      * <p>A positive {@code Retry-After} header (parsed as delta-seconds or an RFC-1123 HTTP-date) is
      * honored verbatim. Only when {@code Retry-After} is missing, unparseable, or non-positive does
-     * the method fall back to exponential backoff ({@code base * 2^attempt}). The total number of
-     * retries is bounded by {@code max_retries}.
+     * the method fall back to {@link #computeBackoffSeconds}. The total number of retries is bounded
+     * by {@code max_retries}.
      *
      * @param response the 429 response.
      * @param attempt the zero-based retry attempt index (drives the backoff fallback).
      * @return the wait in seconds, never negative.
      */
     long computeRetryDelaySeconds(SimpleHttpResponse response, int attempt) {
-        PluginSettings settings = PluginSettings.getInstance();
-
         long retryAfter = -1;
         Header header = response.getFirstHeader(HttpHeaders.RETRY_AFTER);
         if (header != null && header.getValue() != null) {
@@ -388,6 +429,17 @@ public class ApiClient implements AutoCloseable {
         }
 
         // Missing, unparseable, or non-positive (e.g. CTI's bogus Retry-After: 0): exponential backoff.
-        return (long) settings.getClientRetryBackoffBaseSeconds() * (1L << attempt);
+        return this.computeBackoffSeconds(attempt);
+    }
+
+    /**
+     * Computes the exponential backoff before the next retry, in seconds: {@code base * 2^attempt},
+     * where {@code base} is {@link PluginSettings#getClientRetryBackoffBaseSeconds()}.
+     *
+     * @param attempt the zero-based retry attempt index.
+     * @return the wait in seconds.
+     */
+    long computeBackoffSeconds(int attempt) {
+        return (long) PluginSettings.getInstance().getClientRetryBackoffBaseSeconds() * (1L << attempt);
     }
 }
