@@ -166,7 +166,7 @@ Each item in the list is an alternative, as if separated by a logical "OR": the 
 - **Only against indexed fields.** `event.original` is stored but not indexed, so a keyword never matches it. To match the raw log line, have the decoder copy it into `message` and match that field.
 
 > [!NOTE]
-> The `index.query.default_field` setting of the `wazuh-events-v5-*` indices does not limit a `keywords` rule. That setting only applies to searches run directly on the events indices, such as a free-text search in Discover. A detector evaluates each event against its own query index, which searches every field of the event.
+> The `index.query.default_field` setting of the `wazuh-events-v5-*` indices does not limit a `keywords` rule. That setting only applies to searches run directly on the events indices, such as a free-text search in Discover. Detectors and log test evaluate each event against their own query index, where a keyword is matched against every indexed field of the event.
 
 When the field holding the value is known, a field condition such as `message|contains: OperationalError` states the intent more clearly than a keyword.
 
