@@ -33,6 +33,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,check,check.mitre.technique.id,keyword,custom,array,"[""T1059"", ""T1562""]",MITRE ATT&CK technique identifiers.
 9.1.0,true,check,check.mitre.technique.name,keyword,custom,array,"[""Command and Scripting Interpreter"", ""Impair Defenses""]",MITRE ATT&CK technique names.
 9.1.0,true,check,check.name,keyword,custom,,Ensure 'Enforce password history' is set to '24 or more password(s)'.,The name of the SCA policy check.
+9.1.0,true,check,check.previous.result,keyword,custom,,Passed,"Result of the check before it changed, e.g. `Passed` before a check starts failing."
 9.1.0,true,check,check.rationale,keyword,custom,,"""The longer a user uses the same password, the more likely it is that the password will be compromised.""",The reason for the check. Why it is important.
 9.1.0,true,check,check.reason,keyword,custom,,"""The password history setting is not set to 24 or more password(s).""",Reason for the check result.
 9.1.0,true,check,check.references,keyword,custom,array,"[""https://workbench.cisecurity.org""]",References for the check.
