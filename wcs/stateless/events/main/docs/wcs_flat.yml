@@ -3467,7 +3467,6 @@ error.message:
   dashed_name: error-message
   description: Error message.
   flat_name: error.message
-  ignore_above: 4096
   level: core
   name: message
   normalize: []
@@ -3476,7 +3475,7 @@ error.message:
     relation: equivalent
     stability: stable
   short: Error message.
-  type: keyword
+  type: match_only_text
 error.stack_trace:
   dashed_name: error-stack-trace
   description: The stack trace of this error in plain text.
@@ -8013,10 +8012,12 @@ message:
     the original log (for example, the free-text part of a syslog line) or composed
     from other fields when the source is structured. Not every decoder sets it.
 
+    The field is `match_only_text`: a free-text search with no field name matches
+    any word of it, but it cannot be aggregated or sorted.
+
     The complete raw log, as received by the Wazuh Engine, is in `event.original`.'
   example: 'pam_unix(sshd:session): session opened for user vagrant(uid=1000) by (uid=0)'
   flat_name: message
-  ignore_above: 4096
   level: core
   name: message
   normalize: []
@@ -8026,9 +8027,9 @@ message:
     otlp_field: body
     relation: otlp
     stability: stable
-  short: Human-readable message extracted by the decoder. The complete raw log is
-    in `event.original`.
-  type: keyword
+  short: Human-readable message extracted by the decoder. Searchable by word. The
+    complete raw log is in `event.original`.
+  type: match_only_text
 mitre.subtechnique:
   dashed_name: mitre-subtechnique
   description: MITRE ATT&CK subtechniques.

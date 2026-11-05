@@ -173,7 +173,9 @@ The Wazuh Engine sets `event.original`, and Ruleset Management adds two fields t
 - **`event.original`** — the log as the Wazuh Engine received it, before decoding. It is not indexed: it cannot be searched or aggregated, only read from `_source`, so search the decoded fields instead. In raw events it keeps the `<queue>:<location>:` prefix the agent adds.
 - **`event.doc_id`** and **`event.index`** — on findings, the `_id` of the event that matched and the backing index that holds it. See [Findings](#findings).
 
-`message` holds a human-readable message that the decoder extracts from the log, such as the free-text part of a syslog line, or composes from other fields. Not every decoder sets it, and it never replaces `event.original`. It is mapped as `keyword`, so a query on it matches the whole value: use a `wildcard` query to find a word inside it. Values longer than 4096 characters are stored but not indexed.
+`message` holds a human-readable message that the decoder extracts from the log, such as the free-text part of a syslog line, or composes from other fields. Not every decoder sets it, and it never replaces `event.original`. It is mapped as `match_only_text`, so a query on it matches any word of it, but it cannot be aggregated or sorted.
+
+`error.message` is mapped as `match_only_text` too. `message` and `error.message` are in the `index.query.default_field` of events and findings: a free-text search with no field name, such as typing `failed password` in the Dashboard search bar, matches a word of either one. Other text fields, such as `wazuh.rule.title`, stay `keyword` so they can be aggregated: a query on them matches the whole value, or a prefix with `wazuh.rule.title:Failed*`.
 
 ## Findings
 

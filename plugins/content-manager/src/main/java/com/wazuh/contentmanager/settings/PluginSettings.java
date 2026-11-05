@@ -104,9 +104,10 @@ public class PluginSettings {
     private static final int DEFAULT_SETUP_WAIT_MAX_RETRIES = 4;
     private static final int DEFAULT_SETUP_WAIT_BACKOFF_BASE_SECONDS = 20;
 
-    // Defaults for the CTI HTTP client 429 (Too Many Requests) retry loop in ApiClient. On a 429 the
-    // client honors the server Retry-After header (in practice the CTI API asks for ~30-60s); only
-    // when that header is absent does it fall back to exponential backoff (base * 2^attempt).
+    // Defaults for the CTI HTTP client retry loop in ApiClient, which retries 429 (Too Many Requests)
+    // responses and GETs that time out or lose their connection. On a 429 the client honors the
+    // server Retry-After header (in practice the CTI API asks for ~30-60s); only when that header is
+    // absent, and after a transport error, does it use exponential backoff (base * 2^attempt).
     private static final int DEFAULT_CLIENT_MAX_RETRIES = 3;
     private static final int DEFAULT_CLIENT_RETRY_BACKOFF_BASE_SECONDS = 30;
 
@@ -361,7 +362,8 @@ public class PluginSettings {
 
     /**
      * Maximum number of retries the CTI HTTP client performs when the API responds with HTTP 429 (Too
-     * Many Requests), before returning the 429 response to the caller.
+     * Many Requests), or when a GET times out or its connection is closed or reset, before returning
+     * the 429 response or the error to the caller. Both kinds of retry share this budget.
      */
     public static final Setting<Integer> CLIENT_MAX_RETRIES =
             Setting.intSetting(
@@ -373,9 +375,9 @@ public class PluginSettings {
                     Setting.Property.Filtered);
 
     /**
-     * Base delay, in seconds, for the exponential backoff the CTI HTTP client uses between 429
-     * retries when the response carries no usable Retry-After header (delay for retry {@code n} is
-     * {@code base * 2^n}).
+     * Base delay, in seconds, for the exponential backoff the CTI HTTP client uses between retries
+     * after a transport error, or after a 429 whose response carries no usable Retry-After header
+     * (delay for retry {@code n} is {@code base * 2^n}).
      */
     public static final Setting<Integer> CLIENT_RETRY_BACKOFF_BASE_SECONDS =
             Setting.intSetting(
