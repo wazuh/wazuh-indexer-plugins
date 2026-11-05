@@ -297,7 +297,7 @@ Use epoch timestamps (in milliseconds) for `last_updated_time` fields. Update th
 
 ISM policies and templates must be properly deployed before the indices are created.
 
-`IndexStateManagement.initialize()` runs when a node that has just started is elected cluster manager, and `indexPolicy()` writes each policy with a plain `IndexRequest` keyed by policy id, so **the six shipped policies are overwritten on every restart**. This is intended: they are Wazuh's default policies, and the overwrite is how a release delivers a new version of them. Any edit an operator makes to one of them through the ISM API is reverted on the next boot, which is why [Retention](../../ref/modules/setup/retention.md#creating-a-custom-policy) tells operators to create a policy under their own id rather than editing a default one. Each policy's description says the same and links to that page, so keep that sentence when you change a description.
+`IndexStateManagement.initialize()` runs when a node that has just started is elected cluster manager, and `indexPolicy()` writes each policy with a plain `IndexRequest` keyed by policy id, so **the seven shipped policies are overwritten on every restart**. This is intended: they are Wazuh's default policies, and the overwrite is how a release delivers a new version of them. Any edit an operator makes to one of them through the ISM API is reverted on the next boot, which is why [Retention](../../ref/modules/setup/retention.md#creating-a-custom-policy) tells operators to create a policy under their own id rather than editing a default one. Each policy's description says the same and links to that page, so keep that sentence when you change a description.
 
 A new version of a policy reaches only the backing indices created after it. The existing ones keep the copy they were attached with until someone runs `change_policy` on them (see [Retention](../../ref/modules/setup/retention.md#existing-indices-keep-the-policy-version-they-started-with)).
 
@@ -525,6 +525,36 @@ The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
    - Transition Condition: Transitions to `delete` once the index reaches an age of 30 days
+
+2. **Delete State**
+   - Actions: Deletes the index
+   - Retry Policy: 3 attempts with exponential backoff (1-minute initial delay)
+
+---
+
+## Security audit log ISM policy (`security-auditlogs-policy`)
+
+### Overview
+
+The **security-auditlogs-policy** manages the `security-auditlogs` data stream, where the security plugin writes audit events: the packaged `opensearch.yml` sets `plugins.security.audit.type` to `internal_opensearch_data_stream` and `plugins.security.audit.config.data_stream.name` to `security-auditlogs`. Rolled-over indices are deleted once they reach 90 days of age. See [Retention](../../ref/modules/setup/retention.md).
+
+Unlike the other streams, the setup plugin creates neither this data stream nor an index template for it. The security plugin creates the data stream on the first audit event, from its own index template `opensearch-security-auditlog` (one shard, no replicas, no field mappings), and the policy's `ism_template` attaches it to each backing index. If the first audit event arrives before the setup plugin has indexed the policy, the ISM background sweep attaches it later.
+
+The name stays outside `wazuh-*` on purpose: the `dashboard_server` role reads `wazuh-*` on behalf of every dashboard user.
+
+### Policy details
+- **Policy Name**: `security-auditlogs-policy`
+- **Location**: `plugins/setup/src/main/resources/policies/security-auditlogs-policy.json`
+- **Index Pattern**: `.ds-security-auditlogs-*`, `security-auditlogs*`
+- **Deletion age**: 90 days
+- **Rollover Conditions**: 30 days of age, 20 GB primary shard size or 200,000,000 documents
+- **ISM template priority**: 0
+
+### Policy states
+
+1. **Hot State**
+   - Actions: Rollover after 30 days, or earlier when the primary shard reaches 20 GB or 200M documents
+   - Transition Condition: Transitions to `delete` once the index reaches an age of 90 days
 
 2. **Delete State**
    - Actions: Deletes the index
