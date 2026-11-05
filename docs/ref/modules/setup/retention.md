@@ -1,6 +1,6 @@
 # Retention
 
-Stream indices (events, raw events, findings, metrics, active responses and AI assistant sessions) are data streams managed by [Index State Management (ISM)](https://docs.opensearch.org/3.6/im-plugin/ism/index/) policies shipped by the Setup plugin. These are Wazuh's [default policies](#default-policies): do not edit them, create a [custom policy](#creating-a-custom-policy) instead. Each policy has two states:
+Stream indices (events, raw events, findings, metrics, active responses, AI assistant sessions and security audit logs) are data streams managed by [Index State Management (ISM)](https://docs.opensearch.org/3.6/im-plugin/ism/index/) policies shipped by the Setup plugin. These are Wazuh's [default policies](#default-policies): do not edit them, create a [custom policy](#creating-a-custom-policy) instead. Each policy has two states:
 
 - **`hot`** — runs a `rollover` action. The write index is closed and a new backing index is
   created once the index reaches **20 GB per primary shard** (or 200,000,000 documents,
@@ -27,8 +27,7 @@ retention ≈ max(deletion age, time to fill 20 GB per primary shard)
 
 ## Per-stream values
 
-Every stream rolls over at 20 GB per primary shard or 200,000,000 documents. Only the AI
-assistant sessions policy adds an age condition (`min_index_age: 1d`) to the rollover itself.
+Every stream rolls over at 20 GB per primary shard or 200,000,000 documents. Only the AI assistant sessions and security audit log policies add an age condition to the rollover itself: `min_index_age: 1d` and `min_index_age: 30d`.
 
 | Policy | Streams | Rollover | Deletion age (floor) |
 | --- | --- | --- | --- |
@@ -38,10 +37,9 @@ assistant sessions policy adds an age condition (`min_index_age: 1d`) to the rol
 | `stream-metrics-policy` | `wazuh-metrics-*` | 20 GB / 200M docs | 30 days |
 | `stream-active-responses-policy` | `wazuh-active-responses` | 20 GB / 200M docs | 3 days |
 | `ai-assistant-sessions-policy` | `wazuh-ai-assistant-sessions` | 1 day, or 20 GB / 200M docs | 7 days |
+| `security-auditlogs-policy` | `security-auditlogs` | 30 days, or 20 GB / 200M docs | 90 days |
 
-The AI assistant sessions policy is the exception on purpose: 7-day conversation retention only
-means something if indices roll over on a daily schedule, so that stream rotates by age. The
-other five rotate by volume.
+The AI assistant sessions and security audit log policies are the exception on purpose: a fixed retention only means something if indices roll over on a schedule, so those streams rotate by age. The audit log is also small, so without the monthly rollover it would never reach 20 GB and never be deleted. The other five rotate by volume.
 
 ## Disk sizing
 
@@ -93,9 +91,9 @@ for deletion.
 
 ## Default policies
 
-The six policies above are Wazuh's default policies. The Setup plugin indexes them by policy id whenever a node that has just started is elected cluster manager, which includes a full restart and every upgrade, so the policies a new release ships always reach the deployment. Each write overwrites whatever is stored under that id: an edit made to a default policy, through the ISM API or the dashboard, is reverted on the next full restart or upgrade. ISM cannot mark a policy as read-only, so nothing stops the edit in the first place.
+The seven policies above are Wazuh's default policies. The Setup plugin indexes them by policy id whenever a node that has just started is elected cluster manager, which includes a full restart and every upgrade, so the policies a new release ships always reach the deployment. Each write overwrites whatever is stored under that id: an edit made to a default policy, through the ISM API or the dashboard, is reverted on the next full restart or upgrade. ISM cannot mark a policy as read-only, so nothing stops the edit in the first place.
 
-**Do not edit the default policies.** To change retention, [create a custom policy](#creating-a-custom-policy) instead. The Setup plugin only ever writes its own six policy ids, so a policy stored under any other id is never touched.
+**Do not edit the default policies.** To change retention, [create a custom policy](#creating-a-custom-policy) instead. The Setup plugin only ever writes its own seven policy ids, so a policy stored under any other id is never touched.
 
 ## Existing indices keep the policy version they started with
 
