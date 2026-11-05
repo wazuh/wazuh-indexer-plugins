@@ -45,28 +45,3 @@ The audit configuration is stored in the security index and can be changed at ru
 - Compliance auditing of the security configuration (`internal_config`) enabled: every change to users, roles, role mappings and the rest of the security index is recorded with the user who made it.
 
 To record successful logins too, enable the `AUTHENTICATED` category, and check the size of the backing indices with `GET _cat/indices/.ds-security-auditlogs-*?v` before keeping it on.
-
-## Enabling audit logs on an existing installation
-
-Package upgrades keep the installed `opensearch.yml`, so installations created before this setting was shipped don't store audit events. The upgraded Setup plugin already ships the retention policy; only the node setting is missing.
-
-1. On every node, add these lines to `/etc/wazuh-indexer/opensearch.yml`:
-
-    ```yaml
-    plugins.security.audit.type: internal_opensearch_data_stream
-    plugins.security.audit.config.data_stream.name: security-auditlogs
-    ```
-
-2. Restart the nodes one at a time:
-
-    ```bash
-    systemctl restart wazuh-indexer
-    ```
-
-3. Check that events arrive, for example after a failed login:
-
-    ```bash
-    curl -sk -u admin:<password> "https://<node>:9200/security-auditlogs/_search?size=1&sort=@timestamp:desc&pretty"
-    ```
-
-Keep the data stream name `security-auditlogs`. Under any other name the security plugin creates the data stream without the retention policy, and its backing index is never deleted.
