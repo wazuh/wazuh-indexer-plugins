@@ -26,14 +26,17 @@
         Wazuh Dashboard filters events and findings by this field.
       example: "2026-10-16T15:53:03.843123456Z"
     - name: message
-      type: keyword
+      type: match_only_text
       level: core
-      short: Human-readable message extracted by the decoder. The complete raw log is in `event.original`.
+      short: Human-readable message extracted by the decoder. Searchable by word. The complete raw log is in `event.original`.
       description: >
         Human-readable message of the event, extracted by the decoder from the
         original log (for example, the free-text part of a syslog line) or
         composed from other fields when the source is structured. Not every
         decoder sets it.
+
+        The field is `match_only_text`: a free-text search with no field
+        name matches any word of it, but it cannot be aggregated or sorted.
 
         The complete raw log, as received by the Wazuh Engine, is in
         `event.original`.
