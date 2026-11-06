@@ -1,4 +1,6 @@
-wazuh-event.ocsf.json
+# Lambda package built by make
+package/
+*.zip
 *.parquet
 Dockerfile
 

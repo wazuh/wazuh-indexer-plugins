@@ -1,2 +1,2 @@
+# boto3 is part of the AWS Lambda Python runtime.
 pyarrow>=10.0.1
-pydantic>=2.6.1
