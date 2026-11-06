@@ -1,0 +1,268 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - Google Cloud - Agent dashboard</label>
+  <description>Google Cloud - Agent dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer. Pick the agent in the Agent input, as the Wazuh dashboard does.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - Google Cloud - Agent dashboard",
+  "description": "Google Cloud - Agent dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer. Pick the agent in the Agent input, as the Wazuh dashboard does.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    },
+    "input_scope": {
+      "type": "input.dropdown",
+      "title": "Agent",
+      "dataSources": {
+        "primary": "ds_input_01"
+      },
+      "options": {
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()",
+        "token": "scope",
+        "defaultValue": "*"
+      },
+      "context": {
+        "formattedConfig": {
+          "number": {
+            "prefix": ""
+          }
+        },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [
+          [
+            "All"
+          ],
+          [
+            "*"
+          ]
+        ],
+        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"value\") | renameSeries(\"value\") | formatByType(formattedConfig)"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_input_01": {
+      "type": "ds.search",
+      "name": "Agent",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=* | eval value='wazuh.agent.name' | stats count by value | sort - count | head 500 | eval label=value | fields label, value"
+      }
+    },
+    "ds_01": {
+      "type": "ds.search",
+      "name": "Top 5 event categories",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.category{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Category\", metric as \"Count\""
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "Top query events",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | eval f1='dns.question.name' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Query Name\", metric as \"Count\""
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "Top 5 instances",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | eval f1='cloud.instance.id' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Instance ID\", metric as \"Count\""
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "Top project ID by action",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | eval f1='cloud.region', f2='cloud.project.id', f3='event.action' | stats count as metric by f1, f2, f3 | sort - metric | head 50 | eval value=f1 . \" / \" . f2 . \" / \" . f3 | table value metric | rename value as \"Region / Project ID / Action\", metric as \"Count\""
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "GCP alerts evolution",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | timechart count as \"Count\""
+      }
+    },
+    "ds_06": {
+      "type": "ds.search",
+      "name": "Event outcome count",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.outcome' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Outcome\", metric as \"Count\""
+      }
+    },
+    "ds_07": {
+      "type": "ds.search",
+      "name": "Event category by project ID",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" \"wazuh.agent.name\"=$scope|s$ | eval f1='cloud.project.id', f2='event.category{}' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"Project ID\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.table",
+      "title": "Top 5 event categories",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {}
+    },
+    "viz_02": {
+      "type": "splunk.pie",
+      "title": "Top query events",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_03": {
+      "type": "splunk.pie",
+      "title": "Top 5 instances",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_04": {
+      "type": "splunk.pie",
+      "title": "Top project ID by action",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_05": {
+      "type": "splunk.line",
+      "title": "GCP alerts evolution",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {}
+    },
+    "viz_06": {
+      "type": "splunk.column",
+      "title": "Event outcome count",
+      "dataSources": {
+        "primary": "ds_06"
+      },
+      "options": {}
+    },
+    "viz_07": {
+      "type": "splunk.bar",
+      "title": "Event category by project ID",
+      "dataSources": {
+        "primary": "ds_07"
+      },
+      "options": {}
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 656,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp",
+      "input_scope"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 596,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 0,
+          "w": 296,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 900,
+          "y": 0,
+          "w": 296,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 200,
+          "w": 296,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 300,
+          "y": 200,
+          "w": 896,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_06",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 420,
+          "w": 496,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_07",
+        "type": "block",
+        "position": {
+          "x": 500,
+          "y": 420,
+          "w": 696,
+          "h": 216
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

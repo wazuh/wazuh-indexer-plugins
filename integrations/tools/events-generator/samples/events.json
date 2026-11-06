@@ -1,0 +1,438 @@
+[
+  {
+    "os": "linux",
+    "event": {
+      "event": {
+        "action": "ssh_login",
+        "category": ["authentication"],
+        "kind": "event",
+        "outcome": "failure",
+        "type": ["start"],
+        "original": "Oct 22 10:41:07 web-01 sshd[48211]: Failed password for invalid user admin from 198.51.100.23 port 52314 ssh2"
+      },
+      "process": { "name": "sshd", "pid": 48211 },
+      "source": { "ip": "198.51.100.23", "port": 52314 },
+      "user": { "name": "admin" },
+      "related": { "ip": ["198.51.100.23"], "user": ["admin"] },
+      "wazuh": {
+        "integration": { "category": "access-management", "name": "sshd", "decoders": ["decoder/core-wazuh-message/0", "decoder/sshd/0"] },
+        "protocol": { "location": "/var/log/auth.log", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "windows",
+    "event": {
+      "event": {
+        "action": "logon-failed",
+        "category": ["authentication"],
+        "code": "4625",
+        "kind": "event",
+        "outcome": "failure",
+        "provider": "Microsoft-Windows-Security-Auditing",
+        "type": ["start"],
+        "original": "An account failed to log on. Subject: Security ID: S-1-0-0 Account Name: - Logon Type: 3 Account For Which Logon Failed: Account Name: svc-backup Account Domain: CORP Failure Reason: Unknown user name or bad password. Source Network Address: 10.0.4.77"
+      },
+      "source": { "ip": "10.0.4.77" },
+      "user": { "name": "svc-backup", "domain": "CORP" },
+      "related": { "ip": ["10.0.4.77"], "user": ["svc-backup"] },
+      "wazuh": {
+        "integration": { "category": "access-management", "name": "windows", "decoders": ["decoder/core-wazuh-message/0", "decoder/windows-event/0"] },
+        "protocol": { "location": "EventChannel", "queue": 102 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "linux",
+    "event": {
+      "event": {
+        "category": ["web"],
+        "kind": "event",
+        "outcome": "failure",
+        "type": ["access"],
+        "original": "198.51.100.77 - - [22/Oct/2026:10:42:19 +0000] \"GET /products.php?id=1%27%20OR%20%271%27=%271 HTTP/1.1\" 403 162 \"-\" \"sqlmap/1.8.2#stable (https://sqlmap.org)\""
+      },
+      "source": { "ip": "198.51.100.77" },
+      "http": { "request": { "method": "GET" }, "response": { "status_code": 403 } },
+      "url": { "original": "/products.php?id=1%27%20OR%20%271%27=%271", "path": "/products.php" },
+      "user_agent": { "original": "sqlmap/1.8.2#stable (https://sqlmap.org)" },
+      "related": { "ip": ["198.51.100.77"] },
+      "wazuh": {
+        "integration": { "category": "applications", "name": "nginx", "decoders": ["decoder/core-wazuh-message/0", "decoder/nginx-access/0"] },
+        "protocol": { "location": "/var/log/nginx/access.log", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "linux",
+    "event": {
+      "event": {
+        "category": ["database"],
+        "kind": "event",
+        "outcome": "failure",
+        "type": ["access"],
+        "original": "2026-10-22T10:43:02.118Z 31 [Note] Access denied for user 'root'@'10.0.1.11' (using password: YES)"
+      },
+      "source": { "ip": "10.0.1.11" },
+      "user": { "name": "root" },
+      "log": { "level": "note", "file": { "path": "/var/log/mysql/error.log" } },
+      "wazuh": {
+        "integration": { "category": "applications", "name": "mysql", "decoders": ["decoder/core-wazuh-message/0", "decoder/mysql/0"] },
+        "protocol": { "location": "/var/log/mysql/error.log", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "action": "ConsoleLogin",
+        "category": ["authentication"],
+        "kind": "event",
+        "outcome": "success",
+        "provider": "signin.amazonaws.com",
+        "type": ["start"],
+        "original": "{\"eventVersion\":\"1.09\",\"eventSource\":\"signin.amazonaws.com\",\"eventName\":\"ConsoleLogin\",\"awsRegion\":\"eu-west-1\",\"sourceIPAddress\":\"203.0.113.44\",\"userIdentity\":{\"type\":\"IAMUser\",\"userName\":\"ops-maria\"},\"additionalEventData\":{\"MFAUsed\":\"No\"},\"responseElements\":{\"ConsoleLogin\":\"Success\"}}"
+      },
+      "cloud": { "provider": "aws", "region": "eu-west-1", "account": { "id": "123456789012" }, "service": { "name": "signin" } },
+      "source": { "ip": "203.0.113.44" },
+      "user": { "name": "ops-maria" },
+      "related": { "ip": ["203.0.113.44"], "user": ["ops-maria"] },
+      "wazuh": {
+        "integration": { "category": "cloud-services", "name": "aws-cloudtrail", "decoders": ["decoder/core-wazuh-message/0", "decoder/aws-cloudtrail/0"] },
+        "protocol": { "location": "aws-s3", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "action": "storage.setIamPermissions",
+        "category": ["configuration"],
+        "kind": "event",
+        "outcome": "success",
+        "provider": "storage.googleapis.com",
+        "type": ["change"],
+        "original": "{\"protoPayload\":{\"methodName\":\"storage.setIamPermissions\",\"serviceName\":\"storage.googleapis.com\",\"resourceName\":\"projects/_/buckets/backups-prod\",\"authenticationInfo\":{\"principalEmail\":\"deploy@example-project.iam.gserviceaccount.com\"},\"serviceData\":{\"policyDelta\":{\"bindingDeltas\":[{\"action\":\"ADD\",\"role\":\"roles/storage.objectViewer\",\"member\":\"allUsers\"}]}}}}"
+      },
+      "cloud": { "provider": "gcp", "region": "europe-west1", "account": { "id": "example-project" }, "project": { "id": "example-project" }, "service": { "name": "storage" } },
+      "user": { "name": "deploy@example-project.iam.gserviceaccount.com" },
+      "wazuh": {
+        "integration": { "category": "cloud-services", "name": "gcp", "decoders": ["decoder/core-wazuh-message/0", "decoder/gcp/0"] },
+        "protocol": { "location": "gcp-pubsub", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "action": "dns_query",
+        "category": ["network"],
+        "kind": "event",
+        "outcome": "success",
+        "provider": "dns.googleapis.com",
+        "type": ["protocol"],
+        "original": "{\"jsonPayload\":{\"queryName\":\"updates.example-dyn.net.\",\"queryType\":\"A\",\"responseCode\":\"NOERROR\",\"sourceIP\":\"10.128.0.12\",\"vmInstanceId\":\"4127830012345678901\"}}"
+      },
+      "cloud": { "provider": "gcp", "region": "europe-west1", "account": { "id": "example-project" }, "project": { "id": "example-project" }, "instance": { "id": "4127830012345678901" }, "service": { "name": "dns" } },
+      "dns": { "question": { "name": "updates.example-dyn.net", "type": "A" }, "response_code": "NOERROR" },
+      "source": { "ip": "10.128.0.12" },
+      "wazuh": {
+        "integration": { "category": "cloud-services", "name": "gcp", "decoders": ["decoder/core-wazuh-message/0", "decoder/gcp/0"] },
+        "protocol": { "location": "gcp-pubsub", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "linux",
+    "event": {
+      "event": {
+        "action": "drop",
+        "category": ["network"],
+        "kind": "event",
+        "outcome": "failure",
+        "type": ["connection", "denied"],
+        "original": "Oct 22 10:44:51 gw-01 kernel: [UFW BLOCK] IN=eth0 OUT= SRC=198.51.100.99 DST=203.0.113.10 PROTO=TCP SPT=40112 DPT=3389 SYN"
+      },
+      "source": { "ip": "198.51.100.99", "port": 40112 },
+      "destination": { "ip": "203.0.113.10", "port": 3389 },
+      "network": { "transport": "tcp", "direction": "inbound" },
+      "related": { "ip": ["198.51.100.99", "203.0.113.10"] },
+      "wazuh": {
+        "integration": { "category": "network-activity", "name": "iptables", "decoders": ["decoder/core-wazuh-message/0", "decoder/iptables/0"] },
+        "protocol": { "location": "/var/log/ufw.log", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "windows",
+    "event": {
+      "event": {
+        "action": "dns-query",
+        "category": ["network"],
+        "kind": "event",
+        "outcome": "success",
+        "type": ["protocol"],
+        "original": "10/22/2026 10:45:13 AM 0F64 PACKET 0000020A2B1C UDP Rcv 10.0.3.88 4d1e Q [0001 D NOERROR] A (6)update(13)cdn-telemetry(3)xyz(0)"
+      },
+      "source": { "ip": "10.0.3.88" },
+      "dns": { "question": { "name": "update.cdn-telemetry.xyz", "type": "A" }, "response_code": "NOERROR" },
+      "network": { "transport": "udp", "protocol": "dns" },
+      "wazuh": {
+        "integration": { "category": "network-activity", "name": "microsoft-dnsserver", "decoders": ["decoder/core-wazuh-message/0", "decoder/microsoft-dnsserver/0"] },
+        "protocol": { "location": "C:\\Windows\\System32\\dns\\dns.log", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "linux",
+    "event": {
+      "event": {
+        "category": ["intrusion_detection", "network"],
+        "kind": "alert",
+        "severity": 1,
+        "type": ["denied"],
+        "original": "{\"timestamp\":\"2026-10-22T10:45:40.512+0000\",\"event_type\":\"alert\",\"src_ip\":\"198.51.100.15\",\"src_port\":44120,\"dest_ip\":\"10.0.1.11\",\"dest_port\":80,\"proto\":\"TCP\",\"alert\":{\"action\":\"blocked\",\"signature_id\":2024217,\"signature\":\"ET EXPLOIT Possible Apache Struts OGNL Expression Injection\",\"category\":\"Attempted Administrator Privilege Gain\",\"severity\":1}}"
+      },
+      "rule": { "id": "2024217", "name": "ET EXPLOIT Possible Apache Struts OGNL Expression Injection", "category": "Attempted Administrator Privilege Gain" },
+      "source": { "ip": "198.51.100.15", "port": 44120 },
+      "destination": { "ip": "10.0.1.11", "port": 80 },
+      "network": { "transport": "tcp" },
+      "related": { "ip": ["198.51.100.15", "10.0.1.11"] },
+      "wazuh": {
+        "integration": { "category": "security", "name": "suricata", "decoders": ["decoder/core-wazuh-message/0", "decoder/suricata/0"] },
+        "threat": {
+          "enrichments": [
+            {
+              "indicator": { "name": "198.51.100.15", "type": "ipv4-addr", "last_seen": "2026-10-01T00:00:00.000Z", "software": { "name": "ExampleBot", "type": "Malware" } },
+              "matched": { "field": "source.ip" }
+            }
+          ]
+        },
+        "protocol": { "location": "/var/log/suricata/eve.json", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "windows",
+    "event": {
+      "event": {
+        "action": "malware-detected",
+        "category": ["malware"],
+        "code": "1116",
+        "kind": "alert",
+        "provider": "Microsoft-Windows-Windows Defender",
+        "type": ["info"],
+        "original": "Microsoft Defender Antivirus has detected malware or other potentially unwanted software. Name: Trojan:Win32/Emotet.RPX!MTB Severity: Severe Path: file:_C:\\Users\\ana\\Downloads\\invoice_4471.docm"
+      },
+      "file": { "path": "C:\\Users\\ana\\Downloads\\invoice_4471.docm", "name": "invoice_4471.docm" },
+      "threat": { "indicator": { "type": "file" } },
+      "user": { "name": "ana" },
+      "wazuh": {
+        "integration": { "category": "security", "name": "windows-defender", "decoders": ["decoder/core-wazuh-message/0", "decoder/windows-event/0", "decoder/windows-defender/0"] },
+        "protocol": { "location": "EventChannel", "queue": 102 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "linux",
+    "event": {
+      "event": {
+        "action": "executed",
+        "category": ["process"],
+        "code": "EXECVE",
+        "kind": "event",
+        "outcome": "success",
+        "sequence": 3019,
+        "type": ["start"],
+        "original": "type=EXECVE msg=audit(1792491942.118:3019): argc=3 a0=\"/tmp/.x/kworker\" a1=\"-c\" a2=\"/tmp/.x/config.json\""
+      },
+      "process": { "executable": "/tmp/.x/kworker", "name": "kworker", "args": ["/tmp/.x/kworker", "-c", "/tmp/.x/config.json"], "pid": 51877, "parent": { "name": "bash" } },
+      "user": { "id": "1001", "name": "www-data" },
+      "wazuh": {
+        "integration": { "category": "system-activity", "name": "auditd", "decoders": ["decoder/core-wazuh-message/0", "decoder/auditd/0"] },
+        "protocol": { "location": "/var/log/audit/audit.log", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "linux",
+    "event": {
+      "event": {
+        "action": "service-stopped",
+        "category": ["process"],
+        "kind": "event",
+        "outcome": "success",
+        "type": ["end"],
+        "original": "<30>1 2026-10-22T10:47:03.551Z db-01 systemd 1 - [meta sequenceId=\"8812\"] Stopped auditd.service - Security Auditing Service."
+      },
+      "process": { "name": "systemd", "pid": 1 },
+      "log": { "syslog": { "structured_data": { "meta": { "sequenceId": "8812" } } } },
+      "message": "Stopped auditd.service - Security Auditing Service.",
+      "wazuh": {
+        "integration": { "category": "system-activity", "name": "journald", "decoders": ["decoder/core-wazuh-message/0", "decoder/journald/0"] },
+        "protocol": { "location": "journald", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "macos",
+    "event": {
+      "event": {
+        "category": ["host"],
+        "kind": "event",
+        "type": ["info"],
+        "original": "2026-10-22 10:47:44.902 Df softwareupdated[812:9a1f] SoftwareUpdate: downloaded macOS 15.1.1 update"
+      },
+      "process": { "name": "softwareupdated", "pid": 812 },
+      "message": "SoftwareUpdate: downloaded macOS 15.1.1 update",
+      "wazuh": {
+        "integration": { "category": "other", "name": "macos-ulog", "decoders": ["decoder/core-wazuh-message/0", "decoder/macos-ulog/0"] },
+        "protocol": { "location": "macos", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "kind": "event",
+        "original": "Oct 22 10:48:12 backup-agent[2231]: job nightly-db finished in 00:41:07, 182 GiB transferred"
+      },
+      "message": "job nightly-db finished in 00:41:07, 182 GiB transferred",
+      "wazuh": {
+        "integration": { "category": "other", "name": "syslog", "decoders": ["decoder/core-wazuh-message/0", "decoder/syslog/0"] },
+        "protocol": { "location": "/var/log/backup-agent.log", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "kind": "event",
+        "original": "device=edge-sw-03 msg=\"port Gi1/0/24 changed state to down\" severity=notice"
+      },
+      "wazuh": {
+        "integration": { "category": "unclassified", "name": "unclassified", "decoders": ["decoder/core-wazuh-message/0"] },
+        "protocol": { "location": "udp:514", "queue": 50 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "kind": "event",
+        "original": "PRINTER-2F: toner low (12%) on tray 2"
+      },
+      "wazuh": {
+        "integration": { "category": "unclassified", "name": "unclassified", "decoders": ["decoder/core-wazuh-message/0"] },
+        "protocol": { "location": "udp:514", "queue": 50 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "linux",
+    "event": {
+      "event": {
+        "action": "start",
+        "category": ["process"],
+        "kind": "event",
+        "outcome": "success",
+        "type": ["start"],
+        "original": "{\"status\":\"start\",\"id\":\"3f6a1c2b9d7e\",\"from\":\"example/miner:latest\",\"Actor\":{\"Attributes\":{\"name\":\"miner-01\"}}}"
+      },
+      "container": { "id": "3f6a1c2b9d7e", "name": "miner-01", "image": { "name": "example/miner:latest" } },
+      "wazuh": {
+        "integration": { "category": "system-activity", "name": "docker", "decoders": ["decoder/core-wazuh-message/0", "decoder/docker/0"] },
+        "protocol": { "location": "docker", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "action": "Microsoft.Authorization/roleAssignments/write",
+        "category": ["iam"],
+        "kind": "event",
+        "outcome": "success",
+        "provider": "Microsoft.Authorization",
+        "type": ["change"],
+        "original": "{\"operationName\":\"Microsoft.Authorization/roleAssignments/write\",\"resultType\":\"Success\",\"callerIpAddress\":\"192.0.2.44\"}"
+      },
+      "cloud": { "provider": "azure", "region": "westeurope", "account": { "id": "00000000-0000-0000-0000-000000000001" }, "service": { "name": "Azure Active Directory" } },
+      "source": { "ip": "192.0.2.44" },
+      "user": { "name": "ops@example.onmicrosoft.com" },
+      "wazuh": {
+        "integration": { "category": "cloud-services", "name": "azure", "decoders": ["decoder/core-wazuh-message/0", "decoder/azure/0"] },
+        "protocol": { "location": "azure-logs", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "action": "repo.access",
+        "category": ["configuration"],
+        "kind": "event",
+        "outcome": "success",
+        "type": ["change"],
+        "original": "{\"action\":\"repo.access\",\"actor\":\"dev-user\",\"actor_ip\":\"203.0.113.50\",\"org\":\"example-org\",\"repo\":\"example-org/internal-tools\",\"visibility\":\"public\"}"
+      },
+      "organization": { "name": "example-org" },
+      "url": { "original": "https://github.example.com/example-org/internal-tools" },
+      "source": { "ip": "203.0.113.50" },
+      "user": { "name": "dev-user" },
+      "wazuh": {
+        "integration": { "category": "cloud-services", "name": "github", "decoders": ["decoder/core-wazuh-message/0", "decoder/github/0"] },
+        "protocol": { "location": "github", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "action": "New-InboxRule",
+        "category": ["email"],
+        "kind": "event",
+        "outcome": "success",
+        "provider": "Exchange",
+        "type": ["creation"],
+        "original": "{\"Operation\":\"New-InboxRule\",\"Workload\":\"Exchange\",\"ResultStatus\":\"Succeeded\",\"UserId\":\"finance@example.onmicrosoft.com\",\"ClientIP\":\"203.0.113.90\"}"
+      },
+      "client": { "ip": "203.0.113.90" },
+      "user": { "id": "finance@example.onmicrosoft.com", "name": "finance@example.onmicrosoft.com" },
+      "wazuh": {
+        "integration": { "category": "cloud-services", "name": "o365", "decoders": ["decoder/core-wazuh-message/0", "decoder/o365/0"] },
+        "protocol": { "location": "office365", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  }
+]

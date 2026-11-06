@@ -12,7 +12,7 @@ services:
     command: bash -c "python run.py -a wazuh.indexer"
 
   wazuh.indexer:
-    image: opensearchproject/opensearch:${WAZUH_INDEXER_VERSION}
+    image: opensearchproject/opensearch:${LEGACY_INDEXER_VERSION}
     container_name: wazuh.indexer
     depends_on:
       wazuh-certs-generator:
@@ -21,7 +21,7 @@ services:
     ports:
       - 9200:9200
     environment:
-      - WAZUH_INDEXER_VERSION=${WAZUH_INDEXER_VERSION}
+      - LEGACY_INDEXER_VERSION=${LEGACY_INDEXER_VERSION}
       # - cluster.name=opensearch-cluster
       - node.name=wazuh.indexer
       - discovery.type=single-node
@@ -56,7 +56,7 @@ services:
       - ./certs/root-ca.pem:/usr/share/opensearch/config/root-ca.pem
 
   wazuh.dashboard:
-    image: opensearchproject/opensearch-dashboards:${WAZUH_DASHBOARD_VERSION}
+    image: opensearchproject/opensearch-dashboards:${LEGACY_INDEXER_VERSION}
     container_name: wazuh.dashboard
     depends_on:
       - wazuh.indexer
@@ -71,7 +71,7 @@ services:
       - ./certs/wazuh.dashboard.pem:/usr/share/opensearch-dashboards/config/certs/opensearch.pem
       - ./certs/root-ca.pem:/usr/share/opensearch-dashboards/config/certs/root-ca.pem
     environment:
-      WAZUH_DASHBOARD_VERSION: ${WAZUH_DASHBOARD_VERSION}
+      LEGACY_INDEXER_VERSION: ${LEGACY_INDEXER_VERSION}
       OPENSEARCH_HOSTS: '["https://wazuh.indexer:9200"]' # Define the OpenSearch nodes that OpenSearch Dashboards will query
       SERVER_SSL_ENABLED: "true"
       SERVER_SSL_KEY: "/usr/share/opensearch-dashboards/config/certs/opensearch.key"

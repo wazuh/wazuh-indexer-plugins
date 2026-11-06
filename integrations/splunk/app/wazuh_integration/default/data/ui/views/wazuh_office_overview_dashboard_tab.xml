@@ -1,0 +1,207 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - Office - Overview dashboard</label>
+  <description>Office - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - Office - Overview dashboard",
+  "description": "Office - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_01": {
+      "type": "ds.search",
+      "name": "Events by event type",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" | eval f1='event.type{}' | timechart span=3h useother=f usenull=f limit=12 count by f1"
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "IP address by users",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" | eval f1='client.ip', f2='user.id' | chart count over f1 by f2 useother=f usenull=f limit=12 | addtotals fieldname=total | sort - total | head 12 | fields - total | rename f1 as \"IP\""
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "Top users by provider",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" | eval f1='event.provider', f2='user.id' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 10 | fields - total | rename f1 as \"event.provider\""
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "viz_04",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" | eval f1='event.type{}', f2='user.id', f3='event.outcome' | stats count as metric by f1, f2, f3 | sort - metric | head 500 | rename f1 as \"Operation\", f2 as \"User\", f3 as \"Result Status\", metric as \"Count\""
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "Actions by user",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" | eval f1='event.action', f2='user.id' | chart count over f1 by f2 useother=f usenull=f limit=12 | addtotals fieldname=total | sort - total | head 12 | fields - total | rename f1 as \"event.action\""
+      }
+    },
+    "ds_06": {
+      "type": "ds.search",
+      "name": "viz_06",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" | eval f1='event.action', f2='event.type{}' | stats count as metric by f1, f2 | sort - metric | head 500 | rename f1 as \"Action Description\", f2 as \"Action Type\", metric as \"Count\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.area",
+      "title": "Events by event type",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_02": {
+      "type": "splunk.bar",
+      "title": "IP address by users",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_03": {
+      "type": "splunk.column",
+      "title": "Top users by provider",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_04": {
+      "type": "splunk.table",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {}
+    },
+    "viz_05": {
+      "type": "splunk.column",
+      "title": "Actions by user",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_06": {
+      "type": "splunk.table",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_06"
+      },
+      "options": {}
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 456,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 496,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 500,
+          "y": 0,
+          "w": 346,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 850,
+          "y": 0,
+          "w": 346,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 220,
+          "w": 446,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 450,
+          "y": 220,
+          "w": 296,
+          "h": 216
+        }
+      },
+      {
+        "item": "viz_06",
+        "type": "block",
+        "position": {
+          "x": 750,
+          "y": 220,
+          "w": 446,
+          "h": 216
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>
