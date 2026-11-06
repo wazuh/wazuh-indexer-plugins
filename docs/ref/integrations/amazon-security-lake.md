@@ -77,7 +77,7 @@ The package, `wazuh_to_amazon_security_lake.zip`, holds the function and its dep
 
 - **Runtime**: Python 3.12, architecture x86_64.
 - **Handler**: `lambda_function.lambda_handler`.
-- **Memory** and **timeout**: 512 MB and 5 minutes are enough for files of the default size (5 MB).
+- **Memory** and **timeout**: 512 MB and 5 minutes. The function holds a whole file in memory: 512 MB fit the files of the default `S3_SIZE_FILE` of Logstash, 1 MiB compressed, about 20 MB of findings. A larger `S3_SIZE_FILE` needs more memory, about 1 GB for 5 MiB.
 
 Set its environment variables:
 
@@ -95,7 +95,7 @@ Give the execution role of the function:
 
 - `AWSLambdaBasicExecutionRole`, for its logs.
 - `s3:GetObject` on the raw bucket.
-- `sts:AssumeRole` on the role of the custom source.
+- `sts:AssumeRole` on the role of the custom source. Without `ROLE_ARN`, `s3:PutObject` on the location of the source in the Security Lake bucket instead, `arn:aws:s3:::<Security Lake bucket>/ext/<source location>/*`.
 - `s3:PutObject` on the OCSF bucket, if set.
 
 ```json
@@ -111,6 +111,8 @@ Give the execution role of the function:
 ## 4. Trigger the function
 
 On the raw bucket, from **Properties** > **Event notifications** > **Create event notification**, add a notification for **All object create events** (`s3:ObjectCreated:*`), with no prefix or suffix (the files end in `.txt.gz`), and the function as destination. A failed invocation is retried: the function writes the same output file again, so a retry never duplicates findings.
+
+AWS Lambda retries a failed invocation twice, and then drops the event. To keep track of the files that could not be converted, add an on-failure destination to the function, for example an SQS queue, from **Configuration** > **Destinations** > **Add destination** (asynchronous invocation, on failure).
 
 ![AWS Lambda trigger](../../img/integrations/asl-lambda-trigger.jpeg)
 
@@ -160,6 +162,7 @@ Set the settings of the pipeline in the environment of the Logstash service. Set
 | `AWS_REGION` | **required** | Region of the raw bucket. |
 | `AWS_ENDPOINT` | **required** | S3 endpoint of that region, `https://s3.<region>.amazonaws.com`. |
 | `S3_TIME_FILE` | `5` | Minutes Logstash collects findings in a file before uploading it. |
+| `S3_SIZE_FILE` | `1048576` | Size in bytes, compressed, at which Logstash uploads a file before `S3_TIME_FILE`. The memory of the function depends on it (see [Create the Lambda function](#3-create-the-lambda-function)). |
 | `S3_TEMPORARY_DIRECTORY` | `/usr/share/logstash/data/s3-temp` | Directory of the files not uploaded yet, on persistent storage, for example `/var/lib/logstash/s3-temp`. They are uploaded when Logstash starts again. |
 
 Restart Logstash.
@@ -196,9 +199,9 @@ Every finding becomes an OCSF 1.1.0 [Detection Finding](https://schema.ocsf.io/1
 | `finding_info.desc` | `wazuh.rule.description` |
 | `finding_info.types` | `wazuh.rule.category` |
 | `finding_info.analytic` | `wazuh.rule.id`, `wazuh.rule.name`, `wazuh.rule.description`, `wazuh.rule.category`, `wazuh.rule.version` (type Rule) |
-| `finding_info.attacks` | `wazuh.rule.mitre.*`: one attack per technique, with its tactic and sub-techniques |
+| `finding_info.attacks` | `wazuh.rule.mitre.*`: one attack per technique, with its sub-techniques. A rule lists its tactics apart from its techniques: with a single tactic, every technique takes it; with several, every tactic is an attack of its own. A sub-technique goes with its technique, the part of its ID before the dot. |
 | `severity_id`, `severity` | `wazuh.rule.level`: informational 1, low 2, medium 3, high 4, critical 5 |
-| `status_id`, `status` | `wazuh.case.status`: no case is New (1), active and acknowledged are In Progress (2), completed is Resolved (4), any other status is Other (99) |
+| `status_id`, `status` | `wazuh.case.status`: no case is New (1), active and acknowledged are In Progress (2), completed is Resolved (4), any other status is Other (99). The status of the case is also kept in `unmapped`. |
 | `resources` | `wazuh.agent.id`, `wazuh.agent.name` (type Host) |
 | `evidences` | `source.ip`, `source.port`, `destination.ip`, `destination.port`, `process.name`, `process.pid`, `process.command_line`, `file.name`, `file.path`, `user.name`, `user.id` |
 | `observables` | The agent name, `source.ip`, `destination.ip` and `user.name` |
@@ -206,7 +209,7 @@ Every finding becomes an OCSF 1.1.0 [Detection Finding](https://schema.ocsf.io/1
 | `raw_data` | `event.original` |
 | `unmapped` | Every other field of the finding, under its WCS name: lists and objects as JSON |
 
-No field of a finding is lost: the WCS fields without an OCSF attribute, such as the compliance requirements of the rule (`wazuh.rule.compliance.*`), the integration (`wazuh.integration.*`), the case (`wazuh.case.*`) or the fields of the event that matched, are kept in `unmapped`, for example `unmapped['wazuh.rule.compliance.pci_dss']`.
+No field of a finding is lost: the WCS fields without an OCSF attribute, and the mapped fields whose value does not fit their attribute (a list where OCSF takes a single IP address, a region or account without `cloud.provider`, a level that is not a Wazuh level), such as the compliance requirements of the rule (`wazuh.rule.compliance.*`), the integration (`wazuh.integration.*`), the case (`wazuh.case.*`) or the fields of the event that matched, are kept in `unmapped`, for example `unmapped['wazuh.rule.compliance.pci_dss']`.
 
 Every Parquet file has the same columns, whatever attributes its findings carry: the attributes a finding does not have are null.
 
@@ -219,6 +222,8 @@ Every Parquet file has the same columns, whatever attributes its findings carry:
 | Parquet files in the location of the source, but the table of the custom source in AWS Glue has no columns, and Athena returns nothing | The crawler of the custom source has not catalogued the files yet. Run it once, from **AWS Glue** > **Crawlers** (it has the name of the source), or with `aws glue start-crawler --name <source name>`. |
 | Files in the raw bucket, none in Security Lake | The event notification does not invoke the function, or the function fails: see its logs in CloudWatch. |
 | `AccessDenied` on `AssumeRole` in the logs of the function | The account or the external ID differ from those of the custom source, or the execution role lacks `sts:AssumeRole`. |
-| `AccessDenied` on `PutObject` in the logs of the function | `SOURCE_LOCATION` differs from the location of the custom source. |
+| `AccessDenied` on `PutObject` in the logs of the function | `SOURCE_LOCATION` differs from the location of the custom source. Without `ROLE_ARN`, the execution role of the function also needs `s3:PutObject` on that location. |
+| The function ends with `Runtime exited with error: signal: killed`, or its `Max Memory Used` reaches its memory | The files are too large for the memory of the function. Raise the memory, or lower `S3_SIZE_FILE` of Logstash. |
+| `left out: a value does not fit the OCSF schema` errors in the logs of the function | A finding holds a value of a type that its OCSF attribute does not take. The rest of the file is written. |
 | `is not a finding` warnings in the logs of the function | The file holds documents without `wazuh.rule`: `WAZUH_EXPORT_INDICES` names a custom data stream of events. |
 | Findings missing, compared with the Wazuh indexer | Findings were indexed after the run that read their window. Raise `WAZUH_EXPORT_DELAY` above the detector interval (see [The delay](index.md#the-delay)), and export the range again (see [Interruptions](index.md#interruptions)). |

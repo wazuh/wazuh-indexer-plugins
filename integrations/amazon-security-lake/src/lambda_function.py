@@ -44,6 +44,8 @@ logger.setLevel("INFO")
 
 REQUIRED_VARIABLES = ("AWS_BUCKET", "SOURCE_LOCATION", "ACCOUNT_ID", "REGION")
 DAY = re.compile(r"^\d{8}$")
+# Errors of pyarrow on a value that does not fit the type of its column.
+SCHEMA_ERRORS = (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError)
 
 
 class ConfigurationError(Exception):
@@ -80,11 +82,32 @@ def read_lines(s3, bucket: str, key: str) -> list:
     return data.decode("utf-8").splitlines()
 
 
-def to_parquet(findings: list) -> bytes:
-    """Findings as a Parquet file of the OCSF schema of the integration."""
+def fits_the_schema(finding: dict) -> bool:
+    try:
+        pa.Table.from_pylist([finding], schema=ocsf.SCHEMA)
+        return True
+    except SCHEMA_ERRORS as e:
+        logger.error("finding %s left out: a value does not fit the OCSF schema: %s",
+                     (finding.get("finding_info") or {}).get("uid"), e)
+        return False
+
+
+def to_parquet(findings: list) -> tuple:
+    """
+    Findings as a Parquet file of the OCSF schema of the integration, and the number of findings
+    left out. A finding with a value that does not fit the schema is left out and logged, instead
+    of failing the whole file. Without a finding that fits, the file is None.
+    """
+    try:
+        table = pa.Table.from_pylist(findings, schema=ocsf.SCHEMA)
+    except SCHEMA_ERRORS:
+        table = pa.Table.from_pylist([f for f in findings if fits_the_schema(f)], schema=ocsf.SCHEMA)
+    left_out = len(findings) - table.num_rows
+    if not table.num_rows:
+        return None, left_out
     buffer = io.BytesIO()
-    pq.write_table(pa.Table.from_pylist(findings, schema=ocsf.SCHEMA), buffer, compression="zstd")
-    return buffer.getvalue()
+    pq.write_table(table, buffer, compression="zstd")
+    return buffer.getvalue(), left_out
 
 
 def destination_key(key: str, source_location: str, region: str, account_id: str, extension: str) -> str:
@@ -131,17 +154,18 @@ def lambda_handler(event, context):
         logger.info("converting s3://%s/%s", bucket, key)
 
         findings, skipped = wazuh_ocsf_converter.transform_events(read_lines(source, bucket, key))
-        result = {"key": key, "findings": len(findings), "skipped": skipped}
-        if findings:
+        parquet, left_out = to_parquet(findings) if findings else (None, 0)
+        result = {"key": key, "findings": len(findings) - left_out, "skipped": skipped + left_out}
+        if parquet:
             parquet_key = destination_key(key, source_location, region, account_id, "parquet")
-            destination.put_object(Bucket=lake_bucket, Key=parquet_key, Body=to_parquet(findings))
+            destination.put_object(Bucket=lake_bucket, Key=parquet_key, Body=parquet)
             result["parquet"] = parquet_key
-            logger.info("wrote %d findings to s3://%s/%s", len(findings), lake_bucket, parquet_key)
+            logger.info("wrote %d findings to s3://%s/%s", result["findings"], lake_bucket, parquet_key)
             if ocsf_bucket:
                 ocsf_key = destination_key(key, source_location, region, account_id, "json")
                 source.put_object(Bucket=ocsf_bucket, Key=ocsf_key, Body=json.dumps(findings).encode("utf-8"))
                 result["ocsf"] = ocsf_key
         else:
-            logger.info("no findings in s3://%s/%s", bucket, key)
+            logger.info("no findings to write from s3://%s/%s", bucket, key)
         results.append(result)
     return {"files": results}

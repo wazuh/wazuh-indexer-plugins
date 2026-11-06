@@ -87,6 +87,36 @@ def test_a_file_without_findings_writes_nothing(environment):
     assert environment.list_objects_v2(Bucket=LAKE_BUCKET).get("KeyCount") == 0
 
 
+@pytest.fixture
+def unfit(monkeypatch):
+    """Findings whose id is in the returned set convert with a value that does not fit the Parquet schema."""
+    ids = set()
+    convert = lambda_function.wazuh_ocsf_converter.to_detection_finding
+
+    def to_detection_finding(document):
+        row = convert(document)
+        if row and row["finding_info"]["uid"] in ids:
+            row["severity_id"] = "high"
+        return row
+
+    monkeypatch.setattr(lambda_function.wazuh_ocsf_converter, "to_detection_finding", to_detection_finding)
+    return ids
+
+
+def test_a_finding_that_does_not_fit_the_schema_does_not_cost_the_file(environment, unfit):
+    unfit.add("b")
+    result = lambda_function.lambda_handler(s3_event(RAW_KEY), None)
+    assert result == {"files": [{"key": RAW_KEY, "findings": 1, "skipped": 2, "parquet": PARQUET_KEY}]}
+    assert [r["finding_info"]["uid"] for r in read_parquet(environment, PARQUET_KEY)] == ["a"]
+
+
+def test_a_file_without_findings_that_fit_writes_nothing(environment, unfit):
+    unfit.update({"a", "b"})
+    result = lambda_function.lambda_handler(s3_event(RAW_KEY), None)
+    assert result == {"files": [{"key": RAW_KEY, "findings": 0, "skipped": 3}]}
+    assert environment.list_objects_v2(Bucket=LAKE_BUCKET).get("KeyCount") == 0
+
+
 def test_cross_account_role(environment, monkeypatch):
     monkeypatch.setenv("ROLE_ARN", "arn:aws:iam::222222222222:role/wazuh-security-lake")
     monkeypatch.setenv("EXTERNAL_ID", "example-external-id")
