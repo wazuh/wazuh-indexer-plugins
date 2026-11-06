@@ -1,4 +1,14 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,false,base,document,object,custom,,,"The CTI payload, stored verbatim and not indexed."
+9.1.0,true,base,document,object,custom,,,"The CTI payload, stored verbatim. Only some of its fields are indexed."
 9.1.0,true,base,offset,unsigned_long,custom,,849527,The CTI offset the document was delivered at.
 9.1.0,true,base,type,keyword,custom,,OSCPE-GLOBAL,"The type of the CTI content, for example a CVE record or one of the global maps the vulnerability scanner requires."
+9.1.0,true,document,document.containers,object,custom,,,The containers of the CVE record.
+9.1.0,true,document,document.containers.cna,object,custom,,,The container of the CVE Numbering Authority.
+9.1.0,true,document,document.containers.cna.metrics,object,custom,,,"The CNA metrics, one object per CVSS version."
+9.1.0,true,document,document.containers.cna.metrics.format,keyword,custom,,CVSS,The format of the metric.
+9.1.0,true,document,document.cveMetadata,object,custom,,,The metadata of the CVE record.
+9.1.0,true,document,document.cveMetadata.assignerShortName,keyword,custom,,VulDB,The short name of the organization that assigned the CVE.
+9.1.0,true,document,document.cveMetadata.cveId,keyword,custom,,CVE-2026-120344,The CVE identifier.
+9.1.0,true,document,document.cveMetadata.datePublished,date,custom,,2026-11-02T05:18:25Z,Date the record was published.
+9.1.0,true,document,document.cveMetadata.dateUpdated,date,custom,,2026-11-02T16:19:19Z,Date the record was last updated.
+9.1.0,true,document,document.cveMetadata.state,keyword,custom,,PUBLISHED,The publication state of the record.
