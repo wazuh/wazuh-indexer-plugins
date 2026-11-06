@@ -490,10 +490,9 @@ check.remediation:
 check.result:
   dashed_name: check-result
   description: The result of the check. This field indicates whether the check passed
-    or failed based on the evaluation of the rules. The result is typically represented
-    as a boolean value, where "passed" indicates that the check was successful and
-    "failed" indicates that the check did not meet the specified criteria.
-  example: failed
+    or failed based on the evaluation of the rules, as `Passed`, `Failed`, `Not applicable`
+    or `Not run`.
+  example: Failed
   flat_name: check.result
   ignore_above: 4096
   level: custom

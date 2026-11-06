@@ -38,7 +38,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,check,check.reason,keyword,custom,,"""The password history setting is not set to 24 or more password(s).""",Reason for the check result.
 9.1.0,true,check,check.references,keyword,custom,array,"[""https://workbench.cisecurity.org""]",References for the check.
 9.1.0,true,check,check.remediation,keyword,custom,,"""To establish the recommended configuration, set the following registry value to 24 or more password(s):""",Actions to take to remediate the check.
-9.1.0,true,check,check.result,keyword,custom,,failed,Result of the check.
+9.1.0,true,check,check.result,keyword,custom,,Failed,Result of the check.
 9.1.0,true,check,check.rules,keyword,custom,array,"""[\""c:net.exe accounts -> n:Maximum password age \(days\):\s+(\d+) compare > 0\"","" > ""\""c:net.exe accounts -> n:Length of password history maintained:\s+(\d+) compare >= 24\""]""",Rules to be evaluated.
 9.1.0,true,client,client.address,keyword,extended,,,Client network address.
 9.1.0,true,client,client.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
