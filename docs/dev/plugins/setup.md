@@ -580,6 +580,16 @@ IoCs, CVEs and the Engine ruleset. The setup plugin provisions all of them.
 | `wazuh-threatintel-policies` | `wazuh-threatintel-policies-a` | `templates/content/policies.json` |
 | `.wazuh-threatintel-vulnerabilities` | `.wazuh-threatintel-vulnerabilities-a` | `templates/content/vulnerabilities.json` |
 
+### The vulnerabilities mapping
+
+`document` holds the whole CVE record and is deliberately not mapped: the feed also delivers global maps with arbitrary keys under `document`, and inferring a mapping from them conflicts with the types already mapped or exceeds the total field limit. The mapping therefore lists only the fields to search, and every object on the path to them (`document`, `cveMetadata`, `containers`, `containers.cna`) is `dynamic: false`, so anything else stays in `_source` and is not indexed. See the [field list](../../ref/modules/content-manager/index.md#searching-the-cve-feed).
+
+`containers.cna.metrics` is the only dynamic part. A dynamic template (`cvss_version_objects`, `path_match: document.containers.cna.metrics.*`) maps each CVSS version object, whatever its name, with `baseScore` as `half_float` and `baseSeverity` as `keyword`, and `dynamic: false` for the rest of its fields. Dates and scores are `ignore_malformed`, so a bad value is not indexed instead of rejecting the document.
+
+`index.query.default_field` lists `cveId`, `state` and `assignerShortName`. The mapping is open, so `generate_default_query_fields.py` does not derive the list; it is set by hand in both `template-settings` files and the script only checks that each entry resolves to a searchable field.
+
+The module is `wcs/content/vulnerabilities`. `ignore_malformed` and `dynamic` are not ECS field attributes, so the custom fields declare them under `parameters`. `generate_schema.sh` regenerates the template and derives the Content Manager's `cti-cve-mappings.json` from it; `verifyContentTemplates` fails the build when the two differ.
+
 ### Why the alias
 
 A content index is never addressed by its own name. `ContentIndex` creates the concrete index as
