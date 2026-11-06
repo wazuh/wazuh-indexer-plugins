@@ -24,6 +24,8 @@ Core field set for Wazuh-specific context, set by Wazuh components rather than p
 
 The `check` field set stores the results of SCA policy checks, including the check's condition, result, remediation steps, and rationale. Each check can reference multiple compliance frameworks through `check.compliance.<framework>`, where each framework object follows a uniform schema with `name`, `version`, `category`, `publisher`, and `requirements` fields. Supported frameworks: CMMC, FedRAMP, GDPR, HIPAA, ISO 27001, MITRE ATT&CK, NIS2, NIST 800-53, NIST 800-171, PCI DSS, and TSC.
 
+`check.previous.result` stores the result the check held before the scan that changed it. The agent reports a check as modified only when its result changed and the previous result was not `Not run`, so a rule can use this field to select a check that has just started failing rather than one that was already failing. It is the only value mapped under `check.previous`.
+
 The `policy` field set stores the SCA policy metadata (id, name, description, file, references) that groups related checks together.
 
 #### `compliance` — Event-level compliance mapping

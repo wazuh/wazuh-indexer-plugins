@@ -76,8 +76,14 @@
       level: custom
       short: Result of the check.
       description: >
-        The result of the check. This field indicates whether the check passed or failed based on the evaluation of the rules. The result is typically represented as a boolean value, where "passed" indicates that the check was successful and "failed" indicates that the check did not meet the specified criteria.
-      example: "failed"
+        The result of the check. This field indicates whether the check passed or failed based on the evaluation of the rules, as `Passed`, `Failed`, `Not applicable` or `Not run`.
+      example: "Failed"
+    - name: previous.result
+      type: keyword
+      level: custom
+      description: >
+        Result of the check before it changed, e.g. `Passed` before a check starts failing.
+      example: "Passed"
     - name: reason
       type: keyword
       level: custom
