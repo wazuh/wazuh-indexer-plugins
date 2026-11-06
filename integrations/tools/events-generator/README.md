@@ -8,6 +8,7 @@ the integrations.
 - A share of the events produces a finding in `wazuh-findings-v5-<category>`, as the Security
   Analytics plugin does: a copy of the event, `event.doc_id` and `event.index` pointing to it, a rule
   of `samples/rules.json` under `wazuh.rule`, and the same deterministic document id as the plugin.
+  The rule is one of the integration of the event, and of its `event.action` for the rules that list their `actions`.
   Findings can be indexed some time after their event, as the plugin indexes them.
 - Optionally, a share of the events also goes to a custom data stream.
 

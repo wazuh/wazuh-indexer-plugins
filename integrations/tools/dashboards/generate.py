@@ -45,7 +45,18 @@ def main(argv=None) -> int:
 
     outdated = []
     for directory, build in TARGETS.items():
-        for name, content in build().items():
+        files = build()
+        # Views of the Splunk app no longer built, such as those of a dashboard that was removed.
+        for folder in sorted({os.path.dirname(name) for name in files if os.path.dirname(name)}):
+            for stale in sorted(set(os.listdir(os.path.join(directory, folder))) - {os.path.basename(n) for n in files if os.path.dirname(n) == folder}):
+                path = os.path.join(directory, folder, stale)
+                relative = os.path.relpath(path, os.path.dirname(INTEGRATIONS))
+                if args.check:
+                    outdated.append(relative)
+                else:
+                    os.remove(path)
+                    print(f"removed {relative}")
+        for name, content in files.items():
             duplicated = duplicate_ids(content) if name.endswith(".ndjson") else []
             if duplicated:
                 print(f"{name}: saved objects or panels with the same id, rejected by the import: {duplicated}")

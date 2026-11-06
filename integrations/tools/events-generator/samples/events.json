@@ -121,10 +121,32 @@
         "type": ["change"],
         "original": "{\"protoPayload\":{\"methodName\":\"storage.setIamPermissions\",\"serviceName\":\"storage.googleapis.com\",\"resourceName\":\"projects/_/buckets/backups-prod\",\"authenticationInfo\":{\"principalEmail\":\"deploy@example-project.iam.gserviceaccount.com\"},\"serviceData\":{\"policyDelta\":{\"bindingDeltas\":[{\"action\":\"ADD\",\"role\":\"roles/storage.objectViewer\",\"member\":\"allUsers\"}]}}}}"
       },
-      "cloud": { "provider": "gcp", "region": "europe-west1", "account": { "id": "example-project" }, "service": { "name": "storage" } },
+      "cloud": { "provider": "gcp", "region": "europe-west1", "account": { "id": "example-project" }, "project": { "id": "example-project" }, "service": { "name": "storage" } },
       "user": { "name": "deploy@example-project.iam.gserviceaccount.com" },
       "wazuh": {
-        "integration": { "category": "cloud-services", "name": "gcp-audit", "decoders": ["decoder/core-wazuh-message/0", "decoder/gcp-audit/0"] },
+        "integration": { "category": "cloud-services", "name": "gcp", "decoders": ["decoder/core-wazuh-message/0", "decoder/gcp/0"] },
+        "protocol": { "location": "gcp-pubsub", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "action": "dns_query",
+        "category": ["network"],
+        "kind": "event",
+        "outcome": "success",
+        "provider": "dns.googleapis.com",
+        "type": ["protocol"],
+        "original": "{\"jsonPayload\":{\"queryName\":\"updates.example-dyn.net.\",\"queryType\":\"A\",\"responseCode\":\"NOERROR\",\"sourceIP\":\"10.128.0.12\",\"vmInstanceId\":\"4127830012345678901\"}}"
+      },
+      "cloud": { "provider": "gcp", "region": "europe-west1", "account": { "id": "example-project" }, "project": { "id": "example-project" }, "instance": { "id": "4127830012345678901" }, "service": { "name": "dns" } },
+      "dns": { "question": { "name": "updates.example-dyn.net", "type": "A" }, "response_code": "NOERROR" },
+      "source": { "ip": "10.128.0.12" },
+      "wazuh": {
+        "integration": { "category": "cloud-services", "name": "gcp", "decoders": ["decoder/core-wazuh-message/0", "decoder/gcp/0"] },
         "protocol": { "location": "gcp-pubsub", "queue": 49 },
         "space": { "name": "standard" }
       }
@@ -190,6 +212,14 @@
       "related": { "ip": ["198.51.100.15", "10.0.1.11"] },
       "wazuh": {
         "integration": { "category": "security", "name": "suricata", "decoders": ["decoder/core-wazuh-message/0", "decoder/suricata/0"] },
+        "threat": {
+          "enrichments": [
+            {
+              "indicator": { "name": "198.51.100.15", "type": "ipv4-addr", "last_seen": "2026-10-01T00:00:00.000Z", "software": { "name": "ExampleBot", "type": "Malware" } },
+              "matched": { "field": "source.ip" }
+            }
+          ]
+        },
         "protocol": { "location": "/var/log/suricata/eve.json", "queue": 49 },
         "space": { "name": "standard" }
       }
@@ -317,6 +347,90 @@
       "wazuh": {
         "integration": { "category": "unclassified", "name": "unclassified", "decoders": ["decoder/core-wazuh-message/0"] },
         "protocol": { "location": "udp:514", "queue": 50 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "linux",
+    "event": {
+      "event": {
+        "action": "start",
+        "category": ["process"],
+        "kind": "event",
+        "outcome": "success",
+        "type": ["start"],
+        "original": "{\"status\":\"start\",\"id\":\"3f6a1c2b9d7e\",\"from\":\"example/miner:latest\",\"Actor\":{\"Attributes\":{\"name\":\"miner-01\"}}}"
+      },
+      "container": { "id": "3f6a1c2b9d7e", "name": "miner-01", "image": { "name": "example/miner:latest" } },
+      "wazuh": {
+        "integration": { "category": "system-activity", "name": "docker", "decoders": ["decoder/core-wazuh-message/0", "decoder/docker/0"] },
+        "protocol": { "location": "docker", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "action": "Microsoft.Authorization/roleAssignments/write",
+        "category": ["iam"],
+        "kind": "event",
+        "outcome": "success",
+        "provider": "Microsoft.Authorization",
+        "type": ["change"],
+        "original": "{\"operationName\":\"Microsoft.Authorization/roleAssignments/write\",\"resultType\":\"Success\",\"callerIpAddress\":\"192.0.2.44\"}"
+      },
+      "cloud": { "provider": "azure", "region": "westeurope", "account": { "id": "00000000-0000-0000-0000-000000000001" }, "service": { "name": "Azure Active Directory" } },
+      "source": { "ip": "192.0.2.44" },
+      "user": { "name": "ops@example.onmicrosoft.com" },
+      "wazuh": {
+        "integration": { "category": "cloud-services", "name": "azure", "decoders": ["decoder/core-wazuh-message/0", "decoder/azure/0"] },
+        "protocol": { "location": "azure-logs", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "action": "repo.access",
+        "category": ["configuration"],
+        "kind": "event",
+        "outcome": "success",
+        "type": ["change"],
+        "original": "{\"action\":\"repo.access\",\"actor\":\"dev-user\",\"actor_ip\":\"203.0.113.50\",\"org\":\"example-org\",\"repo\":\"example-org/internal-tools\",\"visibility\":\"public\"}"
+      },
+      "organization": { "name": "example-org" },
+      "url": { "original": "https://github.example.com/example-org/internal-tools" },
+      "source": { "ip": "203.0.113.50" },
+      "user": { "name": "dev-user" },
+      "wazuh": {
+        "integration": { "category": "cloud-services", "name": "github", "decoders": ["decoder/core-wazuh-message/0", "decoder/github/0"] },
+        "protocol": { "location": "github", "queue": 49 },
+        "space": { "name": "standard" }
+      }
+    }
+  },
+  {
+    "os": "any",
+    "event": {
+      "event": {
+        "action": "New-InboxRule",
+        "category": ["email"],
+        "kind": "event",
+        "outcome": "success",
+        "provider": "Exchange",
+        "type": ["creation"],
+        "original": "{\"Operation\":\"New-InboxRule\",\"Workload\":\"Exchange\",\"ResultStatus\":\"Succeeded\",\"UserId\":\"finance@example.onmicrosoft.com\",\"ClientIP\":\"203.0.113.90\"}"
+      },
+      "client": { "ip": "203.0.113.90" },
+      "user": { "id": "finance@example.onmicrosoft.com", "name": "finance@example.onmicrosoft.com" },
+      "wazuh": {
+        "integration": { "category": "cloud-services", "name": "o365", "decoders": ["decoder/core-wazuh-message/0", "decoder/o365/0"] },
+        "protocol": { "location": "office365", "queue": 49 },
         "space": { "name": "standard" }
       }
     }

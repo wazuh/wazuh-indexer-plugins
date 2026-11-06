@@ -53,7 +53,12 @@ The `integrations/splunk/app/wazuh_integration` app holds:
 - `props.conf`: the `wazuh:findings`, `wazuh:events` and `wazuh:custom` sourcetypes, which extract the JSON fields of every event at search time.
 - `limits.conf`: raises `[kv] maxchars` to 102400. Splunk extracts no field from an event longer than `maxchars`, 10240 characters by default, which findings often exceed. The setting applies to every app.
 - `macros.conf`: `` `wazuh_findings` ``, `` `wazuh_events` `` and `` `wazuh_custom` ``, the searches of the dashboards, shared with every app.
-- The **Findings overview**, **MITRE ATT&CK**, **Compliance** and **Events overview** dashboards (Dashboard Studio).
+- The dashboards (Dashboard Studio), in the **Dashboards** menu of the app, one submenu per module: the dashboards of the Wazuh dashboard built on the findings, translated to Splunk searches with the same panels and layout, each one filtered as the Wazuh dashboard filters it:
+  - **Threat hunting**, **MITRE ATT&CK**, **Malware detection** and **Case management**.
+  - **Docker**, **AWS**, **Azure**, **Google Cloud**, **GitHub** and **Office**: the findings of each integration, with the drilldowns of GitHub and Office.
+  - **PCI**, **GDPR**, **HIPAA**, **NIST 800-53**, **NIST 800-171**, **ISO 27001**, **TSC**, **CMMC**, **FedRAMP** and **NIS2**: the findings of the rules of each compliance framework.
+  - The **Agent dashboard** of each module, which the Wazuh dashboard shows when an agent is pinned, and the **drilldowns** of GitHub and Office, which it shows when a value of a table is clicked: pick the agent or the value in the input on top.
+  - The **Wazuh - Events overview**, of the integration, for the events.
 
 Package it and install it, from **Apps** > **Manage Apps** > **Install app from file**, or with the CLI:
 

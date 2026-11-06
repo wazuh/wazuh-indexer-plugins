@@ -28,6 +28,18 @@ for _ in $(seq 1 60); do
 done
 api "${ELASTIC_URL}/_cluster/health?wait_for_status=yellow&timeout=5s" > /dev/null
 
+# The template composes logs@mappings and logs@settings, which Elasticsearch installs on its own
+# shortly after it starts: until they exist, installing the template fails (HTTP 400).
+# The API takes one name per request.
+echo "Waiting for the built-in logs component templates"
+for name in logs@mappings logs@settings; do
+  for _ in $(seq 1 60); do
+    api "${ELASTIC_URL}/_component_template/${name}" > /dev/null 2>&1 && break
+    sleep 5
+  done
+  api "${ELASTIC_URL}/_component_template/${name}" > /dev/null
+done
+
 echo "Installing the Wazuh index template"
 api -X PUT "${ELASTIC_URL}/_index_template/wazuh" -d @"${TEMPLATE}"
 echo

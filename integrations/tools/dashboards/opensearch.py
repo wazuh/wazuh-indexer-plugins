@@ -4,7 +4,10 @@ The visualizations are the aggregation-based ones, written in the 7.10 saved obj
 which OpenSearch Dashboards migrates on import.
 """
 import json
+import os
 import uuid
+
+import wazuh_dashboard
 
 NS = uuid.UUID("0b8e5f2a-6c4d-4a1e-9f3b-7d2c5e8a1f60")
 PANEL_VERSION = "3.9.0"
@@ -18,6 +21,67 @@ INDEX_PATTERNS = {
     "findings": {"id": "wazuh-findings", "title": "logs-wazuh.findings.*-*"},
     "events": {"id": "wazuh-events", "title": "logs-wazuh.events.*-*"},
 }
+
+# ---- Fields of the index patterns ----
+#
+# OpenSearch Dashboards keeps the fields of an index pattern in the saved object, and only reads
+# them from the cluster when asked to refresh them. Imported without fields, before any data
+# arrives, every visualization fails ("Could not locate that index-pattern-field"). The index
+# patterns carry the fields of the WCS instead: those of the index templates the setup plugin
+# installs for the source data streams, which the exported documents follow.
+
+STREAM_TEMPLATES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
+                                "plugins", "setup", "src", "main", "resources", "templates", "streams")
+
+# OpenSearch Dashboards type of every mapping type of the WCS.
+FIELD_TYPES = {
+    "keyword": "string", "match_only_text": "string", "flat_object": "string",
+    "long": "number", "integer": "number", "short": "number", "byte": "number",
+    "double": "number", "float": "number", "scaled_float": "number",
+    "date": "date", "ip": "ip", "boolean": "boolean", "geo_point": "geo_point",
+}
+# Mapping types without doc values: searchable, not aggregatable.
+NOT_AGGREGATABLE = {"match_only_text", "flat_object"}
+META_FIELDS = [
+    {"name": "_id", "type": "string", "esTypes": ["_id"], "searchable": True, "aggregatable": True, "readFromDocValues": False},
+    {"name": "_index", "type": "string", "esTypes": ["_index"], "searchable": True, "aggregatable": True, "readFromDocValues": False},
+    {"name": "_score", "type": "number", "searchable": False, "aggregatable": False, "readFromDocValues": False},
+    {"name": "_source", "type": "_source", "esTypes": ["_source"], "searchable": False, "aggregatable": False, "readFromDocValues": False},
+    {"name": "_type", "type": "string", "searchable": False, "aggregatable": False, "readFromDocValues": False},
+]
+
+
+def wcs_mappings(kind: str) -> dict:
+    """{field: mapping type} of the WCS fields of the events or findings data streams."""
+    with open(os.path.join(STREAM_TEMPLATES, f"{kind}.json")) as fd:
+        mappings = json.load(fd)["template"]["mappings"]
+    fields = {}
+
+    def leaves(properties, prefix=""):
+        for name, mapping in properties.items():
+            if "type" in mapping:
+                fields[prefix + name] = mapping["type"]
+            leaves(mapping.get("properties", {}), f"{prefix}{name}.")
+
+    leaves(mappings["properties"])
+    for rule in mappings["dynamic_templates"]:
+        body = next(iter(rule.values()))
+        fields[body["path_match"]] = body["mapping"]["type"]
+    # The integration names the destination data stream of every document in data_stream.*.
+    fields.update({f"data_stream.{name}": "keyword" for name in ("type", "dataset", "namespace")})
+    return fields
+
+
+def index_pattern_fields(kind: str) -> list:
+    """The fields of the index pattern of a kind of data, as OpenSearch Dashboards stores them."""
+    fields = []
+    for name, es_type in sorted(wcs_mappings(kind).items()):
+        if es_type not in FIELD_TYPES:
+            continue  # objects
+        aggregatable = es_type not in NOT_AGGREGATABLE
+        fields.append({"name": name, "type": FIELD_TYPES[es_type], "esTypes": [es_type], "searchable": True,
+                       "aggregatable": aggregatable, "readFromDocValues": aggregatable})
+    return META_FIELDS + fields
 
 # ---- Aggregations ----
 
@@ -204,45 +268,10 @@ class Dashboard:
 
 
 F, E = "findings", "events"
-HIGH = 'wazuh.rule.level : ("critical" or "high")'
 
-# Findings overview: replaces wazuh-security-events, wazuh-incident-response and wazuh-malware-detection.
-findings = Dashboard("findings-overview", "Wazuh - Findings overview", "Detection findings exported from the Wazuh indexer.")
-findings.row(7, metric("Findings", F, count("Findings")), metric("Critical and high", F, count("Critical and high"), HIGH),
-             metric("Agents with findings", F, unique("wazuh.agent.name", "Agents")), metric("Rules triggered", F, unique("wazuh.rule.id", "Rules")))
-findings.row(15, over_time("Findings over time by level", F, "wazuh.rule.level", "Level", w=32), donut("Findings by level", F, "wazuh.rule.level", "Level"))
-findings.row(15, top_bars("Findings by category", F, "wazuh.integration.category", "Category"), top_bars("Top agents", F, "wazuh.agent.name", "Agent"))
-findings.row(16, table("Top rules", F, [("wazuh.rule.title", "Rule"), ("wazuh.rule.level", "Level")],
-                       [count("Findings"), unique("wazuh.agent.name", "Agents")]))
-findings.row(16, table("Findings by agent and rule", F, [("wazuh.agent.name", "Agent"), ("wazuh.rule.title", "Rule"), ("wazuh.integration.name", "Integration")],
-                       [count("Findings")]))
-findings.search(18, "Latest findings", F, ["wazuh.agent.name", "wazuh.rule.level", "wazuh.rule.title", "wazuh.integration.name", "source.ip", "user.name"])
+# The findings: the dashboards of the Wazuh dashboard, converted (see wazuh_dashboard.py).
+# The events: the Wazuh dashboard has no dashboard of events, so the integration has its own.
 
-# MITRE ATT&CK: new.
-mitre = Dashboard("mitre-attack", "Wazuh - MITRE ATT&CK", "MITRE ATT&CK tactics and techniques of the rules that produced the findings.")
-mitre.row(7, metric("Findings with MITRE ATT&CK", F, count("Findings"), "wazuh.rule.mitre.technique.id : *"),
-          metric("Tactics", F, unique("wazuh.rule.mitre.tactic.id", "Tactics")), metric("Techniques", F, unique("wazuh.rule.mitre.technique.id", "Techniques")),
-          metric("Sub-techniques", F, unique("wazuh.rule.mitre.subtechnique.id", "Sub-techniques")))
-mitre.row(15, over_time("Tactics over time", F, "wazuh.rule.mitre.tactic.name", "Tactic", w=32), donut("Findings by tactic", F, "wazuh.rule.mitre.tactic.name", "Tactic"))
-mitre.row(15, top_bars("Top techniques", F, "wazuh.rule.mitre.technique.name", "Technique"),
-          top_bars("Top sub-techniques", F, "wazuh.rule.mitre.subtechnique.name", "Sub-technique"))
-mitre.row(16, table("Techniques", F, [("wazuh.rule.mitre.technique.id", "Technique ID"), ("wazuh.rule.mitre.technique.name", "Technique")],
-                    [count("Findings"), unique("wazuh.agent.name", "Agents"), unique("wazuh.rule.id", "Rules")]))
-
-# Compliance: replaces wazuh-pci-dss.
-# Every framework of wazuh.rule.compliance in WCS.
-FRAMEWORKS = [("pci_dss", "PCI DSS"), ("nist_800_53", "NIST 800-53"), ("nist_800_171", "NIST 800-171"), ("gdpr", "GDPR"), ("hipaa", "HIPAA"),
-              ("iso_27001", "ISO 27001"), ("nis2", "NIS2"), ("tsc", "TSC"), ("cmmc", "CMMC"), ("fedramp", "FedRAMP")]
-compliance = Dashboard("compliance", "Wazuh - Compliance", "Regulatory requirements of the rules that produced the findings.")
-for half in (FRAMEWORKS[:5], FRAMEWORKS[5:]):
-    compliance.row(7, *[metric(f"{name} findings", F, count("Findings"), f"wazuh.rule.compliance.{key} : *") for key, name in half])
-compliance.row(15, series_over_time("Findings by framework over time", F, [(name, f"wazuh.rule.compliance.{key} : *") for key, name in FRAMEWORKS]))
-for pair in zip(FRAMEWORKS[::2], FRAMEWORKS[1::2]):
-    compliance.row(15, *[top_bars(f"{name} requirements", F, f"wazuh.rule.compliance.{key}", "Requirement") for key, name in pair])
-compliance.row(16, table("PCI DSS requirements by rule", F, [("wazuh.rule.compliance.pci_dss", "PCI DSS"), ("wazuh.rule.title", "Rule")],
-                         [count("Findings"), unique("wazuh.agent.name", "Agents")], kql="wazuh.rule.compliance.pci_dss : *"))
-
-# Events overview: replaces wazuh-amazon-aws (cloud panels).
 events = Dashboard("events-overview", "Wazuh - Events overview", "Normalized events exported from the Wazuh indexer.")
 events.row(7, metric("Events", E, count("Events")), metric("Agents", E, unique("wazuh.agent.name", "Agents")),
            metric("Integrations", E, unique("wazuh.integration.name", "Integrations")), metric("Failed outcomes", E, count("Events"), 'event.outcome : "failure"'))
@@ -254,13 +283,30 @@ events.row(16, table("Authentication failures by source", E, [("source.ip", "Sou
                  [count("Events")], kql='wazuh.integration.category : "cloud-services"'))
 
 objects = [{"id": p["id"], "type": "index-pattern", "migrationVersion": {"index-pattern": "7.6.0"}, "references": [],
-            "attributes": {"title": p["title"], "timeFieldName": "@timestamp"}} for p in INDEX_PATTERNS.values()]
-for d in (findings, mitre, compliance, events):
-    objects.extend(d.saved_objects())
+            "attributes": {"title": p["title"], "timeFieldName": "@timestamp", "fields": json.dumps(index_pattern_fields(kind))}}
+           for kind, p in INDEX_PATTERNS.items()]
+objects.extend(wazuh_dashboard.dashboards(INDEX_PATTERNS["findings"]["id"]))
+objects.extend(events.saved_objects())
 
-DASHBOARD_IDS = {d.title: d.id for d in (findings, mitre, compliance, events)}
+
+def check_fields(objects: list) -> None:
+    """Every field a visualization aggregates on is an aggregatable field of its index pattern."""
+    patterns = {o["id"]: {f["name"]: f for f in json.loads(o["attributes"]["fields"])}
+                for o in objects if o["type"] == "index-pattern"}
+    for o in objects:
+        if o["type"] != "visualization":
+            continue
+        pattern = next(r["id"] for r in o["references"] if r["type"] == "index-pattern")
+        fields = patterns[pattern]
+        state = json.loads(o["attributes"]["visState"])
+        names = [agg.get("params", {}).get("field") for agg in state.get("aggs", [])]
+        names += [c["fieldName"] for c in state.get("params", {}).get("controls", [])]
+        for name in names:
+            if name and not fields.get(name, {}).get("aggregatable"):
+                raise SystemExit(f"{o['id']} ({o['attributes']['title']}): {name} is not an aggregatable field of {pattern}")
 
 
 def build() -> dict:
     """{file name: content}: one ndjson file with the index patterns, visualizations and dashboards."""
+    check_fields(objects)
     return {"dashboards.ndjson": "".join(json.dumps(o) + "\n" for o in objects)}

@@ -1,0 +1,195 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - Docker - Agent dashboard</label>
+  <description>Docker - Agent dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer. Pick the agent in the Agent input, as the Wazuh dashboard does.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - Docker - Agent dashboard",
+  "description": "Docker - Agent dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer. Pick the agent in the Agent input, as the Wazuh dashboard does.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    },
+    "input_scope": {
+      "type": "input.dropdown",
+      "title": "Agent",
+      "dataSources": {
+        "primary": "ds_input_01"
+      },
+      "options": {
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()",
+        "token": "scope",
+        "defaultValue": "*"
+      },
+      "context": {
+        "formattedConfig": {
+          "number": {
+            "prefix": ""
+          }
+        },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [
+          [
+            "All"
+          ],
+          [
+            "*"
+          ]
+        ],
+        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"value\") | renameSeries(\"value\") | formatByType(formattedConfig)"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_input_01": {
+      "type": "ds.search",
+      "name": "Agent",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"docker\" \"wazuh.agent.name\"=* | eval value='wazuh.agent.name' | stats count by value | sort - count | head 500 | eval label=value | fields label, value"
+      }
+    },
+    "ds_01": {
+      "type": "ds.search",
+      "name": "Top 5 images",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"docker\" \"wazuh.agent.name\"=$scope|s$ | eval f1='container.image.name' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"container.image.name\", metric as \"Count\""
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "Top 5 events",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"docker\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.action' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"event.action\", metric as \"Count\""
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "Resources usage over time",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"docker\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.category{}' | timechart useother=f usenull=f limit=5 count by f1"
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "Events occurred evolution",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"docker\" \"wazuh.agent.name\"=$scope|s$ | eval f1='event.action' | timechart useother=f usenull=f limit=10 count by f1"
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.pie",
+      "title": "Top 5 images",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_02": {
+      "type": "splunk.pie",
+      "title": "Top 5 events",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_03": {
+      "type": "splunk.column",
+      "title": "Resources usage over time",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_04": {
+      "type": "splunk.area",
+      "title": "Events occurred evolution",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 416,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp",
+      "input_scope"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 296,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 300,
+          "y": 0,
+          "w": 296,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 0,
+          "w": 596,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 200,
+          "w": 1196,
+          "h": 196
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

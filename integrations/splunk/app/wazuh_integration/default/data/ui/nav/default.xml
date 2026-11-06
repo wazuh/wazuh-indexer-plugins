@@ -1,8 +1,91 @@
 <nav search_view="search">
   <collection label="Dashboards">
-    <view name="wazuh_findings_overview" />
-    <view name="wazuh_mitre_attack" />
-    <view name="wazuh_compliance" />
+    <collection label="AWS">
+      <view name="wazuh_aws_overview_dashboard_tab" />
+      <view name="wazuh_aws_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="Azure">
+      <view name="wazuh_azure_overview_dashboard_tab" />
+      <view name="wazuh_azure_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="Case management">
+      <view name="wazuh_case_management_dashboard_tab" />
+    </collection>
+    <collection label="CMMC">
+      <view name="wazuh_cmmc_overview_dashboard_tab" />
+      <view name="wazuh_cmmc_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="Docker">
+      <view name="wazuh_docker_overview_dashboard_tab" />
+      <view name="wazuh_docker_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="FedRAMP">
+      <view name="wazuh_fedramp_overview_dashboard_tab" />
+      <view name="wazuh_fedramp_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="GDPR">
+      <view name="wazuh_gdpr_overview_dashboard" />
+      <view name="wazuh_gdpr_pinned_agent_dashboard" />
+    </collection>
+    <collection label="GitHub">
+      <view name="wazuh_github_drilldown_action_dashboard_tab" />
+      <view name="wazuh_github_drilldown_actor_dashboard_tab" />
+      <view name="wazuh_github_drilldown_organization_dashboard_tab" />
+      <view name="wazuh_github_drilldown_repository_dashboard" />
+      <view name="wazuh_github_overview_dashboard_tab" />
+      <view name="wazuh_github_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="Google Cloud">
+      <view name="wazuh_google_cloud_detector_dashboard_tab" />
+      <view name="wazuh_google_cloud_pinned_agent_dashboard" />
+    </collection>
+    <collection label="HIPAA">
+      <view name="wazuh_hipaa_overview_dashboard_tab" />
+      <view name="wazuh_hipaa_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="ISO 27001">
+      <view name="wazuh_iso27001_overview_dashboard_tab" />
+      <view name="wazuh_iso27001_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="Malware detection">
+      <view name="wazuh_malware_detection_overview_dashboard_tab" />
+      <view name="wazuh_malware_detection_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="MITRE ATT&amp;CK">
+      <view name="wazuh_mitre_overview_dashboard_tab" />
+      <view name="wazuh_mitre_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="NIS2">
+      <view name="wazuh_nis2_overview_dashboard_tab" />
+      <view name="wazuh_nis2_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="NIST 800-171">
+      <view name="wazuh_nist_800_171_overview_dashboard_tab" />
+      <view name="wazuh_nist_800_171_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="NIST 800-53">
+      <view name="wazuh_nist_800_53_overview_dashboard_tab" />
+      <view name="wazuh_nist_800_53_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="Office">
+      <view name="wazuh_office_drilldown_ip_config_panel_tab" />
+      <view name="wazuh_office_drilldown_operations_config_panel_tab" />
+      <view name="wazuh_office_drilldown_rules_config_panel_tab" />
+      <view name="wazuh_office_drilldown_user_config_panel_tab" />
+      <view name="wazuh_office_overview_dashboard_tab" />
+    </collection>
+    <collection label="PCI">
+      <view name="wazuh_pci_overview_dashboard_tab" />
+      <view name="wazuh_pci_pinned_agent_dashboard_tab" />
+    </collection>
+    <collection label="Threat hunting">
+      <view name="wazuh_threat_hunting_overview_dashboard" />
+      <view name="wazuh_threat_hunting_pinned_agent_dashboard" />
+    </collection>
+    <collection label="TSC">
+      <view name="wazuh_tsc_overview_dashboard_tab" />
+      <view name="wazuh_tsc_pinned_agent_dashboard_tab" />
+    </collection>
     <view name="wazuh_events_overview" />
   </collection>
   <view name="search" />
