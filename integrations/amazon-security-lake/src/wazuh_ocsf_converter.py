@@ -4,13 +4,16 @@ wazuh-findings-v5-* data streams, into OCSF 1.1.0 Detection Findings (see ocsf.p
 
 The WCS fields that have an OCSF attribute are mapped to it. Every other field of the
 finding is kept in `unmapped`, under its WCS name, so that no data is lost: lists and
-objects as JSON, other values as text.
+objects as JSON, other values as text. So is a mapped field whose value does not reach its
+attribute, such as a list where OCSF takes a single IP address, or the region of a cloud
+without a provider.
 
 Logstash adds the `_export` object to every document: the id and the data stream of the
 source document. It is not part of the finding.
 """
 import json
 import logging
+import re
 from datetime import datetime
 
 import ocsf
@@ -18,8 +21,10 @@ import ocsf
 logger = logging.getLogger(__name__)
 
 EXPORT_FIELD = "_export"
+INTEGER = re.compile(r"\s*-?\d+\s*")
 
-# WCS fields mapped to OCSF attributes. They are not repeated in `unmapped`.
+# WCS fields mapped to OCSF attributes. They are not repeated in `unmapped` when their value
+# reaches the attribute.
 MAPPED_FIELDS = (
     "@timestamp",
     "event.original",
@@ -56,9 +61,6 @@ MAPPED_FIELDS = (
     "cloud.account.id",
 )
 
-# Version of MITRE ATT&CK the rules refer to.
-ATTACK_VERSION = "v13.1"
-
 
 def get(document: dict, field: str):
     """Value of a field of a document, by its dotted name, from nested objects or dotted keys."""
@@ -74,13 +76,6 @@ def as_list(value) -> list:
     if value is None:
         return []
     return value if isinstance(value, list) else [value]
-
-
-def as_int(value):
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def to_epoch_ms(timestamp) -> int:
@@ -102,64 +97,130 @@ def flatten(document: dict, prefix: str = "") -> dict:
     return fields
 
 
-def unmapped(document: dict) -> dict:
-    """Every leaf field of the finding that has no OCSF attribute, as text."""
-    fields = {}
-    for field, value in flatten(document).items():
-        if field in MAPPED_FIELDS or field == EXPORT_FIELD or field.startswith(f"{EXPORT_FIELD}.") or value is None:
-            continue
-        fields[field] = value if isinstance(value, str) else json.dumps(value)
-    return dict(sorted(fields.items()))
+def as_text(value) -> str:
+    """A value as text: strings as they are, anything else as JSON."""
+    return value if isinstance(value, str) else json.dumps(value)
 
 
-def attacks(document: dict) -> list:
+class Fields:
     """
-    MITRE ATT&CK of the rule: one attack per technique, with its sub-techniques. A rule lists
-    its tactics apart from its techniques: with as many tactics as techniques they pair up in
-    order, otherwise every technique takes the first tactic.
+    Reads the fields of a finding into OCSF attributes, and records the ones whose value
+    reached its attribute whole: every other field is kept in `unmapped`.
     """
-    tactics = list(zip(as_list(get(document, "wazuh.rule.mitre.tactic.id")),
-                       as_list(get(document, "wazuh.rule.mitre.tactic.name"))))
-    techniques = list(zip(as_list(get(document, "wazuh.rule.mitre.technique.id")),
-                          as_list(get(document, "wazuh.rule.mitre.technique.name"))))
-    subtechniques = list(zip(as_list(get(document, "wazuh.rule.mitre.subtechnique.id")),
-                             as_list(get(document, "wazuh.rule.mitre.subtechnique.name"))))
-    if not techniques:
-        return [{"tactic": {"uid": uid, "name": name}, "version": ATTACK_VERSION} for uid, name in tactics]
+
+    INT32 = range(-2 ** 31, 2 ** 31)
+
+    def __init__(self, document: dict):
+        self.document = document
+        self.used = set()
+
+    def use(self, field: str):
+        self.used.add(field)
+
+    def text(self, field: str):
+        """A single value as text, or None for lists and objects."""
+        value = get(self.document, field)
+        if value is None or isinstance(value, (list, dict)):
+            return None
+        self.use(field)
+        return as_text(value)
+
+    def integer(self, field: str):
+        """A single value as a 32-bit integer, or None if it is not one."""
+        value = get(self.document, field)
+        if isinstance(value, str) and INTEGER.fullmatch(value):
+            value = int(value)
+        if not isinstance(value, int) or isinstance(value, bool) or value not in self.INT32:
+            return None
+        self.use(field)
+        return value
+
+    def texts(self, field: str) -> list:
+        """The values of an array as text, or [] if one of them is a list or an object."""
+        values = [v for v in as_list(get(self.document, field)) if v is not None]
+        if not values or any(isinstance(v, (list, dict)) for v in values):
+            return []
+        self.use(field)
+        return [as_text(v) for v in values]
+
+    def unmapped(self) -> dict:
+        """Every leaf field of the finding whose value is in no OCSF attribute, as text."""
+        fields = {}
+        for field, value in flatten(self.document).items():
+            if field in self.used or field == EXPORT_FIELD or field.startswith(f"{EXPORT_FIELD}.") or value is None:
+                continue
+            fields[field] = as_text(value)
+        return dict(sorted(fields.items()))
+
+
+def named(fields: Fields, category: str) -> list:
+    """
+    (id, name) of the tactics, techniques or sub-techniques of the rule. The names are optional:
+    a rule lists either none or one per id.
+    """
+    ids = fields.texts(f"wazuh.rule.mitre.{category}.id")
+    name_field = f"wazuh.rule.mitre.{category}.name"
+    # Names without an id to go with, no ids or more names than ids, stay in `unmapped`.
+    names = fields.texts(name_field) if ids and len(as_list(get(fields.document, name_field))) <= len(ids) else []
+    return [(uid, names[i] if i < len(names) else None) for i, uid in enumerate(ids)]
+
+
+def attacks(fields: Fields) -> list:
+    """
+    MITRE ATT&CK of the rule. A rule lists its tactics, techniques and sub-techniques apart, and
+    does not say which technique belongs to which tactic, so no pairing is made up: with a single
+    tactic, every technique takes it; with several, the tactics are attacks of their own and the
+    techniques have no tactic. A sub-technique goes with its technique, the part of its id before
+    the dot, whether the rule lists that technique or not.
+    """
+    tactics = named(fields, "tactic")
+    techniques = dict(named(fields, "technique"))
+    subtechniques = named(fields, "subtechnique")
+    for uid, _ in subtechniques:
+        if "." in uid:
+            techniques.setdefault(uid.split(".")[0], None)
+
+    def obj(pair):
+        return {"uid": pair[0], "name": pair[1]} if pair else None
+
+    tactic = tactics[0] if len(tactics) == 1 else None
     result = []
-    for i, (uid, name) in enumerate(techniques):
-        tactic = tactics[i] if len(tactics) == len(techniques) else (tactics[0] if tactics else None)
-        subs = [s for s in subtechniques if str(s[0]).startswith(f"{uid}.")] or [None]
+    if tactic is None or not techniques:
+        result += [{"tactic": obj(t), "technique": None, "sub_technique": None, "version": None} for t in tactics]
+    for uid, name in techniques.items():
+        subs = [s for s in subtechniques if s[0].startswith(f"{uid}.")] or [None]
         for sub in subs:
-            result.append({
-                "tactic": {"uid": tactic[0], "name": tactic[1]} if tactic else None,
-                "technique": {"uid": uid, "name": name},
-                "sub_technique": {"uid": sub[0], "name": sub[1]} if sub else None,
-                "version": ATTACK_VERSION,
-            })
+            result.append({"tactic": obj(tactic),
+                           "technique": {"uid": uid, "name": name}, "sub_technique": obj(sub), "version": None})
+    # Sub-techniques with no technique in their id stand alone.
+    result += [{"tactic": None, "technique": None, "sub_technique": obj(s), "version": None}
+               for s in subtechniques if "." not in s[0]]
     return result
 
 
-def endpoint(document: dict, prefix: str):
-    ip, port = get(document, f"{prefix}.ip"), as_int(get(document, f"{prefix}.port"))
+def endpoint(fields: Fields, prefix: str):
+    ip, port = fields.text(f"{prefix}.ip"), fields.integer(f"{prefix}.port")
     if ip is None and port is None:
         return None
     return {"ip": ip, "port": port}
 
 
-def evidences(document: dict) -> list:
+def evidences(fields: Fields) -> list:
     """The entities of the event that matched the rule."""
     evidence = {
-        "src_endpoint": endpoint(document, "source"),
-        "dst_endpoint": endpoint(document, "destination"),
+        "src_endpoint": endpoint(fields, "source"),
+        "dst_endpoint": endpoint(fields, "destination"),
     }
-    if any(get(document, f) is not None for f in ("process.name", "process.pid", "process.command_line")):
-        evidence["process"] = {"name": get(document, "process.name"), "pid": as_int(get(document, "process.pid")),
-                               "cmd_line": get(document, "process.command_line")}
-    if get(document, "file.name") is not None or get(document, "file.path") is not None:
-        evidence["file"] = {"name": get(document, "file.name"), "path": get(document, "file.path"), "type_id": 0}
-    if get(document, "user.name") is not None or get(document, "user.id") is not None:
-        evidence["actor"] = {"user": {"name": get(document, "user.name"), "uid": get(document, "user.id")}}
+    process = {"name": fields.text("process.name"), "pid": fields.integer("process.pid"),
+               "cmd_line": fields.text("process.command_line")}
+    if any(v is not None for v in process.values()):
+        evidence["process"] = process
+    file = {"name": fields.text("file.name"), "path": fields.text("file.path")}
+    if any(v is not None for v in file.values()):
+        evidence["file"] = {**file, "type_id": 0}
+    user = {"name": fields.text("user.name"), "uid": fields.text("user.id")}
+    if any(v is not None for v in user.values()):
+        evidence["actor"] = {"user": user}
     return [evidence] if any(evidence.values()) else []
 
 
@@ -168,7 +229,7 @@ def observables(document: dict) -> list:
 
     def add(name, kind, value):
         for item in as_list(value):
-            if item is not None:
+            if item is not None and not isinstance(item, (list, dict)):
                 result.append({"name": name, "type_id": kind[0], "type": kind[1], "value": str(item)})
 
     add("resources.name", ocsf.OBSERVABLE_HOSTNAME, get(document, "wazuh.agent.name"))
@@ -178,12 +239,13 @@ def observables(document: dict) -> list:
     return result
 
 
-def cloud(document: dict):
-    provider = get(document, "cloud.provider")
+def cloud(fields: Fields):
+    """The cloud of the finding. OCSF requires its provider: without one, the cloud fields stay in `unmapped`."""
+    provider = fields.text("cloud.provider")
     if provider is None:
         return None
-    account = get(document, "cloud.account.id")
-    return {"provider": provider, "region": get(document, "cloud.region"),
+    account = fields.text("cloud.account.id")
+    return {"provider": provider, "region": fields.text("cloud.region"),
             "account": {"uid": account} if account is not None else None}
 
 
@@ -194,20 +256,29 @@ def to_detection_finding(document: dict):
     """
     if not isinstance(get(document, "wazuh.rule"), dict):
         return None
+    fields = Fields(document)
     export = document.get(EXPORT_FIELD) or {}
-    uid = export.get("id") or get(document, "wazuh.event.id")
-    level = str(get(document, "wazuh.rule.level") or "").lower()
+    event_id = get(document, "wazuh.event.id")
+    uid = export.get("id") or (as_text(event_id) if event_id is not None else None)
+    level = str(get(document, "wazuh.rule.level")).lower()
+    if level in ocsf.SEVERITIES:
+        fields.use("wazuh.rule.level")
     severity_id, severity = ocsf.SEVERITIES.get(level, ocsf.SEVERITY_UNKNOWN)
+    # The status of the case is kept in `unmapped` too: OCSF merges some of them (active and acknowledged).
     case_status = get(document, "wazuh.case.status")
-    if case_status is None:
+    if case_status is None or isinstance(case_status, (list, dict)):
         status_id, status = ocsf.STATUS_NEW
     else:
-        status_id, status = ocsf.STATUSES.get(str(case_status).lower(), (ocsf.STATUS_OTHER, str(case_status)))
+        case_status = as_text(case_status)
+        status_id, status = ocsf.STATUSES.get(case_status.lower(), (ocsf.STATUS_OTHER, case_status))
     time = to_epoch_ms(get(document, "@timestamp"))
-    title = get(document, "wazuh.rule.title") or get(document, "wazuh.rule.name")
-    category = get(document, "wazuh.rule.category")
-    agent_id, agent_name = get(document, "wazuh.agent.id"), get(document, "wazuh.agent.name")
-    cloud_info = cloud(document)
+    fields.use("@timestamp")
+    rule_title, rule_name = fields.text("wazuh.rule.title"), fields.text("wazuh.rule.name")
+    title = rule_title or rule_name
+    description = fields.text("wazuh.rule.description")
+    category = fields.text("wazuh.rule.category")
+    agent_id, agent_name = fields.text("wazuh.agent.id"), fields.text("wazuh.agent.name")
+    cloud_info = cloud(fields)
 
     return {
         "activity_id": ocsf.ACTIVITY_ID,
@@ -224,38 +295,39 @@ def to_detection_finding(document: dict):
         "status": status,
         "time": time,
         "message": title,
-        "raw_data": get(document, "event.original"),
+        "raw_data": fields.text("event.original"),
         "metadata": {
             "version": ocsf.VERSION,
             "uid": uid,
             "log_name": export.get("data_stream"),
             "log_provider": "Wazuh",
-            "original_time": get(document, "event.start"),
+            "original_time": fields.text("event.start"),
             "profiles": ["cloud"] if cloud_info else [],
             "product": {"name": "Wazuh", "vendor_name": "Wazuh", "lang": "en"},
         },
         "finding_info": {
             "uid": uid,
             "title": title,
-            "desc": get(document, "wazuh.rule.description"),
+            "desc": description,
             "types": [category] if category else [],
             "created_time": time,
             "analytic": {
-                "uid": get(document, "wazuh.rule.id"),
-                "name": get(document, "wazuh.rule.name") or title,
-                "desc": get(document, "wazuh.rule.description"),
+                "uid": fields.text("wazuh.rule.id"),
+                "name": rule_name or title,
+                "desc": description,
                 "category": category,
                 "type": "Rule",
                 "type_id": 1,
-                "version": get(document, "wazuh.rule.version"),
+                "version": fields.text("wazuh.rule.version"),
             },
-            "attacks": attacks(document),
+            "attacks": attacks(fields),
         },
         "resources": [{"type": "Host", "uid": agent_id, "name": agent_name}] if agent_id or agent_name else [],
-        "evidences": evidences(document),
+        "evidences": evidences(fields),
         "observables": observables(document),
         "cloud": cloud_info,
-        "unmapped": unmapped(document),
+        # Last: every other reader has recorded the fields it used.
+        "unmapped": fields.unmapped(),
     }
 
 

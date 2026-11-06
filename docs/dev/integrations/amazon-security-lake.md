@@ -49,7 +49,7 @@ The OCSF bucket (`S3_BUCKET_OCSF`) holds the same findings as JSON. To export a 
 | File | Contents |
 | --- | --- |
 | `lambda_function.py` | The handler: reads the files of the S3 event, converts them, writes the Parquet files to the partition of the custom source, with the role of the source when `ROLE_ARN` is set. |
-| `wazuh_ocsf_converter.py` | The conversion of a WCS finding into an OCSF Detection Finding. `MAPPED_FIELDS` lists the WCS fields it maps; every other field goes to `unmapped`. |
+| `wazuh_ocsf_converter.py` | The conversion of a WCS finding into an OCSF Detection Finding. `MAPPED_FIELDS` lists the WCS fields it maps; every other field goes to `unmapped`, and so does a mapped field whose value does not reach its attribute. |
 | `ocsf.py` | The OCSF constants and the fixed Parquet schema of the files. |
 
 `make` builds the package deployed to AWS, `wazuh_to_amazon_security_lake.zip`, with the dependencies of `requirements.aws.txt` for the Lambda runtime.
@@ -64,7 +64,7 @@ pip install -r requirements.txt
 python -m pytest
 ```
 
-They convert every finding the events generator builds from its samples, check that the mapped fields exist in the WCS findings module and that every other field reaches `unmapped`, and run the handler against mocked buckets and STS: partitions, retries, cross-account role, invalid lines.
+They convert every finding the events generator builds from its samples, check that the mapped fields exist in the WCS findings module and that every field of a finding reaches an OCSF attribute or `unmapped`, cover the shapes of the MITRE ATT&CK block of a rule and the values that do not fit their attribute, and run the handler against mocked buckets and STS: partitions, retries, cross-account role, invalid lines, findings that do not fit the Parquet schema.
 
 The end-to-end test runs on the environment:
 
