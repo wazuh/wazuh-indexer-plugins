@@ -277,6 +277,15 @@
           }
         },
         {
+          "wcs_check_previous_result": {
+            "path_match": "check.previous.result",
+            "mapping": {
+              "ignore_above": 4096,
+              "type": "keyword"
+            }
+          }
+        },
+        {
           "wcs_check_rationale": {
             "path_match": "check.rationale",
             "mapping": {
@@ -20571,6 +20580,9 @@
                   "properties": {}
                 }
               }
+            },
+            "previous": {
+              "properties": {}
             }
           }
         },
