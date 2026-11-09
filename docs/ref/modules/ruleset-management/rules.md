@@ -236,6 +236,8 @@ Multiple modifiers can be chained: `field|modifier1|modifier2: value`.
 > does not match `union select` or `UNION sElect`. To catch several spellings of a keyword, list them
 > as separate values.
 > 
+> **Long values**: detection compares only the first 10922 characters of a `message`, `error.message` or `file.diff` value. A `contains`, `startswith` or wildcard match within them is found; an exact value, an `endswith`, or a match that extends past them is not. The event keeps the whole value, so a search on the events still finds any word of it.
+> 
 > Both evaluation paths agree: a deployed detector and
 > [logtest](../content-manager/rule-testing.md) compile a rule with the same backend and match it
 > with the same percolator, so a logtest result predicts what the detector will do rather than
