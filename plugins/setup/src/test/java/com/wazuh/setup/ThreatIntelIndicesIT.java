@@ -382,6 +382,14 @@ public class ThreatIntelIndicesIT extends OpenSearchRestTestCase {
                 countOf(index, "{\"range\": {\"document.containers.cna.metrics.cvssV4_0.baseScore\": {\"gte\": 9}}}"),
                 is(1));
         assertThat(
+                "a score bound is matched exactly, 9.8 is not rounded down",
+                countOf(index, "{\"range\": {\"document.containers.cna.metrics.cvssV3_1.baseScore\": {\"gte\": 9.8, \"lte\": 9.8}}}"),
+                is(1));
+        assertThat(
+                "an integer score is indexed when it is the first one of its version",
+                countOf(index, "{\"range\": {\"document.containers.cna.metrics.cvssV2_0.baseScore\": {\"gte\": 3, \"lte\": 3}}}"),
+                is(1));
+        assertThat(
                 "score range on another version",
                 countOf(index, "{\"range\": {\"document.containers.cna.metrics.cvssV2_0.baseScore\": {\"lt\": 5}}}"),
                 is(1));
@@ -415,7 +423,7 @@ public class ThreatIntelIndicesIT extends OpenSearchRestTestCase {
                 is(0));
         assertThat(
                 "unmapped fields are kept in _source",
-                getSource(index, "setup-it-cve-high"),
+                getSource(index, "setup-it-cve-high").replaceAll("\\s+", ""),
                 containsString("\"vectorString\":\"CVSS:3.1/AV:N\""));
 
         for (String id :

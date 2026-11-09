@@ -29,7 +29,7 @@
               "properties": {
                 "baseScore": {
                   "ignore_malformed": true,
-                  "type": "half_float"
+                  "type": "float"
                 },
                 "baseSeverity": {
                   "ignore_above": 4096,
@@ -39,22 +39,19 @@
               "type": "object"
             },
             "match_mapping_type": "object",
-            "path_match": "document.containers.cna.metrics.*"
+            "path_match": "document.containers.cna.metrics.cvss*"
           }
         }
       ],
       "properties": {
         "document": {
-          "dynamic": false,
+          "dynamic": "false_allow_templates",
           "properties": {
             "containers": {
-              "dynamic": false,
               "properties": {
                 "cna": {
-                  "dynamic": false,
                   "properties": {
                     "metrics": {
-                      "dynamic": true,
                       "properties": {
                         "format": {
                           "ignore_above": 4096,
@@ -70,7 +67,6 @@
               "type": "object"
             },
             "cveMetadata": {
-              "dynamic": false,
               "properties": {
                 "assignerShortName": {
                   "ignore_above": 4096,

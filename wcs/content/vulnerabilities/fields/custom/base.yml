@@ -31,4 +31,4 @@
         the global maps unindexable, either by conflicting with a key already mapped as a different
         type or by exceeding the total field limit.
       parameters:
-        dynamic: false
+        dynamic: false_allow_templates

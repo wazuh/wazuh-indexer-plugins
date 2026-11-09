@@ -13,8 +13,6 @@
       type: object
       short: The metadata of the CVE record.
       description: "The metadata of the CVE record."
-      parameters:
-        dynamic: false
     - name: cveMetadata.cveId
       level: custom
       type: keyword
@@ -49,15 +47,11 @@
       type: object
       short: The containers of the CVE record.
       description: "The containers of the CVE record."
-      parameters:
-        dynamic: false
     - name: containers.cna
       level: custom
       type: object
       short: The container of the CVE Numbering Authority.
       description: "The container filled by the CVE Numbering Authority that assigned the record."
-      parameters:
-        dynamic: false
     - name: containers.cna.metrics
       level: custom
       type: object
@@ -65,8 +59,6 @@
       description: >
         The CNA metrics. Each CVSS version is an object named after it (`cvssV2_0`, `cvssV3_1`,
         `cvssV4_0`, ...) whose `baseScore` and `baseSeverity` are indexed by a dynamic template.
-      parameters:
-        dynamic: true
     - name: containers.cna.metrics.format
       level: custom
       type: keyword

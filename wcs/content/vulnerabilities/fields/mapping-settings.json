@@ -5,13 +5,13 @@
     {
       "cvss_version_objects": {
         "match_mapping_type": "object",
-        "path_match": "document.containers.cna.metrics.*",
+        "path_match": "document.containers.cna.metrics.cvss*",
         "mapping": {
           "type": "object",
           "dynamic": false,
           "properties": {
             "baseScore": {
-              "type": "half_float",
+              "type": "float",
               "ignore_malformed": true
             },
             "baseSeverity": {

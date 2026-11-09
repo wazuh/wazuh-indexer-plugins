@@ -150,7 +150,7 @@ Every CVE record is stored whole under `document` in `.wazuh-threatintel-vulnera
 | `document.cveMetadata.assignerShortName` | `keyword` |
 | `document.cveMetadata.datePublished` | `date` |
 | `document.cveMetadata.dateUpdated` | `date` |
-| `document.containers.cna.metrics.<cvss version>.baseScore` | `half_float` |
+| `document.containers.cna.metrics.<cvss version>.baseScore` | `float` |
 | `document.containers.cna.metrics.<cvss version>.baseSeverity` | `keyword` |
 
 `<cvss version>` is the key of the CVSS object (`cvssV2_0`, `cvssV3_0`, `cvssV3_1`, `cvssV4_0`, ...). A record can carry several versions, each one a separate field, so a query names the version it filters on, or lists the versions in a `bool` `should`:
@@ -176,7 +176,7 @@ A query with no field name (`query_string`, or the Dashboard's search bar) searc
 Things to keep in mind:
 
 - Severity, state, id and assigner are case-sensitive `keyword` fields: the feed writes `CRITICAL`, `PUBLISHED`.
-- `baseScore` is a `half_float`, which keeps about three significant digits. Range queries are not affected, but sorts and aggregations return the rounded value. `_source` keeps the original.
+- `baseScore` is a `float`: a score bound such as `gte: 9.8` is rounded the same way as the stored value, so it matches the records that have that exact score. `_source` keeps the original.
 - A value that does not fit its type (a malformed date, a non-numeric score) is kept in `_source` and left out of the index; it does not reject the record.
 - Scores that only the `adp` containers carry (CISA, for instance) are not indexed. Only the `cna` container is.
 - Every other field of the record is stored and not searchable. The global maps the feed also delivers share the index and have no indexed field.
