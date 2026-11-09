@@ -1,4 +1,26 @@
 {
   "dynamic": "strict_allow_templates",
-  "date_detection": false
+  "date_detection": false,
+  "dynamic_templates": [
+    {
+      "cvss_version_objects": {
+        "match_mapping_type": "object",
+        "path_match": "document.containers.cna.metrics.cvss*",
+        "mapping": {
+          "type": "object",
+          "dynamic": false,
+          "properties": {
+            "baseScore": {
+              "type": "float",
+              "ignore_malformed": true
+            },
+            "baseSeverity": {
+              "type": "keyword",
+              "ignore_above": 4096
+            }
+          }
+        }
+      }
+    }
+  ]
 }
