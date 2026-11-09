@@ -10,6 +10,8 @@ The Security Analytics plugin is a fork of the [OpenSearch Security Analytics pl
 
 Its input is the in-memory `Finding` the Alerting plugin publishes for every match: the doc-level monitor fan-out (`TransportDocLevelMonitorFanOutAction.createFindings()`) calls `AlertingPluginInterface.publishFinding()`, `TransportCorrelateFindingAction` receives it as `SUBSCRIBE_FINDINGS_ACTION` and dispatches it to `enrich()`. Publishing does not depend on Alerting storing the finding: the raw `.opensearch-sap-{log_type}-findings-*` indices are only written when `plugins.alerting.alert_finding_enabled` is `true`, which defaults to `false` in the Wazuh fork, so with the shipped defaults the enriched `wazuh-findings-v5-{category}*` documents are the only stored findings.
 
+`TransportCorrelateFindingAction` dispatches the finding as soon as it has confirmed that a threat detector owns the finding's monitor, before the finding waits for a correlation slot, so a full correlation backlog (`correlation.max_pending_findings`) skips the correlation of a finding but never its enrichment. Findings of monitors no detector owns (user doc-level monitors, Active Response monitors) are neither enriched nor correlated. The monitor-to-detector lookup reads the cache bounded by `correlation.detector_cache_ttl`; on a miss, one search of the detectors index is shared by every finding of that monitor that arrives while it runs, so a detector run with a cold cache sends one search instead of one per finding.
+
 ### Fire-and-forget execution
 
 `WazuhEnrichedFindingService.enrich()` returns immediately after adding the finding to the internal queue. All network I/O and document assembly happen on async transport threads. Failures are logged at `WARN` level and never surface to the Security Analytics write path.
@@ -17,6 +19,8 @@ Its input is the in-memory `Finding` the Alerting plugin publishes for every mat
 ### Bounded, batch-oriented concurrency
 
 Enrichment is batch-oriented, not per-finding: `processQueue()` drains the internal `findingsQueue` in batches of up to `enriched_findings_enrich_batch_size` findings (default `100`, range 1–1000, dynamic) and acquires a single semaphore permit for the whole batch, not one permit per finding. The semaphore is an `AdjustableSemaphore` sized by `enriched_findings_max_in_flight` (default `5`, range 1–10, dynamic) — its permit count can be resized live via `setMaxInFlight()` when the setting changes, with no restart required. Batches that arrive while all permits are held stay queued in `findingsQueue` until a permit frees up.
+
+`findingsQueue` holds at most `enriched_findings_max_pending` findings (default `100000`, range 1–1000000, dynamic). `enrich()` reserves a place before queueing a finding and releases it when the finding is taken into a batch. Past the limit the finding is refused and counted (`getRejectedCount()`), and the first refusal and every 10000th are logged at `ERROR` with the running total. Each queued finding is the `Finding` Alerting published, about 1.7 KB with one matched rule, so the default bounds the queue at roughly 170 MB.
 
 Within a batch, per-finding completion is tracked with an `AtomicInteger remaining` counter; the batch's single permit is only released once every finding in the batch has completed (`onOneDone` callback).
 
@@ -80,8 +84,10 @@ sequenceDiagram
     I->>AL: Monitor evaluates event against Sigma rules
     AL->>AL: Rule matches → create raw finding (indexed only if plugins.alerting.alert_finding_enabled)
     AL->>TC: publishFinding() → SUBSCRIBE_FINDINGS_ACTION
+    TC->>TC: Resolve the detector that owns the monitor (cache, or one shared detectors-index search)
     TC->>WS: enrich(finding)
-    WS->>WS: Add to findingsQueue
+    TC->>TC: Queue the finding for correlation (skipped when the correlation backlog is full)
+    WS->>WS: Add to findingsQueue (refused past enriched_findings_max_pending)
     WS->>WS: processQueue() drains a batch (up to enrichBatchSize findings)
     WS->>WS: Acquire semaphore permit for the whole batch (max_in_flight)
     WS->>SI: MultiGetRequest (deduplicated triggering events for the batch)
@@ -110,6 +116,7 @@ sequenceDiagram
 
 - **`plugins.security_analytics.enriched_findings_bulk_size`** (default `100`, range 10–1000, dynamic) — bulk flush batch size: number of pending index requests accumulated before a batch-trigger flush.
 - **`plugins.security_analytics.enriched_findings_max_in_flight`** (default `5`, range 1–10, dynamic) — maximum number of concurrent in-flight enrichment batches.
+- **`plugins.security_analytics.enriched_findings_max_pending`** (default `100000`, range 1–1000000, dynamic) — maximum number of findings waiting in `findingsQueue`; past it, findings are refused and lost.
 - **`plugins.security_analytics.enriched_findings_flush_interval`** (default `5` seconds, range 1–60, dynamic) — interval between periodic flush runs.
 - **`plugins.security_analytics.enriched_findings_enrich_batch_size`** (default `100`, range 1–1000, dynamic) — number of findings drained from the queue per in-flight permit.
 - **`plugins.security_analytics.enriched_findings_rule_cache_max_size`** (default `10000`, minimum `0`, **static — requires a node restart**) — maximum number of rule-metadata entries cached in memory.
