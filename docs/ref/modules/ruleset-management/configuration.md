@@ -17,7 +17,7 @@ The Ruleset Management plugin is configured through settings in `opensearch.yml`
 - **`plugins.security_analytics.correlation.events_backpressure.high_watermark_percent`** (Integer, default `100`, range 1–100) — backlog level, as a percent of `correlation.max_pending_findings`, at or above which the events indices are write-blocked.
 - **`plugins.security_analytics.correlation.events_backpressure.low_watermark_percent`** (Integer, default `60`, range 0–99) — backlog level, as a percent of `correlation.max_pending_findings`, at or below which the events-index write block is lifted.
 - **`plugins.security_analytics.correlation.max_in_flight_findings`** (Integer, default `50`, range 1–1000) — maximum number of correlation pipelines running concurrently.
-- **`plugins.security_analytics.correlation.max_pending_findings`** (Integer, default `10000`, range 1–1000000) — maximum findings waiting for a free correlation slot. When the backlog is full, new findings are shed (correlation and enrichment skipped) so the node does not run out of memory under overload.
+- **`plugins.security_analytics.correlation.max_pending_findings`** (Integer, default `10000`, range 1–1000000) — maximum findings waiting for a free correlation slot. When the backlog is full, new findings skip correlation so the node does not run out of memory under overload. They are still enriched and written to `wazuh-findings-v5-*`.
 - **`plugins.security_analytics.correlation.metadata_cache_ttl`** (Time, default `5m`) — TTL for the in-memory caches of log-type list and correlation rules by detector type. Set to `0s` to disable both caches.
 - **`plugins.security_analytics.correlation_history_max_age`** (Time, default `30d`) — maximum age of a correlation history index before rollover.
 - **`plugins.security_analytics.correlation_history_max_docs`** (Long, default `1000`, minimum `0`) — maximum document count for a correlation history index before rollover.
@@ -31,6 +31,9 @@ The Ruleset Management plugin is configured through settings in `opensearch.yml`
 - **`plugins.security_analytics.enriched_findings_flush_interval`** (Integer, default `5`, range 1–60) — interval in seconds at which pending enriched findings are flushed regardless of batch size.
 - **`plugins.security_analytics.enriched_findings_index_enabled`** (Boolean, default `true`) — toggle the enriched findings pipeline.
 - **`plugins.security_analytics.enriched_findings_max_in_flight`** (Integer, default `5`, range 1–10) — maximum number of concurrent async enrichment chains.
+- **`plugins.security_analytics.enriched_findings_max_pending`** (Integer, default `100000`, range 1–1000000) — maximum findings waiting for enrichment. Past it, new findings are refused: each one is a finding missing from `wazuh-findings-v5-*`. The next periodic flush (`enriched_findings_flush_interval`) logs one `ERROR` with the number refused since the previous report and the running total. The default absorbs whole detector runs; the limit only protects the heap when findings keep arriving faster than they are enriched.
+- **`plugins.security_analytics.enriched_findings_max_pending_retries`** (Integer, default `10000`, range 0–1000000) — maximum enriched findings waiting for a retry after a failed write. Past it, failed writes are dropped and counted instead of queued.
+- **`plugins.security_analytics.enriched_findings_max_retries`** (Integer, default `5`, range 0–20) — maximum number of times an enriched finding whose write failed for a transient reason (rejection, unavailable shard, retryable cluster block) is resent. Retries are sent on the periodic flush, so a write is given up on after about this many flush intervals. `0` disables retries.
 - **`plugins.security_analytics.enriched_findings_rule_cache_max_size`** (Integer, default `10000`, minimum `0`, **static — requires a node restart to change**) — maximum number of rule-metadata entries cached in memory. Least-recently-used entries are evicted past this size.
 - **`plugins.security_analytics.filter_by_backend_roles`** (Boolean, default `false`) — restrict access to detectors, rules, and findings based on the requester's backend roles.
 - **`plugins.security_analytics.finding_history_max_age`** (Time, default `30d`) — maximum age of a finding history index before rollover.
@@ -132,6 +135,9 @@ Under sustained load, doc-level monitors publish findings faster than correlatio
 # Bound the correlation backlog
 plugins.security_analytics.correlation.max_pending_findings: 10000
 
+# Bound the findings waiting for enrichment
+plugins.security_analytics.enriched_findings_max_pending: 100000
+
 # Pause ingestion when the backlog fills, resume when it drains
 plugins.security_analytics.correlation.events_backpressure.enabled: true
 plugins.security_analytics.correlation.events_backpressure.high_watermark_percent: 100
@@ -145,10 +151,11 @@ plugins.security_analytics.enriched_findings_flush_interval: 5
 plugins.security_analytics.enriched_findings_rule_cache_max_size: 10000
 ```
 
-Two independent overload guards act on the correlation backlog:
+Correlation and enrichment are bounded separately, because enrichment is what writes the finding to `wazuh-findings-v5-*`. A finding is handed to enrichment before it waits for a correlation slot:
 
-- `correlation.max_pending_findings` caps how many findings may wait for a free correlation slot (the slots themselves are limited by `correlation.max_in_flight_findings`). When the backlog is full and `events_backpressure` is disabled, extra findings are shed, so the node stays up.
-- With `events_backpressure.enabled`, instead of shedding findings the plugin write-blocks the events indices when the backlog reaches `high_watermark_percent`, so no new events are indexed and the backlog can drain; the block is lifted at `low_watermark_percent`.
+- `correlation.max_pending_findings` caps how many findings may wait for a free correlation slot (the slots themselves are limited by `correlation.max_in_flight_findings`). A detector run publishes all its findings at once, so a large run can fill the backlog: the findings that do not fit skip correlation only, and the first of them and every 10000th are logged as `Correlation queue capacity reached`.
+- With `events_backpressure.enabled`, the plugin also write-blocks the events indices when the backlog reaches `high_watermark_percent`, so no new events are indexed and the backlog can drain; the block is lifted at `low_watermark_percent`. The block cannot stop a detector run that is already publishing its findings.
+- `enriched_findings_max_pending` caps how many findings may wait for enrichment. It is the only one of these limits that loses findings: past it, findings are refused and logged as `Enrichment queue capacity reached` at `ERROR`.
 
 The enrichment throughput settings shape the load the pipeline puts on the cluster: `enrich_batch_size` findings are drained per in-flight permit and their source events are fetched in one combined MultiGet; enriched documents are buffered and written in bulks of `bulk_size`, flushed at least every `flush_interval` seconds; `max_in_flight` bounds the concurrent enrichment chains; and `rule_cache_max_size` bounds the in-memory rule-metadata cache.
 
