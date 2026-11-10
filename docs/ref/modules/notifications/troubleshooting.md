@@ -129,14 +129,15 @@ If the reload reports `access_denied_exception`, the Wazuh Indexer cannot read t
 
 ### Active Response is not queued
 
-**Symptoms:** An Active Response monitor triggers, but no request reaches the `wazuh-active-responses` data stream. The notification reports status `424` with `Failed to prepare active response document`, and the Wazuh Indexer log has an `ERROR` entry `Failed to prepare active response document`.
+**Symptoms:** An Active Response monitor triggers, but no request reaches the `wazuh-active-responses` data stream. The notification reports status `424` with `Failed to prepare active response document`. The Wazuh Indexer log has an `ERROR` entry `Failed to prepare active response document`, preceded, when the event was not found, by two `WARN` entries `getSourceDocument Document [<id>] not found in index [<index>] (attempt n/3), retrying`.
 
-**Cause:** The plugin could not read the event that triggered the alert. The plugin reads it from the primary shard and retries a missing event up to 3 attempts in total over about 600 ms, so the usual cause is that the event does not exist, for example because its index was deleted or the `related_doc_ids` template does not resolve to `<doc_id>|<index>`.
+**Cause:** The message resolved to a `<doc_id>|<index>` pair, but the plugin could not read the event that triggered the alert. A missing event is read from the primary shard and retried up to 3 attempts in total over about 600 ms, so the usual cause is that the event, or its index, does not exist, for example because it was deleted. A missing index fails at once, without retries.
+
+A message that does not resolve to `<doc_id>|<index>` is refused with status `400` and `Invalid active response payload`. In that case, check that the monitor's message template resolves to the document ID and index name separated by `|`.
 
 #### Resolution
 
-1. Check the `ERROR` entry for the document ID and index name, and confirm the document exists in that index.
-2. Check the `notifications.message_destination.active_response.prepare_failed` counter in the plugin metrics. It counts every failure to prepare an Active Response document, so a value that keeps growing means requests are being dropped.
+Check the `ERROR` entry for the document ID and index name, and confirm the document exists in that index.
 
 ---
 
