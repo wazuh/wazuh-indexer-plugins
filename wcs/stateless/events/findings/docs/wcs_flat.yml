@@ -420,6 +420,19 @@ check.name:
   normalize: []
   short: The name of the SCA policy check.
   type: keyword
+check.previous.result:
+  dashed_name: check-previous-result
+  description: Result of the check before it changed, e.g. `Passed` before a check
+    starts failing.
+  example: Passed
+  flat_name: check.previous.result
+  ignore_above: 4096
+  level: custom
+  name: previous.result
+  normalize: []
+  short: Result of the check before it changed, e.g. `Passed` before a check starts
+    failing.
+  type: keyword
 check.rationale:
   dashed_name: check-rationale
   description: The reason for the check. Why it is important.
@@ -477,10 +490,9 @@ check.remediation:
 check.result:
   dashed_name: check-result
   description: The result of the check. This field indicates whether the check passed
-    or failed based on the evaluation of the rules. The result is typically represented
-    as a boolean value, where "passed" indicates that the check was successful and
-    "failed" indicates that the check did not meet the specified criteria.
-  example: failed
+    or failed based on the evaluation of the rules, as `Passed`, `Failed`, `Not applicable`
+    or `Not run`.
+  example: Failed
   flat_name: check.result
   ignore_above: 4096
   level: custom

@@ -24,10 +24,11 @@
     - name: document
       level: custom
       type: object
-      enabled: false
-      index: false
-      short: The CTI payload, stored verbatim and not indexed.
+      short: The CTI payload, stored verbatim. Only some of its fields are indexed.
       description: >
-        The CTI payload, stored verbatim. It is deliberately unmapped: inferring mappings from the
-        payload makes the global maps unindexable, either by conflicting with a key already mapped
-        as a different type or by exceeding the total field limit.
+        The CTI payload, stored verbatim in `_source`. Only the fields documented under `document`
+        are indexed. The rest is deliberately unmapped: inferring mappings from the payload makes
+        the global maps unindexable, either by conflicting with a key already mapped as a different
+        type or by exceeding the total field limit.
+      parameters:
+        dynamic: false_allow_templates
