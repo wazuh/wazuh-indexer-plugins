@@ -271,6 +271,8 @@ public class Constants {
             "Failed to check local snapshot at [{}]: {}";
     public static final String E_LOG_CLEAR_RESOURCES_FAILED =
             "Failed to clear existing resources for consumer [{}] during snapshot initialization: {}";
+    public static final String E_LOG_SNAPSHOT_WIPE_FAILED =
+            "Snapshot load aborted for consumer [{}]: the content it replaces was not emptied, so nothing is written over it.";
     public static final String D_LOG_SNAPSHOT_INIT_CUSTOM_URL =
             "Initializing snapshot from custom consumer URL: {}";
     public static final String W_LOG_REMOTE_SNAPSHOT_FAILED_FALLBACK =

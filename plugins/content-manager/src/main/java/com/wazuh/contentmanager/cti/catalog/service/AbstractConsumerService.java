@@ -35,8 +35,6 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.action.PromoteSnapshotAction;
@@ -48,7 +46,6 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -122,11 +119,15 @@ public abstract class AbstractConsumerService {
     protected abstract String getCustomCatalogUri();
 
     /**
-     * Indicates whether this consumer manages ruleset resources that require Security Analytics
-     * cleanup on snapshot initialization.
+     * Returns how this consumer empties the content a snapshot replaces, before either load path
+     * writes anything. The default owns its indices whole and replaces them; a consumer whose indices
+     * also hold content the user edits overrides this to delete only what CTI owns.
+     *
+     * @param indices this consumer content indices, keyed by type.
+     * @return the wiper.
      */
-    protected boolean isRulesetConsumer() {
-        return false;
+    protected ContentWiper contentWiper(Map<String, ContentIndex> indices) {
+        return ContentWiper.clearingIndices(indices);
     }
 
     /**
@@ -1166,7 +1167,8 @@ public abstract class AbstractConsumerService {
                                         this.environment,
                                         urlResolver,
                                         snapshotsDir,
-                                        this.getSnapshotFilename());
+                                        this.getSnapshotFilename(),
+                                        this.contentWiper(indicesMap));
 
                 // When a catalog URL is available, prefer remote initialization and fall back to local
                 // snapshot on failure. The catalog URL comes from the configured setting, or from a
@@ -1174,33 +1176,6 @@ public abstract class AbstractConsumerService {
                 if (hasEffectiveCatalog
                         && remoteConsumer != null
                         && remoteConsumer.getSnapshotLink() != null) {
-                    // Ruleset snapshots also affect Security Analytics/Space resources; other catalogs only
-                    // clear indices.
-                    if (this.isRulesetConsumer()) {
-                        try {
-                            SecurityAnalyticsService securityAnalyticsService =
-                                    new SecurityAnalyticsServiceImpl(this.client);
-                            CompletableFuture<Void> sapFuture = new CompletableFuture<>();
-                            securityAnalyticsService.deleteSpaceResources(
-                                    Space.STANDARD,
-                                    ActionListener.wrap(
-                                            r -> sapFuture.complete(null), sapFuture::completeExceptionally));
-                            sapFuture.get(60, TimeUnit.SECONDS);
-
-                            SpaceService spaceService = new SpaceService(this.client);
-                            CompletableFuture<Void> spaceFuture = new CompletableFuture<>();
-                            spaceService.deleteSpaceResources(
-                                    Space.STANDARD,
-                                    ActionListener.wrap(
-                                            r -> spaceFuture.complete(null), spaceFuture::completeExceptionally));
-                            spaceFuture.get(60, TimeUnit.SECONDS);
-                        } catch (Exception e) {
-                            log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
-                        }
-                    } else {
-                        indicesMap.values().forEach(ContentIndex::clear);
-                    }
-
                     log.debug(Constants.D_LOG_SNAPSHOT_INIT_CUSTOM_URL, catalogUri);
                     boolean remoteSuccess = snapshotService.initialize(remoteConsumer);
                     if (remoteSuccess) {
