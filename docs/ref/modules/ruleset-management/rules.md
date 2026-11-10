@@ -148,7 +148,7 @@ This rule matches when `log.level` is `"ERROR"` **and** `event.kind` is `"event"
 
 #### Keywords (implicit OR)
 
-The detection by `keywords` performs value-only searches across all event fields, without specifying a target field name:
+A `keywords` list matches values without naming the field that holds them:
 
 ```yaml
 detection:
@@ -159,7 +159,16 @@ detection:
   condition: keywords
 ```
 
-Each item in the list is effectively separated by a logical "OR" operator, meaning that the rule will match if any of the specified keywords are found in any field of the event.
+Each item in the list is an alternative, as if separated by a logical "OR": the rule matches when any of them is found in a searchable field of the event. How a keyword is compared:
+
+- **Against the whole value of a field.** A keyword is not looked up inside a longer value. `OperationalError` matches a field whose value is exactly `OperationalError`, but not a `message` of `psycopg2.OperationalError: connection refused`. To match part of a value, add wildcards, for example `'*OperationalError*'`.
+- **Case-sensitively**, like every string comparison (see [Modifiers](#modifiers)).
+- **Only against indexed fields.** `event.original` is stored but not indexed, so a keyword never matches it. To match the raw log line, have the decoder copy it into `message` and match that field.
+
+> [!NOTE]
+> The `index.query.default_field` setting of the `wazuh-events-v5-*` indices does not limit a `keywords` rule. That setting only applies to searches run directly on the events indices, such as a free-text search in Discover. Detectors and log test evaluate each event against their own query index, where a keyword is matched against every indexed field of the event.
+
+When the field holding the value is known, a field condition such as `message|contains: OperationalError` states the intent more clearly than a keyword.
 
 ### Conditions
 
