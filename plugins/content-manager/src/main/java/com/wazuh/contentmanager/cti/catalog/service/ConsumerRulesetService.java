@@ -128,9 +128,16 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         return PluginSettings.getInstance().getCatalogRuleset();
     }
 
+    /**
+     * The ruleset indices also hold the Draft, Test and Custom spaces and the user overrides
+     * registry, none of which come from CTI, so a snapshot replaces the Standard space alone. It goes
+     * through the services this consumer already holds, which is what makes a deployment running
+     * Security Analytics in mock mode wipe through that same mock.
+     */
     @Override
-    protected boolean isRulesetConsumer() {
-        return true;
+    protected ContentWiper contentWiper(Map<String, ContentIndex> indices) {
+        return new StandardSpaceWiper(
+                this.securityAnalyticsService, this.spaceService, this.getConsumerType());
     }
 
     @Override
