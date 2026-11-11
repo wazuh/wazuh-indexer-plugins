@@ -199,7 +199,7 @@ public class TransportUpdatePolicyAction
             this.spaceService.getPolicy(
                     spaceName,
                     ActionListener.wrap(
-                            currentPolicy -> afterGetPolicy(currentPolicy, policy, spaceName, listener),
+                            currentPolicy -> afterGetPolicy(currentPolicy, policy, resource, spaceName, listener),
                             e -> respondWithError(listener, e)));
 
         } catch (IllegalArgumentException e) {
@@ -216,6 +216,7 @@ public class TransportUpdatePolicyAction
     private void afterGetPolicy(
             Map<String, Object> currentPolicy,
             Policy incomingPolicy,
+            JsonNode resource,
             String spaceName,
             ActionListener<MessageStatusResponse> listener) {
         try {
@@ -238,6 +239,8 @@ public class TransportUpdatePolicyAction
                                 RestStatus.INTERNAL_SERVER_ERROR));
                 return;
             }
+
+            keepOmittedLists(resource, incomingPolicy, currentPolicyDoc);
 
             // Validate immutable lists
             if (Space.STANDARD.equals(spaceName)) {
@@ -303,7 +306,16 @@ public class TransportUpdatePolicyAction
             document.set(Constants.KEY_HASH, hashNode);
 
             // Only the standard space is rebuilt from CTI, so only its settings need recording.
-            final Policy pendingOverride = Space.STANDARD.equals(spaceName) ? incomingPolicy : null;
+            final UserOverrides.PolicySettings pendingOverride =
+                    Space.STANDARD.equals(spaceName)
+                            ? new UserOverrides.PolicySettings(
+                                    incomingPolicy.getEnabled(),
+                                    incomingPolicy.getIndexUnclassifiedEvents(),
+                                    incomingPolicy.getIndexDiscardedEvents(),
+                                    resource.hasNonNull(Constants.KEY_ENRICHMENTS)
+                                            ? incomingPolicy.getEnrichments()
+                                            : null)
+                            : null;
 
             // Find the real document _id (async)
             this.spaceService.findDocumentIdAsync(
@@ -328,7 +340,7 @@ public class TransportUpdatePolicyAction
             String documentId,
             ObjectNode document,
             String spaceName,
-            Policy pendingOverride,
+            UserOverrides.PolicySettings pendingOverride,
             ActionListener<MessageStatusResponse> listener) {
         if (documentId == null) {
             log.error(Constants.E_LOG_POLICY_DOCUMENT_MISSING, spaceName);
@@ -353,7 +365,7 @@ public class TransportUpdatePolicyAction
     private void afterIndex(
             String policyId,
             String spaceName,
-            Policy pendingOverride,
+            UserOverrides.PolicySettings pendingOverride,
             ActionListener<MessageStatusResponse> listener) {
         // Recalculate space hash (async)
         this.spaceService.calculateAndUpdate(
@@ -375,26 +387,27 @@ public class TransportUpdatePolicyAction
      * <p>Runs after the policy has been indexed, never before: recording a change that failed to
      * apply would make the next sync apply it anyway, turning a rejected request into a delayed one.
      *
-     * <p>All four settings are recorded on every save, by design — editing the standard policy makes
-     * its settings the user's from then on.
+     * <p>The three flags are required, so they are recorded on every save: editing the standard
+     * policy makes them the user's from then on. The enrichments are recorded only when the request
+     * carries them; a request without the field decides nothing about it.
      *
      * <p>A registry failure is logged and swallowed. The policy is already written, so the user's
      * request succeeded; failing it here would be a lie.
      *
-     * @param incomingPolicy the policy the client sent, or {@code null} for a space other than {@code
-     *     standard}, which is the only one rebuilt from CTI and so the only one that can lose
-     *     settings.
+     * @param sent the settings the client sent, with {@code null} enrichments when the request left
+     *     them out, or {@code null} for a space other than {@code standard}, which is the only one
+     *     rebuilt from CTI and so the only one that can lose settings.
      * @param onDone run once recording has finished, successfully or not.
      */
-    private void recordPolicySettings(Policy incomingPolicy, Runnable onDone) {
-        if (incomingPolicy == null) {
+    private void recordPolicySettings(UserOverrides.PolicySettings sent, Runnable onDone) {
+        if (sent == null) {
             onDone.run();
             return;
         }
 
         this.userOverridesService.update(
                 Space.STANDARD.toString(),
-                current -> mergeRecordedSettings(current, incomingPolicy),
+                current -> mergeRecordedSettings(current, sent),
                 ActionListener.wrap(
                         v -> onDone.run(),
                         e -> {
@@ -406,18 +419,49 @@ public class TransportUpdatePolicyAction
     /**
      * Records this save's settings, replacing whatever the registry held for the policy.
      *
+     * <p>The enrichments are the exception: when the request left them out, the choice already
+     * recorded stays, and if there was none the field stays {@code null} so CTI keeps deciding it.
+     *
      * <p>The stored filters and integration decisions pass through untouched: all three sections
      * share one registry document, so returning anything else here would delete them.
      */
-    private static UserOverrides mergeRecordedSettings(UserOverrides current, Policy incomingPolicy) {
+    private static UserOverrides mergeRecordedSettings(
+            UserOverrides current, UserOverrides.PolicySettings sent) {
+        List<String> enrichments = sent.getEnrichments();
+        if (enrichments == null && current.getPolicy() != null) {
+            enrichments = current.getPolicy().getEnrichments();
+        }
         return new UserOverrides(
                 new UserOverrides.PolicySettings(
-                        incomingPolicy.getEnabled(),
-                        incomingPolicy.getIndexUnclassifiedEvents(),
-                        incomingPolicy.getIndexDiscardedEvents(),
-                        incomingPolicy.getEnrichments()),
+                        sent.getEnabled(),
+                        sent.getIndexUnclassifiedEvents(),
+                        sent.getIndexDiscardedEvents(),
+                        enrichments),
                 current.getFilters(),
                 current.getIntegrations());
+    }
+
+    /**
+     * Gives the incoming policy the stored value of every list the request left out.
+     *
+     * <p>{@link Policy} turns an absent list into an empty one, which the rest of the update would
+     * read as "remove everything". Only the raw request can tell the two apart, so the lists the
+     * client did not send are taken from the stored policy here, before they are validated and
+     * merged. A JSON {@code null} counts as absent.
+     */
+    @SuppressWarnings("unchecked")
+    private static void keepOmittedLists(
+            JsonNode resource, Policy incomingPolicy, Map<String, Object> currentPolicyDoc) {
+        if (!resource.hasNonNull(Constants.KEY_INTEGRATIONS)) {
+            incomingPolicy.setIntegrations(
+                    (List<String>) currentPolicyDoc.get(Constants.KEY_INTEGRATIONS));
+        }
+        if (!resource.hasNonNull(Constants.KEY_FILTERS)) {
+            incomingPolicy.setFilters((List<String>) currentPolicyDoc.get(Constants.KEY_FILTERS));
+        }
+        if (!resource.hasNonNull(Constants.KEY_ENRICHMENTS)) {
+            incomingPolicy.setEnrichments((List<String>) currentPolicyDoc.get(Constants.KEY_ENRICHMENTS));
+        }
     }
 
     @SuppressWarnings("unchecked")
