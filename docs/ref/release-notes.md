@@ -28,7 +28,7 @@
   - Dynamic event field referencing in findings [#181](https://github.com/wazuh/wazuh-indexer-security-analytics/issues/181).
   - Enriched findings written to `wazuh-findings-v5-{category}` data streams, embedding the full triggering event source and rule metadata (id, title, tags, level, status, MITRE, compliance).
 - Fork of OpenSearch's Reporting plugin. [[2][fork-reporting]]
-  - Bundled by default in Wazuh Indexer packages — PDF/CSV reports from dashboards and saved searches, on-demand or on a schedule, with email delivery.
+  - Bundled by default in Wazuh Indexer packages — PDF/PNG reports from dashboards and visualizations and CSV/XLSX reports from saved searches, on-demand or on a schedule, with email delivery.
 - Fork of OpenSearch's Notifications plugin. [[3][fork-notifications]]
   - Webhooks for Slack, Jira, PagerDuty and Shuffle created by default.
   - Dedicated monitor for Active Response [#8](https://github.com/wazuh/wazuh-indexer-alerting/issues/8).

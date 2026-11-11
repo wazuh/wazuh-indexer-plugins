@@ -79,13 +79,17 @@ Configure Wazuh Indexer to lock its process address space into RAM so that none 
    }
    ```
 
-   If the output is `false`, memory locking failed and the following line appears in `/var/log/wazuh-indexer/wazuh-indexer.log`:
+   If the output is `false`, or the node does not start, memory locking failed and the following lines appear in `/var/log/wazuh-indexer/wazuh-cluster.log`. The file is named after `cluster.name`, which is `wazuh-cluster` by default:
 
    ```
-   memory locking requested for wazuh-indexer process but memory is not locked
+   Unable to lock JVM Memory: error=12, reason=Cannot allocate memory
+   This can result in part of the JVM being swapped out.
+   memory locking requested for opensearch process but memory is not locked
    ```
 
-   This usually means the `wazuh-indexer` user lacks the `memlock` permission. For systemd-based systems, confirm that `LimitMEMLOCK=infinity` is present in the service file, reload with `systemctl daemon-reload`, and restart the service. For SysVinit-based systems, confirm that step 2 was applied correctly.
+   With the packaged `network.host`, which listens on all interfaces, the node does not start: the log reports `bootstrap checks failed` followed by the last line, and the request above gets no answer. A node that listens only on a loopback address starts all the same, reports `false` and logs the last line as a warning.
+
+   A failed lock usually means the `wazuh-indexer` user lacks the `memlock` permission. For systemd-based systems, confirm that `LimitMEMLOCK=infinity` is present in the service file, reload with `systemctl daemon-reload`, and restart the service. For SysVinit-based systems, confirm that step 2 was applied correctly.
 
 > **Note**: Enabling `bootstrap.memory_lock` causes the JVM to reserve all the memory it needs at startup, including native memory beyond the configured heap. Make sure the node has enough physical RAM for the heap plus this overhead, otherwise the service may fail to start.
 

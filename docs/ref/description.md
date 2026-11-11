@@ -74,7 +74,7 @@ A Wazuh fork of the OpenSearch Notifications plugin. It supports multiple delive
 
 ### Reporting plugin
 
-A Wazuh fork of the OpenSearch Reporting plugin, bundled by default in Wazuh Indexer packages. It generates PDF and CSV reports from dashboards and saved searches, on demand or on a schedule, with optional email delivery.
+A Wazuh fork of the OpenSearch Reporting plugin, bundled by default in Wazuh Indexer packages. It generates PDF or PNG reports from dashboards and visualizations, and CSV or XLSX reports from saved searches, on demand or on a schedule, with optional email delivery.
 
 ### Common Utils library
 
