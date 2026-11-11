@@ -262,6 +262,49 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
     }
 
     /**
+     * Verifies that the policies of the streams that roll over by volume delete a backing index a
+     * fixed time after it rolled over, with no other condition. A deletion age counted from the index
+     * creation is always met by an index that took longer than that age to fill, so the index would
+     * be deleted as soon as it rolls over and the history would drop to almost nothing at every
+     * rollover. The two streams that roll over by age keep counting from the creation.
+     *
+     * @throws IOException if a policy file cannot be read
+     */
+    @SuppressWarnings("unchecked")
+    public void testShippedPolicies_DeletionAgeCountsFromTheRollover() throws IOException {
+        JsonUtils utils = new JsonUtils();
+        Map<String, Map<String, String>> expected =
+                Map.of(
+                        IndexStateManagement.EVENTS_POLICY, Map.of("min_rollover_age", "1d"),
+                        IndexStateManagement.RAW_EVENTS_POLICY, Map.of("min_rollover_age", "4h"),
+                        IndexStateManagement.FINDINGS_POLICY, Map.of("min_rollover_age", "90d"),
+                        IndexStateManagement.METRICS_POLICY, Map.of("min_rollover_age", "30d"),
+                        IndexStateManagement.ACTIVE_RESPONSES_POLICY, Map.of("min_rollover_age", "3d"),
+                        IndexStateManagement.AI_ASSISTANT_SESSIONS_POLICY, Map.of("min_index_age", "7d"),
+                        IndexStateManagement.SECURITY_AUDITLOGS_POLICY, Map.of("min_index_age", "90d"));
+
+        for (Map.Entry<String, Map<String, String>> entry : expected.entrySet()) {
+            Map<String, Object> policyFile =
+                    utils.fromFile(IndexStateManagement.POLICIES_PATH + entry.getKey() + ".json");
+            Map<String, Object> policy = (Map<String, Object>) policyFile.get("policy");
+
+            Map<String, Object> hot = null;
+            for (Object state : (List<Object>) policy.get("states")) {
+                if ("hot".equals(((Map<String, Object>) state).get("name"))) {
+                    hot = (Map<String, Object>) state;
+                }
+            }
+            assertNotNull(entry.getKey() + " has no hot state", hot);
+
+            List<Object> transitions = (List<Object>) hot.get("transitions");
+            assertEquals(entry.getKey() + " must have one transition", 1, transitions.size());
+            Map<String, Object> transition = (Map<String, Object>) transitions.get(0);
+            assertEquals(entry.getKey(), "delete", transition.get("state_name"));
+            assertEquals(entry.getKey(), entry.getValue(), transition.get("conditions"));
+        }
+    }
+
+    /**
      * A policy whose creation keeps timing out is retried up to {@code plugins.setup.max_retries}
      * times and then the failure is rethrown. {@code indexPolicy} retries by calling itself, so a
      * counter reset inside it would retry forever: the mock fails the test after 20 calls instead of

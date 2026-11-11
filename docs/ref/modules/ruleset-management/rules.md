@@ -148,7 +148,7 @@ This rule matches when `log.level` is `"ERROR"` **and** `event.kind` is `"event"
 
 #### Keywords (implicit OR)
 
-The detection by `keywords` performs value-only searches across all event fields, without specifying a target field name:
+A `keywords` list matches values without naming the field that holds them:
 
 ```yaml
 detection:
@@ -159,7 +159,16 @@ detection:
   condition: keywords
 ```
 
-Each item in the list is effectively separated by a logical "OR" operator, meaning that the rule will match if any of the specified keywords are found in any field of the event.
+Each item in the list is an alternative, as if separated by a logical "OR": the rule matches when any of them is found in a searchable field of the event. How a keyword is compared:
+
+- **Against the whole value of a field.** A keyword is not looked up inside a longer value. `OperationalError` matches a field whose value is exactly `OperationalError`, but not a `message` of `psycopg2.OperationalError: connection refused`. To match part of a value, add wildcards, for example `'*OperationalError*'`.
+- **Case-sensitively**, like every string comparison (see [Modifiers](#modifiers)).
+- **Only against indexed fields.** `event.original` is stored but not indexed, so a keyword never matches it. To match the raw log line, have the decoder copy it into `message` and match that field.
+
+> [!NOTE]
+> The `index.query.default_field` setting of the `wazuh-events-v5-*` indices does not limit a `keywords` rule. That setting only applies to searches run directly on the events indices, such as a free-text search in Discover. Detectors and log test evaluate each event against their own query index, where a keyword is matched against every indexed field of the event.
+
+When the field holding the value is known, a field condition such as `message|contains: OperationalError` states the intent more clearly than a keyword.
 
 ### Conditions
 
@@ -235,6 +244,8 @@ Multiple modifiers can be chained: `field|modifier1|modifier2: value`.
 > to `contains`, `startswith`, `endswith` and wildcard values alike: a rule matching `UNION SELECT`
 > does not match `union select` or `UNION sElect`. To catch several spellings of a keyword, list them
 > as separate values.
+> 
+> **Long values**: detection compares only the first 10922 characters of a `message`, `error.message` or `file.diff` value. A `contains`, `startswith` or wildcard match within them is found; an exact value, an `endswith`, or a match that extends past them is not. The event keeps the whole value, so a search on the events still finds any word of it.
 > 
 > Both evaluation paths agree: a deployed detector and
 > [logtest](../content-manager/rule-testing.md) compile a rule with the same backend and match it
@@ -762,8 +773,8 @@ When this rule matches an event where `wazuh.agent.id = "001"` and `wazuh.agent.
 ### Resolution rules
 
 - **Scalars** (string, number, boolean) are coerced to their string representation and substituted in place of the placeholder.
-- **Scalar arrays** are expanded — each array element is coerced to a string and contributed as an additional element of the surrounding array. Supported for `tags`, the `id` and `name` arrays of every `mitre` category, and `compliance.*`. Duplicate values are removed from each of these arrays after interpolation.
-- **Missing, null, or non-scalar** (object) values resolve to the empty string. Finding generation never fails because of an unresolved placeholder.
+- **Scalar arrays** are expanded when the array element consists solely of a single placeholder — each array element is coerced to a string and contributed as an additional element of the surrounding array. Supported for `tags`, the `id` and `name` arrays of every `mitre` category, and `compliance.*`. Duplicate values are removed from each of these arrays after interpolation. Inside a string — in `title`, or in an array element that mixes the placeholder with other text — the array is joined instead: its elements are coerced to strings and separated by a single space, in order and with repeated values kept. For instance, `"Search for private key or certificate files - {{ process.args }}"` resolves to `Search for private key or certificate files - /usr/bin/find /srv -name *.pem` when `process.args` is `["/usr/bin/find", "/srv", "-name", "*.pem"]`. In both cases, null, empty, object, and nested-array elements are skipped, so an empty array contributes nothing. An array element that starts and ends with a placeholder but holds more than one, such as `"{{ a.b }}-{{ c.d }}"`, is dropped.
+- **Missing, null, or object** values resolve to the empty string. Finding generation never fails because of an unresolved placeholder.
 - A field whose value consists solely of a placeholder that resolves to the empty string is **dropped** from the surrounding array or map. For instance, a tag of `"{{ missing.field }}"` will not appear in `wazuh.rule.tags`.
 - A `mitre` category whose `id` and `name` arrays both end up empty after interpolation is **removed** from `wazuh.rule.mitre` entirely.
 

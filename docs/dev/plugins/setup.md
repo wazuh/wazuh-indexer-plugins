@@ -232,7 +232,7 @@ Here is an example ISM policy:
           {
             "state_name": "delete",
             "conditions": {
-              "min_index_age": "<retention-time>"
+              "min_rollover_age": "<retention-time>"
             }
           }
         ]
@@ -263,6 +263,13 @@ Here is an example ISM policy:
   }
 }
 ```
+
+The deletion condition decides how long the previous index is kept, so choose it by how the stream rolls over:
+
+- For a stream that rolls over by volume (20 GB per primary shard), use `min_rollover_age`, which counts from the rollover. `min_index_age` counts from the creation of the index, and an index that took longer than that age to fill is already past it, so it would be deleted as soon as it rolls over and the history would drop to almost nothing at every rollover.
+- For a stream whose `rollover` action also has a `min_index_age` (AI assistant sessions, audit logs), `min_index_age` on the transition is correct: every index is created at the previous rollover, so it is the retention.
+
+Keep a single condition in each transition.
 
 ### 3. Register the ISM policy in the plugin code
 
@@ -372,13 +379,13 @@ new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-s
 
 ### Overview
 
-The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It combines rollover (based on shard size or document count) with deletion of rolled-over indices once they reach a minimum age. See [Retention](../../ref/modules/setup/retention.md) for the effective retention this yields.
+The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It combines rollover (based on shard size or document count) with deletion of rolled-over indices a fixed time after they rolled over. See [Retention](../../ref/modules/setup/retention.md) for the effective retention this yields.
 
 ### Policy details
 - **Policy Name**: `stream-events-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-events-policy.json`
 - **Index Pattern**: `wazuh-events-v5-*`
-- **Deletion age (floor)**: 1 hour
+- **Deletion age (floor)**: 1 day after the rollover
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -386,7 +393,7 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` once the index reaches an age of 1 hour
+   - Transition Condition: Transitions to `delete` once 1 day has passed since the index rolled over (`min_rollover_age`)
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -398,13 +405,13 @@ The **stream-events-policy** manages all `wazuh-events-v5-*` data streams. It co
 
 ### Overview
 
-The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. It combines rollover with deletion of rolled-over indices once they reach 90 days of age, to maintain detection findings for compliance and investigation purposes. See [Retention](../../ref/modules/setup/retention.md).
+The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. It combines rollover with deletion of rolled-over indices 90 days after they rolled over, to maintain detection findings for compliance and investigation purposes. See [Retention](../../ref/modules/setup/retention.md).
 
 ### Policy details
 - **Policy Name**: `stream-findings-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-findings-policy.json`
 - **Index Pattern**: `wazuh-findings-v5-*`
-- **Deletion age (floor)**: 90 days
+- **Deletion age (floor)**: 90 days after the rollover
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -412,7 +419,7 @@ The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. I
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` once the index reaches an age of 90 days
+   - Transition Condition: Transitions to `delete` once 90 days have passed since the index rolled over (`min_rollover_age`)
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -424,13 +431,13 @@ The **stream-findings-policy** manages all `wazuh-findings-v5-*` data streams. I
 
 ### Overview
 
-The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream. Rolled-over indices are deleted once they reach 10 minutes of age. Note that the write index only rolls over on volume, so raw events are not bounded in time — see [Retention](../../ref/modules/setup/retention.md).
+The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream. Rolled-over indices are deleted 4 hours after they rolled over. Note that the write index only rolls over on volume, so raw events are not bounded in time — see [Retention](../../ref/modules/setup/retention.md).
 
 ### Policy details
 - **Policy Name**: `stream-raw-events-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-raw-events-policy.json`
 - **Index Pattern**: `wazuh-events-raw-v5*`
-- **Deletion age (floor)**: 10 minutes
+- **Deletion age (floor)**: 4 hours after the rollover
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -438,7 +445,7 @@ The **stream-raw-events-policy** manages the `wazuh-events-raw-v5` data stream. 
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` once the index reaches an age of 10 minutes
+   - Transition Condition: Transitions to `delete` once 4 hours have passed since the index rolled over (`min_rollover_age`)
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -487,7 +494,7 @@ The **wazuh-active-responses** data stream stores Active Response execution requ
 #### Policy details
 - **Policy Name**: `stream-active-responses-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-active-responses-policy.json`
-- **Deletion age (floor)**: 3 days
+- **Deletion age (floor)**: 3 days after the rollover
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -510,13 +517,13 @@ Integration tests for the active responses data stream are located at:
 
 ### Overview
 
-The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh-metrics-agents`, `wazuh-metrics-comms-v4`, `wazuh-metrics-normalization`). Rolled-over indices are deleted once they reach 30 days of age. See [Retention](../../ref/modules/setup/retention.md).
+The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh-metrics-agents`, `wazuh-metrics-comms-v4`, `wazuh-metrics-normalization`). Rolled-over indices are deleted 30 days after they rolled over. See [Retention](../../ref/modules/setup/retention.md).
 
 ### Policy details
 - **Policy Name**: `stream-metrics-policy`
 - **Location**: `plugins/setup/src/main/resources/policies/stream-metrics-policy.json`
 - **Index Pattern**: `wazuh-metrics-*`
-- **Deletion age (floor)**: 30 days
+- **Deletion age (floor)**: 30 days after the rollover
 - **Rollover Conditions**: 20 GB primary shard size or 200,000,000 documents
 - **ISM template priority**: 0
 
@@ -524,7 +531,7 @@ The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh
 
 1. **Hot State**
    - Actions: Rollover when primary shard reaches 20 GB or 200M documents
-   - Transition Condition: Transitions to `delete` once the index reaches an age of 30 days
+   - Transition Condition: Transitions to `delete` once 30 days have passed since the index rolled over (`min_rollover_age`)
 
 2. **Delete State**
    - Actions: Deletes the index
@@ -579,6 +586,16 @@ IoCs, CVEs and the Engine ruleset. The setup plugin provisions all of them.
 | `wazuh-threatintel-integrations` | `wazuh-threatintel-integrations-a` | `templates/content/integrations.json` |
 | `wazuh-threatintel-policies` | `wazuh-threatintel-policies-a` | `templates/content/policies.json` |
 | `.wazuh-threatintel-vulnerabilities` | `.wazuh-threatintel-vulnerabilities-a` | `templates/content/vulnerabilities.json` |
+
+### The vulnerabilities mapping
+
+`document` holds the whole CVE record and is deliberately not mapped as a whole: the feed also delivers global maps with arbitrary keys under `document`, and inferring a mapping from them conflicts with the types already mapped or exceeds the total field limit. The mapping therefore lists only the fields to search. `document` is `dynamic: false_allow_templates`, which every object below it inherits: a field that is not mapped and that no dynamic template matches is skipped, with everything inside it, so the rest of the record stays in `_source` and is not indexed. See the [field list](../../ref/modules/content-manager/index.md#searching-the-cve-feed).
+
+The CVSS versions are the only dynamic part. A dynamic template (`cvss_version_objects`, `path_match: document.containers.cna.metrics.cvss*`, `match_mapping_type: object`) maps each CVSS version object, whatever its name, with `baseScore` as `float` and `baseSeverity` as `keyword`, and `dynamic: false` for the rest of its fields. The template matches by path and sets the type of both fields itself, so an integer score (`10`) that arrives before any decimal one is indexed too. `match_mapping_type: object` is needed because `*` in a path also matches the values inside each version object. Dates and scores are `ignore_malformed`, so a bad value is not indexed instead of rejecting the document.
+
+`index.query.default_field` lists `cveId`, `state` and `assignerShortName`. The mapping is open, so `generate_default_query_fields.py` does not derive the list; it is set by hand in both `template-settings` files and the script only checks that each entry resolves to a searchable field.
+
+The module is `wcs/content/vulnerabilities`. `ignore_malformed` and `dynamic` are not ECS field attributes, so the custom fields declare them under `parameters`. `generate_schema.sh` regenerates the template and derives the Content Manager's `cti-cve-mappings.json` from it; `verifyContentTemplates` fails the build when the two differ.
 
 ### Why the alias
 

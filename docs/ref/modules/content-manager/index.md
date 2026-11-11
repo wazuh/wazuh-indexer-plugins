@@ -133,11 +133,53 @@ The Content Manager uses the following system indices:
 | `wazuh-threatintel-kvdbs`             | Key-value databases                                                                                    |
 | `wazuh-threatintel-policies`          | Routing policies                                                                                       |
 | `wazuh-threatintel-enrichments`       | Indicators of Compromise (IoC)                                                                         |
-| `.wazuh-threatintel-vulnerabilities`  | Common Vulnerabilities and Exposures (CVE) data from CTI — hidden, no spaces, offset-tracked           |
+| `.wazuh-threatintel-vulnerabilities`  | Common Vulnerabilities and Exposures (CVE) data from CTI — hidden, no spaces, offset-tracked, with its main fields searchable (see [Searching the CVE feed](#searching-the-cve-feed)) |
 | `wazuh-threatintel-filters`           | Engine filters (routing filters for event classification)                                             |
 | `.wazuh-content-manager-jobs`         | Job Scheduler metadata for periodic sync and update check jobs                                        |
 
 For the alias-backed blue/green storage details and the exact hidden/alias status of each index, see the [development guide's system indices table](../../../dev/plugins/content-manager.md#system-indices).
+
+### Searching the CVE feed
+
+Every CVE record is stored whole under `document` in `.wazuh-threatintel-vulnerabilities`, and returned whole by `_source`. Only these fields are indexed, so only these can be used in queries, sorts and aggregations:
+
+| Field | Type |
+|-------|------|
+| `document.cveMetadata.cveId` | `keyword` |
+| `document.cveMetadata.state` | `keyword` |
+| `document.cveMetadata.assignerShortName` | `keyword` |
+| `document.cveMetadata.datePublished` | `date` |
+| `document.cveMetadata.dateUpdated` | `date` |
+| `document.containers.cna.metrics.<cvss version>.baseScore` | `float` |
+| `document.containers.cna.metrics.<cvss version>.baseSeverity` | `keyword` |
+
+`<cvss version>` is the key of the CVSS object (`cvssV2_0`, `cvssV3_0`, `cvssV3_1`, `cvssV4_0`, ...). A record can carry several versions, each one a separate field, so a query names the version it filters on, or lists the versions in a `bool` `should`:
+
+```
+GET .wazuh-threatintel-vulnerabilities/_search
+{
+  "_source": ["document.cveMetadata.cveId", "document.containers.cna.metrics.cvssV3_1"],
+  "query": {
+    "bool": {
+      "filter": [
+        {"term":  {"document.containers.cna.metrics.cvssV3_1.baseSeverity": "CRITICAL"}},
+        {"range": {"document.containers.cna.metrics.cvssV3_1.baseScore": {"gte": 9}}},
+        {"range": {"document.cveMetadata.datePublished": {"gte": "2026-01-01"}}}
+      ]
+    }
+  }
+}
+```
+
+A query with no field name (`query_string`, or the Dashboard's search bar) searches `document.cveMetadata.cveId`, `document.cveMetadata.state` and `document.cveMetadata.assignerShortName`, the index's `index.query.default_field`. These are `keyword` fields, so the value must match whole.
+
+Things to keep in mind:
+
+- Severity, state, id and assigner are case-sensitive `keyword` fields: the feed writes `CRITICAL`, `PUBLISHED`.
+- `baseScore` is a `float`: a score bound such as `gte: 9.8` is rounded the same way as the stored value, so it matches the records that have that exact score. `_source` keeps the original.
+- A value that does not fit its type (a malformed date, a non-numeric score) is kept in `_source` and left out of the index; it does not reject the record.
+- Scores that only the `adp` containers carry (CISA, for instance) are not indexed. Only the `cna` container is.
+- Every other field of the record is stored and not searchable. The global maps the feed also delivers share the index and have no indexed field.
 
 ## Wazuh Cloud subscription
 

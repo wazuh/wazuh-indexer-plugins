@@ -41,6 +41,7 @@ The audit configuration is stored in the security index and can be changed at ru
 
 - REST and transport auditing enabled, except for the `AUTHENTICATED` and `GRANTED_PRIVILEGES` categories. Those two record every successful request, including each request the dashboard makes for a logged-in user, and would fill a small deployment's disk.
 - Index administration requests, including reads of index templates, mappings and data streams, are recorded as `INDEX_EVENT`. A tool that polls those APIs with an administrative user adds one event per call.
+- Flushes are not recorded (`ignore_requests: ["indices:admin/flush*"]`). The [upgrade procedure](../upgrade.md) flushes the cluster right before stopping each node, and the closing node cannot store the events of that flush: each one would be logged as an error instead.
 - The `kibanaserver` user, used by the Wazuh Dashboard for its own requests, is ignored.
 - Compliance auditing of the security configuration (`internal_config`) enabled: every change to users, roles, role mappings and the rest of the security index is recorded with the user who made it.
 

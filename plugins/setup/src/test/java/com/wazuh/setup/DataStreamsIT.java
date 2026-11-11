@@ -349,6 +349,61 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
     }
 
     /**
+     * Verifies that {@code check.previous.result} is mapped and aggregatable on the events stream
+     * and on the findings stream, which is what lets a rule select an SCA check that has just
+     * started failing rather than one that was already failing.
+     *
+     * <p>The findings side is inherited rather than declared: the WCS generator folds {@code
+     * stateless/events/main}'s custom fields into every other {@code stateless/events/*} module,
+     * and the findings subset takes the whole {@code check} set with {@code fields: "*"}. The raw
+     * stream does not, so the field is deliberately absent there.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testCheckPreviousResultIsMappedOnEventsAndFindings()
+            throws IOException, ParseException {
+        String document =
+                """
+                {
+                  "@timestamp": "2026-07-30T19:27:34.682Z",
+                  "event": {"type": "modified", "module": "sca"},
+                  "check": {
+                    "id": "wcs-test-check-previous-result",
+                    "result": "Failed",
+                    "previous": {"result": "Passed"}
+                  }
+                }
+                """;
+        String query =
+                """
+                {
+                  "size": 0,
+                  "query": {"term": {"check.id": "wcs-test-check-previous-result"}},
+                  "aggs": {"check_previous_result": {"terms": {"field": "check.previous.result"}}}
+                }
+                """;
+
+        for (String prefix : new String[] {EVENTS_PREFIX, FINDINGS_PREFIX}) {
+            Request index = new Request("POST", "/" + prefix + "security/_doc");
+            index.addParameter("refresh", "true");
+            index.setJsonEntity(document);
+            client().performRequest(index);
+
+            Request search = new Request("GET", "/" + prefix + "security/_search");
+            search.setJsonEntity(query);
+            Response response = client().performRequest(search);
+            String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+            logger.info("check.previous.result aggregation response for {}: {}", prefix, body);
+
+            assertThat(
+                    "check.previous.result should aggregate as keyword on " + prefix,
+                    body,
+                    containsString("\"key\":\"Passed\""));
+        }
+    }
+
+    /**
      * Verifies that the {@code process.state}/{@code process.previous.*} fields are mapped and
      * aggregatable in the findings stream too, keeping it at field parity with the events stream.
      * Mirrors {@link #testEventsPreviousFieldsAreMappedAndAggregatable}, and doubles as the
