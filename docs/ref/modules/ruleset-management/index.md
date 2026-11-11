@@ -27,10 +27,10 @@ When the restriction is violated, the API returns `400 Bad Request`.
 
 ## Detector constraints
 
-- **Max rules per detector** — each detector input can reference at most `plugins.security_analytics.max_rules_per_detector` rules (custom or pre-packaged), default `50`. Requests that exceed this limit are rejected with HTTP 400.
+- **Max rules per detector** — each detector input can reference at most `plugins.security_analytics.max_rules_per_detector` rules (custom or pre-packaged), default `50`. Requests that exceed this limit are rejected with HTTP 400. Detectors created by the Content Manager plugin are not limited.
 - **Max detectors** — at most `plugins.security_analytics.max_detectors` user-created detectors are allowed, default `10`. Detectors created by the Content Manager plugin do not count towards this limit.
 
-Both limits are dynamic and enforced at the transport layer, applying to all detector creation and update paths, including inter-plugin calls from the Content Manager. Both accept any value from `0` upwards; there is no hard-coded ceiling. See [Configuration](configuration.md) for details.
+Both limits are dynamic and enforced at the transport layer, on every detector creation and update path. Neither applies to the standard detectors the Content Manager creates from CTI content, which reaches every deployment with the default values. Both accept any value from `0` upwards; there is no hard-coded ceiling. See [Configuration](configuration.md) for details.
 
 ## Enabling and disabling detectors
 
