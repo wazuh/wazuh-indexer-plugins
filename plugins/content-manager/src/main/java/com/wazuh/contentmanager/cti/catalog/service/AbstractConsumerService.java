@@ -1283,6 +1283,15 @@ public abstract class AbstractConsumerService {
                                 Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_CONFIG, consumerType, localSnapshot);
                     }
                 }
+
+                // Nothing was loaded, and the wipe that precedes a load may already have run: on
+                // the ruleset that leaves the Standard space partly deleted, because its documents
+                // go in one bulk across six indices and a bulk applies what it can. The scheduled
+                // pass is an hour away by default, so ask the job for the retry it already gives a
+                // pass that left work undone.
+                if (!updated) {
+                    this.requestImmediateRetry();
+                }
             }
 
             if (updated && snapshotsDir != null) {

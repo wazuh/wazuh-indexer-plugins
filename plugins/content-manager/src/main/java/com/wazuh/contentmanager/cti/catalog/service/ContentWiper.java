@@ -33,8 +33,9 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
  * <p>A wiper says whether it emptied the content, and that is not a detail the caller may ignore.
  * Ruleset resources reference each other -- a policy names integrations, an integration names
  * rules, decoders and KVDBs -- so documents left behind by a wipe that failed mix with the ones the
- * snapshot brings and produce a ruleset the Engine rejects. Loading over a failed wipe turns a
- * consistent old ruleset into an inconsistent new one, so a load stops when its wiper says no.
+ * snapshot brings and produce a ruleset the Engine rejects. A load therefore stops when its wiper
+ * says no. That does not make what is left behind consistent, see {@link StandardSpaceWiper}; it
+ * keeps a snapshot from being written on top of it.
  *
  * <p>How much that answer is worth depends on the wiper. {@link #clearingIndices} reports success
  * either way, because the clear it delegates to swallows its own failures; the consumers that use

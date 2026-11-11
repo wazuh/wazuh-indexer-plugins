@@ -38,12 +38,15 @@ import com.wazuh.contentmanager.utils.NodeShutdown;
  * registry: that document deliberately carries no space field, which is what keeps a wipe from
  * deleting the user's own settings, filters and disabled integrations.
  *
- * <p>The two deletions are not a transaction, and the wait on each of them is bounded. A failure in
- * the second leaves Security Analytics already emptied, and a timeout abandons a deletion the
- * cluster may still go on to finish. What a {@code false} does guarantee is the part a load needs:
- * the content documents were not confirmed gone, so nothing is written on top of them. The phases a
- * content change owes are recorded before any of this runs, so the next synchronization pushes
- * integrations, rules and detectors again.
+ * <p>None of this is a transaction. A failure in the content deletion leaves Security Analytics
+ * already emptied, and that deletion is itself one bulk across the six content indices, so an index
+ * that refuses its deletes does not undo the ones the others already took: what is left is neither
+ * the old Standard space nor the new one. A timeout abandons a deletion the cluster may still
+ * finish on its own. A {@code false} therefore says only that the space was not confirmed empty,
+ * which is what a load needs before writing over it; it promises nothing about what is still there.
+ * The phases a content change owes are recorded before any of this runs, and a pass that loads
+ * nothing asks for an immediate retry, so the space is rebuilt on the next pass rather than at the
+ * next scheduled one.
  */
 final class StandardSpaceWiper implements ContentWiper {
 
