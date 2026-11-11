@@ -583,7 +583,7 @@ The `standard` space is rebuilt from CTI, so what the user changes there is reco
 
 Both integration fields are optional, and absence means the user never decided: the two entries above are "the user disabled this integration" and "the user stopped this one's detector without touching the integration".
 
-It is the one document in that index with **no `space` field**: the pre-snapshot wipe selects by `space.name` and never sees it, and the plan-change reindex carries it into the new physical index.
+It is the one document in that index with **no `space` field**, and that is deliberate. The [pre-snapshot wipe](#initialization-phase) deletes the documents whose `space.name` is the space being replaced, so a document that carries no `space.name` is never matched and stays where it is. The plan-change reindex copies everything that is not `standard`, which carries it into the new physical index for the same reason.
 
 Enrichments are stored as the resulting list, and on apply only the values CTI still publishes are kept. Filters are stored as serialized strings, to keep their fields out of the `"dynamic": "true"` policies mapping. Integrations are keyed by id rather than listed, so Security Analytics can record a detector decision with a single partial update — a `doc` merge combines objects recursively but replaces arrays wholesale.
 
@@ -639,6 +639,7 @@ sequenceDiagram
     alt Local Offset == 0 (Initialization)
         Synchronizer->>Snapshot: initialize(remoteConsumer)
         Snapshot->>CTI: Download Snapshot ZIP
+        Snapshot->>Indices: Empty the content it replaces (ContentWiper)
         Snapshot->>Indices: Bulk Index Content (Rules/Integrations/etc.)
         Snapshot-->>Synchronizer: Done
     else Local Offset < Remote Offset (Update, or catch-up after a swap)
@@ -678,10 +679,11 @@ The `opt Changes Applied (onSyncComplete)` cascade also runs for a consumer the 
 
 When `local_offset = 0`:
 
-1. Downloads a ZIP snapshot from the CTI API.
-2. Reads each NDJSON entry of the ZIP straight from the archive, line by line and as bytes: a line is parsed in place in a reusable buffer (`NdjsonLineReader`), never decoded into a string, and each document is copied once, into its index request. The vulnerabilities snapshot alone is over 4 GB of NDJSON with documents of up to 17 MB, so string copies of its lines are enough to push a 2 GB heap over the parent circuit breaker.
-3. Bulk-indexes content into respective indices.
-4. Registers all content with the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
+1. Downloads a ZIP snapshot from the CTI API, or takes one from the snapshots directory: the stable snapshot of the last load that succeeded, or the one shipped with the package. Either way the file is refused before anything else if its first line is not content of this consumer.
+2. Empties the content the snapshot replaces, once the file is in hand. What emptying means belongs to the consumer, through its `ContentWiper`: the ruleset deletes the `standard` space, Security Analytics first and the content documents second, so the other spaces and the [user overrides](#user-overrides-in-the-standard-space) registry are kept; the IoC and vulnerability consumers replace their indices whole; a load into the staging indices of a swap empties nothing, since those are created empty immediately before. A wipe the ruleset reports as failed stops the load rather than writing a snapshot over documents that are still there.
+3. Reads each NDJSON entry of the ZIP straight from the archive, line by line and as bytes: a line is parsed in place in a reusable buffer (`NdjsonLineReader`), never decoded into a string, and each document is copied once, into its index request. The vulnerabilities snapshot alone is over 4 GB of NDJSON with documents of up to 17 MB, so string copies of its lines are enough to push a 2 GB heap over the parent circuit breaker.
+4. Bulk-indexes content into respective indices.
+5. Registers all content with the Security Analytics Plugin via `SecurityAnalyticsServiceImpl`.
 
 ### Update phase
 
