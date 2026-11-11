@@ -23,6 +23,7 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.WarningsHandler;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -69,14 +70,16 @@ public class InternalIndexReplicasIT extends OpenSearchRestTestCase {
     public void testAuditLogBackingIndicesAutoExpandReplicas() throws Exception {
         Request template = new Request("PUT", "/_index_template/" + AUDIT_TEMPLATE);
         template.setJsonEntity(
-                """
-                {
-                  "index_patterns": ["%s"],
-                  "data_stream": {"timestamp_field": {"name": "@timestamp"}},
-                  "template": {"settings": {"number_of_shards": 1, "number_of_replicas": 1}}
-                }
-                """
-                        .formatted(AUDIT_DATA_STREAM));
+                String.format(
+                        Locale.ROOT,
+                        """
+                        {
+                          "index_patterns": ["%s"],
+                          "data_stream": {"timestamp_field": {"name": "@timestamp"}},
+                          "template": {"settings": {"number_of_shards": 1, "number_of_replicas": 1}}
+                        }
+                        """,
+                        AUDIT_DATA_STREAM));
         client().performRequest(template);
         client().performRequest(new Request("PUT", "/_data_stream/" + AUDIT_DATA_STREAM));
         try {
