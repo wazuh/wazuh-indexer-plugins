@@ -107,11 +107,13 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
 
 #### Resolution
 
-SMTP credentials must be stored in the Wazuh Indexer keystore, not in `opensearch.yml`. On every node, add them as the `wazuh-indexer` user. Running `opensearch-keystore` as `root` leaves the keystore unreadable by the Wazuh Indexer, which then fails to start.
+SMTP credentials must be stored in the Wazuh Indexer keystore, not in `opensearch.yml`. On every node, add them as `root`, then give the keystore back to the service's group. The configuration directory is root's, so the `wazuh-indexer` user cannot write in it and `opensearch-keystore` fails with `unable to create temporary keystore` when run as that user. The tool leaves the keystore owned by `root:root`, which the Wazuh Indexer cannot read, so the last two commands are required.
 
 ```bash
-sudo -u wazuh-indexer /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.<account_name>.username
-sudo -u wazuh-indexer /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.<account_name>.password
+sudo /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.<account_name>.username
+sudo /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.<account_name>.password
+sudo chown root:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
+sudo chmod 640 /etc/wazuh-indexer/opensearch.keystore
 ```
 
 Then reload the keystore. No restart is needed:
@@ -121,7 +123,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_nodes/reload_secure_settings"
 ```
 
-If the reload reports `access_denied_exception`, the Wazuh Indexer cannot read the keystore. Run `sudo chown root:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore && sudo chmod 640 /etc/wazuh-indexer/opensearch.keystore` and reload again. See [Email destination secure settings](configuration.md#email-destination-secure-settings).
+If the reload reports `access_denied_exception`, the Wazuh Indexer cannot read the keystore: run the `chown` and `chmod` commands above and reload again. See [Email destination secure settings](configuration.md#email-destination-secure-settings).
 
 ---
 

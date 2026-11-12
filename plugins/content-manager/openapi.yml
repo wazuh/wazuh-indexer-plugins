@@ -1436,6 +1436,10 @@ paths:
         All other fields are preserved from the existing standard policy document.
         The `filters` array allows reordering but not addition or removal.
 
+        **Omitted arrays**: `integrations`, `filters` and `enrichments` keep their current value
+        when the request leaves them out or sends `null`. An empty `enrichments` array removes
+        every enrichment.
+
         **Stored document format**: Policy metadata is stored only under
         `document.metadata` in the indexed document.
       operationId: policy_update

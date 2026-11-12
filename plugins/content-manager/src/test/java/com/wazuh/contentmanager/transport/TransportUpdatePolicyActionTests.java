@@ -445,4 +445,157 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
                                     return true;
                                 }));
     }
+
+    /** A standard-space update body that changes only the flags and names no list at all. */
+    private static final String FLAGS_ONLY_BODY =
+            "{\"resource\": {"
+                    + "\"enabled\": true,"
+                    + "\"index_unclassified_events\": false,"
+                    + "\"index_discarded_events\": false"
+                    + "}}";
+
+    /** Runs a standard-space update with the given body and returns the mutator it recorded. */
+    @SuppressWarnings("unchecked")
+    private UnaryOperator<UserOverrides> runStandardUpdate(String body) {
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), new UpdatePolicyRequest("standard", body), listener);
+        verify(listener).onResponse(argThat(response -> response.getStatus() == RestStatus.OK));
+
+        ArgumentCaptor<UnaryOperator<UserOverrides>> captor =
+                ArgumentCaptor.forClass(UnaryOperator.class);
+        verify(this.overridesService).update(any(), captor.capture(), any(ActionListener.class));
+        return captor.getValue();
+    }
+
+    /** The lists of the policy document sent to the indexing client. */
+    private JsonNode capturedIndexedDocument() throws Exception {
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture(), any(ActionListener.class));
+        return MAPPER.readTree(captor.getValue().source().utf8ToString()).path(Constants.KEY_DOCUMENT);
+    }
+
+    private static List<String> textValues(JsonNode array) {
+        List<String> values = new java.util.ArrayList<>();
+        array.forEach(entry -> values.add(entry.asText()));
+        return values;
+    }
+
+    /**
+     * A request without {@code enrichments} keeps the ones the policy has and records no choice for
+     * them, so CTI keeps deciding the list.
+     */
+    public void testOmittedEnrichmentsAreKeptAndNotRecorded() throws Exception {
+        stubStandardPolicy(CTI_ENRICHMENTS);
+
+        UserOverrides recorded =
+                runStandardUpdate(FLAGS_ONLY_BODY)
+                        .apply(
+                                new UserOverrides(null, new java.util.ArrayList<>(), new java.util.ArrayList<>()));
+
+        Assert.assertEquals(
+                CTI_ENRICHMENTS, textValues(capturedIndexedDocument().path(Constants.KEY_ENRICHMENTS)));
+        Assert.assertNull(recorded.getPolicy().getEnrichments());
+        Assert.assertEquals(Boolean.FALSE, recorded.getPolicy().getIndexUnclassifiedEvents());
+    }
+
+    /** A JSON {@code null} is the same as leaving the field out. */
+    public void testNullEnrichmentsAreKeptAndNotRecorded() throws Exception {
+        stubStandardPolicy(CTI_ENRICHMENTS);
+
+        String body = FLAGS_ONLY_BODY.replace("\"enabled\"", "\"enrichments\": null, \"enabled\"");
+        UserOverrides recorded =
+                runStandardUpdate(body)
+                        .apply(
+                                new UserOverrides(null, new java.util.ArrayList<>(), new java.util.ArrayList<>()));
+
+        Assert.assertEquals(
+                CTI_ENRICHMENTS, textValues(capturedIndexedDocument().path(Constants.KEY_ENRICHMENTS)));
+        Assert.assertNull(recorded.getPolicy().getEnrichments());
+    }
+
+    /** A request without {@code enrichments} leaves an earlier recorded selection in place. */
+    public void testOmittedEnrichmentsKeepTheSelectionAlreadyRecorded() {
+        List<String> withoutGeo =
+                List.of("connection", "url_full", "url_domain", "hash_md5", "hash_sha1", "hash_sha256");
+        stubStandardPolicy(withoutGeo);
+
+        UserOverrides priorState =
+                new UserOverrides(
+                        new UserOverrides.PolicySettings(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, withoutGeo),
+                        new java.util.ArrayList<>(),
+                        new java.util.ArrayList<>());
+
+        UserOverrides recorded = runStandardUpdate(FLAGS_ONLY_BODY).apply(priorState);
+
+        Assert.assertEquals(withoutGeo, recorded.getPolicy().getEnrichments());
+        Assert.assertEquals(Boolean.FALSE, recorded.getPolicy().getIndexUnclassifiedEvents());
+    }
+
+    /** An empty list is still a choice: it clears the enrichments and is recorded as such. */
+    public void testEmptyEnrichmentsClearTheListAndAreRecorded() throws Exception {
+        stubStandardPolicy(CTI_ENRICHMENTS);
+
+        UserOverrides recorded =
+                runStandardUpdate(standardUpdateBody(List.of()))
+                        .apply(
+                                new UserOverrides(null, new java.util.ArrayList<>(), new java.util.ArrayList<>()));
+
+        Assert.assertTrue(capturedIndexedDocument().path(Constants.KEY_ENRICHMENTS).isEmpty());
+        Assert.assertEquals(List.of(), recorded.getPolicy().getEnrichments());
+    }
+
+    /** A request without {@code filters} keeps the policy's filters instead of being rejected. */
+    @SuppressWarnings("unchecked")
+    public void testOmittedFiltersAreKept() throws Exception {
+        Map<String, Object> policy = currentDraftPolicy();
+        ((Map<String, Object>) policy.get(Constants.KEY_DOCUMENT))
+                .put(Constants.KEY_FILTERS, List.of("filter-one", "filter-two"));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Map<String, Object>> l = invocation.getArgument(1);
+                            l.onResponse(policy);
+                            return null;
+                        })
+                .when(this.spaceService)
+                .getPolicy(any(), any(ActionListener.class));
+
+        runStandardUpdate(FLAGS_ONLY_BODY);
+
+        Assert.assertEquals(
+                List.of("filter-one", "filter-two"),
+                textValues(capturedIndexedDocument().path(Constants.KEY_FILTERS)));
+    }
+
+    /** A draft update without the lists keeps the integrations, filters and enrichments it has. */
+    @SuppressWarnings("unchecked")
+    public void testDraftUpdateKeepsOmittedLists() throws Exception {
+        Map<String, Object> policy = currentDraftPolicy();
+        Map<String, Object> document = (Map<String, Object>) policy.get(Constants.KEY_DOCUMENT);
+        document.put(Constants.KEY_INTEGRATIONS, List.of("integration-one"));
+        document.put(Constants.KEY_FILTERS, List.of("filter-one"));
+        document.put(Constants.KEY_ENRICHMENTS, List.of("geo"));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<Map<String, Object>> l = invocation.getArgument(1);
+                            l.onResponse(policy);
+                            return null;
+                        })
+                .when(this.spaceService)
+                .getPolicy(any(), any(ActionListener.class));
+
+        String body =
+                draftUpdateBody(null)
+                        .replace("\"integrations\": [],", "")
+                        .replace("\"filters\": [],", "")
+                        .replace("\"enrichments\": [],", "");
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), new UpdatePolicyRequest("draft", body), listener);
+
+        verify(listener).onResponse(argThat(response -> response.getStatus() == RestStatus.OK));
+        JsonNode indexed = capturedIndexedDocument();
+        Assert.assertEquals(
+                List.of("integration-one"), textValues(indexed.path(Constants.KEY_INTEGRATIONS)));
+        Assert.assertEquals(List.of("filter-one"), textValues(indexed.path(Constants.KEY_FILTERS)));
+        Assert.assertEquals(List.of("geo"), textValues(indexed.path(Constants.KEY_ENRICHMENTS)));
+    }
 }

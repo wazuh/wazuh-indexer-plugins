@@ -11,7 +11,7 @@ plugins.security.audit.type: internal_opensearch_data_stream
 plugins.security.audit.config.data_stream.name: security-auditlogs
 ```
 
-The security plugin creates the data stream on the first audit event, from its own index template (`opensearch-security-auditlog`). The Setup plugin ships the `security-auditlogs-policy` ISM policy, which manages the data stream: the backing index rolls over monthly and each one is deleted at 90 days of age. See [Retention](../modules/setup/retention.md) to keep the events for a different period.
+The security plugin creates the data stream on the first audit event, from its own index template (`opensearch-security-auditlog`), which gives the backing indices no replica. The Setup plugin adds `index.auto_expand_replicas: 0-1` to each backing index when it is created, so on a cluster of two or more nodes the events have a copy on a second node. It also ships the `security-auditlogs-policy` ISM policy, which manages the data stream: the backing index rolls over monthly and each one is deleted at 90 days of age. See [Retention](../modules/setup/retention.md) to keep the events for a different period.
 
 Only users with access to the `security-auditlogs` data stream can read the events. By default that is the `admin` user (`all_access`). The data stream name is deliberately outside `wazuh-*`, which the Wazuh Dashboard reads on behalf of every dashboard user.
 

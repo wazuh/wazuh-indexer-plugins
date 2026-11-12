@@ -545,7 +545,7 @@ The **stream-metrics-policy** manages all `wazuh-metrics-*` data streams (`wazuh
 
 The **security-auditlogs-policy** manages the `security-auditlogs` data stream, where the security plugin writes audit events: the packaged `opensearch.yml` sets `plugins.security.audit.type` to `internal_opensearch_data_stream` and `plugins.security.audit.config.data_stream.name` to `security-auditlogs`. Rolled-over indices are deleted once they reach 90 days of age. See [Retention](../../ref/modules/setup/retention.md).
 
-Unlike the other streams, the setup plugin creates neither this data stream nor an index template for it. The security plugin creates the data stream on the first audit event, from its own index template `opensearch-security-auditlog` (one shard, no replicas, no field mappings), and the policy's `ism_template` attaches it to each backing index. If the first audit event arrives before the setup plugin has indexed the policy, the ISM background sweep attaches it later.
+Unlike the other streams, the setup plugin creates neither this data stream nor an index template for it. The security plugin creates the data stream on the first audit event, from its own index template `opensearch-security-auditlog` (one shard, no replicas, no field mappings), and the policy's `ism_template` attaches it to each backing index. The setup plugin adds `index.auto_expand_replicas: 0-1` to each backing index when it is created (see [Replica configuration](../../ref/modules/setup/architecture.md#replica-configuration)). If the first audit event arrives before the setup plugin has indexed the policy, the ISM background sweep attaches it later.
 
 The name stays outside `wazuh-*` on purpose: the `dashboard_server` role reads `wazuh-*` on behalf of every dashboard user.
 

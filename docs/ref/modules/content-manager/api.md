@@ -811,10 +811,12 @@ Fields within `resource`:
 - **`root_decoder`** (String, optional) — identifier of the root decoder for event processing.
 - **`integrations`** (Array, optional) — list of integration IDs (reorder only, no add/remove).
 - **`filters`** (Array, optional) — list of filter UUIDs (reorder only, no add/remove).
-- **`enrichments`** (Array, optional) — enrichment types (no duplicates; values depend on engine capabilities).
+- **`enrichments`** (Array, optional) — enrichment types (no duplicates; values depend on engine capabilities). An empty array removes every enrichment.
 - **`enabled`** (Boolean, required) — whether the policy is active and synchronized by the Engine.
 - **`index_unclassified_events`** (Boolean, required) — whether uncategorized events are indexed.
 - **`index_discarded_events`** (Boolean, required) — whether discarded events are indexed.
+
+An array left out of the request (`integrations`, `filters` or `enrichments`), or sent as `null`, keeps its current value. In the standard space, the `enrichments` of a request are also kept across content updates, while a request without the field leaves the list to follow the published content, or the selection saved earlier.
 
 Fields within `resource.metadata`:
 
