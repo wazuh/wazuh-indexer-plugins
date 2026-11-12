@@ -308,23 +308,23 @@ Content Manager logs are part of the Wazuh Indexer logs. Use the following patte
 ```bash
 # General Content Manager activity
 grep -i "content.manager\|ContentManager\|CatalogSync" \
-  /var/log/wazuh-indexer/wazuh-indexer.log
+  /var/log/wazuh-indexer/wazuh-cluster.log
 
 # Sync job execution
 grep -i "CatalogSyncJob\|consumer-sync" \
-  /var/log/wazuh-indexer/wazuh-indexer.log
+  /var/log/wazuh-indexer/wazuh-cluster.log
 
 # CTI API communication
 grep -i "cti\|CTIClient" \
-  /var/log/wazuh-indexer/wazuh-indexer.log
+  /var/log/wazuh-indexer/wazuh-cluster.log
 
 # Engine socket communication
 grep -i "engine.*socket\|EngineClient" \
-  /var/log/wazuh-indexer/wazuh-indexer.log
+  /var/log/wazuh-indexer/wazuh-cluster.log
 
 # Errors only
 grep -i "ERROR.*content.manager" \
-  /var/log/wazuh-indexer/wazuh-indexer.log
+  /var/log/wazuh-indexer/wazuh-cluster.log
 ```
 
 ## Resetting content
