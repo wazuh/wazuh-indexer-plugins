@@ -329,6 +329,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/ResourceLockTimeout"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -500,6 +502,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/ResourceLockTimeout"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -687,6 +691,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/ResourceLockTimeout"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -866,6 +872,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/ResourceLockTimeout"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1008,6 +1016,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/ResourceLockTimeout"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1159,6 +1169,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "413":
           $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/LogtestBusy"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1199,6 +1211,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "413":
           $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/LogtestBusy"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1255,6 +1269,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "413":
           $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/LogtestBusy"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -3369,6 +3385,35 @@ components:
                   last_available_patch: {}
                 status: 200
 
+    ResourceLockTimeout:
+      description: |
+        Too Many Requests - The resource-creation lock could not be acquired within
+        `plugins.content_manager.resource_lock.max_retries` attempts. Retry.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            lock_timeout:
+              summary: Resource-creation lock busy
+              value:
+                message: "Too many concurrent requests creating this resource. Please retry."
+                status: 429
+
+    LogtestBusy:
+      description: |
+        Too Many Requests - The logtest thread pool is saturated. Retry later.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            logtest_busy:
+              summary: Logtest thread pool saturated
+              value:
+                message: "logtest is busy: too many concurrent requests. Please retry later."
+                status: 429
+
     VersionCheckRateLimited:
       description: |
         Too Many Requests - This node's version-check rate limit is exhausted. Retry after the
@@ -3709,7 +3754,7 @@ components:
                       errors: []
                   detection:
                     status: "skipped"
-                    reason: "No integration provided"
+                    reason: "'integration' field not provided"
             with_errors:
               summary: Response with engine processing failure
               description: >
