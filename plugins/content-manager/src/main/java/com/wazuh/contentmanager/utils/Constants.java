@@ -493,6 +493,12 @@ public class Constants {
             "User overrides registry write conflicted on attempt {}; re-reading and retrying.";
     public static final String I_LOG_USER_OVERRIDES_APPLIED =
             "Applied user overrides for space [{}]: policy settings present={}, {} filter id(s) attached";
+    public static final String I_LOG_USER_OVERRIDES_ENRICHMENTS_CONVERTED =
+            "Converted the enrichments of the user overrides for space [{}] from the list kept to the"
+                    + " types turned off: {}";
+    public static final String W_LOG_USER_OVERRIDES_ENRICHMENTS_CONVERSION_FAILED =
+            "Failed to store the converted enrichments of the user overrides for space [{}]; the"
+                    + " conversion is retried on the next synchronization: {}";
     public static final String W_LOG_USER_OVERRIDES_FILTER_UNREADABLE =
             "Stored filter [{}] could not be parsed and was skipped; it will not be restored: {}";
     public static final String I_LOG_USER_OVERRIDES_INTEGRATIONS_APPLIED =
@@ -920,6 +926,7 @@ public class Constants {
     public static final String KEY_CVES = "cves";
     public static final String KEY_FILTERS = "filters";
     public static final String KEY_ENRICHMENTS = "enrichments";
+    public static final String KEY_DISABLED_ENRICHMENTS = "disabled_enrichments";
     public static final String KEY_ROOT_DECODER = "root_decoder";
 
     // Pipeline phase keys (policy resources response)

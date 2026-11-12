@@ -818,6 +818,12 @@ Fields within `resource`:
 
 An array left out of the request (`integrations`, `filters` or `enrichments`), or sent as `null`, keeps its current value. In the standard space, the `enrichments` of a request are also kept across content updates, while a request without the field leaves the list to follow the published content, or the selection saved earlier.
 
+In the standard space, `enrichments` is still the list of enrichments that are on, but the indexer records the choice as the types the request turned off: the published types that the request leaves out. After every content update, the policy has every enrichment the published content carries except those. As a result:
+
+- A type that the published content adds after the save is on, until a request turns it off.
+- A type turned off stays off across content updates, also when the published content drops it and adds it back later. Sending it again turns it back on.
+- `"enrichments": []` turns off every type published at that moment. A type published later is on.
+
 Fields within `resource.metadata`:
 
 - **`title`** (String, optional) — human-readable policy name.

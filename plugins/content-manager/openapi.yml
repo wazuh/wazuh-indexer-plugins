@@ -1440,6 +1440,12 @@ paths:
         when the request leaves them out or sends `null`. An empty `enrichments` array removes
         every enrichment.
 
+        **Standard space enrichments across content updates**: the request carries the
+        enrichments that are on, and the indexer records the published types it leaves out as
+        turned off. After each content update the policy gets every published enrichment except
+        those, so a type published after the save is on until a request turns it off, and a type
+        turned off stays off until a request sends it again.
+
         **Stored document format**: Policy metadata is stored only under
         `document.metadata` in the indexed document.
       operationId: policy_update

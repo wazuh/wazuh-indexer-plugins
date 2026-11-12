@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.action.DocWriteRequest;
@@ -38,6 +39,7 @@ import org.junit.Before;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
@@ -57,6 +59,8 @@ import static org.mockito.Mockito.when;
 public class UserOverridesServiceTests extends OpenSearchTestCase {
 
     private Client client;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private SpaceService spaceService;
     private UserOverridesService service;
 
@@ -537,11 +541,14 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
         verify(this.spaceService, never()).getPolicy(any(), any());
     }
 
-    /** The user's booleans are written over CTI's, and the stored list replaces CTI's. */
-    public void testApplyReplacesTheEnrichmentsWithTheStoredList() throws Exception {
+    /**
+     * The user's booleans are written over CTI's, and the policy gets everything CTI publishes except
+     * the types the user turned off -- including a type published after the user saved.
+     */
+    public void testApplyGivesEverythingPublishedExceptTheTypesTurnedOff() throws Exception {
         stubRegistryPresent(
                 "{\"user_overrides\":{\"standard\":{\"policy\":{\"enabled\":false,"
-                        + "\"enrichments\":[\"connection\"]},\"filters\":[]}}}",
+                        + "\"disabled_enrichments\":[\"geo\"]},\"filters\":[]}}}",
                 1L,
                 1L);
         stubRebuiltPolicy(
@@ -549,33 +556,132 @@ public class UserOverridesServiceTests extends OpenSearchTestCase {
                         + "\"enrichments\":[\"geo\",\"connection\",\"asn\"],\"filters\":[]},"
                         + "\"hash\":{\"sha256\":\"stale\"},\"space\":{\"name\":\"standard\"},\"offset\":640}");
 
-        String written = applyAndCaptureWrittenPolicy();
+        JsonNode written = MAPPER.readTree(applyAndCaptureWrittenPolicy()).path("document");
 
-        assertTrue("the user's choice must win", written.contains("\"enabled\":false"));
-        assertTrue(written.contains("\"connection\""));
-        assertFalse("what the user did not keep must be gone", written.contains("\"geo\""));
-        assertFalse(written.contains("\"asn\""));
+        assertFalse("the user's choice must win", written.path("enabled").asBoolean());
+        assertEquals(
+                "a type CTI published after the save must reach the policy",
+                List.of("connection", "asn"),
+                textValues(written.path("enrichments")));
     }
 
     /**
-     * An enrichment CTI stopped publishing is dropped rather than resurrected. CTI is not expected to
-     * change the set, but a stored list would otherwise keep naming a value the engine no longer
-     * knows, on every sync, forever.
+     * A type turned off that CTI stopped publishing is not resurrected, and stays recorded: it is
+     * still off if CTI publishes it again.
      */
-    public void testApplyDropsStoredEnrichmentsCtiNoLongerPublishes() throws Exception {
+    public void testApplyIgnoresTurnedOffTypesCtiNoLongerPublishes() throws Exception {
         stubRegistryPresent(
                 "{\"user_overrides\":{\"standard\":{\"policy\":"
-                        + "{\"enrichments\":[\"connection\",\"retired\"]},\"filters\":[]}}}",
+                        + "{\"disabled_enrichments\":[\"retired\"]},\"filters\":[]}}}",
                 1L,
                 1L);
         stubRebuiltPolicy(
                 "{\"document\":{\"id\":\"p1\",\"enrichments\":[\"geo\",\"connection\"],\"filters\":[]},"
                         + "\"hash\":{\"sha256\":\"x\"},\"space\":{\"name\":\"standard\"}}");
 
-        String written = applyAndCaptureWrittenPolicy();
+        JsonNode written = MAPPER.readTree(applyAndCaptureWrittenPolicy()).path("document");
 
-        assertTrue(written.contains("\"connection\""));
-        assertFalse(written.contains("\"retired\""));
+        assertEquals(List.of("geo", "connection"), textValues(written.path("enrichments")));
+        verify(this.client, times(1)).index(any(IndexRequest.class), any());
+    }
+
+    /** An empty delta keeps everything CTI publishes. */
+    public void testApplyWithNothingTurnedOffKeepsEverythingPublished() throws Exception {
+        stubRegistryPresent(
+                "{\"user_overrides\":{\"standard\":{\"policy\":"
+                        + "{\"disabled_enrichments\":[]},\"filters\":[]}}}",
+                1L,
+                1L);
+        stubRebuiltPolicy(
+                "{\"document\":{\"id\":\"p1\",\"enrichments\":[\"geo\",\"connection\"],\"filters\":[]},"
+                        + "\"hash\":{\"sha256\":\"x\"},\"space\":{\"name\":\"standard\"}}");
+
+        JsonNode written = MAPPER.readTree(applyAndCaptureWrittenPolicy()).path("document");
+
+        assertEquals(List.of("geo", "connection"), textValues(written.path("enrichments")));
+    }
+
+    /**
+     * An override stored in the legacy format (the list kept) is applied as before and converted: the
+     * published or known types missing from the list are recorded as turned off.
+     */
+    public void testApplyConvertsALegacyOverride() throws Exception {
+        stubRegistryPresent(
+                "{\"user_overrides\":{\"standard\":{\"policy\":{\"enabled\":false,"
+                        + "\"enrichments\":[\"connection\"]},\"filters\":[]}}}",
+                1L,
+                1L);
+        stubRebuiltPolicy(
+                "{\"document\":{\"id\":\"p1\",\"enrichments\":[\"geo\",\"connection\"],\"filters\":[]},"
+                        + "\"hash\":{\"sha256\":\"x\"},\"space\":{\"name\":\"standard\"}}");
+        stubKnownEnrichmentTypes(Set.of("geo", "connection", "hash_md5"));
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        stubIndexSucceeding(captor);
+
+        PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        this.service.apply("standard", future);
+        future.actionGet();
+
+        List<IndexRequest> writes = captor.getAllValues();
+        assertEquals("the policy, then the converted registry", 2, writes.size());
+        JsonNode policy = MAPPER.readTree(writes.get(0).source().utf8ToString()).path("document");
+        assertEquals(List.of("connection"), textValues(policy.path("enrichments")));
+
+        JsonNode stored =
+                MAPPER
+                        .readTree(writes.get(1).source().utf8ToString())
+                        .path("user_overrides")
+                        .path("standard")
+                        .path("policy");
+        assertFalse(stored.has("enrichments"));
+        assertEquals(List.of("geo", "hash_md5"), textValues(stored.path("disabled_enrichments")));
+        assertFalse("the flags are kept", stored.path("enabled").asBoolean());
+    }
+
+    /** A failure storing the conversion does not fail the apply: the policy is already written. */
+    public void testApplySucceedsWhenStoringTheConversionFails() throws Exception {
+        stubRegistryPresent(
+                "{\"user_overrides\":{\"standard\":{\"policy\":"
+                        + "{\"enrichments\":[\"connection\"]},\"filters\":[]}}}",
+                1L,
+                1L);
+        stubRebuiltPolicy(
+                "{\"document\":{\"id\":\"p1\",\"enrichments\":[\"geo\",\"connection\"],\"filters\":[]},"
+                        + "\"hash\":{\"sha256\":\"x\"},\"space\":{\"name\":\"standard\"}}");
+        stubKnownEnrichmentTypes(Set.of("geo"));
+        doAnswer(
+                        invocation -> {
+                            IndexRequest request = invocation.getArgument(0);
+                            ActionListener<IndexResponse> l = invocation.getArgument(1);
+                            if (Constants.USER_OVERRIDES_DOC_ID.equals(request.id())) {
+                                l.onFailure(new RuntimeException("registry unavailable"));
+                            } else {
+                                l.onResponse(mock(IndexResponse.class));
+                            }
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
+
+        PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        this.service.apply("standard", future);
+        future.actionGet();
+    }
+
+    private void stubKnownEnrichmentTypes(Set<String> known) {
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Set<String>>>getArgument(0).onResponse(known);
+                            return null;
+                        })
+                .when(this.spaceService)
+                .getKnownEnrichmentTypesAsync(any());
+    }
+
+    private static List<String> textValues(JsonNode array) {
+        List<String> values = new ArrayList<>();
+        array.forEach(entry -> values.add(entry.asText()));
+        return values;
     }
 
     /** A user who never decided keeps CTI's list untouched. */

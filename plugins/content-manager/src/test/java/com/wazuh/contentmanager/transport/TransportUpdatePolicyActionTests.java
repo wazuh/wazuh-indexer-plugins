@@ -342,7 +342,10 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
         return captor.getValue();
     }
 
-    /** Saving the standard policy records all four settings, the enrichments as the list sent. */
+    /**
+     * Saving the standard policy records all four settings, the enrichments as the types the request
+     * left out.
+     */
     public void testStandardUpdateRecordsAllFourSettings() {
         stubStandardPolicy(CTI_ENRICHMENTS);
 
@@ -357,25 +360,93 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
         Assert.assertEquals(Boolean.TRUE, recorded.getPolicy().getEnabled());
         Assert.assertEquals(Boolean.TRUE, recorded.getPolicy().getIndexUnclassifiedEvents());
         Assert.assertEquals(Boolean.FALSE, recorded.getPolicy().getIndexDiscardedEvents());
-        Assert.assertEquals(incoming, recorded.getPolicy().getEnrichments());
+        Assert.assertEquals(List.of("geo"), recorded.getPolicy().getDisabledEnrichments());
     }
 
-    /** A later save replaces the stored list rather than merging with it. */
-    public void testASecondSaveReplacesTheStoredEnrichmentList() {
+    /** Sending a type turned off in an earlier save turns it back on. */
+    public void testSendingATypeTurnedOffEarlierTurnsItBackOn() {
         List<String> withoutGeo =
                 List.of("connection", "url_full", "url_domain", "hash_md5", "hash_sha1", "hash_sha256");
         stubStandardPolicy(withoutGeo);
 
         UserOverrides priorState =
                 new UserOverrides(
-                        new UserOverrides.PolicySettings(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, withoutGeo),
+                        new UserOverrides.PolicySettings(
+                                Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, List.of("geo")),
                         new java.util.ArrayList<>(),
                         new java.util.ArrayList<>());
 
         // The user re-checks "geo": the body carries all seven again.
         UserOverrides recorded = captureRecordedMutator(CTI_ENRICHMENTS).apply(priorState);
 
-        Assert.assertEquals(CTI_ENRICHMENTS, recorded.getPolicy().getEnrichments());
+        Assert.assertEquals(List.of(), recorded.getPolicy().getDisabledEnrichments());
+    }
+
+    /**
+     * A type turned off in an earlier save is no longer in the stored policy, so the request cannot
+     * leave it out; it stays off, next to the one this save turns off.
+     */
+    public void testATypeTurnedOffEarlierStaysOff() {
+        List<String> withoutGeo =
+                List.of("connection", "url_full", "url_domain", "hash_md5", "hash_sha1", "hash_sha256");
+        stubStandardPolicy(withoutGeo);
+
+        UserOverrides priorState =
+                new UserOverrides(
+                        new UserOverrides.PolicySettings(
+                                Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, List.of("geo")),
+                        new java.util.ArrayList<>(),
+                        new java.util.ArrayList<>());
+
+        // The user now also unchecks "connection".
+        UserOverrides recorded =
+                captureRecordedMutator(
+                                List.of("url_full", "url_domain", "hash_md5", "hash_sha1", "hash_sha256"))
+                        .apply(priorState);
+
+        Assert.assertEquals(
+                List.of("connection", "geo"), recorded.getPolicy().getDisabledEnrichments());
+    }
+
+    /**
+     * A type turned off that CTI no longer publishes stays recorded, so it is still off when CTI
+     * publishes it again.
+     */
+    public void testATypeTurnedOffThatCtiNoLongerPublishesStaysRecorded() {
+        stubStandardPolicy(CTI_ENRICHMENTS);
+
+        UserOverrides priorState =
+                new UserOverrides(
+                        new UserOverrides.PolicySettings(
+                                Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, List.of("retired")),
+                        new java.util.ArrayList<>(),
+                        new java.util.ArrayList<>());
+
+        UserOverrides recorded = captureRecordedMutator(CTI_ENRICHMENTS).apply(priorState);
+
+        Assert.assertEquals(List.of("retired"), recorded.getPolicy().getDisabledEnrichments());
+    }
+
+    /**
+     * Saving over a legacy override (the list kept) converts it: the known types missing from that
+     * list stay off, although the stored policy no longer names them.
+     */
+    public void testASaveConvertsALegacyOverride() {
+        List<String> withoutGeo =
+                List.of("connection", "url_full", "url_domain", "hash_md5", "hash_sha1", "hash_sha256");
+        stubStandardPolicy(withoutGeo);
+
+        UserOverrides priorState =
+                new UserOverrides(
+                        UserOverrides.PolicySettings.legacy(
+                                Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, withoutGeo),
+                        new java.util.ArrayList<>(),
+                        new java.util.ArrayList<>());
+
+        UserOverrides recorded = captureRecordedMutator(withoutGeo).apply(priorState);
+
+        Assert.assertFalse(recorded.getPolicy().isLegacy());
+        Assert.assertEquals(List.of("geo"), recorded.getPolicy().getDisabledEnrichments());
     }
 
     /** The filters already stored in the registry survive a policy save untouched. */
@@ -494,7 +565,8 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(
                 CTI_ENRICHMENTS, textValues(capturedIndexedDocument().path(Constants.KEY_ENRICHMENTS)));
-        Assert.assertNull(recorded.getPolicy().getEnrichments());
+        Assert.assertNull(recorded.getPolicy().getDisabledEnrichments());
+        Assert.assertFalse(recorded.getPolicy().isLegacy());
         Assert.assertEquals(Boolean.FALSE, recorded.getPolicy().getIndexUnclassifiedEvents());
     }
 
@@ -510,7 +582,7 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
 
         Assert.assertEquals(
                 CTI_ENRICHMENTS, textValues(capturedIndexedDocument().path(Constants.KEY_ENRICHMENTS)));
-        Assert.assertNull(recorded.getPolicy().getEnrichments());
+        Assert.assertNull(recorded.getPolicy().getDisabledEnrichments());
     }
 
     /** A request without {@code enrichments} leaves an earlier recorded selection in place. */
@@ -521,17 +593,44 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
 
         UserOverrides priorState =
                 new UserOverrides(
-                        new UserOverrides.PolicySettings(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, withoutGeo),
+                        new UserOverrides.PolicySettings(
+                                Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, List.of("geo")),
                         new java.util.ArrayList<>(),
                         new java.util.ArrayList<>());
 
         UserOverrides recorded = runStandardUpdate(FLAGS_ONLY_BODY).apply(priorState);
 
-        Assert.assertEquals(withoutGeo, recorded.getPolicy().getEnrichments());
+        Assert.assertEquals(List.of("geo"), recorded.getPolicy().getDisabledEnrichments());
         Assert.assertEquals(Boolean.FALSE, recorded.getPolicy().getIndexUnclassifiedEvents());
     }
 
-    /** An empty list is still a choice: it clears the enrichments and is recorded as such. */
+    /**
+     * A request without {@code enrichments} leaves a legacy override as it is; it is converted on the
+     * next apply or the next save that carries them.
+     */
+    public void testOmittedEnrichmentsKeepALegacyOverride() {
+        List<String> withoutGeo =
+                List.of("connection", "url_full", "url_domain", "hash_md5", "hash_sha1", "hash_sha256");
+        stubStandardPolicy(withoutGeo);
+
+        UserOverrides priorState =
+                new UserOverrides(
+                        UserOverrides.PolicySettings.legacy(
+                                Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, withoutGeo),
+                        new java.util.ArrayList<>(),
+                        new java.util.ArrayList<>());
+
+        UserOverrides recorded = runStandardUpdate(FLAGS_ONLY_BODY).apply(priorState);
+
+        Assert.assertTrue(recorded.getPolicy().isLegacy());
+        Assert.assertEquals(withoutGeo, recorded.getPolicy().getLegacyEnrichments());
+        Assert.assertEquals(Boolean.FALSE, recorded.getPolicy().getIndexUnclassifiedEvents());
+    }
+
+    /**
+     * An empty list is still a choice: it clears the enrichments and turns off every type published
+     * at that moment.
+     */
     public void testEmptyEnrichmentsClearTheListAndAreRecorded() throws Exception {
         stubStandardPolicy(CTI_ENRICHMENTS);
 
@@ -541,7 +640,7 @@ public class TransportUpdatePolicyActionTests extends OpenSearchTestCase {
                                 new UserOverrides(null, new java.util.ArrayList<>(), new java.util.ArrayList<>()));
 
         Assert.assertTrue(capturedIndexedDocument().path(Constants.KEY_ENRICHMENTS).isEmpty());
-        Assert.assertEquals(List.of(), recorded.getPolicy().getEnrichments());
+        Assert.assertEquals(CTI_ENRICHMENTS, recorded.getPolicy().getDisabledEnrichments());
     }
 
     /** A request without {@code filters} keeps the policy's filters instead of being rejected. */
