@@ -22,12 +22,7 @@ import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.client5.http.utils.DateUtils;
-import org.apache.hc.core5.http.ConnectionClosedException;
-import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpHeaders;
-import org.apache.hc.core5.http.HttpStatus;
-import org.apache.hc.core5.http.Method;
-import org.apache.hc.core5.http.NoHttpResponseException;
+import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.ssl.TLS;
 import org.apache.hc.core5.io.CloseMode;
@@ -78,7 +73,7 @@ public class ApiClient implements AutoCloseable {
         this.buildClient();
     }
 
-    /** Constructs an ApiClient instance with an regular URL resolver. */
+    /** Constructs an ApiClient instance with a regular URL resolver. */
     public ApiClient() {
         this(new RegularUrlResolver());
     }
@@ -199,6 +194,9 @@ public class ApiClient implements AutoCloseable {
         String uri = this.urlResolver.resolve(this.buildConsumerURI(consumerUri));
         SimpleHttpRequest request =
                 SimpleRequestBuilder.get(uri)
+                        .addHeader(Constants.WAZUH_UUID_HEADER, PluginSettings.getInstance().getClusterUUID())
+                        .addHeader(Constants.WAZUH_VERSION_HEADER, PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
         return this.executeWithRetry(request);
@@ -262,6 +260,8 @@ public class ApiClient implements AutoCloseable {
         String uri = this.urlResolver.resolve(this.buildReleasesUpdatesURI(tag));
         SimpleHttpRequest request =
                 SimpleRequestBuilder.get(uri)
+                        .addHeader(Constants.WAZUH_UUID_HEADER, PluginSettings.getInstance().getClusterUUID())
+                        .addHeader(Constants.WAZUH_VERSION_HEADER, PluginSettings.getInstance().getVersion())
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
         return this.executeWithRetry(request, 0);
@@ -328,7 +328,7 @@ public class ApiClient implements AutoCloseable {
                         attempt + 1,
                         maxRetries);
             } catch (ExecutionException | TimeoutException e) {
-                if (attempt >= maxRetries || !isTransientFailure(request, e)) {
+                if (attempt >= maxRetries || !ApiClient.isTransientFailure(request, e)) {
                     throw e;
                 }
                 delaySeconds = this.computeBackoffSeconds(attempt);
@@ -369,8 +369,8 @@ public class ApiClient implements AutoCloseable {
      * Executes a single HTTP round-trip, blocking up to {@code clientTimeout} seconds on the
      * response.
      *
-     * <p>An exchange that is given up on (timeout or interrupt) is cancelled, releasing its pooled
-     * connection. Otherwise a server that keeps trickling bytes never trips the socket timeout, and
+     * <p>An exchange that is given up on (timeout or interrupt) is canceled, releasing its pooled
+     * connection. Otherwise, a server that keeps trickling bytes never trips the socket timeout, and
      * on a long-lived client the abandoned exchanges exhaust the per-route pool.
      *
      * @param request the request to execute.

@@ -2336,7 +2336,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 ### Check available updates
 
-Returns whether there are newer versions of Wazuh available for download. The endpoint reads the current installed version from `VERSION.json` and queries the CTI API for available updates. The response includes the latest available major, minor, and patch updates when available.
+Returns whether there are newer versions of Wazuh available for download. The endpoint queries the CTI API with the node's version tag, built at plugin startup from `VERSION.json` — `v<version>` when pointing to the production CTI, `v<version>-<stage>` when pointing to the pre-release CTI — and echoed back as `current_version`. The response includes the latest available major, minor, and patch updates when available.
 
 Every call queries CTI; nothing is cached. Calls that arrive while a check is in progress share its result. Each node rate limits its CTI queries with a token bucket. Once the bucket is empty, the endpoint answers `429` with a `Retry-After` header holding the seconds until the next check is allowed.
 
