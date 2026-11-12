@@ -117,6 +117,9 @@ The `detection` section must always contain:
 > [!IMPORTANT]
 > All fields referenced in the `detection` section are validated against the Wazuh Common Schema. Rules that reference unknown fields are rejected with a structured error response identifying the offending field names. This prevents silent mismatches where a rule appears active but never triggers because it queries a non-existent field.
 
+> [!NOTE]
+> The detection logic is compiled into a single query, and OpenSearch caps how large a query can be. A selection that enumerates thousands of literal values (for example, file hashes) exceeds those caps and the rule fails to load. See [Compiled query size limits](configuration.md#compiled-query-size-limits).
+
 ### Selections
 
 A **selection** is a named object whose keys correspond to existing WCS fields and whose values define the matching criteria. A selection matches when any or all of its field conditions are satisfied, depending on the chosen syntax:
