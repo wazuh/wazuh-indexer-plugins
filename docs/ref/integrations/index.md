@@ -207,5 +207,5 @@ Upgrade the integration with every upgrade of the Wazuh indexer, from the folder
 
 | Wazuh indexer | Logstash | Elasticsearch | OpenSearch | Splunk | Amazon Security Lake |
 | --- | --- | --- | --- | --- | --- |
-| 5.0.0 | 8.19.23 | 9.5.4 | 3.9.0 | 10.6.0 | OCSF 1.1.0, Lambda Python 3.12 |
+| 5.0.0 | 9.5.6 | 9.5.4 | 3.9.0 | 10.6.0 | OCSF 1.1.0, Lambda Python 3.12 |
 
