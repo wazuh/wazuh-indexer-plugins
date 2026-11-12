@@ -256,6 +256,8 @@ paths:
         Every call queries CTI; nothing is cached. Calls that arrive while a check is in
         progress share its result. Each node rate limits its CTI queries with a token
         bucket. Once the bucket is empty, the endpoint answers `429` with a `Retry-After` header.
+        A call rejected by the node's single-thread version check pool is also answered with
+        `429`, with no `Retry-After` header and the rate-limit token credited back.
       operationId: getVersionCheck
       tags:
         - Version Check
@@ -3416,11 +3418,15 @@ components:
 
     VersionCheckRateLimited:
       description: |
-        Too Many Requests - This node's version-check rate limit is exhausted. Retry after the
-        number of seconds in the `Retry-After` header.
+        Too Many Requests - This node's version-check rate limit is exhausted, and the response
+        carries the seconds to wait in the `Retry-After` header; or the node's single-thread
+        version check pool rejected the call, and then the header is absent and the call can be
+        repeated at once.
       headers:
         Retry-After:
-          description: Seconds until the next version check is allowed.
+          description: |
+            Seconds until the next version check is allowed. Sent only when the rate limit is
+            the cause.
           schema:
             type: integer
             example: 12
@@ -3433,6 +3439,11 @@ components:
               summary: Version-check rate limit exhausted
               value:
                 message: "Too many version checks. Please retry in 12 seconds."
+                status: 429
+            pool_busy:
+              summary: Version check pool saturated
+              value:
+                message: "The version check is busy. Please retry later."
                 status: 429
 
     BadGateway:

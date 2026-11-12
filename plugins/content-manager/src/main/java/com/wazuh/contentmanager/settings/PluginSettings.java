@@ -611,7 +611,7 @@ public class PluginSettings {
 
     /**
      * Maximum number of attempts to acquire the resource-creation lock before the request is rejected
-     * with {@code 503 SERVICE_UNAVAILABLE}.
+     * with {@code 429 TOO_MANY_REQUESTS}.
      */
     public static final Setting<Integer> RESOURCE_LOCK_MAX_RETRIES =
             Setting.intSetting(

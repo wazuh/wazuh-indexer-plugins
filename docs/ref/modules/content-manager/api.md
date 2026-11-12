@@ -2355,6 +2355,8 @@ Returns whether there are newer versions of Wazuh available for download. The en
 
 Every call queries CTI; nothing is cached. Calls that arrive while a check is in progress share its result. Each node rate limits its CTI queries with a token bucket. Once the bucket is empty, the endpoint answers `429` with a `Retry-After` header holding the seconds until the next check is allowed.
 
+A call can also be answered with `429` when the node's single-thread version check pool rejects it. That response carries no `Retry-After` header, and the rate-limit token is credited back, so the call can be repeated immediately.
+
 #### Request
 
 - Method: `GET`
@@ -2439,10 +2441,22 @@ content-type: application/json; charset=UTF-8
 }
 ```
 
+#### Example response (check pool busy)
+
+```http
+HTTP/1.1 429 Too Many Requests
+content-type: application/json; charset=UTF-8
+
+{
+  "message": "The version check is busy. Please retry later.",
+  "status": 429
+}
+```
+
 #### Status codes
 
 - **200** — version check completed (may include updates or empty).
-- **429** — rate limit exhausted on this node; retry after the `Retry-After` seconds.
+- **429** — the rate limit is exhausted on this node, and the response carries the seconds to wait in its `Retry-After` header; or the version check pool rejected the call, and then there is no `Retry-After` and the call can be repeated at once.
 - **500** — unable to determine version or internal error.
 - **502** — CTI API returned an error.
 

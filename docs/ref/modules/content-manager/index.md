@@ -195,12 +195,18 @@ See [Subscription management](api.md#store-cti-credentials) in the API reference
 
 <!-- ANCHOR: deploy-key -->
 
-The Content Manager supports pre-registration of the Wazuh instance with Wazuh Cloud using the `DEPLOY_KEY` JVM system property. Set it through the service environment file, `/etc/default/wazuh-indexer` on Debian or `/etc/sysconfig/wazuh-indexer` on RPM:
+The Content Manager supports pre-registration of the Wazuh instance with Wazuh Cloud using the `DEPLOY_KEY` JVM system property. Set it with a JVM options drop-in, which the Wazuh Indexer reads however the service is started:
+
+```bash
+echo '-DDEPLOY_KEY=<your deploy key>' > /etc/wazuh-indexer/jvm.options.d/deploy-key.options
+```
+
+Under systemd it can also be set through the service environment file, `/etc/default/wazuh-indexer` on Debian or `/etc/sysconfig/wazuh-indexer` on RPM:
 
 ```bash
 OPENSEARCH_JAVA_OPTS="-DDEPLOY_KEY=<your deploy key>"
 ```
 
-An exported `DEPLOY_KEY` environment variable alone has no effect: the plugin reads the system property. If the property is set at startup, the Content Manager automatically registers the token as if it were sent through the REST API, enabling immediate synchronization with the CTI API without manual intervention. Snapshots bundled with the package are removed in favor of fetching the latest content directly from the CTI API using the provided token. This streamlines the setup process for new deployments and ensures that they start with the most up-to-date detection content from their subscription plan.
+The SysV init script does not export `OPENSEARCH_JAVA_OPTS`, so on a node started that way only the drop-in works. An exported `DEPLOY_KEY` environment variable has no effect either way: the plugin reads the system property. If the property is set at startup, the Content Manager automatically registers the token as if it were sent through the REST API, enabling immediate synchronization with the CTI API without manual intervention. Snapshots bundled with the package are removed in favor of fetching the latest content directly from the CTI API using the provided token. This streamlines the setup process for new deployments and ensures that they start with the most up-to-date detection content from their subscription plan.
 
 <!-- ANCHOR_END: deploy-key -->

@@ -11,7 +11,7 @@ To verify everything is working correctly, try generating reports following the 
 
 ### Preparing packages
 
-- Wazuh Indexer package (debian package based on OpenSearch 3.6.0). Compiled locally using the [Docker builder](https://github.com/wazuh/wazuh-indexer/tree/main/build-scripts): `bash builder.sh -d deb -a x64 -e <path to the wazuh-engine tarball>`. The `-e` option is required; the builder stops with `Error: -e ENGINE_TARBALL is required.` without it.
+- Wazuh Indexer package (debian package based on OpenSearch 3.6.0). Compiled locally using the [Docker builder](https://github.com/wazuh/wazuh-indexer/tree/main/build-scripts): `bash builder.sh -d deb -a x64 -e <absolute path to the wazuh-engine tarball>`. The `-e` option is required; the builder stops with `Error: -e ENGINE_TARBALL is required.` without it. The path has to be absolute: Compose takes it as the source of a bind mount, so a relative one resolves against `build-scripts/builder/` and a bare name is read as a named volume.
 - Wazuh Dashboard package (debian package based on OpenSearch 3.6.0). Downloaded from [wazuh-dashboard actions](https://github.com/wazuh/wazuh-dashboard/actions/workflows/5_builderpackage_dashboard.yml).
 > Note: Artifacts are no longer uploaded to the public wazuh-dashboard actions workflow. You must now use an specific workflow to obtain the S3 links and download the artifacts directly from the S3 bucket.
 
