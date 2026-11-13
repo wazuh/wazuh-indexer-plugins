@@ -186,6 +186,15 @@ public class Constants {
             "Sent {} of {} {} to Security Analytics for space [{}].";
     public static final String E_LOG_SAP_PARTIAL =
             "{} {} could not be sent to Security Analytics for space [{}]: {}";
+    public static final String W_LOG_DEPLOY_KEY_PROPERTY_IGNORED =
+            "The DEPLOY_KEY JVM system property is set but it is no longer read, so this deployment "
+                    + "is not pre-registered. Set DEPLOY_KEY as an environment variable in the service "
+                    + "environment instead: a -D flag is published in the node log and in the response "
+                    + "of GET _nodes.";
+    public static final String W_LOG_DEPLOY_KEY_PROPERTY_REDUNDANT =
+            "The DEPLOY_KEY JVM system property is set and ignored: the environment variable takes "
+                    + "precedence. Remove the -D flag, whose value is published in the node log and in "
+                    + "the response of GET _nodes.";
     public static final String I_LOG_ACCESS_TOKEN_REMOVED =
             "Access token removed successfully. Environment is now unregistered.";
     public static final String I_LOG_ACCESS_TOKEN_SET =
