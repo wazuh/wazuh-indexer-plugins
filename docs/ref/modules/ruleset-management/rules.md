@@ -117,6 +117,9 @@ The `detection` section must always contain:
 > [!IMPORTANT]
 > All fields referenced in the `detection` section are validated against the Wazuh Common Schema. Rules that reference unknown fields are rejected with a structured error response identifying the offending field names. This prevents silent mismatches where a rule appears active but never triggers because it queries a non-existent field.
 
+> [!NOTE]
+> The detection logic is compiled into a single query, and OpenSearch caps how large a query can be. A selection that enumerates thousands of literal values (for example, file hashes) exceeds those caps. The rule is still accepted and the detector is still created, but the rule never raises a finding, and the only trace is an error in the indexer log. See [Compiled query size limits](configuration.md#compiled-query-size-limits).
+
 ### Selections
 
 A **selection** is a named object whose keys correspond to existing WCS fields and whose values define the matching criteria. A selection matches when any or all of its field conditions are satisfied, depending on the chosen syntax:
@@ -244,9 +247,9 @@ Multiple modifiers can be chained: `field|modifier1|modifier2: value`.
 > to `contains`, `startswith`, `endswith` and wildcard values alike: a rule matching `UNION SELECT`
 > does not match `union select` or `UNION sElect`. To catch several spellings of a keyword, list them
 > as separate values.
-> 
+>
 > **Long values**: detection compares only the first 10922 characters of a `message`, `error.message` or `file.diff` value. A `contains`, `startswith` or wildcard match within them is found; an exact value, an `endswith`, or a match that extends past them is not. The event keeps the whole value, so a search on the events still finds any word of it.
-> 
+>
 > Both evaluation paths agree: a deployed detector and
 > [logtest](../content-manager/rule-testing.md) compile a rule with the same backend and match it
 > with the same percolator, so a logtest result predicts what the detector will do rather than
