@@ -107,7 +107,7 @@ Content is not being updated despite having a valid subscription.
 **Symptoms:** Creating or updating a decoder (or any resource with a `check`/`detection` expression) fails with an Engine validation error naming a field that looks correct, for example:
 
 ```
-{"message":"Engine validation failed. Failed to validate resource of type 'decoder': Validation failed for 'decoder': Failed to build operation 'tmp_json.event.action: string_equal(\"netflow_flow\")': Field 'tmp_json.event.action' is not defined in WCS schema and is not a temporary field"}
+{"message":"Engine validation failed. Failed to validate resource of type 'decoder': Validation failed for 'decoder': Failed to build operation 'tmp_json.event.action: string_eq(\"netflow_flow\")': Field 'tmp_json.event.action' is not defined in WCS schema and is not a temporary field (root must start with '_')","status":400}
 ```
 
 **Cause:** The Engine validates every field referenced in a `check` or `detection` expression against the Wazuh Common Schema (WCS). A field that is intentionally temporary — used only during decoding and not part of the final normalized event — is not in WCS by definition, so the Engine only accepts it if it's prefixed with an underscore.
@@ -120,7 +120,7 @@ Prefix temporary fields with `_` in both the check expression and anywhere else 
 {
   "check": [
     {
-      "_tmp_json.event.action": "string_equal(\"netflow_flow\")"
+      "_tmp_json.event.action": "string_eq(\"netflow_flow\")"
     }
   ]
 }

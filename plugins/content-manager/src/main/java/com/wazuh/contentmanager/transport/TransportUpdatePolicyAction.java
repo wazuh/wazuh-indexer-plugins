@@ -35,10 +35,12 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.action.UpdatePolicyAction;
@@ -199,7 +201,9 @@ public class TransportUpdatePolicyAction
             this.spaceService.getPolicy(
                     spaceName,
                     ActionListener.wrap(
-                            currentPolicy -> afterGetPolicy(currentPolicy, policy, resource, spaceName, listener),
+                            currentPolicy ->
+                                    afterGetPolicy(
+                                            currentPolicy, policy, resource, spaceName, knownEnrichmentTypes, listener),
                             e -> respondWithError(listener, e)));
 
         } catch (IllegalArgumentException e) {
@@ -218,6 +222,7 @@ public class TransportUpdatePolicyAction
             Policy incomingPolicy,
             JsonNode resource,
             String spaceName,
+            Set<String> knownEnrichmentTypes,
             ActionListener<MessageStatusResponse> listener) {
         try {
             if (currentPolicy == null) {
@@ -239,6 +244,13 @@ public class TransportUpdatePolicyAction
                                 RestStatus.INTERNAL_SERVER_ERROR));
                 return;
             }
+
+            // What the policy has before this save: CTI's list without what the user already turned off.
+            final List<String> enrichmentsBefore =
+                    new ArrayList<>(
+                            (List<String>)
+                                    currentPolicyDoc.getOrDefault(
+                                            Constants.KEY_ENRICHMENTS, Collections.emptyList()));
 
             keepOmittedLists(resource, incomingPolicy, currentPolicyDoc);
 
@@ -306,15 +318,17 @@ public class TransportUpdatePolicyAction
             document.set(Constants.KEY_HASH, hashNode);
 
             // Only the standard space is rebuilt from CTI, so only its settings need recording.
-            final UserOverrides.PolicySettings pendingOverride =
+            final SavedSettings pendingOverride =
                     Space.STANDARD.equals(spaceName)
-                            ? new UserOverrides.PolicySettings(
+                            ? new SavedSettings(
                                     incomingPolicy.getEnabled(),
                                     incomingPolicy.getIndexUnclassifiedEvents(),
                                     incomingPolicy.getIndexDiscardedEvents(),
                                     resource.hasNonNull(Constants.KEY_ENRICHMENTS)
                                             ? incomingPolicy.getEnrichments()
-                                            : null)
+                                            : null,
+                                    enrichmentsBefore,
+                                    knownEnrichmentTypes)
                             : null;
 
             // Find the real document _id (async)
@@ -340,7 +354,7 @@ public class TransportUpdatePolicyAction
             String documentId,
             ObjectNode document,
             String spaceName,
-            UserOverrides.PolicySettings pendingOverride,
+            SavedSettings pendingOverride,
             ActionListener<MessageStatusResponse> listener) {
         if (documentId == null) {
             log.error(Constants.E_LOG_POLICY_DOCUMENT_MISSING, spaceName);
@@ -365,7 +379,7 @@ public class TransportUpdatePolicyAction
     private void afterIndex(
             String policyId,
             String spaceName,
-            UserOverrides.PolicySettings pendingOverride,
+            SavedSettings pendingOverride,
             ActionListener<MessageStatusResponse> listener) {
         // Recalculate space hash (async)
         this.spaceService.calculateAndUpdate(
@@ -394,12 +408,11 @@ public class TransportUpdatePolicyAction
      * <p>A registry failure is logged and swallowed. The policy is already written, so the user's
      * request succeeded; failing it here would be a lie.
      *
-     * @param sent the settings the client sent, with {@code null} enrichments when the request left
-     *     them out, or {@code null} for a space other than {@code standard}, which is the only one
-     *     rebuilt from CTI and so the only one that can lose settings.
+     * @param sent what this save decided, or {@code null} for a space other than {@code standard},
+     *     which is the only one rebuilt from CTI and so the only one that can lose settings.
      * @param onDone run once recording has finished, successfully or not.
      */
-    private void recordPolicySettings(UserOverrides.PolicySettings sent, Runnable onDone) {
+    private void recordPolicySettings(SavedSettings sent, Runnable onDone) {
         if (sent == null) {
             onDone.run();
             return;
@@ -419,27 +432,74 @@ public class TransportUpdatePolicyAction
     /**
      * Records this save's settings, replacing whatever the registry held for the policy.
      *
-     * <p>The enrichments are the exception: when the request left them out, the choice already
-     * recorded stays, and if there was none the field stays {@code null} so CTI keeps deciding it.
+     * <p>The enrichments are recorded as the types the user turned off, while the request carries the
+     * ones left on. Those turned off are the types CTI publishes that the request leaves out. The
+     * stored policy alone does not hold every type CTI publishes, because it already lacks the ones
+     * turned off in earlier saves, so those are added back as candidates: a type turned off stays off
+     * until a request sends it again, also while CTI does not publish it.
+     *
+     * <p>When the request left the enrichments out, the choice already recorded stays as it is, and
+     * if there was none the field stays {@code null} so CTI keeps deciding it.
      *
      * <p>The stored filters and integration decisions pass through untouched: all three sections
      * share one registry document, so returning anything else here would delete them.
      */
-    private static UserOverrides mergeRecordedSettings(
-            UserOverrides current, UserOverrides.PolicySettings sent) {
-        List<String> enrichments = sent.getEnrichments();
-        if (enrichments == null && current.getPolicy() != null) {
-            enrichments = current.getPolicy().getEnrichments();
+    private static UserOverrides mergeRecordedSettings(UserOverrides current, SavedSettings sent) {
+        UserOverrides.PolicySettings prior = current.getPolicy();
+        UserOverrides.PolicySettings recorded;
+        if (sent.enrichments() == null) {
+            recorded =
+                    prior != null && prior.isLegacy()
+                            ? UserOverrides.PolicySettings.legacy(
+                                    sent.enabled(),
+                                    sent.indexUnclassifiedEvents(),
+                                    sent.indexDiscardedEvents(),
+                                    prior.getLegacyEnrichments())
+                            : new UserOverrides.PolicySettings(
+                                    sent.enabled(),
+                                    sent.indexUnclassifiedEvents(),
+                                    sent.indexDiscardedEvents(),
+                                    prior != null ? prior.getDisabledEnrichments() : null);
+        } else {
+            Set<String> disabled = new LinkedHashSet<>(sent.enrichmentsBefore());
+            if (prior != null) {
+                // A legacy override holds the list kept, so what it turned off is resolved against
+                // every type known from the IOC catalog: the stored policy already lacks those types.
+                Set<String> legacyCandidates = new LinkedHashSet<>(sent.enrichmentsBefore());
+                legacyCandidates.addAll(new TreeSet<>(sent.knownEnrichmentTypes()));
+                List<String> priorDisabled = prior.resolveDisabledEnrichments(legacyCandidates);
+                if (priorDisabled != null) {
+                    disabled.addAll(priorDisabled);
+                }
+            }
+            disabled.removeAll(sent.enrichments());
+            recorded =
+                    new UserOverrides.PolicySettings(
+                            sent.enabled(),
+                            sent.indexUnclassifiedEvents(),
+                            sent.indexDiscardedEvents(),
+                            new ArrayList<>(disabled));
         }
-        return new UserOverrides(
-                new UserOverrides.PolicySettings(
-                        sent.getEnabled(),
-                        sent.getIndexUnclassifiedEvents(),
-                        sent.getIndexDiscardedEvents(),
-                        enrichments),
-                current.getFilters(),
-                current.getIntegrations());
+        return new UserOverrides(recorded, current.getFilters(), current.getIntegrations());
     }
+
+    /**
+     * What a save of the standard policy decided, and what is needed to record it as a delta.
+     *
+     * @param enabled the {@code enabled} flag sent.
+     * @param indexUnclassifiedEvents the {@code index_unclassified_events} flag sent.
+     * @param indexDiscardedEvents the {@code index_discarded_events} flag sent.
+     * @param enrichments the enrichments sent, or {@code null} when the request left them out.
+     * @param enrichmentsBefore the enrichments the stored policy had before this save.
+     * @param knownEnrichmentTypes the enrichment types known from the IOC catalog.
+     */
+    private record SavedSettings(
+            Boolean enabled,
+            Boolean indexUnclassifiedEvents,
+            Boolean indexDiscardedEvents,
+            List<String> enrichments,
+            List<String> enrichmentsBefore,
+            Set<String> knownEnrichmentTypes) {}
 
     /**
      * Gives the incoming policy the stored value of every list the request left out.

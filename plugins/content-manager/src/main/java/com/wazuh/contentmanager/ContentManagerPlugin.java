@@ -73,16 +73,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
@@ -155,14 +152,11 @@ public class ContentManagerPlugin extends Plugin
     private ClusterStateListener standardSpaceHashListener;
     private final AtomicBoolean standardSpaceHashInFlight = new AtomicBoolean(false);
     private SpaceService spaceService;
-    private UserOverridesService userOverridesService;
     private SecurityAnalyticsService securityAnalyticsService;
     private SetupReadiness setupReadiness;
     private Environment environment;
     private ClusterService clusterService;
-    private LogtestService logtestService;
     private VersionCheckService versionCheckService;
-    private PlansService plansService;
     private SubscriptionService subscriptionService;
 
     /**
@@ -177,7 +171,7 @@ public class ContentManagerPlugin extends Plugin
      * @param xContentRegistry Registry for XContent parsers.
      * @param environment The node environment settings.
      * @param nodeEnvironment The node environment information.
-     * @param namedWriteableRegistry Registry for named writeables.
+     * @param namedWriteableRegistry Registry for named writable.
      * @param indexNameExpressionResolver Resolver for index name expressions.
      * @param repositoriesServiceSupplier Supplier for the repositories service.
      * @return A collection of constructed components (empty in this implementation as components are
@@ -197,7 +191,8 @@ public class ContentManagerPlugin extends Plugin
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings());
-        PluginSettings.getInstance().setVersion(ContentManagerPlugin.getVersion(environment));
+        ContentManagerPlugin.initializeVersionTag(environment);
+
         this.environment = environment;
         this.clusterService = clusterService;
         this.client = client;
@@ -226,10 +221,10 @@ public class ContentManagerPlugin extends Plugin
         this.credentialsIndex = new CredentialsIndex(client, threadPool);
         this.resourceLockService = new ResourceLockService(client, threadPool);
         this.setupReadiness = new SetupReadiness(client);
-        this.plansService = new PlansServiceImpl();
+        PlansService plansService = new PlansServiceImpl();
         this.subscriptionService =
                 new SubscriptionServiceImpl(
-                        this.plansService, this.credentialsIndex, this.isCredentialsIndexProtected);
+                        plansService, this.credentialsIndex, this.isCredentialsIndexProtected);
 
         // Content Manager 5.0
         ContentJobRunner runner = ContentJobRunner.getInstance();
@@ -243,7 +238,8 @@ public class ContentManagerPlugin extends Plugin
 
         // Initialize services shared by the sync path and the per-node engine loader
         this.spaceService = new SpaceService(this.client);
-        this.userOverridesService = new UserOverridesService(this.client, this.spaceService);
+        UserOverridesService userOverridesService =
+                new UserOverridesService(this.client, this.spaceService);
         this.engineContentLoader =
                 new EngineContentLoader(this.engine, this.spaceService, this.threadPool);
 
@@ -263,7 +259,7 @@ public class ContentManagerPlugin extends Plugin
                         this.engine,
                         this.spaceService,
                         this.securityAnalyticsService,
-                        this.userOverridesService,
+                        userOverridesService,
                         this.resourceLockService);
 
         // Initialize TelemetryPingJob
@@ -274,7 +270,7 @@ public class ContentManagerPlugin extends Plugin
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
         runner.registerExecutor(TelemetryPingJob.JOB_TYPE, this.telemetryPingJob);
 
-        this.logtestService =
+        LogtestService logtestService =
                 new LogtestService(this.engine, this.securityAnalyticsService, this.client);
         this.versionCheckService = new VersionCheckService(environment, clusterService, threadPool);
 
@@ -385,10 +381,10 @@ public class ContentManagerPlugin extends Plugin
                 this.catalogSyncJob,
                 this.engine,
                 this.engineContentLoader,
-                this.logtestService,
+                logtestService,
                 this.versionCheckService,
                 this.spaceService,
-                this.userOverridesService,
+                userOverridesService,
                 this.securityAnalyticsService);
     }
 
@@ -616,7 +612,7 @@ public class ContentManagerPlugin extends Plugin
 
                                     // Provision the resource-creation lock index up front. It is
                                     // plugin-internal bookkeeping, so creating it here (as the plugin)
-                                    // keeps it off the REST request path, where the create would
+                                    // keeps it off the REST request path, where the creation would
                                     // otherwise be evaluated against the calling user's privileges.
                                     try {
                                         CreateIndexResponse locksResponse = this.resourceLockService.createIndex();
@@ -1351,57 +1347,79 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Returns the version of Wazuh. The version is stored in the
-     * '/usr/share/wazuh-indexerVERSION.json' file.
+     * Sets the environment's version tag in PluginSettings. This is a private initializer on boot. To
+     * obtain the version tag value, use PluginSettings.getVersion().
      *
-     * @param env Environment instance to access the filesystem.
-     * @return the Wazuh version as string. Null if it cannot be read from the file or if the
-     *     'version' field is missing/empty.
+     * <p>If the CTI API points to ".pre.", we use the full staged version: v${version}-${stage}
+     * Otherwise, we use the GA version (stage is unused: v${version}
+     *
+     * <p>If a custom version value is provided through VERSION_SYSTEM_PROPERTY, it takes preference.
+     * Otherwise, the version tag is generated by reading the VERSION.json file.
+     *
+     * @param env environment instance. Used to access the node's settings instance.
      */
-    public static String getVersion(Environment env) {
+    private static void initializeVersionTag(Environment env) {
+        PluginSettings settings = PluginSettings.getInstance(env.settings());
+        String stagedVersionPattern = "v%s-%s";
+        String gaVersionPattern = "v%s";
+        AtomicReference<String> version = new AtomicReference<>(null);
+        AtomicReference<String> stage = new AtomicReference<>(null);
+
+        // Override
         if (ContentManagerPlugin.isTestEnvironment()) {
             String configuredVersion = System.getProperty(VERSION_SYSTEM_PROPERTY);
             if (configuredVersion != null && !configuredVersion.isBlank()) {
-                return configuredVersion;
+                settings.setVersion(configuredVersion);
+                log.info(Constants.I_LOG_VERSION_SET_OVERRIDE, configuredVersion);
             }
-            return "9.99.9";
+            return;
         }
 
+        // Read from VERSION.json
         String pathHome = env.settings().get("path.home", "/usr/share/wazuh-indexer");
         Path versionFilePath = Path.of(pathHome, VERSION_FILE_NAME);
         try {
-            String fileVersion =
-                    AccessController.doPrivilegedChecked(
-                            () -> {
-                                String content = Files.readString(versionFilePath, StandardCharsets.UTF_8);
-                                JsonNode json = MAPPER.readTree(content);
-                                JsonNode versionNode = json.get("version");
-                                if (versionNode == null || versionNode.asText().isBlank()) {
-                                    return null;
-                                }
-                                String version = versionNode.asText();
-                                JsonNode stageNode = json.get("stage");
-                                if (stageNode != null && !stageNode.asText().isBlank()) {
-                                    version = version + "-" + stageNode.asText();
-                                }
-                                return version;
-                            });
+            AccessController.doPrivilegedChecked(
+                    () -> {
+                        String content = Files.readString(versionFilePath, StandardCharsets.UTF_8);
+                        JsonNode json = MAPPER.readTree(content);
 
-            if (fileVersion != null && !fileVersion.isBlank()) {
-                return fileVersion;
+                        JsonNode versionNode = json.get("version");
+                        // Fail-fast
+                        if (versionNode == null || versionNode.asText().isBlank()) {
+                            log.warn(Constants.W_LOG_VERSION_FIELD_MISSING, "version");
+                            return null;
+                        }
+                        version.set(versionNode.asText());
+
+                        JsonNode stageNode = json.get("stage");
+                        // Fail-fast
+                        if (stageNode == null || stageNode.asText().isBlank()) {
+                            log.warn(Constants.W_LOG_VERSION_FIELD_MISSING, "stage");
+                            return null;
+                        }
+                        stage.set(stageNode.asText());
+
+                        return null;
+                    });
+
+            if (version.get() == null || stage.get() == null) {
+                log.warn(Constants.W_LOG_VERSION_READ_FAILED, "Missing version or stage in VERSION.json");
+                return;
             }
 
-            log.warn(Constants.W_LOG_VERSION_FIELD_MISSING);
+            // Dynamic version tag depending on if we are pointing to a pre-release CTI API.
+            String ctiBaseUrl = settings.getCtiBaseUrl();
+            if (ctiBaseUrl.contains(".pre.")) {
+                settings.setVersion(
+                        String.format(Locale.ROOT, stagedVersionPattern, version.get(), stage.get()));
+            } else {
+                settings.setVersion(String.format(Locale.ROOT, gaVersionPattern, version.get()));
+            }
+            log.info(Constants.I_LOG_VERSION_SET, settings.getVersion());
         } catch (Exception e) {
             log.warn(Constants.W_LOG_VERSION_READ_FAILED, e.getMessage());
         }
-
-        String configuredVersion = System.getProperty(VERSION_SYSTEM_PROPERTY);
-        if (configuredVersion != null && !configuredVersion.isBlank()) {
-            return configuredVersion;
-        }
-
-        return null;
     }
 
     /**

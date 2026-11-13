@@ -82,7 +82,7 @@ public class PluginSettings {
     private static final int MINIMUM_MAX_FILTERS = 0;
 
     private static final long DEFAULT_MAX_BULK_BYTES = 5L * 1024 * 1024;
-    private static final long DEFAULT_LOGTEST_MAX_BODY_BYTES = 1L * 1024 * 1024;
+    private static final long DEFAULT_LOGTEST_MAX_BODY_BYTES = (long) 1024 * 1024;
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
     private static final int DEFAULT_CATALOG_SYNC_INTERVAL = 60;
@@ -215,7 +215,7 @@ public class PluginSettings {
             Setting.longSetting(
                     "plugins.content_manager.max_bulk_bytes",
                     DEFAULT_MAX_BULK_BYTES,
-                    1L * 1024 * 1024,
+                    (long) 1024 * 1024,
                     100L * 1024 * 1024,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
@@ -233,7 +233,7 @@ public class PluginSettings {
             Setting.longSetting(
                     "plugins.content_manager.logtest.max_body_bytes",
                     DEFAULT_LOGTEST_MAX_BODY_BYTES,
-                    1L * 1024,
+                    1024,
                     16L * 1024 * 1024,
                     Setting.Property.NodeScope,
                     Setting.Property.Dynamic);

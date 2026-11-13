@@ -107,6 +107,16 @@ plugins.security_analytics.max_case_management_bulk_size: 10
 
 All three settings are dynamic.
 
+### Compiled query size limits
+
+When a detector is created or updated, each Sigma rule is compiled into a `query_string` query and indexed into the detector's query index. The compiled queries are subject to OpenSearch core limits — these are not Ruleset Management settings, but they are what keeps an overly broad rule from running:
+
+- **`search.query.max_query_string_length`** (Integer, default `32000`, dynamic) — maximum length, in characters, of a single query string. A rule whose compiled query is longer is still accepted, but its query cannot be indexed into the detector's query index, so it never raises a finding. No API response reports it: the indexer logs a `DocLevelMonitorQueries` `ERROR` containing `Query string length exceeds max allowed length 32000 (search.query.max_query_string_length); actual length: <n>`, and logs it again on every run of the detector's monitor.
+- **`search.query.max_query_string_length_monitor_only`** (Boolean, default `false`, dynamic) — when `true`, an oversized query string is logged as a `WARN` and parsed anyway, instead of being rejected. The clause limit below still applies.
+- **`indices.query.bool.max_clause_count`** (Integer, default `1024`, dynamic) — maximum number of clauses in a boolean query, for every query in the cluster, not only compiled rules. A detection OR-ing thousands of values exceeds it, so raising the length limit or enabling the monitor-only mode is not enough on its own: both this limit and the length limit must be raised.
+
+All three can be changed through the Cluster Settings API (see [Updating a setting at runtime](#updating-a-setting-at-runtime)), and a raised limit applies from the next run of the detector's monitor. Fix the rule instead of raising the limits: a detection that enumerates thousands of literal values (file hashes, for example) compiles into one query of thousands of wildcard clauses, which takes seconds to evaluate each time the monitor checks new events, even a single one.
+
 ### Enrichment tuning
 
 The enriched findings service batches index requests and limits concurrency to avoid overloading the transport layer. The settings below can be tuned independently:

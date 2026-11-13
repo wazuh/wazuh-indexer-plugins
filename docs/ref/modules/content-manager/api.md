@@ -818,6 +818,12 @@ Fields within `resource`:
 
 An array left out of the request (`integrations`, `filters` or `enrichments`), or sent as `null`, keeps its current value. In the standard space, the `enrichments` of a request are also kept across content updates, while a request without the field leaves the list to follow the published content, or the selection saved earlier.
 
+In the standard space, `enrichments` is still the list of enrichments that are on, but the indexer records the choice as the types the request turned off: the published types that the request leaves out. After every content update, the policy has every enrichment the published content carries except those. As a result:
+
+- A type that the published content adds after the save is on, until a request turns it off.
+- A type turned off stays off across content updates, also when the published content drops it and adds it back later. Sending it again turns it back on.
+- `"enrichments": []` turns off every type published at that moment. A type published later is on.
+
 Fields within `resource.metadata`:
 
 - **`title`** (String, optional) — human-readable policy name.
@@ -1227,14 +1233,14 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
       "name": "decoder/core-wazuh-message/0",
       "check": [
         {
-          "_tmp_json.event.action": "string_equal(\"netflow_flow\")"
+          "_tmp_json.event.action": "string_eq(\"netflow_flow\")"
         }
       ],
       "normalize": [
         {
           "map": [
             {
-              "@timestamp": "get_date()"
+              "@timestamp": "now()"
             }
           ]
         }
@@ -1276,10 +1282,10 @@ resource:
       - "Wazuh 5.*"
   name: decoder/core-wazuh-message/0
   check:
-    - _tmp_json.event.action: "string_equal(\"netflow_flow\")"
+    - _tmp_json.event.action: "string_eq(\"netflow_flow\")"
   normalize:
     - map:
-        - "@timestamp": "get_date()"
+        - "@timestamp": "now()"
 '
 ```
 
@@ -1327,14 +1333,14 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
       },
       "check": [
         {
-          "event.action": "string_equal(\"netflow_flow\")"
+          "event.action": "string_eq(\"netflow_flow\")"
         }
       ],
       "normalize": [
         {
           "map": [
             {
-              "@timestamp": "get_date()"
+              "@timestamp": "now()"
             }
           ]
         }
@@ -2336,7 +2342,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 ### Check available updates
 
-Returns whether there are newer versions of Wazuh available for download. The endpoint reads the current installed version from `VERSION.json` and queries the CTI API for available updates. The response includes the latest available major, minor, and patch updates when available.
+Returns whether there are newer versions of Wazuh available for download. The endpoint queries the CTI API with the node's version tag, built at plugin startup from `VERSION.json` — `v<version>` when pointing to the production CTI, `v<version>-<stage>` when pointing to the pre-release CTI — and echoed back as `current_version`. The response includes the latest available major, minor, and patch updates when available.
 
 Every call queries CTI; nothing is cached. Calls that arrive while a check is in progress share its result. Each node rate limits its CTI queries with a token bucket. Once the bucket is empty, the endpoint answers `429` with a `Retry-After` header holding the seconds until the next check is allowed.
 

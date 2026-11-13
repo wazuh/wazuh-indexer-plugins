@@ -190,16 +190,16 @@ The update check flow is split into two classes:
 
 - **`TelemetryPingJob`** (`jobscheduler/jobs/TelemetryPingJob.java`)
   - Runs through Job Scheduler every 1 day.
-  - Reads cluster UUID from `ClusterService` metadata.
-  - Reads Wazuh version through `ContentManagerPlugin.getVersion()`.
   - Prevents overlap using a `Semaphore` (`tryAcquire()` guard).
   - Exposes a `trigger()` method for immediate invocation, used by `ContentManagerPlugin` to fire the first ping as soon as the job document is indexed.
 
 - **`TelemetryClient`** (`cti/console/client/TelemetryClient.java`)
   - Sends an asynchronous GET request to CTI `/ping`.
+  - Reads the cluster UUID and the version tag from `PluginSettings`; if either is missing or blank, the ping is aborted with an error log.
   - Headers sent:
     - `wazuh-uid`: cluster UUID
-    - `wazuh-tag`: `v<version>`
+    - `wazuh-tag`: the version tag (see "CTI version tag" below)
+    - `Content-Type`: `application/json`
     - `Accept-Encoding`: `gzip`
   - Fire-and-forget behavior: callback logs success/failure without blocking scheduler threads.
 
@@ -212,16 +212,31 @@ The update check flow is split into two classes:
 - **Token-bucket rate limit.** `BUCKET_CAPACITY` (5) checks in a burst, refilled at one per `TOKEN_REFILL_MILLIS` (12 s). Every CTI request spends a token whatever its outcome; checks that join an in-flight request spend none. An empty bucket answers 429 with a `Retry-After` header. Nothing is cached.
 - **Single attempt.** `ApiClient.getReleaseUpdates()` makes no retries, so a CTI 429 is returned to the caller instead of being slept off, and a timeout or a closed connection fails the check. The catalog sync keeps its `client.max_retries` behaviour.
 - **Shared CTI client.** One long-lived `ApiClient`, created on first use and closed when the plugin closes. Timed-out requests are cancelled so their pooled connections are released.
+- **Version tag.** The tag sent to CTI is the one stored in `PluginSettings` (see below); if it is unset, the check answers 500 without querying CTI. The response echoes it as `current_version`.
+
+### CTI version tag
+
+Every CTI communication identifies the running version with a tag stored in `PluginSettings`, initialized once at startup by `ContentManagerPlugin.initializeVersionTag(...)`:
+
+- `version` and `stage` are read from `VERSION.json` under `path.home`. If either field is missing or blank, the tag is left unset: the telemetry ping is skipped and `GET /version/check` answers 500.
+- The format depends on the configured CTI API URL (`plugins.content_manager.cti.api`):
+  - The URL contains `.pre.` (pre-release CTI): `v<version>-<stage>`, for example `v5.0.0-rc1`.
+  - Any other URL (production CTI): `v<version>`, for example `v5.0.0`.
+- In test environments (`INDEXER_TEST_ENV=true`), the tag is taken verbatim from the `wazuh.version` system property; the Gradle test clusters set it to `v<version>-<stage>`.
+
+The gating exists because a release candidate is promoted to GA without repackaging: staged packages communicate with the pre-release CTI and report their stage, while the same package pointed at the production CTI reports the plain GA version.
+
+The tag is sent as the `wazuh-tag` header — together with `wazuh-uid`, the cluster UUID — by the Console client (products, environment, catalog plans), the Catalog client (consumer info, release updates) and the Telemetry client (`/ping`).
 
 ### CTI HTTP client User-Agent and Accept-Encoding
 
 All HTTP clients that communicate with CTI services include a custom `User-Agent` header set as a **default header on the HTTP client builder**:
 
 ```
-User-Agent: Wazuh Indexer <version>
+User-Agent: Wazuh Indexer <version tag>
 ```
 
-The version is read from `VERSION.json` at plugin startup and stored in `PluginSettings`. The user-agent string is built by `PluginSettings.getUserAgent()` using the `Constants.USER_AGENT_PREFIX` constant. If the version is unavailable, the fallback value `unknown` is used.
+The version placeholder is the version tag described above, stored in `PluginSettings` at plugin startup. The user-agent string is built by `PluginSettings.getUserAgent()` using the `Constants.USER_AGENT_PREFIX` constant. If the version is unavailable, the fallback value `unknown` is used.
 
 They also send `Accept-Encoding: gzip` (via `Constants.ACCEPT_ENCODING_GZIP`) so CTI responses are transferred compressed. Unlike `User-Agent`, this header is added **per request** (via each request builder) rather than as a client default header: HttpClient5's `ChainElement.COMPRESS` step runs before `ChainElement.PROTOCOL`, where default headers (`RequestDefaultHeaders`) are applied. If no `Accept-Encoding` header is present yet when `COMPRESS` runs, it adds its own — HttpClient5's built-in default (`gzip, x-gzip, deflate`), not ours — and `RequestDefaultHeaders` then skips a header whose name is already present. So a default header would never actually be inserted; it isn't overwritten, it's preempted. Setting it directly on each request is what makes it reach the wire as `gzip`.
 
@@ -569,7 +584,7 @@ The `standard` space is rebuilt from CTI, so what the user changes there is reco
         "enabled": true,
         "index_unclassified_events": true,
         "index_discarded_events": false,
-        "enrichments": ["connection", "url_full"]
+        "disabled_enrichments": ["geo"]
       },
       "filters": [{ "id": "<uuid>", "document": "<the stored filter, serialized>" }],
       "integrations": {
@@ -585,7 +600,7 @@ Both integration fields are optional, and absence means the user never decided: 
 
 It is the one document in that index with **no `space` field**, and that is deliberate. The [pre-snapshot wipe](#initialization-phase) deletes the documents whose `space.name` is the space being replaced, so a document that carries no `space.name` is never matched and stays where it is. The plan-change reindex copies everything that is not `standard`, which carries it into the new physical index for the same reason.
 
-Enrichments are stored as the resulting list, and on apply only the values CTI still publishes are kept. Filters are stored as serialized strings, to keep their fields out of the `"dynamic": "true"` policies mapping. Integrations are keyed by id rather than listed, so Security Analytics can record a detector decision with a single partial update — a `doc` merge combines objects recursively but replaces arrays wholesale.
+Enrichments are stored as the types the user turned off (`disabled_enrichments`), not as the list kept. A save records the types the request leaves out among those the stored policy has plus those already turned off, because the stored policy already lacks the latter. On apply, the policy gets everything CTI publishes except those types, so a type CTI publishes for the first time is on, and a type turned off stays off even while CTI does not publish it. An override written before this format holds the list kept under `enrichments`; it is converted the first time it is applied or saved, taking as turned off the published or IOC-catalog types missing from that list, and stays as it is until then. Filters are stored as serialized strings, to keep their fields out of the `"dynamic": "true"` policies mapping. Integrations are keyed by id rather than listed, so Security Analytics can record a detector decision with a single partial update — a `doc` merge combines objects recursively but replaces arrays wholesale.
 
 Written on a `standard` policy update, on filter create, update and delete, and on integration update. The detector decision is written by Security Analytics itself, which cannot call this plugin — the dependency only runs the other way — but writes the registry document directly. Applied at the start of `ConsumerRulesetService.onSyncComplete`, before the space hash is recalculated and the engine reloaded. Idempotent, and a failure is logged without aborting the synchronization.
 
