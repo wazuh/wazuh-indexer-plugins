@@ -1227,14 +1227,14 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
       "name": "decoder/core-wazuh-message/0",
       "check": [
         {
-          "_tmp_json.event.action": "string_equal(\"netflow_flow\")"
+          "_tmp_json.event.action": "string_eq(\"netflow_flow\")"
         }
       ],
       "normalize": [
         {
           "map": [
             {
-              "@timestamp": "get_date()"
+              "@timestamp": "now()"
             }
           ]
         }
@@ -1276,10 +1276,10 @@ resource:
       - "Wazuh 5.*"
   name: decoder/core-wazuh-message/0
   check:
-    - _tmp_json.event.action: "string_equal(\"netflow_flow\")"
+    - _tmp_json.event.action: "string_eq(\"netflow_flow\")"
   normalize:
     - map:
-        - "@timestamp": "get_date()"
+        - "@timestamp": "now()"
 '
 ```
 
@@ -1327,14 +1327,14 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
       },
       "check": [
         {
-          "event.action": "string_equal(\"netflow_flow\")"
+          "event.action": "string_eq(\"netflow_flow\")"
         }
       ],
       "normalize": [
         {
           "map": [
             {
-              "@timestamp": "get_date()"
+              "@timestamp": "now()"
             }
           ]
         }
