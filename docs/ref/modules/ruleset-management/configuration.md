@@ -109,9 +109,9 @@ All three settings are dynamic.
 
 ### Compiled query size limits
 
-When a detector is created or updated, each Sigma rule is compiled into a `query_string` query and indexed into the detector's query index. The compiled queries are subject to OpenSearch core limits — these are not Ruleset Management settings, but they are what rejects an overly broad rule:
+When a detector is created or updated, each Sigma rule is compiled into a `query_string` query and indexed into the detector's query index. The compiled queries are subject to OpenSearch core limits — these are not Ruleset Management settings, but they are what keeps an overly broad rule from running:
 
-- **`search.query.max_query_string_length`** (Integer, default `32000`, dynamic) — maximum length, in characters, of a single query string. A rule whose detection expands past it — typically a selection enumerating thousands of literal values — fails to compile, and the monitor update is logged as a `DocLevelMonitorQueries` error: `ParseException[Query string length exceeds max allowed length 32000 (search.query.max_query_string_length)]`.
+- **`search.query.max_query_string_length`** (Integer, default `32000`, dynamic) — maximum length, in characters, of a single query string. A rule whose compiled query is longer is still accepted, but its query cannot be indexed into the detector's query index, so it never raises a finding. No API response reports it: the indexer logs a `DocLevelMonitorQueries` `ERROR` containing `Query string length exceeds max allowed length 32000 (search.query.max_query_string_length); actual length: <n>`, and logs it again on every run of the detector's monitor.
 - **`search.query.max_query_string_length_monitor_only`** (Boolean, default `false`, dynamic) — when `true`, an oversized query string is logged as a `WARN` and parsed anyway, instead of being rejected.
 - **`indices.query.bool.max_clause_count`** (Integer, default `1024`, dynamic) — maximum number of clauses in a boolean query. A detection OR-ing thousands of values can exceed it even after the length limit is raised.
 
