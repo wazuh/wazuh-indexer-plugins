@@ -432,7 +432,7 @@ public class ContentManagerPlugin extends Plugin
 
                                         // Pre-deployment
                                         // -------------
-                                        // 1. Register key from the DEPLOY_KEY system property
+                                        // 1. Register key from environment variable
                                         String accessToken = ContentManagerPlugin.preDeploymentKey();
                                         if (!accessToken.isBlank()) {
                                             log.info("Pre-registered environment detected.");
@@ -1412,12 +1412,10 @@ public class ContentManagerPlugin extends Plugin
     }
 
     /**
-     * Returns the value of the "DEPLOY_KEY" JVM system property, if it exists.
+     * Returns the value of the "DEPLOY_KEY" environment variable, if it exists.
      *
-     * <p>It is a system property, not an environment variable: an operator sets it through {@code
-     * OPENSEARCH_JAVA_OPTS="-DDEPLOY_KEY=..."} in the service environment file.
-     *
-     * @return value of the "DEPLOY_KEY" system property, or an empty string if it does not exist.
+     * @return value of the "DEPLOY_KEY" environment variable, of an empty string if it does not
+     *     exist.
      */
     public static String preDeploymentKey() {
         return System.getProperty("DEPLOY_KEY", "");

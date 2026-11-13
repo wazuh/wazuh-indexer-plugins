@@ -9,7 +9,7 @@ This document describes the architecture, components, and extension points of th
 The Content Manager plugin handles:
 
 - **Wazuh Cloud credentials:** stores the CTI access token in `.wazuh-internal-state` and caches it in `PluginSettings.accessToken` for REST handler use.
-- **Pre-registration with Wazuh Cloud:** supports pre-registration of the Wazuh instance with Wazuh Cloud, via the `DEPLOY_KEY` JVM system property.
+- **Pre-registration with Wazuh Cloud:** supports pre-registration of the Wazuh instance with Wazuh Cloud, via environment variable.
 - **Job scheduling:** periodically checks for updates using the OpenSearch Job Scheduler.
 - **Update check service:** sends a daily heartbeat to CTI so Wazuh can notify users when a newer version is available.
 - **Content synchronization:** keeps local indices in sync with the Wazuh CTI Catalog via snapshots and incremental JSON Patch updates.
@@ -75,7 +75,7 @@ title: XDR pre-deploy on Cloud
 ---
 sequenceDiagram
     onNodeStarted->>onNodeStarted: deployKeyExists()
-    alt DEPLOY_KEY system property exists
+    alt DEPLOY_KEY env var exists
         onNodeStarted->>SubscriptionService: register(deployKey)
         onNodeStarted->>SnapshotService: deleteSnapshots(snapshotsDir)
     end

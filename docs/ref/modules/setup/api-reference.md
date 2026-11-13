@@ -107,15 +107,20 @@ Providers are stored as separate documents; see [AI Assistant Providers](#ai-ass
 }
 ```
 
+Until the settings are written for the first time, the endpoint answers `200` with an empty object.
+
 #### Status codes
 
-- **200** — settings returned.
+- **200** — settings returned, or an empty object if they have never been written.
 - **403** — the caller lacks the `plugin:wazuh/ai_assistant/settings/read` cluster permission.
 
 ### Update the settings
 
 Persists the settings and the `field_policy`. Any key outside the allowlist below is **ignored, not
 rejected**.
+
+The write replaces the whole settings document instead of merging into it: a request that carries
+only some of the keys below leaves the rest unset, so send the full set of values on every update.
 
 #### Request
 
@@ -143,7 +148,9 @@ rejected**.
 #### Status codes
 
 - **200** — settings updated.
-- **400** — empty or malformed request body.
+- **400** — empty or malformed request body, or an unknown key nested inside `field_policy`. The
+  allowlist is applied to the top level only, so a nested field reaches the backing index, which is
+  `dynamic: strict` and rejects it.
 - **403** — the caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
 
 ---
@@ -189,6 +196,9 @@ endpoints rather than written or deleted.
 
 The body carries the document id, which must be a UUID and is never persisted as a provider field.
 
+The write is an upsert of the whole document: a request whose `id` is already in use replaces that
+provider instead of failing, and any field the body omits is dropped.
+
 #### Request
 
 - Method: `POST`
@@ -232,7 +242,7 @@ The body carries the document id, which must be a UUID and is never persisted as
 
 #### Status codes
 
-- **200** — provider created. `200`, not `201`.
+- **200** — provider created, or an existing provider with that `id` replaced. `200`, not `201`.
 - **400** — empty or malformed body, a missing `id`, an `id` that is not a UUID, or any field outside the provider schema: the backing index is `dynamic: strict`, so an unknown key is rejected rather than ignored.
 - **403** — the caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
 
@@ -249,7 +259,8 @@ restricted to a UUID.
 
 #### Request body
 
-The same fields as create, without `id` — the path segment carries it.
+The same fields as create, without `id` — the path segment carries it. The document is replaced, not
+merged, so any field the body omits is dropped.
 
 #### Status codes
 
