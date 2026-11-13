@@ -78,6 +78,216 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
 
 ---
 
+## AI Assistant Settings
+
+Reads and writes the reserved settings document of the AI assistant in `.wazuh-internal-state`,
+which holds the privacy defaults and the field policy applied to the data the assistant is shown.
+Providers are stored as separate documents; see [AI Assistant Providers](#ai-assistant-providers).
+
+### Read the settings
+
+#### Request
+
+- Method: `GET`
+- Path: `/_plugins/_setup/ai_assistant/settings`
+- Permission: `plugin:wazuh/ai_assistant/settings/read`
+
+#### Example response
+
+```json
+{
+  "privacy_default_on": false,
+  "privacy_default_per_provider": {},
+  "user_can_override": true,
+  "field_policy": [
+    { "field": "wazuh.agent.name", "action": "anonymize", "kind": "HOST" },
+    { "field": "wazuh.agent.host.ip", "action": "anonymize", "kind": "IP" },
+    { "field": "wazuh.agent.id", "action": "allow" }
+  ]
+}
+```
+
+Until the settings are written for the first time, the endpoint answers `200` with an empty object.
+
+#### Status codes
+
+- **200** — settings returned, or an empty object if they have never been written.
+- **403** — the caller lacks the `plugin:wazuh/ai_assistant/settings/read` cluster permission.
+
+### Update the settings
+
+Persists the settings and the `field_policy`. Any key outside the allowlist below is **ignored, not
+rejected**.
+
+The write replaces the whole settings document instead of merging into it: a request that carries
+only some of the keys below leaves the rest unset, so send the full set of values on every update.
+
+#### Request
+
+- Method: `PUT`
+- Path: `/_plugins/_setup/ai_assistant/settings`
+- Permission: `plugin:wazuh/ai_assistant/settings/write`
+
+#### Request body
+
+- **`privacy_default_on`** (Boolean) — whether privacy is on by default.
+- **`privacy_default_per_provider`** (Object) — per-provider overrides of that default.
+- **`user_can_override`** (Boolean) — whether a user may change the privacy default.
+- **`field_policy`** (Array) — one entry per field, each with `field`, `action` and, for an
+  anonymized field, `kind`.
+
+#### Example response
+
+```json
+{
+  "message": "Settings updated.",
+  "status": 200
+}
+```
+
+#### Status codes
+
+- **200** — settings updated.
+- **400** — empty or malformed request body, or an unknown key nested inside `field_policy`. The
+  allowlist is applied to the top level only, so a nested field reaches the backing index, which is
+  `dynamic: strict` and rejects it.
+- **403** — the caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
+
+---
+
+## AI Assistant Providers
+
+Each provider the assistant can talk to is its own document in `.wazuh-internal-state`. The
+reserved document ids `wazuh-ai-assistant-settings` and `credentials` are refused by the write
+endpoints rather than written or deleted.
+
+### List the providers
+
+#### Request
+
+- Method: `GET`
+- Path: `/_plugins/_setup/ai_assistant/providers`
+- Permission: `plugin:wazuh/ai_assistant/settings/read`
+
+#### Example response
+
+```json
+{
+  "providers": [
+    {
+      "_id": "8c11c90d-1ead-4901-a5f0-1bd6d0a931cb",
+      "name": "test-ai",
+      "type": "anthropic",
+      "base_url": "https://api.anthropic.com",
+      "model": "claude-opus-4-6",
+      "api_key": "enc:v1:SC/RyOIBkdm+kGl",
+      "is_default": true
+    }
+  ]
+}
+```
+
+#### Status codes
+
+- **200** — provider list returned.
+- **403** — the caller lacks the `plugin:wazuh/ai_assistant/settings/read` cluster permission.
+
+### Create a provider
+
+The body carries the document id, which must be a UUID and is never persisted as a provider field.
+
+The write is an upsert of the whole document: a request whose `id` is already in use replaces that
+provider instead of failing, and any field the body omits is dropped.
+
+#### Request
+
+- Method: `POST`
+- Path: `/_plugins/_setup/ai_assistant/providers`
+- Permission: `plugin:wazuh/ai_assistant/settings/write`
+
+#### Request body
+
+- **`id`** (String, required) — the document id to create the provider with. Must be a UUID.
+- **`name`** (String) — display name.
+- **`type`** (String) — provider type, for example `anthropic`.
+- **`base_url`** (String) — API base URL.
+- **`model`** (String) — model identifier.
+- **`api_key`** (String) — the provider's API key, stored exactly as sent.
+- **`is_default`** (Boolean) — whether this is the default provider.
+- **`updated_at`** (String) — ignored if sent; always overwritten with a server-stamped timestamp.
+
+#### Example request
+
+```json
+{
+  "id": "8c11c90d-1ead-4901-a5f0-1bd6d0a931cb",
+  "name": "test-ai",
+  "type": "anthropic",
+  "base_url": "https://api.anthropic.com",
+  "model": "claude-opus-4-6",
+  "api_key": "enc:v1:SC/RyOIBkdm+kGl",
+  "is_default": true
+}
+```
+
+#### Example response
+
+```json
+{
+  "message": "Provider saved.",
+  "status": 200,
+  "id": "8c11c90d-1ead-4901-a5f0-1bd6d0a931cb"
+}
+```
+
+#### Status codes
+
+- **200** — provider created, or an existing provider with that `id` replaced. `200`, not `201`.
+- **400** — empty or malformed body, a missing `id`, an `id` that is not a UUID, or any field outside the provider schema: the backing index is `dynamic: strict`, so an unknown key is rejected rather than ignored.
+- **403** — the caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
+
+### Update a provider
+
+Creates or updates the provider with the given id. Unlike create, the path segment is not
+restricted to a UUID.
+
+#### Request
+
+- Method: `PUT`
+- Path: `/_plugins/_setup/ai_assistant/providers/{id}`
+- Permission: `plugin:wazuh/ai_assistant/settings/write`
+
+#### Request body
+
+The same fields as create, without `id` — the path segment carries it. The document is replaced, not
+merged, so any field the body omits is dropped.
+
+#### Status codes
+
+- **200** — provider saved.
+- **400** — empty or malformed body, any field outside the provider schema (the backing index is
+  `dynamic: strict`), or a path `id` that is one of the reserved document ids
+  (`wazuh-ai-assistant-settings`, `credentials`).
+- **403** — the caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
+
+### Delete a provider
+
+#### Request
+
+- Method: `DELETE`
+- Path: `/_plugins/_setup/ai_assistant/providers/{id}`
+- Permission: `plugin:wazuh/ai_assistant/settings/write`
+
+#### Status codes
+
+- **200** — provider deleted.
+- **400** — the path `id` is one of the reserved document ids (`wazuh-ai-assistant-settings`,
+  `credentials`).
+- **403** — the caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
+- **404** — no provider exists with the given id. A repeated delete also returns `404`.
+
+---
+
 ## AI Assistant Sessions
 
 Writes to the caller's own AI assistant sessions, stored in the `wazuh-ai-assistant-sessions` data
@@ -164,7 +374,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 
 #### Status codes
 
-- **200** — session created. `200`, not `201`, matching `POST /_plugins/_setup/ai_assistant/providers`.
+- **200** — session created. `200`, not `201`, matching [`POST /_plugins/_setup/ai_assistant/providers`](#create-a-provider).
 - **400** — empty or malformed body; a missing, blank or over-long `title`; a missing `messages`; more than 1000 messages; a body over 5 MiB.
 - **403** — the caller lacks the `plugin:wazuh/ai_assistant/session/write` cluster permission.
 - **409** — the caller already owns the maximum of 500 sessions. `409` rather than `400`: the request is well formed, it is the stored state that blocks it. Deleting a session frees a slot; updating an existing session is never blocked by the cap.

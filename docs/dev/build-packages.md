@@ -44,7 +44,7 @@ Arguments:
 -r INDEXER_REPORTING_BRANCH     [Optional] wazuh-indexer-reporting repo branch, default is 'main'.
 -s SECURITY_ANALYTICS_BRANCH    [Optional] wazuh-indexer-security-analytics repo branch, default is 'main'.
 -n NOTIFICATIONS_BRANCH         [Optional] wazuh-indexer-notifications repo branch, default is 'main'.
--t INDEXER_ALERTING_BRANCH      [Optional] wazuh-indexer-alerting repo branch, default is 'main'.
+-t ALERTING_BRANCH              [Optional] wazuh-indexer-alerting repo branch, default is 'main'.
 -c COMMON_UTILS_BRANCH          [Optional] wazuh-indexer-common-utils repo branch, default is 'main'.
 -e ENGINE_TARBALL               [Required] Path to wazuh-engine tarball (.tar.gz) on the host.
 -R REVISION     [Optional] Package revision, default is '0'.

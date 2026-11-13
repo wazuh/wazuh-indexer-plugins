@@ -239,37 +239,40 @@ Runtime toggle behavior:
 
 ### REST handlers
 
-The plugin registers 27 REST handlers, grouped by domain:
+The plugin registers 30 REST handlers, grouped by domain:
 
-| Domain            | Handler                              | Method | URI                                                |
-| ----------------- | ------------------------------------ | ------ | -------------------------------------------------- |
-| **Subscription**  | `RestPostSubscriptionAction`         | POST   | `/_plugins/_content_manager/subscription`          |
-|                   | `RestGetSubscriptionAction`          | GET    | `/_plugins/_content_manager/subscription`          |
-|                   | `RestDeleteSubscriptionAction`       | DELETE | `/_plugins/_content_manager/subscription`          |
-| **Update**        | `RestPostUpdateAction`               | POST   | `/_plugins/_content_manager/update`                |
-| **Version check** | `RestGetVersionCheckAction`          | GET    | `/_plugins/_content_manager/version/check`         |
-| **Logtest**       | `RestPostLogtestAction`              | POST   | `/_plugins/_content_manager/logtest`               |
-|                   | `RestPostLogtestNormalizationAction` | POST   | `/_plugins/_content_manager/logtest/normalization` |
-|                   | `RestPostLogtestDetectionAction`     | POST   | `/_plugins/_content_manager/logtest/detection`     |
-| **Policy**        | `RestPutPolicyAction`                | PUT    | `/_plugins/_content_manager/policy/{space}`        |
-| **Rules**         | `RestPostRuleAction`                 | POST   | `/_plugins/_content_manager/rules`                 |
-|                   | `RestPutRuleAction`                  | PUT    | `/_plugins/_content_manager/rules/{id}`            |
-|                   | `RestDeleteRuleAction`               | DELETE | `/_plugins/_content_manager/rules/{id}`            |
-| **Decoders**      | `RestPostDecoderAction`              | POST   | `/_plugins/_content_manager/decoders`              |
-|                   | `RestPutDecoderAction`               | PUT    | `/_plugins/_content_manager/decoders/{id}`         |
-|                   | `RestDeleteDecoderAction`            | DELETE | `/_plugins/_content_manager/decoders/{id}`         |
-| **Integrations**  | `RestPostIntegrationAction`          | POST   | `/_plugins/_content_manager/integrations`          |
-|                   | `RestPutIntegrationAction`           | PUT    | `/_plugins/_content_manager/integrations/{id}`     |
-|                   | `RestDeleteIntegrationAction`        | DELETE | `/_plugins/_content_manager/integrations/{id}`     |
-| **KVDBs**         | `RestPostKvdbAction`                 | POST   | `/_plugins/_content_manager/kvdbs`                 |
-|                   | `RestPutKvdbAction`                  | PUT    | `/_plugins/_content_manager/kvdbs/{id}`            |
-|                   | `RestDeleteKvdbAction`               | DELETE | `/_plugins/_content_manager/kvdbs/{id}`            |
-| **Filters**       | `RestPostFilterAction`               | POST   | `/_plugins/_content_manager/filters`               |
-|                   | `RestPutFilterAction`                | PUT    | `/_plugins/_content_manager/filters/{id}`          |
-|                   | `RestDeleteFilterAction`             | DELETE | `/_plugins/_content_manager/filters/{id}`          |
-| **Promote**       | `RestPostPromoteAction`              | POST   | `/_plugins/_content_manager/promote`               |
-|                   | `RestGetPromoteAction`               | GET    | `/_plugins/_content_manager/promote`               |
-| **Spaces**        | `RestDeleteSpaceAction`              | DELETE | `/_plugins/_content_manager/space/{space}`         |
+| Domain            | Handler                              | Method | URI                                                      |
+| ----------------- | ------------------------------------ | ------ | -------------------------------------------------------- |
+| **Subscription**  | `RestPostSubscriptionAction`         | POST   | `/_plugins/_content_manager/subscription`                |
+|                   | `RestGetSubscriptionAction`          | GET    | `/_plugins/_content_manager/subscription`                |
+|                   | `RestDeleteSubscriptionAction`       | DELETE | `/_plugins/_content_manager/subscription`                |
+| **Update**        | `RestPostUpdateAction`               | POST   | `/_plugins/_content_manager/update`                      |
+| **Version check** | `RestGetVersionCheckAction`          | GET    | `/_plugins/_content_manager/version/check`               |
+| **Logtest**       | `RestPostLogtestAction`              | POST   | `/_plugins/_content_manager/logtest`                     |
+|                   | `RestPostLogtestNormalizationAction` | POST   | `/_plugins/_content_manager/logtest/normalization`       |
+|                   | `RestPostLogtestDetectionAction`     | POST   | `/_plugins/_content_manager/logtest/detection`           |
+| **Policy**        | `RestPutPolicyAction`                | PUT    | `/_plugins/_content_manager/policy/{space}`              |
+|                   | `RestGetPolicyResourcesAction`       | GET    | `/_plugins/_content_manager/policy/resources`            |
+| **Rules**         | `RestPostRuleAction`                 | POST   | `/_plugins/_content_manager/rules`                       |
+|                   | `RestPutRuleAction`                  | PUT    | `/_plugins/_content_manager/rules/{id}`                  |
+|                   | `RestDeleteRuleAction`               | DELETE | `/_plugins/_content_manager/rules/{id}`                  |
+| **Decoders**      | `RestPostDecoderAction`              | POST   | `/_plugins/_content_manager/decoders`                    |
+|                   | `RestPutDecoderAction`               | PUT    | `/_plugins/_content_manager/decoders/{id}`               |
+|                   | `RestDeleteDecoderAction`            | DELETE | `/_plugins/_content_manager/decoders/{id}`               |
+| **Integrations**  | `RestPostIntegrationAction`          | POST   | `/_plugins/_content_manager/integrations`                |
+|                   | `RestPutIntegrationAction`           | PUT    | `/_plugins/_content_manager/integrations/{id}`           |
+|                   | `RestDeleteIntegrationAction`        | DELETE | `/_plugins/_content_manager/integrations/{id}`           |
+| **KVDBs**         | `RestPostKvdbAction`                 | POST   | `/_plugins/_content_manager/kvdbs`                       |
+|                   | `RestPutKvdbAction`                  | PUT    | `/_plugins/_content_manager/kvdbs/{id}`                  |
+|                   | `RestDeleteKvdbAction`               | DELETE | `/_plugins/_content_manager/kvdbs/{id}`                  |
+| **Filters**       | `RestPostFilterAction`               | POST   | `/_plugins/_content_manager/filters`                     |
+|                   | `RestPutFilterAction`                | PUT    | `/_plugins/_content_manager/filters/{id}`                |
+|                   | `RestDeleteFilterAction`             | DELETE | `/_plugins/_content_manager/filters/{id}`                |
+| **Promote**       | `RestPostPromoteAction`              | POST   | `/_plugins/_content_manager/promote`                     |
+|                   | `RestGetPromoteAction`               | GET    | `/_plugins/_content_manager/promote`                     |
+| **Spaces**        | `RestDeleteSpaceAction`              | DELETE | `/_plugins/_content_manager/space/{space}`               |
+|                   | `RestDeleteSpaceNormalizationAction` | DELETE | `/_plugins/_content_manager/space/{space}/normalization` |
+|                   | `RestDeleteSpaceDetectionAction`     | DELETE | `/_plugins/_content_manager/space/{space}/detection`     |
 
 ---
 

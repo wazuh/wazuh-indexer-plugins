@@ -256,6 +256,8 @@ paths:
         Every call queries CTI; nothing is cached. Calls that arrive while a check is in
         progress share its result. Each node rate limits its CTI queries with a token
         bucket. Once the bucket is empty, the endpoint answers `429` with a `Retry-After` header.
+        A call rejected by the node's single-thread version check pool is also answered with
+        `429`, with no `Retry-After` header and the rate-limit token credited back.
       operationId: getVersionCheck
       tags:
         - Version Check
@@ -329,6 +331,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/ResourceLockTimeout"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -500,6 +504,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/ResourceLockTimeout"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -687,6 +693,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/ResourceLockTimeout"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -866,6 +874,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/ResourceLockTimeout"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1008,6 +1018,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/ResourceLockTimeout"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1159,6 +1171,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "413":
           $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/LogtestBusy"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1199,6 +1213,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "413":
           $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/LogtestBusy"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1255,6 +1271,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "413":
           $ref: "#/components/responses/PayloadTooLarge"
+        "429":
+          $ref: "#/components/responses/LogtestBusy"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -3369,13 +3387,46 @@ components:
                   last_available_patch: {}
                 status: 200
 
+    ResourceLockTimeout:
+      description: |
+        Too Many Requests - The resource-creation lock could not be acquired within
+        `plugins.content_manager.resource_lock.max_retries` attempts. Retry.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            lock_timeout:
+              summary: Resource-creation lock busy
+              value:
+                message: "Too many concurrent requests creating this resource. Please retry."
+                status: 429
+
+    LogtestBusy:
+      description: |
+        Too Many Requests - The logtest thread pool is saturated. Retry later.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            logtest_busy:
+              summary: Logtest thread pool saturated
+              value:
+                message: "logtest is busy: too many concurrent requests. Please retry later."
+                status: 429
+
     VersionCheckRateLimited:
       description: |
-        Too Many Requests - This node's version-check rate limit is exhausted. Retry after the
-        number of seconds in the `Retry-After` header.
+        Too Many Requests - This node's version-check rate limit is exhausted, and the response
+        carries the seconds to wait in the `Retry-After` header; or the node's single-thread
+        version check pool rejected the call, and then the header is absent and the call can be
+        repeated at once.
       headers:
         Retry-After:
-          description: Seconds until the next version check is allowed.
+          description: |
+            Seconds until the next version check is allowed. Sent only when the rate limit is
+            the cause.
           schema:
             type: integer
             example: 12
@@ -3388,6 +3439,11 @@ components:
               summary: Version-check rate limit exhausted
               value:
                 message: "Too many version checks. Please retry in 12 seconds."
+                status: 429
+            pool_busy:
+              summary: Version check pool saturated
+              value:
+                message: "The version check is busy. Please retry later."
                 status: 429
 
     BadGateway:
@@ -3709,7 +3765,7 @@ components:
                       errors: []
                   detection:
                     status: "skipped"
-                    reason: "No integration provided"
+                    reason: "'integration' field not provided"
             with_errors:
               summary: Response with engine processing failure
               description: >

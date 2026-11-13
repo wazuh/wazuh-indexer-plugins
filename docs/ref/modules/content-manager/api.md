@@ -528,7 +528,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
     },
     "detection": {
       "status": "skipped",
-      "reason": "No integration provided"
+      "reason": "'integration' field not provided"
     }
   }
 }
@@ -556,6 +556,9 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 - **200** — logtest executed (check inner status fields).
 - **400** — missing/invalid fields or integration not found.
 - **413** — request body exceeds `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB); rejected before processing.
+- **429** — the logtest thread pool is saturated; too many concurrent requests. Retry later. The pool is
+  sized by `plugins.content_manager.thread_pool.logtest.size` (default: half the allocated processors, at
+  least one) with a queue of `plugins.content_manager.thread_pool.logtest.queue_size` (default 100).
 - **500** — Engine socket communication error or internal error.
 
 ---
@@ -653,6 +656,9 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 - **200** — normalization executed successfully.
 - **400** — missing/invalid fields.
 - **413** — request body exceeds `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB); rejected before processing.
+- **429** — the logtest thread pool is saturated; too many concurrent requests. Retry later. The pool is
+  sized by `plugins.content_manager.thread_pool.logtest.size` (default: half the allocated processors, at
+  least one) with a queue of `plugins.content_manager.thread_pool.logtest.queue_size` (default 100).
 - **500** — Engine socket communication error or internal error.
 
 ---
@@ -775,6 +781,9 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 - **200** — detection executed (check `message.status`).
 - **400** — missing/invalid fields or integration not found.
 - **413** — request body exceeds `plugins.content_manager.logtest.max_body_bytes` (default 1 MiB); rejected before processing.
+- **429** — the logtest thread pool is saturated; too many concurrent requests. Retry later. The pool is
+  sized by `plugins.content_manager.thread_pool.logtest.size` (default: half the allocated processors, at
+  least one) with a queue of `plugins.content_manager.thread_pool.logtest.queue_size` (default 100).
 - **500** — internal error.
 
 ---
@@ -889,6 +898,7 @@ The `message` field contains the OpenSearch document ID of the updated policy.
 
 - **200** — policy updated.
 - **400** — invalid space, missing `resource` field, missing required fields, invalid enrichments, or disallowed modification of `integrations`/`filters`.
+- **403** — policy updates are disabled on this deployment (`plugins.content_manager.catalog.policy_update.enabled` is `false`), returned for every caller, regardless of role.
 - **500** — internal error.
 
 ### List space resources
@@ -1055,6 +1065,7 @@ The `message` field contains the UUID of the created rule.
 - **201** — rule created.
 - **400** — missing fields, integration not in draft space, validation failure, or `max_rules` limit reached (default: 200).
 - **409** — a rule with the same title already exists in the space.
+- **429** — the resource-creation lock could not be acquired within `plugins.content_manager.resource_lock.max_retries` attempts. Retry.
 - **500** — internal error or Ruleset Management unavailable.
 
 ---
@@ -1247,12 +1258,12 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 
 ```json
 {
-  "message": "d_0a6aaebe-dd0b-44cc-a787-ffefd4aac175",
+  "message": "0a6aaebe-dd0b-44cc-a787-ffefd4aac175",
   "status": 201
 }
 ```
 
-The `message` field contains the UUID of the created decoder (prefixed with `d_`).
+The `message` field contains the UUID of the created decoder.
 
 #### Example request (YAML)
 
@@ -1289,6 +1300,7 @@ resource:
 
 - **201** — decoder created.
 - **400** — missing `integration` field, integration not in draft space, Engine validation failure, or `max_decoders` limit reached (default: 200). See [Troubleshooting](troubleshooting.md#engine-validation-rejects-a-temporary-field) if the failure mentions an unrecognized WCS field.
+- **429** — the resource-creation lock could not be acquired within `plugins.content_manager.resource_lock.max_retries` attempts. Retry.
 - **500** — Engine unavailable or internal error.
 
 ---
@@ -1465,12 +1477,12 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 
 ```json
 {
-  "message": "f_a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6",
+  "message": "a1b2c3d4-e5f6-47a8-b9c0-d1e2f3a4b5c6",
   "status": 201
 }
 ```
 
-The `message` field contains the UUID of the created filter (prefixed with `f_`).
+The `message` field contains the UUID of the created filter.
 
 #### Example request (YAML)
 
@@ -1498,6 +1510,7 @@ resource:
 
 - **201** — filter created.
 - **400** — missing `space` field, invalid space, Engine validation failure, or `max_filters` limit reached (default: 100).
+- **429** — the resource-creation lock could not be acquired within `plugins.content_manager.resource_lock.max_retries` attempts. Retry.
 - **500** — Engine unavailable or internal error.
 
 ---
@@ -1670,6 +1683,7 @@ The `message` field contains the UUID of the created integration.
 - **201** — integration created.
 - **400** — missing required fields (`title`, `author`, `category`), validation failure, or `max_integrations` limit reached (default: 100).
 - **409** — an integration with the same title already exists in the space.
+- **429** — the resource-creation lock could not be acquired within `plugins.content_manager.resource_lock.max_retries` attempts. Retry.
 - **500** — internal error or Ruleset Management/Engine unavailable.
 
 ---
@@ -1916,6 +1930,7 @@ resource:
 
 - **201** — KVDB created.
 - **400** — missing `integration` or required resource fields, integration not in draft space, or `max_kvdbs` limit reached (default: 100).
+- **429** — the resource-creation lock could not be acquired within `plugins.content_manager.resource_lock.max_retries` attempts. Retry.
 - **500** — Engine unavailable or internal error.
 
 ---
@@ -2340,6 +2355,8 @@ Returns whether there are newer versions of Wazuh available for download. The en
 
 Every call queries CTI; nothing is cached. Calls that arrive while a check is in progress share its result. Each node rate limits its CTI queries with a token bucket. Once the bucket is empty, the endpoint answers `429` with a `Retry-After` header holding the seconds until the next check is allowed.
 
+A call can also be answered with `429` when the node's single-thread version check pool rejects it. That response carries no `Retry-After` header, and the rate-limit token is credited back, so the call can be repeated immediately.
+
 #### Request
 
 - Method: `GET`
@@ -2424,10 +2441,22 @@ content-type: application/json; charset=UTF-8
 }
 ```
 
+#### Example response (check pool busy)
+
+```http
+HTTP/1.1 429 Too Many Requests
+content-type: application/json; charset=UTF-8
+
+{
+  "message": "The version check is busy. Please retry later.",
+  "status": 429
+}
+```
+
 #### Status codes
 
 - **200** — version check completed (may include updates or empty).
-- **429** — rate limit exhausted on this node; retry after the `Retry-After` seconds.
+- **429** — the rate limit is exhausted on this node, and the response carries the seconds to wait in its `Retry-After` header; or the version check pool rejected the call, and then there is no `Retry-After` and the call can be repeated at once.
 - **500** — unable to determine version or internal error.
 - **502** — CTI API returned an error.
 
