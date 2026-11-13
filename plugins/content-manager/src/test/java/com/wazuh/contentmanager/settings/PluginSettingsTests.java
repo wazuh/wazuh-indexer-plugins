@@ -295,21 +295,21 @@ public class PluginSettingsTests extends OpenSearchTestCase {
     /** Tests that getUserAgent returns the correct value after setWazuhVersion is called. */
     public void testGetUserAgentWithVersion() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        pluginSettings.setVersion("5.0.0");
+        pluginSettings.setVersion("v5.0.0");
 
-        Assert.assertEquals("5.0.0", pluginSettings.getVersion());
-        Assert.assertEquals(Constants.USER_AGENT_PREFIX + "5.0.0", pluginSettings.getUserAgent());
+        Assert.assertEquals("v5.0.0", pluginSettings.getVersion());
+        Assert.assertEquals(Constants.USER_AGENT_PREFIX + "v5.0.0", pluginSettings.getUserAgent());
     }
 
     /** Tests that setWazuhVersion can be updated and getUserAgent reflects the latest value. */
     public void testSetWazuhVersionUpdatesUserAgent() {
         PluginSettings pluginSettings = PluginSettings.getInstance(Settings.EMPTY);
-        pluginSettings.setVersion("4.9.0");
+        pluginSettings.setVersion("v4.9.0");
 
-        Assert.assertEquals(Constants.USER_AGENT_PREFIX + "4.9.0", pluginSettings.getUserAgent());
+        Assert.assertEquals(Constants.USER_AGENT_PREFIX + "v4.9.0", pluginSettings.getUserAgent());
 
-        pluginSettings.setVersion("5.0.0");
-        Assert.assertEquals(Constants.USER_AGENT_PREFIX + "5.0.0", pluginSettings.getUserAgent());
+        pluginSettings.setVersion("v5.0.0");
+        Assert.assertEquals(Constants.USER_AGENT_PREFIX + "v5.0.0", pluginSettings.getUserAgent());
     }
 
     /** Tests extraction of context and consumer values from a CTI catalog consumer URL. */

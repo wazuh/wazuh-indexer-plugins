@@ -244,11 +244,25 @@ plugins.content_manager.catalog.create_detectors: false
 All HTTP clients that communicate with Wazuh CTI services send a custom `User-Agent` header, and an `Accept-Encoding` header so responses are transferred compressed:
 
 ```
-User-Agent: Wazuh Indexer <version>
+User-Agent: Wazuh Indexer <version tag>
 Accept-Encoding: gzip
 ```
 
-For example: `Wazuh Indexer 5.0.0`. This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client. The version is read from `VERSION.json` at plugin startup.
+For example: `Wazuh Indexer v5.0.0`. This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client.
+
+The version tag is built at plugin startup from the `version` and `stage` fields of `VERSION.json`, and its format depends on the CTI API the node points to (`plugins.content_manager.cti.api`):
+
+- **Pre-release CTI** (the URL contains `.pre.`): the full staged version, `v<version>-<stage>` — for example, `v5.0.0-rc1`.
+- **Production CTI** (any other URL): the GA version, `v<version>` — for example, `v5.0.0`.
+
+This lets CTI serve the content matching the reported version. A release candidate is promoted to GA without repackaging, so the same package reports its stage while it communicates with the pre-release CTI, and the plain GA version once it points to the production CTI — even though its `VERSION.json` still carries the release candidate stage.
+
+Requests to CTI also identify the deployment through two custom headers:
+
+```
+wazuh-uid: <cluster UUID>
+wazuh-tag: <version tag>
+```
 
 #### Update check service behavior
 
@@ -258,9 +272,11 @@ The update check service is enabled by default and runs once per day, with an im
 - It sends a request to the CTI Update check API endpoint (`/ping`).
 - The request includes:
   - Deployment identifier (`wazuh-uid`: cluster UUID)
-  - Running version (`wazuh-tag`: `v<version>`)
-  - User agent (`Wazuh Indexer <version>`)
+  - Running version (`wazuh-tag`: the version tag, `v<version>` or `v<version>-<stage>`)
+  - User agent (`Wazuh Indexer <version tag>`)
+  - Content-Type (`application/json`)
   - Accept-Encoding (`gzip`)
+- If the cluster UUID or the version tag is unavailable (for example, `VERSION.json` could not be read), the ping is skipped and an error is logged.
 
 This data allows Wazuh to determine if a newer version is available and notify users in the update check UI.
 

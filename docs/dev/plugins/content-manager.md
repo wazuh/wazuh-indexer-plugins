@@ -190,16 +190,16 @@ The update check flow is split into two classes:
 
 - **`TelemetryPingJob`** (`jobscheduler/jobs/TelemetryPingJob.java`)
   - Runs through Job Scheduler every 1 day.
-  - Reads cluster UUID from `ClusterService` metadata.
-  - Reads Wazuh version through `ContentManagerPlugin.getVersion()`.
   - Prevents overlap using a `Semaphore` (`tryAcquire()` guard).
   - Exposes a `trigger()` method for immediate invocation, used by `ContentManagerPlugin` to fire the first ping as soon as the job document is indexed.
 
 - **`TelemetryClient`** (`cti/console/client/TelemetryClient.java`)
   - Sends an asynchronous GET request to CTI `/ping`.
+  - Reads the cluster UUID and the version tag from `PluginSettings`; if either is missing or blank, the ping is aborted with an error log.
   - Headers sent:
     - `wazuh-uid`: cluster UUID
-    - `wazuh-tag`: `v<version>`
+    - `wazuh-tag`: the version tag (see "CTI version tag" below)
+    - `Content-Type`: `application/json`
     - `Accept-Encoding`: `gzip`
   - Fire-and-forget behavior: callback logs success/failure without blocking scheduler threads.
 
@@ -212,16 +212,31 @@ The update check flow is split into two classes:
 - **Token-bucket rate limit.** `BUCKET_CAPACITY` (5) checks in a burst, refilled at one per `TOKEN_REFILL_MILLIS` (12 s). Every CTI request spends a token whatever its outcome; checks that join an in-flight request spend none. An empty bucket answers 429 with a `Retry-After` header. Nothing is cached.
 - **Single attempt.** `ApiClient.getReleaseUpdates()` makes no retries, so a CTI 429 is returned to the caller instead of being slept off, and a timeout or a closed connection fails the check. The catalog sync keeps its `client.max_retries` behaviour.
 - **Shared CTI client.** One long-lived `ApiClient`, created on first use and closed when the plugin closes. Timed-out requests are cancelled so their pooled connections are released.
+- **Version tag.** The tag sent to CTI is the one stored in `PluginSettings` (see below); if it is unset, the check answers 500 without querying CTI. The response echoes it as `current_version`.
+
+### CTI version tag
+
+Every CTI communication identifies the running version with a tag stored in `PluginSettings`, initialized once at startup by `ContentManagerPlugin.initializeVersionTag(...)`:
+
+- `version` and `stage` are read from `VERSION.json` under `path.home`. If either field is missing or blank, the tag is left unset: the telemetry ping is skipped and `GET /version/check` answers 500.
+- The format depends on the configured CTI API URL (`plugins.content_manager.cti.api`):
+  - The URL contains `.pre.` (pre-release CTI): `v<version>-<stage>`, for example `v5.0.0-rc1`.
+  - Any other URL (production CTI): `v<version>`, for example `v5.0.0`.
+- In test environments (`INDEXER_TEST_ENV=true`), the tag is taken verbatim from the `wazuh.version` system property; the Gradle test clusters set it to `v<version>-<stage>`.
+
+The gating exists because a release candidate is promoted to GA without repackaging: staged packages communicate with the pre-release CTI and report their stage, while the same package pointed at the production CTI reports the plain GA version.
+
+The tag is sent as the `wazuh-tag` header — together with `wazuh-uid`, the cluster UUID — by the Console client (products, environment, catalog plans), the Catalog client (consumer info, release updates) and the Telemetry client (`/ping`).
 
 ### CTI HTTP client User-Agent and Accept-Encoding
 
 All HTTP clients that communicate with CTI services include a custom `User-Agent` header set as a **default header on the HTTP client builder**:
 
 ```
-User-Agent: Wazuh Indexer <version>
+User-Agent: Wazuh Indexer <version tag>
 ```
 
-The version is read from `VERSION.json` at plugin startup and stored in `PluginSettings`. The user-agent string is built by `PluginSettings.getUserAgent()` using the `Constants.USER_AGENT_PREFIX` constant. If the version is unavailable, the fallback value `unknown` is used.
+The version placeholder is the version tag described above, stored in `PluginSettings` at plugin startup. The user-agent string is built by `PluginSettings.getUserAgent()` using the `Constants.USER_AGENT_PREFIX` constant. If the version is unavailable, the fallback value `unknown` is used.
 
 They also send `Accept-Encoding: gzip` (via `Constants.ACCEPT_ENCODING_GZIP`) so CTI responses are transferred compressed. Unlike `User-Agent`, this header is added **per request** (via each request builder) rather than as a client default header: HttpClient5's `ChainElement.COMPRESS` step runs before `ChainElement.PROTOCOL`, where default headers (`RequestDefaultHeaders`) are applied. If no `Accept-Encoding` header is present yet when `COMPRESS` runs, it adds its own — HttpClient5's built-in default (`gzip, x-gzip, deflate`), not ours — and `RequestDefaultHeaders` then skips a header whose name is already present. So a default header would never actually be inserted; it isn't overwritten, it's preempted. Setting it directly on each request is what makes it reach the wire as `gzip`.
 

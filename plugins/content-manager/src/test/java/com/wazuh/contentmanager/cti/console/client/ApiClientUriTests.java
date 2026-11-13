@@ -61,7 +61,7 @@ public class ApiClientUriTests extends OpenSearchTestCase {
                         .build();
         PluginSettings.getInstance(settings);
 
-        ApiClient client = realMethodClient();
+        ApiClient client = ApiClientUriTests.realMethodClient();
 
         Assert.assertEquals(
                 "https://cti.example.test/api/v1/instances/token",
@@ -86,7 +86,7 @@ public class ApiClientUriTests extends OpenSearchTestCase {
     public void testUrisFallBackToDefault() {
         PluginSettings.getInstance(Settings.EMPTY);
 
-        ApiClient client = realMethodClient();
+        ApiClient client = ApiClientUriTests.realMethodClient();
 
         Assert.assertEquals(
                 "https://api.pre.cloud.wazuh.com/api/v1/instances/token",

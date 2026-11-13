@@ -44,7 +44,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.action.VersionCheckResponse;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.model.Release;
@@ -80,7 +79,7 @@ public class VersionCheckService implements Closeable {
 
     private ApiClient client;
     private boolean closed;
-    // Token buckete: one token is TOKEN_REFILL_MILLIS of credit
+    // Token bucket: one token is TOKEN_REFILL_MILLIS of credit
     private long creditMillis = BUCKET_CAPACITY * TOKEN_REFILL_MILLIS;
     private Long lastRefillMillis;
     private List<ActionListener<VersionCheckResponse>> waiting;
@@ -225,15 +224,14 @@ public class VersionCheckService implements Closeable {
      */
     VersionCheckResponse fetch() {
         try {
-            String version = ContentManagerPlugin.getVersion(this.environment);
+            String version = PluginSettings.getInstance(this.environment.settings()).getVersion();
             if (version == null || version.isBlank()) {
                 log.error(Constants.E_500_VERSION_NOT_FOUND);
                 return new VersionCheckResponse(
                         Constants.E_500_VERSION_NOT_FOUND, RestStatus.INTERNAL_SERVER_ERROR);
             }
 
-            String tag = "v" + version;
-            SimpleHttpResponse ctiResponse = this.client().getReleaseUpdates(tag);
+            SimpleHttpResponse ctiResponse = this.client().getReleaseUpdates(version);
 
             int ctiStatusCode = ctiResponse.getCode();
             if (ctiStatusCode < 200 || ctiStatusCode >= 300) {
@@ -263,7 +261,7 @@ public class VersionCheckService implements Closeable {
             Map<String, Object> messageMap = new HashMap<>();
             messageMap.put("uuid", uuid);
             messageMap.put("last_check_date", lastCheckDate);
-            messageMap.put("current_version", tag);
+            messageMap.put("current_version", version);
             messageMap.put("last_available_major", this.releaseToMap(lastMajor));
             messageMap.put("last_available_minor", this.releaseToMap(lastMinor));
             messageMap.put("last_available_patch", this.releaseToMap(lastPatch));
@@ -314,8 +312,7 @@ public class VersionCheckService implements Closeable {
             return null;
         }
         try {
-            List<Release> releases =
-                    this.mapper.readValue(array.toString(), new TypeReference<List<Release>>() {});
+            List<Release> releases = this.mapper.readValue(array.toString(), new TypeReference<>() {});
             return releases.getLast();
         } catch (Exception e) {
             log.warn("Failed to parse {} releases: {}", category, e.getMessage());

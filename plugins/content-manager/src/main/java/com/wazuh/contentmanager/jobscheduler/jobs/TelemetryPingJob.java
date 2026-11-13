@@ -26,7 +26,6 @@ import org.opensearch.threadpool.ThreadPool;
 
 import java.util.concurrent.Semaphore;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.console.client.TelemetryClient;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -45,9 +44,7 @@ public class TelemetryPingJob implements JobExecutor {
     private final Semaphore semaphore = new Semaphore(1);
 
     private final ThreadPool threadPool;
-    private final ClusterService clusterService;
     private final TelemetryClient telemetryClient;
-    private final Environment environment;
 
     /** Package-private constructor for dependency injection during unit tests. */
     TelemetryPingJob(
@@ -56,9 +53,7 @@ public class TelemetryPingJob implements JobExecutor {
             ThreadPool threadPool,
             Environment environment,
             TelemetryClient telemetryClient) {
-        this.clusterService = clusterService;
         this.threadPool = threadPool;
-        this.environment = environment;
         this.telemetryClient = telemetryClient;
     }
 
@@ -119,11 +114,7 @@ public class TelemetryPingJob implements JobExecutor {
                         () -> {
                             try {
                                 log.info("Executing Telemetry Ping Job (ID: {})", executionId);
-
-                                String uuid = this.clusterService.state().metadata().clusterUUID();
-                                String version = ContentManagerPlugin.getVersion(this.environment);
-
-                                this.telemetryClient.ping(uuid, version);
+                                this.telemetryClient.ping();
 
                             } catch (Exception e) {
                                 log.error(
