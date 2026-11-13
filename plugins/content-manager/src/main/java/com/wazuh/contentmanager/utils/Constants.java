@@ -191,6 +191,10 @@ public class Constants {
                     + "is not pre-registered. Set DEPLOY_KEY as an environment variable in the service "
                     + "environment instead: a -D flag is published in the node log and in the response "
                     + "of GET _nodes.";
+    public static final String W_LOG_DEPLOY_KEY_PROPERTY_REDUNDANT =
+            "The DEPLOY_KEY JVM system property is set and ignored: the environment variable takes "
+                    + "precedence. Remove the -D flag, whose value is published in the node log and in "
+                    + "the response of GET _nodes.";
     public static final String I_LOG_ACCESS_TOKEN_REMOVED =
             "Access token removed successfully. Environment is now unregistered.";
     public static final String I_LOG_ACCESS_TOKEN_SET =

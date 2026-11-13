@@ -390,6 +390,32 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         assertTrue("No MAPPING_* constants were found to check", checked > 0);
     }
 
+    public void testPreDeploymentKeyReadsTheEnvironmentVariable() {
+        assertEquals(
+                "abc",
+                ContentManagerPlugin.preDeploymentKey(name -> "DEPLOY_KEY".equals(name) ? "abc" : null));
+        assertEquals("", ContentManagerPlugin.preDeploymentKey(name -> null));
+        assertEquals("", ContentManagerPlugin.preDeploymentKey(name -> "   "));
+    }
+
+    public void testDeployKeyPropertyWarningOnlyWhenThePropertyIsSet() {
+        assertNull(ContentManagerPlugin.deployKeyPropertyWarning(name -> null, name -> null));
+        assertNull(ContentManagerPlugin.deployKeyPropertyWarning(name -> "abc", name -> null));
+        assertNull(ContentManagerPlugin.deployKeyPropertyWarning(name -> null, name -> "  "));
+    }
+
+    public void testDeployKeyPropertyWarningSaysNotPreRegisteredWithoutTheVariable() {
+        assertEquals(
+                Constants.W_LOG_DEPLOY_KEY_PROPERTY_IGNORED,
+                ContentManagerPlugin.deployKeyPropertyWarning(name -> null, name -> "abc"));
+    }
+
+    public void testDeployKeyPropertyWarningSaysRedundantWhenBothAreSet() {
+        assertEquals(
+                Constants.W_LOG_DEPLOY_KEY_PROPERTY_REDUNDANT,
+                ContentManagerPlugin.deployKeyPropertyWarning(name -> "abc", name -> "abc"));
+    }
+
     /** Captures the registered {@link LocalNodeClusterManagerListener} and fires onClusterManager. */
     private void simulateClusterManagerElection() {
         ArgumentCaptor<LocalNodeClusterManagerListener> captor =

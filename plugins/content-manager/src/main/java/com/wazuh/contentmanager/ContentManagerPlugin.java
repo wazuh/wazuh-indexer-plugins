@@ -83,6 +83,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -406,6 +407,14 @@ public class ContentManagerPlugin extends Plugin
         PluginSettings.getInstance()
                 .setClusterUUID(this.clusterService.state().metadata().clusterUUID());
         this.threadPool.generic().execute(this::tryLoadAccessToken);
+
+        // Warn here, on every node, rather than where the key is read: that call site runs on the
+        // elected cluster manager alone and only when update_on_start is set, so a -D flag on any
+        // other node would publish the token in the log and in GET _nodes with nothing said.
+        String deployKeyWarning = deployKeyPropertyWarning(System::getenv, System::getProperty);
+        if (deployKeyWarning != null) {
+            log.warn(deployKeyWarning);
+        }
 
         // Load the STANDARD space into this node's local Engine on every node, not just the elected
         // cluster manager. Engine communication is node-local (a Unix socket), so each node must
@@ -1438,22 +1447,47 @@ public class ContentManagerPlugin extends Plugin
      *
      * <p>It is an environment variable, not a JVM system property: it is the channel the
      * pre-registration requirement specifies, and the one that keeps the token out of the node log
-     * and of the {@code GET _nodes} response, both of which publish the JVM command line. A value
-     * passed as {@code -DDEPLOY_KEY=...} is ignored, and logged as a warning so that an operator who
-     * used the old channel is not left with a deployment that silently never registers.
+     * and of the {@code GET _nodes} response, both of which publish the JVM command line.
      *
      * @return value of the "DEPLOY_KEY" environment variable, or an empty string if it does not
      *     exist.
      */
     public static String preDeploymentKey() {
-        String key = System.getenv(DEPLOY_KEY);
-        if (key != null && !key.isBlank()) {
-            return key;
+        return preDeploymentKey(System::getenv);
+    }
+
+    /**
+     * Package-private seam of {@link #preDeploymentKey()}, so the lookup can be driven by a test.
+     *
+     * @param env resolves an environment variable by name.
+     * @return the value of "DEPLOY_KEY", or an empty string when it is unset or blank.
+     */
+    static String preDeploymentKey(UnaryOperator<String> env) {
+        String key = env.apply(DEPLOY_KEY);
+        return key == null || key.isBlank() ? "" : key;
+    }
+
+    /**
+     * Returns the warning to log when "DEPLOY_KEY" is passed as a JVM system property, which is no
+     * longer read.
+     *
+     * <p>A {@code -D} flag is published in the node log and in the {@code GET _nodes} response, so a
+     * node that still carries one deserves a warning whether or not the environment variable is also
+     * set: in the first case it is not pre-registered at all, in the second the token is being
+     * published for nothing.
+     *
+     * @param env resolves an environment variable by name.
+     * @param property resolves a system property by name.
+     * @return the message to log, or {@code null} when there is nothing to warn about.
+     */
+    static String deployKeyPropertyWarning(
+            UnaryOperator<String> env, UnaryOperator<String> property) {
+        String fromProperty = property.apply(DEPLOY_KEY);
+        if (fromProperty == null || fromProperty.isBlank()) {
+            return null;
         }
-        String property = System.getProperty(DEPLOY_KEY);
-        if (property != null && !property.isBlank()) {
-            log.warn(Constants.W_LOG_DEPLOY_KEY_PROPERTY_IGNORED);
-        }
-        return "";
+        return preDeploymentKey(env).isEmpty()
+                ? Constants.W_LOG_DEPLOY_KEY_PROPERTY_IGNORED
+                : Constants.W_LOG_DEPLOY_KEY_PROPERTY_REDUNDANT;
     }
 }
