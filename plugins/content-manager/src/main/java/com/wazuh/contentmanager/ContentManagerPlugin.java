@@ -125,6 +125,10 @@ import com.wazuh.contentmanager.utils.SetupReadiness;
 public class ContentManagerPlugin extends Plugin
         implements ActionPlugin, ClusterPlugin, JobSchedulerExtension, SystemIndexPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
+
+    /** Name of the environment variable that carries the Wazuh Cloud pre-registration key. */
+    private static final String DEPLOY_KEY = "DEPLOY_KEY";
+
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String CONTENT_MANAGER_JOBS_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String CATALOG_SYNC_JOB_ID = "wazuh-catalog-sync-job";
@@ -1414,10 +1418,24 @@ public class ContentManagerPlugin extends Plugin
     /**
      * Returns the value of the "DEPLOY_KEY" environment variable, if it exists.
      *
-     * @return value of the "DEPLOY_KEY" environment variable, of an empty string if it does not
+     * <p>It is an environment variable, not a JVM system property: it is the channel the
+     * pre-registration requirement specifies, and the one that keeps the token out of the node log
+     * and of the {@code GET _nodes} response, both of which publish the JVM command line. A value
+     * passed as {@code -DDEPLOY_KEY=...} is ignored, and logged as a warning so that an operator who
+     * used the old channel is not left with a deployment that silently never registers.
+     *
+     * @return value of the "DEPLOY_KEY" environment variable, or an empty string if it does not
      *     exist.
      */
     public static String preDeploymentKey() {
-        return System.getProperty("DEPLOY_KEY", "");
+        String key = System.getenv(DEPLOY_KEY);
+        if (key != null && !key.isBlank()) {
+            return key;
+        }
+        String property = System.getProperty(DEPLOY_KEY);
+        if (property != null && !property.isBlank()) {
+            log.warn(Constants.W_LOG_DEPLOY_KEY_PROPERTY_IGNORED);
+        }
+        return "";
     }
 }
