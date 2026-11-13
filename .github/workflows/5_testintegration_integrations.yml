@@ -1,22 +1,19 @@
 name: (5.x) Test the integrations
 
-# Tests the integrations that export the Wazuh indexer data to Elasticsearch, OpenSearch and
-# Splunk (integrations/), with no external account:
-#   - checks: unit tests of the events generator, and the index templates and dashboards
-#     committed against what their generators build from the WCS and the dashboards code.
+# Tests the integrations that export the Wazuh indexer data to Elasticsearch, OpenSearch,
+# Splunk and Amazon Security Lake (integrations/), with no external account:
+#   - checks: unit tests of the events generator and of the Amazon Security Lake conversion, and
+#     the index templates and dashboards committed against what their generators build from the
+#     WCS and the dashboards code.
 #   - e2e: the end-to-end test of every integration on its Docker Compose development
 #     environment (integrations/tools/e2e/run.py): every index pattern scenario, no missing
 #     or duplicated documents, the routing of every source, and the dashboards import.
-#
-# The Amazon Security Lake integration has not been adapted to the Wazuh 5.x data yet: this
-# workflow does not test it, and changes to integrations/amazon-security-lake do not trigger it.
 
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
     paths:
       - "integrations/**"
-      - "!integrations/amazon-security-lake/**"
       # The source of the destination index templates.
       - "plugins/setup/src/main/resources/templates/streams/events.json"
       - "plugins/setup/src/main/resources/templates/streams/findings.json"
@@ -44,6 +41,11 @@ jobs:
       - name: Unit tests of the events generator
         working-directory: integrations/tools/events-generator
         run: python -m pytest -v
+      - name: Unit tests of the Amazon Security Lake conversion
+        working-directory: integrations/amazon-security-lake/tests
+        run: |
+          pip install -r requirements.txt
+          python -m pytest -v
       - name: Index templates up to date with the WCS
         run: python integrations/tools/templates/generate.py --check
       - name: Dashboards up to date with their code
@@ -56,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        integration: [elastic, opensearch, splunk]
+        integration: [elastic, opensearch, splunk, amazon-security-lake]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v5

@@ -5,6 +5,7 @@ The integrations export the data of the Wazuh indexer to third-party platforms. 
 - [Elasticsearch](elastic.md)
 - [OpenSearch](opensearch.md)
 - [Splunk](splunk.md)
+- [Amazon Security Lake](amazon-security-lake.md), findings only, as OCSF Detection Findings
 
 The integrations live in the [`integrations`](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/integrations) folder of the repository. Get the folder of the same version as the Wazuh indexer, for example:
 
@@ -14,8 +15,6 @@ cd wazuh-indexer-plugins
 ```
 
 The commands of these pages run from that folder.
-
-**The [Amazon Security Lake](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/integrations/amazon-security-lake) integration has not been adapted to Wazuh 5.x yet.**
 
 ## Architecture
 
@@ -39,6 +38,7 @@ flowchart LR
     OUT --> ES[Elasticsearch<br/>logs-wazuh.*]
     OUT --> OS[OpenSearch<br/>logs-wazuh.*]
     OUT --> SP[Splunk HEC<br/>wazuh-* indexes]
+    OUT --> S3[S3 and AWS Lambda<br/>Amazon Security Lake]
 ```
 
 Every integration is one Logstash pipeline made of the following files, in this order. The first two are shared by all of them:
@@ -62,6 +62,8 @@ By default, the findings and events data streams: `wazuh-findings-v5-*,wazuh-eve
 | Findings only | `wazuh-findings-v5-*` |
 | Events only | `wazuh-events-v5-*` |
 | Custom data streams | Their names or patterns, alone or with the above, e.g. `wazuh-findings-v5-*,my-stream` |
+
+Amazon Security Lake receives findings only: set `WAZUH_EXPORT_INDICES` to the findings data streams, or to custom data streams of findings.
 
 The read-only user that Logstash exports with must be allowed to read every data stream in the list (see [Security](#security)).
 
@@ -120,6 +122,7 @@ The export keeps no checkpoint: while Logstash or the Wazuh indexer is down, the
 ### Duplicates
 
 - **Elasticsearch and OpenSearch** use the id of the source document as the id of the exported one, and drop a document they already have: reading a window twice, by a backfill or after a restart, adds nothing. The check covers the backing index the document is in: a copy written after the destination data stream rolled over is accepted as a new document.
+- **Amazon Security Lake** keeps every copy too: every file Logstash writes becomes a file of Security Lake. Give a backfill only the missing range. The function writes the same output file when an invocation is retried, so retries add nothing.
 - **Splunk** keeps every copy it receives. Give a backfill only the missing range. Every event carries the id of its source document as the `wazuh_document_id` indexed field, to remove the copies at search time: `` `wazuh_findings` | dedup wazuh_document_id ``.
 
 ## Security
@@ -202,7 +205,7 @@ Upgrade the integration with every upgrade of the Wazuh indexer, from the folder
 
 ## Compatibility
 
-| Wazuh indexer | Logstash | Elasticsearch | OpenSearch | Splunk |
-| --- | --- | --- | --- | --- |
-| 5.0.0 | 8.19.23 | 9.5.4 | 3.9.0 | 10.6.0 |
+| Wazuh indexer | Logstash | Elasticsearch | OpenSearch | Splunk | Amazon Security Lake |
+| --- | --- | --- | --- | --- | --- |
+| 5.0.0 | 8.19.23 | 9.5.4 | 3.9.0 | 10.6.0 | OCSF 1.1.0, Lambda Python 3.12 |
 
