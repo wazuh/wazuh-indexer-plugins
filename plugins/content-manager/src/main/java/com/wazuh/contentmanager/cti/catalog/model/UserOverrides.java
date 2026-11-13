@@ -21,7 +21,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.wazuh.contentmanager.utils.Constants;
 
@@ -33,8 +36,9 @@ import com.wazuh.contentmanager.utils.Constants;
  * the filters and the integrations outright. All three therefore live here.
  *
  * <p>Absence is meaningful throughout: a {@code null} setting means the user never decided that
- * field and CTI keeps deciding it. Enrichments are held as a delta rather than as a list so that
- * values CTI publishes later still reach a user who customised the selection.
+ * field and CTI keeps deciding it. Enrichments are held as a delta (the types the user turned off)
+ * rather than as a list, so that values CTI publishes later still reach a user who customised the
+ * selection.
  *
  * <p>This class is serialization only; all indexing lives in {@code UserOverridesService}.
  */
@@ -183,30 +187,65 @@ public final class UserOverrides {
      *
      * <p>All four are recorded on every save, by design: editing the standard policy makes its
      * settings the user's from then on. A {@code null} field means the user never saved at all.
+     *
+     * <p>The enrichments are held as the types the user turned off, not as the list they kept, so a
+     * type CTI publishes after the save still reaches the policy. Overrides written before that
+     * change hold the kept list under {@code enrichments}; they are read as {@linkplain
+     * #getLegacyEnrichments() legacy} and converted the first time they are applied or saved.
      */
     public static final class PolicySettings {
 
         private final Boolean enabled;
         private final Boolean indexUnclassifiedEvents;
         private final Boolean indexDiscardedEvents;
-        private final List<String> enrichments;
+        private final List<String> disabledEnrichments;
+        private final List<String> legacyEnrichments;
 
         /**
          * @param enabled the policy's {@code enabled} flag, or {@code null} if undecided.
          * @param indexUnclassifiedEvents the {@code index_unclassified_events} flag, or {@code null}.
          * @param indexDiscardedEvents the {@code index_discarded_events} flag, or {@code null}.
-         * @param enrichments the enrichments the user kept, or {@code null} if they never chose. An
-         *     empty list is a choice; {@code null} is the absence of one.
+         * @param disabledEnrichments the enrichments the user turned off, or {@code null} if they never
+         *     chose. An empty list is a choice (nothing is off); {@code null} is the absence of one.
          */
         public PolicySettings(
                 Boolean enabled,
                 Boolean indexUnclassifiedEvents,
                 Boolean indexDiscardedEvents,
-                List<String> enrichments) {
+                List<String> disabledEnrichments) {
+            this(enabled, indexUnclassifiedEvents, indexDiscardedEvents, disabledEnrichments, null);
+        }
+
+        private PolicySettings(
+                Boolean enabled,
+                Boolean indexUnclassifiedEvents,
+                Boolean indexDiscardedEvents,
+                List<String> disabledEnrichments,
+                List<String> legacyEnrichments) {
             this.enabled = enabled;
             this.indexUnclassifiedEvents = indexUnclassifiedEvents;
             this.indexDiscardedEvents = indexDiscardedEvents;
-            this.enrichments = enrichments;
+            this.disabledEnrichments = disabledEnrichments;
+            this.legacyEnrichments = disabledEnrichments == null ? legacyEnrichments : null;
+        }
+
+        /**
+         * Settings in the format stored before the enrichments became a delta: the list of enrichments
+         * the user kept.
+         *
+         * @param enabled the policy's {@code enabled} flag, or {@code null} if undecided.
+         * @param indexUnclassifiedEvents the {@code index_unclassified_events} flag, or {@code null}.
+         * @param indexDiscardedEvents the {@code index_discarded_events} flag, or {@code null}.
+         * @param keptEnrichments the enrichments the user kept.
+         * @return the settings, to be converted with {@link #withDisabledEnrichments(List)}.
+         */
+        public static PolicySettings legacy(
+                Boolean enabled,
+                Boolean indexUnclassifiedEvents,
+                Boolean indexDiscardedEvents,
+                List<String> keptEnrichments) {
+            return new PolicySettings(
+                    enabled, indexUnclassifiedEvents, indexDiscardedEvents, null, keptEnrichments);
         }
 
         /**
@@ -231,10 +270,53 @@ public final class UserOverrides {
         }
 
         /**
-         * @return the enrichments the user kept, or {@code null} if they never changed the selection.
+         * @return the enrichments the user turned off, or {@code null} if they never changed the
+         *     selection or the override is still in the legacy format.
          */
-        public List<String> getEnrichments() {
-            return this.enrichments;
+        public List<String> getDisabledEnrichments() {
+            return this.disabledEnrichments;
+        }
+
+        /**
+         * @return the enrichments the user kept, for an override stored in the legacy format; {@code
+         *     null} otherwise.
+         */
+        public List<String> getLegacyEnrichments() {
+            return this.legacyEnrichments;
+        }
+
+        /**
+         * @return whether the override is still in the legacy format and must be converted.
+         */
+        public boolean isLegacy() {
+            return this.legacyEnrichments != null;
+        }
+
+        /**
+         * Resolves the enrichments the user turned off.
+         *
+         * <p>For a legacy override, those are the {@code candidates} missing from the list the user
+         * kept. The candidates must be every type CTI publishes, as completely as the caller can tell.
+         *
+         * @param candidates the enrichment types CTI publishes; used only for a legacy override.
+         * @return the types the user turned off, or {@code null} when the user never chose.
+         */
+        public List<String> resolveDisabledEnrichments(Collection<String> candidates) {
+            if (this.legacyEnrichments == null) {
+                return this.disabledEnrichments;
+            }
+            Set<String> disabled = new LinkedHashSet<>(candidates);
+            disabled.removeAll(this.legacyEnrichments);
+            return new ArrayList<>(disabled);
+        }
+
+        /**
+         * @param disabled the enrichments the user turned off, or {@code null} if they never chose.
+         * @return a copy of these settings with that delta, in the current format.
+         */
+        public PolicySettings withDisabledEnrichments(List<String> disabled) {
+            return new PolicySettings(
+                    this.enabled, this.indexUnclassifiedEvents, this.indexDiscardedEvents, disabled);
         }
 
         /**
@@ -243,14 +325,7 @@ public final class UserOverrides {
          */
         static PolicySettings from(JsonNode node) {
             // Absence and emptiness are different: no list means the user never chose and CTI decides,
-            // an empty one means they unchecked everything.
-            List<String> enrichments = null;
-            if (node.has(Constants.KEY_ENRICHMENTS)) {
-                enrichments = new ArrayList<>();
-                for (JsonNode entry : node.get(Constants.KEY_ENRICHMENTS)) {
-                    enrichments.add(entry.asText());
-                }
-            }
+            // an empty one means they turned nothing off.
             return new PolicySettings(
                     node.has(Constants.KEY_ENABLED) ? node.get(Constants.KEY_ENABLED).asBoolean() : null,
                     node.has(Constants.KEY_INDEX_UNCLASSIFIED_EVENTS)
@@ -259,7 +334,22 @@ public final class UserOverrides {
                     node.has(Constants.KEY_INDEX_DISCARDED_EVENTS)
                             ? node.get(Constants.KEY_INDEX_DISCARDED_EVENTS).asBoolean()
                             : null,
-                    enrichments);
+                    readList(node, Constants.KEY_DISABLED_ENRICHMENTS),
+                    readList(node, Constants.KEY_ENRICHMENTS));
+        }
+
+        /**
+         * @return the strings of the array under {@code field}, or {@code null} when it is absent.
+         */
+        private static List<String> readList(JsonNode node, String field) {
+            if (!node.has(field)) {
+                return null;
+            }
+            List<String> values = new ArrayList<>();
+            for (JsonNode entry : node.get(field)) {
+                values.add(entry.asText());
+            }
+            return values;
         }
 
         /**
@@ -278,9 +368,15 @@ public final class UserOverrides {
             if (this.indexDiscardedEvents != null) {
                 node.put(Constants.KEY_INDEX_DISCARDED_EVENTS, this.indexDiscardedEvents.booleanValue());
             }
-            if (this.enrichments != null) {
+            if (this.disabledEnrichments != null) {
                 ArrayNode list = factory.arrayNode();
-                this.enrichments.forEach(list::add);
+                this.disabledEnrichments.forEach(list::add);
+                node.set(Constants.KEY_DISABLED_ENRICHMENTS, list);
+            } else if (this.legacyEnrichments != null) {
+                // Written back as it was read, so a write of another section (a filter, an integration)
+                // does not lose a legacy override before it is converted.
+                ArrayNode list = factory.arrayNode();
+                this.legacyEnrichments.forEach(list::add);
                 node.set(Constants.KEY_ENRICHMENTS, list);
             }
             return node;

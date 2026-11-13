@@ -1542,11 +1542,6 @@ public class SpaceService {
      * @return A set of known enrichment types.
      */
     public Set<String> getKnownEnrichmentTypes() {
-        // Get known enrichment types for validation dynamically from the IoC type hashes document
-        Set<String> knownEnrichmentTypes = new HashSet<>();
-        // 'geo' is a special case enrichment type that is not listed in the IOC type hashes document,
-        // but should be allowed
-        knownEnrichmentTypes.add("geo");
         try {
             GetRequest getRequest =
                     new GetRequest().index(Constants.INDEX_IOCS).id(Constants.IOC_TYPE_HASHES_ID);
@@ -1554,21 +1549,51 @@ public class SpaceService {
                     this.client
                             .get(getRequest)
                             .actionGet(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
-
-            if (response != null && response.isExists()) {
-                JsonNode jsonNode =
-                        this.objectMapper.valueToTree(response.getSourceAsMap().get(Constants.KEY_TYPE_HASHES));
-                if (jsonNode != null && jsonNode.isObject()) {
-                    Iterator<String> fieldNames = jsonNode.fieldNames();
-                    while (fieldNames.hasNext()) {
-                        knownEnrichmentTypes.add(fieldNames.next());
-                    }
-                }
-            } else {
-                log.warn(Constants.W_LOG_IOC_TYPE_HASHES_NOT_FOUND);
-            }
+            return this.knownEnrichmentTypes(response);
         } catch (Exception e) {
             log.error(Constants.E_LOG_RETRIEVE_ENRICHMENT_TYPES_FAILED, e.getMessage());
+            return this.knownEnrichmentTypes(null);
+        }
+    }
+
+    /**
+     * Asynchronous form of {@link #getKnownEnrichmentTypes()}, for callers running on a response
+     * thread, where blocking on the client is not allowed.
+     *
+     * @param listener receives the known enrichment types. It never fails: when the IOC type hashes
+     *     document cannot be read, it receives {@code geo} alone, as the synchronous form returns.
+     */
+    public void getKnownEnrichmentTypesAsync(ActionListener<Set<String>> listener) {
+        this.client.get(
+                new GetRequest().index(Constants.INDEX_IOCS).id(Constants.IOC_TYPE_HASHES_ID),
+                ActionListener.wrap(
+                        response -> listener.onResponse(this.knownEnrichmentTypes(response)),
+                        e -> {
+                            log.error(Constants.E_LOG_RETRIEVE_ENRICHMENT_TYPES_FAILED, e.getMessage());
+                            listener.onResponse(this.knownEnrichmentTypes(null));
+                        }));
+    }
+
+    /**
+     * @param response the IOC type hashes document, or {@code null} when it could not be read.
+     * @return {@code geo} plus every type listed in that document.
+     */
+    private Set<String> knownEnrichmentTypes(GetResponse response) {
+        Set<String> knownEnrichmentTypes = new HashSet<>();
+        // 'geo' is a special case enrichment type that is not listed in the IOC type hashes document,
+        // but should be allowed
+        knownEnrichmentTypes.add("geo");
+        if (response != null && response.isExists()) {
+            JsonNode jsonNode =
+                    this.objectMapper.valueToTree(response.getSourceAsMap().get(Constants.KEY_TYPE_HASHES));
+            if (jsonNode != null && jsonNode.isObject()) {
+                Iterator<String> fieldNames = jsonNode.fieldNames();
+                while (fieldNames.hasNext()) {
+                    knownEnrichmentTypes.add(fieldNames.next());
+                }
+            }
+        } else if (response != null) {
+            log.warn(Constants.W_LOG_IOC_TYPE_HASHES_NOT_FOUND);
         }
         return knownEnrichmentTypes;
     }

@@ -584,7 +584,7 @@ The `standard` space is rebuilt from CTI, so what the user changes there is reco
         "enabled": true,
         "index_unclassified_events": true,
         "index_discarded_events": false,
-        "enrichments": ["connection", "url_full"]
+        "disabled_enrichments": ["geo"]
       },
       "filters": [{ "id": "<uuid>", "document": "<the stored filter, serialized>" }],
       "integrations": {
@@ -600,7 +600,7 @@ Both integration fields are optional, and absence means the user never decided: 
 
 It is the one document in that index with **no `space` field**, and that is deliberate. The [pre-snapshot wipe](#initialization-phase) deletes the documents whose `space.name` is the space being replaced, so a document that carries no `space.name` is never matched and stays where it is. The plan-change reindex copies everything that is not `standard`, which carries it into the new physical index for the same reason.
 
-Enrichments are stored as the resulting list, and on apply only the values CTI still publishes are kept. Filters are stored as serialized strings, to keep their fields out of the `"dynamic": "true"` policies mapping. Integrations are keyed by id rather than listed, so Security Analytics can record a detector decision with a single partial update — a `doc` merge combines objects recursively but replaces arrays wholesale.
+Enrichments are stored as the types the user turned off (`disabled_enrichments`), not as the list kept. A save records the types the request leaves out among those the stored policy has plus those already turned off, because the stored policy already lacks the latter. On apply, the policy gets everything CTI publishes except those types, so a type CTI publishes for the first time is on, and a type turned off stays off even while CTI does not publish it. An override written before this format holds the list kept under `enrichments`; it is converted the first time it is applied or saved, taking as turned off the published or IOC-catalog types missing from that list, and stays as it is until then. Filters are stored as serialized strings, to keep their fields out of the `"dynamic": "true"` policies mapping. Integrations are keyed by id rather than listed, so Security Analytics can record a detector decision with a single partial update — a `doc` merge combines objects recursively but replaces arrays wholesale.
 
 Written on a `standard` policy update, on filter create, update and delete, and on integration update. The detector decision is written by Security Analytics itself, which cannot call this plugin — the dependency only runs the other way — but writes the registry document directly. Applied at the start of `ConsumerRulesetService.onSyncComplete`, before the space hash is recalculated and the engine reloaded. Idempotent, and a failure is logged without aborting the synchronization.
 
