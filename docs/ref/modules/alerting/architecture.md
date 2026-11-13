@@ -34,6 +34,8 @@ The Active Response monitor type enforces stricter validation than standard docu
 
 At run time, actions of an Active Response monitor always run once per alert. Unlike other monitor types, they never fall back to a single execution for the whole run when the run exceeds `plugins.alerting.max_actionable_alert_count` or ends with an error.
 
+An Active Response monitor also reads its indices differently. A document-level monitor fetches every new document and evaluates it against its queries. An Active Response monitor asks the index for the new documents that match at least one of its queries and evaluates only those, because nearly every finding matches none of them. Its runs therefore stay small on a busy node, where search backpressure cancels large searches, and the responses are not delayed by findings they do not act on. If the index cannot apply the queries, the run logs a `WARN` message and reads every document instead.
+
 ## Triggers
 
 Each monitor type uses a corresponding trigger type:
