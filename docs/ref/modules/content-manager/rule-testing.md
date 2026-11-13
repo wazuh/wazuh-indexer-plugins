@@ -91,7 +91,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
           "map": [
             {"event.category": "[\"authentication\"]"},
             {"event.kind": "event"},
-            {"@timestamp": "get_date()"}
+            {"@timestamp": "now()"}
           ]
         }
       ]
