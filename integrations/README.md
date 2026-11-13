@@ -1,33 +1,29 @@
 ## Wazuh indexer integrations
 
-This folder contains integrations with third-party XDR, SIEM and cybersecurity software.
-The goal is to transport Wazuh's analysis to the platform that suits your needs.
+This folder contains the integrations that export the data of the Wazuh indexer to other
+platforms. They read the findings and events data streams of the Wazuh Common Schema and deliver
+them, through Logstash, to:
 
-### Amazon Security Lake
+- [Elasticsearch](./elastic/README.md)
+- [OpenSearch](./opensearch/README.md)
+- [Splunk](./splunk/README.md)
 
-Amazon Security Lake automatically centralizes security data from AWS environments, SaaS providers,
-on premises, and cloud sources into a purpose-built data lake stored in your account. With Security Lake,
-you can get a more complete understanding of your security data across your entire organization. You can
-also improve the protection of your workloads, applications, and data. Security Lake has adopted the
-Open Cybersecurity Schema Framework (OCSF), an open standard. With OCSF support, the service normalizes
-and combines security data from AWS and a broad range of enterprise security data sources.
+The [Amazon Security Lake](./amazon-security-lake/README.md) integration has not been adapted to
+the data of Wazuh 5.x yet.
 
-Refer to these documents for more information about this integration:
+Documentation:
 
-- [User Guide](./amazon-security-lake/README.md).
-- [Developer Guide](./amazon-security-lake/CONTRIBUTING.md).
+- [Reference manual](../docs/ref/integrations/index.md): what is exported, settings, security,
+  and how to deploy every integration in production.
+- [Development documentation](../docs/dev/integrations/index.md): the development environments,
+  the events generator, the generated templates and dashboards, and the tests.
 
-### Other integrations
-
-We host development environments to support the following integrations:
-
-- [Splunk](./splunk/README.md).
-- [Elasticsearch](./elastic/README.md).
-- [OpenSearch](./opensearch/README.md).
+The integrations of Wazuh 4.x, for the `wazuh-alerts-4.x-*` indices, are a separate product that
+will be deprecated. They live in the 4.x branches of
+[wazuh-indexer](https://github.com/wazuh/wazuh-indexer/tree/4.14.11/integrations).
 
 **Compatibility matrix**
 
-|                | Wazuh  | Logstash | OpenSearch | Elastic | Splunk |
-| -------------- | ------ | -------- | ---------- | ------- | ------ |
-| v1.0           | 4.8.1  | 8.9.0    | 2.14.0     | 8.14.3  | 9.1.4  |
-| Latest version | 4.14.8 | 8.9.0    | 3.9.0      | 9.5.4   | 10.6.0 |
+|                | Wazuh indexer | Logstash | OpenSearch | Elastic | Splunk |
+| -------------- | ------------- | -------- | ---------- | ------- | ------ |
+| Latest version | 5.0.0-rc1     | 8.19.23  | 3.9.0      | 9.5.4   | 10.6.0 |

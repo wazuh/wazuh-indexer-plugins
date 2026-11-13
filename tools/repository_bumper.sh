@@ -132,6 +132,25 @@ function update_version_file() {
 }
 
 # ====
+# Update the version of the Splunk app of the integrations
+# Arguments:
+#   $1 - version
+# ====
+function update_splunk_app_version() {
+    local version="$1"
+    local file="integrations/splunk/app/wazuh_integration/default/app.conf"
+
+    if [[ ! -f "$file" ]]; then
+        log "Error: $file not found in the current directory: $(pwd)"
+        exit 1
+    fi
+
+    sed -i -E "s/^version = .*/version = ${version}/" "$file"
+
+    log "Updated $file with version=$version"
+}
+
+# ====
 # Assert no plugin build.gradle reintroduces a hardcoded version fallback.
 # build.gradle resolves the build version from the `version` system property and
 # falls back to reading VERSION.json when it is not passed (e.g. a bare `./gradlew`
@@ -231,6 +250,7 @@ function main() {
     old_version="$(current_version)"
 
     update_version_file "$arg_version" "$arg_stage"
+    update_splunk_app_version "$arg_version"
 
     if [[ "$arg_version" != "$old_version" ]]; then
         log "Version changed: $old_version -> $arg_version"

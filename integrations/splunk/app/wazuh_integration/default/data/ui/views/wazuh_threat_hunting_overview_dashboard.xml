@@ -1,0 +1,315 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - Threat hunting - Overview dashboard</label>
+  <description>Threat hunting - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - Threat hunting - Overview dashboard",
+  "description": "Threat hunting - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_01": {
+      "type": "ds.search",
+      "name": "viz_01",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.level\"=\"critical\" | stats count as value"
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "viz_02",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.level\"=\"high\" | stats count as value"
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "viz_03",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.level\"=\"medium\" | stats count as value"
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "viz_04",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.level\"=\"low\" | stats count as value"
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "viz_05",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.rule.level\"=\"informational\" | stats count as value"
+      }
+    },
+    "ds_06": {
+      "type": "ds.search",
+      "name": "Top 10 finding level evolution",
+      "options": {
+        "query": "`wazuh_findings` | eval f1='wazuh.rule.level' | timechart useother=f usenull=f limit=10 count by f1"
+      }
+    },
+    "ds_07": {
+      "type": "ds.search",
+      "name": "Top 5 agents findings evolution",
+      "options": {
+        "query": "`wazuh_findings` | eval f1='wazuh.agent.name' | timechart useother=f usenull=f limit=5 count by f1"
+      }
+    },
+    "ds_08": {
+      "type": "ds.search",
+      "name": "Top 5 Integrations",
+      "options": {
+        "query": "`wazuh_findings` | eval f1='wazuh.integration.name' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Integration\", metric as \"Count\""
+      }
+    },
+    "ds_09": {
+      "type": "ds.search",
+      "name": "Top 5 Rules",
+      "options": {
+        "query": "`wazuh_findings` | eval f1='wazuh.rule.title' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Rule\", metric as \"Count\""
+      }
+    },
+    "ds_10": {
+      "type": "ds.search",
+      "name": "Top 10 MITRE ATT&CK techniques",
+      "options": {
+        "query": "`wazuh_findings` | eval f1='wazuh.rule.mitre.technique.name{}' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"wazuh.rule.mitre.technique.name\", metric as \"Count\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.singlevalue",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {
+        "underLabel": "Critical - Level"
+      }
+    },
+    "viz_02": {
+      "type": "splunk.singlevalue",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {
+        "underLabel": "High - Level"
+      }
+    },
+    "viz_03": {
+      "type": "splunk.singlevalue",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {
+        "underLabel": "Medium - Level"
+      }
+    },
+    "viz_04": {
+      "type": "splunk.singlevalue",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {
+        "underLabel": "Low - Level"
+      }
+    },
+    "viz_05": {
+      "type": "splunk.singlevalue",
+      "title": "",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {
+        "underLabel": "Informational - Level"
+      }
+    },
+    "viz_06": {
+      "type": "splunk.area",
+      "title": "Top 10 finding level evolution",
+      "dataSources": {
+        "primary": "ds_06"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_07": {
+      "type": "splunk.column",
+      "title": "Top 5 agents findings evolution",
+      "dataSources": {
+        "primary": "ds_07"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_08": {
+      "type": "splunk.table",
+      "title": "Top 5 Integrations",
+      "dataSources": {
+        "primary": "ds_08"
+      },
+      "options": {}
+    },
+    "viz_09": {
+      "type": "splunk.table",
+      "title": "Top 5 Rules",
+      "dataSources": {
+        "primary": "ds_09"
+      },
+      "options": {}
+    },
+    "viz_10": {
+      "type": "splunk.pie",
+      "title": "Top 10 MITRE ATT&CK techniques",
+      "dataSources": {
+        "primary": "ds_10"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 616,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 246,
+          "h": 116
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 250,
+          "y": 0,
+          "w": 246,
+          "h": 116
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 500,
+          "y": 0,
+          "w": 246,
+          "h": 116
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 750,
+          "y": 0,
+          "w": 221,
+          "h": 116
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 975,
+          "y": 0,
+          "w": 221,
+          "h": 116
+        }
+      },
+      {
+        "item": "viz_06",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 120,
+          "w": 596,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_07",
+        "type": "block",
+        "position": {
+          "x": 600,
+          "y": 120,
+          "w": 596,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_08",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 360,
+          "w": 396,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_09",
+        "type": "block",
+        "position": {
+          "x": 400,
+          "y": 360,
+          "w": 396,
+          "h": 236
+        }
+      },
+      {
+        "item": "viz_10",
+        "type": "block",
+        "position": {
+          "x": 800,
+          "y": 360,
+          "w": 396,
+          "h": 236
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

@@ -1,0 +1,180 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - Google Cloud - Overview dashboard</label>
+  <description>Google Cloud - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - Google Cloud - Overview dashboard",
+  "description": "Google Cloud - Overview dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_01": {
+      "type": "ds.search",
+      "name": "Events over time by outcome",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" | eval f1='event.outcome' | timechart useother=f usenull=f limit=3 count by f1"
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "Top instances by response code",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" | eval f1='dns.response_code', f2='cloud.instance.id' | stats count as metric by f1, f2 | sort - metric | head 25 | eval value=f1 . \" / \" . f2 | table value metric | rename value as \"Response Code / Instance ID\", metric as \"Count\""
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "Top projects by category",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" | eval f1='cloud.project.id', f2='event.category{}' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"Project ID\""
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "Top project ID by action",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" | eval f1='cloud.region', f2='cloud.project.id', f3='event.action' | stats count as metric by f1, f2, f3 | sort - metric | head 50 | eval value=f1 . \" / \" . f2 . \" / \" . f3 | table value metric | rename value as \"Region / Project ID / Action\", metric as \"Count\""
+      }
+    },
+    "ds_05": {
+      "type": "ds.search",
+      "name": "GCP alerts evolution",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" | timechart count as \"Count\""
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.area",
+      "title": "Events over time by outcome",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {
+        "stackMode": "stacked"
+      }
+    },
+    "viz_02": {
+      "type": "splunk.pie",
+      "title": "Top instances by response code",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_03": {
+      "type": "splunk.bar",
+      "title": "Top projects by category",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {}
+    },
+    "viz_04": {
+      "type": "splunk.pie",
+      "title": "Top project ID by action",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_05": {
+      "type": "splunk.line",
+      "title": "GCP alerts evolution",
+      "dataSources": {
+        "primary": "ds_05"
+      },
+      "options": {}
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 656,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 1196,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 200,
+          "w": 296,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 300,
+          "y": 200,
+          "w": 596,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 900,
+          "y": 200,
+          "w": 296,
+          "h": 196
+        }
+      },
+      {
+        "item": "viz_05",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 400,
+          "w": 1196,
+          "h": 236
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>

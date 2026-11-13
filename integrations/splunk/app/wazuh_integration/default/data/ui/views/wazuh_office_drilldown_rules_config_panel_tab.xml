@@ -1,0 +1,191 @@
+<dashboard version="2" theme="dark">
+  <label>Wazuh - Office - Panel - Drilldown rules config dashboard</label>
+  <description>Office - Panel - Drilldown rules config dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer. Pick the event type in the Event type input, as the Wazuh dashboard does.</description>
+  <definition><![CDATA[
+{
+  "title": "Wazuh - Office - Panel - Drilldown rules config dashboard",
+  "description": "Office - Panel - Drilldown rules config dashboard of the Wazuh dashboard, on the findings exported from the Wazuh indexer. Pick the event type in the Event type input, as the Wazuh dashboard does.",
+  "inputs": {
+    "input_global_trp": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "global_time",
+        "defaultValue": "-24h@h,now"
+      }
+    },
+    "input_scope": {
+      "type": "input.dropdown",
+      "title": "Event type",
+      "dataSources": {
+        "primary": "ds_input_01"
+      },
+      "options": {
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()",
+        "token": "scope",
+        "defaultValue": "*"
+      },
+      "context": {
+        "formattedConfig": {
+          "number": {
+            "prefix": ""
+          }
+        },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [
+          [
+            "All"
+          ],
+          [
+            "*"
+          ]
+        ],
+        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"value\") | renameSeries(\"value\") | formatByType(formattedConfig)"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$global_time.earliest$",
+            "latest": "$global_time.latest$"
+          }
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_input_01": {
+      "type": "ds.search",
+      "name": "Event type",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" \"event.type{}\"=* | eval value='event.type{}' | stats count by value | sort - count | head 500 | eval label=value | fields label, value"
+      }
+    },
+    "ds_01": {
+      "type": "ds.search",
+      "name": "Top operations",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" \"event.type{}\"=$scope|s$ | eval f1='event.action' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Operation\", metric as \"Count\""
+      }
+    },
+    "ds_02": {
+      "type": "ds.search",
+      "name": "Top Office users",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" \"event.type{}\"=$scope|s$ | eval f1='user.id' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"user.id\", metric as \"Count\""
+      }
+    },
+    "ds_03": {
+      "type": "ds.search",
+      "name": "Top 10 Providers",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" \"event.type{}\"=$scope|s$ | eval f1='event.provider' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"event.provider\", metric as \"Count\""
+      }
+    },
+    "ds_04": {
+      "type": "ds.search",
+      "name": "Alerts by user",
+      "options": {
+        "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" \"event.type{}\"=$scope|s$ | eval f1='user.id' | timechart useother=f usenull=f limit=5 count by f1"
+      }
+    }
+  },
+  "visualizations": {
+    "viz_01": {
+      "type": "splunk.pie",
+      "title": "Top operations",
+      "dataSources": {
+        "primary": "ds_01"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_02": {
+      "type": "splunk.pie",
+      "title": "Top Office users",
+      "dataSources": {
+        "primary": "ds_02"
+      },
+      "options": {
+        "showDonutHole": true
+      }
+    },
+    "viz_03": {
+      "type": "splunk.bar",
+      "title": "Top 10 Providers",
+      "dataSources": {
+        "primary": "ds_03"
+      },
+      "options": {}
+    },
+    "viz_04": {
+      "type": "splunk.line",
+      "title": "Alerts by user",
+      "dataSources": {
+        "primary": "ds_04"
+      },
+      "options": {}
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "options": {
+      "width": 1200,
+      "height": 516,
+      "display": "auto-scale"
+    },
+    "globalInputs": [
+      "input_global_trp",
+      "input_scope"
+    ],
+    "structure": [
+      {
+        "item": "viz_01",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 371,
+          "h": 276
+        }
+      },
+      {
+        "item": "viz_02",
+        "type": "block",
+        "position": {
+          "x": 375,
+          "y": 0,
+          "w": 371,
+          "h": 276
+        }
+      },
+      {
+        "item": "viz_03",
+        "type": "block",
+        "position": {
+          "x": 750,
+          "y": 0,
+          "w": 446,
+          "h": 276
+        }
+      },
+      {
+        "item": "viz_04",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 280,
+          "w": 1196,
+          "h": 216
+        }
+      }
+    ]
+  }
+}
+]]></definition>
+</dashboard>
