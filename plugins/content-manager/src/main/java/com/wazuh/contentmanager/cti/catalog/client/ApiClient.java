@@ -226,6 +226,9 @@ public class ApiClient implements AutoCloseable {
 
         SimpleHttpRequest request =
                 SimpleRequestBuilder.get(uri)
+                        .addHeader(Constants.WAZUH_UUID_HEADER, PluginSettings.getInstance().getClusterUUID())
+                        .addHeader(Constants.WAZUH_VERSION_HEADER, PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
         return this.executeWithRetry(request);
@@ -262,6 +265,7 @@ public class ApiClient implements AutoCloseable {
                 SimpleRequestBuilder.get(uri)
                         .addHeader(Constants.WAZUH_UUID_HEADER, PluginSettings.getInstance().getClusterUUID())
                         .addHeader(Constants.WAZUH_VERSION_HEADER, PluginSettings.getInstance().getVersion())
+                        .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                         .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                         .build();
         return this.executeWithRetry(request, 0);
