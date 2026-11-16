@@ -40,6 +40,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.engine.service.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
 import com.wazuh.contentmanager.utils.TransientFailures;
 
 /**
@@ -399,14 +400,19 @@ public class EngineContentLoader {
      * previous space's completion. A failure loading one space is logged and does not prevent the
      * others from loading. Package-private so tests can drive the chain directly.
      *
-     * <p>A node that cannot read the content yet is the one exception: every space reads its hash
+     * <p>A node that cannot read the content for now is the one exception: every space reads its hash
      * from the same {@link Constants#INDEX_POLICIES} index, so any failure {@link
-     * TransientFailures#isTransientReadFailure classified as a startup condition} — a missing index,
-     * a cluster block ({@code state not recovered / initialized}), or shards that are not allocated
-     * yet ({@code all shards failed}) — is a precondition of the whole run rather than a per-space
-     * failure. They are all normal while a node starts up and all clear on their own, so the run ends
-     * after a single debug line instead of logging the same error once per tracked space on every
-     * cluster-state update. The next cluster-state event retries.
+     * TransientFailures#isTransientReadFailure classified as transient} — a missing index, a cluster
+     * block ({@code state not recovered / initialized}), or shards that are not allocated yet or sit
+     * on a peer that just left ({@code all shards failed}) — is a precondition of the whole run
+     * rather than a per-space failure. They are all normal while a node starts up or a peer restarts,
+     * and all clear on their own, so the run ends after a single debug line instead of logging the
+     * same error once per tracked space on every cluster-state update. The next cluster-state event
+     * retries: the peer leaving and rejoining fires one.
+     *
+     * <p>A failure caused by this node shutting down ({@link NodeShutdown#isShutdownFailure}) also
+     * ends the run after a debug line, with no retry: every remaining read fails the same way, and
+     * the next start loads every space anyway.
      *
      * @param index index into {@link #TRACKED_SPACES} of the space to reload next.
      * @param onComplete invoked once, after the last space finishes (successfully or not).
@@ -424,6 +430,11 @@ public class EngineContentLoader {
                 ActionListener.wrap(
                         v -> this.reloadFrom(index + 1, onComplete),
                         e -> {
+                            if (NodeShutdown.isShutdownFailure(e)) {
+                                log.debug(Constants.D_LOG_ENGINE_LOAD_NODE_STOPPING, space, e.getMessage());
+                                onComplete.run();
+                                return;
+                            }
                             if (ExceptionsHelper.unwrap(e, IndexNotFoundException.class) != null) {
                                 this.deferRun(
                                         Constants.D_LOG_ENGINE_POLICIES_INDEX_NOT_READY,
