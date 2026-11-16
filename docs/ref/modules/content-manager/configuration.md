@@ -264,6 +264,8 @@ wazuh-uid: <cluster UUID>
 wazuh-tag: <version tag>
 ```
 
+The Catalog API client sends these two headers, plus `Content-Type: application/json`, on every request that fetches consumer information, consumer changes or release updates.
+
 #### Update check service behavior
 
 The update check service is enabled by default and runs once per day, with an immediate first ping fired as soon as the job is registered in the scheduler.

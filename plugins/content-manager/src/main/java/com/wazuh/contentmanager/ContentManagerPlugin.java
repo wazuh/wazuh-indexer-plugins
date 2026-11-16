@@ -83,7 +83,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 
 import com.wazuh.contentmanager.action.*;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -407,14 +406,6 @@ public class ContentManagerPlugin extends Plugin
         PluginSettings.getInstance()
                 .setClusterUUID(this.clusterService.state().metadata().clusterUUID());
         this.threadPool.generic().execute(this::tryLoadAccessToken);
-
-        // Warn here, on every node, rather than where the key is read: that call site runs on the
-        // elected cluster manager alone and only when update_on_start is set, so a -D flag on any
-        // other node would publish the token in the log and in GET _nodes with nothing said.
-        String deployKeyWarning = deployKeyPropertyWarning(System::getenv, System::getProperty);
-        if (deployKeyWarning != null) {
-            log.warn(deployKeyWarning);
-        }
 
         // Load the STANDARD space into this node's local Engine on every node, not just the elected
         // cluster manager. Engine communication is node-local (a Unix socket), so each node must
@@ -1453,41 +1444,7 @@ public class ContentManagerPlugin extends Plugin
      *     exist.
      */
     public static String preDeploymentKey() {
-        return preDeploymentKey(System::getenv);
-    }
-
-    /**
-     * Package-private seam of {@link #preDeploymentKey()}, so the lookup can be driven by a test.
-     *
-     * @param env resolves an environment variable by name.
-     * @return the value of "DEPLOY_KEY", or an empty string when it is unset or blank.
-     */
-    static String preDeploymentKey(UnaryOperator<String> env) {
-        String key = env.apply(DEPLOY_KEY);
+        String key = System.getenv(DEPLOY_KEY);
         return key == null || key.isBlank() ? "" : key;
-    }
-
-    /**
-     * Returns the warning to log when "DEPLOY_KEY" is passed as a JVM system property, which is no
-     * longer read.
-     *
-     * <p>A {@code -D} flag is published in the node log and in the {@code GET _nodes} response, so a
-     * node that still carries one deserves a warning whether or not the environment variable is also
-     * set: in the first case it is not pre-registered at all, in the second the token is being
-     * published for nothing.
-     *
-     * @param env resolves an environment variable by name.
-     * @param property resolves a system property by name.
-     * @return the message to log, or {@code null} when there is nothing to warn about.
-     */
-    static String deployKeyPropertyWarning(
-            UnaryOperator<String> env, UnaryOperator<String> property) {
-        String fromProperty = property.apply(DEPLOY_KEY);
-        if (fromProperty == null || fromProperty.isBlank()) {
-            return null;
-        }
-        return preDeploymentKey(env).isEmpty()
-                ? Constants.W_LOG_DEPLOY_KEY_PROPERTY_IGNORED
-                : Constants.W_LOG_DEPLOY_KEY_PROPERTY_REDUNDANT;
     }
 }

@@ -110,8 +110,8 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
             throw new CtiConsoleUnavailableException(
                     "The CTI Console returned no plan for the environment.");
         }
-        log.debug(Constants.D_LOG_ENVIRONMENT_PLAN_RETRIEVED, plans.get(0).getName());
-        return plans.get(0);
+        log.debug(Constants.D_LOG_ENVIRONMENT_PLAN_RETRIEVED, plans.getFirst().getName());
+        return plans.getFirst();
     }
 
     private CtiConsoleUnavailableException requestFailed(Exception e) {
@@ -154,9 +154,9 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
     public Plan getPlan() throws TokenRejectedException, CtiConsoleUnavailableException {
         String accessToken = PluginSettings.getInstance().getAccessToken();
         if (accessToken != null) {
-            return getMyPlan(new Token(accessToken, "Bearer"));
+            return this.getMyPlan(new Token(accessToken, "Bearer"));
         }
-        return getPublicPlan();
+        return this.getPublicPlan();
     }
 
     @Override
@@ -187,9 +187,9 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
     public void getPlan(ActionListener<Plan> listener) {
         String accessToken = PluginSettings.getInstance().getAccessToken();
         if (accessToken != null) {
-            getMyPlan(new Token(accessToken, "Bearer"), listener);
+            this.getMyPlan(new Token(accessToken, "Bearer"), listener);
         } else {
-            getPublicPlan(listener);
+            this.getPublicPlan(listener);
         }
     }
 
