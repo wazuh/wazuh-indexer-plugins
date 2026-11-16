@@ -82,7 +82,7 @@ Interfaces with the Ruleset Management plugin. Creates, updates, and deletes Rul
 
 **Document ID model**: Ruleset Management documents for the draft, test and custom spaces use their own auto-generated UUIDs as primary IDs, independent of the CTI document UUIDs; standard-space documents keep the CTI document UUID. Each Ruleset Management document stores the UUID of the original CTI document and the space it belongs to (draft, test, custom, or standard), so the same CTI resource can exist across multiple spaces without ID collisions.
 
-> **Note:** Ruleset Management enforces a configurable maximum number of rules per detector (`plugins.security_analytics.max_rules_per_detector`, default `50`). If an integration has more enabled rules than the configured limit, the detector creation or update request will be rejected. See [Ruleset Management — Detector constraints](../ruleset-management/index.md#detector-constraints) for details.
+> **Note:** Ruleset Management enforces a configurable maximum number of rules per user-created detector (`plugins.security_analytics.max_rules_per_detector`, default `50`). The standard detectors the Content Manager creates are not limited: each one holds every enabled rule of its integration. See [Ruleset Management — Detector constraints](../ruleset-management/index.md#detector-constraints) for details.
 
 ### Space service
 
@@ -125,7 +125,7 @@ Job scheduler triggers
   → If remote init fails: fallback to the stable snapshot, then to the local packaged snapshot
   → Extracts and bulk-indexes into wazuh-threatintel-rules, wazuh-threatintel-decoders, etc.
   → Updates .wazuh-cti-consumers with new offset
-  → Ruleset Management service creates detectors using dynamic CTI configuration (max rules per detector configurable, default 50)
+  → Ruleset Management service creates detectors using dynamic CTI configuration (standard detectors are not limited by the maximum rules per detector)
 ```
 
 ### Offline update

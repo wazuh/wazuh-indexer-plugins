@@ -107,7 +107,7 @@ Content is not being updated despite having a valid subscription.
 **Symptoms:** Creating or updating a decoder (or any resource with a `check`/`detection` expression) fails with an Engine validation error naming a field that looks correct, for example:
 
 ```
-{"message":"Engine validation failed. Failed to validate resource of type 'decoder': Validation failed for 'decoder': Failed to build operation 'tmp_json.event.action: string_equal(\"netflow_flow\")': Field 'tmp_json.event.action' is not defined in WCS schema and is not a temporary field"}
+{"message":"Engine validation failed. Failed to validate resource of type 'decoder': Validation failed for 'decoder': Failed to build operation 'tmp_json.event.action: string_eq(\"netflow_flow\")': Field 'tmp_json.event.action' is not defined in WCS schema and is not a temporary field (root must start with '_')","status":400}
 ```
 
 **Cause:** The Engine validates every field referenced in a `check` or `detection` expression against the Wazuh Common Schema (WCS). A field that is intentionally temporary — used only during decoding and not part of the final normalized event — is not in WCS by definition, so the Engine only accepts it if it's prefixed with an underscore.
@@ -120,7 +120,7 @@ Prefix temporary fields with `_` in both the check expression and anywhere else 
 {
   "check": [
     {
-      "_tmp_json.event.action": "string_equal(\"netflow_flow\")"
+      "_tmp_json.event.action": "string_eq(\"netflow_flow\")"
     }
   ]
 }
@@ -140,21 +140,21 @@ The Unix socket used for Engine communication does not exist.
 2. Check the Engine configuration for the socket path.
 3. Ensure the `engine/sockets/` directory exists under the Wazuh Indexer installation path.
 
-### Sync fails with a request timeout during a CTI rate-limit
+### Sync fails with a request timeout or a closed connection
 
-A synchronization pass fails and the log shows a timeout on a CTI request, e.g.:
+A synchronization pass fails and the log shows a timeout or a closed connection on a CTI request, e.g.:
 
 ```
 Error during content update: Timeout deadline: 10000 MILLISECONDS, actual: 10000 MILLISECONDS
 ```
 
-This means the CTI API rate-limited the request (HTTP 429). The client now honors the response `Retry-After` header and retries automatically (see [CTI rate-limit retries](configuration.md#cti-rate-limit-retries-http-429)), so a transient rate-limit self-recovers within the pass.
+This means every attempt at the request failed: the response took longer than `plugins.content_manager.client.timeout`, or the connection was closed or reset before it arrived. The client retries these errors, and HTTP 429 responses, with backoff (see [CTI request retries](configuration.md#cti-request-retries)), so a transient failure recovers within the pass.
 
 #### Resolution
 
 1. If the failure is transient, no action is needed — the request is retried and the next scheduled sync resumes from the last checkpoint (no data is lost or duplicated).
-2. If 429s persist across passes, the instance is being rate-limited by CTI for longer than the retry budget. Increase `plugins.content_manager.client.max_retries` and/or `plugins.content_manager.client.retry_backoff_base_seconds`.
-3. Look for the warning `CTI API rate-limited request [...] (HTTP 429); retrying in {}s` in the logs to confirm the retry path is engaging.
+2. If the failure persists across passes, the CTI API stays slow or rate-limited, or keeps dropping the connection, for longer than the retry budget. Increase `plugins.content_manager.client.max_retries` and/or `plugins.content_manager.client.retry_backoff_base_seconds`, or `plugins.content_manager.client.timeout` for a slow link.
+3. Look for the warnings `CTI API request [...] failed (...); retrying in {}s` and `CTI API rate-limited request [...] (HTTP 429); retrying in {}s` in the logs to confirm the retry path is engaging.
 
 ### Resource creation fails with a missing `indices:admin/create` permission
 
@@ -308,23 +308,23 @@ Content Manager logs are part of the Wazuh Indexer logs. Use the following patte
 ```bash
 # General Content Manager activity
 grep -i "content.manager\|ContentManager\|CatalogSync" \
-  /var/log/wazuh-indexer/wazuh-indexer.log
+  /var/log/wazuh-indexer/wazuh-cluster.log
 
 # Sync job execution
 grep -i "CatalogSyncJob\|consumer-sync" \
-  /var/log/wazuh-indexer/wazuh-indexer.log
+  /var/log/wazuh-indexer/wazuh-cluster.log
 
 # CTI API communication
 grep -i "cti\|CTIClient" \
-  /var/log/wazuh-indexer/wazuh-indexer.log
+  /var/log/wazuh-indexer/wazuh-cluster.log
 
 # Engine socket communication
 grep -i "engine.*socket\|EngineClient" \
-  /var/log/wazuh-indexer/wazuh-indexer.log
+  /var/log/wazuh-indexer/wazuh-cluster.log
 
 # Errors only
 grep -i "ERROR.*content.manager" \
-  /var/log/wazuh-indexer/wazuh-indexer.log
+  /var/log/wazuh-indexer/wazuh-cluster.log
 ```
 
 ## Resetting content

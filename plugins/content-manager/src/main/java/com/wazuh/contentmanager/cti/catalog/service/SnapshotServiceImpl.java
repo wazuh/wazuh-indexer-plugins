@@ -72,6 +72,12 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final Path stablePath;
 
     /**
+     * Empties the content a snapshot replaces, before either load path writes anything. Which content
+     * that is, and what emptying it means, belongs to the consumer: see {@link ContentWiper}.
+     */
+    private final ContentWiper contentWiper;
+
+    /**
      * Whether a successful load records its offset in the consumer document. False for a load into
      * staging indices, see {@link #forStaging}.
      */
@@ -103,6 +109,8 @@ public class SnapshotServiceImpl implements SnapshotService {
      * @param snapshotsDir The plugin's local snapshots directory, or {@code null} when stable
      *     snapshot retention is not needed (e.g. shadow swap, tests).
      * @param snapshotFilename The consumer's snapshot filename (e.g. "ruleset.zip"), or {@code null}.
+     * @param contentWiper Empties the content a snapshot replaces, before either load path writes
+     *     anything. The consumer owns that decision, see {@link ContentWiper}.
      */
     public SnapshotServiceImpl(
             String consumerType,
@@ -111,7 +119,8 @@ public class SnapshotServiceImpl implements SnapshotService {
             Environment environment,
             ResourceUrlResolver urlResolver,
             Path snapshotsDir,
-            String snapshotFilename) {
+            String snapshotFilename,
+            ContentWiper contentWiper) {
         this(
                 consumerType,
                 indicesMap,
@@ -120,6 +129,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                 urlResolver,
                 snapshotsDir,
                 snapshotFilename,
+                contentWiper,
                 true);
     }
 
@@ -131,6 +141,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             ResourceUrlResolver urlResolver,
             Path snapshotsDir,
             String snapshotFilename,
+            ContentWiper contentWiper,
             boolean recordsLocalOffset) {
         this.consumerType = consumerType;
         this.recordsLocalOffset = recordsLocalOffset;
@@ -140,6 +151,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.pluginSettings = PluginSettings.getInstance();
         this.mapper = new ObjectMapper();
         this.snapshotClient = new SnapshotClient(this.environment, urlResolver, consumerType);
+        this.contentWiper = Objects.requireNonNull(contentWiper, "contentWiper");
 
         if (snapshotsDir != null && snapshotFilename != null) {
             String stableFilename = snapshotFilename.replace(".zip", Constants.STABLE_SNAPSHOT_SUFFIX);
@@ -157,14 +169,24 @@ public class SnapshotServiceImpl implements SnapshotService {
      * @param consumersIndex The consumers index to update consumer state.
      * @param environment The OpenSearch environment.
      * @param urlResolver The resolver used to transform resource URLs before making HTTP requests.
+     * @param contentWiper Empties the content a snapshot replaces, see {@link ContentWiper}.
      */
     public SnapshotServiceImpl(
             String consumerType,
             Map<String, ContentIndex> indicesMap,
             ConsumersIndex consumersIndex,
             Environment environment,
-            ResourceUrlResolver urlResolver) {
-        this(consumerType, indicesMap, consumersIndex, environment, urlResolver, null, null);
+            ResourceUrlResolver urlResolver,
+            ContentWiper contentWiper) {
+        this(
+                consumerType,
+                indicesMap,
+                consumersIndex,
+                environment,
+                urlResolver,
+                null,
+                null,
+                contentWiper);
     }
 
     /**
@@ -175,19 +197,30 @@ public class SnapshotServiceImpl implements SnapshotService {
      * @param indicesMap A map of content types to their corresponding ContentIndex.
      * @param consumersIndex The consumers index to update consumer state.
      * @param environment The OpenSearch environment.
+     * @param contentWiper Empties the content a snapshot replaces, see {@link ContentWiper}.
      */
     public SnapshotServiceImpl(
             String consumerType,
             Map<String, ContentIndex> indicesMap,
             ConsumersIndex consumersIndex,
-            Environment environment) {
-        this(consumerType, indicesMap, consumersIndex, environment, new RegularUrlResolver());
+            Environment environment,
+            ContentWiper contentWiper) {
+        this(
+                consumerType,
+                indicesMap,
+                consumersIndex,
+                environment,
+                new RegularUrlResolver(),
+                contentWiper);
     }
 
     /**
      * Creates a service that loads a snapshot into the staging indices of a swap. The consumer
      * document describes the live content, which a staging load does not change, so the load leaves
      * the document alone; the swap records the new offsets once the staging indices are live.
+     *
+     * <p>Staging indices are created empty immediately before the load, so the service is given a
+     * wiper that does nothing: see {@link ContentWiper#none()}.
      *
      * @param consumerType The consumer type identifier.
      * @param stagingIndices A map of content types to the staging indices to load into.
@@ -201,7 +234,15 @@ public class SnapshotServiceImpl implements SnapshotService {
             Environment environment,
             ResourceUrlResolver urlResolver) {
         return new SnapshotServiceImpl(
-                consumerType, stagingIndices, null, environment, urlResolver, null, null, false);
+                consumerType,
+                stagingIndices,
+                null,
+                environment,
+                urlResolver,
+                null,
+                null,
+                ContentWiper.none(),
+                false);
     }
 
     /**
@@ -245,7 +286,29 @@ public class SnapshotServiceImpl implements SnapshotService {
                 return false;
             }
 
-            // 2. Stream and index JSON entries directly from the ZIP
+            // 2. Refuse a download that is not content of this consumer, and empty the content it
+            // replaces, in that order and both with the file already in hand. A download reports
+            // its HTTP status and nothing else, so a transfer cut short or an error page arrives
+            // here as a perfectly readable path; checking it before the wipe is what keeps a bad
+            // download from costing the content it was never going to replace. The rest of the
+            // file is checked as it loads, the same as for a file on disk.
+            String rejection = this.checkSnapshotFile(snapshotZip);
+            if (rejection != null) {
+                log.error(
+                        Constants.E_LOG_SNAPSHOT_FILE_REJECTED,
+                        snapshotZip.getFileName(),
+                        this.consumerType,
+                        rejection);
+                this.cleanup(snapshotZip);
+                return false;
+            }
+            if (!this.contentWiper.wipe()) {
+                log.error(Constants.E_LOG_SNAPSHOT_WIPE_FAILED, this.consumerType);
+                this.cleanup(snapshotZip);
+                return false;
+            }
+
+            // 3. Stream and index JSON entries directly from the ZIP
             startMs = System.currentTimeMillis();
             this.processZip(snapshotZip);
 
@@ -271,7 +334,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                         System.currentTimeMillis() - startMs);
             }
 
-            // 3. Refuse to commit a partial load, before touching stable or the offset. A dropped
+            // 4. Refuse to commit a partial load, before touching stable or the offset. A dropped
             // document means the snapshot did not index in full, so it must neither advance
             // local_offset (the next sync would skip the gap) nor be promoted to stable: "stable"
             // means a snapshot indexed in full at least once, and promoting a partial load would
@@ -288,7 +351,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                 return false;
             }
 
-            // 4. Promote to stable or clean up temp
+            // 5. Promote to stable or clean up temp
             if (this.stablePath != null) {
                 if (!promoteToStable(snapshotZip, this.stablePath)) {
                     this.cleanup(snapshotZip);
@@ -297,7 +360,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                 this.cleanup(snapshotZip);
             }
 
-            // 5. Partial update of consumer state: bump local_offset to the snapshot offset and
+            // 6. Partial update of consumer state: bump local_offset to the snapshot offset and
             // keep the remote_offset (set at t0 from RemoteConsumer.last_offset) so the
             // incremental update path can close the gap. Identity fields and status are preserved
             // from the t0 write. A staging load leaves the document alone.
@@ -597,8 +660,13 @@ public class SnapshotServiceImpl implements SnapshotService {
 
             this.resetDroppedDocuments();
 
-            // 1. Clear indices
-            this.indicesMap.values().forEach(ContentIndex::clear);
+            // 1. Empty the content this snapshot replaces. What emptying means belongs to the
+            // consumer, not to this service: see ContentWiper. The file has already been checked
+            // above, so nothing is removed for a file that was never going to load.
+            if (!this.contentWiper.wipe()) {
+                log.error(Constants.E_LOG_SNAPSHOT_WIPE_FAILED, this.consumerType);
+                return false;
+            }
 
             // 2. Stream and index JSON entries directly from the ZIP
             AccessController.doPrivilegedChecked(

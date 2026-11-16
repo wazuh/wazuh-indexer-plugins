@@ -385,7 +385,7 @@ Sends a log event to the Wazuh Engine for analysis. If an `integration` ID is pr
 - **`location`** (String, required) — log file path or logical source location.
 - **`event`** (String, required) — raw log event to test.
 - **`metadata`** (Object, optional) — optional metadata passed to the Engine.
-- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`.
+- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`. Defaults to `NONE`.
 
 #### Example request
 
@@ -578,7 +578,7 @@ Sends a log event to the Wazuh Engine for decoding and normalization without per
 - **`location`** (String, optional) — log file path or logical source location.
 - **`event`** (String, optional) — raw log event to normalize.
 - **`metadata`** (Object, optional) — optional metadata passed to the Engine.
-- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`.
+- **`trace_level`** (String, optional) — trace verbosity: `NONE`, `ASSET_ONLY`, or `ALL`. Defaults to `NONE`.
 
 #### Example request
 
@@ -811,10 +811,18 @@ Fields within `resource`:
 - **`root_decoder`** (String, optional) — identifier of the root decoder for event processing.
 - **`integrations`** (Array, optional) — list of integration IDs (reorder only, no add/remove).
 - **`filters`** (Array, optional) — list of filter UUIDs (reorder only, no add/remove).
-- **`enrichments`** (Array, optional) — enrichment types (no duplicates; values depend on engine capabilities).
+- **`enrichments`** (Array, optional) — enrichment types (no duplicates; values depend on engine capabilities). An empty array removes every enrichment.
 - **`enabled`** (Boolean, required) — whether the policy is active and synchronized by the Engine.
 - **`index_unclassified_events`** (Boolean, required) — whether uncategorized events are indexed.
 - **`index_discarded_events`** (Boolean, required) — whether discarded events are indexed.
+
+An array left out of the request (`integrations`, `filters` or `enrichments`), or sent as `null`, keeps its current value. In the standard space, the `enrichments` of a request are also kept across content updates, while a request without the field leaves the list to follow the published content, or the selection saved earlier.
+
+In the standard space, `enrichments` is still the list of enrichments that are on, but the indexer records the choice as the types the request turned off: the published types that the request leaves out. After every content update, the policy has every enrichment the published content carries except those. As a result:
+
+- A type that the published content adds after the save is on, until a request turns it off.
+- A type turned off stays off across content updates, also when the published content drops it and adds it back later. Sending it again turns it back on.
+- `"enrichments": []` turns off every type published at that moment. A type published later is on.
 
 Fields within `resource.metadata`:
 
@@ -887,6 +895,55 @@ The `message` field contains the OpenSearch document ID of the updated policy.
 
 - **200** — policy updated.
 - **400** — invalid space, missing `resource` field, missing required fields, invalid enrichments, or disallowed modification of `integrations`/`filters`.
+- **500** — internal error.
+
+### List space resources
+
+Lists the resources of a space grouped by pipeline phase. `normalization` holds the ids of the space's decoders, filters and kvdbs — the resources that make the Engine require a root decoder — and `detection` holds its rules. A resource type with no documents in the space returns an empty array.
+
+Use it to find what a space still holds when a promotion fails with `Missing root decoder`: the decoders, kvdbs or filters left in the space must be deleted (or a new root decoder set) before the space can be promoted.
+
+#### Request
+
+- Method: `GET`
+- Path: `/_plugins/_content_manager/policy/resources`
+
+#### Query parameters
+
+- **`space`** (String, required) — the space to list (`draft`, `test`, or `custom`). The `standard` space is not supported.
+
+#### Example request
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD \
+  "https://127.0.0.1:9200/_plugins/_content_manager/policy/resources?space=test"
+```
+
+#### Example response
+
+```json
+{
+  "normalization": {
+    "decoders": ["5d1f34c6-7b8d-466f-9027-820ed0ead71d"],
+    "filters": ["6e2a45d7-8c9e-4a1b-9138-931fe1fbe82e"],
+    "kvdbs": ["7f3b56e8-9daf-4b2c-a249-a42af2fcf93f"]
+  },
+  "detection": {
+    "rules": []
+  },
+  "status": 200
+}
+```
+
+#### Permissions
+
+The caller needs the `read` index privilege on the resource indices (`wazuh-threatintel-*`). A caller that cannot read them gets a `403` instead of an empty list, so an authorization error is never mistaken for an empty space.
+
+#### Status codes
+
+- **200** — resources returned.
+- **400** — missing, unknown, or unsupported `space` (the `standard` space is not supported).
+- **403** — the caller lacks the `read` privilege on the resource indices.
 - **500** — internal error.
 
 ---
@@ -1176,14 +1233,14 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
       "name": "decoder/core-wazuh-message/0",
       "check": [
         {
-          "_tmp_json.event.action": "string_equal(\"netflow_flow\")"
+          "_tmp_json.event.action": "string_eq(\"netflow_flow\")"
         }
       ],
       "normalize": [
         {
           "map": [
             {
-              "@timestamp": "get_date()"
+              "@timestamp": "now()"
             }
           ]
         }
@@ -1225,10 +1282,10 @@ resource:
       - "Wazuh 5.*"
   name: decoder/core-wazuh-message/0
   check:
-    - _tmp_json.event.action: "string_equal(\"netflow_flow\")"
+    - _tmp_json.event.action: "string_eq(\"netflow_flow\")"
   normalize:
     - map:
-        - "@timestamp": "get_date()"
+        - "@timestamp": "now()"
 '
 ```
 
@@ -1276,14 +1333,14 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
       },
       "check": [
         {
-          "event.action": "string_equal(\"netflow_flow\")"
+          "event.action": "string_eq(\"netflow_flow\")"
         }
       ],
       "normalize": [
         {
           "map": [
             {
-              "@timestamp": "get_date()"
+              "@timestamp": "now()"
             }
           ]
         }
@@ -2062,6 +2119,8 @@ Promotes content from the source space to the next space in the promotion chain 
 
 Both promotion targets (`test` and `custom`) are validated by the local Wazuh Engine. The Engine is called when the changeset includes decoders, kvdbs, or filters, and also when it does not but the target space already holds engine resources; a changeset limited to integrations, rules, or the policy against an empty target space skips the call.
 
+A target space left without decoders, kvdbs, or filters, for example after its root decoder is unset and the decoder deleted, is sent to the Engine without integrations, even if it still holds empty or rule-only integrations. The Engine then removes the space's testing environment instead of asking for a root decoder, so the promotion succeeds. From then on `POST /logtest` against that space reports `The '<space>' environment does not exist.` in its `normalization` section, while `POST /logtest/detection` keeps evaluating the space's rules.
+
 In addition to copying documents across CTI indices, promotion also synchronizes **integrations** and **rules** with the Ruleset Management plugin. For each promoted resource, a new document is created in the target space with:
 - A newly generated UUID as the primary ID.
 - A `document.id` field storing the original CTI document UUID for cross-reference.
@@ -2149,13 +2208,15 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
 
 ## Spaces
 
+> **Concurrency**: the full reset and the two scoped clears run one at a time per space (a space lock), so they cannot interleave and leave an integration half-reconciled. A request that arrives while another reset or clear is already running on the same space is answered `429` (`Too many concurrent requests clearing this space. Please retry.`); retry shortly.
+
 ### Reset space
 
-Resets a user space (`draft`) to its initial state.
+Resets a user space (`draft`): removes its content and resets the policy's settings to default, while **keeping the space's metadata** (title, author, description, …).
 
 When resetting the `draft` space, this operation will:
 - Remove all documents (integrations, rules, decoders, kvdbs, filters, and the space's policy document) that belong to the given space.
-- Re-generate the default policy for the given space.
+- Re-generate the policy for the given space with default settings (`enrichments`, `enabled`, the `index_*` flags), **preserving its metadata**.
 
 > **Note**: Only the `draft` space can be reset.
 
@@ -2188,6 +2249,91 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 - **200** — space reset successfully.
 - **400** — invalid space identifier, or attempted to reset a space different from `draft`.
+- **429** — another reset or clear is already running on this space; retry shortly.
+- **500** — internal error (e.g., Engine unavailable or deletion failure).
+
+---
+
+### Clear space normalization resources
+
+Clears only the **normalization** resources of the `draft` space: decoders, kvdbs, filters, and the policy's root decoder. The detection resources (rules) are left untouched. Any integration left with no decoders, rules or kvdbs is removed; protected integrations are kept.
+
+> **Note**: Only the `draft` space can be cleared, and like [Reset space](#reset-space) it is authorized by the `cluster:admin/content_manager/space/delete` action, so it adds no new permission; see the [permissions reference](../../security/permissions.md) for the actions this action group grants.
+>
+> **Scope compared to a full reset**: the scoped clears remove resources and the policy's references to them (the root decoder, and integration and filter references) only. They do **not** reset the policy's own settings (`enrichments`, `enabled`, `index_unclassified_events`, `index_discarded_events`), which [Reset space](#reset-space) re-seeds to default. The policy metadata (title, author, description, …) is kept by both. Clearing normalization and then detection therefore empties the draft of every resource (the same resource end state a reset leaves) but keeps the space-level policy settings that a full reset would reset.
+
+#### Request
+
+- Method: `DELETE`
+- Path: `/_plugins/_content_manager/space/{space}/normalization`
+
+#### Parameters
+
+- **`space`** (Path, String, required) — the name of the user space to clear (`draft`).
+
+#### Example request
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
+  "https://127.0.0.1:9200/_plugins/_content_manager/space/draft/normalization"
+```
+
+#### Example response
+
+```json
+{
+  "message": "Successfully cleared normalization resources for space [draft].",
+  "status": 200
+}
+```
+
+#### Status codes
+
+- **200** — normalization resources cleared successfully.
+- **400** — invalid space identifier, or attempted to clear a space different from `draft`.
+- **429** — another reset or clear is already running on this space; retry shortly.
+- **500** — internal error (e.g., Engine unavailable or deletion failure).
+
+---
+
+### Clear space detection resources
+
+Clears only the **detection** resources of the `draft` space: rules, removed from both the index and Security Analytics. The normalization resources (decoders, kvdbs, filters and the root decoder) are left untouched. Any integration left with no decoders, rules or kvdbs is removed; protected integrations are kept.
+
+> **Note**: Only the `draft` space can be cleared, and like [Reset space](#reset-space) it is authorized by the `cluster:admin/content_manager/space/delete` action, so it adds no new permission; see the [permissions reference](../../security/permissions.md) for the actions this action group grants.
+>
+> Like the normalization clear, this endpoint removes resources and their policy references only; it does **not** reset the policy's own settings (`enrichments`, `enabled`, the `index_*` flags), which a full [Reset space](#reset-space) re-seeds to default (both keep the policy metadata). See [Clear space normalization resources](#clear-space-normalization-resources) for the full comparison.
+
+#### Request
+
+- Method: `DELETE`
+- Path: `/_plugins/_content_manager/space/{space}/detection`
+
+#### Parameters
+
+- **`space`** (Path, String, required) — the name of the user space to clear (`draft`).
+
+#### Example request
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
+  "https://127.0.0.1:9200/_plugins/_content_manager/space/draft/detection"
+```
+
+#### Example response
+
+```json
+{
+  "message": "Successfully cleared detection resources for space [draft].",
+  "status": 200
+}
+```
+
+#### Status codes
+
+- **200** — detection resources cleared successfully.
+- **400** — invalid space identifier, or attempted to clear a space different from `draft`.
+- **429** — another reset or clear is already running on this space; retry shortly.
 - **500** — internal error (e.g., Engine unavailable or deletion failure).
 
 ---
@@ -2196,7 +2342,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 ### Check available updates
 
-Returns whether there are newer versions of Wazuh available for download. The endpoint reads the current installed version from `VERSION.json` and queries the CTI API for available updates. The response includes the latest available major, minor, and patch updates when available.
+Returns whether there are newer versions of Wazuh available for download. The endpoint queries the CTI API with the node's version tag, built at plugin startup from `VERSION.json` — `v<version>` when pointing to the production CTI, `v<version>-<stage>` when pointing to the pre-release CTI — and echoed back as `current_version`. The response includes the latest available major, minor, and patch updates when available.
 
 Every call queries CTI; nothing is cached. Calls that arrive while a check is in progress share its result. Each node rate limits its CTI queries with a token bucket. Once the bucket is empty, the endpoint answers `429` with a `Retry-After` header holding the seconds until the next check is allowed.
 

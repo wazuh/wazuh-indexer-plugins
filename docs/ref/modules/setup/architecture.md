@@ -24,27 +24,13 @@ The marker transitions once per boot:
 
 Writing the marker is best-effort: a failure to persist it is logged but never interrupts node startup.
 
-### Readiness marker
-
-The plugin persists its initialization state in a hidden, single-document index,
-`.wazuh-setup-status`, managed by the `SetupStatusIndex` class. Other plugins (currently the
-Content Manager) read this marker to defer their own startup work until Setup has finished
-creating its indices, avoiding races where a dependent index template doesn't exist yet.
-
-The marker transitions once per boot:
-
-| Value     | Meaning                                                                                                                                                                          |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `running` | Index initialization is in progress (set when `SetupStatusIndex.initialize()` runs at the start of index initialization, overwriting any marker left over from a previous boot). |
-| `ready`   | All index templates, indices and data streams have been created successfully.                                                                                                    |
-| `failed`  | Index initialization could not complete (an unhandled exception was thrown while initializing one of the indices).                                                               |
-
-Writing the marker is best-effort: a failure to persist it is logged but never interrupts node
-startup.
-
 ### Replica configuration
 
 During the node initialization, the plugin checks for the presence of the `cluster.default_number_of_replicas` setting in the node configuration. If this setting is defined, the plugin automatically updates the cluster's persistent settings with this value. This ensures that the default number of replicas is consistently applied across the cluster as defined in the configuration file.
+
+The packaged configuration sets `cluster.default_number_of_replicas` to `0`, so that a single node stays green. The Wazuh indices set `index.auto_expand_replicas: 0-1` instead: no replica on a single node, and one replica as soon as a second node joins, so the cluster can lose a node without losing a primary.
+
+Two plugins create internal indices with a fixed replica count and no auto-expand option: Index State Management, for its history indices (`.opendistro-ism-managed-index-history-*`), and the security plugin, for the backing indices of the `security-auditlogs` data stream (`.ds-security-auditlogs-*`). The setup plugin creates these indices with `index.auto_expand_replicas: 0-1` too.
 
 ## Wazuh Common Schema
 

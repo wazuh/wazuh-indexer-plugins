@@ -34,6 +34,7 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.GroupedActionListener;
+import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
@@ -116,8 +117,29 @@ public class SpaceService {
      * @param listener notified on completion or failure.
      */
     public void deleteSpaceResources(Space space, ActionListener<Void> listener) {
+        deleteSpaceResources(
+                space,
+                new ArrayList<>(Constants.RESOURCE_INDICES.values()),
+                ActionListener.wrap(deleted -> listener.onResponse(null), listener::onFailure));
+    }
+
+    /**
+     * Deletes all documents related to a specific space across the given resource indices only.
+     *
+     * <p>Used by the scoped space clears, which wipe only one side of the draft (normalization or
+     * detection) instead of every resource index. The full reset calls the no-subset overload, which
+     * delegates here with the complete {@link Constants#RESOURCE_INDICES} list.
+     *
+     * @param space The space to wipe.
+     * @param indexNames The resource indices to delete from (a subset of {@link
+     *     Constants#RESOURCE_INDICES}).
+     * @param listener receives {@code true} if any document was deleted, {@code false} if there was
+     *     nothing to delete, or a failure. The scoped clears use this to skip the hash recompute on a
+     *     no-op (issue #1722).
+     */
+    public void deleteSpaceResources(
+            Space space, List<String> indexNames, ActionListener<Boolean> listener) {
         String spaceName = space.toString();
-        List<String> indexNames = new ArrayList<>(Constants.RESOURCE_INDICES.values());
         BulkRequest bulkRequest = new BulkRequest();
         collectDeleteRequestsAsync(
                 spaceName,
@@ -127,7 +149,7 @@ public class SpaceService {
                 ActionListener.wrap(
                         v -> {
                             if (bulkRequest.numberOfActions() == 0) {
-                                listener.onResponse(null);
+                                listener.onResponse(false);
                                 return;
                             }
                             bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
@@ -140,7 +162,7 @@ public class SpaceService {
                                                             new IOException(
                                                                     "Bulk deletion failed: " + bulkResponse.buildFailureMessage()));
                                                 } else {
-                                                    listener.onResponse(null);
+                                                    listener.onResponse(true);
                                                 }
                                             },
                                             listener::onFailure));
@@ -163,57 +185,30 @@ public class SpaceService {
             return;
         }
         String indexName = indexNames.get(idx);
-        this.client
-                .admin()
-                .indices()
-                .exists(
-                        new IndicesExistsRequest(indexName),
-                        ActionListener.wrap(
-                                existsResponse -> {
-                                    if (!existsResponse.isExists()) {
-                                        collectDeleteRequestsAsync(
-                                                spaceName, indexNames, idx + 1, bulkRequest, listener);
-                                        return;
-                                    }
-                                    SearchRequest searchRequest = new SearchRequest(indexName);
-                                    SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
-                                    // Selecting by space is also what keeps the user-overrides registry
-                                    // document alive: it carries no space.name on purpose. Widening this to
-                                    // match every document in the index would delete it, and silently lose
-                                    // the user's policy settings and the filters they created.
-                                    sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
-                                    sourceBuilder.size(Constants.MAX_RESULT_WINDOW);
-                                    sourceBuilder.fetchSource(false);
-                                    searchRequest.source(sourceBuilder);
+        // No indices:admin/exists pre-check: lenient options treat a missing index as empty, and a real
+        // failure propagates instead of being swallowed, which would let a scoped clear report success
+        // after deleting nothing.
+        SearchRequest searchRequest =
+                new SearchRequest(indexName).indicesOptions(IndicesOptions.lenientExpandOpen());
+        SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
+        // Selecting by space is also what keeps the user-overrides registry document alive: it carries
+        // no space.name on purpose. Widening this to match every document in the index would delete it,
+        // and silently lose the user's policy settings and the filters they created.
+        sourceBuilder.query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName));
+        sourceBuilder.size(Constants.MAX_RESULT_WINDOW);
+        sourceBuilder.fetchSource(false);
+        searchRequest.source(sourceBuilder);
 
-                                    this.client.search(
-                                            searchRequest,
-                                            ActionListener.wrap(
-                                                    searchResponse -> {
-                                                        for (SearchHit hit : searchResponse.getHits().getHits()) {
-                                                            bulkRequest.add(new DeleteRequest(indexName, hit.getId()));
-                                                        }
-                                                        collectDeleteRequestsAsync(
-                                                                spaceName, indexNames, idx + 1, bulkRequest, listener);
-                                                    },
-                                                    e -> {
-                                                        log.warn(
-                                                                "Failed to search index [{}] for space [{}] during delete, skipping: {}",
-                                                                indexName,
-                                                                spaceName,
-                                                                e.getMessage());
-                                                        collectDeleteRequestsAsync(
-                                                                spaceName, indexNames, idx + 1, bulkRequest, listener);
-                                                    }));
-                                },
-                                e -> {
-                                    log.warn(
-                                            "Failed to check existence of index [{}] for space [{}] during delete, skipping: {}",
-                                            indexName,
-                                            spaceName,
-                                            e.getMessage());
-                                    collectDeleteRequestsAsync(spaceName, indexNames, idx + 1, bulkRequest, listener);
-                                }));
+        this.client.search(
+                searchRequest,
+                ActionListener.wrap(
+                        searchResponse -> {
+                            for (SearchHit hit : searchResponse.getHits().getHits()) {
+                                bulkRequest.add(new DeleteRequest(indexName, hit.getId()));
+                            }
+                            collectDeleteRequestsAsync(spaceName, indexNames, idx + 1, bulkRequest, listener);
+                        },
+                        listener::onFailure));
     }
 
     /**
@@ -228,6 +223,26 @@ public class SpaceService {
      * @param listener notified on completion or failure.
      */
     public void initializeSpace(String spaceName, String documentId, ActionListener<Void> listener) {
+        this.initializeSpace(spaceName, documentId, null, listener);
+    }
+
+    /**
+     * Same as {@link #initializeSpace(String, String, ActionListener)}, but keeps the given metadata
+     * block (title, author, description, references, documentation, …) on the re-seeded policy
+     * instead of the default. The full space reset uses this so a reset does not wipe the space's own
+     * metadata. Pass {@code null} to get the default metadata.
+     *
+     * @param spaceName The space name.
+     * @param documentId Shared policy ID stored inside the document to link all default spaces.
+     * @param preservedMetadata The {@code document.metadata} block to keep, or {@code null} for the
+     *     default.
+     * @param listener notified on completion or failure.
+     */
+    public void initializeSpace(
+            String spaceName,
+            String documentId,
+            Map<String, Object> preservedMetadata,
+            ActionListener<Void> listener) {
         String spaceDocId =
                 UUID.nameUUIDFromBytes(("wazuh-space-" + spaceName).getBytes(StandardCharsets.UTF_8))
                         .toString();
@@ -256,6 +271,12 @@ public class SpaceService {
 
             ObjectNode docNode = this.objectMapper.valueToTree(policy);
             Resource.nestMetadataFields(docNode);
+
+            // Keep the previous metadata (title, author, description, …) when the caller provides it,
+            // e.g. a full reset that must not wipe the space's own metadata.
+            if (preservedMetadata != null && !preservedMetadata.isEmpty()) {
+                docNode.set(Constants.KEY_METADATA, this.objectMapper.valueToTree(preservedMetadata));
+            }
 
             String docJson = this.objectMapper.writeValueAsString(docNode);
             String docHash = Resource.computeSha256(docJson);
@@ -351,6 +372,59 @@ public class SpaceService {
         List<Map.Entry<String, String>> entries =
                 new ArrayList<>(Constants.RESOURCE_INDICES.entrySet());
         fetchResourceTypeAsync(spaceName, entries, 0, new HashMap<>(), listener);
+    }
+
+    /**
+     * Fetches the document ids of the given resource types in a space, sorted.
+     *
+     * <p>Unlike {@link #getSpaceResourcesAsync}, a resource index that cannot be read fails the
+     * listener instead of being reported as empty, so a caller can tell "none" from "not readable". A
+     * missing index counts as empty, and only the {@code read} privilege is needed (no {@code
+     * indices:admin/exists} pre-check).
+     *
+     * @param spaceName The space to filter by.
+     * @param resourceTypes The resource types to list (keys of {@link Constants#RESOURCE_INDICES}).
+     * @param listener receives a map of resource type to its sorted ids.
+     */
+    public void getSpaceResourceIdsAsync(
+            String spaceName,
+            List<String> resourceTypes,
+            ActionListener<Map<String, List<String>>> listener) {
+        GroupedActionListener<Map.Entry<String, List<String>>> group =
+                new GroupedActionListener<>(
+                        ActionListener.wrap(
+                                entries -> {
+                                    Map<String, List<String>> result = new HashMap<>();
+                                    entries.forEach(e -> result.put(e.getKey(), e.getValue()));
+                                    listener.onResponse(result);
+                                },
+                                listener::onFailure),
+                        resourceTypes.size());
+        for (String resourceType : resourceTypes) {
+            SearchRequest searchRequest =
+                    new SearchRequest(Constants.RESOURCE_INDICES.get(resourceType))
+                            .indicesOptions(IndicesOptions.lenientExpandOpen());
+            searchRequest.source(
+                    new SearchSourceBuilder()
+                            .query(QueryBuilders.termQuery(Constants.Q_SPACE_NAME, spaceName))
+                            .fetchSource(new String[] {Constants.Q_DOCUMENT_ID}, null)
+                            .size(Constants.MAX_RESULT_WINDOW));
+            this.client.search(
+                    searchRequest,
+                    ActionListener.wrap(
+                            response -> {
+                                List<String> ids = new ArrayList<>();
+                                for (SearchHit hit : response.getHits().getHits()) {
+                                    String docId = this.getDocumentId(hit.getSourceAsMap());
+                                    if (docId != null) {
+                                        ids.add(docId);
+                                    }
+                                }
+                                ids.sort(String::compareTo);
+                                group.onResponse(Map.entry(resourceType, ids));
+                            },
+                            group::onFailure));
+        }
     }
 
     private void fetchResourceTypeAsync(
@@ -649,6 +723,15 @@ public class SpaceService {
                         listener::onFailure));
     }
 
+    /**
+     * Assembles the {@code /content/validate/policy} payload of a space.
+     *
+     * <p>A space without decoders, kvdbs or filters (see {@link #hasEngineResourcesAsync}) is sent
+     * without integrations, both in the policy and in the resources, even when it still holds some
+     * (empty, or with rules only). The Engine builds a testing session only for a policy that lists
+     * integrations, and such a policy is rejected without a root decoder. With none listed, the
+     * Engine drops the space's testing session instead (wazuh-indexer#2026).
+     */
     private JsonNode assembleEnginePayload(
             Map<String, Object> policyDocument,
             String targetSpace,
@@ -656,6 +739,12 @@ public class SpaceService {
             Map<String, Map<String, Object>> targetKvdbs,
             Map<String, Map<String, Object>> targetDecoders,
             Map<String, Map<String, Object>> targetFilters) {
+
+        boolean engineEmpty =
+                targetDecoders.isEmpty() && targetKvdbs.isEmpty() && targetFilters.isEmpty();
+        if (engineEmpty && !targetIntegrations.isEmpty()) {
+            log.debug(Constants.D_LOG_ENGINE_PAYLOAD_WITHOUT_INTEGRATIONS, targetSpace);
+        }
 
         ObjectNode rootPayload = this.objectMapper.createObjectNode();
         boolean isTesterSpace = !Space.DRAFT.toString().equals(targetSpace);
@@ -672,10 +761,15 @@ public class SpaceService {
             JsonNode policyContentNode = this.objectMapper.valueToTree(policyDoc);
             policyNode.setAll((ObjectNode) policyContentNode);
         }
+        if (engineEmpty) {
+            policyNode.set(Constants.KEY_INTEGRATIONS, this.objectMapper.createArrayNode());
+        }
         fullPolicyNode.set(Constants.KEY_POLICY, policyNode);
 
         ObjectNode resourcesNode = this.objectMapper.createObjectNode();
-        resourcesNode.set(Constants.KEY_INTEGRATIONS, this.buildResourceArray(targetIntegrations));
+        resourcesNode.set(
+                Constants.KEY_INTEGRATIONS,
+                this.buildResourceArray(engineEmpty ? Collections.emptyMap() : targetIntegrations));
         resourcesNode.set(Constants.KEY_KVDBS, this.buildResourceArray(targetKvdbs));
         resourcesNode.set(Constants.KEY_DECODERS, this.buildResourceArray(targetDecoders));
         resourcesNode.set(Constants.KEY_FILTERS, this.buildResourceArray(targetFilters));
@@ -1113,29 +1207,17 @@ public class SpaceService {
      * @param listener The listener to notify with the set of changed space names.
      */
     public void calculateAndUpdate(List<String> targetSpaces, ActionListener<Set<String>> listener) {
-        this.client
-                .admin()
-                .indices()
-                .exists(
-                        new IndicesExistsRequest(Constants.INDEX_POLICIES),
-                        ActionListener.wrap(
-                                existsResponse -> {
-                                    if (!existsResponse.isExists()) {
-                                        log.warn(Constants.W_LOG_POLICY_INDEX_MISSING, Constants.INDEX_POLICIES);
-                                        listener.onResponse(new HashSet<>());
-                                        return;
-                                    }
-                                    searchPoliciesAndProcessAsync(targetSpaces, listener);
-                                },
-                                e -> {
-                                    log.error(Constants.E_LOG_CALCULATE_HASHES_FAILED, e.getMessage(), e);
-                                    listener.onResponse(new HashSet<>());
-                                }));
+        // No indices:admin/exists pre-check: the lenient search treats a missing policies index as
+        // empty, so the recompute needs only read. The old pre-check needed indices:admin/exists and
+        // swallowed a permission failure as success, leaving the hash stale after a scoped clear.
+        searchPoliciesAndProcessAsync(targetSpaces, listener);
     }
 
     private void searchPoliciesAndProcessAsync(
             List<String> targetSpaces, ActionListener<Set<String>> listener) {
-        SearchRequest searchRequest = new SearchRequest(Constants.INDEX_POLICIES);
+        SearchRequest searchRequest =
+                new SearchRequest(Constants.INDEX_POLICIES)
+                        .indicesOptions(IndicesOptions.lenientExpandOpen());
         // Only actual policies. Every policy carries space.name -- it is how the wipe, getPolicy and
         // the promotion flow all find them -- so requiring it here keeps documents that merely live in
         // this index from being processed as if they were policies. The user-overrides registry is one
@@ -1460,11 +1542,6 @@ public class SpaceService {
      * @return A set of known enrichment types.
      */
     public Set<String> getKnownEnrichmentTypes() {
-        // Get known enrichment types for validation dynamically from the IoC type hashes document
-        Set<String> knownEnrichmentTypes = new HashSet<>();
-        // 'geo' is a special case enrichment type that is not listed in the IOC type hashes document,
-        // but should be allowed
-        knownEnrichmentTypes.add("geo");
         try {
             GetRequest getRequest =
                     new GetRequest().index(Constants.INDEX_IOCS).id(Constants.IOC_TYPE_HASHES_ID);
@@ -1472,21 +1549,51 @@ public class SpaceService {
                     this.client
                             .get(getRequest)
                             .actionGet(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
-
-            if (response != null && response.isExists()) {
-                JsonNode jsonNode =
-                        this.objectMapper.valueToTree(response.getSourceAsMap().get(Constants.KEY_TYPE_HASHES));
-                if (jsonNode != null && jsonNode.isObject()) {
-                    Iterator<String> fieldNames = jsonNode.fieldNames();
-                    while (fieldNames.hasNext()) {
-                        knownEnrichmentTypes.add(fieldNames.next());
-                    }
-                }
-            } else {
-                log.warn(Constants.W_LOG_IOC_TYPE_HASHES_NOT_FOUND);
-            }
+            return this.knownEnrichmentTypes(response);
         } catch (Exception e) {
             log.error(Constants.E_LOG_RETRIEVE_ENRICHMENT_TYPES_FAILED, e.getMessage());
+            return this.knownEnrichmentTypes(null);
+        }
+    }
+
+    /**
+     * Asynchronous form of {@link #getKnownEnrichmentTypes()}, for callers running on a response
+     * thread, where blocking on the client is not allowed.
+     *
+     * @param listener receives the known enrichment types. It never fails: when the IOC type hashes
+     *     document cannot be read, it receives {@code geo} alone, as the synchronous form returns.
+     */
+    public void getKnownEnrichmentTypesAsync(ActionListener<Set<String>> listener) {
+        this.client.get(
+                new GetRequest().index(Constants.INDEX_IOCS).id(Constants.IOC_TYPE_HASHES_ID),
+                ActionListener.wrap(
+                        response -> listener.onResponse(this.knownEnrichmentTypes(response)),
+                        e -> {
+                            log.error(Constants.E_LOG_RETRIEVE_ENRICHMENT_TYPES_FAILED, e.getMessage());
+                            listener.onResponse(this.knownEnrichmentTypes(null));
+                        }));
+    }
+
+    /**
+     * @param response the IOC type hashes document, or {@code null} when it could not be read.
+     * @return {@code geo} plus every type listed in that document.
+     */
+    private Set<String> knownEnrichmentTypes(GetResponse response) {
+        Set<String> knownEnrichmentTypes = new HashSet<>();
+        // 'geo' is a special case enrichment type that is not listed in the IOC type hashes document,
+        // but should be allowed
+        knownEnrichmentTypes.add("geo");
+        if (response != null && response.isExists()) {
+            JsonNode jsonNode =
+                    this.objectMapper.valueToTree(response.getSourceAsMap().get(Constants.KEY_TYPE_HASHES));
+            if (jsonNode != null && jsonNode.isObject()) {
+                Iterator<String> fieldNames = jsonNode.fieldNames();
+                while (fieldNames.hasNext()) {
+                    knownEnrichmentTypes.add(fieldNames.next());
+                }
+            }
+        } else if (response != null) {
+            log.warn(Constants.W_LOG_IOC_TYPE_HASHES_NOT_FOUND);
         }
         return knownEnrichmentTypes;
     }

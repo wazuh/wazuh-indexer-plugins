@@ -31,6 +31,7 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+import org.opensearch.index.shard.IndexSettingProvider;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
@@ -57,6 +58,7 @@ import com.wazuh.setup.index.AiAssistantSettingsAdminIndex;
 import com.wazuh.setup.index.ContentIndex;
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
+import com.wazuh.setup.index.InternalIndexReplicas;
 import com.wazuh.setup.index.SettingsIndex;
 import com.wazuh.setup.index.SetupStatusIndex;
 import com.wazuh.setup.index.StateIndex;
@@ -341,5 +343,13 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
                 PluginSettings.BACKOFF,
                 PluginSettings.MAX_RETRIES,
                 PluginSettings.SETTINGS_UPDATE_ENABLED);
+    }
+
+    /**
+     * Gives a replica to the internal indices that other plugins create with a fixed replica count.
+     */
+    @Override
+    public Collection<IndexSettingProvider> getAdditionalIndexSettingProviders() {
+        return List.of(new InternalIndexReplicas());
     }
 }

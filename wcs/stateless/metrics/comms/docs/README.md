@@ -25,7 +25,7 @@ The detail of the fields can be found in the csv file [Fields](fields.csv).
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `@timestamp` | date | core | Date/time when the event originated. |
+| `@timestamp` | date_nanos | core | Date/time when the event originated, with nanosecond precision. |
 | `event.module` | keyword | core | Name of the module this data is coming from. |
 | `queue.size` | integer | custom | Current size in bytes of the received-message queue (gauge). |
 | `queue.capacity` | integer | custom | Maximum size in bytes configured for the received-message queue, where `0` means unlimited. |

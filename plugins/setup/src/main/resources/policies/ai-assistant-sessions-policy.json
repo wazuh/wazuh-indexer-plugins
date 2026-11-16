@@ -1,8 +1,8 @@
 {
   "policy": {
     "policy_id": "ai-assistant-sessions-policy",
-    "description": "ISM policy for the AI assistant sessions data stream. Rolls over backing indices daily, or earlier at 20 GB per primary shard (or 200,000,000 documents), then deletes each rolled-over index once it reaches 7 days of age. The daily rollover bounds retention: the deletion age runs from index creation and an index only takes writes during its first day, so a session is kept for at most 7 days regardless of volume.",
-    "last_updated_time": 1772122150000,
+    "description": "ISM policy for the AI assistant sessions data stream. Rolls over backing indices daily, or earlier at 20 GB per primary shard (or 200,000,000 documents), then deletes each rolled-over index once it reaches 7 days of age. The daily rollover bounds retention: the deletion age runs from index creation and an index only takes writes during its first day, so a session is kept for at most 7 days regardless of volume. This is a Wazuh default policy: it is restored on every restart, so do not edit it. To change retention, create a custom policy and move the existing indices to it: https://wazuh.github.io/wazuh-indexer-plugins/ref/modules/setup/retention.html#creating-a-custom-policy",
+    "last_updated_time": 1793232000000,
     "schema_version": 1,
     "default_state": "hot",
     "states": [

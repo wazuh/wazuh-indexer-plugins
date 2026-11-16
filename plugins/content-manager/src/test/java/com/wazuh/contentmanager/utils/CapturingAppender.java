@@ -87,6 +87,15 @@ public final class CapturingAppender extends AbstractAppender implements AutoClo
                 .toList();
     }
 
+    /**
+     * Counts the captured events, at any level, that carry a throwable (logged with a stack trace).
+     *
+     * @return the number of events with a throwable.
+     */
+    public long countWithThrowable() {
+        return this.events.stream().filter(event -> event.getThrown() != null).count();
+    }
+
     @Override
     public void close() {
         Loggers.removeAppender(this.logger, this);

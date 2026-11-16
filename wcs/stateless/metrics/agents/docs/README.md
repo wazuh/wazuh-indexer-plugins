@@ -20,7 +20,7 @@ The detail of the fields can be found in the csv file [Fields](fields.csv).
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `@timestamp` | date | core | Date/time when the event originated. |
+| `@timestamp` | date_nanos | core | Date/time when the event originated, with nanosecond precision. |
 | `wazuh.agent.id` | keyword | core | Unique identifier of this agent. |
 | `wazuh.agent.name` | keyword | core | Custom name of the agent. |
 | `wazuh.agent.version` | keyword | core | Version of the agent. |

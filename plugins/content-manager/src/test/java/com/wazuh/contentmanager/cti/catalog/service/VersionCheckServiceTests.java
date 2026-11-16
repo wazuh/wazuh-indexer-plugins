@@ -21,7 +21,6 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.io.CloseMode;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
@@ -76,6 +75,8 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        PluginSettings.resetForTesting();
+        PluginSettings.getInstance(Settings.EMPTY).setVersion("v9.99.9");
         this.now = 1_000L;
         this.submitted = new ArrayList<>();
         this.executor = mock(ExecutorService.class);
@@ -93,6 +94,12 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
         when(this.threadPool.relativeTimeInMillis()).thenAnswer(invocation -> this.now);
         this.threadContext = new ThreadContext(Settings.EMPTY);
         when(this.threadPool.getThreadContext()).thenReturn(this.threadContext);
+    }
+
+    @Override
+    public void tearDown() throws Exception {
+        PluginSettings.resetForTesting();
+        super.tearDown();
     }
 
     /** A service whose CTI call is stubbed to return {@code response}. */
@@ -123,7 +130,7 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
     /** The CTI call is handed to the version-check pool; nothing runs on the calling thread. */
     public void testCheckDoesNotRunOnCallingThread() {
         VersionCheckService service = this.service(OK);
-        ActionListener<VersionCheckResponse> listener = listener();
+        ActionListener<VersionCheckResponse> listener = VersionCheckServiceTests.listener();
 
         service.check(listener);
 
@@ -140,9 +147,9 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
     /** Checks that arrive while one is in flight wait for it instead of issuing their own. */
     public void testConcurrentChecksShareOneCall() {
         VersionCheckService service = this.service(OK);
-        ActionListener<VersionCheckResponse> first = listener();
-        ActionListener<VersionCheckResponse> second = listener();
-        ActionListener<VersionCheckResponse> third = listener();
+        ActionListener<VersionCheckResponse> first = VersionCheckServiceTests.listener();
+        ActionListener<VersionCheckResponse> second = VersionCheckServiceTests.listener();
+        ActionListener<VersionCheckResponse> third = VersionCheckServiceTests.listener();
 
         service.check(first);
         service.check(second);
@@ -159,7 +166,7 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
 
     /** Starts and completes one check, as a user clicking "check updates" once. */
     private void checkAndRun(VersionCheckService service) {
-        service.check(listener());
+        service.check(VersionCheckServiceTests.listener());
         this.runSubmitted();
     }
 
@@ -174,7 +181,7 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
         }
         verify(service, times((int) VersionCheckService.BUCKET_CAPACITY)).fetch();
 
-        ActionListener<VersionCheckResponse> limited = listener();
+        ActionListener<VersionCheckResponse> limited = VersionCheckServiceTests.listener();
         service.check(limited);
         verify(limited)
                 .onResponse(
@@ -186,12 +193,12 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
         assertTrue(this.submitted.isEmpty());
 
         this.now += VersionCheckService.TOKEN_REFILL_MILLIS - 1;
-        ActionListener<VersionCheckResponse> stillLimited = listener();
+        ActionListener<VersionCheckResponse> stillLimited = VersionCheckServiceTests.listener();
         service.check(stillLimited);
         verify(stillLimited).onResponse(argThat(response -> response.getRetryAfterSeconds() == 1));
 
         this.now += 1;
-        ActionListener<VersionCheckResponse> allowed = listener();
+        ActionListener<VersionCheckResponse> allowed = VersionCheckServiceTests.listener();
         service.check(allowed);
         this.runSubmitted();
         verify(allowed).onResponse(OK);
@@ -205,7 +212,7 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
             this.checkAndRun(service);
         }
 
-        ActionListener<VersionCheckResponse> limited = listener();
+        ActionListener<VersionCheckResponse> limited = VersionCheckServiceTests.listener();
         service.check(limited);
         verify(limited)
                 .onResponse(argThat(response -> response.getStatus() == RestStatus.TOO_MANY_REQUESTS));
@@ -215,9 +222,9 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
     /** Checks that join an in-flight call spend no token. */
     public void testJoiningInFlightCallSpendsNoToken() {
         VersionCheckService service = this.service(OK);
-        service.check(listener());
+        service.check(VersionCheckServiceTests.listener());
         for (int i = 0; i < 20; i++) {
-            service.check(listener());
+            service.check(VersionCheckServiceTests.listener());
         }
         this.runSubmitted();
         verify(service, times(1)).fetch();
@@ -238,7 +245,7 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
         for (int i = 0; i < VersionCheckService.BUCKET_CAPACITY; i++) {
             this.checkAndRun(service);
         }
-        ActionListener<VersionCheckResponse> limited = listener();
+        ActionListener<VersionCheckResponse> limited = VersionCheckServiceTests.listener();
         service.check(limited);
         verify(limited)
                 .onResponse(argThat(response -> response.getStatus() == RestStatus.TOO_MANY_REQUESTS));
@@ -253,7 +260,7 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
                         })
                 .when(this.executor)
                 .execute(any(Runnable.class));
-        ActionListener<VersionCheckResponse> listener = listener();
+        ActionListener<VersionCheckResponse> listener = VersionCheckServiceTests.listener();
 
         service.check(listener);
 
@@ -264,7 +271,7 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
         // More rejected checks than the bucket holds: each one still reaches the pool, so none of
         // them spent a token.
         for (int i = 0; i < VersionCheckService.BUCKET_CAPACITY; i++) {
-            service.check(listener());
+            service.check(VersionCheckServiceTests.listener());
         }
         verify(this.executor, times((int) VersionCheckService.BUCKET_CAPACITY + 1))
                 .execute(any(Runnable.class));
@@ -277,8 +284,8 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
     public void testErrorInFetchReleasesWaiters() {
         VersionCheckService service = this.service(OK);
         doThrow(new AssertionError("boom")).when(service).fetch();
-        ActionListener<VersionCheckResponse> first = listener();
-        ActionListener<VersionCheckResponse> second = listener();
+        ActionListener<VersionCheckResponse> first = VersionCheckServiceTests.listener();
+        ActionListener<VersionCheckResponse> second = VersionCheckServiceTests.listener();
 
         service.check(first);
         service.check(second);
@@ -289,7 +296,7 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
         verify(second)
                 .onResponse(argThat(response -> response.getStatus() == RestStatus.INTERNAL_SERVER_ERROR));
 
-        service.check(listener());
+        service.check(VersionCheckServiceTests.listener());
         assertEquals(1, this.submitted.size());
     }
 
@@ -326,38 +333,32 @@ public class VersionCheckServiceTests extends OpenSearchTestCase {
     }
 
     /** One CTI client serves every fetch and is closed with the service. */
-    @SuppressForbidden(reason = "Setting system property required to resolve the version in tests")
     public void testClientIsSharedAndClosed() throws Exception {
-        System.setProperty("INDEXER_TEST_ENV", "true");
-        try {
-            AtomicInteger created = new AtomicInteger();
-            ApiClient client = mock(ApiClient.class);
-            SimpleHttpResponse ctiResponse = SimpleHttpResponse.create(HttpStatus.SC_OK);
-            ctiResponse.setBody("{\"data\":{}}", ContentType.APPLICATION_JSON);
-            when(client.getReleaseUpdates(anyString())).thenReturn(ctiResponse);
-            VersionCheckService service =
-                    new VersionCheckService(
-                            mock(Environment.class),
-                            mock(ClusterService.class, RETURNS_DEEP_STUBS),
-                            this.threadPool,
-                            () -> {
-                                created.incrementAndGet();
-                                return client;
-                            });
+        AtomicInteger created = new AtomicInteger();
+        ApiClient client = mock(ApiClient.class);
+        SimpleHttpResponse ctiResponse = SimpleHttpResponse.create(HttpStatus.SC_OK);
+        ctiResponse.setBody("{\"data\":{}}", ContentType.APPLICATION_JSON);
+        when(client.getReleaseUpdates(anyString())).thenReturn(ctiResponse);
+        VersionCheckService service =
+                new VersionCheckService(
+                        mock(Environment.class),
+                        mock(ClusterService.class, RETURNS_DEEP_STUBS),
+                        this.threadPool,
+                        () -> {
+                            created.incrementAndGet();
+                            return client;
+                        });
 
-            assertEquals(RestStatus.OK, service.fetch().getStatus());
-            assertEquals(RestStatus.OK, service.fetch().getStatus());
-            assertEquals(1, created.get());
-            verify(client, times(2)).getReleaseUpdates(anyString());
+        assertEquals(RestStatus.OK, service.fetch().getStatus());
+        assertEquals(RestStatus.OK, service.fetch().getStatus());
+        assertEquals(1, created.get());
+        verify(client, times(2)).getReleaseUpdates(anyString());
 
-            service.close();
-            verify(client).close(CloseMode.IMMEDIATE);
+        service.close();
+        verify(client).close(CloseMode.IMMEDIATE);
 
-            // No client is started after close: the fetch fails instead.
-            assertEquals(RestStatus.INTERNAL_SERVER_ERROR, service.fetch().getStatus());
-            assertEquals(1, created.get());
-        } finally {
-            System.clearProperty("INDEXER_TEST_ENV");
-        }
+        // No client is started after close: the fetch fails instead.
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, service.fetch().getStatus());
+        assertEquals(1, created.get());
     }
 }

@@ -1,7 +1,7 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,@timestamp,date,core,,2026-10-16T15:53:03.843Z,"Time the Wazuh Engine received the event, in UTC. The time in the original log is in `event.start`."
+9.1.0,true,base,@timestamp,date_nanos,core,,2026-10-16T15:53:03.843123456Z,"Time the Wazuh Engine received the event, in UTC. The time in the original log is in `event.start`."
 9.1.0,true,base,labels,object,core,,"{""application"": ""foo-bar"", ""env"": ""production""}",Custom key/value pairs.
-9.1.0,true,base,message,keyword,core,,pam_unix(sshd:session): session opened for user vagrant(uid=1000) by (uid=0),Human-readable message extracted by the decoder. The complete raw log is in `event.original`.
+9.1.0,true,base,message,match_only_text,core,,pam_unix(sshd:session): session opened for user vagrant(uid=1000) by (uid=0),Human-readable message extracted by the decoder. Searchable by word. The complete raw log is in `event.original`.
 9.1.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
 9.1.0,true,agent,agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,agent,agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
@@ -33,11 +33,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,check,check.mitre.technique.id,keyword,custom,array,"[""T1059"", ""T1562""]",MITRE ATT&CK technique identifiers.
 9.1.0,true,check,check.mitre.technique.name,keyword,custom,array,"[""Command and Scripting Interpreter"", ""Impair Defenses""]",MITRE ATT&CK technique names.
 9.1.0,true,check,check.name,keyword,custom,,Ensure 'Enforce password history' is set to '24 or more password(s)'.,The name of the SCA policy check.
+9.1.0,true,check,check.previous.result,keyword,custom,,Passed,"Result of the check before it changed, e.g. `Passed` before a check starts failing."
 9.1.0,true,check,check.rationale,keyword,custom,,"""The longer a user uses the same password, the more likely it is that the password will be compromised.""",The reason for the check. Why it is important.
 9.1.0,true,check,check.reason,keyword,custom,,"""The password history setting is not set to 24 or more password(s).""",Reason for the check result.
 9.1.0,true,check,check.references,keyword,custom,array,"[""https://workbench.cisecurity.org""]",References for the check.
 9.1.0,true,check,check.remediation,keyword,custom,,"""To establish the recommended configuration, set the following registry value to 24 or more password(s):""",Actions to take to remediate the check.
-9.1.0,true,check,check.result,keyword,custom,,failed,Result of the check.
+9.1.0,true,check,check.result,keyword,custom,,Failed,Result of the check.
 9.1.0,true,check,check.rules,keyword,custom,array,"""[\""c:net.exe accounts -> n:Maximum password age \(days\):\s+(\d+) compare > 0\"","" > ""\""c:net.exe accounts -> n:Length of password history maintained:\s+(\d+) compare >= 24\""]""",Rules to be evaluated.
 9.1.0,true,client,client.address,keyword,extended,,,Client network address.
 9.1.0,true,client,client.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
@@ -267,7 +268,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,email,email.x_mailer,keyword,extended,,Spambot v2.5,Application that drafted email.
 9.1.0,true,error,error.code,keyword,core,,,Error code describing the error.
 9.1.0,true,error,error.id,keyword,core,,,Unique identifier for the error.
-9.1.0,true,error,error.message,keyword,core,,,Error message.
+9.1.0,true,error,error.message,match_only_text,core,,,Error message.
 9.1.0,true,error,error.stack_trace,keyword,extended,,,The stack trace of this error in plain text.
 9.1.0,true,error,error.type,keyword,extended,,java.lang.NullPointerException,"The type of the error, for example the class name of the exception."
 9.1.0,true,event,event.action,keyword,core,,user-password-change,The action captured by the event.

@@ -60,10 +60,20 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
 }
 ```
 
+#### Example response (settings updates disabled)
+
+```json
+{
+  "message": "Setup settings updates are disabled on this deployment.",
+  "status": 403
+}
+```
+
 #### Status codes
 
 - **200** — settings updated successfully.
 - **400** — invalid request body, missing required fields, or wrong field type.
+- **403** — settings updates are disabled on the node (`plugins.setup.settings_update.enabled` is `false`), which applies to every caller regardless of role, or the caller lacks the `plugin:wazuh/settings/write` cluster permission. See [Configuration](configuration.md).
 - **500** — internal server error (e.g., failed to persist settings to the index).
 
 ---

@@ -74,7 +74,7 @@ A Wazuh fork of the OpenSearch Notifications plugin. It supports multiple delive
 
 ### Reporting plugin
 
-A Wazuh fork of the OpenSearch Reporting plugin, bundled by default in Wazuh Indexer packages. It generates PDF and CSV reports from dashboards and saved searches, on demand or on a schedule, with optional email delivery.
+A Wazuh fork of the OpenSearch Reporting plugin, bundled by default in Wazuh Indexer packages. It generates PDF or PNG reports from dashboards and visualizations, and CSV or XLSX reports from saved searches, on demand or on a schedule, with optional email delivery.
 
 ### Common Utils library
 
@@ -110,6 +110,7 @@ The Wazuh Indexer organizes data into purpose-specific indices and data streams.
 | `wazuh-threatintel-*`      | Content Manager system indices for CTI content (rules, decoders, integrations, KVDBs, filters, policies, IoCs). |
 | `.wazuh-cti-consumers`     | Internal index tracking consumer state for CTI synchronization.                                              |
 | `wazuh-ai-assistant-sessions` | AI assistant conversation history, rotated daily and kept for 7 days. Each user sees only their own conversations (Document Level Security), and writes are mediated by the setup plugin's session API so the owning username cannot be forged. |
+| `security-auditlogs` | Security audit events: failed logins, denied requests and changes to users, roles and the rest of the security configuration. Rotated monthly and kept for 90 days. See [Audit logs](security/audit-logs.md). |
 | `.wazuh-internal-state` | Hidden system index holding the AI providers configuration, the assistant-wide settings and field policy, plus Content Manager's internal state. Reachable only through the setup plugin's administrative AI assistant API. |
 
 Agent and rule metadata is now relocated under the `wazuh.*` namespace, and inventory coverage has been extended to Linux systemd units and macOS launchd daemons/agents alongside Windows services. For a complete list of indices and their schemas, see the [Setup Plugin](modules/setup/index.md) documentation.
