@@ -129,10 +129,10 @@ Give Logstash credentials allowed to write to the raw bucket only: an IAM role o
 }
 ```
 
-Install the input plugin:
+Install the input plugin, giving the plugin manager more than the default 1 GB heap of Logstash:
 
 ```bash
-/usr/share/logstash/bin/logstash-plugin install --version 1.0.0 logstash-input-opensearch
+LS_JAVA_OPTS="-Xmx2g" /usr/share/logstash/bin/logstash-plugin install --version 1.0.0 logstash-input-opensearch
 ```
 
 Copy the pipeline files to a folder of their own, in this order:

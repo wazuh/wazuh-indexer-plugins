@@ -106,11 +106,11 @@ curl --cacert opensearch-ca.pem -u admin -X PUT "https://<opensearch>:9200/_plug
 
 ## 2. Configure Logstash
 
-Install the plugins:
+Install the plugins, giving the plugin manager more than the default 1 GB heap of Logstash:
 
 ```bash
-/usr/share/logstash/bin/logstash-plugin install --version 1.0.0 logstash-input-opensearch
-/usr/share/logstash/bin/logstash-plugin install --version 2.1.1 logstash-output-opensearch
+LS_JAVA_OPTS="-Xmx2g" /usr/share/logstash/bin/logstash-plugin install --version 1.0.0 logstash-input-opensearch
+LS_JAVA_OPTS="-Xmx2g" /usr/share/logstash/bin/logstash-plugin install --version 2.1.1 logstash-output-opensearch
 ```
 
 Copy the pipeline files to a folder of their own, in this order:
