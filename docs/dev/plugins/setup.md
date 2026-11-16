@@ -77,7 +77,7 @@ classDiagram
     }
 ```
 
-The `SetupPlugin` class holds the list of indices to create. The logic for the creation of the index templates and the indices is encapsulated in the `Index` abstract class. Each subclass can override this logic if necessary. The `SetupPlugin::onNodeStarted()` method invokes the `Index::initialize()` method, effectively creating every index in the list. The plugin implements the [ClusterPlugin](https://github.com/opensearch-project/OpenSearch/blob/3.1.0/server/src/main/java/org/opensearch/plugins/ClusterPlugin.java) interface to hook into this method.
+The `SetupPlugin` class holds the list of indices to create. The logic for the creation of the index templates and the indices is encapsulated in the `Index` abstract class. Each subclass can override this logic if necessary. The `SetupPlugin::onNodeStarted()` method invokes the `Index::initialize()` method, effectively creating every index in the list. The plugin implements the [ClusterPlugin](https://github.com/opensearch-project/OpenSearch/blob/3.6.0/server/src/main/java/org/opensearch/plugins/ClusterPlugin.java) interface to hook into this method.
 
 ## Sequence diagram
 
@@ -508,8 +508,10 @@ The data stream is created automatically during plugin initialization. Ensure:
 
 ### Testing
 
-Integration tests for the active responses data stream are located at:
-`plugins/setup/src/test/java/com/wazuh/setup/ActiveResponsesIT.java`
+The ISM policy of the active responses data stream is covered by
+`plugins/setup/src/test/java/com/wazuh/setup/index/IndexStateManagementTests.java`, which checks
+its registration through the `ism_template` and its retention, the deletion three days after the
+rollover. The rollover conditions themselves, and the data stream, have no test of their own.
 
 ---
 
