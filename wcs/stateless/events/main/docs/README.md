@@ -24,6 +24,8 @@ Core field set for Wazuh-specific context, set by Wazuh components rather than p
 
 The `check` field set stores the results of SCA policy checks, including the check's condition, result, remediation steps, and rationale. Each check can reference multiple compliance frameworks through `check.compliance.<framework>`, where each framework object follows a uniform schema with `name`, `version`, `category`, `publisher`, and `requirements` fields. Supported frameworks: CMMC, FedRAMP, GDPR, HIPAA, ISO 27001, MITRE ATT&CK, NIS2, NIST 800-53, NIST 800-171, PCI DSS, and TSC.
 
+`check.previous.result` stores the result the check held before the scan that changed it. The agent reports a check as modified only when its result changed and the previous result was not `Not run`, so a rule can use this field to select a check that has just started failing rather than one that was already failing. It is the only value mapped under `check.previous`.
+
 The `policy` field set stores the SCA policy metadata (id, name, description, file, references) that groups related checks together.
 
 #### `compliance` — Event-level compliance mapping
@@ -48,7 +50,7 @@ Four additional event fields: `event.changed_fields` (fields updated since the l
 
 #### Wazuh descriptions of ECS fields
 
-Some ECS fields keep their ECS type but carry a Wazuh description, because Wazuh fills them in a specific way: `@timestamp` and `message` (`custom/base.yml`), `event.start`, `event.end`, `event.created`, `event.ingested`, `event.original` and `event.id` (`custom/event.yml`), and `rule.id` (`custom/rule.yml`). For example, `@timestamp` is the time the Wazuh Engine received the event, while the time found in the original log is in `event.start`.
+Some ECS fields keep their ECS type but carry a Wazuh description, because Wazuh fills them in a specific way: `message` (`custom/base.yml`), `event.start`, `event.end`, `event.created`, `event.ingested`, `event.original` and `event.id` (`custom/event.yml`), and `rule.id` (`custom/rule.yml`). `@timestamp` (`custom/base.yml`) is the exception to the type: it is mapped as `date_nanos` instead of `date`, to keep the nanosecond precision with which the Engine stamps it. It is the time the Wazuh Engine received the event, while the time found in the original log is in `event.start`.
 
 #### `file.diff`
 

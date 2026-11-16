@@ -91,14 +91,14 @@ See [Stream indices](index.md#stream-indices) for the other data streams.
 
 Two fields answer two different questions:
 
-- **`@timestamp`** — when the Wazuh Engine received the event. The Engine sets it once for every log it receives, before any decoder runs, in Coordinated Universal Time (UTC) with millisecond precision. The raw event, the normalized event and its findings carry the same value, and every event has it.
+- **`@timestamp`** — when the Wazuh Engine received the event. The Engine sets it once for every log it receives, before any decoder runs, in Coordinated Universal Time (UTC) with nanosecond precision (`date_nanos` field type). Within a batch of events the values are strictly increasing, so sorting by `@timestamp` keeps the order in which the events were received. The raw event, the normalized event and its findings carry the same value, and every event has it.
 - **`event.start`** — when the logged activity happened, or started when it has a duration, such as a network session. The decoders set it from the timestamp found in the original log; a date parsed without a time zone is taken as UTC. Events whose source has no timestamp of its own, such as inventory or rootcheck events, do not have it.
 
 `@timestamp` is therefore later than `event.start`. The gap is the time the log took to reach the Engine: usually a few seconds, longer when the agent sends a backlog, for example after reconnecting.
 
 ```json
 {
-  "@timestamp": "2026-10-13T16:01:29.016Z",
+  "@timestamp": "2026-10-13T16:01:29.016482913Z",
   "event": {
     "original": "Oct 13 16:01:22 wazuh-aio sudo[61793]:  vagrant : PWD=/home/vagrant ; USER=root ; COMMAND=/usr/bin/systemctl status wazuh-manager",
     "start": "2026-10-13T16:01:22.000Z"
@@ -173,7 +173,9 @@ The Wazuh Engine sets `event.original`, and Ruleset Management adds two fields t
 - **`event.original`** — the log as the Wazuh Engine received it, before decoding. It is not indexed: it cannot be searched or aggregated, only read from `_source`, so search the decoded fields instead. In raw events it keeps the `<queue>:<location>:` prefix the agent adds.
 - **`event.doc_id`** and **`event.index`** — on findings, the `_id` of the event that matched and the backing index that holds it. See [Findings](#findings).
 
-`message` holds a human-readable message that the decoder extracts from the log, such as the free-text part of a syslog line, or composes from other fields. Not every decoder sets it, and it never replaces `event.original`. It is mapped as `keyword`, so a query on it matches the whole value: use a `wildcard` query to find a word inside it. Values longer than 4096 characters are stored but not indexed.
+`message` holds a human-readable message that the decoder extracts from the log, such as the free-text part of a syslog line, or composes from other fields. Not every decoder sets it, and it never replaces `event.original`. It is mapped as `match_only_text`, so a query on it matches any word of it, but it cannot be aggregated or sorted.
+
+`error.message` is mapped as `match_only_text` too. `message` and `error.message` are in the `index.query.default_field` of events and findings: a free-text search with no field name, such as typing `failed password` in the Dashboard search bar, matches a word of either one. Other text fields, such as `wazuh.rule.title`, stay `keyword` so they can be aggregated: a query on them matches the whole value, or a prefix with `wazuh.rule.title:Failed*`.
 
 ## Findings
 
@@ -209,7 +211,7 @@ A finding, trimmed to its main fields:
   "_index": ".ds-wazuh-findings-v5-system-activity-000001",
   "_id": "lLMqOa0Wyqi5jb0AmqiyIQ",
   "_source": {
-    "@timestamp": "2026-10-13T16:01:29.016Z",
+    "@timestamp": "2026-10-13T16:01:29.016482913Z",
     "event": {
       "doc_id": "2u0ANqEB364TRbsiOf5A",
       "index": ".ds-wazuh-events-v5-system-activity-000001",

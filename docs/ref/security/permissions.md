@@ -1,6 +1,6 @@
 # Permissions
 
-This page lists the permissions registered by the Wazuh Indexer plugins, to grant in the roles you define. The [default roles](./access-control.md) use only a few of them. Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual transport actions registered by the plugin: `cluster:admin/content_manager/*` for the actions that change state, and `cluster:monitor/content_manager/*` for the read-only ones (subscription get, logtest, promote get and version check); the Setup entries are raw cluster actions, each also exposed as an action group; the Ruleset Management entries are raw cluster actions.
+This page lists the permissions registered by the Wazuh Indexer plugins, to grant in the roles you define. The [default roles](./access-control.md) use only a few of them. Content Manager permission names are **action groups** (defined in `action_groups.yml`) that resolve to the actual transport actions registered by the plugin: `cluster:admin/content_manager/*` for the actions that change state, and `cluster:monitor/content_manager/*` for the read-only ones (subscription get, logtest, promote get, policy resources get and version check); the Setup entries are raw cluster actions, each also exposed as an action group; the Ruleset Management entries are raw cluster actions.
 
 ## Setup plugin permissions
 
@@ -22,6 +22,7 @@ Each resource exposes `create`, `update` and `delete`, plus a `*` action group t
 Other Content Manager permissions:
 
 - `plugin:content_manager/policy/update` — create/update a policy (`PUT /_plugins/_content_manager/policy/{space}`)
+- `plugin:content_manager/policy/resources/get` — list a space's resources grouped by pipeline phase (`GET /_plugins/_content_manager/policy/resources`)
 - `plugin:content_manager/update` — trigger an on-demand CTI catalog sync (`POST /_plugins/_content_manager/update`)
 - `plugin:content_manager/subscription/get` — read the CTI subscription
 - `plugin:content_manager/subscription/post` — create/update the CTI subscription. Also the permission evaluated by `POST /_plugins/_content_manager/subscription?perform_permission_check=true`, which reports whether the caller holds it instead of registering.
@@ -32,7 +33,7 @@ Other Content Manager permissions:
 - `plugin:content_manager/logtest` — run the combined logtest (`POST /_plugins/_content_manager/logtest`). Also grants `cluster:admin/wazuh/securityanalytics/rules/evaluate`, which the logtest needs downstream.
 - `plugin:content_manager/logtest/detection`, `plugin:content_manager/logtest/normalization` — run each logtest phase on its own (`POST /_plugins/_content_manager/logtest/detection`, `POST /_plugins/_content_manager/logtest/normalization`). `logtest/detection` also grants `cluster:admin/wazuh/securityanalytics/rules/evaluate`; `logtest/normalization` does not need it.
 - `plugin:content_manager/logtest/*` — groups `logtest/detection` and `logtest/normalization`, and through `logtest/detection` also `cluster:admin/wazuh/securityanalytics/rules/evaluate`; it does not grant the combined `POST /_plugins/_content_manager/logtest`
-- `plugin:content_manager/space/delete` — delete a space
+- `plugin:content_manager/space/delete` — reset a space (`DELETE /_plugins/_content_manager/space/{space}`) and clear only its normalization or detection resources (`DELETE .../space/{space}/normalization`, `DELETE .../space/{space}/detection`); all three are authorized by this same action, so the scoped clears add no new permission. The three run one at a time per space (a space lock), so a request that arrives while another is clearing the same space is answered `429`. The action group also grants the Security Analytics delete actions and the cluster `indices:data/write/bulk`, `indices:data/read/scroll` and `indices:data/read/scroll/clear` these deletions run. A role that uses it also needs `read`, `write`, `delete` and `indices:admin/refresh` on the `wazuh-threatintel-*` and `.opensearch-sap-*` indices (the Security Analytics rule delete refreshes its index). `indices:admin/exists` is **not** required: the resource deletes and the hash recompute tolerate a missing index through lenient search options instead of an existence pre-check.
 - `plugin:content_manager/version/check` — check the catalog version
 
 ## Ruleset Management plugin permissions

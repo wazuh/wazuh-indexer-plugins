@@ -1,3 +1,4 @@
+import groovy.json.JsonSlurper
 import org.opensearch.gradle.test.RestIntegTestTask
 import org.opensearch.gradle.testclusters.OpenSearchCluster
 
@@ -21,8 +22,9 @@ buildscript {
     opensearch_version = System.getProperty("opensearch.version", "3.6.0-SNAPSHOT")
     opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
     job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
-    wazuh_version = System.getProperty("version") ?: new groovy.json.JsonSlurper()
-        .parse(new File(projectDir, "../../VERSION.json")).version
+    version_json = new JsonSlurper().parse(new File(projectDir, "../../VERSION.json"))
+    w_version = System.getProperty("version") ?: version_json.version
+    w_stage = System.getProperty("stage") ?: version_json.stage
     revision = System.getProperty("revision", "0")
   }
 
@@ -77,7 +79,7 @@ publishing {
 
 allprojects {
   group = "${projectPath}"
-  version = "${wazuh_version}" + ".${revision}"
+  version = "${w_version}" + ".${revision}"
 }
 
 opensearchplugin {
@@ -269,7 +271,7 @@ testClusters.integTest {
   jvmArgs '-da:org.opensearch.transport.Transports'
   systemProperty "INDEXER_TEST_ENV", "true"
   systemProperty "DEPLOY_KEY", ""
-  systemProperty "wazuh.version", "${wazuh_version}-beta3"
+  systemProperty "wazuh.version", "v${w_version}-${w_stage}"
   setting 'plugins.content_manager.catalog.update_on_start', 'false'
   setting 'plugins.content_manager.catalog.update_on_schedule', 'false'
   setting 'plugins.content_manager.catalog.create_detectors', 'false'
@@ -278,7 +280,7 @@ testClusters.integTest {
   // Security Analytics is installed on this cluster, so rule evaluation runs for real; only the
   // Engine's Unix socket is missing.
   setting 'plugins.content_manager.security_analytics.mock', 'false'
-  setting 'plugins.content_manager.catalog.ruleset', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/beta3-t1-ruleset-5/consumers/public-ruleset-5"
+  setting 'plugins.content_manager.catalog.ruleset', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/rc3-t1-ruleset-5/consumers/public-ruleset-5"
   setting 'plugins.content_manager.catalog.iocs', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-iocs-5/consumers/public-iocs-5"
   setting 'plugins.content_manager.catalog.vulnerabilities', "https://api.pre.cloud.wazuh.com/api/v1/catalog/contexts/t1-vulnerabilities-5/consumers/public-vulnerabilities-5"
 

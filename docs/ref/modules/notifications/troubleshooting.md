@@ -107,11 +107,13 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT \
 
 #### Resolution
 
-SMTP credentials must be stored in the Wazuh Indexer keystore, not in `opensearch.yml`. On every node, add them as the `wazuh-indexer` user. Running `opensearch-keystore` as `root` leaves the keystore unreadable by the Wazuh Indexer, which then fails to start.
+SMTP credentials must be stored in the Wazuh Indexer keystore, not in `opensearch.yml`. On every node, add them as `root`, then give the keystore back to the service's group. The configuration directory is root's, so the `wazuh-indexer` user cannot write in it and `opensearch-keystore` fails with `unable to create temporary keystore` when run as that user. The tool leaves the keystore owned by `root:root`, which the Wazuh Indexer cannot read, so the last two commands are required.
 
 ```bash
-sudo -u wazuh-indexer /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.<account_name>.username
-sudo -u wazuh-indexer /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.<account_name>.password
+sudo /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.<account_name>.username
+sudo /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.<account_name>.password
+sudo chown root:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
+sudo chmod 640 /etc/wazuh-indexer/opensearch.keystore
 ```
 
 Then reload the keystore. No restart is needed:
@@ -121,7 +123,23 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST \
   "https://127.0.0.1:9200/_nodes/reload_secure_settings"
 ```
 
-If the reload reports `access_denied_exception`, the Wazuh Indexer cannot read the keystore. Run `sudo chown root:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore && sudo chmod 640 /etc/wazuh-indexer/opensearch.keystore` and reload again. See [Email destination secure settings](configuration.md#email-destination-secure-settings).
+If the reload reports `access_denied_exception`, the Wazuh Indexer cannot read the keystore: run the `chown` and `chmod` commands above and reload again. See [Email destination secure settings](configuration.md#email-destination-secure-settings).
+
+---
+
+## Active Response issues
+
+### Active Response is not queued
+
+**Symptoms:** An Active Response monitor triggers, but no request reaches the `wazuh-active-responses` data stream. The notification reports status `424` with `Failed to prepare active response document`. The Wazuh Indexer log has an `ERROR` entry `Failed to prepare active response document`, preceded, when the event was not found, by two `WARN` entries `getSourceDocument Document [<id>] not found in index [<index>] (attempt n/3), retrying`.
+
+**Cause:** The message resolved to a `<doc_id>|<index>` pair, but the plugin could not read the event that triggered the alert. A missing event is read from the primary shard and retried up to 3 attempts in total over about 600 ms, so the usual cause is that the event, or its index, does not exist, for example because it was deleted. A missing index fails at once, without retries.
+
+A message that does not resolve to `<doc_id>|<index>` is refused with status `400` and `Invalid active response payload`. In that case, check that the monitor's message template resolves to the document ID and index name separated by `|`.
+
+#### Resolution
+
+Check the `ERROR` entry for the document ID and index name, and confirm the document exists in that index.
 
 ---
 

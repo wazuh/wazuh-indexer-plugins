@@ -150,6 +150,8 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
         if (this.closeable != null) {
             this.closeable.close();
         }
+        // Reset the JVM-wide NodeShutdown.stopping flag so it does not leak to the next test class.
+        NodeShutdown.watch(NodeShutdownTests.idleComponent());
         super.tearDown();
     }
 
@@ -844,5 +846,22 @@ public class ConsumerIocServiceTests extends OpenSearchTestCase {
             return ShardDocSortBuilder.NAME;
         }
         return sort.toString();
+    }
+
+    /**
+     * A consumer whose indices hold nothing but CTI content empties them by replacing them. There are
+     * no spaces here to preserve, so the cheaper wipe is also the correct one.
+     */
+    public void testTheIocWiperReplacesTheIndices() {
+        com.wazuh.contentmanager.cti.catalog.index.ContentIndex index =
+                mock(com.wazuh.contentmanager.cti.catalog.index.ContentIndex.class);
+
+        ContentWiper wiper = this.service.contentWiper(Map.of("ioc", index));
+
+        assertFalse(
+                "a consumer without spaces should not pay for a per-space delete",
+                wiper instanceof StandardSpaceWiper);
+        assertTrue(wiper.wipe());
+        verify(index).clear();
     }
 }

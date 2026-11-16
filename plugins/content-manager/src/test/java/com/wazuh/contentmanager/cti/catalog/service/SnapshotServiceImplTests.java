@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -57,6 +58,7 @@ import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -64,6 +66,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -97,6 +100,20 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     @Mock private Environment environment;
     @Mock private RemoteConsumer remoteConsumer;
 
+    /** Counts how many times a service asked for the content it replaces to be emptied. */
+    private final AtomicInteger wipes = new AtomicInteger();
+
+    /**
+     * The wiper a ruleset service is given in these tests. Production hands it a {@link
+     * StandardSpaceWiper}, which needs a cluster; what matters here is that the service asks, and
+     * that it does not empty the indices behind the wiper.
+     */
+    private final ContentWiper recordingWiper =
+            () -> {
+                this.wipes.incrementAndGet();
+                return true;
+            };
+
     private AutoCloseable closeable;
 
     @Before
@@ -122,7 +139,11 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         this.snapshotService =
                 new SnapshotServiceImpl(
-                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
+                        "cti:catalog:consumer:ruleset",
+                        indicesMap,
+                        this.consumersIndex,
+                        this.environment,
+                        this.recordingWiper);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
         when(this.contentIndexMock.processPayloadToBytes(any(JsonNode.class)))
@@ -500,7 +521,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         Constants.CONSUMER_TYPE_VULNERABILITIES,
                         cveOnlyMap,
                         this.consumersIndex,
-                        this.environment);
+                        this.environment,
+                        ContentWiper.clearingIndices(cveOnlyMap));
         cveSnapshotService.setSnapshotClient(this.snapshotClient);
 
         when(this.contentIndexMock.getWriteIndex()).thenReturn(".wazuh-threatintel-vulnerabilities");
@@ -563,7 +585,11 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         indicesMap.put("kvdb", this.contentIndexMock);
         SnapshotServiceImpl service =
                 new SnapshotServiceImpl(
-                        "cti:catalog:consumer:ruleset", indicesMap, this.consumersIndex, this.environment);
+                        "cti:catalog:consumer:ruleset",
+                        indicesMap,
+                        this.consumersIndex,
+                        this.environment,
+                        this.recordingWiper);
         service.setSnapshotClient(this.snapshotClient);
         return service;
     }
@@ -785,7 +811,11 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         cveMap.put("cves", this.contentIndexMock);
         SnapshotServiceImpl svc =
                 new SnapshotServiceImpl(
-                        Constants.CONSUMER_TYPE_VULNERABILITIES, cveMap, this.consumersIndex, this.environment);
+                        Constants.CONSUMER_TYPE_VULNERABILITIES,
+                        cveMap,
+                        this.consumersIndex,
+                        this.environment,
+                        ContentWiper.clearingIndices(cveMap));
         svc.setSnapshotClient(this.snapshotClient);
         when(this.contentIndexMock.getWriteIndex()).thenReturn(".wazuh-threatintel-vulnerabilities");
 
@@ -863,7 +893,11 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         cveMap.put("cves", this.contentIndexMock);
         SnapshotServiceImpl svc =
                 new SnapshotServiceImpl(
-                        Constants.CONSUMER_TYPE_VULNERABILITIES, cveMap, this.consumersIndex, this.environment);
+                        Constants.CONSUMER_TYPE_VULNERABILITIES,
+                        cveMap,
+                        this.consumersIndex,
+                        this.environment,
+                        ContentWiper.clearingIndices(cveMap));
         when(this.contentIndexMock.getWriteIndex()).thenReturn(".wazuh-threatintel-vulnerabilities");
 
         String longBody =
@@ -1124,8 +1158,11 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // SnapshotClient should NOT be invoked for local init
         verify(this.snapshotClient, never()).downloadFile(anyString());
 
-        // Indices should be cleared
-        verify(this.contentIndexMock, atLeastOnce()).clear();
+        // The content this snapshot replaces is emptied through the wiper the consumer gave the
+        // service, and never by clearing the indices behind it: clearing them is what used to take
+        // the Draft, Test and Custom spaces and the user overrides registry with them.
+        Assert.assertEquals("the content should be emptied once", 1, this.wipes.get());
+        verify(this.contentIndexMock, never()).clear();
 
         // Documents should be processed and indexed
         verify(this.contentIndexMock, atLeastOnce()).processPayloadToBytes(any(JsonNode.class));
@@ -1362,7 +1399,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                         this.environment,
                         new com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver(),
                         snapshotsDir,
-                        filename);
+                        filename,
+                        ContentWiper.clearingIndices(indicesMap));
         service.setSnapshotClient(this.snapshotClient);
         return service;
     }
@@ -1667,5 +1705,190 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 .thenReturn(this.createZipFileWithContent("data.json", line));
         Assert.assertTrue(this.snapshotService.initialize(this.remoteConsumer));
         verify(this.consumersIndex).setConsumer(any(LocalConsumer.class));
+    }
+
+    // ---- Emptying the content a snapshot replaces (issue #1773) ----
+
+    /** A ruleset service over live indices, with the wiper the test wants to exercise. */
+    private SnapshotServiceImpl serviceWithWiper(ContentWiper wiper) {
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put("kvdb", this.contentIndexMock);
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset",
+                        indicesMap,
+                        this.consumersIndex,
+                        this.environment,
+                        wiper);
+        service.setSnapshotClient(this.snapshotClient);
+        return service;
+    }
+
+    /** One line of ruleset content, enough for a load to succeed. */
+    private Path aSnapshotFile() throws IOException {
+        return this.createZipFileWithContent(
+                "data.json",
+                "{\"name\": \"kvdb-001\", \"offset\": 50, \"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"kvdb-001\"}}}");
+    }
+
+    /**
+     * The file is checked before the content is emptied. A file that is not a snapshot of this
+     * consumer must not cost the content it was never going to replace.
+     */
+    public void testInitializeFromPath_ChecksTheFileBeforeEmptyingTheContent() throws Exception {
+        Path rejected = this.createZipFileWithContent("data.json", "");
+
+        Assert.assertFalse(this.snapshotService.initialize(rejected, null));
+
+        Assert.assertEquals("a rejected file should empty nothing", 0, this.wipes.get());
+        verify(this.contentIndexMock, never()).clear();
+    }
+
+    /**
+     * A wipe that fails stops the load from a file. Ruleset resources reference each other, so
+     * loading a snapshot over content that is still there produces a mixture the Engine rejects: a
+     * consistent old ruleset is better than an inconsistent new one.
+     */
+    public void testInitializeFromPath_DoesNotLoadWhenTheContentWasNotEmptied() throws Exception {
+        SnapshotServiceImpl service = this.serviceWithWiper(() -> false);
+        Path localZip = this.aSnapshotFile();
+
+        Assert.assertFalse(service.initialize(localZip, null));
+
+        Assert.assertTrue(
+                "the snapshot file must stay in place: on a rollback it is the stable snapshot",
+                Files.exists(localZip));
+        verify(this.contentIndexMock, never()).executeBulk(any(BulkRequest.class));
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
+    }
+
+    /**
+     * The content is emptied only once the download is in hand. A feed that cannot be reached used to
+     * leave the Standard space emptied for a load that never happened.
+     */
+    public void testInitialize_DoesNotEmptyTheContentWhenTheDownloadFails() throws Exception {
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(null);
+
+        Assert.assertFalse(this.snapshotService.initialize(this.remoteConsumer));
+
+        Assert.assertEquals("a failed download should empty nothing", 0, this.wipes.get());
+    }
+
+    /** The same rule on the remote path: a wipe that fails stops the load. */
+    public void testInitialize_DoesNotLoadWhenTheContentWasNotEmptied() throws Exception {
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(this.aSnapshotFile());
+        SnapshotServiceImpl service = this.serviceWithWiper(() -> false);
+
+        Assert.assertFalse(service.initialize(this.remoteConsumer));
+
+        verify(this.contentIndexMock, never()).executeBulk(any(BulkRequest.class));
+        verify(this.consumersIndex, never()).setConsumer(any(LocalConsumer.class));
+    }
+
+    /** A successful load asks for the content to be emptied exactly once, and never clears. */
+    public void testInitialize_EmptiesTheContentOnceThroughTheWiper() throws Exception {
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(50L);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(this.aSnapshotFile());
+        this.mockT0ConsumerDoc();
+
+        Assert.assertTrue(this.snapshotService.initialize(this.remoteConsumer));
+
+        Assert.assertEquals("the content should be emptied once", 1, this.wipes.get());
+        verify(this.contentIndexMock, never()).clear();
+    }
+
+    /**
+     * A load into the staging indices of a swap empties nothing. They are created empty immediately
+     * before, and clearing them would recreate them as ordinary indices: visible instead of hidden,
+     * and carrying the public alias of the content that is still live.
+     */
+    public void testForStaging_DoesNotEmptyTheStagingIndices() throws Exception {
+        Map<String, ContentIndex> stagingIndices = new HashMap<>();
+        stagingIndices.put("kvdb", this.contentIndexMock);
+        SnapshotServiceImpl staging =
+                SnapshotServiceImpl.forStaging(
+                        "cti:catalog:consumer:ruleset",
+                        stagingIndices,
+                        this.environment,
+                        new com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver());
+
+        Assert.assertTrue(staging.initialize(this.aSnapshotFile(), null));
+
+        verify(this.contentIndexMock, never()).clear();
+    }
+
+    /**
+     * The content is emptied before anything is written, and not after. The order is the whole point:
+     * emptying it afterwards would delete the snapshot that had just been loaded.
+     */
+    public void testInitializeFromPath_EmptiesTheContentBeforeWritingAnything() throws Exception {
+        ContentWiper wiper = mock(ContentWiper.class);
+        when(wiper.wipe()).thenReturn(true);
+        SnapshotServiceImpl service = this.serviceWithWiper(wiper);
+        this.mockT0ConsumerDoc();
+
+        Assert.assertTrue(service.initialize(this.aSnapshotFile(), null));
+
+        InOrder order = inOrder(wiper, this.contentIndexMock);
+        order.verify(wiper).wipe();
+        order.verify(this.contentIndexMock, atLeastOnce()).executeBulk(any(BulkRequest.class));
+    }
+
+    /**
+     * A load aborted on the wipe promotes nothing to stable and leaves no temporary file behind. On a
+     * rollback the file being loaded is the stable snapshot itself, so a cleanup reaching it would
+     * destroy the one copy the next attempt has.
+     */
+    public void testInitialize_AnAbortedLoadPromotesNothingToStable() throws Exception {
+        Path snapshotsDir = Files.createDirectories(this.tempDir.resolve("snapshots-aborted"));
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
+        indicesMap.put("kvdb", this.contentIndexMock);
+        SnapshotServiceImpl service =
+                new SnapshotServiceImpl(
+                        "cti:catalog:consumer:ruleset",
+                        indicesMap,
+                        this.consumersIndex,
+                        this.environment,
+                        new com.wazuh.contentmanager.cti.catalog.client.RegularUrlResolver(),
+                        snapshotsDir,
+                        "ruleset.zip",
+                        () -> false);
+        service.setSnapshotClient(this.snapshotClient);
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        Path downloaded = this.aSnapshotFile();
+        when(this.snapshotClient.downloadFile(url)).thenReturn(downloaded);
+
+        Assert.assertFalse(service.initialize(this.remoteConsumer));
+
+        Assert.assertFalse(
+                "an aborted load must not promote a snapshot to stable",
+                Files.exists(snapshotsDir.resolve("ruleset.stable.zip")));
+        Assert.assertFalse("the downloaded file is cleaned up", Files.exists(downloaded));
+    }
+
+    /**
+     * A download that is not a snapshot of this consumer is refused before the content is emptied.
+     * The client reports the HTTP status and nothing else, so a transfer cut short or an error page
+     * arrives here as a perfectly readable file, and it used to be loaded over a space that had
+     * already been emptied for it.
+     */
+    public void testInitialize_RefusesABadDownloadBeforeEmptyingTheContent() throws Exception {
+        String url = "http://example.com/snapshot.zip";
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        Path notASnapshot = this.createZipFileWithContent("index.html", "<html>502 Bad Gateway</html>");
+        when(this.snapshotClient.downloadFile(url)).thenReturn(notASnapshot);
+
+        Assert.assertFalse(this.snapshotService.initialize(this.remoteConsumer));
+
+        Assert.assertEquals("a refused download should empty nothing", 0, this.wipes.get());
+        verify(this.contentIndexMock, never()).executeBulk(any(BulkRequest.class));
+        Assert.assertFalse("the refused download is cleaned up", Files.exists(notASnapshot));
     }
 }

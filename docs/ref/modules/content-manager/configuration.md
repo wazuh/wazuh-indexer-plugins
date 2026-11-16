@@ -12,12 +12,12 @@ The Content Manager plugin is configured through settings in `opensearch.yml`. A
 - **`plugins.content_manager.max_bulk_bytes`** (Long, default `5242880` / 5 MB, range 1048576–104857600 / 1–100 MB) — maximum request body size, in bytes, for a single bulk indexing request.
 - **`plugins.content_manager.logtest.max_body_bytes`** (Long, default `1048576` / 1 MiB, range 1024–16777216 / 1 KiB–16 MiB, dynamic) — maximum size, in bytes, of a logtest request body (`POST /logtest`, `/logtest/normalization`, `/logtest/detection`). Requests whose body exceeds this are rejected with HTTP 413 at the REST layer, before parsing or dispatch, so an oversized event cannot be amplified into the response and exhaust the indexer's heap.
 - **`plugins.content_manager.client.timeout`** (Long, default `10`, range 10–50) — HTTP client timeout in seconds for CTI API requests.
-- **`plugins.content_manager.client.max_retries`** (Integer, default `3`, range 0–10) — number of times a CTI API request is retried after an HTTP 429 (Too Many Requests) response, before the 429 is returned to the caller.
-- **`plugins.content_manager.client.retry_backoff_base_seconds`** (Integer, default `30`, range 1–300) — base delay, in seconds, for the exponential backoff used between 429 retries when the response carries no usable `Retry-After` header (delay for retry `n` is `base * 2^n`).
+- **`plugins.content_manager.client.max_retries`** (Integer, default `3`, range 0–10) — number of times a CTI API request is retried after an HTTP 429 (Too Many Requests) response, a timeout or a closed or reset connection, before the 429 or the error is returned to the caller. Both kinds of retry share this budget.
+- **`plugins.content_manager.client.retry_backoff_base_seconds`** (Integer, default `30`, range 1–300) — base delay, in seconds, for the exponential backoff used between retries after a timeout or a closed or reset connection, and after a 429 whose response carries no usable `Retry-After` header (delay for retry `n` is `base * 2^n`).
 - **`plugins.content_manager.pit_keepalive`** (Long, default `120`, range 60–600) — point-in-time keepalive in seconds used during paginated index scans.
 - **`plugins.content_manager.engine.mock`** (Boolean, default `false`) — bypasses real Engine socket calls, returning mocked responses instead. Intended for testing only.
-- **`plugins.content_manager.catalog.update_on_start`** (Boolean, default `true`) — trigger content sync when the plugin starts.
-- **`plugins.content_manager.catalog.update_on_schedule`** (Boolean, default `true`, dynamic) — enable the periodic sync job. When `false` the job is disabled and any scheduled run is refused, so no content is fetched from Wazuh CTI on a schedule. Registering a CTI access token does not start a content update either. On-demand updates (`POST /update`) are unaffected — they are controlled by `plugins.content_manager.catalog.update_on_demand`.
+- **`plugins.content_manager.catalog.update_on_start`** (Boolean, default `true`) — trigger content sync when the plugin starts. That sync also loads the snapshots packaged with the Wazuh Indexer: keep it enabled on offline installations.
+- **`plugins.content_manager.catalog.update_on_schedule`** (Boolean, default `true`, dynamic) — enable the periodic sync job. When `false` the job is disabled and any scheduled run is refused, so no content is fetched from Wazuh CTI on a schedule. Registering a CTI access token does not start a content update either. On-demand updates (`POST /update`) are unaffected — they are controlled by `plugins.content_manager.catalog.update_on_demand`. Disable it on offline installations, where content is updated on demand.
 - **`plugins.content_manager.catalog.ruleset`** (String, default `""`) — full CTI consumer URL for ruleset content.
 - **`plugins.content_manager.catalog.iocs`** (String, default `""`) — full CTI consumer URL for IoC content.
 - **`plugins.content_manager.catalog.vulnerabilities`** (String, default `""`) — full CTI consumer URL for vulnerabilities content.
@@ -70,17 +70,47 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/_
 
 <!-- // ANCHOR_END: settings-table -->
 
-### Offline configuration / disabling automatic updates
+### Offline installations
 
 <!-- // ANCHOR: offline-config -->
-On offline installations, disable every task that requires an internet connection to prevent failures.
+On installations without internet access, disable the scheduled synchronization and leave `plugins.content_manager.catalog.update_on_start` as shipped:
 
 ```yaml
 # opensearch.yml
-plugins.content_manager.catalog.update_on_start: false
 plugins.content_manager.catalog.update_on_schedule: false
+# Optional: stops the daily update-check ping.
 plugins.content_manager.telemetry.enabled: false
 ```
+
+Each Wazuh Indexer package includes a snapshot of every content consumer: ruleset, IoCs and vulnerabilities. The content update that runs when the node starts loads them, also with the scheduled synchronization disabled. Offline, it cannot reach Wazuh CTI, so it falls back to the packaged snapshots. The ruleset loads in about a minute, the IoCs and vulnerabilities take a few minutes more.
+
+The scheduled synchronization only fetches new content from Wazuh CTI, so offline it brings nothing. Offline content updates are requested on demand instead, with `POST /_plugins/_content_manager/update?offline=true`.
+
+> **Warning:** Do not set `plugins.content_manager.catalog.update_on_start` to `false` on an offline installation. Skipping the update on start also skips loading the packaged snapshots, and the node is left with no rules, no decoders and no vulnerability content. The node logs `Content update on start skipped` at `INFO`. To load the packaged snapshots on such a node, request an offline update:
+>
+> ```bash
+> curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X POST "https://127.0.0.1:9200/_plugins/_content_manager/update?offline=true"
+> ```
+
+While the update on start loads the snapshots, its attempts to reach Wazuh CTI are logged in `/var/log/wazuh-indexer/wazuh-cluster.log` as `WARN` and `ERROR` lines. They are expected, and they do not affect the content loaded from the snapshots:
+
+```
+WARN  ... Could not reach catalog URL [<catalog_url>] for consumer [cti:catalog:consumer:ruleset]. Falling back to local snapshot [ruleset.zip].
+ERROR ... GET <catalog_url>->java.net.UnknownHostException: <cti_host>: Temporary failure in name resolution
+ERROR ... Couldn't obtain consumer from CTI: java.net.UnknownHostException: <cti_host>
+WARN  ... ConsumerRulesetService did not fully synchronize this pass (unreachable feed, indices not yet provisioned, or a phase left pending); retrying.
+ERROR ... Immediate retry also failed; waiting for the next scheduled run.
+ERROR ... Telemetry Ping failed due to network error: <cti_host>
+```
+
+With the scheduled synchronization disabled, no scheduled run follows, so these lines are not logged again until the next node start. The `Telemetry Ping` line is not logged with `plugins.content_manager.telemetry.enabled` set to `false`.
+
+To keep the content of an offline installation current, load newer snapshots with `POST /_plugins/_content_manager/update?offline=true`, as described in Offline content updates.
+<!-- // ANCHOR_END: offline-config -->
+
+See [Offline content updates](offline-update.md) for the procedure.
+
+### Disabling automatic updates
 
 `plugins.content_manager.catalog.update_on_schedule` and `plugins.content_manager.telemetry.enabled` are dynamic, so on a running deployment they can be applied without a restart:
 
@@ -98,10 +128,7 @@ Disabling scheduled synchronization takes effect immediately and applies to an a
 
 Disabling scheduled synchronization does not remove content that has already been downloaded. It only stops further updates from Wazuh CTI.
 
-`plugins.content_manager.catalog.update_on_start` is not dynamic — it only governs the synchronization triggered as the plugin starts, so it takes effect on the next node start.
-<!-- // ANCHOR_END: offline-config -->
-
-To keep the content of an offline installation up to date, load newer snapshots as described in [Offline content updates](offline-update.md).
+`plugins.content_manager.catalog.update_on_start` is not dynamic — it only governs the synchronization triggered as the plugin starts, so it takes effect on the next node start. That synchronization is also the one that loads the snapshots packaged with the Wazuh Indexer, so a node that starts with it disabled and no content loaded holds no content until an update is requested: `POST /_plugins/_content_manager/update?offline=true` loads the packaged snapshots.
 
 How the plugin keeps the periodic job in step with `update_on_schedule`, and refuses a run while it is disabled, is described in [Job scheduler](architecture.md#job-scheduler).
 
@@ -147,11 +174,13 @@ plugins.content_manager.setup_wait.backoff_base_seconds: 30
 
 The example above raises the total worst-case wait to 30+60+120+240 = 450s (7.5 min).
 
-### CTI rate-limit retries (HTTP 429)
+### CTI request retries
 
 When the CTI API rate-limits a request it responds with HTTP 429 and a `Retry-After` header. The HTTP client honors that header: it waits the indicated time and retries the request, so a rate-limit no longer fails the synchronization pass. If the response carries no usable `Retry-After` header, it falls back to exponential backoff (`base * 2^n`).
 
-The behavior is controlled by `plugins.content_manager.client.max_retries` and `plugins.content_manager.client.retry_backoff_base_seconds`. With the defaults (3 retries, 30s base), the fallback schedule is 30s, 60s, 120s — 210s (3.5 min) worst case before the 429 is surfaced and the pass defers to the next scheduled run:
+The client also retries a request that times out (`plugins.content_manager.client.timeout`) or whose connection is closed or reset before the response arrives, such as the slow download of a large `/changes` page. These retries always use the exponential backoff and share the retry budget with the 429 retries, so a request makes at most `max_retries + 1` attempts whatever made them fail. Only `GET` requests are retried this way.
+
+The behavior is controlled by `plugins.content_manager.client.max_retries` and `plugins.content_manager.client.retry_backoff_base_seconds`. With the defaults (3 retries, 30s base), the fallback schedule is 30s, 60s, 120s — 210s (3.5 min) worst case before the 429 or the error is surfaced and the pass defers to the next scheduled run:
 
 ```yaml
 # opensearch.yml
@@ -215,11 +244,25 @@ plugins.content_manager.catalog.create_detectors: false
 All HTTP clients that communicate with Wazuh CTI services send a custom `User-Agent` header, and an `Accept-Encoding` header so responses are transferred compressed:
 
 ```
-User-Agent: Wazuh Indexer <version>
+User-Agent: Wazuh Indexer <version tag>
 Accept-Encoding: gzip
 ```
 
-For example: `Wazuh Indexer 5.0.0`. This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client. The version is read from `VERSION.json` at plugin startup.
+For example: `Wazuh Indexer v5.0.0`. This applies to the Console API client, Catalog API client, Snapshot client, and Telemetry client.
+
+The version tag is built at plugin startup from the `version` and `stage` fields of `VERSION.json`, and its format depends on the CTI API the node points to (`plugins.content_manager.cti.api`):
+
+- **Pre-release CTI** (the URL contains `.pre.`): the full staged version, `v<version>-<stage>` — for example, `v5.0.0-rc1`.
+- **Production CTI** (any other URL): the GA version, `v<version>` — for example, `v5.0.0`.
+
+This lets CTI serve the content matching the reported version. A release candidate is promoted to GA without repackaging, so the same package reports its stage while it communicates with the pre-release CTI, and the plain GA version once it points to the production CTI — even though its `VERSION.json` still carries the release candidate stage.
+
+Requests to CTI also identify the deployment through two custom headers:
+
+```
+wazuh-uid: <cluster UUID>
+wazuh-tag: <version tag>
+```
 
 #### Update check service behavior
 
@@ -229,9 +272,11 @@ The update check service is enabled by default and runs once per day, with an im
 - It sends a request to the CTI Update check API endpoint (`/ping`).
 - The request includes:
   - Deployment identifier (`wazuh-uid`: cluster UUID)
-  - Running version (`wazuh-tag`: `v<version>`)
-  - User agent (`Wazuh Indexer <version>`)
+  - Running version (`wazuh-tag`: the version tag, `v<version>` or `v<version>-<stage>`)
+  - User agent (`Wazuh Indexer <version tag>`)
+  - Content-Type (`application/json`)
   - Accept-Encoding (`gzip`)
+- If the cluster UUID or the version tag is unavailable (for example, `VERSION.json` could not be read), the ping is skipped and an error is logged.
 
 This data allows Wazuh to determine if a newer version is available and notify users in the update check UI.
 

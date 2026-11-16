@@ -7,12 +7,12 @@ This guide describes how to migrate an existing Wazuh indexer 4.x deployment to 
 
 ## Scope
 
-Wazuh indexer 5.x is a major release based on OpenSearch 3.x. It ships with new index schemas, a revised security model, and renamed or removed configuration settings. As a result, a 4.x cluster cannot be upgraded in place. The migration covers **configuration only** — base node settings, certificates, and OpenSearch Security authentication/authorization. It does **not** cover indexed data.
+Wazuh indexer 5.x is a major release based on OpenSearch 3.x. It ships with new index schemas, a revised security model, and renamed or removed configuration settings. As a result, a 4.x cluster cannot be upgraded in place. The migration covers **configuration only** — base node settings and OpenSearch Security authentication/authorization. It does **not** cover indexed data or certificates: the 5.x cluster uses the certificates issued during its own installation (see [Certificates](#certificates)).
 
 The procedure is:
 
 1. Stand up a new 5.x cluster on a fresh host.
-2. Re-create base configuration, certificates, and security settings against the 5.x layout.
+2. Re-create base configuration and security settings against the 5.x layout.
 
 The 4.x cluster is never modified by this procedure.
 
@@ -20,7 +20,7 @@ The 4.x cluster is never modified by this procedure.
 
 Before starting:
 
-- A backup of the 4.x cluster configuration, security configuration, and certificates. See [Back up and restore](../../ref/backup-restore.md).
+- A backup of the 4.x cluster configuration and security configuration. See [Back up and restore](../../ref/backup-restore.md).
 - A supported host for the 5.x installation. See [Compatibility](../../ref/compatibility.md) and [Requirements](../../ref/getting-started/requirements.md).
 - 5.x packages obtained via any of the methods listed under [Packages](../../ref/getting-started/packages.md).
 
@@ -39,7 +39,7 @@ The canonical 5.x configuration layout is:
 | `/etc/wazuh-indexer/jvm.options` | JVM heap and GC settings |
 | `/etc/wazuh-indexer/log4j2.properties` | Logging configuration |
 | `/etc/wazuh-indexer/certs/` | Transport and HTTP TLS certificates |
-| `/etc/wazuh-indexer/ca/` | Certificate authority the package created at installation, or the one you staged before installing it. New in 5.x |
+| `/etc/wazuh-indexer/ca/` | Certificate authority the node's certificates are issued from. New in 5.x |
 | `/etc/wazuh-indexer/local.env` | Optional. Passwords and certificate names you supply before installing. New in 5.x, never written by the package |
 | `/etc/wazuh-indexer/export/` | Passwords, CA certificate and client certificates published for the Wazuh manager and the Wazuh dashboard. New in 5.x |
 | `/etc/wazuh-indexer/opensearch.keystore` | Secure settings (see [Keystore](#keystore)) |
@@ -51,7 +51,7 @@ For a full description of each file, see [Configuration](../../ref/configuration
 
 Perform these steps on every node of the new 5.x cluster. Steps 2 to 6 run with the service stopped. Step 7 starts it, and steps 8 to 10 need it running.
 
-1. Install the 5.x package on a fresh host following [Installation](../../ref/getting-started/installation.md). This creates the default 5.x configuration tree under `/etc/wazuh-indexer/`. To keep the 4.x certificates, stage them before installing the package, as described in [Keeping the 4.x certificates](#keeping-the-4x-certificates).
+1. Install the 5.x package on a fresh host following [Installation](../../ref/getting-started/installation.md). This creates the default 5.x configuration tree under `/etc/wazuh-indexer/` and issues the node's certificates. On a multi-node cluster, follow the [Certificates](../../ref/getting-started/installation.md#1-certificates) stage of the installation so that every node shares one authority.
 2. Stop the new service before editing configuration:
 
     ```bash
@@ -59,7 +59,7 @@ Perform these steps on every node of the new 5.x cluster. Steps 2 to 6 run with 
     ```
 
 3. Copy the relevant 4.x configuration values into the corresponding 5.x files — do not overwrite the 5.x files. Review each setting against [Settings changes](#settings-changes) below. Add the 4.x keystore entries again as described in [Keystore](#keystore).
-4. If you staged the 4.x certificates in step 1, the installation set `plugins.security.nodes_dn` and `plugins.security.authcz.admin_dn` to the subjects of this node's certificates. On a multi-node cluster, add the subjects of the other nodes' certificates to `plugins.security.nodes_dn`. To keep the certificates the 5.x package issued instead, skip this step. See [Generated at installation](#generated-at-installation).
+4. On a multi-node cluster, add the subjects of the other nodes' certificates to `plugins.security.nodes_dn`, on every node. The installation writes only the subject of the node's own certificate. On a single node, skip this step. See [Generated at installation](#generated-at-installation).
 5. Port `jvm.options` and `log4j2.properties` by copying only individual non-default lines into the 5.x files. Do not replace the 5.x files outright.
 6. Edit the security configuration files. See steps 1 and 2 of the [Security procedure](#security-procedure).
 7. Start the service:
@@ -96,25 +96,23 @@ The following 4.x settings have changed in 5.x and must be reviewed before reuse
 #### Renamed or changed
 
 - `cluster.initial_master_nodes` → `cluster.initial_cluster_manager_nodes`. The old name is deprecated. The 5.x file already sets the new one: carry the node list over to it and do not add the old setting.
-- `plugins.security.ssl.transport.enforce_hostname_verification` → `transport.ssl.enforce_hostname_verification`, and `plugins.security.ssl.transport.resolve_hostname` → `transport.ssl.resolve_hostname`. The 5.x file already sets the new keys, and a node that defines both the old and the new name of a setting fails to start, so do not add the 4.x lines. `transport.ssl.enforce_hostname_verification` is `true` in 5.x (it was `false` in 4.x), so each node certificate must list the node's address in its subject alternative names. `transport.ssl.resolve_hostname` stays `false`.
+- `plugins.security.ssl.transport.enforce_hostname_verification` → `transport.ssl.enforce_hostname_verification`, and `plugins.security.ssl.transport.resolve_hostname` → `transport.ssl.resolve_hostname`. The 5.x file already sets the new keys, and a node that defines both the old and the new name of a setting fails to start, so do not add the 4.x lines. `transport.ssl.enforce_hostname_verification` is `true` in 5.x (it was `false` in 4.x), so each node certificate must list the node's address in its subject alternative names. The certificates the 5.x package issues do. `transport.ssl.resolve_hostname` stays `false`.
 - `plugins.security.ssl.http.enabled_ciphers` and `plugins.security.ssl.http.enabled_protocols`: the 4.x installation assistant pinned TLS 1.2 and four cipher suites. 5.x does not set them and uses the OpenSearch defaults. Carry them over only if your security policy requires a restricted list.
 - `plugins.security.system_indices.indices`: the 5.x list drops the indices of the plugins that are no longer shipped and adds `.wazuh-internal-state`. Keep the 5.x values.
 - Multi-tenancy settings: dashboard multi-tenancy is disabled by default in 5.x.
 
 #### Generated at installation
 
-The 5.x package issues the node's TLS certificates and generates the passwords of its default users when it is installed, and writes the following settings itself. See [Installation](../../ref/getting-started/installation.md). Their values differ from the ones the 4.x installation wrote, and that is expected. Keep the generated values. If you staged the 4.x certificates before installing the package, the installation writes the values that match them instead (see [Keeping the 4.x certificates](#keeping-the-4x-certificates)).
+The 5.x package issues the node's TLS certificates and generates the passwords of its default users when it is installed, and writes the following settings itself. See [Installation](../../ref/getting-started/installation.md). Their values differ from the ones the 4.x installation wrote, and that is expected. Keep the generated values and do not replace them with the 4.x ones.
 
-- Certificate paths, `plugins.security.ssl.http.pem*_filepath` and `plugins.security.ssl.transport.pem*_filepath`: 5.x always names the node pair `indexer.pem` and `indexer-key.pem`. A 4.x node installed step by step uses the same names, while the 4.x installation assistant named the pair after the node, for example `node-1.pem`.
-- `plugins.security.authcz.admin_dn` and `plugins.security.nodes_dn`: 5.x fills them in with the subjects of the certificates it issued. The fields appear in a different order than in the 4.x files (`C=US,...,CN=admin` instead of `CN=admin,...,C=US`). Keep the 5.x values.
+- Certificate paths, `plugins.security.ssl.http.pem*_filepath` and `plugins.security.ssl.transport.pem*_filepath`: 5.x always names the node pair `indexer.pem` and `indexer-key.pem`. Keep the 5.x values and do not point them to the 4.x files.
+- `plugins.security.authcz.admin_dn` and `plugins.security.nodes_dn`: 5.x fills them in with the subjects of the certificates it issued. The fields appear in a different order than in the 4.x files (`C=US,...,CN=admin` instead of `CN=admin,...,C=US`). Keep the 5.x values, and on a multi-node cluster add the subjects of the other nodes to `plugins.security.nodes_dn` in the same form. To print the subject of a certificate, see [Distinguished Names](../../ref/getting-started/installation.md#distinguished-names).
 
-### Keeping the 4.x certificates
+### Certificates
 
-The 5.x package takes in certificates only when it is installed: certificates replaced afterwards are used, but the package does not publish their authority to the Wazuh manager and the Wazuh dashboard on the host, which keep trusting the authority the package created. To keep the 4.x certificates, stage them on each node before installing the package, with the commands in [On every other Wazuh indexer node](../../ref/getting-started/installation.md#on-every-other-wazuh-indexer-node), run against the 4.x `wazuh-certificates.tar`. The 4.x installation assistant keeps them under `wazuh-install-files/` in `wazuh-install-files.tar` instead, so repack them first: `tar -xf wazuh-install-files.tar && tar -cf wazuh-certificates.tar -C wazuh-install-files .`.
+The 4.x certificates and the 4.x certificate authority are not carried over: do not copy them into `/etc/wazuh-indexer/certs/` or `/etc/wazuh-indexer/ca/`. The 5.x package issues the node's certificates when it is installed, signed by the authority in `/etc/wazuh-indexer/ca/`. Keep them. On a multi-node cluster, every node must share one authority, as described in [Certificates](../../ref/getting-started/installation.md#1-certificates).
 
-There, `NODE_NAME` is the name of the node in the 4.x `config.yml`, which is how its pair is named inside the tar. The 4.x pair also carries the addresses of the 4.x node in its subject alternative names, and 5.x verifies them on the transport layer, so keep those addresses on the 5.x host or reissue the certificates.
-
-The 4.x tar also holds the key of the 4.x authority, `root-ca.key`. Stage it as well, as `/etc/wazuh-indexer/ca/root-ca.key` with mode `400`, for the installation to issue the client pairs of the Wazuh manager and the Wazuh dashboard from the 4.x authority.
+The 5.x authority is not the 4.x one, so every client that verifies the Wazuh indexer certificate must trust the new authority, published as `/etc/wazuh-indexer/export/ca.pem`. The Wazuh manager and the Wazuh dashboard installed on the same host read it from there. For the ones on another host, see [Retrieving the generated credentials](../../ref/getting-started/installation.md#retrieving-the-generated-credentials).
 
 ### Keystore
 

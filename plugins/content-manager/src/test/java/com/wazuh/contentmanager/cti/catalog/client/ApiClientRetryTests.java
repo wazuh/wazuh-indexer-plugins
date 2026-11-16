@@ -20,14 +20,29 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.client5.http.async.methods.SimpleRequestBuilder;
 import org.apache.hc.client5.http.utils.DateUtils;
+import org.apache.hc.core5.http.ConnectionClosedException;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.NoHttpResponseException;
+import org.opensearch.common.network.NetworkAddress;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.net.ConnectException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.settings.PluginSettingsTests;
@@ -43,7 +58,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-/** Unit tests for the 429 retry loop and Retry-After parsing in {@link ApiClient}. */
+/**
+ * Unit tests for the 429 and transport-error retry loop and Retry-After parsing in {@link
+ * ApiClient}.
+ */
 public class ApiClientRetryTests extends OpenSearchTestCase {
 
     private static final String URI =
@@ -72,25 +90,35 @@ public class ApiClientRetryTests extends OpenSearchTestCase {
     }
 
     /**
-     * A {@link #realMethodClient()} with {@code executeOnce} stubbed to return the scripted responses
-     * in order (repeating the last one once exhausted), standing in for the network. The retry delay
-     * is stubbed to {@code 0} so these control-flow tests do not sleep; delay computation is covered
-     * by the dedicated {@code computeRetryDelaySeconds} tests.
+     * A {@link #realMethodClient()} with {@code executeOnce} stubbed to return the scripted
+     * responses, or throw the scripted exceptions, in order (repeating the last one once exhausted),
+     * standing in for the network. The retry delays are stubbed to {@code 0} so these control-flow
+     * tests do not sleep; delay computation is covered by the dedicated {@code
+     * computeRetryDelaySeconds} tests.
      */
-    private static ApiClient scriptedClient(SimpleHttpResponse... responses) throws Exception {
+    private static ApiClient scriptedClient(Object... outcomes) throws Exception {
         ApiClient client = realMethodClient();
-        List<SimpleHttpResponse> scripted = new ArrayList<>(List.of(responses));
+        List<Object> scripted = List.of(outcomes);
         int[] calls = {0};
         doAnswer(
                         invocation -> {
-                            SimpleHttpResponse response = scripted.get(Math.min(calls[0], scripted.size() - 1));
+                            Object outcome = scripted.get(Math.min(calls[0], scripted.size() - 1));
                             calls[0]++;
-                            return response;
+                            if (outcome instanceof Exception e) {
+                                throw e;
+                            }
+                            return outcome;
                         })
                 .when(client)
                 .executeOnce(any(SimpleHttpRequest.class), anyLong());
         doReturn(0L).when(client).computeRetryDelaySeconds(any(SimpleHttpResponse.class), anyInt());
+        doReturn(0L).when(client).computeBackoffSeconds(anyInt());
         return client;
+    }
+
+    /** The exception {@code executeOnce} throws when the server closes the connection. */
+    private static ExecutionException connectionClosed() {
+        return new ExecutionException(new ConnectionClosedException("Connection closed by peer"));
     }
 
     private static SimpleHttpResponse response(int code, String retryAfter) {
@@ -152,6 +180,176 @@ public class ApiClientRetryTests extends OpenSearchTestCase {
         assertEquals(HttpStatus.SC_TOO_MANY_REQUESTS, result.getCode());
         verify(client, times(1)).executeOnce(any(SimpleHttpRequest.class), anyLong());
         verify(client, never()).computeRetryDelaySeconds(any(SimpleHttpResponse.class), anyInt());
+    }
+
+    /**
+     * A closed connection, a missing response and a connection reset are each retried, and the 200
+     * that follows them is returned.
+     */
+    public void testRetriesTransportErrorsThenSucceeds() throws Exception {
+        ApiClient client =
+                scriptedClient(
+                        connectionClosed(),
+                        new ExecutionException(new NoHttpResponseException("No response")),
+                        new ExecutionException(new SocketException("Connection reset")),
+                        response(HttpStatus.SC_OK, null));
+
+        SimpleHttpResponse result = client.executeWithRetry(request());
+
+        assertEquals(HttpStatus.SC_OK, result.getCode());
+        verify(client, times(4)).executeOnce(any(SimpleHttpRequest.class), anyLong());
+    }
+
+    /**
+     * An attempt that exceeds the client timeout is retried, and the 200 that follows is returned.
+     */
+    public void testRetriesTimeoutThenSucceeds() throws Exception {
+        ApiClient client =
+                scriptedClient(new TimeoutException("Timeout deadline"), response(HttpStatus.SC_OK, null));
+
+        SimpleHttpResponse result = client.executeWithRetry(request());
+
+        assertEquals(HttpStatus.SC_OK, result.getCode());
+        verify(client, times(2)).executeOnce(any(SimpleHttpRequest.class), anyLong());
+    }
+
+    /**
+     * A persistent transport error exhausts max_retries and the last exception is rethrown unchanged;
+     * total attempts = retries + 1.
+     */
+    public void testPersistentTransportErrorExhaustsRetries() throws Exception {
+        ExecutionException failure = connectionClosed();
+        ApiClient client = scriptedClient(failure);
+
+        ExecutionException thrown =
+                expectThrows(ExecutionException.class, () -> client.executeWithRetry(request()));
+
+        assertSame(failure, thrown);
+        verify(client, times(PluginSettings.getInstance().getClientMaxRetries() + 1))
+                .executeOnce(any(SimpleHttpRequest.class), anyLong());
+    }
+
+    /**
+     * 429 responses and transport errors draw from the same max_retries budget: with the default 3
+     * retries, the fourth failure is surfaced even though neither kind failed more than twice.
+     */
+    public void testRateLimitsAndTransportErrorsShareRetries() throws Exception {
+        ApiClient client =
+                scriptedClient(
+                        response(HttpStatus.SC_TOO_MANY_REQUESTS, "0"),
+                        connectionClosed(),
+                        response(HttpStatus.SC_TOO_MANY_REQUESTS, "0"),
+                        connectionClosed(),
+                        response(HttpStatus.SC_OK, null));
+
+        expectThrows(ExecutionException.class, () -> client.executeWithRetry(request()));
+
+        verify(client, times(4)).executeOnce(any(SimpleHttpRequest.class), anyLong());
+    }
+
+    /**
+     * A failure that does not clear on its own, such as a refused connection, is rethrown at once.
+     * {@link ConnectException} is a {@link SocketException} too, so this also checks that only a
+     * reset is retried.
+     */
+    public void testNonTransientErrorIsNotRetried() throws Exception {
+        ApiClient client =
+                scriptedClient(new ExecutionException(new ConnectException("Connection refused")));
+
+        expectThrows(ExecutionException.class, () -> client.executeWithRetry(request()));
+
+        verify(client, times(1)).executeOnce(any(SimpleHttpRequest.class), anyLong());
+    }
+
+    /** Only idempotent GET requests are re-issued after a transport error. */
+    public void testNonGetRequestIsNotRetried() throws Exception {
+        ApiClient client = scriptedClient(connectionClosed());
+
+        expectThrows(
+                ExecutionException.class,
+                () -> client.executeWithRetry(SimpleRequestBuilder.post(URI).build()));
+
+        verify(client, times(1)).executeOnce(any(SimpleHttpRequest.class), anyLong());
+    }
+
+    /** An interrupted attempt is rethrown at once, without a retry. */
+    public void testInterruptIsNotRetried() throws Exception {
+        ApiClient client = scriptedClient(new InterruptedException());
+
+        expectThrows(InterruptedException.class, () -> client.executeWithRetry(request()));
+
+        verify(client, times(1)).executeOnce(any(SimpleHttpRequest.class), anyLong());
+    }
+
+    /** With a zero retry budget a transport error is rethrown after a single attempt. */
+    public void testZeroRetriesRethrowsTransportError() throws Exception {
+        ApiClient client = scriptedClient(connectionClosed());
+
+        expectThrows(ExecutionException.class, () -> client.executeWithRetry(request(), 0));
+
+        verify(client, times(1)).executeOnce(any(SimpleHttpRequest.class), anyLong());
+        verify(client, never()).computeBackoffSeconds(anyInt());
+    }
+
+    /**
+     * Against a real server that closes the first connection without answering, the request is sent
+     * again on a new connection and gets the 200 the server answers there.
+     */
+    public void testRetriesConnectionClosedByServer() throws Exception {
+        PluginSettingsTests.clearInstance();
+        PluginSettings.getInstance(
+                Settings.builder()
+                        .put(PluginSettings.CLIENT_RETRY_BACKOFF_BASE_SECONDS.getKey(), 1)
+                        .build());
+        try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getLoopbackAddress());
+                ApiClient client = new ApiClient()) {
+            Thread responder =
+                    new Thread(
+                            () -> {
+                                try {
+                                    try (Socket first = server.accept()) {
+                                        readRequest(first);
+                                    }
+                                    try (Socket second = server.accept()) {
+                                        readRequest(second);
+                                        second
+                                                .getOutputStream()
+                                                .write(
+                                                        "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                                                                .getBytes(StandardCharsets.US_ASCII));
+                                    }
+                                } catch (IOException e) {
+                                    throw new UncheckedIOException(e);
+                                }
+                            });
+            responder.start();
+
+            SimpleHttpResponse result =
+                    client.executeWithRetry(
+                            SimpleRequestBuilder.get(
+                                            "http://"
+                                                    + NetworkAddress.format(
+                                                            new InetSocketAddress(
+                                                                    server.getInetAddress(), server.getLocalPort())))
+                                    .build());
+            responder.join();
+
+            assertEquals(HttpStatus.SC_OK, result.getCode());
+        }
+    }
+
+    /**
+     * Reads a request head up to its blank line. Closing a socket with unread bytes resets the
+     * connection instead of closing it, and the async client retries a reset on its own.
+     */
+    private static void readRequest(Socket socket) throws IOException {
+        BufferedReader reader =
+                new BufferedReader(
+                        new InputStreamReader(socket.getInputStream(), StandardCharsets.US_ASCII));
+        String line;
+        do {
+            line = reader.readLine();
+        } while (line != null && !line.isEmpty());
     }
 
     /**

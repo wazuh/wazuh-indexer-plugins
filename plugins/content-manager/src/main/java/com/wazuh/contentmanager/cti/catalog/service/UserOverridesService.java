@@ -40,6 +40,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.UnaryOperator;
 
 import com.wazuh.contentmanager.cti.catalog.model.Resource;
@@ -404,19 +405,100 @@ public class UserOverridesService {
                                 return;
                             }
 
-                            mergeSettings(document, overrides.getPolicy());
-                            int attached = attachFilterIds(document, restoredFilterIds);
-                            refreshHash(wrapper, document);
+                            this.resolvePolicySettings(
+                                    document,
+                                    overrides.getPolicy(),
+                                    ActionListener.wrap(
+                                            resolved -> {
+                                                mergeSettings(document, resolved);
+                                                int attached = attachFilterIds(document, restoredFilterIds);
+                                                refreshHash(wrapper, document);
 
-                            log.info(
-                                    Constants.I_LOG_USER_OVERRIDES_APPLIED,
-                                    spaceName,
-                                    overrides.getPolicy() != null,
-                                    attached);
+                                                log.info(
+                                                        Constants.I_LOG_USER_OVERRIDES_APPLIED,
+                                                        spaceName,
+                                                        resolved != null,
+                                                        attached);
 
-                            this.writePolicy(spaceName, document, wrapper, listener);
+                                                ActionListener<Void> afterWrite =
+                                                        resolved != null && overrides.getPolicy().isLegacy()
+                                                                ? ActionListener.wrap(
+                                                                        v ->
+                                                                                this.storeConvertedEnrichments(
+                                                                                        spaceName, resolved.getDisabledEnrichments(), listener),
+                                                                        listener::onFailure)
+                                                                : listener;
+                                                this.writePolicy(spaceName, document, wrapper, afterWrite);
+                                            },
+                                            listener::onFailure));
                         },
                         listener::onFailure));
+    }
+
+    /**
+     * Gives the stored settings in the current format, converting a legacy override.
+     *
+     * <p>A legacy override holds the enrichments the user kept, so the ones they turned off are the
+     * types CTI publishes that are missing from it. The policy document alone cannot tell which those
+     * are: not every pass rewrites it from CTI (an incremental update that does not touch the policy,
+     * or a pass resuming a cut one), and then it already lacks the types the user turned off. The
+     * types known from the IOC catalog are added to it for that reason.
+     *
+     * @param document the rebuilt policy document.
+     * @param settings the stored settings, or {@code null}.
+     * @param listener receives the settings to merge, never legacy; {@code null} when there are none.
+     */
+    private void resolvePolicySettings(
+            ObjectNode document,
+            UserOverrides.PolicySettings settings,
+            ActionListener<UserOverrides.PolicySettings> listener) {
+        if (settings == null || !settings.isLegacy()) {
+            listener.onResponse(settings);
+            return;
+        }
+        this.spaceService.getKnownEnrichmentTypesAsync(
+                ActionListener.wrap(
+                        known -> {
+                            Set<String> candidates = new LinkedHashSet<>(publishedEnrichments(document));
+                            candidates.addAll(new TreeSet<>(known));
+                            listener.onResponse(
+                                    settings.withDisabledEnrichments(
+                                            settings.resolveDisabledEnrichments(candidates)));
+                        },
+                        listener::onFailure));
+    }
+
+    /**
+     * Stores a converted legacy override, so the next pass does not convert it again: by then CTI may
+     * publish a type the user never saw, which the conversion would take as turned off.
+     *
+     * <p>Only an override that is still legacy is replaced; a save that landed meanwhile already
+     * wrote the current format and wins. A failure is logged and swallowed: the policy is already
+     * written, and the conversion is retried on the next pass.
+     */
+    private void storeConvertedEnrichments(
+            String spaceName, List<String> disabled, ActionListener<Void> listener) {
+        this.update(
+                spaceName,
+                current ->
+                        current.getPolicy() != null && current.getPolicy().isLegacy()
+                                ? new UserOverrides(
+                                        current.getPolicy().withDisabledEnrichments(disabled),
+                                        current.getFilters(),
+                                        current.getIntegrations())
+                                : current,
+                ActionListener.wrap(
+                        v -> {
+                            log.info(Constants.I_LOG_USER_OVERRIDES_ENRICHMENTS_CONVERTED, spaceName, disabled);
+                            listener.onResponse(null);
+                        },
+                        e -> {
+                            log.warn(
+                                    Constants.W_LOG_USER_OVERRIDES_ENRICHMENTS_CONVERSION_FAILED,
+                                    spaceName,
+                                    e.getMessage());
+                            listener.onResponse(null);
+                        }));
     }
 
     /** Writes the merged policy back under its real document id. */
@@ -447,6 +529,8 @@ public class UserOverridesService {
      * Writes the settings the user owns over CTI's values.
      *
      * <p>A {@code null} setting means the user never decided that field, so CTI's value stays.
+     *
+     * @param settings the stored settings, already converted from the legacy format, or {@code null}.
      */
     private static void mergeSettings(ObjectNode document, UserOverrides.PolicySettings settings) {
         if (settings == null) {
@@ -464,20 +548,25 @@ public class UserOverridesService {
             document.put(
                     Constants.KEY_INDEX_DISCARDED_EVENTS, settings.getIndexDiscardedEvents().booleanValue());
         }
-        if (settings.getEnrichments() != null) {
-            List<String> published = new ArrayList<>();
-            document.path(Constants.KEY_ENRICHMENTS).forEach(entry -> published.add(entry.asText()));
-
-            // Keep only what CTI still publishes. A stored value it dropped would otherwise be
-            // resurrected on every sync, leaving the policy naming an enrichment the engine does not
-            // know.
-            List<String> effective = new ArrayList<>(settings.getEnrichments());
-            effective.retainAll(published);
+        if (settings.getDisabledEnrichments() != null) {
+            // Everything CTI publishes, except what the user turned off. A type CTI publishes for the
+            // first time is on, and one CTI stopped publishing is not resurrected.
+            List<String> effective = publishedEnrichments(document);
+            effective.removeAll(settings.getDisabledEnrichments());
 
             ArrayNode merged = document.arrayNode();
             effective.forEach(merged::add);
             document.set(Constants.KEY_ENRICHMENTS, merged);
         }
+    }
+
+    /**
+     * @return the enrichments of the rebuilt policy document, in order.
+     */
+    private static List<String> publishedEnrichments(ObjectNode document) {
+        List<String> published = new ArrayList<>();
+        document.path(Constants.KEY_ENRICHMENTS).forEach(entry -> published.add(entry.asText()));
+        return published;
     }
 
     /**
