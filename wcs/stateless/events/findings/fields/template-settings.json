@@ -15,6 +15,8 @@
         "auto_expand_replicas": "0-1",
         "refresh_interval": "2s",
         "query.default_field": [
+          "error.message",
+          "message",
           "wazuh.agent.host.architecture",
           "wazuh.agent.id",
           "wazuh.agent.name",

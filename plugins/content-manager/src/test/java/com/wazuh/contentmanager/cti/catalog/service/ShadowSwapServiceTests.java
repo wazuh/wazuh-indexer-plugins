@@ -460,6 +460,35 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
     }
 
     /**
+     * User content that cannot be copied to the staging indices keeps the live content, where that
+     * user content still is: nothing is switched or deleted but the staging indices.
+     */
+    public void testFailedUserContentCopyKeepsTheContent() {
+        this.swapService.copyFails = true;
+        this.ruleset.fileOffset = 1600;
+
+        boolean rebuilt =
+                this.swapService.rebuildFromFile(
+                        this.ruleset,
+                        this.consumersIndex.documents.get(RULESET),
+                        Path.of("/snapshots/ruleset.zip"));
+
+        assertFalse(rebuilt);
+        assertEquals(0, this.swapService.switchRequests);
+        assertEquals(
+                List.of(
+                        "create staging ruleset",
+                        "load file ruleset ruleset.zip",
+                        "copy user content [rules-a, decoders-a]",
+                        "delete [rules-b]",
+                        "delete [decoders-b]"),
+                this.events);
+        assertEquals("rules-a", this.swapService.aliasTargets.get("rules"));
+        assertEquals("decoders-a", this.swapService.aliasTargets.get("decoders"));
+        assertTrue(this.swapService.indices.containsAll(Set.of("rules-a", "decoders-a")));
+    }
+
+    /**
      * Both document writes of a swap keep the phases pending before it and add the ones the new
      * content leaves owed, so a pass cut after the switch still runs them. A consumer that owes
      * nothing keeps nothing pending.
@@ -575,6 +604,7 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
         final Map<String, String> aliasTargets = new LinkedHashMap<>();
         final Set<String> indices = new LinkedHashSet<>();
         private final List<String> events;
+        boolean copyFails;
         boolean refreshFails;
         boolean switchFails;
         int switchRequests;
@@ -622,6 +652,9 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
         @Override
         void copyUserContent(Map<String, String> liveToStaging) {
             this.events.add("copy user content " + liveToStaging.keySet());
+            if (this.copyFails) {
+                throw new IllegalStateException("user content could not be copied");
+            }
         }
 
         @Override

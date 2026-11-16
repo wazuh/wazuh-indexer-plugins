@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
@@ -1435,5 +1436,41 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
             PluginSettings.resetForTesting();
             PluginSettings.getInstance(Settings.EMPTY);
         }
+    }
+
+    /**
+     * The ruleset empties only the Standard space, and does it through the Security Analytics and
+     * space services this consumer was given, so a deployment running Security Analytics in mock mode
+     * wipes through that same mock.
+     *
+     * <p>This is the decision issue #1773 was about: returning the index-clearing wiper here deletes
+     * and recreates every index, and takes the Draft, Test and Custom spaces and the user overrides
+     * registry with them.
+     */
+    public void testTheRulesetWiperDeletesOnlyTheStandardSpace() {
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Object>>getArgument(1).onResponse(null);
+                            return null;
+                        })
+                .when(this.securityAnalyticsService)
+                .deleteSpaceResources(any(Space.class), any());
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<Void>>getArgument(1).onResponse(null);
+                            return null;
+                        })
+                .when(this.spaceService)
+                .deleteSpaceResources(any(Space.class), any());
+        ContentIndex index = mock(ContentIndex.class);
+
+        ContentWiper wiper = this.synchronizer.contentWiper(Map.of("rule", index));
+        assertTrue(
+                "the ruleset must not wipe by replacing its indices", wiper instanceof StandardSpaceWiper);
+        assertTrue(wiper.wipe());
+
+        verify(this.securityAnalyticsService).deleteSpaceResources(eq(Space.STANDARD), any());
+        verify(this.spaceService).deleteSpaceResources(eq(Space.STANDARD), any());
+        verify(index, never()).clear();
     }
 }

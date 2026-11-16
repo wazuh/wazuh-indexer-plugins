@@ -79,13 +79,17 @@ Configure Wazuh Indexer to lock its process address space into RAM so that none 
    }
    ```
 
-   If the output is `false`, memory locking failed and the following line appears in `/var/log/wazuh-indexer/wazuh-indexer.log`:
+   If the output is `false`, or the node does not start, memory locking failed and the following lines appear in `/var/log/wazuh-indexer/wazuh-cluster.log`. The file is named after `cluster.name`, which is `wazuh-cluster` by default:
 
    ```
-   memory locking requested for wazuh-indexer process but memory is not locked
+   Unable to lock JVM Memory: error=12, reason=Cannot allocate memory
+   This can result in part of the JVM being swapped out.
+   memory locking requested for opensearch process but memory is not locked
    ```
 
-   This usually means the `wazuh-indexer` user lacks the `memlock` permission. For systemd-based systems, confirm that `LimitMEMLOCK=infinity` is present in the service file, reload with `systemctl daemon-reload`, and restart the service. For SysVinit-based systems, confirm that step 2 was applied correctly.
+   With the packaged `network.host`, which listens on all interfaces, the node does not start: the log reports `bootstrap checks failed` followed by the last line, and the request above gets no answer. A node that listens only on a loopback address starts all the same, reports `false` and logs the last line as a warning.
+
+   A failed lock usually means the `wazuh-indexer` user lacks the `memlock` permission. For systemd-based systems, confirm that `LimitMEMLOCK=infinity` is present in the service file, reload with `systemctl daemon-reload`, and restart the service. For SysVinit-based systems, confirm that step 2 was applied correctly.
 
 > **Note**: Enabling `bootstrap.memory_lock` causes the JVM to reserve all the memory it needs at startup, including native memory beyond the configured heap. Make sure the node has enough physical RAM for the heap plus this overhead, otherwise the service may fail to start.
 
@@ -142,35 +146,19 @@ curl -k -u <INDEXER_USERNAME>:<INDEXER_PASSWORD> "https://<INDEXER_IP_ADDRESS>:9
 
 ## Avoiding unnecessary service restarts (`needrestart`)
 
-On Debian and Ubuntu systems with `needrestart` installed, Wazuh Indexer may get restarted automatically every time `apt` installs or upgrades **any** package, even one unrelated to Wazuh Indexer. On Ubuntu 24.04 and 26.04 this happens silently, without asking for confirmation.
+On Debian and Ubuntu systems, `needrestart` runs after every `apt` operation and restarts the services it considers to be running outdated code. On Ubuntu 24.04 and later it does so without asking for confirmation.
 
-This happens because some bundled Java native libraries (used for compression and networking) extract a shared object file into `/var/lib/wazuh-indexer/tmp/` and delete it right after loading it, keeping it mapped in memory but no longer present on disk. `needrestart` interprets processes with deleted mapped libraries as running outdated code and restarts them.
+Some bundled Java native libraries (used for compression and networking) extract a shared object file into `/var/lib/wazuh-indexer/tmp/` and delete it right after loading it, keeping it mapped in memory but no longer present on disk. `needrestart` treats a process with deleted mapped libraries as running outdated code, so it would restart Wazuh Indexer every time `apt` installs or upgrades **any** package, even one unrelated to Wazuh Indexer.
 
-To stop `needrestart` from restarting Wazuh Indexer on unrelated `apt` operations, add one of the following to `/etc/needrestart/conf.d/`:
+To prevent this, the DEB package installs `/etc/needrestart/conf.d/wazuh-indexer.conf`, which tells `needrestart` to ignore the mappings under `/var/lib/wazuh-indexer/tmp/`:
 
-### Ignore only the affected temporary files (recommended)
-
-`needrestart` still checks the service for other legitimate reasons to restart:
-
-```console
-echo 'push(@{$nrconf{blacklist_mappings}}, qr(^/var/lib/wazuh-indexer/tmp/));' > /etc/needrestart/conf.d/wazuh-indexer-tmp.conf
+```perl
+push(@{$nrconf{blacklist_mappings}}, qr(^/var/lib/wazuh-indexer/tmp/));
 ```
 
-### Ignore the service entirely
+`needrestart` keeps every other check on the service, so an update of a system library that Wazuh Indexer uses, such as libc, still restarts it. The rule names the temporary directory `OPENSEARCH_TMPDIR` sets in `/etc/default/wazuh-indexer`, and a node that changes that variable without changing this path gets the restarts back.
 
-`needrestart` will never flag Wazuh Indexer for restart, including for legitimate reasons such as a libc update:
-
-```console
-echo 'push(@{$nrconf{blacklist_rc}}, qr(^wazuh-indexer));' > /etc/needrestart/conf.d/wazuh-indexer.conf
-```
-
-Verify the change:
-
-```console
-needrestart -v
-```
-
-`wazuh-indexer.service` should no longer appear in the list of services to restart.
+The file is a configuration file of the package: upgrades keep local changes to it, removing the package keeps it, and purging the package deletes it.
 
 ## Related documentation
 

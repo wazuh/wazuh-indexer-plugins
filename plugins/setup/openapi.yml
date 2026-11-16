@@ -143,6 +143,21 @@ paths:
                   value:
                     message: "Field 'engine.index_raw_events' must be of type boolean."
                     status: 400
+        "403":
+          description: |
+            Forbidden - Settings updates are disabled on the node (`plugins.setup.settings_update.enabled` is `false`). The request is rejected for every caller, regardless of role.
+
+            A caller that lacks the `plugin:wazuh/settings/write` cluster permission also gets a `403`. OpenSearch Security rejects that request before it reaches the plugin and answers with its own error envelope, not with the schema below.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestResponse"
+              examples:
+                settings_update_disabled:
+                  summary: Settings updates disabled
+                  value:
+                    message: "Setup settings updates are disabled on this deployment."
+                    status: 403
         "500":
           description: |
             Internal Server Error - The server encountered an unexpected error while persisting the settings.

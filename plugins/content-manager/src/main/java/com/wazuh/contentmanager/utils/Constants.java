@@ -41,6 +41,11 @@ public class Constants {
     // REST API responses. Pattern: <type>_<http_status_code>_<name>. Type is: E for error, S for
     // success.
     public static final String S_200_PROMOTION_COMPLETED = "Promotion completed successfully.";
+    public static final String S_200_SPACE_RESET = "Successfully reset space [%s].";
+    public static final String S_200_CLEAR_NORMALIZATION =
+            "Successfully cleared normalization resources for space [%s].";
+    public static final String S_200_CLEAR_DETECTION =
+            "Successfully cleared detection resources for space [%s].";
     public static final String S_201_ACCESS_TOKEN_RECEIVED = "Access token received successfully.";
     public static final String S_200_PERMISSION_CHECK_ALLOWED =
             "Permission check passed: security plugin disabled.";
@@ -64,6 +69,7 @@ public class Constants {
     public static final String E_400_POLICY_ID_MISMATCH =
             "Policy [%s] not found in the '%s' space. The policy update must use the space's policy id [%s].";
     public static final String E_400_UNPROMOTABLE_SPACE = "Space [%s] cannot be promoted.";
+    public static final String E_400_UNSUPPORTED_SPACE = "Space [%s] is not supported.";
     public static final String E_409_DUPLICATE_NAME =
             "A %s with the name '%s' already exists in the %s space.";
     public static final String E_400_TOO_MANY_INTEGRATIONS =
@@ -174,7 +180,6 @@ public class Constants {
     public static final String E_LOG_DETECTOR_GUARD_FAILED =
             "Detector guard failed while validating promotion ({}): {}";
     public static final String D_LOG_SAP_SEND = "Sending {} [{}] with ID [{}] to Security Analytics.";
-    public static final String D_LOG_SAP_DELETED = "{} deleted successfully (document.id={}{}).";
     public static final String D_LOG_SAP_DELETE_ASYNC =
             "Sending delete request for {} to Security Analytics (document.id={}{}).";
     public static final String I_LOG_SAP_SUMMARY =
@@ -234,7 +239,6 @@ public class Constants {
             "Consumer [{}] is registered; using signed download URLs.";
     public static final String D_LOG_REGULAR_URL_RESOLVER =
             "Consumer [{}] is not registered; using public download URLs.";
-    public static final String E_LOG_INDEX_CREATE_FAILED = "Failed to create index [{}]: {}";
     public static final String E_LOG_SYNC_ABORTED_INDICES_MISSING =
             "Skipping [{}] synchronization: the Setup plugin reported ready but these indices are "
                     + "missing: {}. No content is downloaded until they exist. Restart to let the Setup "
@@ -265,6 +269,8 @@ public class Constants {
             "Failed to check local snapshot at [{}]: {}";
     public static final String E_LOG_CLEAR_RESOURCES_FAILED =
             "Failed to clear existing resources for consumer [{}] during snapshot initialization: {}";
+    public static final String E_LOG_SNAPSHOT_WIPE_FAILED =
+            "Snapshot load aborted for consumer [{}]: the content it replaces was not emptied, so nothing is written over it.";
     public static final String D_LOG_SNAPSHOT_INIT_CUSTOM_URL =
             "Initializing snapshot from custom consumer URL: {}";
     public static final String W_LOG_REMOTE_SNAPSHOT_FAILED_FALLBACK =
@@ -295,6 +301,8 @@ public class Constants {
             "Updating consumer [{}] content (offset {} → {}).";
     public static final String W_LOG_CTI_RATE_LIMITED =
             "CTI API rate-limited request [{}] (HTTP 429); retrying in {}s (attempt {}/{}).";
+    public static final String W_LOG_CTI_TRANSIENT_ERROR =
+            "CTI API request [{}] failed ({}); retrying in {}s (attempt {}/{}).";
     public static final String E_LOG_MANIFEST_NOT_FOUND =
             "Snapshot manifest not found at [{}]; consumer cannot be initialized and will be retried on the next sync.";
     public static final String E_LOG_MANIFEST_ENTRY_MISSING =
@@ -369,8 +377,6 @@ public class Constants {
             "Filtered {} disabled rule(s) from detector rule list";
     public static final String E_LOG_FETCH_ENABLED_RULES_FAILED =
             "Failed to fetch enabled rule IDs: {}";
-    public static final String E_LOG_EVALUATE_RULES_FAILED =
-            "Failed to evaluate rules via Security Analytics transport action.";
     public static final String W_LOG_SAP_SPACE_DELETE_PARTIAL =
             "Partial failures deleting Security Analytics resources for space [{}]: {}";
     public static final String I_LOG_SAP_SPACE_DELETED =
@@ -483,6 +489,12 @@ public class Constants {
             "User overrides registry write conflicted on attempt {}; re-reading and retrying.";
     public static final String I_LOG_USER_OVERRIDES_APPLIED =
             "Applied user overrides for space [{}]: policy settings present={}, {} filter id(s) attached";
+    public static final String I_LOG_USER_OVERRIDES_ENRICHMENTS_CONVERTED =
+            "Converted the enrichments of the user overrides for space [{}] from the list kept to the"
+                    + " types turned off: {}";
+    public static final String W_LOG_USER_OVERRIDES_ENRICHMENTS_CONVERSION_FAILED =
+            "Failed to store the converted enrichments of the user overrides for space [{}]; the"
+                    + " conversion is retried on the next synchronization: {}";
     public static final String W_LOG_USER_OVERRIDES_FILTER_UNREADABLE =
             "Stored filter [{}] could not be parsed and was skipped; it will not be restored: {}";
     public static final String I_LOG_USER_OVERRIDES_INTEGRATIONS_APPLIED =
@@ -497,7 +509,7 @@ public class Constants {
             "Failed to record {} [{}] in the user overrides registry. The change itself is fine, but it"
                     + " will not survive the next content rebuild of the standard space: {}";
 
-    // Log messages - a policy's id lists (PolicyLinks)
+    // Log messages - a policy's id lists (PolicyDocumentWriter)
     public static final String D_LOG_POLICY_LINKS_CONFLICT =
             "Write of the [{}] policy's [{}] list conflicted on attempt {}; re-reading and retrying in {}.";
     public static final String W_LOG_POLICY_LINKS_RETRIES_EXHAUSTED =
@@ -511,8 +523,6 @@ public class Constants {
             "Error parsing/indexing JSON line: {}";
     public static final String W_LOG_SNAPSHOT_ENTRIES_SKIPPED =
             "Skipped {} snapshot entries (missing payload: {}, unknown type: {}, unmapped type: {}, parse errors: {}).";
-    public static final String E_LOG_SNAPSHOT_READ_FILE_FAILED =
-            "Error reading snapshot file [{}]: {}";
     public static final String E_LOG_SNAPSHOT_FILE_REJECTED =
             "Snapshot file [{}] rejected for consumer [{}]: {}. Nothing was loaded.";
     public static final String E_LOG_SNAPSHOT_FILE_CONTENT_REJECTED =
@@ -539,8 +549,6 @@ public class Constants {
     public static final String D_LOG_SNAPSHOT_LOCAL_DELETED = "Deleted local snapshot file [{}]";
     public static final String W_LOG_SNAPSHOT_LOCAL_DELETE_FAILED =
             "Failed to delete local snapshot file [{}]: {}";
-    public static final String W_LOG_SNAPSHOT_TEMP_FILE_DELETE_FAILED =
-            "Failed to delete temp file {}";
     public static final String W_LOG_SNAPSHOT_CLEANUP_FAILED = "Error during cleanup: {}";
     public static final String D_LOG_SNAPSHOT_ELAPSED = "Snapshot [{}] processed in {} ms";
     public static final String D_LOG_SNAPSHOT_LOCAL_ELAPSED =
@@ -563,7 +571,6 @@ public class Constants {
             "Stable snapshot rollback failed for consumer [{}]. Falling back to packaged snapshot [{}].";
     public static final String D_LOG_UPDATE_START =
             "Starting content update for consumer [{}] from [{}] to [{}]";
-    public static final String E_LOG_UPDATE_FETCH_CHANGES_FAILED = "Failed to fetch changes: {} {}";
     public static final String E_LOG_UPDATE_APPLY_OFFSET_FAILED =
             "Failed to apply offset [{}] (type={}, resource={}): {}";
     public static final String I_LOG_UPDATE_CONSUMER_SUCCESS =
@@ -630,8 +637,6 @@ public class Constants {
     public static final String E_LOG_DELETE_RESOURCES_FAILED = "Failed to delete resources: {}";
     public static final String E_LOG_FIND_DOCUMENT_ID_FAILED =
             "Error finding document ID for space [{}] and docId [{}]: {}";
-    public static final String W_LOG_POLICY_INDEX_MISSING =
-            "Policy index [{}] does not exist. Skipping hash calculation.";
     public static final String D_LOG_RECALCULATING_HASH =
             "Recalculating content hash for policy [{}] in space [{}].";
     public static final String E_LOG_BULK_UPDATE_HASHES_FAILED =
@@ -657,12 +662,10 @@ public class Constants {
             "Could not find mappings file [{}] for index [{}]";
     public static final String E_LOG_READ_MAPPINGS_FAILED =
             "Could not read mappings for index [{}]: {}";
-    public static final String E_LOG_INDEX_DOCUMENT_FAILED = "Failed to index document [{}]: {}";
     public static final String D_LOG_DELETED_FROM_INDEX = "Deleted {} from {}";
     public static final String E_LOG_DELETE_DOCUMENT_FAILED = "Failed to delete {}: {}";
     public static final String D_LOG_NO_DOCUMENT_FOUND_QUERY =
             "No document found in [{}] with query {}";
-    public static final String E_LOG_SEARCH_BY_QUERY_FAILED = "Search by query failed in [{}]: {}";
     public static final String E_LOG_BULK_INDEX_OPERATION_FAILED = "Bulk index operation failed: {}";
     public static final String W_LOG_BULK_RETRY_SCHEDULED =
             "Bulk indexing shed {} document(s) under load; retry {}/{} in {}ms.";
@@ -764,7 +767,6 @@ public class Constants {
     // AbstractContentAction)
     public static final String W_LOG_CREDENTIALS_INDEX_NOT_PROTECTED =
             "[{}] index is not configured as a system index. Registration will be disabled and any stored token will be removed on startup. Add it to plugins.security.system_indices.indices in opensearch.yml and ensure plugins.security.system_indices.enabled is true, then restart.";
-    public static final String D_LOG_SKIP_CATALOG_SYNC_TRIGGER = "Skipping catalog sync job trigger";
     public static final String I_LOG_PLUGIN_INDEX_CREATED = "Index created: {} acknowledged={}";
     public static final String E_LOG_PLUGIN_INDEX_CREATE_FAILED =
             "Failed to create {} index, due to: {}";
@@ -794,6 +796,8 @@ public class Constants {
             "Could not parse the existing Catalog Sync Job document; rewriting it from the current settings: {}";
     public static final String I_LOG_CATALOG_SYNC_SKIPPED_DISABLED =
             "Scheduled catalog synchronization (ID: {}) skipped: plugins.content_manager.catalog.update_on_schedule is false.";
+    public static final String I_LOG_CATALOG_SYNC_SKIPPED_ON_START =
+            "Content update on start skipped: plugins.content_manager.catalog.update_on_start is false. Content not loaded yet, including the snapshots packaged with the Wazuh Indexer, is loaded by POST /_plugins/_content_manager/update?offline=true.";
     public static final String I_LOG_REGISTRATION_UPDATE_STARTED =
             "Access token registered; content update started to apply the environment's plan.";
     public static final String I_LOG_REGISTRATION_UPDATE_WAITING =
@@ -818,13 +822,17 @@ public class Constants {
             "Telemetry Ping Job removed successfully.";
     public static final String E_LOG_TELEMETRY_JOB_REMOVE_FAILED =
             "Failed to remove Telemetry Ping Job: {}";
+    public static final String I_LOG_VERSION_SET = "Version tag initialized to {}";
+    public static final String I_LOG_VERSION_SET_OVERRIDE = "Version tag supplied: {}";
     public static final String W_LOG_VERSION_FIELD_MISSING =
-            "VERSION.json found but 'version' field is empty or missing.";
+            "VERSION.json found but '{}' field is empty or missing.";
     public static final String W_LOG_VERSION_READ_FAILED = "Could not read VERSION.json: {}";
     public static final String D_LOG_ENGINE_REJECTED_PAYLOAD =
             "Engine rejected promotion payload: {}";
     public static final String D_LOG_ENGINE_VALIDATION_COMPLETE =
             "Engine validation for space [{}] completed successfully.";
+    public static final String D_LOG_ENGINE_PAYLOAD_WITHOUT_INTEGRATIONS =
+            "Space [{}] has no decoders, kvdbs or filters. Its integrations are left out of the Engine payload.";
     public static final String W_LOG_SNAPSHOT_OLD_VERSION_FAILED =
             "Failed to snapshot old version of [{}] in [{}]: {}";
     public static final String E_LOG_SNAPSHOT_DELETE_TARGET_FAILED =
@@ -855,8 +863,6 @@ public class Constants {
             "Security Analytics rollback: restored deleted {} [{}] in space [{}]";
     public static final String W_LOG_SAP_ROLLBACK_RESTORE_DELETED_FAILED =
             "Security Analytics rollback failed to restore deleted {} [{}]: {}";
-    public static final String E_LOG_PROCESS_REQUEST_FAILED = "Failed to process content request: {}";
-    public static final String E_LOG_SEND_ERROR_RESPONSE_FAILED = "Failed to send error response";
 
     // Index Constants
     public static final String INDEX_POLICIES = "wazuh-threatintel-policies";
@@ -907,6 +913,12 @@ public class Constants {
     public static final String KEY_CVES = "cves";
     public static final String KEY_FILTERS = "filters";
     public static final String KEY_ENRICHMENTS = "enrichments";
+    public static final String KEY_DISABLED_ENRICHMENTS = "disabled_enrichments";
+    public static final String KEY_ROOT_DECODER = "root_decoder";
+
+    // Pipeline phase keys (policy resources response)
+    public static final String KEY_NORMALIZATION = "normalization";
+    public static final String KEY_DETECTION = "detection";
 
     // Resource Metadata Keys
     public static final String KEY_DOCUMENT = "document";
@@ -956,7 +968,6 @@ public class Constants {
     // Consumer's metadata
     public static final String KEY_IS_PUBLIC = "is_public";
     public static final String KEY_CONTEXT = "context";
-    public static final String KEY_LOCAL_OFFSET = "local_offset";
     public static final String KEY_REMOTE_OFFSET = "remote_offset";
     public static final String KEY_UPDATED_AT = "updated_at";
     public static final String KEY_LAST_CHECKED_AT = "last_checked_at";
@@ -972,6 +983,10 @@ public class Constants {
     public static final String KEY_PRODUCT = "product";
     public static final String KEY_CATEGORY = "category";
     public static final String KEY_FILTER = "filter";
+    public static final String KEY_TRACE_LEVEL = "trace_level";
+
+    // Logtest trace level sent to the Engine when the request omits it.
+    public static final String TRACE_LEVEL_NONE = "NONE";
 
     // Integration mode values. Protected integrations cannot be modified; user-managed ones can.
     public static final String MODE_PROTECTED = "protected";
@@ -1030,6 +1045,8 @@ public class Constants {
     // HTTP headers
     public static final String USER_AGENT_PREFIX = "Wazuh Indexer ";
     public static final String ACCEPT_ENCODING_GZIP = "gzip";
+    public static final String WAZUH_UUID_HEADER = "wazuh-uid";
+    public static final String WAZUH_VERSION_HEADER = "wazuh-tag";
 
     // IOC type hashes
     public static final String IOC_TYPE_HASHES_ID = "__ioc_type_hashes__";
@@ -1110,4 +1127,10 @@ public class Constants {
     // and PluginSettings#RESOURCE_LOCK_STALE_THRESHOLD_MILLIS.
     public static final String E_429_RESOURCE_LOCK_TIMEOUT =
             "Too many concurrent requests creating this resource. Please retry.";
+
+    /** Lock type that serializes the full reset and the scoped clears on a single space. */
+    public static final String LOCK_TYPE_SPACE = "space";
+
+    public static final String E_429_SPACE_BUSY =
+            "Too many concurrent requests clearing this space. Please retry.";
 }

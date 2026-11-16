@@ -129,8 +129,8 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                             "title": "Test decoder with explicit timestamps"
                         },
                         "name": "decoder/test-decoder-timestamps/0",
-                        "check": [{"tmp_json.event.action": "string_equal(\\"test\\")"}],
-                        "normalize": [{"map": [{"@timestamp": "get_date()"}]}]
+                        "check": [{"_tmp_json.event.action": "string_eq(\\"test\\")"}],
+                        "normalize": [{"map": [{"@timestamp": "now()"}]}]
                     }
                 }
                 """;
@@ -178,8 +178,8 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                             "title": "Test decoder with a malformed date"
                         },
                         "name": "decoder/test-decoder-malformed-date/0",
-                        "check": [{"tmp_json.event.action": "string_equal(\\"test\\")"}],
-                        "normalize": [{"map": [{"@timestamp": "get_date()"}]}]
+                        "check": [{"_tmp_json.event.action": "string_eq(\\"test\\")"}],
+                        "normalize": [{"map": [{"@timestamp": "now()"}]}]
                     }
                 }
                 """;
@@ -273,8 +273,8 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                             "references": [],
                             "versions": ["5.*"]
                         },
-                        "check": [{"tmp_json.event.action": "string_equal(\\"test\\")"}],
-                        "normalize": [{"map": [{"@timestamp": "get_date()"}]}]
+                        "check": [{"_tmp_json.event.action": "string_eq(\\"test\\")"}],
+                        "normalize": [{"map": [{"@timestamp": "now()"}]}]
                     }
                 }
                 """;
@@ -373,8 +373,8 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                             "references": [],
                             "versions": ["5.*"]
                         },
-                        "check": [{"tmp_json.event.action": "string_equal(\\"updated\\")"}],
-                        "normalize": [{"map": [{"@timestamp": "get_date()"}]}]
+                        "check": [{"_tmp_json.event.action": "string_eq(\\"updated\\")"}],
+                        "normalize": [{"map": [{"@timestamp": "now()"}]}]
                     }
                 }
                 """;
@@ -422,8 +422,8 @@ public class DecoderCUDIT extends ContentManagerRestTestCase {
                             "references": [],
                             "versions": ["5.*"]
                         },
-                        "check": [{"tmp_json.event.action": "string_equal(\\"test\\")"}],
-                        "normalize": [{"map": [{"@timestamp": "get_date()"}]}]
+                        "check": [{"_tmp_json.event.action": "string_eq(\\"test\\")"}],
+                        "normalize": [{"map": [{"@timestamp": "now()"}]}]
                     }
                 }
                 """;

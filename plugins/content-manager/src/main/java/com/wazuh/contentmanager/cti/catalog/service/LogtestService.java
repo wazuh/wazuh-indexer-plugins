@@ -92,7 +92,7 @@ public class LogtestService {
             ObjectNode enginePayload,
             ActionListener<RestResponse> listener) {
         if (integrationId == null) {
-            listener.onResponse(executeEngineOnly(enginePayload));
+            listener.onResponse(this.executeEngineOnly(enginePayload));
             return;
         }
 
@@ -122,35 +122,35 @@ public class LogtestService {
                                         return;
                                     }
 
-                                    Map<String, Object> engineResult = executeEngine(enginePayload);
+                                    Map<String, Object> engineResult = this.executeEngine(enginePayload);
                                     if ("error".equals(engineResult.get(Constants.KEY_STATUS))) {
                                         Map<String, Object> sapResult = new LinkedHashMap<>();
                                         sapResult.put(Constants.KEY_STATUS, "skipped");
                                         sapResult.put("reason", "Engine processing failed");
-                                        listener.onResponse(buildCombinedResponse(engineResult, sapResult));
+                                        listener.onResponse(this.buildCombinedResponse(engineResult, sapResult));
                                         return;
                                     }
 
                                     Map<String, Object> integrationSource =
                                             integrationSearchResponse.getHits().getAt(0).getSourceAsMap();
-                                    List<String> ruleIds = extractRuleIds(integrationSource);
+                                    List<String> ruleIds = this.extractRuleIds(integrationSource);
                                     DetectorTarget target =
-                                            extractDetectorTarget(integrationId, integrationSource, space);
+                                            this.extractDetectorTarget(integrationId, integrationSource, space);
                                     String normalizedEventJson = (String) engineResult.remove("_normalized_event");
 
                                     if (ruleIds.isEmpty()) {
                                         listener.onResponse(
-                                                buildCombinedResponse(engineResult, createEmptySapResult()));
+                                                this.buildCombinedResponse(engineResult, this.createEmptySapResult()));
                                         return;
                                     }
 
-                                    fetchRuleBodiesAsync(
+                                    this.fetchRuleBodiesAsync(
                                             integrationId,
                                             ruleIds,
                                             space,
                                             ActionListener.wrap(
                                                     ruleBodies ->
-                                                            evaluateAndRespond(
+                                                            this.evaluateAndRespond(
                                                                     engineResult, normalizedEventJson, ruleBodies, target, listener),
                                                     e -> {
                                                         log.warn(
@@ -158,7 +158,8 @@ public class LogtestService {
                                                                 integrationId,
                                                                 e.getMessage());
                                                         listener.onResponse(
-                                                                buildCombinedResponse(engineResult, createEmptySapResult()));
+                                                                this.buildCombinedResponse(
+                                                                        engineResult, this.createEmptySapResult()));
                                                     }));
                                 },
                                 e -> {
@@ -231,30 +232,32 @@ public class LogtestService {
 
                                     Map<String, Object> integrationSource =
                                             integrationSearchResponse.getHits().getAt(0).getSourceAsMap();
-                                    List<String> ruleIds = extractRuleIds(integrationSource);
+                                    List<String> ruleIds = this.extractRuleIds(integrationSource);
 
                                     if (ruleIds.isEmpty()) {
-                                        listener.onResponse(buildDetectionResponse(createEmptySapResult()));
+                                        listener.onResponse(this.buildDetectionResponse(this.createEmptySapResult()));
                                         return;
                                     }
 
-                                    fetchRuleBodiesAsync(
+                                    this.fetchRuleBodiesAsync(
                                             integrationId,
                                             ruleIds,
                                             space,
                                             ActionListener.wrap(
                                                     ruleBodies ->
-                                                            evaluateDetectionRules(
+                                                            this.evaluateDetectionRules(
                                                                     eventJson,
                                                                     ruleBodies,
-                                                                    extractDetectorTarget(integrationId, integrationSource, space),
+                                                                    this.extractDetectorTarget(
+                                                                            integrationId, integrationSource, space),
                                                                     listener),
                                                     e -> {
                                                         log.warn(
                                                                 "Failed to fetch rules for" + " integration [{}]: {}",
                                                                 integrationId,
                                                                 e.getMessage());
-                                                        listener.onResponse(buildDetectionResponse(createEmptySapResult()));
+                                                        listener.onResponse(
+                                                                this.buildDetectionResponse(this.createEmptySapResult()));
                                                     }));
                                 },
                                 e -> {
@@ -286,36 +289,55 @@ public class LogtestService {
             engineResponse = this.engine.logtest(enginePayload);
         } catch (Exception e) {
             log.error("Engine logtest call failed: {}", e.getMessage(), e);
-            return buildEngineErrorResult("ENGINE_ERROR", e.getMessage(), engineResult);
+            return this.buildEngineErrorResult("ENGINE_ERROR", e.getMessage(), engineResult);
+        }
+
+        // Checked before parsing: the Engine's error text reaches us as plain text, not JSON.
+        if (engineResponse.getStatus() >= 400) {
+            String errorMsg = this.extractEngineErrorMessage(mapper, engineResponse.getMessage());
+            log.warn(
+                    "Engine rejected logtest payload (status {}): {}", engineResponse.getStatus(), errorMsg);
+            return this.buildEngineErrorResult("ENGINE_ERROR", errorMsg, engineResult);
         }
 
         try {
             JsonNode engineJson = mapper.readTree(engineResponse.getMessage());
 
-            if (engineResponse.getStatus() >= 400) {
-                String errorMsg =
-                        engineJson.has("message")
-                                ? engineJson.get("message").asText()
-                                : engineResponse.getMessage();
-                log.warn(
-                        "Engine rejected logtest payload (status {}): {}",
-                        engineResponse.getStatus(),
-                        errorMsg);
-                return buildEngineErrorResult("ENGINE_ERROR", errorMsg, engineResult);
-            }
-
             Map<String, Object> processedEvent = mapper.readValue(engineResponse.getMessage(), Map.class);
             engineResult.putAll(processedEvent);
 
             engineResult.put(
-                    "_normalized_event", extractNormalizedEvent(engineJson, engineResponse.getMessage()));
+                    "_normalized_event",
+                    this.extractNormalizedEvent(engineJson, engineResponse.getMessage()));
 
         } catch (Exception e) {
             log.error("Failed to parse engine logtest response: {}", engineResponse.getMessage(), e);
-            return buildEngineErrorResult("PARSE_ERROR", engineResponse.getMessage(), engineResult);
+            return this.buildEngineErrorResult("PARSE_ERROR", engineResponse.getMessage(), engineResult);
         }
 
         return engineResult;
+    }
+
+    /**
+     * Extracts the error text from an Engine error response. The socket client already unwraps the
+     * Engine's {@code error} field into plain text (for example {@code The 'test' environment does
+     * not exist.}), so a message that is not JSON is returned as is. A JSON object with a {@code
+     * message} field yields that field.
+     *
+     * @param mapper the mapper used to try parsing the message
+     * @param message the Engine response message
+     * @return the error text
+     */
+    private String extractEngineErrorMessage(ObjectMapper mapper, String message) {
+        try {
+            JsonNode errorJson = mapper.readTree(message);
+            if (errorJson.has("message")) {
+                return errorJson.get("message").asText();
+            }
+        } catch (Exception e) {
+            // Plain text: the message is the error itself.
+        }
+        return message;
     }
 
     /**
@@ -377,13 +399,6 @@ public class LogtestService {
         }
     }
 
-    /**
-     * Extracts rule IDs from the integration document. Rules are stored as a list under the {@code
-     * document.rules} field.
-     *
-     * @param integrationSource the integration document source map
-     * @return list of rule document IDs (may be empty if the integration has no rules)
-     */
     /**
      * What Security Analytics needs to percolate an integration's rules the way its detector would:
      * the integration itself, its log type, and the source indices whose field mappings the compiled
@@ -517,11 +532,11 @@ public class LogtestService {
             DetectorTarget target,
             ActionListener<RestResponse> listener) {
         if (ruleBodies.isEmpty()) {
-            listener.onResponse(buildCombinedResponse(engineResult, createEmptySapResult()));
+            listener.onResponse(this.buildCombinedResponse(engineResult, this.createEmptySapResult()));
             return;
         }
         if (target.sourceIndices().isEmpty()) {
-            listener.onResponse(buildCombinedResponse(engineResult, createErrorSapResult()));
+            listener.onResponse(this.buildCombinedResponse(engineResult, this.createErrorSapResult()));
             return;
         }
 
@@ -538,13 +553,14 @@ public class LogtestService {
                             try {
                                 sapResult = mapper.readValue(saResultJson, Map.class);
                             } catch (Exception e) {
-                                sapResult = createErrorSapResult();
+                                sapResult = this.createErrorSapResult();
                             }
-                            listener.onResponse(buildCombinedResponse(engineResult, sapResult));
+                            listener.onResponse(this.buildCombinedResponse(engineResult, sapResult));
                         },
                         e -> {
                             log.error("Failed to evaluate rules: {}", e.getMessage());
-                            listener.onResponse(buildCombinedResponse(engineResult, createErrorSapResult()));
+                            listener.onResponse(
+                                    this.buildCombinedResponse(engineResult, this.createErrorSapResult()));
                         }));
     }
 
@@ -555,11 +571,11 @@ public class LogtestService {
             DetectorTarget target,
             ActionListener<RestResponse> listener) {
         if (ruleBodies.isEmpty()) {
-            listener.onResponse(buildDetectionResponse(createEmptySapResult()));
+            listener.onResponse(this.buildDetectionResponse(this.createEmptySapResult()));
             return;
         }
         if (target.sourceIndices().isEmpty()) {
-            listener.onResponse(buildDetectionResponse(createErrorSapResult()));
+            listener.onResponse(this.buildDetectionResponse(this.createErrorSapResult()));
             return;
         }
 
@@ -576,13 +592,13 @@ public class LogtestService {
                             try {
                                 sapResult = mapper.readValue(saResultJson, Map.class);
                             } catch (Exception e) {
-                                sapResult = createErrorSapResult();
+                                sapResult = this.createErrorSapResult();
                             }
-                            listener.onResponse(buildDetectionResponse(sapResult));
+                            listener.onResponse(this.buildDetectionResponse(sapResult));
                         },
                         e -> {
                             log.error("Failed to evaluate rules: {}", e.getMessage());
-                            listener.onResponse(buildDetectionResponse(createErrorSapResult()));
+                            listener.onResponse(this.buildDetectionResponse(this.createErrorSapResult()));
                         }));
     }
 
@@ -605,14 +621,14 @@ public class LogtestService {
      * @return a {@link RestResponse} with engine results and a skipped detection section
      */
     private RestResponse executeEngineOnly(ObjectNode enginePayload) {
-        Map<String, Object> engineResult = executeEngine(enginePayload);
+        Map<String, Object> engineResult = this.executeEngine(enginePayload);
         engineResult.remove("_normalized_event");
 
         Map<String, Object> sapResult = new LinkedHashMap<>();
         sapResult.put(Constants.KEY_STATUS, "skipped");
         sapResult.put("reason", "'integration' field not provided");
 
-        return buildCombinedResponse(engineResult, sapResult);
+        return this.buildCombinedResponse(engineResult, sapResult);
     }
 
     /** Creates a success SAP result with zero matches. */

@@ -32,6 +32,13 @@ TYPES_TO_REMAP = {
     'flattened': 'flat_object',
 }
 
+# Fields that keep their ECS type instead of the general remapping above.
+# error.message stays match_only_text so a free-text search matches a word of it (#1688).
+# match_only_text has no doc values: only add fields nothing aggregates or sorts on.
+TYPES_TO_KEEP = {
+    'error.message',
+}
+
 # Specific field type remappings
 OBJECT_TYPES_TO_REMAP = {
     'gen_ai.request.encoding_formats': 'keyword',
@@ -93,7 +100,7 @@ class SchemaSanitizer:
                 self.stats.specific_fixes += 1
                 modified = True
             # Apply general type mappings
-            elif original_type in TYPES_TO_REMAP:
+            elif original_type in TYPES_TO_REMAP and field_path not in TYPES_TO_KEEP:
                 field_data['type'] = TYPES_TO_REMAP[original_type]
                 self.log.debug(f"Modified field: {field_path} ({original_type} -> {field_data['type']})")
                 self.stats.field_type_changes += 1

@@ -781,8 +781,8 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                             "versions": ["Wazuh 5.*"]
                         },
                         "name": "decoder/test-decoder/0",
-                        "check": [{"tmp_json.event.action": "string_equal(\\"test\\")"}],
-                        "normalize": [{"map": [{"@timestamp": "get_date()"}]}]
+                        "check": [{"_tmp_json.event.action": "string_eq(\\"test\\")"}],
+                        "normalize": [{"map": [{"@timestamp": "now()"}]}]
                     }
                 }
                 """;

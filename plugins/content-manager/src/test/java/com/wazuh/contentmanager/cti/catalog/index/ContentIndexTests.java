@@ -124,6 +124,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
         if (this.closeable != null) {
             this.closeable.close();
         }
+        // Reset the JVM-wide NodeShutdown.stopping flag so it does not leak to the next test class.
+        NodeShutdown.watch(NodeShutdownTests.idleComponent());
         super.tearDown();
     }
 
