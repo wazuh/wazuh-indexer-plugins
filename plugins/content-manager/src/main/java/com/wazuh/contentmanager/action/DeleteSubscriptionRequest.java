@@ -23,14 +23,51 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
+/**
+ * Request for {@link DeleteSubscriptionAction}.
+ *
+ * <p>Two shapes, distinguished by {@link #isPermissionCheckOnly()}:
+ *
+ * <ul>
+ *   <li>a real deletion of the stored CTI credentials;
+ *   <li>a permission check, built with {@link #permissionCheck()}. It exists only so the request
+ *       reaches the security plugin's action filter, which answers it instead of letting the action
+ *       execute.
+ * </ul>
+ */
 public class DeleteSubscriptionRequest extends ActionRequest {
 
+    private final boolean permissionCheckOnly;
+
+    /** Builds a deletion request. */
     public DeleteSubscriptionRequest() {
-        super();
+        this(false);
     }
 
+    private DeleteSubscriptionRequest(boolean permissionCheckOnly) {
+        super();
+        this.permissionCheckOnly = permissionCheckOnly;
+    }
+
+    /**
+     * Builds a request that only exercises the authorization filter. It must never remove the stored
+     * credentials.
+     *
+     * @return a permission-check-only request
+     */
+    public static DeleteSubscriptionRequest permissionCheck() {
+        return new DeleteSubscriptionRequest(true);
+    }
+
+    /**
+     * Deserializing constructor.
+     *
+     * @param sin the stream to read from
+     * @throws IOException on read failure
+     */
     public DeleteSubscriptionRequest(StreamInput sin) throws IOException {
         super(sin);
+        this.permissionCheckOnly = sin.readBoolean();
     }
 
     @Override
@@ -41,5 +78,13 @@ public class DeleteSubscriptionRequest extends ActionRequest {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeBoolean(this.permissionCheckOnly);
+    }
+
+    /**
+     * @return true when this request must not remove the stored credentials
+     */
+    public boolean isPermissionCheckOnly() {
+        return this.permissionCheckOnly;
     }
 }

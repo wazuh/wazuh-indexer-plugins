@@ -242,6 +242,10 @@ integTest {
       excludeTestsMatching "com.wazuh.contentmanager.SpaceInitializationIT"
       excludeTestsMatching "com.wazuh.contentmanager.StandardSpaceHashRecoveryIT"
     }
+    // The demo super-admin certificate, for tests that read a protected system index: the security
+    // plugin answers any other user as if the index were empty
+    systemProperty "admin.cert", file("build/kirk.pem").bytes.encodeBase64().toString()
+    systemProperty "admin.key", file("build/kirk-key.pem").bytes.encodeBase64().toString()
   }
 
   doFirst {

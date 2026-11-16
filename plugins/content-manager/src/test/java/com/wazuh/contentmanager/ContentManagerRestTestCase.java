@@ -40,10 +40,17 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 import org.junit.Before;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -86,6 +93,16 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     private static final boolean SECURITY_ENABLED = Boolean.parseBoolean(System.getProperty("https"));
 
+    /** Password of the in-memory keystore that holds the super-admin certificate. */
+    private static final char[] SUPER_ADMIN_KEYSTORE_PASSWORD = "test-keystore".toCharArray();
+
+    /**
+     * @return whether the integTest cluster was started with {@code -Dsecurity=true}
+     */
+    protected static boolean isSecurityEnabled() {
+        return SECURITY_ENABLED;
+    }
+
     /**
      * {@link OpenSearchRestTestCase} defaults to plain HTTP. When the cluster is secured, the HTTP
      * layer is TLS-only, so the test client must speak HTTPS instead.
@@ -127,23 +144,76 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         RestClientBuilder builder = RestClient.builder(hosts);
         OpenSearchRestTestCase.configureClient(builder, settings);
         try {
-            PoolingAsyncClientConnectionManager connectionManager =
-                    PoolingAsyncClientConnectionManagerBuilder.create()
-                            .setTlsStrategy(
-                                    ClientTlsStrategyBuilder.create()
-                                            .setSslContext(
-                                                    SSLContextBuilder.create()
-                                                            .loadTrustMaterial(null, (chain, authType) -> true)
-                                                            .build())
-                                            .setHostnameVerifier((hostname, session) -> true)
-                                            .build())
-                            .build();
-            builder.setHttpClientConfigCallback(
-                    httpClientBuilder -> httpClientBuilder.setConnectionManager(connectionManager));
+            setTrustAllSslContext(
+                    builder, SSLContextBuilder.create().loadTrustMaterial(null, (chain, authType) -> true));
         } catch (GeneralSecurityException e) {
             throw new IOException("Failed to configure trust-all SSL context for tests", e);
         }
         return builder.build();
+    }
+
+    /**
+     * Builds a client that authenticates with the demo super-admin certificate ({@code CN=kirk}),
+     * whose PEM files build.gradle passes base64-encoded as the {@code admin.cert} and {@code
+     * admin.key} system properties. Needed to read a protected system index such as {@code
+     * .wazuh-internal-state}: the security plugin answers any other user, {@code all_access}
+     * included, as if it were empty. Security-enabled clusters only.
+     *
+     * @param hosts the nodes the client sends requests to
+     * @return a client acting as the super admin
+     * @throws IOException if the certificate cannot be loaded
+     */
+    protected RestClient buildSuperAdminClient(HttpHost[] hosts) throws IOException {
+        RestClientBuilder builder = RestClient.builder(hosts);
+        try {
+            setTrustAllSslContext(
+                    builder,
+                    SSLContextBuilder.create()
+                            .loadTrustMaterial(null, (chain, authType) -> true)
+                            .loadKeyMaterial(superAdminKeyStore(), SUPER_ADMIN_KEYSTORE_PASSWORD));
+        } catch (GeneralSecurityException e) {
+            throw new IOException("Failed to load the super-admin certificate", e);
+        }
+        return builder.build();
+    }
+
+    private static void setTrustAllSslContext(RestClientBuilder builder, SSLContextBuilder sslContext)
+            throws GeneralSecurityException {
+        PoolingAsyncClientConnectionManager connectionManager =
+                PoolingAsyncClientConnectionManagerBuilder.create()
+                        .setTlsStrategy(
+                                ClientTlsStrategyBuilder.create()
+                                        .setSslContext(sslContext.build())
+                                        .setHostnameVerifier((hostname, session) -> true)
+                                        .build())
+                        .build();
+        builder.setHttpClientConfigCallback(
+                httpClientBuilder -> httpClientBuilder.setConnectionManager(connectionManager));
+    }
+
+    private static KeyStore superAdminKeyStore() throws IOException, GeneralSecurityException {
+        Certificate certificate;
+        try (InputStream in = new ByteArrayInputStream(decodeProperty("admin.cert"))) {
+            certificate = CertificateFactory.getInstance("X.509").generateCertificate(in);
+        }
+        String keyPem = new String(decodeProperty("admin.key"), StandardCharsets.US_ASCII);
+        byte[] keyDer =
+                Base64.getMimeDecoder().decode(keyPem.replaceAll("-----(BEGIN|END) PRIVATE KEY-----", ""));
+        PrivateKey key = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(keyDer));
+
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null);
+        keyStore.setKeyEntry(
+                "super-admin", key, SUPER_ADMIN_KEYSTORE_PASSWORD, new Certificate[] {certificate});
+        return keyStore;
+    }
+
+    private static byte[] decodeProperty(String name) {
+        String value = System.getProperty(name);
+        if (value == null) {
+            throw new IllegalStateException("System property [" + name + "] is not set");
+        }
+        return Base64.getDecoder().decode(value);
     }
 
     // ========================

@@ -28,6 +28,7 @@ import com.wazuh.contentmanager.action.DeleteSubscriptionAction;
 import com.wazuh.contentmanager.action.DeleteSubscriptionRequest;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
+import com.wazuh.contentmanager.utils.Constants;
 
 public class TransportDeleteSubscriptionAction
         extends HandledTransportAction<DeleteSubscriptionRequest, MessageStatusResponse> {
@@ -52,6 +53,14 @@ public class TransportDeleteSubscriptionAction
             Task task,
             DeleteSubscriptionRequest request,
             ActionListener<MessageStatusResponse> listener) {
+        // With the security plugin enabled this branch is unreachable in check mode: SecurityFilter
+        // answers with its own PermissionCheckResponse before the action executes
+        if (request.isPermissionCheckOnly()) {
+            listener.onResponse(
+                    new MessageStatusResponse(Constants.S_200_PERMISSION_CHECK_ALLOWED, RestStatus.OK));
+            return;
+        }
+
         this.subscriptionService.unregister(
                 ActionListener.wrap(
                         v ->

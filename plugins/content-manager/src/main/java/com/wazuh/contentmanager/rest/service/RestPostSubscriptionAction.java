@@ -18,20 +18,9 @@ package com.wazuh.contentmanager.rest.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.common.xcontent.StatusToXContentObject;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.action.ActionResponse;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestResponse;
-import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
@@ -39,9 +28,7 @@ import java.util.List;
 
 import com.wazuh.contentmanager.action.IndexSubscriptionAction;
 import com.wazuh.contentmanager.action.IndexSubscriptionRequest;
-import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Constants;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -72,19 +59,13 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  *   <li>{@code {"accessAllowed": false, "missingPrivileges":
  *       ["cluster:admin/content_manager/subscription/create"]}}
  * </ul>
+ *
+ * @see PermissionCheckSupport
  */
 public class RestPostSubscriptionAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPostSubscriptionAction.class);
     private static final String ENDPOINT_NAME = "content_manager_subscription_post";
     private static final String ACCESS_TOKEN_FIELD = "access_token";
-
-    /**
-     * Owned by the security plugin: {@code ConfigConstants.SECURITY_PERFORM_PERMISSION_CHECK_PARAM}.
-     * {@code SecurityRestFilter} has already consumed it by the time this handler runs — which is
-     * also what stops {@link BaseRestHandler} from rejecting it as unrecognized — but the handler
-     * reads it again so it stays self-contained.
-     */
-    private static final String PERFORM_PERMISSION_CHECK_PARAM = "perform_permission_check";
 
     /** Return a short identifier for this handler. */
     @Override
@@ -116,7 +97,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
 
         log.debug("{} {}", request.method(), PluginSettings.SUBSCRIPTION_URI);
 
-        boolean permissionCheckOnly = request.paramAsBoolean(PERFORM_PERMISSION_CHECK_PARAM, false);
+        boolean permissionCheckOnly = PermissionCheckSupport.isPermissionCheck(request);
 
         // Check-only mode: no body is parsed, no access token is read. The dispatch is otherwise
         // unchanged, so the security filter evaluates exactly the permission a real registration
@@ -126,7 +107,13 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
                         ? IndexSubscriptionRequest.permissionCheck()
                         : new IndexSubscriptionRequest(parseAccessToken(request));
 
-        return channel -> execute(client, subscriptionRequest, channel, permissionCheckOnly);
+        return channel ->
+                PermissionCheckSupport.execute(
+                        client,
+                        IndexSubscriptionAction.INSTANCE,
+                        subscriptionRequest,
+                        channel,
+                        permissionCheckOnly);
     }
 
     private String parseAccessToken(RestRequest request) throws IOException {
@@ -144,67 +131,5 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
             }
         }
         return accessToken;
-    }
-
-    /**
-     * Dispatches the request with a listener typed over {@link ActionResponse}.
-     *
-     * <p>The raw cast is deliberate and mirrors what the security plugin already does on its side:
-     * {@code SecurityFilter} hands its own {@code PermissionCheckResponse} to this listener through
-     * an unchecked cast. A listener declared over the concrete {@link MessageStatusResponse} would
-     * generate a bridge method casting to that class and throw {@code ClassCastException}, which
-     * {@code RestActionListener} turns into a {@code 500}. Declaring it over {@code ActionResponse} —
-     * the common supertype of both responses — makes the bridge cast succeed.
-     */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private void execute(
-            NodeClient client,
-            IndexSubscriptionRequest subscriptionRequest,
-            RestChannel channel,
-            boolean permissionCheckOnly) {
-        client.execute(
-                IndexSubscriptionAction.INSTANCE,
-                subscriptionRequest,
-                (ActionListener) createSubscriptionResponse(channel, permissionCheckOnly));
-    }
-
-    private RestResponseListener<ActionResponse> createSubscriptionResponse(
-            RestChannel channel, boolean permissionCheckOnly) {
-        return new RestResponseListener<>(channel) {
-            @Override
-            public RestResponse buildResponse(ActionResponse response) throws Exception {
-                // The security plugin answered the permission check. Pass its body through
-                // unchanged so this endpoint is indistinguishable from any other in the cluster.
-                if (response instanceof StatusToXContentObject permissionCheck) {
-                    return new BytesRestResponse(
-                            permissionCheck.status(),
-                            permissionCheck.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
-                }
-
-                // No filter intercepted a check-mode request: security is disabled, so the answer
-                // is "allowed". Same field names, so a client cannot tell the two producers apart.
-                if (permissionCheckOnly) {
-                    return permissionGrantedResponse();
-                }
-
-                MessageStatusResponse subscriptionResponse = (MessageStatusResponse) response;
-                return new BytesRestResponse(
-                        subscriptionResponse.getStatus(),
-                        subscriptionResponse.toXContent(
-                                XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
-            }
-        };
-    }
-
-    /** Builds the security-disabled fallback body, matching {@code PermissionCheckResponse}. */
-    private static RestResponse permissionGrantedResponse() throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder();
-        builder
-                .startObject()
-                .field(Constants.KEY_ACCESS_ALLOWED, true)
-                .startArray(Constants.KEY_MISSING_PRIVILEGES)
-                .endArray()
-                .endObject();
-        return new BytesRestResponse(RestStatus.OK, builder);
     }
 }

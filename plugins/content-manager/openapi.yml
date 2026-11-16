@@ -76,21 +76,7 @@ paths:
       tags:
         - Subscription Management
       parameters:
-        - name: perform_permission_check
-          in: query
-          required: false
-          description: |
-            Answer whether the caller holds the permission this endpoint requires, instead of
-            executing it. Implemented generically by the OpenSearch security plugin for any
-            REST endpoint (available since OpenSearch 3.2), not by the Content Manager. An
-            empty value means `true`.
-          schema:
-            type: boolean
-            default: false
-          examples:
-            check:
-              summary: Ask for the authorization decision only
-              value: true
+        - $ref: "#/components/parameters/PerformPermissionCheck"
       requestBody:
         required: true
         content:
@@ -179,12 +165,27 @@ paths:
         Clears the stored CTI access token document from the credentials index and clears
         the in-memory plugin variable. The index itself is preserved. After this operation
         the instance is unregistered.
+
+        With `perform_permission_check=true` the endpoint instead answers *"may the current
+        user delete the subscription?"* without deleting anything: the stored token is kept,
+        also when the security plugin is disabled, in which case the answer is
+        `accessAllowed: true`. The permission evaluated is the same one a real deletion
+        needs, `cluster:admin/content_manager/subscription/delete` (action group
+        `plugin:content_manager/subscription/delete`, held by no default role in the stock
+        role set — out of the box only `all_access` has it).
+
+        In that mode the response is **always `200`** — permitted and denied differ only in
+        the body — so clients must branch on `accessAllowed`, never on the HTTP status.
+        `missingPrivileges` carries raw transport action names, useful for logs and support;
+        do not render it to end users.
       operationId: deleteSubscription
       tags:
         - Subscription Management
+      parameters:
+        - $ref: "#/components/parameters/PerformPermissionCheck"
       responses:
         "200":
-          $ref: "#/components/responses/CredentialsRemoved"
+          $ref: "#/components/responses/SubscriptionDeleted"
         "403":
           $ref: "#/components/responses/Forbidden"
         "500":
@@ -1574,8 +1575,8 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
 components:
-  # Shared path parameters for resource identifiers (UUIDs)
   parameters:
+    # Shared path parameter for resource identifiers (UUIDs)
     id:
       name: id
       in: path
@@ -1583,6 +1584,23 @@ components:
       schema:
         type: string
         format: uuid
+
+    PerformPermissionCheck:
+      name: perform_permission_check
+      in: query
+      required: false
+      description: |
+        Answer whether the caller holds the permission this endpoint requires, instead of
+        executing it. Implemented generically by the OpenSearch security plugin for any
+        REST endpoint (available since OpenSearch 3.2), not by the Content Manager. An
+        empty value means `true`.
+      schema:
+        type: boolean
+        default: false
+      examples:
+        check:
+          summary: Ask for the authorization decision only
+          value: true
 
   # --- Data Schemas ---
   schemas:
@@ -3031,18 +3049,34 @@ components:
                 message: "Unable to retrieve the subscription plan from the CTI Console. The registration is unchanged; try again later."
                 status: 502
 
-    CredentialsRemoved:
-      description: OK - Credentials removed successfully.
+    SubscriptionDeleted:
+      description: |
+        OK - Credentials removed successfully or, with `perform_permission_check=true`, the
+        authorization decision. In that mode this status is returned for both the permitted
+        and the denied case; branch on `accessAllowed`, not on the status code.
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/RestResponse"
+            oneOf:
+              - $ref: "#/components/schemas/RestResponse"
+              - $ref: "#/components/schemas/PermissionCheckResponse"
           examples:
             success:
               summary: Credentials removed
               value:
                 message: "Credentials removed"
                 status: 200
+            allowed:
+              summary: Permission check - caller holds the permission (e.g. all_access)
+              value:
+                accessAllowed: true
+                missingPrivileges: []
+            denied:
+              summary: Permission check - caller lacks the permission (e.g. a custom role without it)
+              value:
+                accessAllowed: false
+                missingPrivileges:
+                  - "cluster:admin/content_manager/subscription/delete"
 
     UpdateAccepted:
       description: Accepted - The update request has been accepted for processing.
