@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Level;
 import org.opensearch.action.search.SearchPhaseExecutionException;
 import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.cluster.block.ClusterBlockException;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.OpenSearchExecutors;
@@ -30,8 +31,12 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.gateway.GatewayService;
 import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.node.NodeClosedException;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.NodeNotConnectedException;
+import org.opensearch.transport.SendRequestTransportException;
+import org.junit.After;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,7 +52,10 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.CapturingAppender;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.contentmanager.utils.NodeShutdown;
+import com.wazuh.contentmanager.utils.NodeShutdownTests;
 
+import static com.wazuh.contentmanager.utils.TransientFailuresTests.allShardsFailed;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -114,6 +122,12 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
                         })
                 .when(this.spaceService)
                 .buildEnginePayload(anyString(), any());
+    }
+
+    /** The shutdown flag is JVM-wide: leave a running node behind for the tests that follow. */
+    @After
+    public void resetNodeShutdown() {
+        NodeShutdown.watch(NodeShutdownTests.idleComponent());
     }
 
     /** Builds a policy source map carrying the aggregate space hash at {@code space.hash.sha256}. */
@@ -462,6 +476,79 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
                 new SearchPhaseExecutionException(
                         "query", "all shards failed", ShardSearchFailure.EMPTY_ARRAY));
         this.assertRunDeferredThenRecovers();
+    }
+
+    /**
+     * Same for a peer that holds the only copy of the policies shard and is restarting: until this
+     * node removes it from the cluster state, the search is still sent there and fails with {@code
+     * all shards failed} over a connection error (wazuh-indexer#2118).
+     */
+    public void testDepartingPeerEndsTheRunQuietly() {
+        this.stubPolicyFailure(
+                allShardsFailed(new NodeNotConnectedException(null, "Node not connected")));
+        this.assertRunDeferredThenRecovers();
+    }
+
+    /**
+     * Stubs the payload build of every space to fail with {@code cause}, wrapped as the resource
+     * fetch does.
+     */
+    private void stubPayloadFailure(Exception cause) {
+        doAnswer(
+                        inv -> {
+                            ActionListener<JsonNode> l = inv.getArgument(1);
+                            l.onFailure(
+                                    new IOException("Failed to fetch resources: " + cause.getMessage(), cause));
+                            return null;
+                        })
+                .when(this.spaceService)
+                .buildEnginePayload(anyString(), any());
+    }
+
+    /**
+     * Runs one reload in which the standard space changed and its resource fetch fails with {@code
+     * cause}, and asserts the run ended at that space: quietly, with no promote and no retry.
+     */
+    private void assertRunEndedAtTheResourceFetch(Exception cause) {
+        List<TimeValue> delays = new ArrayList<>();
+        this.captureRetries(delays);
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.stubPolicy(TEST, policyWithHash(TEST, "test-1"));
+        this.stubPolicy(CUSTOM, policyWithHash(CUSTOM, "cust-1"));
+        this.stubPayloadFailure(cause);
+
+        AtomicReference<Boolean> completed = new AtomicReference<>();
+        try (CapturingAppender appender = CapturingAppender.attach(EngineContentLoader.class)) {
+            this.loader.reloadIfChanged(
+                    ActionListener.wrap(v -> completed.set(true), e -> completed.set(false)));
+            assertEquals(0, appender.count(Level.ERROR));
+        }
+
+        assertEquals(Boolean.TRUE, completed.get());
+        // The run ended at the standard space: test and custom were not attempted.
+        verify(this.spaceService, times(1)).getPolicy(anyString(), any());
+        verify(this.engine, never()).promoteAsync(any(), any());
+        assertTrue("no retry is scheduled", delays.isEmpty());
+    }
+
+    /**
+     * A peer leaving while the standard space's resources are fetched ends the run the same way: this
+     * is where the restart in wazuh-indexer#2118 cut the load.
+     */
+    public void testDepartingPeerDuringTheResourceFetchEndsTheRunQuietly() {
+        this.assertRunEndedAtTheResourceFetch(
+                allShardsFailed(new NodeNotConnectedException(null, "Node not connected")));
+    }
+
+    /**
+     * The local node stopping during a load ends the run at debug, with no retry: every remaining
+     * read fails the same way, and the next start loads every space anyway (wazuh-indexer#2118).
+     */
+    public void testShutdownDuringALoadEndsTheRunWithoutRetry() {
+        NodeShutdown.watch(NodeShutdownTests.idleComponent());
+        this.assertRunEndedAtTheResourceFetch(
+                new SendRequestTransportException(
+                        null, "indices:data/read/search", new NodeClosedException((DiscoveryNode) null)));
     }
 
     /**

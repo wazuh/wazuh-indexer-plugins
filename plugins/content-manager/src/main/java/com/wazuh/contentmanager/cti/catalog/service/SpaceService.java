@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteRequest;
@@ -577,18 +578,25 @@ public class SpaceService {
                                                         listener.onResponse(resources);
                                                     },
                                                     e -> {
-                                                        log.error(
+                                                        log.log(
+                                                                TransientFailures.levelFor(e, Level.ERROR),
                                                                 Constants.E_LOG_FETCH_RESOURCES_FAILED,
                                                                 indexName,
                                                                 space,
-                                                                e.getMessage());
+                                                                e.getMessage(),
+                                                                e);
                                                         listener.onFailure(
                                                                 new IOException("Failed to fetch resources: " + e.getMessage(), e));
                                                     }));
                                 },
                                 e -> {
-                                    log.error(
-                                            Constants.E_LOG_FETCH_RESOURCES_FAILED, indexName, space, e.getMessage());
+                                    log.log(
+                                            TransientFailures.levelFor(e, Level.ERROR),
+                                            Constants.E_LOG_FETCH_RESOURCES_FAILED,
+                                            indexName,
+                                            space,
+                                            e.getMessage(),
+                                            e);
                                     listener.onFailure(
                                             new IOException("Failed to fetch resources: " + e.getMessage(), e));
                                 }));
@@ -1081,15 +1089,16 @@ public class SpaceService {
                             }
                         },
                         e -> {
-                            // A missing policies index, a cluster block, or shards that are not yet
-                            // allocated are expected pre-initialization states, not operational
-                            // errors: every node reads policies from startup onwards. Callers still
-                            // get the failure and decide.
-                            if (TransientFailures.isTransientReadFailure(e)) {
-                                log.debug(Constants.D_LOG_POLICY_INDEX_NOT_READY, space, e.getMessage());
-                            } else {
-                                log.error(Constants.E_LOG_GET_POLICY_FAILED, space, e.getMessage());
-                            }
+                            // A missing policies index, a cluster block, shards that are not allocated
+                            // yet or sit on a peer that just left, and the local node shutting down are
+                            // expected states, not operational errors: every node reads policies from
+                            // startup onwards. Callers still get the failure and decide.
+                            log.log(
+                                    TransientFailures.levelFor(e, Level.ERROR),
+                                    Constants.E_LOG_GET_POLICY_FAILED,
+                                    space,
+                                    e.getMessage(),
+                                    e);
                             listener.onFailure(
                                     new IOException("Failed to retrieve policy: " + e.getMessage(), e));
                         }));
@@ -1121,7 +1130,12 @@ public class SpaceService {
                             }
                         },
                         e -> {
-                            log.error(Constants.E_LOG_GET_POLICY_FAILED, spaceName, e.getMessage());
+                            log.log(
+                                    TransientFailures.levelFor(e, Level.ERROR),
+                                    Constants.E_LOG_GET_POLICY_FAILED,
+                                    spaceName,
+                                    e.getMessage(),
+                                    e);
                             listener.onFailure(e);
                         }));
     }
