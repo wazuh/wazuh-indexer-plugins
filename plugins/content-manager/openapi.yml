@@ -1348,6 +1348,77 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
+  /policy/resources:
+    get:
+      tags: [Policy]
+      summary: List space resources
+      description: |
+        Lists the resources of a space grouped by pipeline phase. `normalization` holds the ids of
+        the space's decoders, filters and kvdbs — the resources that make the Engine require a root
+        decoder — and `detection` holds its rules. A resource type with no documents in the space
+        returns an empty array.
+
+        Use it to find what a space still holds when a promotion fails with `Missing root decoder`:
+        the decoders, kvdbs or filters left in the space must be deleted (or a new root decoder set)
+        before the space can be promoted.
+
+        The `standard` space is not supported: it holds the Wazuh base content and cannot be
+        promoted.
+      operationId: listPolicyResources
+      parameters:
+        - name: space
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [draft, test, custom]
+      responses:
+        "200":
+          description: The resources of the space, grouped by pipeline phase.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  normalization:
+                    type: object
+                    properties:
+                      decoders:
+                        type: array
+                        items:
+                          type: string
+                      filters:
+                        type: array
+                        items:
+                          type: string
+                      kvdbs:
+                        type: array
+                        items:
+                          type: string
+                  detection:
+                    type: object
+                    properties:
+                      rules:
+                        type: array
+                        items:
+                          type: string
+                  status:
+                    type: integer
+              example:
+                normalization:
+                  decoders: ["5d1f34c6-7b8d-466f-9027-820ed0ead71d"]
+                  filters: ["6e2a45d7-8c9e-4a1b-9138-931fe1fbe82e"]
+                  kvdbs: ["7f3b56e8-9daf-4b2c-a249-a42af2fcf93f"]
+                detection:
+                  rules: []
+                status: 200
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
   /policy/{space}:
     put:
       tags: [Policy]
@@ -1364,6 +1435,16 @@ paths:
         `index_unclassified_events`, and `index_discarded_events` can be modified.
         All other fields are preserved from the existing standard policy document.
         The `filters` array allows reordering but not addition or removal.
+
+        **Omitted arrays**: `integrations`, `filters` and `enrichments` keep their current value
+        when the request leaves them out or sends `null`. An empty `enrichments` array removes
+        every enrichment.
+
+        **Standard space enrichments across content updates**: the request carries the
+        enrichments that are on, and the indexer records the published types it leaves out as
+        turned off. After each content update the policy gets every published enrichment except
+        those, so a type published after the save is on until a request turns it off, and a type
+        turned off stays off until a request sends it again.
 
         **Stored document format**: Policy metadata is stored only under
         `document.metadata` in the indexed document.
@@ -1397,11 +1478,11 @@ paths:
       tags: [ Spaces ]
       summary: Reset a user space
       description: |
-        Resets a user space (draft) to its initial state.
+        Resets a user space (draft): removes its content and resets the policy's settings to default, while keeping the space's metadata (title, author, description, ...).
 
         This operation will:
         - Remove all documents (integrations, rules, decoders, kvdbs, filters, and the space's policy document) belonging to the given space.
-        - Re-generate the default policy for the given space.
+        - Re-generate the policy for the given space with default settings, preserving its metadata.
 
       operationId: deleteSpace
       parameters:
@@ -1420,6 +1501,75 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/SpaceBusy"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /space/{space}/normalization:
+    delete:
+      tags: [ Spaces ]
+      summary: Clear a space's normalization resources
+      description: |
+        Clears only the normalization resources (decoders, kvdbs, filters and the policy root
+        decoder) of the draft space, leaving the detection resources (rules) untouched. Integrations
+        left empty are removed; protected integrations are kept. Reuses the Reset space permission
+        (cluster:admin/content_manager/space/delete), so no new role grant is required.
+        Unlike a full reset, the policy's own settings (enrichments, enabled, the index_* flags and
+        metadata) are preserved; only resource references (root decoder, integrations, filters) are
+        cleared. Clearing normalization then detection empties the draft of every resource but keeps
+        those policy settings, which a full reset would reset.
+      operationId: clearSpaceNormalization
+      parameters:
+        - name: space
+          in: path
+          required: true
+          description: The name of the user space to clear.
+          schema:
+            type: string
+            enum:
+              - draft
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/SpaceBusy"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /space/{space}/detection:
+    delete:
+      tags: [ Spaces ]
+      summary: Clear a space's detection resources
+      description: |
+        Clears only the detection resources (rules) of the draft space, leaving the normalization
+        resources untouched. Integrations left empty are removed; protected integrations are kept.
+        Reuses the Reset space permission (cluster:admin/content_manager/space/delete), so no new
+        role grant is required. Unlike a full reset, the policy's own settings (enrichments, enabled,
+        the index_* flags and metadata) are preserved; only resource references are cleared.
+      operationId: clearSpaceDetection
+      parameters:
+        - name: space
+          in: path
+          required: true
+          description: The name of the user space to clear.
+          schema:
+            type: string
+            enum:
+              - draft
+      responses:
+        "200":
+          $ref: "#/components/responses/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/SpaceBusy"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1577,9 +1727,10 @@ components:
     LogtestRequest:
       type: object
       description: |
-        Only `space` is validated by the Content Manager plugin itself; `queue`,
-        `location`, `event`, and `trace_level` are forwarded as-is to the Wazuh Engine,
-        which rejects missing/invalid values (e.g. an empty `trace_level`) with its own
+        Only `space` is validated by the Content Manager plugin itself, and a missing
+        or null `trace_level` defaults to `NONE`; `queue`, `location`, `event`, and
+        `trace_level` are forwarded as-is to the Wazuh Engine,
+        which rejects missing/invalid values (e.g. an unknown `trace_level`) with its own
         `400 Bad Request` message format, not the plugin's standard `"Missing [x] field."`
         format. Fields not listed below are also forwarded to the Engine rather than
         rejected by the plugin.
@@ -1588,7 +1739,6 @@ components:
         - queue
         - location
         - event
-        - trace_level
       properties:
         integration:
           type: string
@@ -1635,16 +1785,18 @@ components:
             - NONE
             - ASSET_ONLY
             - ALL
-          description: Trace verbosity level
+          default: "NONE"
+          description: Trace verbosity level. Defaults to `NONE` when omitted or null.
           example: "NONE"
 
     # Request body for normalization-only logtest
     LogtestNormalizationRequest:
       type: object
       description: |
-        Only `space` is validated by the Content Manager plugin itself; `queue`,
-        `location`, `event`, and `trace_level` are forwarded as-is to the Wazuh Engine,
-        which rejects missing/invalid values (e.g. an empty `trace_level`) with its own
+        Only `space` is validated by the Content Manager plugin itself, and a missing
+        or null `trace_level` defaults to `NONE`; `queue`, `location`, `event`, and
+        `trace_level` are forwarded as-is to the Wazuh Engine,
+        which rejects missing/invalid values (e.g. an unknown `trace_level`) with its own
         `400 Bad Request` message format, not the plugin's standard `"Missing [x] field."`
         format. Fields not listed below are also forwarded to the Engine rather than
         rejected by the plugin.
@@ -1652,7 +1804,6 @@ components:
         - space
         - queue
         - event
-        - trace_level
       properties:
         space:
           type: string
@@ -1691,7 +1842,8 @@ components:
             - NONE
             - ASSET_ONLY
             - ALL
-          description: Trace verbosity level
+          default: "NONE"
+          description: Trace verbosity level. Defaults to `NONE` when omitted or null.
           example: "NONE"
 
     # Request body for detection-only logtest
@@ -2934,6 +3086,21 @@ components:
                 status: 201
 
     # --- Error Responses ---
+    SpaceBusy:
+      description: |
+        Too Many Requests - another reset or scoped clear is already running on this space. The full
+        reset and the two scoped clears run one at a time per space (a space lock); retry shortly.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            busy:
+              summary: The space is being cleared concurrently
+              value:
+                message: "Too many concurrent requests clearing this space. Please retry."
+                status: 429
+
     BadRequest:
       description: |
         Bad Request - The request could not be processed due to invalid input.

@@ -126,9 +126,12 @@ public class TransportLogtestNormalizationAction
                 return;
             }
 
-            // 4. Strip integration field if present, build engine payload
+            // 4. Strip integration field if present, default trace_level to NONE, build engine payload
             ObjectNode enginePayload = jsonNode.deepCopy();
             enginePayload.remove(Constants.KEY_INTEGRATION);
+            if (!enginePayload.hasNonNull(Constants.KEY_TRACE_LEVEL)) {
+                enginePayload.put(Constants.KEY_TRACE_LEVEL, Constants.TRACE_LEVEL_NONE);
+            }
 
             // 5. Delegate execution to Service
             RestResponse serviceResponse = this.logtestService.executeNormalization(enginePayload);

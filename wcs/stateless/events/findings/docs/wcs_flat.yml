@@ -1,9 +1,10 @@
 '@timestamp':
   dashed_name: timestamp
-  description: 'Date and time, in UTC with millisecond precision, at which the Wazuh
+  description: 'Date and time, in UTC with nanosecond precision, at which the Wazuh
     Engine received the event and started processing it. The Engine sets it once for
     every log it receives, before any decoder runs, so the raw event and the normalized
-    event carry the same value.
+    event carry the same value. Within a batch of events the values are strictly increasing,
+    so sorting by this field keeps the order in which the events were received.
 
     This is not the time at which the logged activity happened: the decoders of the
     Wazuh ruleset store the time found in the original log in `event.start`. The gap
@@ -13,7 +14,7 @@
 
     Findings keep the `@timestamp` of the event that matched the rule. The Wazuh Dashboard
     filters events and findings by this field.'
-  example: '2026-10-16T15:53:03.843Z'
+  example: '2026-10-16T15:53:03.843123456Z'
   flat_name: '@timestamp'
   level: core
   name: '@timestamp'
@@ -37,7 +38,7 @@
   required: true
   short: Time the Wazuh Engine received the event, in UTC. The time in the original
     log is in `event.start`.
-  type: date
+  type: date_nanos
 agent.build.original:
   dashed_name: agent-build-original
   description: 'Extended build information for the agent.
@@ -419,6 +420,19 @@ check.name:
   normalize: []
   short: The name of the SCA policy check.
   type: keyword
+check.previous.result:
+  dashed_name: check-previous-result
+  description: Result of the check before it changed, e.g. `Passed` before a check
+    starts failing.
+  example: Passed
+  flat_name: check.previous.result
+  ignore_above: 4096
+  level: custom
+  name: previous.result
+  normalize: []
+  short: Result of the check before it changed, e.g. `Passed` before a check starts
+    failing.
+  type: keyword
 check.rationale:
   dashed_name: check-rationale
   description: The reason for the check. Why it is important.
@@ -476,10 +490,9 @@ check.remediation:
 check.result:
   dashed_name: check-result
   description: The result of the check. This field indicates whether the check passed
-    or failed based on the evaluation of the rules. The result is typically represented
-    as a boolean value, where "passed" indicates that the check was successful and
-    "failed" indicates that the check did not meet the specified criteria.
-  example: failed
+    or failed based on the evaluation of the rules, as `Passed`, `Failed`, `Not applicable`
+    or `Not run`.
+  example: Failed
   flat_name: check.result
   ignore_above: 4096
   level: custom
@@ -3466,7 +3479,6 @@ error.message:
   dashed_name: error-message
   description: Error message.
   flat_name: error.message
-  ignore_above: 4096
   level: core
   name: message
   normalize: []
@@ -3475,7 +3487,7 @@ error.message:
     relation: equivalent
     stability: stable
   short: Error message.
-  type: keyword
+  type: match_only_text
 error.stack_trace:
   dashed_name: error-stack-trace
   description: The stack trace of this error in plain text.
@@ -8021,10 +8033,12 @@ message:
     the original log (for example, the free-text part of a syslog line) or composed
     from other fields when the source is structured. Not every decoder sets it.
 
+    The field is `match_only_text`: a free-text search with no field name matches
+    any word of it, but it cannot be aggregated or sorted.
+
     The complete raw log, as received by the Wazuh Engine, is in `event.original`.'
   example: 'pam_unix(sshd:session): session opened for user vagrant(uid=1000) by (uid=0)'
   flat_name: message
-  ignore_above: 4096
   level: core
   name: message
   normalize: []
@@ -8034,9 +8048,9 @@ message:
     otlp_field: body
     relation: otlp
     stability: stable
-  short: Human-readable message extracted by the decoder. The complete raw log is
-    in `event.original`.
-  type: keyword
+  short: Human-readable message extracted by the decoder. Searchable by word. The
+    complete raw log is in `event.original`.
+  type: match_only_text
 mitre.subtechnique:
   dashed_name: mitre-subtechnique
   description: MITRE ATT&CK subtechniques.

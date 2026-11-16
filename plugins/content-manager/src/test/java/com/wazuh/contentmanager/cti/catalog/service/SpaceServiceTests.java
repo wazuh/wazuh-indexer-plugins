@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
@@ -58,6 +60,7 @@ import org.mockito.MockitoAnnotations;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -107,11 +110,14 @@ public class SpaceServiceTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
-    /** Tests that calculateAndUpdate skips execution when the policy index does not exist. */
-    public void testCalculateAndUpdateSkipsWhenPolicyIndexDoesNotExist() {
+    /**
+     * The subset overload of deleteSpaceResources only searches (and therefore only deletes from) the
+     * indices it is given, never the rest of RESOURCE_INDICES.
+     */
+    public void testDeleteSpaceResources_subsetOnlyTargetsGivenIndices() {
         when(this.client.admin()).thenReturn(this.adminClient);
         when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
-        when(this.indicesExistsResponse.isExists()).thenReturn(false);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
         doAnswer(
                         invocation -> {
                             invocation
@@ -121,11 +127,56 @@ public class SpaceServiceTests extends OpenSearchTestCase {
                         })
                 .when(this.indicesAdminClient)
                 .exists(any(IndicesExistsRequest.class), any());
+        when(this.searchResponse.getHits()).thenReturn(SearchHits.empty());
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onResponse(this.searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
+
+        List<String> subset =
+                List.of(Constants.INDEX_DECODERS, Constants.INDEX_KVDBS, Constants.INDEX_FILTERS);
+        this.policyHashService.deleteSpaceResources(
+                Space.DRAFT, subset, ActionListener.wrap(r -> {}, e -> fail(e.getMessage())));
+
+        ArgumentCaptor<SearchRequest> captor = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(this.client, times(subset.size())).search(captor.capture(), any());
+        Set<String> searched = new java.util.HashSet<>();
+        for (SearchRequest req : captor.getAllValues()) {
+            searched.addAll(List.of(req.indices()));
+        }
+        assertEquals(new java.util.HashSet<>(subset), searched);
+        assertFalse(searched.contains(Constants.INDEX_RULES));
+        assertFalse(searched.contains(Constants.INDEX_INTEGRATIONS));
+    }
+
+    /**
+     * calculateAndUpdate no longer pre-checks the policies index with indices:admin/exists. A missing
+     * or empty index (the lenient search returns no hits) yields an empty result and performs no
+     * bulk, so the recompute needs only read on the index.
+     */
+    public void testCalculateAndUpdateNoExistsPrecheckOnEmptyIndex() {
+        when(this.searchResponse.getHits()).thenReturn(SearchHits.empty());
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onResponse(this.searchResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
 
         this.policyHashService.calculateAndUpdate(
-                List.of(Space.DRAFT.toString()), ActionListener.wrap(r -> {}, e -> {}));
+                List.of(Space.DRAFT.toString()), ActionListener.wrap(r -> {}, e -> fail(e.getMessage())));
 
-        verify(this.client, never()).search(any(SearchRequest.class), any());
+        verify(this.client, never()).admin(); // no indices:admin/exists pre-check
+        verify(this.client).search(any(SearchRequest.class), any());
+        verify(this.client, never()).bulk(any(), any());
     }
 
     /**
@@ -213,17 +264,15 @@ public class SpaceServiceTests extends OpenSearchTestCase {
 
     /** Tests that calculateAndUpdate handles exceptions gracefully without propagating them. */
     public void testCalculateAndUpdateHandlesException() {
-        when(this.client.admin()).thenReturn(this.adminClient);
-        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
         doAnswer(
                         invocation -> {
                             invocation
-                                    .<ActionListener<IndicesExistsResponse>>getArgument(1)
+                                    .<ActionListener<SearchResponse>>getArgument(1)
                                     .onFailure(new RuntimeException("Test exception"));
                             return null;
                         })
-                .when(this.indicesAdminClient)
-                .exists(any(IndicesExistsRequest.class), any());
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
 
         AtomicReference<Boolean> gotResponse = new AtomicReference<>(false);
         // Should not propagate the exception - it should be handled and reported as an empty result.
@@ -334,6 +383,32 @@ public class SpaceServiceTests extends OpenSearchTestCase {
                     "Policy for space '" + spaceName + "' should contain enabled: true",
                     sourceJson.contains("\"enabled\":true"));
         }
+    }
+
+    /** A full reset must keep the existing metadata: initializeSpace writes the provided block. */
+    public void testInitializeSpace_PreservesProvidedMetadata() {
+        org.mockito.ArgumentCaptor<IndexRequest> captor =
+                org.mockito.ArgumentCaptor.forClass(IndexRequest.class);
+        IndexResponse mockResponse = org.mockito.Mockito.mock(IndexResponse.class);
+        doAnswer(
+                        invocation -> {
+                            invocation.<ActionListener<IndexResponse>>getArgument(1).onResponse(mockResponse);
+                            return null;
+                        })
+                .when(this.client)
+                .index(any(IndexRequest.class), any());
+
+        java.util.Map<String, Object> preservedMetadata =
+                java.util.Map.<String, Object>of("title", "keep-me", "author", "zeus");
+
+        this.policyHashService.initializeSpace(
+                "draft", "test-doc-id", preservedMetadata, ActionListener.wrap(r -> {}, e -> {}));
+
+        verify(this.client).index(captor.capture(), any());
+        String sourceJson = captor.getValue().source().utf8ToString();
+        assertTrue("Should keep the provided title", sourceJson.contains("\"title\":\"keep-me\""));
+        assertTrue("Should keep the provided author", sourceJson.contains("\"author\":\"zeus\""));
+        assertFalse("Should not fall back to the default title", sourceJson.contains("Custom space"));
     }
 
     /**
@@ -534,6 +609,142 @@ public class SpaceServiceTests extends OpenSearchTestCase {
         assertTrue(
                 "Non-policy resources must still be resolved by document.id",
                 query.contains(Constants.Q_DOCUMENT_ID));
+    }
+
+    // ── Engine payload (wazuh-indexer#2026) ──────────────────────────────────
+
+    /**
+     * Builds the payload of a promotion to {@code test} whose target indices are absent, so the
+     * target space holds exactly what the promotion applies.
+     */
+    private JsonNode enginePayload(
+            Map<String, Map<String, Object>> integrations,
+            Map<String, Map<String, Object>> kvdbs,
+            Map<String, Map<String, Object>> decoders,
+            Set<String> decodersToDelete) {
+        mockPolicyIndexExists(false);
+        Map<String, Object> policy = new HashMap<>();
+        policy.put(Constants.KEY_ID, "policy-id");
+        policy.put("root_decoder", null);
+        policy.put(Constants.KEY_INTEGRATIONS, List.of("int-a", "int-b"));
+        policy.put(Constants.KEY_ENABLED, true);
+
+        AtomicReference<JsonNode> payload = new AtomicReference<>();
+        this.policyHashService.buildEnginePayload(
+                Map.of(Constants.KEY_DOCUMENT, policy),
+                Space.TEST.toString(),
+                integrations,
+                kvdbs,
+                decoders,
+                Map.of(),
+                Set.of(),
+                Set.of(),
+                decodersToDelete,
+                Set.of(),
+                ActionListener.wrap(payload::set, e -> fail(e.getMessage())));
+        assertNotNull("The payload should be built", payload.get());
+        return payload.get();
+    }
+
+    private static Map<String, Map<String, Object>> resources(String... ids) {
+        Map<String, Map<String, Object>> resources = new HashMap<>();
+        for (String id : ids) {
+            resources.put(id, Map.of(Constants.KEY_DOCUMENT, Map.of(Constants.KEY_ID, id)));
+        }
+        return resources;
+    }
+
+    /**
+     * A promotion that removes the space's last decoder, leaving an empty integration and one holding
+     * only a rule, must send no integrations to the Engine, neither in the policy nor in the
+     * resources. Sent with integrations, the Engine tries to build a testing session and rejects the
+     * policy with "Missing root decoder", so the promotion could never go through
+     * (wazuh-indexer#2026).
+     */
+    public void testEnginePayloadLeavesOutIntegrationsOfAnEngineEmptySpace() {
+        JsonNode payload =
+                enginePayload(resources("int-a", "int-b"), Map.of(), Map.of(), Set.of("dec-1"));
+
+        assertTrue(payload.get(Constants.KEY_PROMOTE).asBoolean());
+        JsonNode fullPolicy = payload.get(Constants.KEY_FULL_POLICY);
+        JsonNode policy = fullPolicy.get(Constants.KEY_POLICY);
+        assertEquals(0, policy.get(Constants.KEY_INTEGRATIONS).size());
+        assertEquals(0, fullPolicy.get(Constants.KEY_RESOURCES).get(Constants.KEY_INTEGRATIONS).size());
+        assertEquals(0, fullPolicy.get(Constants.KEY_RESOURCES).get(Constants.KEY_DECODERS).size());
+        assertEquals("The rest of the policy is sent as is", "policy-id", policy.get("id").asText());
+        assertTrue(policy.get(Constants.KEY_ENABLED).asBoolean());
+    }
+
+    /** A space that keeps a decoder is sent with all its integrations. */
+    public void testEnginePayloadKeepsIntegrationsWhenTheSpaceHoldsADecoder() {
+        JsonNode payload =
+                enginePayload(resources("int-a", "int-b"), Map.of(), resources("dec-2"), Set.of("dec-1"));
+
+        JsonNode fullPolicy = payload.get(Constants.KEY_FULL_POLICY);
+        assertEquals(2, fullPolicy.get(Constants.KEY_POLICY).get(Constants.KEY_INTEGRATIONS).size());
+        assertEquals(2, fullPolicy.get(Constants.KEY_RESOURCES).get(Constants.KEY_INTEGRATIONS).size());
+    }
+
+    /**
+     * Kvdbs count as engine resources, as in {@link SpaceService#hasEngineResourcesAsync}, so a space
+     * holding one keeps its integrations.
+     */
+    public void testEnginePayloadKeepsIntegrationsWhenTheSpaceHoldsAKvdb() {
+        JsonNode payload =
+                enginePayload(resources("int-a", "int-b"), resources("kvdb-1"), Map.of(), Set.of());
+
+        JsonNode fullPolicy = payload.get(Constants.KEY_FULL_POLICY);
+        assertEquals(2, fullPolicy.get(Constants.KEY_POLICY).get(Constants.KEY_INTEGRATIONS).size());
+        assertEquals(2, fullPolicy.get(Constants.KEY_RESOURCES).get(Constants.KEY_INTEGRATIONS).size());
+    }
+
+    /**
+     * The resource ids a space holds are returned sorted, read straight from the resource index with
+     * no {@code indices:admin/exists} pre-check (only the {@code read} privilege is needed).
+     */
+    public void testGetSpaceResourceIdsAsync_returnsSortedIdsWithoutExistsCheck() {
+        mockPolicySearch(searchResponse(resourceHit("d-b"), resourceHit("d-a")));
+
+        AtomicReference<Map<String, List<String>>> result = new AtomicReference<>(null);
+        this.policyHashService.getSpaceResourceIdsAsync(
+                "test", List.of(Constants.KEY_DECODERS), ActionListener.wrap(result::set, e -> {}));
+
+        assertNotNull("Listener should have been notified", result.get());
+        assertEquals(List.of("d-a", "d-b"), result.get().get(Constants.KEY_DECODERS));
+        verify(this.client, never()).admin();
+    }
+
+    /**
+     * A failure reading a resource index must reach the caller. The earlier endpoint swallowed every
+     * read failure into an empty map, so a permission or shard error looked identical to an empty
+     * space (wazuh-indexer-plugins#1715).
+     */
+    public void testGetSpaceResourceIdsAsync_readFailureIsNotMaskedAsEmpty() {
+        doAnswer(
+                        invocation -> {
+                            invocation
+                                    .<ActionListener<SearchResponse>>getArgument(1)
+                                    .onFailure(new RuntimeException("index read not permitted"));
+                            return null;
+                        })
+                .when(this.client)
+                .search(any(SearchRequest.class), any());
+
+        AtomicReference<Map<String, List<String>>> result = new AtomicReference<>(null);
+        AtomicReference<Exception> failure = new AtomicReference<>(null);
+        this.policyHashService.getSpaceResourceIdsAsync(
+                "test", List.of(Constants.KEY_DECODERS), ActionListener.wrap(result::set, failure::set));
+
+        assertNotNull("A read failure must reach the caller, not be masked as empty", failure.get());
+        assertNull("onResponse must not be called on a read failure", result.get());
+    }
+
+    private SearchHit resourceHit(String docId) {
+        SearchHit hit = new SearchHit(1, docId, Collections.emptyMap(), Collections.emptyMap());
+        hit.sourceRef(
+                new BytesArray(
+                        ("{\"document\":{\"id\":\"" + docId + "\"}}").getBytes(StandardCharsets.UTF_8)));
+        return hit;
     }
 
     private SearchHit policyHit(String sourceJson) {

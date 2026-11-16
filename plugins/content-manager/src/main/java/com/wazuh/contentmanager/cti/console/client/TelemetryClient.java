@@ -20,6 +20,7 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.client5.http.async.methods.SimpleRequestBuilder;
 import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,12 +38,13 @@ public class TelemetryClient extends ApiClient {
     /**
      * Performs an asynchronous GET request to the CTI ping endpoint. This follows a "fire-and-forget"
      * pattern to avoid blocking system processes.
-     *
-     * @param uuid The unique identifier for the OpenSearch cluster.
-     * @param version The current version of the Wazuh Indexer.
      */
-    public void ping(String uuid, String version) {
+    public void ping() {
         String pingUrl = PluginSettings.getInstance().getCtiBaseUrl() + "/ping";
+        String version = PluginSettings.getInstance().getVersion();
+        String uuid = PluginSettings.getInstance().getClusterUUID();
+
+        // Fail-fast.
         if (uuid == null || version == null || uuid.isBlank() || version.isBlank()) {
             log.error("UUID or version is null or blank. Aborting telemetry ping.");
             return;
@@ -51,9 +53,9 @@ public class TelemetryClient extends ApiClient {
         try {
             SimpleHttpRequest request =
                     SimpleRequestBuilder.get(pingUrl)
-                            .addHeader("wazuh-uid", uuid)
-                            .addHeader("wazuh-tag", "v" + version)
-                            .addHeader("Accept", "application/json")
+                            .addHeader(Constants.WAZUH_UUID_HEADER, uuid)
+                            .addHeader(Constants.WAZUH_VERSION_HEADER, version)
+                            .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
                             .addHeader(HttpHeaders.ACCEPT_ENCODING, Constants.ACCEPT_ENCODING_GZIP)
                             .build();
 

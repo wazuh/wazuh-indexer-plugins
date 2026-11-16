@@ -31,8 +31,8 @@ public class UserOverridesTests extends OpenSearchTestCase {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /** The stored enrichment list round-trips verbatim. */
-    public void testEnrichmentListRoundTrips() {
+    /** The enrichments turned off round-trip verbatim, under their own key. */
+    public void testDisabledEnrichmentsRoundTrip() {
         ObjectNode root = MAPPER.createObjectNode();
 
         new UserOverrides(
@@ -41,34 +41,123 @@ public class UserOverridesTests extends OpenSearchTestCase {
                         List.of())
                 .writeInto(root, "standard");
 
-        assertEquals(
-                List.of("connection", "url_full"),
-                UserOverrides.forSpace(root, "standard").getPolicy().getEnrichments());
+        JsonNode policy = root.path("standard").path(Constants.KEY_POLICY_SETTINGS);
+        assertTrue(policy.has(Constants.KEY_DISABLED_ENRICHMENTS));
+        assertFalse("the list kept is no longer written", policy.has(Constants.KEY_ENRICHMENTS));
+        UserOverrides.PolicySettings read = UserOverrides.forSpace(root, "standard").getPolicy();
+        assertEquals(List.of("connection", "url_full"), read.getDisabledEnrichments());
+        assertFalse(read.isLegacy());
     }
 
     /**
-     * A user who never saved has no list, which is not the same as having saved an empty one. Absence
-     * means CTI decides; an empty list means the user unchecked everything.
+     * A user who never saved has no delta, which is not the same as having turned nothing off.
+     * Absence means CTI decides.
      */
-    public void testAbsentEnrichmentListStaysNull() {
+    public void testAbsentDisabledEnrichmentsStayNull() {
         ObjectNode root = MAPPER.createObjectNode();
 
         new UserOverrides(
                         new UserOverrides.PolicySettings(Boolean.TRUE, null, null, null), List.of(), List.of())
                 .writeInto(root, "standard");
 
-        assertNull(UserOverrides.forSpace(root, "standard").getPolicy().getEnrichments());
+        UserOverrides.PolicySettings read = UserOverrides.forSpace(root, "standard").getPolicy();
+        assertNull(read.getDisabledEnrichments());
+        assertNull(read.resolveDisabledEnrichments(List.of("geo")));
     }
 
-    /** And an empty list survives as an empty list. */
-    public void testEmptyEnrichmentListIsPreserved() {
+    /** And an empty delta survives as an empty list. */
+    public void testEmptyDisabledEnrichmentsArePreserved() {
         ObjectNode root = MAPPER.createObjectNode();
 
         new UserOverrides(
                         new UserOverrides.PolicySettings(null, null, null, List.of()), List.of(), List.of())
                 .writeInto(root, "standard");
 
-        assertEquals(List.of(), UserOverrides.forSpace(root, "standard").getPolicy().getEnrichments());
+        assertEquals(
+                List.of(), UserOverrides.forSpace(root, "standard").getPolicy().getDisabledEnrichments());
+    }
+
+    /** An override stored before the delta holds the list kept, and is read as legacy. */
+    public void testListKeptIsReadAsLegacy() {
+        ObjectNode root = MAPPER.createObjectNode();
+        root.set(
+                "standard",
+                MAPPER
+                        .createObjectNode()
+                        .set(
+                                Constants.KEY_POLICY_SETTINGS,
+                                MAPPER.valueToTree(
+                                        java.util.Map.of(
+                                                Constants.KEY_ENABLED,
+                                                true,
+                                                Constants.KEY_ENRICHMENTS,
+                                                List.of("geo", "connection")))));
+
+        UserOverrides.PolicySettings read = UserOverrides.forSpace(root, "standard").getPolicy();
+
+        assertTrue(read.isLegacy());
+        assertNull(read.getDisabledEnrichments());
+        assertEquals(List.of("geo", "connection"), read.getLegacyEnrichments());
+        assertEquals(
+                "the candidates missing from the list kept are the ones turned off",
+                List.of("url_full", "hash_md5"),
+                read.resolveDisabledEnrichments(List.of("geo", "url_full", "connection", "hash_md5")));
+    }
+
+    /** Converting a legacy override keeps the flags and writes only the delta. */
+    public void testLegacyOverrideConvertsToTheDelta() {
+        UserOverrides.PolicySettings legacy =
+                UserOverrides.PolicySettings.legacy(
+                        Boolean.FALSE, Boolean.TRUE, Boolean.FALSE, List.of("geo"));
+
+        UserOverrides.PolicySettings converted =
+                legacy.withDisabledEnrichments(
+                        legacy.resolveDisabledEnrichments(List.of("geo", "connection")));
+
+        assertFalse(converted.isLegacy());
+        assertNull(converted.getLegacyEnrichments());
+        assertEquals(List.of("connection"), converted.getDisabledEnrichments());
+        assertEquals(Boolean.FALSE, converted.getEnabled());
+        assertEquals(Boolean.TRUE, converted.getIndexUnclassifiedEvents());
+        assertEquals(Boolean.FALSE, converted.getIndexDiscardedEvents());
+
+        ObjectNode root = MAPPER.createObjectNode();
+        new UserOverrides(converted, List.of(), List.of()).writeInto(root, "standard");
+        JsonNode policy = root.path("standard").path(Constants.KEY_POLICY_SETTINGS);
+        assertFalse(policy.has(Constants.KEY_ENRICHMENTS));
+        assertEquals(1, policy.path(Constants.KEY_DISABLED_ENRICHMENTS).size());
+    }
+
+    /**
+     * A legacy override that is not converted yet is written back as it was read, so a write of
+     * another section does not lose it.
+     */
+    public void testUnconvertedLegacyOverrideIsWrittenBackAsRead() {
+        ObjectNode root = MAPPER.createObjectNode();
+
+        new UserOverrides(
+                        UserOverrides.PolicySettings.legacy(null, null, null, List.of("geo")),
+                        List.of(new UserOverrides.StoredFilter("f1", "{}")),
+                        List.of())
+                .writeInto(root, "standard");
+
+        UserOverrides.PolicySettings read = UserOverrides.forSpace(root, "standard").getPolicy();
+        assertTrue(read.isLegacy());
+        assertEquals(List.of("geo"), read.getLegacyEnrichments());
+    }
+
+    /** When both keys are present, the delta wins and the list kept is ignored. */
+    public void testDisabledEnrichmentsWinOverALegacyList() {
+        ObjectNode policy = MAPPER.createObjectNode();
+        policy.set(Constants.KEY_ENRICHMENTS, MAPPER.valueToTree(List.of("geo")));
+        policy.set(Constants.KEY_DISABLED_ENRICHMENTS, MAPPER.valueToTree(List.of("connection")));
+        ObjectNode root = MAPPER.createObjectNode();
+        root.set("standard", MAPPER.createObjectNode().set(Constants.KEY_POLICY_SETTINGS, policy));
+
+        UserOverrides.PolicySettings read = UserOverrides.forSpace(root, "standard").getPolicy();
+
+        assertFalse(read.isLegacy());
+        assertEquals(List.of("connection"), read.getDisabledEnrichments());
     }
 
     /**
@@ -92,7 +181,7 @@ public class UserOverridesTests extends OpenSearchTestCase {
         assertNull(
                 "a setting the user never decided must stay absent, not become false",
                 read.getPolicy().getIndexDiscardedEvents());
-        assertEquals(List.of("connection"), read.getPolicy().getEnrichments());
+        assertEquals(List.of("connection"), read.getPolicy().getDisabledEnrichments());
         assertEquals(1, read.getFilters().size());
         assertEquals("filter-id", read.getFilters().get(0).getId());
         assertEquals("{\"document\":{}}", read.getFilters().get(0).getDocument());

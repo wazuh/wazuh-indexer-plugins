@@ -24,7 +24,7 @@ Unlike other metrics indices, this index stores **one document per individual me
 
 | Field | Type | Level | Description |
 |-------|------|-------|-------------|
-| `@timestamp` | date | core | Date/time when the event originated. |
+| `@timestamp` | date_nanos | core | Date/time when the event originated, with nanosecond precision. |
 | `event.kind` | keyword | core | The kind of event (e.g. `metrics`). |
 | `event.module` | keyword | core | Name of the module this data is coming from (e.g. `wazuh-manager-analysisd`). |
 | `metric.name` | keyword | custom | Name of the metric (e.g. `router.queue.size`). |

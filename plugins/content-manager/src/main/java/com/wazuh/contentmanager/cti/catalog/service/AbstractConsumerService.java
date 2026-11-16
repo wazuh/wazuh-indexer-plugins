@@ -35,8 +35,6 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.action.PromoteSnapshotAction;
@@ -48,7 +46,6 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
-import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.console.service.CtiConsoleUnavailableException;
 import com.wazuh.contentmanager.cti.console.service.TokenExchangeServiceImpl;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -122,11 +119,15 @@ public abstract class AbstractConsumerService {
     protected abstract String getCustomCatalogUri();
 
     /**
-     * Indicates whether this consumer manages ruleset resources that require Security Analytics
-     * cleanup on snapshot initialization.
+     * Returns how this consumer empties the content a snapshot replaces, before either load path
+     * writes anything. The default owns its indices whole and replaces them; a consumer whose indices
+     * also hold content the user edits overrides this to delete only what CTI owns.
+     *
+     * @param indices this consumer content indices, keyed by type.
+     * @return the wiper.
      */
-    protected boolean isRulesetConsumer() {
-        return false;
+    protected ContentWiper contentWiper(Map<String, ContentIndex> indices) {
+        return ContentWiper.clearingIndices(indices);
     }
 
     /**
@@ -191,7 +192,8 @@ public abstract class AbstractConsumerService {
         try {
             Path snapshotsDir = this.resolveSnapshotsDir();
             return snapshotsDir != null
-                    && snapshotFileExists(snapshotsDir.resolve(this.getSnapshotFilename()));
+                    && AbstractConsumerService.snapshotFileExists(
+                            snapshotsDir.resolve(this.getSnapshotFilename()));
         } catch (Exception e) {
             log.debug(
                     Constants.D_LOG_SNAPSHOTS_DIR_RESOLVE_FAILED, this.getConsumerType(), e.getMessage());
@@ -338,7 +340,7 @@ public abstract class AbstractConsumerService {
             this.setConsumerStatus(
                     LocalConsumer.Status.READY,
                     null,
-                    contentUpdateRecorded ? currentTime().toString() : null);
+                    contentUpdateRecorded ? AbstractConsumerService.currentTime().toString() : null);
             return result.feedUnreachable()
                     || result.sourceChangePending()
                     || this.immediateRetryRequested;
@@ -480,7 +482,7 @@ public abstract class AbstractConsumerService {
      */
     private void recordCatalogChecked() {
         try {
-            Instant checkedAt = currentTime();
+            Instant checkedAt = AbstractConsumerService.currentTime();
             this.consumersIndex.setLastCheckedAt(checkedAt);
             log.debug(Constants.D_LOG_CATALOG_CHECKED_AT, checkedAt);
         } catch (Exception e) {
@@ -591,7 +593,8 @@ public abstract class AbstractConsumerService {
             if (current == null) {
                 return;
             }
-            List<String> pending = mergePhases(current.getPendingSyncPhases(), owed);
+            List<String> pending =
+                    AbstractConsumerService.mergePhases(current.getPendingSyncPhases(), owed);
             if (pending.equals(current.getPendingSyncPhases())) {
                 return;
             }
@@ -677,7 +680,7 @@ public abstract class AbstractConsumerService {
      * yet); {@code remote_offset} is the latest offset known upstream (so the post-load incremental
      * update can close the gap).
      *
-     * <p>If neither the remote consumer nor the manifest entry is available, the write is skipped;
+     * <p>If neither the remote consumer nor the manifest entry is available, the writing is skipped;
      * the existing fatal log branches in {@code syncConsumerServices} apply.
      *
      * <p>The content has not changed yet, so the document keeps the content update time of the
@@ -710,7 +713,7 @@ public abstract class AbstractConsumerService {
                 String mType = this.readManifestString(manifestEntry, Constants.KEY_TYPE, consumerType);
                 String mResource = this.readManifestString(manifestEntry, Constants.KEY_RESOURCE, "");
                 boolean mIsPublic = this.readManifestBoolean(manifestEntry, Constants.KEY_IS_PUBLIC, true);
-                long mRemoteOffset = this.readManifestLong(manifestEntry, Constants.KEY_REMOTE_OFFSET, 0);
+                long mRemoteOffset = this.readManifestLong(manifestEntry, 0);
                 t0 =
                         new LocalConsumer(
                                 mContext,
@@ -745,9 +748,11 @@ public abstract class AbstractConsumerService {
         return defaultValue;
     }
 
-    private long readManifestLong(JsonNode node, String field, long defaultValue) {
-        if (node != null && node.has(field) && !node.get(field).isNull()) {
-            return node.get(field).asLong(defaultValue);
+    private long readManifestLong(JsonNode node, long defaultValue) {
+        if (node != null
+                && node.has(Constants.KEY_REMOTE_OFFSET)
+                && !node.get(Constants.KEY_REMOTE_OFFSET).isNull()) {
+            return node.get(Constants.KEY_REMOTE_OFFSET).asLong(defaultValue);
         }
         return defaultValue;
     }
@@ -828,7 +833,7 @@ public abstract class AbstractConsumerService {
                             .setSize(0)
                             .setTrackTotalHits(true)
                             .get(TimeValue.timeValueSeconds(PluginSettings.getInstance().getClientTimeout()));
-            return response.getHits().getTotalHits().value() == 0;
+            return Objects.requireNonNull(response.getHits().getTotalHits()).value() == 0;
         } catch (Exception e) {
             log.debug(Constants.D_LOG_INDEX_COUNT_FAILED, indexName, e.getMessage());
             return false;
@@ -1120,8 +1125,7 @@ public abstract class AbstractConsumerService {
             // file are left as they are, instead of being reloaded from an older stable snapshot.
             if (pass.isOffline()
                     && currentOffset > 0
-                    && localConsumer != null
-                    && snapshotFileExists(localSnapshot)) {
+                    && AbstractConsumerService.snapshotFileExists(localSnapshot)) {
                 log.info(
                         Constants.I_LOG_OFFLINE_RELOAD,
                         consumerType,
@@ -1138,7 +1142,7 @@ public abstract class AbstractConsumerService {
             }
 
             if (currentOffset == 0) {
-                boolean snapshotExists = snapshotFileExists(localSnapshot);
+                boolean snapshotExists = AbstractConsumerService.snapshotFileExists(localSnapshot);
 
                 boolean hasEffectiveCatalog = catalogUri != null && !catalogUri.isBlank();
 
@@ -1166,7 +1170,8 @@ public abstract class AbstractConsumerService {
                                         this.environment,
                                         urlResolver,
                                         snapshotsDir,
-                                        this.getSnapshotFilename());
+                                        this.getSnapshotFilename(),
+                                        this.contentWiper(indicesMap));
 
                 // When a catalog URL is available, prefer remote initialization and fall back to local
                 // snapshot on failure. The catalog URL comes from the configured setting, or from a
@@ -1174,33 +1179,6 @@ public abstract class AbstractConsumerService {
                 if (hasEffectiveCatalog
                         && remoteConsumer != null
                         && remoteConsumer.getSnapshotLink() != null) {
-                    // Ruleset snapshots also affect Security Analytics/Space resources; other catalogs only
-                    // clear indices.
-                    if (this.isRulesetConsumer()) {
-                        try {
-                            SecurityAnalyticsService securityAnalyticsService =
-                                    new SecurityAnalyticsServiceImpl(this.client);
-                            CompletableFuture<Void> sapFuture = new CompletableFuture<>();
-                            securityAnalyticsService.deleteSpaceResources(
-                                    Space.STANDARD,
-                                    ActionListener.wrap(
-                                            r -> sapFuture.complete(null), sapFuture::completeExceptionally));
-                            sapFuture.get(60, TimeUnit.SECONDS);
-
-                            SpaceService spaceService = new SpaceService(this.client);
-                            CompletableFuture<Void> spaceFuture = new CompletableFuture<>();
-                            spaceService.deleteSpaceResources(
-                                    Space.STANDARD,
-                                    ActionListener.wrap(
-                                            r -> spaceFuture.complete(null), spaceFuture::completeExceptionally));
-                            spaceFuture.get(60, TimeUnit.SECONDS);
-                        } catch (Exception e) {
-                            log.error(Constants.E_LOG_CLEAR_RESOURCES_FAILED, consumerType, e.getMessage());
-                        }
-                    } else {
-                        indicesMap.values().forEach(ContentIndex::clear);
-                    }
-
                     log.debug(Constants.D_LOG_SNAPSHOT_INIT_CUSTOM_URL, catalogUri);
                     boolean remoteSuccess = snapshotService.initialize(remoteConsumer);
                     if (remoteSuccess) {
@@ -1210,7 +1188,7 @@ public abstract class AbstractConsumerService {
                             SnapshotServiceImpl.deleteSnapshot(localSnapshot);
                         }
                     } else {
-                        endPassIfNodeStopping(consumerType);
+                        AbstractConsumerService.endPassIfNodeStopping(consumerType);
                         // Three-tier fallback: stable snapshot -> packaged local -> give up
                         Path stableSnapshot = snapshotService.getStablePath();
                         boolean stableExists = false;
@@ -1308,6 +1286,15 @@ public abstract class AbstractConsumerService {
                                 Constants.E_LOG_INIT_FAILED_NO_LOCAL_NO_REMOTE_CONFIG, consumerType, localSnapshot);
                     }
                 }
+
+                // Nothing was loaded, and the wipe that precedes a load may already have run: on
+                // the ruleset that leaves the Standard space partly deleted, because its documents
+                // go in one bulk across six indices and a bulk applies what it can. The scheduled
+                // pass is an hour away by default, so ask the job for the retry it already gives a
+                // pass that left work undone.
+                if (!updated) {
+                    this.requestImmediateRetry();
+                }
             }
 
             if (updated && snapshotsDir != null) {
@@ -1340,7 +1327,7 @@ public abstract class AbstractConsumerService {
                                         currentOffset,
                                         remoteConsumer.getOffset());
                     } catch (RuntimeException e) {
-                        endPassIfNodeStopping(consumerType);
+                        AbstractConsumerService.endPassIfNodeStopping(consumerType);
                         if (!this.updateFromSnapshotAfterFailure(
                                 e,
                                 context,
@@ -1405,7 +1392,7 @@ public abstract class AbstractConsumerService {
             RemoteConsumer remoteConsumer,
             long fromOffset) {
         ContentIndex.PatchException patchFailure =
-                findCause(failure, ContentIndex.PatchException.class);
+                AbstractConsumerService.findCause(failure, ContentIndex.PatchException.class);
         if (patchFailure == null || patchFailure.getOffset() == null) {
             return false;
         }

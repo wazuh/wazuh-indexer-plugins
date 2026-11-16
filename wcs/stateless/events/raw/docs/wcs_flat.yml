@@ -1,9 +1,10 @@
 '@timestamp':
   dashed_name: timestamp
-  description: 'Date and time, in UTC with millisecond precision, at which the Wazuh
+  description: 'Date and time, in UTC with nanosecond precision, at which the Wazuh
     Engine received the event and started processing it. The Engine sets it once for
     every log it receives, before any decoder runs, so the raw event and the normalized
-    event carry the same value.
+    event carry the same value. Within a batch of events the values are strictly increasing,
+    so sorting by this field keeps the order in which the events were received.
 
     This is not the time at which the logged activity happened: the decoders of the
     Wazuh ruleset store the time found in the original log in `event.start`. The gap
@@ -13,7 +14,7 @@
 
     Findings keep the `@timestamp` of the event that matched the rule. The Wazuh Dashboard
     filters events and findings by this field.'
-  example: '2026-10-16T15:53:03.843Z'
+  example: '2026-10-16T15:53:03.843123456Z'
   flat_name: '@timestamp'
   level: core
   name: '@timestamp'
@@ -37,7 +38,7 @@
   required: true
   short: Time the Wazuh Engine received the event, in UTC. The time in the original
     log is in `event.start`.
-  type: date
+  type: date_nanos
 event.original:
   dashed_name: event-original
   description: 'Raw text of the log as received by the Wazuh Engine, before decoding.

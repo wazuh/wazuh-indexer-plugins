@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 /**
@@ -285,6 +286,180 @@ public class ThreatIntelIndicesIT extends OpenSearchRestTestCase {
         assertThat(body, containsString("\"result\":\"created\""));
         // The write went through the alias, so it must have landed on the concrete index.
         assertThat(body, containsString("\"_index\":\"" + ENRICHMENTS + SUFFIX_A + "\""));
+    }
+
+    /**
+     * Verifies that the main CVE fields are searchable: severity, score and dates of the CNA
+     * metrics, whichever the CVSS version they come from, and the CVE metadata. The rest of the
+     * record is stored in {@code _source} and stays unindexed, and a malformed value does not reject
+     * the document.
+     *
+     * @throws IOException if there is an issue with the HTTP request
+     * @throws ParseException if there is an issue parsing the response
+     */
+    public void testCveFieldsAreSearchable() throws IOException, ParseException {
+        String index = ".wazuh-threatintel-vulnerabilities";
+        indexCve(
+                index,
+                "setup-it-cve-high",
+                """
+                {
+                  "offset": 1, "type": "CVE_RECORD",
+                  "document": {
+                    "dataType": "CVE_RECORD",
+                    "cveMetadata": {
+                      "cveId": "CVE-2026-0001", "state": "PUBLISHED", "assignerShortName": "VulDB",
+                      "assignerOrgId": "1af790b2", "datePublished": "2026-11-02T05:18:25Z",
+                      "dateUpdated": "2026-11-02T16:19:19Z"
+                    },
+                    "containers": {
+                      "cna": {
+                        "title": "unmapped title",
+                        "metrics": [
+                          {"format": "CVSS", "cvssV3_1": {"baseScore": 9.8, "baseSeverity": "CRITICAL",
+                            "vectorString": "CVSS:3.1/AV:N", "scope": "CHANGED"}},
+                          {"format": "CVSS", "cvssV4_0": {"baseScore": 9.3, "baseSeverity": "CRITICAL",
+                            "Safety": "NOT_DEFINED"}}
+                        ],
+                        "affected": [{"vendor": "unknown", "product": "unknown"}]
+                      }
+                    }
+                  }
+                }
+                """);
+        indexCve(
+                index,
+                "setup-it-cve-low",
+                """
+                {
+                  "offset": 2, "type": "CVE_RECORD",
+                  "document": {
+                    "cveMetadata": {
+                      "cveId": "CVE-2026-0002", "state": "REJECTED", "assignerShortName": "mitre",
+                      "datePublished": "2020-01-01T00:00:00.000Z"
+                    },
+                    "containers": {
+                      "cna": {"metrics": [{"cvssV2_0": {"baseScore": 3, "baseSeverity": "LOW"}}]}
+                    }
+                  }
+                }
+                """);
+        // A value that does not fit its type must not reject the document.
+        indexCve(
+                index,
+                "setup-it-cve-malformed",
+                """
+                {
+                  "offset": 3, "type": "CVE_RECORD",
+                  "document": {
+                    "cveMetadata": {"cveId": "CVE-2026-0003", "datePublished": "not a date"},
+                    "containers": {"cna": {"metrics": [{"cvssV3_1": {"baseScore": "n/a"}}]}}
+                  }
+                }
+                """);
+        // The global maps share the index and have an arbitrary shape under document.
+        indexCve(
+                index,
+                "setup-it-global-map",
+                """
+                {
+                  "offset": 4, "type": "OSCPE-GLOBAL",
+                  "document": {"cpe:2.3:a:vendor:product": {"vendor": "vendor"}, "count": 3, "tags": ["a"]}
+                }
+                """);
+        refresh(index);
+
+        assertThat(
+                "severity of a CVSS v3.1 metric",
+                countOf(index, "{\"term\": {\"document.containers.cna.metrics.cvssV3_1.baseSeverity\": \"CRITICAL\"}}"),
+                is(1));
+        assertThat(
+                "severity of a CVSS v2.0 metric, through the same dynamic template",
+                countOf(index, "{\"term\": {\"document.containers.cna.metrics.cvssV2_0.baseSeverity\": \"LOW\"}}"),
+                is(1));
+        assertThat(
+                "score range",
+                countOf(index, "{\"range\": {\"document.containers.cna.metrics.cvssV4_0.baseScore\": {\"gte\": 9}}}"),
+                is(1));
+        assertThat(
+                "a score bound is matched exactly, 9.8 is not rounded down",
+                countOf(index, "{\"range\": {\"document.containers.cna.metrics.cvssV3_1.baseScore\": {\"gte\": 9.8, \"lte\": 9.8}}}"),
+                is(1));
+        assertThat(
+                "an integer score is indexed when it is the first one of its version",
+                countOf(index, "{\"range\": {\"document.containers.cna.metrics.cvssV2_0.baseScore\": {\"gte\": 3, \"lte\": 3}}}"),
+                is(1));
+        assertThat(
+                "score range on another version",
+                countOf(index, "{\"range\": {\"document.containers.cna.metrics.cvssV2_0.baseScore\": {\"lt\": 5}}}"),
+                is(1));
+        assertThat(
+                "published date range",
+                countOf(index, "{\"range\": {\"document.cveMetadata.datePublished\": {\"gte\": \"2026-01-01\"}}}"),
+                is(1));
+        assertThat(
+                "CVE id",
+                countOf(index, "{\"term\": {\"document.cveMetadata.cveId\": \"CVE-2026-0002\"}}"),
+                is(1));
+        assertThat(
+                "state",
+                countOf(index, "{\"term\": {\"document.cveMetadata.state\": \"REJECTED\"}}"),
+                is(1));
+        assertThat(
+                "assigner",
+                countOf(index, "{\"term\": {\"document.cveMetadata.assignerShortName\": \"VulDB\"}}"),
+                is(1));
+        assertThat(
+                "a query_string with no field searches the CVE id, state and assigner",
+                countOf(index, "{\"query_string\": {\"query\": \"\\\"CVE-2026-0002\\\"\"}}"),
+                is(1));
+        assertThat(
+                "free text on the state",
+                countOf(index, "{\"query_string\": {\"query\": \"REJECTED\"}}"),
+                is(1));
+        assertThat(
+                "fields that are not mapped are not searchable",
+                countOf(index, "{\"term\": {\"document.containers.cna.title\": \"unmapped title\"}}"),
+                is(0));
+        assertThat(
+                "unmapped fields are kept in _source",
+                getSource(index, "setup-it-cve-high").replaceAll("\\s+", ""),
+                containsString("\"vectorString\":\"CVSS:3.1/AV:N\""));
+
+        for (String id :
+                new String[] {
+                    "setup-it-cve-high", "setup-it-cve-low", "setup-it-cve-malformed", "setup-it-global-map"
+                }) {
+            client().performRequest(new Request("DELETE", "/" + index + "/_doc/" + id));
+        }
+    }
+
+    private void indexCve(String index, String id, String json) throws IOException {
+        Request request = new Request("PUT", "/" + index + "/_doc/" + id);
+        request.setJsonEntity(json);
+        Response response = client().performRequest(request);
+        assertThat(response.getStatusLine().getStatusCode(), is(201));
+    }
+
+    private void refresh(String index) throws IOException {
+        client().performRequest(new Request("POST", "/" + index + "/_refresh"));
+    }
+
+    private int countOf(String index, String query) throws IOException, ParseException {
+        Request request = new Request("POST", "/" + index + "/_count");
+        request.setJsonEntity("{\"query\": " + query + "}");
+        String body =
+                EntityUtils.toString(client().performRequest(request).getEntity(), StandardCharsets.UTF_8);
+        java.util.regex.Matcher matcher =
+                java.util.regex.Pattern.compile("\"count\":(\\d+)").matcher(body);
+        assertTrue(body, matcher.find());
+        return Integer.parseInt(matcher.group(1));
+    }
+
+    private String getSource(String index, String id) throws IOException, ParseException {
+        return EntityUtils.toString(
+                client().performRequest(new Request("GET", "/" + index + "/_source/" + id)).getEntity(),
+                StandardCharsets.UTF_8);
     }
 
     /**

@@ -1,5 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
+9.1.0,true,base,@timestamp,date_nanos,core,,2026-10-16T15:53:03.843123456Z,"Date/time when the event originated, with nanosecond precision."
 9.1.0,true,wazuh,wazuh.agent.disconnected_at,date,custom,,,Date/time when the agent was considered disconnected.
 9.1.0,true,wazuh,wazuh.agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
 9.1.0,true,wazuh,wazuh.agent.host.architecture,keyword,core,,x86_64,Operating system architecture.

@@ -314,3 +314,42 @@ class TestSpaceReset:
     def test_reset_non_draft_rejected(self, client, space):
         resp = client.delete(f"{C.SPACE}/{space}")
         assert resp.status_code == 400, resp.text
+
+
+# ── Policy resources listing ─────────────────────────────────────────────────
+
+
+@pytest.mark.policy
+class TestPolicyResources:
+    """GET /_plugins/_content_manager/policy/resources?space=<space> (issue #1710)."""
+
+    def test_lists_space_resources_by_phase(self, client, promotable):
+        """The space's resources are listed, grouped by pipeline phase."""
+        kid = client.create(
+            C.KVDBS, P.make_kvdb(title=f"kvdb-{promotable['title']}"), integration=promotable["integration"]
+        )
+        for idx in (C.INDEX_DECODERS, C.INDEX_KVDBS, C.INDEX_RULES):
+            client.refresh(idx)
+
+        resp = client.get(C.RESOURCES, params={"space": C.SPACE_DRAFT})
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+
+        assert set(body["normalization"]) == {"decoders", "filters", "kvdbs"}
+        assert set(body["detection"]) == {"rules"}
+        assert body["status"] == 200
+        assert promotable["decoder"] in body["normalization"]["decoders"]
+        assert kid in body["normalization"]["kvdbs"]
+        assert promotable["rule"] in body["detection"]["rules"]
+
+    def test_missing_space_rejected(self, client, reset_draft):
+        resp = client.get(C.RESOURCES)
+        assert resp.status_code == 400, resp.text
+
+    def test_unknown_space_rejected(self, client, reset_draft):
+        resp = client.get(C.RESOURCES, params={"space": "bogus"})
+        assert resp.status_code == 400, resp.text
+
+    def test_standard_space_rejected(self, client, reset_draft):
+        resp = client.get(C.RESOURCES, params={"space": C.SPACE_STANDARD})
+        assert resp.status_code == 400, resp.text
