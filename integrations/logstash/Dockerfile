@@ -8,9 +8,9 @@ USER logstash
 # https://github.com/elastic/logstash/issues/6600
 ARG LOGSTASH_INPUT_OPENSEARCH_VERSION=1.0.0
 ARG LOGSTASH_OUTPUT_OPENSEARCH_VERSION=2.1.1
-RUN LS_JAVA_OPTS="-Xms1024m -Xmx1024m" logstash-plugin install \
+RUN LS_JAVA_OPTS="-Xms2g -Xmx2g" logstash-plugin install \
       --version ${LOGSTASH_INPUT_OPENSEARCH_VERSION} logstash-input-opensearch && \
-    LS_JAVA_OPTS="-Xms1024m -Xmx1024m" logstash-plugin install \
+    LS_JAVA_OPTS="-Xms2g -Xmx2g" logstash-plugin install \
       --version ${LOGSTASH_OUTPUT_OPENSEARCH_VERSION} logstash-output-opensearch
 
 # Every pipeline reads its settings, credentials included, from the environment or from a
