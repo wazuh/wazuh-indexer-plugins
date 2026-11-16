@@ -121,6 +121,9 @@ rejected**.
 
 The write replaces the whole settings document instead of merging into it: a request that carries
 only some of the keys below leaves the rest unset, so send the full set of values on every update.
+Those two rules together mean that a body with none of the four keys, a misspelled
+`privacy_defaul_on` for example, is not an error: the endpoint answers `200` and the settings end
+up empty.
 
 #### Request
 
@@ -181,7 +184,8 @@ endpoints rather than written or deleted.
       "base_url": "https://api.anthropic.com",
       "model": "claude-opus-4-6",
       "api_key": "enc:v1:SC/RyOIBkdm+kGl",
-      "is_default": true
+      "is_default": true,
+      "updated_at": "2026-09-09T13:44:09.066Z"
     }
   ]
 }
@@ -243,7 +247,7 @@ provider instead of failing, and any field the body omits is dropped.
 #### Status codes
 
 - **200** — provider created, or an existing provider with that `id` replaced. `200`, not `201`.
-- **400** — empty or malformed body, a missing `id`, an `id` that is not a UUID, or any field outside the provider schema: the backing index is `dynamic: strict`, so an unknown key is rejected rather than ignored.
+- **400** — empty or malformed body, a missing `id`, an `id` that is not a UUID, or any field the `.wazuh-internal-state` mapping does not define: the backing index is `dynamic: strict`, so an unknown key is rejected rather than ignored. That mapping is shared with the settings and the credentials documents, so a provider body that carries `access_token` or `privacy_default_on` is accepted and stored.
 - **403** — the caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
 
 ### Update a provider
@@ -265,8 +269,8 @@ merged, so any field the body omits is dropped.
 #### Status codes
 
 - **200** — provider saved.
-- **400** — empty or malformed body, any field outside the provider schema (the backing index is
-  `dynamic: strict`), or a path `id` that is one of the reserved document ids
+- **400** — empty or malformed body, any field the `.wazuh-internal-state` mapping does not define
+  (the backing index is `dynamic: strict`), or a path `id` that is one of the reserved document ids
   (`wazuh-ai-assistant-settings`, `credentials`).
 - **403** — the caller lacks the `plugin:wazuh/ai_assistant/settings/write` cluster permission.
 

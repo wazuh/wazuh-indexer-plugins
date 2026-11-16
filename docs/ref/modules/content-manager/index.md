@@ -201,6 +201,6 @@ The registration carries three conditions:
 
 - It runs on the elected cluster manager only, so the key has to be set on the nodes eligible to become cluster manager. A node that never holds the role never reads it.
 - It runs only while `plugins.content_manager.catalog.update_on_start` is `true`. With that setting disabled the key is not registered at all.
-- It runs on **every** start and overwrites the stored credentials. A token registered afterwards through [`POST /subscription`](api.md#store-cti-credentials), or removed through `DELETE /subscription`, is replaced by the pre-registration key on the next restart.
+- It runs the first time the node becomes the elected cluster manager in each process, and overwrites the stored credentials. A token registered afterwards through [`POST /subscription`](api.md#store-cti-credentials), or removed through `DELETE /subscription`, is replaced by the pre-registration key on the next restart and, on a multi-node cluster, on a failover to another cluster-manager-eligible node that holds the key.
 
 <!-- ANCHOR_END: deploy-key -->
