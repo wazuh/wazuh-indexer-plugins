@@ -46,7 +46,7 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.action = new RestDeleteSubscriptionAction();
-        this.client = new CapturingNodeClient<>(getTestName());
+        this.client = new CapturingNodeClient<>(this.getTestName());
     }
 
     @After
@@ -60,11 +60,11 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
 
     public void testRouteMethod() {
         Assert.assertEquals(1, this.action.routes().size());
-        Assert.assertEquals(RestRequest.Method.DELETE, this.action.routes().get(0).getMethod());
+        Assert.assertEquals(RestRequest.Method.DELETE, this.action.routes().getFirst().getMethod());
     }
 
     public void testRoutePath() {
-        Assert.assertEquals(PluginSettings.SUBSCRIPTION_URI, this.action.routes().get(0).getPath());
+        Assert.assertEquals(PluginSettings.SUBSCRIPTION_URI, this.action.routes().getFirst().getPath());
     }
 
     public void testName() {
@@ -74,21 +74,21 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
     // --- dispatch: which transport request is built -------------------------------
 
     public void testDispatch_withoutParameter_deletes() throws Exception {
-        dispatch(Map.of(), null);
+        this.dispatch(Map.of(), null);
 
         Assert.assertNotNull(this.client.captured);
         Assert.assertFalse(this.client.captured.isPermissionCheckOnly());
     }
 
     public void testDispatch_parameterFalse_deletes() throws Exception {
-        dispatch(Map.of("perform_permission_check", "false"), null);
+        this.dispatch(Map.of("perform_permission_check", "false"), null);
 
         Assert.assertNotNull(this.client.captured);
         Assert.assertFalse(this.client.captured.isPermissionCheckOnly());
     }
 
     public void testDispatch_parameterTrue_flagsTheRequest() throws Exception {
-        dispatch(Map.of("perform_permission_check", "true"), null);
+        this.dispatch(Map.of("perform_permission_check", "true"), null);
 
         Assert.assertNotNull(this.client.captured);
         Assert.assertTrue(this.client.captured.isPermissionCheckOnly());
@@ -96,7 +96,7 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
 
     /** An empty value means true, per the OpenSearch boolean-parameter contract. */
     public void testDispatch_parameterEmptyValue_flagsTheRequest() throws Exception {
-        dispatch(Map.of("perform_permission_check", ""), null);
+        this.dispatch(Map.of("perform_permission_check", ""), null);
 
         Assert.assertNotNull(this.client.captured);
         Assert.assertTrue(this.client.captured.isPermissionCheckOnly());
@@ -110,7 +110,7 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
      */
     public void testResponse_securityPluginDenies_isPassedThroughUnchanged() throws Exception {
         FakeRestChannel channel =
-                dispatch(
+                this.dispatch(
                         Map.of("perform_permission_check", "true"),
                         new PermissionCheckResponseDouble(
                                 false, Set.of("cluster:admin/content_manager/subscription/delete")));
@@ -125,7 +125,7 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
 
     public void testResponse_securityPluginAllows_isPassedThroughUnchanged() throws Exception {
         FakeRestChannel channel =
-                dispatch(
+                this.dispatch(
                         Map.of("perform_permission_check", "true"),
                         new PermissionCheckResponseDouble(true, Set.of()));
 
@@ -141,7 +141,7 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
      */
     public void testResponse_securityDisabledFallback_rendersAccessAllowed() throws Exception {
         FakeRestChannel channel =
-                dispatch(
+                this.dispatch(
                         Map.of("perform_permission_check", "true"),
                         new MessageStatusResponse(Constants.S_200_PERMISSION_CHECK_ALLOWED, RestStatus.OK));
 
@@ -153,7 +153,7 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
 
     public void testResponse_deletion_rendersMessageAndStatus() throws Exception {
         FakeRestChannel channel =
-                dispatch(Map.of(), new MessageStatusResponse("Credentials removed", RestStatus.OK));
+                this.dispatch(Map.of(), new MessageStatusResponse("Credentials removed", RestStatus.OK));
 
         RestResponse response = channel.capturedResponse();
         Assert.assertEquals(RestStatus.OK, response.status());
@@ -163,7 +163,7 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
 
     public void testResponse_deletionFailure_rendersMessageAndStatus() throws Exception {
         FakeRestChannel channel =
-                dispatch(
+                this.dispatch(
                         Map.of(),
                         new MessageStatusResponse("Unexpected failure", RestStatus.INTERNAL_SERVER_ERROR));
 

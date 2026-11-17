@@ -74,19 +74,26 @@ public class SubscriptionPermissionCheckIT extends ContentManagerRestTestCase {
 
     @Before
     public void setUpClients() throws IOException {
-        HttpHost[] node = {getClusterHosts().get(0)};
-        this.nodeClient = buildClient(restClientSettings(), node);
-        this.stateClient = isSecurityEnabled() ? buildSuperAdminClient(node) : this.nodeClient;
+        HttpHost[] node = {this.getClusterHosts().get(0)};
+        this.nodeClient = this.buildClient(this.restClientSettings(), node);
+        this.stateClient =
+                ContentManagerRestTestCase.isSecurityEnabled()
+                        ? this.buildSuperAdminClient(node)
+                        : this.nodeClient;
     }
 
     @After
     public void cleanUp() throws IOException {
         try {
-            perform(this.nodeClient, "DELETE", PluginSettings.SUBSCRIPTION_URI, Map.of(), null);
+            SubscriptionPermissionCheckIT.perform(
+                    this.nodeClient, "DELETE", PluginSettings.SUBSCRIPTION_URI, Map.of(), null);
             for (String user : this.createdUsers) {
-                perform(this.nodeClient, "DELETE", SECURITY_API + "rolesmapping/" + user, Map.of(), null);
-                perform(this.nodeClient, "DELETE", SECURITY_API + "internalusers/" + user, Map.of(), null);
-                perform(this.nodeClient, "DELETE", SECURITY_API + "roles/" + user, Map.of(), null);
+                SubscriptionPermissionCheckIT.perform(
+                        this.nodeClient, "DELETE", SECURITY_API + "rolesmapping/" + user, Map.of(), null);
+                SubscriptionPermissionCheckIT.perform(
+                        this.nodeClient, "DELETE", SECURITY_API + "internalusers/" + user, Map.of(), null);
+                SubscriptionPermissionCheckIT.perform(
+                        this.nodeClient, "DELETE", SECURITY_API + "roles/" + user, Map.of(), null);
             }
         } finally {
             this.nodeClient.close();
@@ -125,7 +132,9 @@ public class SubscriptionPermissionCheckIT extends ContentManagerRestTestCase {
     }
 
     public void testPermissionCheck_userWithoutDeletePermission_isDenied() throws IOException {
-        assumeTrue("Needs the security plugin: run with -Dsecurity=true", isSecurityEnabled());
+        assumeTrue(
+                "Needs the security plugin: run with -Dsecurity=true",
+                ContentManagerRestTestCase.isSecurityEnabled());
         this.registerToken();
 
         try (RestClient reader = this.userClient("cm_subscription_reader", GET_ACTION)) {
@@ -140,7 +149,9 @@ public class SubscriptionPermissionCheckIT extends ContentManagerRestTestCase {
     }
 
     public void testPermissionCheck_userWithDeletePermission_isAllowed() throws IOException {
-        assumeTrue("Needs the security plugin: run with -Dsecurity=true", isSecurityEnabled());
+        assumeTrue(
+                "Needs the security plugin: run with -Dsecurity=true",
+                ContentManagerRestTestCase.isSecurityEnabled());
         this.registerToken();
 
         try (RestClient deleter = this.userClient("cm_subscription_deleter", DELETE_ACTION)) {
@@ -156,7 +167,7 @@ public class SubscriptionPermissionCheckIT extends ContentManagerRestTestCase {
 
     private void registerToken() throws IOException {
         Response response =
-                perform(
+                SubscriptionPermissionCheckIT.perform(
                         this.nodeClient,
                         "POST",
                         PluginSettings.SUBSCRIPTION_URI,
@@ -167,7 +178,7 @@ public class SubscriptionPermissionCheckIT extends ContentManagerRestTestCase {
     }
 
     private Response check(RestClient client, String value) throws IOException {
-        return perform(
+        return SubscriptionPermissionCheckIT.perform(
                 client,
                 "DELETE",
                 PluginSettings.SUBSCRIPTION_URI,
@@ -177,7 +188,9 @@ public class SubscriptionPermissionCheckIT extends ContentManagerRestTestCase {
 
     private boolean isTokenStored() throws IOException {
         try {
-            Response response = perform(this.stateClient, "GET", CREDENTIALS_DOCUMENT, Map.of(), null);
+            Response response =
+                    SubscriptionPermissionCheckIT.perform(
+                            this.stateClient, "GET", CREDENTIALS_DOCUMENT, Map.of(), null);
             return Boolean.TRUE.equals(this.parseResponseAsMap(response).get("found"));
         } catch (ResponseException e) {
             if (e.getResponse().getStatusLine().getStatusCode() == 404) {
@@ -193,19 +206,19 @@ public class SubscriptionPermissionCheckIT extends ContentManagerRestTestCase {
      */
     private RestClient userClient(String name, String clusterAction) throws IOException {
         this.createdUsers.add(name);
-        perform(
+        SubscriptionPermissionCheckIT.perform(
                 this.nodeClient,
                 "PUT",
                 SECURITY_API + "roles/" + name,
                 Map.of(),
                 "{\"cluster_permissions\":[\"" + clusterAction + "\"]}");
-        perform(
+        SubscriptionPermissionCheckIT.perform(
                 this.nodeClient,
                 "PUT",
                 SECURITY_API + "internalusers/" + name,
                 Map.of(),
                 "{\"password\":\"" + USER_PASSWORD + "\"}");
-        perform(
+        SubscriptionPermissionCheckIT.perform(
                 this.nodeClient,
                 "PUT",
                 SECURITY_API + "rolesmapping/" + name,
@@ -219,7 +232,7 @@ public class SubscriptionPermissionCheckIT extends ContentManagerRestTestCase {
                 Settings.builder()
                         .put(ThreadContext.PREFIX + ".Authorization", "Basic " + credentials)
                         .build();
-        return buildClient(settings, new HttpHost[] {getClusterHosts().get(0)});
+        return this.buildClient(settings, new HttpHost[] {this.getClusterHosts().get(0)});
     }
 
     private static Response perform(

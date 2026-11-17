@@ -49,7 +49,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * </ul>
  *
  * <p>With {@code ?perform_permission_check=true} the endpoint answers "may the current user
- * register a subscription?" instead of registering one. No body is read, no access token is
+ * register a subscription?" instead of registering one. No request body is read, no access token is
  * required and the request has no side effects: the security plugin's action filter answers it
  * before {@code TransportIndexSubscriptionAction} executes. The response is always {@code 200}, and
  * the caller must branch on the {@code accessAllowed} field rather than on the status:
@@ -85,7 +85,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
 
     /**
      * Parses the {@code access_token} field from the request body and delegates to the transport
-     * action via {@link IndexSubscriptionAction}. In permission-check mode no body is parsed.
+     * action via {@link IndexSubscriptionAction}. In permission-check mode no request body is parsed.
      *
      * @param request the incoming REST request
      * @param client the node client
@@ -99,13 +99,14 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
 
         boolean permissionCheckOnly = PermissionCheckSupport.isPermissionCheck(request);
 
-        // Check-only mode: no body is parsed, no access token is read. The dispatch is otherwise
+        // Check-only mode: no request body is parsed, no access token is read. The dispatch is
+        // otherwise
         // unchanged, so the security filter evaluates exactly the permission a real registration
         // would need.
         IndexSubscriptionRequest subscriptionRequest =
                 permissionCheckOnly
                         ? IndexSubscriptionRequest.permissionCheck()
-                        : new IndexSubscriptionRequest(parseAccessToken(request));
+                        : new IndexSubscriptionRequest(this.parseAccessToken(request));
 
         return channel ->
                 PermissionCheckSupport.execute(

@@ -102,7 +102,9 @@ final class PermissionCheckSupport {
             RestChannel channel,
             boolean permissionCheckOnly) {
         client.execute(
-                action, request, (ActionListener) responseListener(channel, permissionCheckOnly));
+                action,
+                request,
+                (ActionListener) PermissionCheckSupport.responseListener(channel, permissionCheckOnly));
     }
 
     private static RestResponseListener<ActionResponse> responseListener(
@@ -121,7 +123,7 @@ final class PermissionCheckSupport {
                 // No filter intercepted a check-mode request: security is disabled, so the answer
                 // is "allowed". Same field names, so a client cannot tell the two producers apart.
                 if (permissionCheckOnly) {
-                    return permissionGrantedResponse();
+                    return PermissionCheckSupport.permissionGrantedResponse();
                 }
 
                 MessageStatusResponse messageResponse = (MessageStatusResponse) response;

@@ -37,7 +37,9 @@ import org.opensearch.client.WarningsHandler;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.ByteArrayInputStream;
@@ -144,7 +146,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         RestClientBuilder builder = RestClient.builder(hosts);
         OpenSearchRestTestCase.configureClient(builder, settings);
         try {
-            setTrustAllSslContext(
+            ContentManagerRestTestCase.setTrustAllSslContext(
                     builder, SSLContextBuilder.create().loadTrustMaterial(null, (chain, authType) -> true));
         } catch (GeneralSecurityException e) {
             throw new IOException("Failed to configure trust-all SSL context for tests", e);
@@ -166,11 +168,12 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     protected RestClient buildSuperAdminClient(HttpHost[] hosts) throws IOException {
         RestClientBuilder builder = RestClient.builder(hosts);
         try {
-            setTrustAllSslContext(
+            ContentManagerRestTestCase.setTrustAllSslContext(
                     builder,
                     SSLContextBuilder.create()
                             .loadTrustMaterial(null, (chain, authType) -> true)
-                            .loadKeyMaterial(superAdminKeyStore(), SUPER_ADMIN_KEYSTORE_PASSWORD));
+                            .loadKeyMaterial(
+                                    ContentManagerRestTestCase.superAdminKeyStore(), SUPER_ADMIN_KEYSTORE_PASSWORD));
         } catch (GeneralSecurityException e) {
             throw new IOException("Failed to load the super-admin certificate", e);
         }
@@ -193,10 +196,13 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
 
     private static KeyStore superAdminKeyStore() throws IOException, GeneralSecurityException {
         Certificate certificate;
-        try (InputStream in = new ByteArrayInputStream(decodeProperty("admin.cert"))) {
+        try (InputStream in =
+                new ByteArrayInputStream(ContentManagerRestTestCase.decodeProperty("admin.cert"))) {
             certificate = CertificateFactory.getInstance("X.509").generateCertificate(in);
         }
-        String keyPem = new String(decodeProperty("admin.key"), StandardCharsets.US_ASCII);
+        String keyPem =
+                new String(
+                        ContentManagerRestTestCase.decodeProperty("admin.key"), StandardCharsets.US_ASCII);
         byte[] keyDer =
                 Base64.getMimeDecoder().decode(keyPem.replaceAll("-----(BEGIN|END) PRIVATE KEY-----", ""));
         PrivateKey key = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(keyDer));
@@ -278,7 +284,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         if (setupPluginReady) {
             return;
         }
-        assertBusy(
+        OpenSearchTestCase.assertBusy(
                 () -> {
                     String status;
                     try {
@@ -289,7 +295,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                                         .asText();
                     } catch (ResponseException e) {
                         if (e.getResponse().getStatusLine().getStatusCode() == 404
-                                && indexTemplateExists(SETUP_LAST_INDEX_TEMPLATE)) {
+                                && ContentManagerRestTestCase.indexTemplateExists(SETUP_LAST_INDEX_TEMPLATE)) {
                             return;
                         }
                         throw new AssertionError("The setup status marker is not written yet", e);
@@ -297,7 +303,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                     if ("failed".equals(status)) {
                         throw new IllegalStateException("The setup plugin failed to initialize its indices");
                     }
-                    assertEquals("Setup plugin initialization status", "ready", status);
+                    Assert.assertEquals("Setup plugin initialization status", "ready", status);
                 },
                 SETUP_READY_TIMEOUT_SECONDS,
                 TimeUnit.SECONDS);
@@ -312,7 +318,9 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @throws IOException if the request fails
      */
     private static boolean indexTemplateExists(String name) throws IOException {
-        Response response = client().performRequest(new Request("HEAD", "/_index_template/" + name));
+        Response response =
+                OpenSearchRestTestCase.client()
+                        .performRequest(new Request("HEAD", "/_index_template/" + name));
         return response.getStatusLine().getStatusCode() == 200;
     }
 
@@ -546,7 +554,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
             request.setJsonEntity(jsonEntity);
         }
 
-        return client().performRequest(request);
+        return OpenSearchRestTestCase.client().performRequest(request);
     }
 
     /**
@@ -603,7 +611,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                             yamlEntity, ContentType.create("application/yaml", StandardCharsets.UTF_8)));
         }
 
-        return client().performRequest(request);
+        return OpenSearchRestTestCase.client().performRequest(request);
     }
 
     // ========================
@@ -724,7 +732,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     protected JsonNode getDraftPolicy() throws IOException {
         JsonNode searchResult = this.searchByTerm("draft");
         JsonNode hits = searchResult.path("hits").path("hits");
-        assertFalse("Draft policy should exist", hits.isEmpty());
+        Assert.assertFalse("Draft policy should exist", hits.isEmpty());
         return hits.get(0).path("_source");
     }
 
@@ -738,7 +746,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     protected JsonNode getPolicy(String spaceName) throws IOException {
         JsonNode searchResult = this.searchByTerm(spaceName);
         JsonNode hits = searchResult.path("hits").path("hits");
-        assertFalse("Policy for space '" + spaceName + "' should exist", hits.isEmpty());
+        Assert.assertFalse("Policy for space '" + spaceName + "' should exist", hits.isEmpty());
         return hits.get(0).path("_source");
     }
 
@@ -797,11 +805,11 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         // spotless:on
 
         Response response = this.makeRequest("POST", PluginSettings.INTEGRATIONS_URI, payload);
-        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
 
         Map<String, Object> body = this.parseResponseAsMap(response);
         String id = (String) body.get("message");
-        assertNotNull("Integration ID should not be null", id);
+        Assert.assertNotNull("Integration ID should not be null", id);
         return id;
     }
 
@@ -860,11 +868,11 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         // spotless:on
 
         Response response = this.makeRequest("POST", PluginSettings.DECODERS_URI, payload);
-        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
 
         Map<String, Object> body = this.parseResponseAsMap(response);
         String id = (String) body.get("message");
-        assertNotNull("Decoder ID should not be null", id);
+        Assert.assertNotNull("Decoder ID should not be null", id);
         return id;
     }
 
@@ -909,11 +917,11 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         // spotless:on
 
         Response response = this.makeRequest("POST", PluginSettings.RULES_URI, payload);
-        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
 
         Map<String, Object> body = this.parseResponseAsMap(response);
         String id = (String) body.get("message");
-        assertNotNull("Rule ID should not be null", id);
+        Assert.assertNotNull("Rule ID should not be null", id);
         return id;
     }
 
@@ -947,11 +955,11 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         // spotless:on
 
         Response response = this.makeRequest("POST", PluginSettings.KVDBS_URI, payload);
-        assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
+        Assert.assertEquals(RestStatus.CREATED.getStatus(), this.getStatusCode(response));
 
         Map<String, Object> body = this.parseResponseAsMap(response);
         String id = (String) body.get("message");
-        assertNotNull("KVDB ID should not be null", id);
+        Assert.assertNotNull("KVDB ID should not be null", id);
         return id;
     }
 
@@ -1002,7 +1010,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         // spotless:on
         JsonNode result = this.searchIndex(indexName, query);
         long totalHits = result.path("hits").path("total").path("value").asLong(0);
-        assertTrue(
+        Assert.assertTrue(
                 "Resource " + resourceId + " should exist in draft space of " + indexName, totalHits > 0);
     }
 
@@ -1032,7 +1040,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         // spotless:on
         JsonNode result = this.searchIndex(indexName, query);
         long totalHits = result.path("hits").path("total").path("value").asLong(0);
-        assertEquals(
+        Assert.assertEquals(
                 "Resource " + resourceId + " should NOT exist in draft space of " + indexName,
                 0,
                 totalHits);
@@ -1081,7 +1089,8 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      */
     protected void assertHashPresent(JsonNode source, String resourceDescription) {
         String hash = source.path(Constants.KEY_HASH).path(Constants.KEY_SHA256).asText("");
-        assertFalse(resourceDescription + " should have a non-empty hash.sha256 field", hash.isEmpty());
+        Assert.assertFalse(
+                resourceDescription + " should have a non-empty hash.sha256 field", hash.isEmpty());
     }
 
     /**
@@ -1090,7 +1099,8 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
      * @param source the document _source as JsonNode
      */
     protected void assertSpaceName(JsonNode source) {
-        assertEquals("draft", source.path(Constants.KEY_SPACE).path(Constants.KEY_NAME).asText());
+        Assert.assertEquals(
+                "draft", source.path(Constants.KEY_SPACE).path(Constants.KEY_NAME).asText());
     }
 
     /**
@@ -1120,9 +1130,10 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
             throws IOException {
         JsonNode integration =
                 this.getResourceByDocumentId(Constants.INDEX_INTEGRATIONS, integrationId, spaceName);
-        assertNotNull("Integration " + integrationId + " should exist in " + spaceName, integration);
+        Assert.assertNotNull(
+                "Integration " + integrationId + " should exist in " + spaceName, integration);
         JsonNode list = integration.path(Constants.KEY_DOCUMENT).path(listField);
-        assertTrue("List '" + listField + "' should be an array", list.isArray());
+        Assert.assertTrue("List '" + listField + "' should be an array", list.isArray());
         boolean found = false;
         for (JsonNode element : list) {
             if (element.asText().equals(resourceId)) {
@@ -1130,7 +1141,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
                 break;
             }
         }
-        assertTrue(
+        Assert.assertTrue(
                 "Resource "
                         + resourceId
                         + " should be in integration's "
@@ -1156,7 +1167,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
         JsonNode list = integration.path(Constants.KEY_DOCUMENT).path(listField);
         if (!list.isArray()) return;
         for (JsonNode element : list) {
-            assertNotEquals(
+            Assert.assertNotEquals(
                     "Resource " + resourceId + " should NOT be in integration's " + listField + " list",
                     resourceId,
                     element.asText());
@@ -1174,6 +1185,7 @@ public abstract class ContentManagerRestTestCase extends OpenSearchRestTestCase 
     protected void assertResourceExistsInSpace(String indexName, String resourceId, String spaceName)
             throws IOException {
         JsonNode source = this.getResourceByDocumentId(indexName, resourceId, spaceName);
-        assertNotNull("Resource " + resourceId + " should exist in space '" + spaceName + "'", source);
+        Assert.assertNotNull(
+                "Resource " + resourceId + " should exist in space '" + spaceName + "'", source);
     }
 }
