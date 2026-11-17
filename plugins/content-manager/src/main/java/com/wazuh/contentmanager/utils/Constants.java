@@ -414,6 +414,9 @@ public class Constants {
             "No aggregate hash for {} space yet; skipping Engine load.";
     public static final String D_LOG_ENGINE_SPACE_UNCHANGED =
             "Content hash unchanged for {} space; Engine already up to date.";
+    public static final String D_LOG_ENGINE_SPACE_REFUSED_UNCHANGED =
+            "Engine refused the {} space at this content hash; skipping it until the scheduled retry "
+                    + "or a content change.";
     public static final String D_LOG_ENGINE_RELOAD_BROADCAST_SENT =
             "Broadcast engine content reload to all nodes after content update.";
     public static final String W_LOG_ENGINE_RELOAD_BROADCAST_FAILED =

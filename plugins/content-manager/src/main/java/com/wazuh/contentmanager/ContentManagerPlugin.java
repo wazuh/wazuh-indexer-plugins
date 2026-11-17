@@ -411,8 +411,9 @@ public class ContentManagerPlugin extends Plugin
         // cluster manager. Engine communication is node-local (a Unix socket), so each node must
         // load the content itself; the content data lives in cluster-wide indices. The listener
         // fires on every cluster-state update, so a load that failed because the Engine was not yet
-        // ready is retried on a subsequent event, and late/rejoining nodes converge on join — with
-        // no dedicated timer or poll. Once loaded, each call is a cheap in-memory hash comparison.
+        // ready is retried on a subsequent event, and late/rejoining nodes converge on join. A space
+        // the Engine refused is not sent again on every event: the loader's scheduled retry, or a
+        // content change, sends it. Once loaded, each call is a cheap in-memory hash comparison.
         this.engineContentListener = event -> this.engineContentLoader.reloadIfChanged();
         this.clusterService.addListener(this.engineContentListener);
         // Attempt an initial load immediately; if the Engine is not ready yet the listener retries.
