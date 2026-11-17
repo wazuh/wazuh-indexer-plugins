@@ -1,4 +1,5 @@
 import groovy.json.JsonSlurper
+import org.opensearch.gradle.PropertyNormalization
 import org.opensearch.gradle.test.RestIntegTestTask
 import org.opensearch.gradle.testclusters.OpenSearchCluster
 
@@ -203,19 +204,32 @@ dependencies {
   yamlRestTestImplementation sourceSets.test.output
 }
 
+// Registered-instance tests: own cluster, CTI Console URL pointed at a fake served by the test.
+def ctiConsoleTests = "com.wazuh.contentmanager.rest.it.SubscriptionEnvironmentIT"
+def ctiConsolePort = new ServerSocket(0, 0, InetAddress.loopbackAddress).withCloseable { it.localPort }
+
 task integTest(type: RestIntegTestTask) {
   description = "Run tests against a cluster"
   testClassesDirs = sourceSets.test.output.classesDirs
   classpath = sourceSets.test.runtimeClasspath
+  filter { excludeTestsMatching ctiConsoleTests }
 }
-tasks.named("check").configure { dependsOn(integTest) }
+
+task ctiConsoleIntegTest(type: RestIntegTestTask) {
+  description = "Run tests against a cluster with a fake CTI Console"
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
+  filter { includeTestsMatching ctiConsoleTests }
+  nonInputProperties.systemProperty('tests.cti_console.port', ctiConsolePort)
+}
+tasks.named("check").configure { dependsOn(integTest, ctiConsoleIntegTest) }
 
 tasks.named("publishNebulaPublicationToMavenLocal").configure { dependsOn("generatePomFileForPluginZipPublication") }
 
 // Number of nodes to bring up for the integTest cluster. Override with -PnumNodes=N.
 def _numNodes = findProperty('numNodes') as Integer ?: 2
 
-integTest {
+tasks.matching { it.name in ['integTest', 'ctiConsoleIntegTest'] }.configureEach {
   // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
   if (System.getProperty("test.debug") != null) {
     jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
@@ -261,7 +275,8 @@ integTest {
   }
 }
 
-testClusters.integTest {
+def integTestClusters = testClusters.matching { it.name in ['integTest', 'ctiConsoleIntegTest'] }
+integTestClusters.configureEach {
   // Enable memory tracking to diagnose OOM errors.
   jvmArgs '-Xlog:gc*:file=gc.log:time,uptime,level,tags:filecount=5,filesize=10m'
   jvmArgs '-XX:NativeMemoryTracking=summary'
@@ -353,9 +368,13 @@ testClusters.integTest {
 // Install the setup plugin from the local sibling project (must be deferred until the
 // setup project is fully evaluated so that its bundlePlugin task exists).
 project(':wazuh-indexer-setup').afterEvaluate { setupProject ->
-  testClusters.integTest {
+  integTestClusters.configureEach {
     plugin(setupProject.tasks.bundlePlugin.archiveFile)
   }
+}
+
+testClusters.ctiConsoleIntegTest {
+  setting 'plugins.content_manager.cti.api', "http://127.0.0.1:${ctiConsolePort}/api/v1", PropertyNormalization.IGNORE_VALUE
 }
 
 run {
