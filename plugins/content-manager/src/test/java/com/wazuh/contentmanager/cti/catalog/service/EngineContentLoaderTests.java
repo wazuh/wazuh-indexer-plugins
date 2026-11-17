@@ -33,6 +33,7 @@ import org.opensearch.gateway.GatewayService;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.node.NodeClosedException;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.test.junit.annotations.TestLogging;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.NodeNotConnectedException;
 import org.opensearch.transport.SendRequestTransportException;
@@ -202,7 +203,10 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
         verify(this.engine, times(2)).promoteAsync(any(), any());
     }
 
-    /** A non-OK Engine response does not record the hash, so the next reload retries. */
+    /**
+     * An Engine that could not be reached or failed (5xx) records no hash and is not a refusal, so
+     * the next reload sends the space again: an Engine that comes up late loads on the next event.
+     */
     @SuppressWarnings("unchecked")
     public void testNonOkResponseIsRetried() {
         this.stubPolicy(STANDARD, policyWithHash(STANDARD, "hash-1"));
@@ -799,5 +803,183 @@ public class EngineContentLoaderTests extends OpenSearchTestCase {
         this.loader.reloadIfChanged();
 
         assertTrue(delays.isEmpty());
+    }
+
+    /** The retry delays scheduled so far, in seconds. */
+    private static List<Long> seconds(List<TimeValue> delays) {
+        return delays.stream().map(TimeValue::seconds).toList();
+    }
+
+    /**
+     * A space the Engine refused is not sent again at the same hash while the retry is scheduled.
+     * Every cluster-state update used to rebuild and send it, and a starting node fires many
+     * (wazuh-indexer#2124).
+     */
+    public void testRefusedSpaceIsNotResentBeforeTheRetry() {
+        List<TimeValue> delays = new ArrayList<>();
+        this.captureRetries(delays);
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(400);
+
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+
+        verify(this.spaceService, times(4)).getPolicy(eq(STANDARD), any());
+        verify(this.spaceService, times(1)).buildEnginePayload(eq(STANDARD), any());
+        verify(this.engine, times(1)).promoteAsync(any(), any());
+        assertEquals(List.of(5L), seconds(delays));
+    }
+
+    /** The scheduled retry sends the refused space again, and another refusal backs off further. */
+    public void testScheduledRetryResendsTheRefusedSpace() {
+        List<TimeValue> delays = new ArrayList<>();
+        List<Runnable> retries = this.captureRetries(delays);
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(400);
+
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+        retries.get(0).run();
+
+        verify(this.engine, times(2)).promoteAsync(any(), any());
+        assertEquals(List.of(5L, 10L), seconds(delays));
+    }
+
+    /** New content is sent at once: only the refused hash waits for the retry. */
+    public void testNewHashIsSentAfterARefusal() {
+        this.captureRetries(new ArrayList<>());
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(400);
+        this.loader.reloadIfChanged();
+
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-2"));
+        this.okPromote();
+        this.loader.reloadIfChanged();
+
+        verify(this.engine, times(2)).promoteAsync(any(), any());
+    }
+
+    /**
+     * A skipped space is still out of date, so the passes that skip it neither reset the backoff nor
+     * schedule another retry.
+     */
+    public void testSkippingARefusedSpaceKeepsTheBackoff() {
+        List<TimeValue> delays = new ArrayList<>();
+        List<Runnable> retries = this.captureRetries(delays);
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(400);
+
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+        retries.get(0).run();
+        this.loader.reloadIfChanged();
+        retries.get(1).run();
+        this.loader.reloadIfChanged();
+
+        verify(this.engine, times(3)).promoteAsync(any(), any());
+        assertEquals(List.of(5L, 10L, 20L), seconds(delays));
+    }
+
+    /**
+     * A run that repeats its pass while triggers keep arriving, as on a node start, sends a refused
+     * space once: the retry is scheduled when the Engine refuses the space, not when the run ends.
+     */
+    public void testRepeatedPassDoesNotResendTheRefusedSpace() {
+        List<TimeValue> delays = new ArrayList<>();
+        this.captureRetries(delays);
+        List<ActionListener<Map<String, Object>>> reads = this.holdStandardReads();
+        this.promoteAnswers(400);
+
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+        reads.get(0).onResponse(policyWithHash(STANDARD, "std-1"));
+        // The repeat pass reads the same hash while another trigger arrives.
+        this.loader.reloadIfChanged();
+        reads.get(1).onResponse(policyWithHash(STANDARD, "std-1"));
+        reads.get(2).onResponse(policyWithHash(STANDARD, "std-1"));
+
+        assertEquals(3, reads.size());
+        verify(this.engine, times(1)).promoteAsync(any(), any());
+        assertEquals(List.of(5L), seconds(delays));
+    }
+
+    /**
+     * The retry firing while a pass is in flight is folded into the run. The pass sends the refused
+     * space once, because it checks the space after the retry fired, and the repeat skips it.
+     */
+    public void testRetryFiringDuringAPassSendsTheRefusedSpaceOnce() {
+        List<TimeValue> delays = new ArrayList<>();
+        List<Runnable> retries = this.captureRetries(delays);
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(400);
+        this.loader.reloadIfChanged();
+
+        List<ActionListener<Map<String, Object>>> reads = this.holdStandardReads();
+        this.loader.reloadIfChanged();
+        retries.get(0).run();
+        reads.get(0).onResponse(policyWithHash(STANDARD, "std-1"));
+        reads.get(1).onResponse(policyWithHash(STANDARD, "std-1"));
+
+        assertEquals(2, reads.size());
+        verify(this.engine, times(2)).promoteAsync(any(), any());
+        assertEquals(List.of(5L, 10L), seconds(delays));
+    }
+
+    /** A successful load forgets the refusal, so content that goes back to that hash is sent. */
+    public void testLoadClearsTheRefusal() {
+        this.captureRetries(new ArrayList<>());
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(400);
+        this.loader.reloadIfChanged();
+
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-2"));
+        this.okPromote();
+        this.loader.reloadIfChanged();
+
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.loader.reloadIfChanged();
+
+        verify(this.engine, times(3)).promoteAsync(any(), any());
+    }
+
+    /**
+     * A refused space whose retry could not be scheduled is sent on the next trigger, as before:
+     * nothing else would send it again.
+     */
+    public void testRefusedSpaceIsResentWhenNoRetryIsScheduled() {
+        when(this.threadPool.schedule(any(Runnable.class), any(TimeValue.class), anyString()))
+                .thenThrow(new IllegalStateException("thread pool is shut down"));
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(400);
+
+        this.loader.reloadIfChanged();
+        this.loader.reloadIfChanged();
+
+        verify(this.engine, times(2)).promoteAsync(any(), any());
+    }
+
+    /** Each send the Engine refuses logs one warning; the passes that skip the space log at debug. */
+    @TestLogging(
+            value = "com.wazuh.contentmanager.cti.catalog.service.EngineContentLoader:DEBUG",
+            reason = "Asserts that the skipped passes log at DEBUG")
+    public void testRefusalIsWarnedOncePerSend() {
+        this.captureRetries(new ArrayList<>());
+        this.stubPolicy(STANDARD, policyWithHash(STANDARD, "std-1"));
+        this.promoteAnswers(400);
+
+        try (CapturingAppender appender = CapturingAppender.attach(EngineContentLoader.class)) {
+            this.loader.reloadIfChanged();
+            this.loader.reloadIfChanged();
+            this.loader.reloadIfChanged();
+
+            assertEquals(1, appender.count(Level.WARN));
+            assertEquals(
+                    2,
+                    appender.messages(Level.DEBUG).stream()
+                            .filter(m -> m.startsWith("Engine refused the standard space"))
+                            .count());
+        }
     }
 }
