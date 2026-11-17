@@ -24,9 +24,9 @@ The Wazuh indexer issues its own certificates when the package is installed, sig
 
 Every node of a cluster must trust the same authority, and the authority each package creates is local to its own host. For a multi-node cluster, either stage one authority on every node before installing the package, or generate one set of certificates for the whole cluster and distribute it, as described below.
 
-To stage the authority, install the package on the first node, then copy its `/etc/wazuh-indexer/ca/root-ca.pem` and `/etc/wazuh-indexer/ca/root-ca.key` into `/etc/wazuh-indexer/ca/` on each other node before installing the package there: the directory owned by `root:root` with mode `750`, the certificate `640` and the key `400`. Each package then issues its own certificates from that authority, and the first node's `/etc/wazuh-indexer/export/credentials.env` holds the passwords of the whole cluster once the security configuration is loaded. Add every node's Distinguished Name to `plugins.security.nodes_dn` on every node, as described in [Configuring the Wazuh indexer](#configuring-the-wazuh-indexer).
+To stage the authority, install the package on the first node, then copy its `/etc/wazuh-indexer/ca/root-ca.pem` and `/etc/wazuh-indexer/ca/root-ca.key` into `/etc/wazuh-indexer/ca/` on each other node before installing the package there: the directory owned by `root:root` with mode `750`, the certificate `640` and the key `400`. Each package then issues its own certificates from that authority. Each package also generates its own passwords, and the cluster accepts only the ones of the node it is initialized from, so write the first node's passwords to `/etc/wazuh-indexer/local.env` on each other node before installing the package there as well, as described in [Supplying your own passwords](#supplying-your-own-passwords). Add every node's Distinguished Name to `plugins.security.nodes_dn` on every node, as described in [Configuring the Wazuh indexer](#configuring-the-wazuh-indexer).
 
-The same applies if you bring certificates from your own PKI: before installing the package, stage each node's pair, the admin pair and the certificate of the CA that issued them, as described in [On every other Wazuh indexer node](#on-every-other-wazuh-indexer-node). The installation then uses them and creates no authority of its own. It never needs the key of your CA.
+The same applies if you bring certificates from your own PKI: before installing the package, stage each node's pair, the admin pair and the certificate of the CA that issued them, as described in [On every other Wazuh indexer node](#on-every-other-wazuh-indexer-node). The installation then uses them and creates no authority of its own. It never needs the key of your CA. Install every node with the same passwords too, as described in [Supplying your own passwords](#supplying-your-own-passwords).
 
 #### Generating the SSL certificates
 
@@ -87,7 +87,7 @@ The certificates tool ships with the Wazuh indexer package, so install the packa
 
 1. Copy the `wazuh-certificates.tar` file to all the nodes, including the Wazuh indexer, Wazuh Manager, and Wazuh dashboard nodes. This can be done by using the `scp` utility. The key of the authority, `/etc/wazuh-indexer/ca/root-ca.key`, is not in the tar and stays on this node: no other node needs it.
 
-    On the node that generated them, replace the certificates the package issued with this node's pair. On every other Wazuh indexer node, stage that node's pair and the authority's certificate before installing the package. See [Deploying certificates](#deploying-certificates).
+    On the node that generated them, replace the certificates the package issued with this node's pair. On every other Wazuh indexer node, stage that node's pair and the authority's certificate before installing the package, and write this node's passwords to `/etc/wazuh-indexer/local.env` there. See [Deploying certificates](#deploying-certificates) and [Supplying your own passwords](#supplying-your-own-passwords).
 
 ### 2. Nodes installation
 
@@ -124,6 +124,14 @@ chmod 600 /etc/wazuh-indexer/local.env
 ```
 
 Set as many or as few as you like: any key you leave out is generated. Each password must have 12 to 64 characters from `A-Z a-z 0-9 . , _ + : @ % ^ = ~ -`, with at least one uppercase letter, one lowercase letter, one digit and one symbol. A value that does not meet the rule is never replaced silently — the service refuses to start and names the key in its log.
+
+On a multi-node cluster, install every node with the same passwords. Each package writes the digests of its own passwords into its own security configuration, and [Cluster initialization](#3-cluster-initialization) loads that configuration from a single node, so the passwords generated on every other node authenticate nothing once the cluster is initialized — not on that node, and not anywhere else. A Wazuh manager or a Wazuh dashboard installed on one of those hosts reads them from `export/` all the same, and every connection to the Wazuh indexer fails with `Unauthorized`. Either write the same `local.env` on every node before installing the package, or install the first node without one and take the passwords it generated from its `export/`:
+
+```bash
+grep '^WAZUH_INDEXER_[A-Z_]*_PASSWORD=' /etc/wazuh-indexer/export/credentials.env
+```
+
+Write the output to `/etc/wazuh-indexer/local.env` on each other node, with the owner and mode shown above, before installing the package there. Every node then holds the cluster's passwords, and the `export/` of every host publishes them. Resolution happens once, so a node already installed without them keeps the passwords it generated and writing the file afterwards changes nothing: starting over on that node needs the service stopped and `/usr/share/wazuh-indexer/bin/resolve-credentials.sh --clear`, after which the next start resolves from `local.env`.
 
 The same file takes `WAZUH_INDEXER_CERT_SANS`, a comma-separated list of the names and addresses to put on the node's certificate (for example `DNS:node-1.example.com,IP:10.0.0.1`) instead of the ones the installation discovers; `localhost` and the loopback addresses are always added.
 
@@ -170,7 +178,7 @@ WAZUH_INDEXER_MANAGER_PASSWORD=...
 
 Values are written as they are, without quotes — see [About the examples](../index.md#about-the-examples). `admin` is the login for the Wazuh dashboard and the Wazuh indexer API; `kibanaserver` and `wazuh-manager` are the accounts the Wazuh dashboard and the Wazuh manager connect with. The directory also holds `ca.pem`, the certificate of the authority this node's certificates are issued from, which the Wazuh manager and the Wazuh dashboard use to verify the Wazuh indexer.
 
-The Wazuh Manager and the Wazuh Dashboard installed on the same host read `export/` when they are installed and at every start, so keep it. On another host, copy the values they need into their own `local.env` and `certs/` before installing them: `WAZUH_INDEXER_MANAGER_PASSWORD` and `ca.pem` for the manager, `WAZUH_INDEXER_KIBANASERVER_PASSWORD` and `ca.pem` for the dashboard.
+The Wazuh Manager and the Wazuh Dashboard installed on the same host read `export/` when they are installed and at every start, so keep it. On a multi-node cluster, what they read is the cluster's passwords only when the node was installed with them, as described in [Supplying your own passwords](#supplying-your-own-passwords). On another host, copy the values they need into their own `local.env` and `certs/` before installing them: `WAZUH_INDEXER_MANAGER_PASSWORD` and `ca.pem` for the manager, `WAZUH_INDEXER_KIBANASERVER_PASSWORD` and `ca.pem` for the dashboard.
 
 Passwords are generated once. Reinstalling, restarting or upgrading the Wazuh indexer does not change them. To change one afterwards, use the passwords tool, which also ships with the package. It prompts for the new password twice and echoes nothing, so the password does not reach your shell history:
 
@@ -271,7 +279,7 @@ The certificates tool and the package issue certificates with the same subject f
 
 ##### On every other Wazuh indexer node
 
-Run these commands before installing the package, replacing `<INDEXER_NODE_NAME>` with the name of this node as defined in `config.yml`. They stage this node's pair, the admin pair and `root-ca.pem`, the authority that issued them, beside the pair:
+Run these commands before installing the package, replacing `<INDEXER_NODE_NAME>` with the name of this node as defined in `config.yml`. They stage this node's pair, the admin pair and `root-ca.pem`, the authority that issued them, beside the pair. This node also needs the cluster's passwords in `/etc/wazuh-indexer/local.env` before the package is installed, as described in [Supplying your own passwords](#supplying-your-own-passwords):
 
 ```bash
 NODE_NAME=<INDEXER_NODE_NAME>
@@ -364,7 +372,7 @@ Repeat this stage of the installation process for every Wazuh indexer node in yo
 
 ### 3. Cluster initialization
 
-Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer node to load the new certificates information and start the single-node or multi-node cluster.
+Run the Wazuh indexer `indexer-security-init.sh` script on any Wazuh indexer node to load the new certificates information and start the single-node or multi-node cluster. The script loads the security configuration of the node it runs on, including the passwords of its internal users, which is why every node of a multi-node cluster must be installed with the same passwords, as described in [Supplying your own passwords](#supplying-your-own-passwords).
 
 ```bash
 /usr/share/wazuh-indexer/bin/indexer-security-init.sh
