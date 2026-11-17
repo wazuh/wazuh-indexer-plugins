@@ -26,7 +26,7 @@ Other Content Manager permissions:
 - `plugin:content_manager/update` — trigger an on-demand CTI catalog sync (`POST /_plugins/_content_manager/update`)
 - `plugin:content_manager/subscription/get` — read the CTI subscription
 - `plugin:content_manager/subscription/post` — create/update the CTI subscription. Also the permission evaluated by `POST /_plugins/_content_manager/subscription?perform_permission_check=true`, which reports whether the caller holds it instead of registering.
-- `plugin:content_manager/subscription/delete` — delete the CTI subscription
+- `plugin:content_manager/subscription/delete` — delete the CTI subscription. Also the permission evaluated by `DELETE /_plugins/_content_manager/subscription?perform_permission_check=true`, which reports whether the caller holds it instead of deleting.
 - `plugin:content_manager/promote/get` — preview a promotion diff
 - `plugin:content_manager/promote/post` — execute a space promotion
 - `plugin:content_manager/promote/*` — groups `promote/get` and `promote/post`

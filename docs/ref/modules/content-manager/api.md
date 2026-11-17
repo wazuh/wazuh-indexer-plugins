@@ -266,6 +266,8 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
 
 Clears the stored CTI access token document from the credentials index and clears the in-memory token. The credentials index is preserved. After this operation the instance is unregistered. If the credentials index does not exist the operation succeeds without error.
 
+> To find out whether the current user is allowed to delete the credentials, without deleting them, see [Check deletion permission](#check-deletion-permission).
+
 #### Request
 
 - Method: `DELETE`
@@ -291,6 +293,57 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
 
 - **200** — credentials removed successfully.
 - **500** — internal error.
+
+---
+
+### Check deletion permission
+
+Answers whether the current user is allowed to delete the CTI credentials, without deleting them. Intended for callers that decide whether to offer the deletion at all, such as a button that removes the stored token.
+
+The check uses the same `perform_permission_check` query parameter as [Check registration permission](#check-registration-permission). The permission evaluated is the same one a real deletion requires: `plugin:content_manager/subscription/delete`, mapped to the `cluster:admin/content_manager/subscription/delete` action. No default role holds it — out of the box only `all_access` does.
+
+> The request has **no side effects**: the stored token is never removed in this mode. With the security plugin disabled the answer is `accessAllowed: true`, and the token is kept as well. It is idempotent and safe to call repeatedly.
+
+#### Request
+
+- Method: `DELETE`
+- Path: `/_plugins/_content_manager/subscription`
+
+#### Query parameters
+
+- **`perform_permission_check`** (Boolean, optional, default `false`) — when `true`, return the authorization decision instead of deleting the credentials. An empty value is treated as `true`.
+
+#### Example request
+
+```bash
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X DELETE \
+  "https://127.0.0.1:9200/_plugins/_content_manager/subscription?perform_permission_check=true"
+```
+
+#### Example response (allowed)
+
+```json
+{
+  "accessAllowed": true,
+  "missingPrivileges": []
+}
+```
+
+#### Example response (denied)
+
+```json
+{
+  "accessAllowed": false,
+  "missingPrivileges": ["cluster:admin/content_manager/subscription/delete"]
+}
+```
+
+#### Status codes
+
+- **200** — decision returned. Both the allowed and the denied case use this status.
+- **401** — missing or invalid credentials.
+
+> **Note**: This mode always responds with `200`; the outcome is carried by the `accessAllowed` field. Branch on that field, not on the status code. The `missingPrivileges` array contains raw action names intended for logs and support, not for display to end users.
 
 ---
 

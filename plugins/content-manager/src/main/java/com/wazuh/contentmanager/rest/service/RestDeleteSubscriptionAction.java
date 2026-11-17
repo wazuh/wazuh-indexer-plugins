@@ -18,21 +18,14 @@ package com.wazuh.contentmanager.rest.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestResponse;
-import org.opensearch.rest.action.RestResponseListener;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.util.List;
 
 import com.wazuh.contentmanager.action.DeleteSubscriptionAction;
 import com.wazuh.contentmanager.action.DeleteSubscriptionRequest;
-import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
@@ -50,6 +43,21 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  *   <li>200 OK: Credentials removed successfully.
  *   <li>500 Internal Server Error: Unexpected error during processing.
  * </ul>
+ *
+ * <p>With {@code ?perform_permission_check=true} the endpoint answers "may the current user delete
+ * the subscription?" instead of deleting it. The stored token is never removed in this mode: the
+ * security plugin's action filter answers before {@code TransportDeleteSubscriptionAction}
+ * executes, and with security disabled the transport action recognizes the request and answers
+ * without unregistering. The response is always {@code 200}, and the caller must branch on the
+ * {@code accessAllowed} field rather than on the status:
+ *
+ * <ul>
+ *   <li>{@code {"accessAllowed": true, "missingPrivileges": []}}
+ *   <li>{@code {"accessAllowed": false, "missingPrivileges":
+ *       ["cluster:admin/content_manager/subscription/delete"]}}
+ * </ul>
+ *
+ * @see PermissionCheckSupport
  */
 public class RestDeleteSubscriptionAction extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestDeleteSubscriptionAction.class);
@@ -72,7 +80,8 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
     }
 
     /**
-     * Delegates to the transport action via {@link DeleteSubscriptionAction}.
+     * Delegates to the transport action via {@link DeleteSubscriptionAction}. In permission-check
+     * mode the request is flagged so that it never unregisters.
      *
      * @param request the incoming REST request
      * @param client the node client
@@ -82,22 +91,21 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         log.debug("{} {}", request.method(), PluginSettings.SUBSCRIPTION_URI);
 
-        DeleteSubscriptionRequest subscriptionRequest = new DeleteSubscriptionRequest();
+        boolean permissionCheckOnly = PermissionCheckSupport.isPermissionCheck(request);
+
+        // The dispatch is the same in both modes, so the security filter evaluates exactly the
+        // permission a real deletion needs.
+        DeleteSubscriptionRequest subscriptionRequest =
+                permissionCheckOnly
+                        ? DeleteSubscriptionRequest.permissionCheck()
+                        : new DeleteSubscriptionRequest();
+
         return channel ->
-                client.execute(
+                PermissionCheckSupport.execute(
+                        client,
                         DeleteSubscriptionAction.INSTANCE,
                         subscriptionRequest,
-                        createResponseListener(channel));
-    }
-
-    private RestResponseListener<MessageStatusResponse> createResponseListener(RestChannel channel) {
-        return new RestResponseListener<>(channel) {
-            @Override
-            public RestResponse buildResponse(MessageStatusResponse response) throws Exception {
-                return new BytesRestResponse(
-                        response.getStatus(),
-                        response.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
-            }
-        };
+                        channel,
+                        permissionCheckOnly);
     }
 }

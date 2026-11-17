@@ -28,6 +28,7 @@ import org.junit.Before;
 import com.wazuh.contentmanager.action.DeleteSubscriptionRequest;
 import com.wazuh.contentmanager.action.MessageStatusResponse;
 import com.wazuh.contentmanager.cti.catalog.service.SubscriptionServiceImpl;
+import com.wazuh.contentmanager.utils.Constants;
 
 import static org.mockito.Mockito.*;
 
@@ -43,6 +44,30 @@ public class TransportDeleteSubscriptionActionTests extends OpenSearchTestCase {
         this.action =
                 new TransportDeleteSubscriptionAction(
                         mock(TransportService.class), mock(ActionFilters.class), this.subscriptionService);
+    }
+
+    /**
+     * With security enabled the security plugin answers a check before this action runs, so reaching
+     * it means security is disabled and every caller may delete. Either way the stored credentials
+     * must survive.
+     */
+    @SuppressWarnings("unchecked")
+    public void testDoExecute_PermissionCheckOnly_shortCircuitsWithoutUnregistering() {
+        DeleteSubscriptionRequest request = DeleteSubscriptionRequest.permissionCheck();
+        ActionListener<MessageStatusResponse> listener = mock(ActionListener.class);
+        this.action.doExecute(mock(Task.class), request, listener);
+
+        verify(this.subscriptionService, never()).unregister(any(ActionListener.class));
+        verify(listener)
+                .onResponse(
+                        argThat(
+                                response -> {
+                                    Assert.assertEquals(RestStatus.OK, response.getStatus());
+                                    Assert.assertEquals(
+                                            Constants.S_200_PERMISSION_CHECK_ALLOWED, response.getMessage());
+                                    return true;
+                                }));
+        verify(listener, never()).onFailure(any());
     }
 
     @SuppressWarnings("unchecked")
