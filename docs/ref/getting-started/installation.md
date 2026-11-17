@@ -131,7 +131,7 @@ On a multi-node cluster, install every node with the same passwords. Each packag
 grep '^WAZUH_INDEXER_[A-Z_]*_PASSWORD=' /etc/wazuh-indexer/export/credentials.env
 ```
 
-Write the output to `/etc/wazuh-indexer/local.env` on each other node, with the owner and mode shown above, before installing the package there. Every node then holds the cluster's passwords, and the `export/` of every host publishes them.
+Write the output to `/etc/wazuh-indexer/local.env` on each other node, with the owner and mode shown above, before installing the package there. Every node then holds the cluster's passwords, and the `export/` of every host publishes them. Resolution happens once, so a node already installed without them keeps the passwords it generated and writing the file afterwards changes nothing: starting over on that node needs the service stopped and `/usr/share/wazuh-indexer/bin/resolve-credentials.sh --clear`, after which the next start resolves from `local.env`.
 
 The same file takes `WAZUH_INDEXER_CERT_SANS`, a comma-separated list of the names and addresses to put on the node's certificate (for example `DNS:node-1.example.com,IP:10.0.0.1`) instead of the ones the installation discovers; `localhost` and the loopback addresses are always added.
 
@@ -279,7 +279,7 @@ The certificates tool and the package issue certificates with the same subject f
 
 ##### On every other Wazuh indexer node
 
-Run these commands before installing the package, replacing `<INDEXER_NODE_NAME>` with the name of this node as defined in `config.yml`. They stage this node's pair, the admin pair and `root-ca.pem`, the authority that issued them, beside the pair:
+Run these commands before installing the package, replacing `<INDEXER_NODE_NAME>` with the name of this node as defined in `config.yml`. They stage this node's pair, the admin pair and `root-ca.pem`, the authority that issued them, beside the pair. This node also needs the cluster's passwords in `/etc/wazuh-indexer/local.env` before the package is installed, as described in [Supplying your own passwords](#supplying-your-own-passwords):
 
 ```bash
 NODE_NAME=<INDEXER_NODE_NAME>
