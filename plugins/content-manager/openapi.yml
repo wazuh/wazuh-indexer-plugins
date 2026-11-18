@@ -142,6 +142,16 @@ paths:
         the plan is fetched from the authenticated CTI endpoint. Otherwise, the
         public plan is returned.
 
+        For registered instances, `message.environment` holds the whole answer of the
+        CTI Console environment endpoint (`GET /api/v1/platform/environments/me`),
+        passed through as received: fields are not renamed, filtered or reordered,
+        `null` values are kept, and fields the CTI Console adds later appear without a
+        plugin change. Values are kept as parsed JSON: strings, booleans, integers and
+        `null` are returned exactly as received, while a decimal number is re-emitted
+        from its parsed value, so `1.50` is returned as `1.5`. The field is omitted for
+        unregistered instances. It comes from the same CTI Console request as the plan
+        and is not stored.
+
         The stored credentials are deleted only when the CTI Console rejects the token
         with `401` (expired or revoked); the response then falls back to the public plan.
         Any other failure to fetch the plan (network error, timeout, `429`, `5xx`, an
@@ -3029,6 +3039,14 @@ components:
                         type: boolean
                   is_registered:
                     type: boolean
+                  environment:
+                    type: object
+                    additionalProperties: true
+                    description: |
+                      Registered instances only. The answer of the CTI Console to
+                      `GET /api/v1/platform/environments/me`, passed through as received
+                      and not validated against a fixed schema. Omitted for unregistered
+                      instances.
               status:
                 type: integer
           examples:
@@ -3037,9 +3055,29 @@ components:
               value:
                 message:
                   plan:
-                    name: "Premium Plan"
+                    name: "Pro"
                     is_public: false
                   is_registered: true
+                  environment:
+                    name: "environment-01"
+                    registered_at: "2026-02-14T09:30:00Z"
+                    organization:
+                      name: "Acme Corp"
+                    plans:
+                      - name: "Pro"
+                        is_public: false
+                        features:
+                          - name: "Vulnerability CVE Stream"
+                            description: "Delta updates for vulnerability entries in the Wazuh CTI catalog."
+                            resource: "https://cti.dev.cloud.wazuh.com/api/v1/catalog/contexts/vulnerabilities_vdp/consumers/vdp_v1"
+                            type: "cti:catalog:consumer:vulnerabilities"
+                    subscriptions:
+                      - plan: "Pro"
+                        interval: "year"
+                        started_at: "2026-03-01T10:00:00Z"
+                        renews_at: "2027-03-01T10:00:00Z"
+                        expires_at: null
+                        past_due_ends_at: null
                 status: 200
             unregistered:
               summary: Unregistered instance

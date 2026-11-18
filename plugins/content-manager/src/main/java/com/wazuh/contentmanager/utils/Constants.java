@@ -954,6 +954,7 @@ public class Constants {
     public static final String KEY_UPDATING = "updating";
     public static final String KEY_PAYLOAD = "payload";
     public static final String KEY_MESSAGE = "message";
+    public static final String KEY_ENVIRONMENT = "environment";
     // Owned by the security plugin: field names of
     // org.opensearch.security.action.simulate.PermissionCheckResponse.
     public static final String KEY_ACCESS_ALLOWED = "accessAllowed";

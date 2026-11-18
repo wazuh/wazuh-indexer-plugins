@@ -75,6 +75,10 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
      * 401} is taken as a rejected token; any other unusable response leaves the token's validity
      * unknown.
      *
+     * <p>The returned plan also carries the whole parsed response as its {@link Plan#getEnvironment()
+     * environment}, so that {@code GET /subscription} can pass it through. It is the tree the plan is
+     * read from, kept rather than parsed again, and nothing reads it to evaluate the plan.
+     *
      * @param response the CTI Console response.
      * @return the environment's active plan.
      * @throws TokenRejectedException if the response is a {@code 401}.
@@ -95,11 +99,13 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
             throw new CtiConsoleUnavailableException(
                     "The CTI Console answered status " + response.getCode() + " to the plan lookup.");
         }
+        JsonNode environment;
         List<Plan> plans;
         try {
+            environment = this.mapper.readTree(response.getBodyText());
             // The API returns a list of plans, but for this endpoint
             // it contains only ONE active plan for the environment.
-            JsonNode root = this.mapper.readTree(response.getBodyText()).get("plans");
+            JsonNode root = environment.get("plans");
             plans = this.mapper.readerFor(new TypeReference<List<Plan>>() {}).readValue(root);
         } catch (IOException | IllegalArgumentException e) {
             log.error("Failed to parse environment plan: {}", e.getMessage());
@@ -110,8 +116,10 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
             throw new CtiConsoleUnavailableException(
                     "The CTI Console returned no plan for the environment.");
         }
-        log.debug(Constants.D_LOG_ENVIRONMENT_PLAN_RETRIEVED, plans.getFirst().getName());
-        return plans.getFirst();
+        Plan plan = plans.getFirst();
+        log.debug(Constants.D_LOG_ENVIRONMENT_PLAN_RETRIEVED, plan.getName());
+        plan.setEnvironment(environment);
+        return plan;
     }
 
     private CtiConsoleUnavailableException requestFailed(Exception e) {

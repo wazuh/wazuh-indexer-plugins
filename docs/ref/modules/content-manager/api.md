@@ -199,6 +199,8 @@ The response fields are produced by the security plugin and are therefore camelC
 
 Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public plan is returned.
 
+For registered instances, `message.environment` holds the whole answer of the CTI Console to `GET /api/v1/platform/environments/me`, such as the environment name, its registration date (`registered_at`), its plans and its subscriptions. It is passed through as received: fields are not renamed, filtered or reordered, `null` values are kept, and fields the CTI Console adds later appear without a plugin change. Values are kept as parsed JSON: strings, booleans, integers and `null` are returned exactly as received, while a decimal number is re-emitted from its parsed value, so `1.50` is returned as `1.5`. It comes from the same CTI Console request as the plan, is not stored, and is omitted for unregistered instances.
+
 > If the CTI Console rejects the stored token with `401` (expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public plan as if the instance were unregistered.
 >
 > Any other failure to fetch the plan, such as a network error, a timeout, a `429` or a `5xx` from the CTI Console, keeps the token: the instance stays registered and the response is a `502`. Content synchronization follows the same rule: only a rejected token (`401`, or `400 unauthorized_client` from the token exchange) makes a registered instance fall back to the public content. If the plan lookup fails, the synchronization keeps the current content source and carries on with it. If the token exchange that signs the content URLs fails, the token is kept, and that synchronization pass fails as if the feed were unreachable and is retried. In neither case is the instance switched back to the public content.
@@ -221,10 +223,39 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
 {
   "message": {
     "plan": {
-      "name": "Premium Plan",
+      "name": "Pro",
       "is_public": false
     },
-    "is_registered": true
+    "is_registered": true,
+    "environment": {
+      "name": "environment-01",
+      "registered_at": "2026-02-14T09:30:00Z",
+      "organization": { "name": "Acme Corp" },
+      "plans": [
+        {
+          "name": "Pro",
+          "is_public": false,
+          "features": [
+            {
+              "name": "Vulnerability CVE Stream",
+              "description": "Delta updates for vulnerability entries in the Wazuh CTI catalog.",
+              "resource": "https://cti.dev.cloud.wazuh.com/api/v1/catalog/contexts/vulnerabilities_vdp/consumers/vdp_v1",
+              "type": "cti:catalog:consumer:vulnerabilities"
+            }
+          ]
+        }
+      ],
+      "subscriptions": [
+        {
+          "plan": "Pro",
+          "interval": "year",
+          "started_at": "2026-03-01T10:00:00Z",
+          "renews_at": "2027-03-01T10:00:00Z",
+          "expires_at": null,
+          "past_due_ends_at": null
+        }
+      ]
+    }
   },
   "status": 200
 }
