@@ -144,10 +144,13 @@ paths:
 
         For registered instances, `message.environment` holds the whole answer of the
         CTI Console environment endpoint (`GET /api/v1/platform/environments/me`),
-        passed through as received: fields are not renamed, filtered, reordered or
-        retyped, `null` values are kept, and fields the CTI Console adds later appear
-        without a plugin change. The field is omitted for unregistered instances. It
-        comes from the same CTI Console request as the plan and is not stored.
+        passed through as received: fields are not renamed, filtered or reordered,
+        `null` values are kept, and fields the CTI Console adds later appear without a
+        plugin change. Values are kept as parsed JSON: strings, booleans, integers and
+        `null` are returned exactly as received, while a decimal number is re-emitted
+        from its parsed value, so `1.50` is returned as `1.5`. The field is omitted for
+        unregistered instances. It comes from the same CTI Console request as the plan
+        and is not stored.
 
         The stored credentials are deleted only when the CTI Console rejects the token
         with `401` (expired or revoked); the response then falls back to the public plan.
@@ -3053,7 +3056,7 @@ components:
                 message:
                   plan:
                     name: "Pro"
-                    is_public: true
+                    is_public: false
                   is_registered: true
                   environment:
                     name: "environment-01"
@@ -3062,7 +3065,7 @@ components:
                       name: "Acme Corp"
                     plans:
                       - name: "Pro"
-                        is_public: true
+                        is_public: false
                         features:
                           - name: "Vulnerability CVE Stream"
                             description: "Delta updates for vulnerability entries in the Wazuh CTI catalog."

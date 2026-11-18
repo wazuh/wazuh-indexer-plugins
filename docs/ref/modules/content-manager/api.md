@@ -199,7 +199,7 @@ The response fields are produced by the security plugin and are therefore camelC
 
 Returns the current subscription status and active plan. For registered instances the plan comes from the authenticated CTI endpoint; for unregistered instances, the public plan is returned.
 
-For registered instances, `message.environment` holds the whole answer of the CTI Console to `GET /api/v1/platform/environments/me`, such as the environment name, its registration date (`registered_at`), its plans and its subscriptions. It is passed through as received: fields are not renamed, filtered, reordered or retyped, `null` values are kept, and fields the CTI Console adds later appear without a plugin change. It comes from the same CTI Console request as the plan, is not stored, and is omitted for unregistered instances.
+For registered instances, `message.environment` holds the whole answer of the CTI Console to `GET /api/v1/platform/environments/me`, such as the environment name, its registration date (`registered_at`), its plans and its subscriptions. It is passed through as received: fields are not renamed, filtered or reordered, `null` values are kept, and fields the CTI Console adds later appear without a plugin change. Values are kept as parsed JSON: strings, booleans, integers and `null` are returned exactly as received, while a decimal number is re-emitted from its parsed value, so `1.50` is returned as `1.5`. It comes from the same CTI Console request as the plan, is not stored, and is omitted for unregistered instances.
 
 > If the CTI Console rejects the stored token with `401` (expired or revoked), the credentials document is deleted automatically, the in-memory token is cleared, and the response falls back to the public plan as if the instance were unregistered.
 >
@@ -224,7 +224,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
   "message": {
     "plan": {
       "name": "Pro",
-      "is_public": true
+      "is_public": false
     },
     "is_registered": true,
     "environment": {
@@ -234,7 +234,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET \
       "plans": [
         {
           "name": "Pro",
-          "is_public": true,
+          "is_public": false,
           "features": [
             {
               "name": "Vulnerability CVE Stream",
