@@ -99,7 +99,6 @@ While the update on start loads the snapshots, its attempts to reach Wazuh CTI a
 
 ```
 WARN  ... Could not reach catalog URL [<catalog_url>] for consumer [cti:catalog:consumer:ruleset]. Falling back to local snapshot [ruleset.zip].
-ERROR ... GET <catalog_url>->java.net.UnknownHostException: <cti_host>: Temporary failure in name resolution
 ERROR ... Couldn't obtain consumer from CTI: java.net.UnknownHostException: <cti_host>
 WARN  ... ConsumerRulesetService did not fully synchronize this pass (unreachable feed, indices not yet provisioned, or a phase left pending); retrying.
 ERROR ... Immediate retry also failed; waiting for the next scheduled run.
