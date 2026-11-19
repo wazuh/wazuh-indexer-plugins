@@ -286,6 +286,65 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         assertFalse("Disabled rule should not be in detector", rules.contains(RULE_2));
     }
 
+    // --- Rules CTI deleted (wazuh-indexer-plugins#1818) -------------------------------------
+
+    /**
+     * A rule CTI deleted has to leave the detectors that used it, which the issue asks for
+     * explicitly.
+     *
+     * <p>Deleting a standard rule in Security Analytics does not strip it from them: {@code
+     * TransportDeleteRuleAction} only cleans detector references for rules in the {@code custom}
+     * space. What does strip it is this rebuild. The detector is built from the rule ids its
+     * integration lists, and {@code fetchEnabledRuleIds} resolves them against the content index, so
+     * an id CTI removed is not there to be returned and does not reach the request. The integration
+     * document still lists it -- CTI does not unlink before deleting, measured on the issue -- and
+     * that is exactly the case this covers.
+     */
+    public void testARuleDeletedByCtiIsStrippedFromTheDetector() throws Exception {
+        JsonNode doc = this.integrationDoc(RULE_1, RULE_2, RULE_3);
+        // RULE_2 is no longer a document in the content index: CTI deleted it, and the integration
+        // was never updated to stop listing it.
+        this.mockSearch(this.createSearchResponse(this.createHit(RULE_1), this.createHit(RULE_3)));
+
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
+
+        verify(this.client).prepareSearch(Constants.INDEX_RULES);
+        this.assertQueryCorrect(RULE_1, RULE_2, RULE_3);
+
+        assertNotNull("the detector is still built from the rules that survive", request);
+        List<String> rules = request.getRules();
+        assertEquals(2, rules.size());
+        assertTrue(rules.contains(RULE_1));
+        assertTrue(rules.contains(RULE_3));
+        assertFalse(
+                "a rule CTI deleted must not reach the detector", rules.contains(RULE_2));
+    }
+
+    /**
+     * When CTI deleted every rule an integration lists, there is no detector to rebuild: this returns
+     * null, the detectors phase skips the document and the detector already in Security Analytics is
+     * left as it was, keeping the monitor it was built with and going on producing findings. That is
+     * the state measured on the issue, and the reason {@link StandardSpaceReconciler} deletes such a
+     * detector instead of trusting the rebuild.
+     *
+     * <p>Note what this does <em>not</em> distinguish: the same null comes back when the user
+     * disables the last rule, which is why the reconciliation triggers on "no rule this integration
+     * lists still exists in the content" and never on this return value. See {@code
+     * StandardSpaceReconcilerTests.testPlan_integrationWhoseRulesTheUserDisabled_keepsItsDetector}.
+     */
+    public void testEveryRuleDeletedByCtiLeavesNoDetectorToRebuild() throws Exception {
+        JsonNode doc = this.integrationDoc(RULE_1, RULE_2);
+        this.mockSearch(this.createEmptySearchResponse());
+
+        WIndexDetectorRequest request = this.service.buildDetectorRequest(doc, true, null);
+
+        verify(this.client).prepareSearch(Constants.INDEX_RULES);
+        this.assertQueryCorrect(RULE_1, RULE_2);
+        assertNull(
+                "with no rule left in the content there is nothing to rebuild the detector from",
+                request);
+    }
+
     /** All rules disabled: query sent with all candidates, returns null (empty result). */
     public void testAllRulesDisabledReturnsNull() throws Exception {
         JsonNode doc = this.integrationDoc(RULE_1, RULE_2);

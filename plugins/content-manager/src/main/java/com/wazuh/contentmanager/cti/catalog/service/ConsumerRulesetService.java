@@ -79,8 +79,13 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     private final UserOverridesService userOverridesService;
     private DetectorLookupService detectorLookupService;
 
-    private Set<String> preSwapIntegrationIds = Collections.emptySet();
-    private Set<String> preSwapRuleIds = Collections.emptySet();
+    private StandardSpaceReconciler reconciler;
+
+    /**
+     * The ids the last reconciliation could not delete. Kept so a failure that repeats every pass is
+     * reported once rather than every hour: see {@link #reconcileStandardSpace()}.
+     */
+    private Set<String> reportedReconcileFailures = Collections.emptySet();
 
     /**
      * Constructs a new UnifiedConsumerSynchronizer.
@@ -104,6 +109,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
         this.spaceService = spaceService;
         this.userOverridesService = userOverridesService;
         this.detectorLookupService = new DetectorLookupService(client);
+        this.reconciler = new StandardSpaceReconciler(client, securityAnalyticsService);
 
         this.mapper = new ObjectMapper();
         this.mapper.setDefaultPropertyInclusion(JsonInclude.Include.ALWAYS);
@@ -116,6 +122,11 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     /** Injects a {@link DetectorLookupService} instance, used by tests to provide a mock. */
     void setDetectorLookupService(DetectorLookupService detectorLookupService) {
         this.detectorLookupService = detectorLookupService;
+    }
+
+    /** Injects a {@link StandardSpaceReconciler} instance, used by tests to provide a mock. */
+    void setStandardSpaceReconciler(StandardSpaceReconciler reconciler) {
+        this.reconciler = reconciler;
     }
 
     @Override
@@ -155,24 +166,6 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             return List.of(PHASE_INTEGRATIONS, PHASE_RULES, PHASE_DETECTORS);
         }
         return List.of(PHASE_INTEGRATIONS, PHASE_RULES);
-    }
-
-    @Override
-    protected void onBeforeAliasSwap() {
-        try {
-            this.preSwapIntegrationIds =
-                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
-        } catch (Exception e) {
-            log.warn("Failed to collect pre-swap integration IDs: {}", e.getMessage());
-            this.preSwapIntegrationIds = Collections.emptySet();
-        }
-        try {
-            this.preSwapRuleIds =
-                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_RULES, Space.STANDARD);
-        } catch (Exception e) {
-            log.warn("Failed to collect pre-swap rule IDs: {}", e.getMessage());
-            this.preSwapRuleIds = Collections.emptySet();
-        }
     }
 
     @Override
@@ -250,6 +243,9 @@ public class ConsumerRulesetService extends AbstractConsumerService {
                 this.setPendingSyncPhases(
                         pendingPhases.stream().filter(phase -> !PHASE_DETECTORS.equals(phase)).toList());
             }
+            // Reconcile even on a pass with nothing to sync: a failed deletion changes neither
+            // isUpdated nor the pending phases, so gating on either would never retry it.
+            this.reconcileStandardSpace();
             return;
         }
 
@@ -334,10 +330,10 @@ public class ConsumerRulesetService extends AbstractConsumerService {
             }
         }
 
-        if (this.shadowSwapPerformed) {
-            this.deleteStaleResources();
-            this.shadowSwapPerformed = false;
-        }
+        // After the upserts, so a resource that is both pushed and reconciled is replaced rather
+        // than missing in between. On every pass, not only after a swap: the bookkeeping this
+        // replaces hung off shadowSwapPerformed, which an incremental deletion never sets.
+        this.reconcileStandardSpace();
 
         if (contentWorkDue) {
             // Reload STANDARD space, as it was updated.
@@ -874,68 +870,36 @@ public class ConsumerRulesetService extends AbstractConsumerService {
     }
 
     /**
-     * Deletes SAP integrations, detectors and rules that existed before a shadow swap but are no
-     * longer present in the new subscription content. Called after new resources have been upserted
-     * so that detectors keep running during the transition.
+     * Deletes from Security Analytics the standard content CTI no longer publishes, and reports what
+     * could not be deleted.
+     *
+     * <p>A failure that repeats would otherwise write one error line on every scheduled pass, by
+     * default hourly, so it is reported in full the first time, the repeats stay at debug, and the
+     * immediate retry is asked for only when the set of failures changes.
      */
-    private void deleteStaleResources() {
-        try {
-            Set<String> currentIntegrationIds =
-                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_INTEGRATIONS, Space.STANDARD);
-            Set<String> staleIntegrationIds = new HashSet<>(this.preSwapIntegrationIds);
-            staleIntegrationIds.removeAll(currentIntegrationIds);
+    private void reconcileStandardSpace() {
+        StandardSpaceReconciler.Result result = this.reconciler.reconcile();
 
-            if (!staleIntegrationIds.isEmpty()) {
-                CountDownLatch integrationLatch = new CountDownLatch(staleIntegrationIds.size());
-                for (String id : staleIntegrationIds) {
-                    this.securityAnalyticsService.deleteIntegration(
-                            id,
-                            Space.STANDARD,
-                            ActionListener.wrap(
-                                    r -> integrationLatch.countDown(),
-                                    e -> {
-                                        log.warn("Failed to delete stale integration [{}]: {}", id, e.getMessage());
-                                        integrationLatch.countDown();
-                                    }));
-                }
-                integrationLatch.await(
-                        PluginSettings.getInstance().getSaCleanupTimeoutSeconds(), TimeUnit.SECONDS);
-            }
-
-            Set<String> currentRuleIds =
-                    this.spaceService.getResourceIdsBySpace(Constants.INDEX_RULES, Space.STANDARD);
-            Set<String> staleRuleIds = new HashSet<>(this.preSwapRuleIds);
-            staleRuleIds.removeAll(currentRuleIds);
-
-            if (!staleRuleIds.isEmpty()) {
-                CountDownLatch ruleLatch = new CountDownLatch(staleRuleIds.size());
-                for (String id : staleRuleIds) {
-                    this.securityAnalyticsService.deleteRule(
-                            id,
-                            Space.STANDARD,
-                            ActionListener.wrap(
-                                    r -> ruleLatch.countDown(),
-                                    e -> {
-                                        log.warn("Failed to delete stale rule [{}]: {}", id, e.getMessage());
-                                        ruleLatch.countDown();
-                                    }));
-                }
-                ruleLatch.await(
-                        PluginSettings.getInstance().getSaCleanupTimeoutSeconds(), TimeUnit.SECONDS);
-            }
-
-            if (!staleIntegrationIds.isEmpty() || !staleRuleIds.isEmpty()) {
-                log.info(
-                        "Deleted {} stale integration(s) and {} stale rule(s) from SAP",
-                        staleIntegrationIds.size(),
-                        staleRuleIds.size());
-            }
-        } catch (Exception e) {
-            log.error("Failed to clean up stale SAP resources: {}", e.getMessage(), e);
-        } finally {
-            this.preSwapIntegrationIds = Collections.emptySet();
-            this.preSwapRuleIds = Collections.emptySet();
+        if (result.deletedAnything()) {
+            log.info(
+                    Constants.I_LOG_SAP_RECONCILE_DELETED,
+                    result.deletedDetectors(),
+                    result.deletedRules(),
+                    result.deletedIntegrations());
         }
+
+        Set<String> pending = result.pending();
+        if (pending.isEmpty()) {
+            this.reportedReconcileFailures = Collections.emptySet();
+            return;
+        }
+        if (pending.equals(this.reportedReconcileFailures)) {
+            log.debug(Constants.D_LOG_SAP_RECONCILE_STILL_PENDING, pending.size());
+            return;
+        }
+        log.error(Constants.E_LOG_SAP_RECONCILE_PENDING, pending.size(), pending);
+        this.reportedReconcileFailures = Set.copyOf(pending);
+        this.requestImmediateRetry();
     }
 
     /**

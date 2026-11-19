@@ -87,7 +87,10 @@ public abstract class AbstractConsumerService {
     private SnapshotServiceImpl snapshotServiceOverride;
 
     /**
-     * Set to {@code true} after a successful shadow swap so subclasses can clean up stale resources.
+     * Set to {@code true} after a successful shadow swap, recording that a swap replaced this
+     * consumer's content. The ruleset's cleanup of what Security Analytics is left holding no longer
+     * hangs off it: an incremental deletion performs no swap and needs the same cleanup, so {@link
+     * ConsumerRulesetService} reconciles on every pass instead.
      */
     protected boolean shadowSwapPerformed;
 

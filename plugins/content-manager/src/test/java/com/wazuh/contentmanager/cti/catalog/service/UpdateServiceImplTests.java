@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
@@ -40,6 +41,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Constants;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -70,6 +72,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
     @Mock private ContentIndex ruleIndex;
     @Mock private ContentIndex decoderIndex;
     @Mock private ContentIndex cveIndex;
+    @Mock private ContentIndex integrationIndex;
     @Mock private GetResponse getResponse;
 
     private static final String CONTEXT = "rules_dev";
@@ -90,6 +93,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         indices.put("rule", this.ruleIndex);
         indices.put("decoder", this.decoderIndex);
         indices.put("cves", this.cveIndex);
+        indices.put(Constants.KEY_INTEGRATION, this.integrationIndex);
 
         this.updateService =
                 new UpdateServiceImpl(
@@ -649,4 +653,173 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         Assert.assertEquals("TID", payloadCaptor.getValue().get("type").asText());
         Assert.assertEquals(70L, payloadCaptor.getValue().get("offset").asLong());
     }
+
+    // --- Integration deletions that still list resources (#1818, piece A) ------------------
+
+    /** The DELETE offset of an integration, as CTI sends it: resource id only, no payload. */
+    private static final String DELETE_INTEGRATION_CHANGES =
+            """
+            {
+              "data": [
+                {
+                  "offset": 70,
+                  "resource": "integration-1",
+                  "type": "DELETE"
+                }
+              ]
+            }""";
+
+    /**
+     * Serves {@code changesJson} as the CTI response and wires a consumer document, so a test only
+     * has to say what the offsets are.
+     */
+    private void mockChanges(String changesJson) throws Exception {
+        when(this.apiClient.getChanges(anyString(), anyLong(), anyLong()))
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+        when(this.consumersIndex.getConsumer(CONSUMER_TYPE)).thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString()).thenReturn("{}");
+    }
+
+    /** Stubs the integrations index so {@code integration-1} exists with the given document body. */
+    private void mockIntegrationDocument(String documentJson) throws Exception {
+        when(this.integrationIndex.getIndexName()).thenReturn(Constants.INDEX_INTEGRATIONS);
+        when(this.integrationIndex.exists("integration-1")).thenReturn(true);
+        when(this.integrationIndex.getDocument("integration-1"))
+                .thenReturn(new ObjectMapper().readTree("{\"document\":" + documentJson + "}"));
+    }
+
+    /**
+     * An integration whose rules CTI has not unlinked must not be deleted: applying the change would
+     * orphan those rules in Security Analytics with nothing left to say who owned them. The offset is
+     * rejected and the sync stops there, so the next pass retries from the same place.
+     */
+    public void testUpdate_DeleteIntegrationStillListingRules_isRejected() throws Exception {
+        mockChanges(DELETE_INTEGRATION_CHANGES);
+        mockIntegrationDocument(
+                "{\"id\":\"integration-1\",\"rules\":[\"rule-a\",\"rule-b\"],"
+                        + "\"decoders\":[],\"kvdbs\":[]}");
+
+        RuntimeException thrown =
+                Assert.assertThrows(RuntimeException.class, () -> this.updateService.update(69, 70));
+
+        String message = rootCauseMessage(thrown);
+        Assert.assertTrue(
+                "the failure must name the integration and the resources it still lists, got: " + message,
+                message.contains("integration-1") && message.contains("rules"));
+        verify(this.integrationIndex, never()).delete(anyString());
+    }
+
+    /** Decoders are guarded too, with the same rule as the REST API. */
+    public void testUpdate_DeleteIntegrationStillListingDecoders_isRejected() throws Exception {
+        mockChanges(DELETE_INTEGRATION_CHANGES);
+        mockIntegrationDocument(
+                "{\"id\":\"integration-1\",\"rules\":[],\"decoders\":[\"decoder-a\"],\"kvdbs\":[]}");
+
+        RuntimeException thrown =
+                Assert.assertThrows(RuntimeException.class, () -> this.updateService.update(69, 70));
+
+        Assert.assertTrue(
+                "the failure must name the decoders, got: " + rootCauseMessage(thrown),
+                rootCauseMessage(thrown).contains("decoders"));
+        verify(this.integrationIndex, never()).delete(anyString());
+    }
+
+    /** And KVDBs. */
+    public void testUpdate_DeleteIntegrationStillListingKvdbs_isRejected() throws Exception {
+        mockChanges(DELETE_INTEGRATION_CHANGES);
+        mockIntegrationDocument(
+                "{\"id\":\"integration-1\",\"rules\":[],\"decoders\":[],\"kvdbs\":[\"kvdb-a\"]}");
+
+        RuntimeException thrown =
+                Assert.assertThrows(RuntimeException.class, () -> this.updateService.update(69, 70));
+
+        Assert.assertTrue(
+                "the failure must name the kvdbs, got: " + rootCauseMessage(thrown),
+                rootCauseMessage(thrown).contains("kvdbs"));
+        verify(this.integrationIndex, never()).delete(anyString());
+    }
+
+    /**
+     * An integration CTI emptied before deleting is the case the guard is meant to let through: it
+     * owns nothing, so nothing is orphaned.
+     */
+    public void testUpdate_DeleteIntegrationWithNoResources_isApplied() throws Exception {
+        mockChanges(DELETE_INTEGRATION_CHANGES);
+        mockIntegrationDocument("{\"id\":\"integration-1\",\"rules\":[],\"decoders\":[],\"kvdbs\":[]}");
+
+        Assert.assertTrue("the offset must be applied", this.updateService.update(69, 70));
+        verify(this.integrationIndex).delete("integration-1");
+    }
+
+    /**
+     * The guard only applies to integrations. A rule deletion carries no ownership, so it is applied
+     * whatever its document looks like, and the guard must not even read it.
+     */
+    public void testUpdate_DeleteRule_isNotGuarded() throws Exception {
+        // spotless:off
+        String changesJson =
+            """
+                {
+                  "data": [
+                    {
+                      "offset": 71,
+                      "resource": "rule-9",
+                      "type": "DELETE"
+                    }
+                  ]
+                }""";
+        // spotless:on
+        mockChanges(changesJson);
+        when(this.ruleIndex.exists("rule-9")).thenReturn(true);
+
+        Assert.assertTrue(this.updateService.update(70, 71));
+        verify(this.ruleIndex).delete("rule-9");
+        verify(this.ruleIndex, never()).getDocument(anyString());
+    }
+
+    /**
+     * A document the guard cannot read is rejected too. The id was resolved to the integrations index
+     * by {@code exists()}, so the document is there and a failed read leaves the guard blind; not
+     * knowing whether the integration owns anything is no reason to delete it, because that is the
+     * orphaning the guard exists to prevent. The pass stops and the next one reads again.
+     */
+    public void testUpdate_DeleteIntegrationWithUnreadableDocument_isRejected() throws Exception {
+        mockChanges(DELETE_INTEGRATION_CHANGES);
+        when(this.integrationIndex.getIndexName()).thenReturn(Constants.INDEX_INTEGRATIONS);
+        when(this.integrationIndex.exists("integration-1")).thenReturn(true);
+        when(this.integrationIndex.getDocument("integration-1")).thenReturn(null);
+
+        RuntimeException thrown =
+                Assert.assertThrows(RuntimeException.class, () -> this.updateService.update(69, 70));
+
+        Assert.assertTrue(
+                "the failure must say the document could not be read, got: " + rootCauseMessage(thrown),
+                rootCauseMessage(thrown).contains("could not be read"));
+        verify(this.integrationIndex, never()).delete(anyString());
+    }
+
+    /**
+     * An integration whose document carries no resource lists at all owns nothing, so it is deleted.
+     * This is the shape the guard must not confuse with a failed read.
+     */
+    public void testUpdate_DeleteIntegrationWithNoResourceLists_isApplied() throws Exception {
+        mockChanges(DELETE_INTEGRATION_CHANGES);
+        mockIntegrationDocument("{\"id\":\"integration-1\"}");
+
+        Assert.assertTrue(this.updateService.update(69, 70));
+        verify(this.integrationIndex).delete("integration-1");
+    }
+
+    /** Unwraps the chain update() wraps a failure in, so a test can assert on the original message. */
+    private static String rootCauseMessage(Throwable t) {
+        Throwable cause = t;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        return String.valueOf(cause.getMessage());
+    }
+
 }

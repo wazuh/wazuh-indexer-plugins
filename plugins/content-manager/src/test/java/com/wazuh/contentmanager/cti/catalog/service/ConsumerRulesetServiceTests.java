@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.logging.log4j.Level;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
@@ -51,6 +52,7 @@ import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.model.UserOverrides;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.CapturingAppender;
 import com.wazuh.contentmanager.utils.Constants;
 import com.wazuh.securityanalytics.action.WIndexDetectorRequest;
 import org.mockito.ArgumentCaptor;
@@ -1472,5 +1474,207 @@ public class ConsumerRulesetServiceTests extends OpenSearchTestCase {
         verify(this.securityAnalyticsService).deleteSpaceResources(eq(Space.STANDARD), any());
         verify(this.spaceService).deleteSpaceResources(eq(Space.STANDARD), any());
         verify(index, never()).clear();
+    }
+
+    // --- Reconciliation of the standard space (#1818) ----------------------------------------
+
+    /** A reconciler that reports the given outcome and counts how often it was asked. */
+    private static final class RecordingReconciler extends StandardSpaceReconciler {
+        private final List<StandardSpaceReconciler.Result> outcomes;
+        private final List<String> order;
+        private int calls;
+
+        private RecordingReconciler(List<StandardSpaceReconciler.Result> outcomes, List<String> order) {
+            super(null, null);
+            this.outcomes = outcomes;
+            this.order = order;
+        }
+
+        @Override
+        Result reconcile() {
+            if (this.order != null) {
+                this.order.add("reconcile");
+            }
+            int index = Math.min(this.calls, this.outcomes.size() - 1);
+            this.calls++;
+            return this.outcomes.get(index);
+        }
+    }
+
+    private static StandardSpaceReconciler.Result reconciled(String... pending) {
+        return new StandardSpaceReconciler.Result(Set.of(pending), 0, 0, 0);
+    }
+
+    /**
+     * The reconciliation has to run even on a pass with nothing to sync and nothing pending. A
+     * deletion that failed changes neither of those, so gating it on either would mean the early
+     * return takes the pass out and the deletion is never retried -- which is the whole of C1.
+     */
+    public void testOnSyncComplete_passWithNothingToSyncStillReconciles() throws Exception {
+        this.mockExistingConsumerDoc(List.of());
+        RecordingReconciler reconciler =
+                new RecordingReconciler(List.of(StandardSpaceReconciler.Result.nothing()), null);
+        this.synchronizer.setStandardSpaceReconciler(reconciler);
+
+        this.synchronizer.onSyncComplete(false);
+
+        Assert.assertEquals(
+                "an idle pass must still reconcile, or a failed deletion is never retried",
+                1,
+                reconciler.calls);
+    }
+
+    /**
+     * On a pass that does sync, the reconciliation runs after the upserts: a resource that is both
+     * pushed and reconciled is then replaced rather than left missing in between, and a change of
+     * consumer keeps detecting throughout the transition.
+     */
+    public void testOnSyncComplete_reconciliationRunsAfterTheUpserts() throws Exception {
+        List<String> order = new java.util.ArrayList<>();
+        recordEngineReload(order);
+        ConsumerRulesetService service =
+                synchronizerWith(stubSpaceServiceRecording(order), stubOverridesServiceRecording(order));
+        RecordingReconciler reconciler =
+                new RecordingReconciler(List.of(StandardSpaceReconciler.Result.nothing()), order);
+        service.setStandardSpaceReconciler(reconciler);
+
+        service.onSyncComplete(true);
+
+        Assert.assertEquals(1, reconciler.calls);
+        Assert.assertTrue(
+                "the reconciliation must come after the overrides have been merged in",
+                order.indexOf("apply") < order.indexOf("reconcile"));
+    }
+
+    /**
+     * A resource Security Analytics will not let go would be retried on every scheduled pass, by
+     * default hourly, and would write one error line each time. It is reported in full the first time
+     * and the repeats stay at debug.
+     */
+    public void testOnSyncComplete_theSameReconciliationFailureIsReportedOnce() throws Exception {
+        this.mockExistingConsumerDoc(List.of());
+        this.synchronizer.setStandardSpaceReconciler(
+                new RecordingReconciler(List.of(reconciled("rule-stuck")), null));
+
+        try (CapturingAppender appender = CapturingAppender.attach(ConsumerRulesetService.class)) {
+            this.synchronizer.onSyncComplete(false);
+            Assert.assertEquals("the first failure must be reported", 1, appender.count(Level.ERROR));
+
+            this.synchronizer.onSyncComplete(false);
+            Assert.assertEquals(
+                    "the same failure must not be reported again", 1, appender.count(Level.ERROR));
+        }
+    }
+
+    /** A different set of failures is news, so it is reported again. */
+    public void testOnSyncComplete_aDifferentReconciliationFailureIsReportedAgain() throws Exception {
+        this.mockExistingConsumerDoc(List.of());
+        this.synchronizer.setStandardSpaceReconciler(
+                new RecordingReconciler(
+                        List.of(reconciled("rule-stuck"), reconciled("rule-stuck", "integration-stuck")),
+                        null));
+
+        try (CapturingAppender appender = CapturingAppender.attach(ConsumerRulesetService.class)) {
+            this.synchronizer.onSyncComplete(false);
+            this.synchronizer.onSyncComplete(false);
+
+            Assert.assertEquals(
+                    "a failure set that grew must be reported", 2, appender.count(Level.ERROR));
+        }
+    }
+
+    /** And once everything goes through, the memory is cleared, so a relapse is reported afresh. */
+    public void testOnSyncComplete_aRelapseAfterASuccessIsReportedAgain() throws Exception {
+        this.mockExistingConsumerDoc(List.of());
+        this.synchronizer.setStandardSpaceReconciler(
+                new RecordingReconciler(
+                        List.of(
+                                reconciled("rule-stuck"),
+                                StandardSpaceReconciler.Result.nothing(),
+                                reconciled("rule-stuck")),
+                        null));
+
+        try (CapturingAppender appender = CapturingAppender.attach(ConsumerRulesetService.class)) {
+            this.synchronizer.onSyncComplete(false);
+            this.synchronizer.onSyncComplete(false);
+            this.synchronizer.onSyncComplete(false);
+
+            Assert.assertEquals(2, appender.count(Level.ERROR));
+        }
+    }
+
+    /**
+     * A reconciliation that could not delete everything asks the sync job for its one immediate
+     * retry, rather than leaving the resource behind for a full sync interval -- 60 minutes by
+     * default. Same reasoning as the pending phases, and what the reviewer asked for on #1773.
+     */
+    @SuppressWarnings("unchecked")
+    public void testSynchronize_pendingReconciliationRequestsImmediateRetry() throws Exception {
+        this.mockExistingConsumerDoc(List.of());
+        this.mockIndexResolution(name -> false);
+
+        ConsumerRulesetService svc =
+                new ConsumerRulesetService(
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.spaceService,
+                        this.securityAnalyticsService,
+                        this.userOverridesService);
+        svc.setStandardSpaceReconciler(
+                new RecordingReconciler(List.of(reconciled("rule-stuck")), null));
+
+        ConsumerService consumerService = mock(ConsumerService.class);
+        when(consumerService.getLocalConsumer())
+                .thenReturn(
+                        new LocalConsumer(
+                                "ctx",
+                                "name",
+                                "cti:catalog:consumer:ruleset",
+                                "",
+                                true,
+                                LocalConsumer.Status.READY,
+                                100L,
+                                100L,
+                                List.of()));
+        svc.setConsumerService(consumerService);
+
+        Assert.assertTrue(
+                "a pass that could not finish deleting must request an immediate retry", svc.synchronize());
+    }
+
+    /** Nothing left over means nothing to report and no retry to ask for. */
+    @SuppressWarnings("unchecked")
+    public void testSynchronize_cleanReconciliationRequestsNoRetry() throws Exception {
+        this.mockExistingConsumerDoc(List.of());
+        this.mockIndexResolution(name -> false);
+
+        ConsumerRulesetService svc =
+                new ConsumerRulesetService(
+                        this.client,
+                        this.consumersIndex,
+                        this.environment,
+                        this.spaceService,
+                        this.securityAnalyticsService,
+                        this.userOverridesService);
+        svc.setStandardSpaceReconciler(
+                new RecordingReconciler(List.of(StandardSpaceReconciler.Result.nothing()), null));
+
+        ConsumerService consumerService = mock(ConsumerService.class);
+        when(consumerService.getLocalConsumer())
+                .thenReturn(
+                        new LocalConsumer(
+                                "ctx",
+                                "name",
+                                "cti:catalog:consumer:ruleset",
+                                "",
+                                true,
+                                LocalConsumer.Status.READY,
+                                100L,
+                                100L,
+                                List.of()));
+        svc.setConsumerService(consumerService);
+
+        Assert.assertFalse(svc.synchronize());
     }
 }
