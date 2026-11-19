@@ -398,7 +398,8 @@
           "wazuh.threat.technique.subtechnique.name",
           "wazuh.threat.technique.subtechnique.reference"
         ],
-        "refresh_interval": "5s"
+        "refresh_interval": "5s",
+        "translog.durability": "async"
       },
       "mapping.nested_fields.limit": 10,
       "mapping.total_fields.limit": 1000,

@@ -25,12 +25,14 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.containsString;
@@ -57,6 +59,8 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
 
     private static final String EVENTS_PREFIX = "wazuh-events-v5-";
     private static final String FINDINGS_PREFIX = "wazuh-findings-v5-";
+    private static final String RAW_EVENTS_STREAM = "wazuh-events-raw-v5";
+    private static final String ACTIVE_RESPONSES_STREAM = "wazuh-active-responses";
     private static final int MAX_WAIT_SECONDS = 120;
     private static final int POLL_INTERVAL_MS = 500;
 
@@ -213,6 +217,25 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
                     body,
                     containsString(template));
         }
+    }
+
+    /**
+     * Verifies that the events, raw events, findings and active responses streams set {@code
+     * index.translog.durability: async}.
+     *
+     * <p>With {@code async} a write is acknowledged before the translog is synced to disk, which
+     * happens every {@code index.translog.sync_interval} instead of on every request. The setting
+     * is checked on the backing indices, which is where the template has to deliver it.
+     *
+     * @throws Exception if a request fails or the wait is interrupted
+     */
+    public void testStreamsSyncTheTranslogAsynchronously() throws Exception {
+        for (String category : CATEGORIES) {
+            this.assertAsyncTranslogDurability(EVENTS_PREFIX + category);
+            this.assertAsyncTranslogDurability(FINDINGS_PREFIX + category);
+        }
+        this.assertAsyncTranslogDurability(RAW_EVENTS_STREAM);
+        this.assertAsyncTranslogDurability(ACTIVE_RESPONSES_STREAM);
     }
 
     /**
@@ -719,6 +742,41 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
         search.setJsonEntity(query);
         Response response = client().performRequest(search);
         return EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Asserts that every backing index of a data stream sets {@code index.translog.durability:
+     * async}. It waits for the data stream, because the setup plugin creates some streams after
+     * the one {@link #waitForPluginInitialization()} waits for.
+     *
+     * @param dataStream the name of the data stream.
+     * @throws Exception if a request fails or the wait is interrupted
+     */
+    @SuppressWarnings("unchecked")
+    private void assertAsyncTranslogDurability(String dataStream) throws Exception {
+        OpenSearchRestTestCase.assertBusy(
+                () -> {
+                    Request request = new Request("GET", "/" + dataStream + "/_settings");
+                    request.addParameter("flat_settings", "true");
+                    Map<String, Object> indices;
+                    try {
+                        indices =
+                                OpenSearchRestTestCase.entityAsMap(
+                                        OpenSearchRestTestCase.client().performRequest(request));
+                    } catch (ResponseException e) {
+                        throw new AssertionError("[" + dataStream + "] is not created yet", e);
+                    }
+                    Assert.assertFalse("[" + dataStream + "] has no backing index", indices.isEmpty());
+                    indices.forEach(
+                            (index, body) ->
+                                    Assert.assertEquals(
+                                            "index.translog.durability of [" + index + "]",
+                                            "async",
+                                            ((Map<String, Object>) ((Map<String, Object>) body).get("settings"))
+                                                    .get("index.translog.durability")));
+                },
+                MAX_WAIT_SECONDS,
+                TimeUnit.SECONDS);
     }
 
     /**
