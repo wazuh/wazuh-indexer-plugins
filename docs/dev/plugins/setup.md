@@ -375,6 +375,39 @@ new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-s
 
 ---
 
+## Translog durability of the stream templates
+
+Four stream templates set `index.translog.durability: async`. The translog of their backing indices is synced every `index.translog.sync_interval` (5 seconds, the OpenSearch default, which no template overrides) instead of before each write is acknowledged. The metrics, AI assistant sessions, stateful and content templates do not set it, so they keep the default, `request`.
+
+| WCS module | Generated template | Data streams |
+| --- | --- | --- |
+| `wcs/stateless/events/main` | `templates/streams/events.json` | `wazuh-events-v5-<category>` |
+| `wcs/stateless/events/raw` | `templates/streams/raw.json` | `wazuh-events-raw-v5` |
+| `wcs/stateless/events/findings` | `templates/streams/findings.json` | `wazuh-findings-v5-<category>` |
+| `wcs/stateless/active-responses` | `templates/streams/active-responses.json` | `wazuh-active-responses` |
+
+`StreamIndex.createTemplate()` copies the settings of the base template through unchanged, so the 8 category templates of the events and of the findings carry the setting too.
+
+The reference manual describes what this means for an operator: see [Write durability of the stream indices](../../ref/modules/setup/architecture.md#write-durability-of-the-stream-indices).
+
+### A normal stop loses nothing
+
+On `SIGTERM`, the node closes every index before it exits. `IndicesService.doStop()` removes each index with the reason `shutdown`, `IndexService.closeShard()` closes its shards with `flushEngine` set, because the index is closed and not deleted, and `IndexShard.close()` then calls `Engine.flushAndClose()`, which commits the index and syncs the translog.
+
+A killed process skips all of this. On the next start, the shard recovers from the last commit and replays the translog only up to the last checkpoint a sync wrote. Everything acknowledged after that sync is gone. This takes only a `kill -9` or an out-of-memory kill, not a crash of the operating system.
+
+The packages give the node the time it needs. The systemd unit sets `TimeoutStopSec=0` and `SendSIGKILL=no`, so systemd never kills it. A container is killed when its stop timeout expires, 10 seconds by default in Docker and 30 seconds in Kubernetes.
+
+### Effect of an abrupt stop on detection
+
+Alerting stores, for each shard of a monitored index, the highest sequence number its document-level monitors have read, and each run reads only the documents above it (`TransportDocLevelMonitorFanOutAction`). A shard that loses its last N operations hands the same N sequence numbers to the next N documents it indexes. They are at or below the stored number, which never moves back, so those documents are never evaluated. The findings created from the lost documents are not removed either.
+
+### Testing
+
+`DataStreamsIT.testStreamsSyncTheTranslogAsynchronously` reads the settings of the backing indices of the 8 events streams, the 8 findings streams, `wazuh-events-raw-v5` and `wazuh-active-responses`, and asserts `index.translog.durability: async` on each one. It checks the backing indices and not the templates, because that is where the setting has to arrive.
+
+---
+
 ## Events data stream ISM policy (`stream-events-policy`)
 
 ### Overview
