@@ -220,8 +220,9 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * Verifies that the events, raw events, findings and active responses streams set {@code
-     * index.translog.durability: async}.
+     * Verifies that the events, raw events and findings streams set {@code
+     * index.translog.durability: async}, and that the active responses stream keeps the default,
+     * {@code request}.
      *
      * <p>With {@code async} a write is acknowledged before the translog is synced to disk, which
      * happens every {@code index.translog.sync_interval} instead of on every request. The setting
@@ -231,11 +232,12 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
      */
     public void testStreamsSyncTheTranslogAsynchronously() throws Exception {
         for (String category : CATEGORIES) {
-            this.assertAsyncTranslogDurability(EVENTS_PREFIX + category);
-            this.assertAsyncTranslogDurability(FINDINGS_PREFIX + category);
+            this.assertTranslogDurability(EVENTS_PREFIX + category, "async");
+            this.assertTranslogDurability(FINDINGS_PREFIX + category, "async");
         }
-        this.assertAsyncTranslogDurability(RAW_EVENTS_STREAM);
-        this.assertAsyncTranslogDurability(ACTIVE_RESPONSES_STREAM);
+        this.assertTranslogDurability(RAW_EVENTS_STREAM, "async");
+        // A lost active response request is never executed, so this stream must not be async.
+        this.assertTranslogDurability(ACTIVE_RESPONSES_STREAM, null);
     }
 
     /**
@@ -745,15 +747,17 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
     }
 
     /**
-     * Asserts that every backing index of a data stream sets {@code index.translog.durability:
-     * async}. It waits for the data stream, because the setup plugin creates some streams after
+     * Asserts the {@code index.translog.durability} setting of every backing index of a data
+     * stream. It waits for the data stream, because the setup plugin creates some streams after
      * the one {@link #waitForPluginInitialization()} waits for.
      *
      * @param dataStream the name of the data stream.
+     * @param expected the expected value, or {@code null} if the setting must not be set, so that
+     *     the default, {@code request}, applies.
      * @throws Exception if a request fails or the wait is interrupted
      */
     @SuppressWarnings("unchecked")
-    private void assertAsyncTranslogDurability(String dataStream) throws Exception {
+    private void assertTranslogDurability(String dataStream, String expected) throws Exception {
         OpenSearchRestTestCase.assertBusy(
                 () -> {
                     Request request = new Request("GET", "/" + dataStream + "/_settings");
@@ -771,7 +775,7 @@ public class DataStreamsIT extends OpenSearchRestTestCase {
                             (index, body) ->
                                     Assert.assertEquals(
                                             "index.translog.durability of [" + index + "]",
-                                            "async",
+                                            expected,
                                             ((Map<String, Object>) ((Map<String, Object>) body).get("settings"))
                                                     .get("index.translog.durability")));
                 },

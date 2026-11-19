@@ -34,14 +34,13 @@ Two plugins create internal indices with a fixed replica count and no auto-expan
 
 ### Write durability of the stream indices
 
-By default, an index syncs every write to disk before it acknowledges it. Four stream families set `index.translog.durability: async` instead:
+By default, an index syncs every write to disk before it acknowledges it. Three stream families set `index.translog.durability: async` instead:
 
 - `wazuh-events-v5-<category>`
 - `wazuh-events-raw-v5`
 - `wazuh-findings-v5-<category>`
-- `wazuh-active-responses`
 
-These streams acknowledge a write once every copy of the shard has it, and sync it to disk in the background every 5 seconds, the default of `index.translog.sync_interval`. The metrics and AI assistant sessions streams, and every stateful index, keep the default, `request`.
+These streams acknowledge a write once every copy of the shard has it, and sync it to disk in the background every 5 seconds, the default of `index.translog.sync_interval`. The active responses, metrics and AI assistant sessions streams, and every stateful index, keep the default, `request`. Active responses keep it because a lost request would never be executed.
 
 The sync on every request limits how fast these streams accept data. With the large batches the Wazuh Manager sends, the indexer accepts about as many events per second either way, but with `async` it keeps up with a sustained load that otherwise makes it fall behind. Small batches gain the most, and the findings are written in small batches.
 
@@ -52,17 +51,14 @@ The sync on every request limits how fast these streams accept data. With the la
 - **A replica on another node covers the loss of one node.** The copy on the node that keeps running still has the writes, so they are lost only if every copy stops abruptly within the same 5 seconds. A single-node deployment has no second copy, so it is the most exposed.
 - **A stop that is cut short is an abrupt stop.** The packages let the service take as long as it needs to stop. Container platforms kill the process when their stop timeout expires, 10 seconds by default in Docker and 30 seconds in Kubernetes. On a node with many indices, raise it (`stop_grace_period` in Docker Compose, `terminationGracePeriodSeconds` in Kubernetes).
 
-A lost write is not sent again, because its sender received the acknowledgement. Besides the missing events and findings, an abrupt stop has two more effects:
-
-- **Detection skips new events.** After the node starts again, the detection rules skip as many new events of each affected stream as the stream lost. Findings created from the lost events can remain, pointing to events that no longer exist.
-- **Active responses can be missed.** A lost active response request that the Wazuh Manager had not retrieved yet is never executed.
+A lost write is not sent again, because its sender received the acknowledgement. Besides the missing events and findings, an abrupt stop has one more effect: **detection skips new events.** After the node starts again, the detection rules skip as many new events of each affected stream as the stream lost. Findings created from the lost events can remain, pointing to events that no longer exist.
 
 #### Changing the durability
 
 `index.translog.durability` is a dynamic index setting. To make these streams sync every write before acknowledging it again:
 
 ```bash
-curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/wazuh-events-v5-*,wazuh-events-raw-v5,wazuh-findings-v5-*,wazuh-active-responses/_settings" \
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/wazuh-events-v5-*,wazuh-events-raw-v5,wazuh-findings-v5-*/_settings" \
   -H 'Content-Type: application/json' \
   -d '{"index.translog.durability": "request"}'
 ```
@@ -72,7 +68,7 @@ The request changes the backing indices that exist. A backing index created by a
 To check the value of each backing index:
 
 ```bash
-curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://127.0.0.1:9200/wazuh-events-v5-*,wazuh-events-raw-v5,wazuh-findings-v5-*,wazuh-active-responses/_settings/index.translog.durability?flat_settings=true&pretty"
+curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X GET "https://127.0.0.1:9200/wazuh-events-v5-*,wazuh-events-raw-v5,wazuh-findings-v5-*/_settings/index.translog.durability?flat_settings=true&pretty"
 ```
 
 ## Wazuh Common Schema

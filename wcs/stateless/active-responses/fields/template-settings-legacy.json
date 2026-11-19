@@ -13,7 +13,6 @@
       "number_of_replicas": "0",
       "auto_expand_replicas": "0-1",
       "refresh_interval": "5s",
-      "translog.durability": "async",
       "query.default_field": [
         "event.doc_id",
         "event.index",

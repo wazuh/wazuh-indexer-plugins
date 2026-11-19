@@ -377,14 +377,13 @@ new StreamIndex("wazuh-ai-assistant-sessions", "templates/streams/ai-assistant-s
 
 ## Translog durability of the stream templates
 
-Four stream templates set `index.translog.durability: async`. The translog of their backing indices is synced every `index.translog.sync_interval` (5 seconds, the OpenSearch default, which no template overrides) instead of before each write is acknowledged. The metrics, AI assistant sessions, stateful and content templates do not set it, so they keep the default, `request`.
+Three stream templates set `index.translog.durability: async`. The translog of their backing indices is synced every `index.translog.sync_interval` (5 seconds, the OpenSearch default, which no template overrides) instead of before each write is acknowledged. The active responses, metrics, AI assistant sessions, stateful and content templates do not set it, so they keep the default, `request`.
 
 | WCS module | Generated template | Data streams |
 | --- | --- | --- |
 | `wcs/stateless/events/main` | `templates/streams/events.json` | `wazuh-events-v5-<category>` |
 | `wcs/stateless/events/raw` | `templates/streams/raw.json` | `wazuh-events-raw-v5` |
 | `wcs/stateless/events/findings` | `templates/streams/findings.json` | `wazuh-findings-v5-<category>` |
-| `wcs/stateless/active-responses` | `templates/streams/active-responses.json` | `wazuh-active-responses` |
 
 `StreamIndex.createTemplate()` copies the settings of the base template through unchanged, so the 8 category templates of the events and of the findings carry the setting too.
 
@@ -404,7 +403,7 @@ Alerting stores, for each shard of a monitored index, the highest sequence numbe
 
 ### Testing
 
-`DataStreamsIT.testStreamsSyncTheTranslogAsynchronously` reads the settings of the backing indices of the 8 events streams, the 8 findings streams, `wazuh-events-raw-v5` and `wazuh-active-responses`, and asserts `index.translog.durability: async` on each one. It checks the backing indices and not the templates, because that is where the setting has to arrive.
+`DataStreamsIT.testStreamsSyncTheTranslogAsynchronously` reads the settings of the backing indices of the 8 events streams, the 8 findings streams and `wazuh-events-raw-v5`, and asserts `index.translog.durability: async` on each one. It also asserts that the backing indices of `wazuh-active-responses` do not set it, because a lost active response request is never executed. It checks the backing indices and not the templates, because that is where the setting has to arrive.
 
 ---
 
