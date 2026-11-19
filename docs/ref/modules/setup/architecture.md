@@ -4,6 +4,8 @@
 
 The plugin hooks into the node's startup lifecycle and creates every required index template, index, and data stream before the node is considered ready to serve Wazuh data. By design, the plugin overwrites any existing index template under the same name, so template changes shipped in a new version take effect automatically on restart.
 
+Before it creates them, the plugin reads its configuration file, `setup.yml`, which can override some index settings of the templates and replace the ISM policies. The file is read at every initialization, so the templates always hold the bundled definitions plus the overrides the file has at that moment. See [Customization](customization.md).
+
 ### Retry mechanism
 
 The plugin features a retry mechanism to handle transient faults. In case of a temporal failure (timeouts or similar) during the initialization of the indices, the task is retried after a given amount of time (back-off). If two consecutive faults occur during the initialization of the same index, the initialization process is halted, and the node is shut down. Proper logging is in place to notify administrators before the shutdown occurs.
@@ -20,7 +22,7 @@ The marker transitions once per boot:
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `running` | Index initialization is in progress (set at the start of index initialization, overwriting any marker left over from a previous boot).                                          |
 | `ready`   | All index templates, indices and data streams have been created successfully.                                                                                                    |
-| `failed`  | Index initialization could not complete (an unhandled exception was thrown while initializing one of the indices).                                                               |
+| `failed`  | Index initialization could not complete: the configuration file is invalid, or an unhandled exception was thrown while initializing one of the indices.                          |
 
 Writing the marker is best-effort: a failure to persist it is logged but never interrupts node startup.
 
@@ -28,7 +30,7 @@ Writing the marker is best-effort: a failure to persist it is logged but never i
 
 During the node initialization, the plugin checks for the presence of the `cluster.default_number_of_replicas` setting in the node configuration. If this setting is defined, the plugin automatically updates the cluster's persistent settings with this value. This ensures that the default number of replicas is consistently applied across the cluster as defined in the configuration file.
 
-The packaged configuration sets `cluster.default_number_of_replicas` to `0`, so that a single node stays green. The Wazuh indices set `index.auto_expand_replicas: 0-1` instead: no replica on a single node, and one replica as soon as a second node joins, so the cluster can lose a node without losing a primary.
+The packaged configuration sets `cluster.default_number_of_replicas` to `0`, so that a single node stays green. The Wazuh indices set `index.auto_expand_replicas: 0-1` instead: no replica on a single node, and one replica as soon as a second node joins, so the cluster can lose a node without losing a primary. To use another range or a fixed number of replicas, override it in `setup.yml`, as described in [Customization](customization.md#index-template-settings).
 
 Two plugins create internal indices with a fixed replica count and no auto-expand option: Index State Management, for its history indices (`.opendistro-ism-managed-index-history-*`), and the security plugin, for the backing indices of the `security-auditlogs` data stream (`.ds-security-auditlogs-*`). The setup plugin creates these indices with `index.auto_expand_replicas: 0-1` too.
 
@@ -55,7 +57,18 @@ A lost write is not sent again, because its sender received the acknowledgement.
 
 #### Changing the durability
 
-`index.translog.durability` is a dynamic index setting. To make these streams sync every write before acknowledging it again:
+To make a stream sync every write before acknowledging it again, override the setting in the plugin's configuration file, `setup.yml`:
+
+```yaml
+# The three stream families that default to async
+templates.streams.events.settings.index.translog.durability: request
+templates.streams.raw.settings.index.translog.durability: request
+templates.streams.findings.settings.index.translog.durability: request
+```
+
+`templates.streams.*.settings.index.translog.durability: request` does the same for every stream at once. The same key with `async` turns it on for a stream that defaults to `request`. See [Customization](customization.md) for the file and for when a change takes effect.
+
+The file changes the index templates, so the backing indices created from then on. `index.translog.durability` is a dynamic index setting, so the backing indices that exist are changed with the settings API:
 
 ```bash
 curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/wazuh-events-v5-*,wazuh-events-raw-v5,wazuh-findings-v5-*/_settings" \
@@ -63,7 +76,7 @@ curl -sk -u admin:$WAZUH_INDEXER_ADMIN_PASSWORD -X PUT "https://127.0.0.1:9200/w
   -d '{"index.translog.durability": "request"}'
 ```
 
-The request changes the backing indices that exist. A backing index created by a later rollover takes the value of its index template again, so the change does not outlive the rollover. Editing the index template does not keep it either, because the plugin overwrites its templates at every restart.
+Do both. The request alone does not last: a backing index created by a later rollover takes the value of its index template again. Editing the index template does not keep it either, because the plugin writes its templates again at every restart.
 
 To check the value of each backing index:
 

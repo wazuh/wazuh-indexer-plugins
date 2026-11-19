@@ -1,0 +1,4 @@
+# Second phase of the test cluster of SetupConfigOverridesIT, read by SetupConfigRestoredIT after a
+# restart: the template keys are gone, and the policy switches are back to false.
+policies.stream-active-responses-policy.custom: false
+policies.security-auditlogs-policy.custom: false

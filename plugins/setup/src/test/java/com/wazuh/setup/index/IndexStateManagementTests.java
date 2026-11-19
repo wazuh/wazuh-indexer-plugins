@@ -16,6 +16,7 @@
  */
 package com.wazuh.setup.index;
 
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -30,14 +31,20 @@ import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.ClusterAdminClient;
 import org.opensearch.transport.client.IndicesAdminClient;
+import org.junit.Assert;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.wazuh.setup.config.SetupConfig;
 import com.wazuh.setup.utils.JsonUtils;
+import org.mockito.ArgumentCaptor;
 
 import static org.mockito.Mockito.*;
 
@@ -205,6 +212,25 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         assertEquals(1L, withTimestamp.get("last_updated_time"));
     }
 
+    /**
+     * Verifies that {@link IndexStateManagement#applyIsmTemplateTimestamp(Map)} also copies the
+     * policy's timestamp into an {@code ism_template} written as a single template, which ISM accepts
+     * as well as a list.
+     */
+    public void testApplyIsmTemplateTimestamp_SingleTemplate() {
+        Map<String, Object> template = new HashMap<>();
+        template.put("index_patterns", List.of("a-*"));
+        Map<String, Object> policy = new HashMap<>();
+        policy.put("last_updated_time", 1772122150000L);
+        policy.put("ism_template", template);
+        Map<String, Object> policyFile = new HashMap<>();
+        policyFile.put("policy", policy);
+
+        IndexStateManagement.applyIsmTemplateTimestamp(policyFile);
+
+        Assert.assertEquals(1772122150000L, template.get("last_updated_time"));
+    }
+
     /** Verifies that a policy without an {@code ism_template} is left alone. */
     public void testApplyIsmTemplateTimestamp_IgnoresPoliciesWithoutTemplates() {
         Map<String, Object> policyFile = new HashMap<>();
@@ -363,5 +389,67 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
 
         // Seven policies, each one timeout plus one successful retry.
         verify(this.client, times(14)).index(any(IndexRequest.class));
+    }
+
+    /**
+     * Makes the configuration file of the plugin replace the events policy with a policy file.
+     *
+     * @throws IOException if a file cannot be written.
+     */
+    private void replaceTheEventsPolicy() throws IOException {
+        Path directory = LuceneTestCase.createTempDir();
+        Files.writeString(
+                directory.resolve(SetupConfig.FILE),
+                "policies." + IndexStateManagement.EVENTS_POLICY + ".custom: true\n",
+                StandardCharsets.UTF_8);
+        Files.writeString(
+                directory.resolve(IndexStateManagement.EVENTS_POLICY + ".json"),
+                "{\"policy\": {\"policy_id\": \""
+                        + IndexStateManagement.EVENTS_POLICY
+                        + "\", \"description\": \"Edited copy\", \"last_updated_time\": 1700000000000,"
+                        + " \"ism_template\": [{\"index_patterns\": [\"wazuh-events-v5*\"], \"priority\": 0}]}}",
+                StandardCharsets.UTF_8);
+        this.ismIndex.setConfig(SetupConfig.load(directory, List.of(), IndexStateManagement.POLICIES));
+        doReturn(mock(ActionFuture.class)).when(this.client).index(any(IndexRequest.class));
+    }
+
+    /**
+     * A policy the configuration file replaces is indexed from its policy file, under the id of the
+     * default policy, with its timestamp copied to the template as for a bundled policy. The bundled
+     * policy is not read.
+     *
+     * @throws IOException if a file cannot be written.
+     */
+    @SuppressWarnings("unchecked")
+    public void testIndexPolicy_UsesThePolicyFileOfAReplacedPolicy() throws IOException {
+        this.replaceTheEventsPolicy();
+
+        this.ismIndex.indexPolicy(IndexStateManagement.EVENTS_POLICY);
+
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+        Assert.assertEquals(IndexStateManagement.EVENTS_POLICY, captor.getValue().id());
+        Map<String, Object> policy =
+                (Map<String, Object>) captor.getValue().sourceAsMap().get("policy");
+        Assert.assertEquals("Edited copy", policy.get("description"));
+        Map<String, Object> template = ((List<Map<String, Object>>) policy.get("ism_template")).get(0);
+        Assert.assertEquals(policy.get("last_updated_time"), template.get("last_updated_time"));
+        verify(this.jsonUtils, never()).fromFile(anyString());
+    }
+
+    /**
+     * The policies the configuration file does not replace are still the bundled ones.
+     *
+     * @throws IOException if a file cannot be written.
+     */
+    public void testIndexPolicy_UsesTheBundledPolicyOfTheOthers() throws IOException {
+        this.replaceTheEventsPolicy();
+        doReturn(new HashMap<String, Object>()).when(this.jsonUtils).fromFile(anyString());
+
+        this.ismIndex.indexPolicy(IndexStateManagement.FINDINGS_POLICY);
+
+        verify(this.jsonUtils)
+                .fromFile(
+                        IndexStateManagement.POLICIES_PATH + IndexStateManagement.FINDINGS_POLICY + ".json");
     }
 }

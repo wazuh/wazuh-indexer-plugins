@@ -10,4 +10,6 @@ The Setup plugin is configured through settings in `opensearch.yml`. All setting
 
 <!-- // ANCHOR_END: settings-table -->
 
+The settings of the indices the plugin creates, and its ISM policies, are customized in a separate file, `setup.yml`. See [Customization](customization.md).
+
 `plugins.setup.settings_update.enabled` follows the disable-endpoint pattern shared with Content Manager. See [Protecting sensitive configuration](../content-manager/configuration.md#protecting-sensitive-configuration) for the full pattern.

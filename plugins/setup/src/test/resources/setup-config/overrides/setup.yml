@@ -1,0 +1,14 @@
+# Configuration of the test cluster of SetupConfigOverridesIT.
+
+# A data stream template: two settings of the events streams.
+templates.streams.events.settings.index.number_of_shards: 2
+templates.streams.events.settings.index.translog.durability: request
+
+# A key for a group, and a more specific key for one template of the group.
+templates.states.*.settings.index.refresh_interval: 30s
+templates.states.sca.settings.index.refresh_interval: 45s
+
+# A policy of a stream the plugin creates, and the policy of the audit log stream, which the
+# security plugin creates.
+policies.stream-active-responses-policy.custom: true
+policies.security-auditlogs-policy.custom: true
