@@ -60,7 +60,8 @@
           "wazuh.schema.version",
           "wazuh.space.name"
         ],
-        "refresh_interval": "5s"
+        "refresh_interval": "5s",
+        "translog.durability": "async"
       },
       "mapping.nested_fields.limit": 10,
       "mapping.total_fields.limit": 1000,
