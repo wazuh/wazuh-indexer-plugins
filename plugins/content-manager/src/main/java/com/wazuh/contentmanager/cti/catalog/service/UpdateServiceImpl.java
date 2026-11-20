@@ -29,6 +29,7 @@ import org.opensearch.core.action.ActionListener;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -305,11 +306,53 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                     break;
                 }
                 index = this.findIndexForId(id);
+                this.rejectIntegrationDeleteWithResources(index, id);
                 index.delete(id);
                 break;
             default:
                 log.warn(Constants.W_LOG_UPDATE_UNSUPPORTED_OPERATION, offset.getType());
                 break;
+        }
+    }
+
+    /**
+     * Refuses to delete an integration that still lists decoders, rules or KVDBs.
+     *
+     * <p>Same rule the REST API enforces in {@code TransportDeleteIntegrationAction.validateDelete}:
+     * an integration owns those resources, so deleting it first orphans them with nothing left to say
+     * who owned them. Throwing stops the pass at this offset rather than skipping the change, so the
+     * consumer resumes here once CTI publishes the unlink; skipping would move it past a change it
+     * never applied.
+     *
+     * @param index the content index the id was resolved to.
+     * @param id the resource being deleted.
+     * @throws IllegalStateException if the integration still lists resources, or if whether it does
+     *     could not be read.
+     */
+    private void rejectIntegrationDeleteWithResources(ContentIndex index, String id) {
+        if (!Constants.INDEX_INTEGRATIONS.equals(index.getIndexName())) {
+            return;
+        }
+        JsonNode source = index.getDocument(id);
+        if (source == null) {
+            // exists() resolved the id to this index, so a null here is a failed read, already
+            // logged by ContentIndex.getDocument. Not knowing whether the integration owns anything
+            // is no reason to delete it: the pass stops and the next one reads again.
+            throw new IllegalStateException(
+                    String.format(Locale.ROOT, Constants.E_INTEGRATION_DELETE_UNREADABLE, id));
+        }
+        JsonNode document = source.path(Constants.KEY_DOCUMENT);
+        for (String key : List.of(Constants.KEY_DECODERS, Constants.KEY_RULES, Constants.KEY_KVDBS)) {
+            JsonNode list = document.get(key);
+            if (list != null && list.isArray() && !list.isEmpty()) {
+                throw new IllegalStateException(
+                        String.format(
+                                Locale.ROOT,
+                                Constants.E_INTEGRATION_DELETE_STILL_HAS_RESOURCES,
+                                id,
+                                list.size(),
+                                key));
+            }
         }
     }
 

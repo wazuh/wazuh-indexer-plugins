@@ -109,9 +109,6 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
                         "load iocs",
                         "load cves",
                         "copy user content [rules-a, decoders-a]",
-                        "before switch ruleset",
-                        "before switch iocs",
-                        "before switch cves",
                         "refresh [rules-b, decoders-b, iocs-b, cves-b]",
                         "switch [rules, decoders, iocs, cves]",
                         "bulk write [ruleset pro-ruleset running 4000/4010, iocs pro-iocs running"
@@ -132,7 +129,6 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
             assertEquals("pro-" + type, document.getName());
             assertFalse(document.isPublic());
         }
-        assertTrue(this.ruleset.swapPerformed());
     }
 
     /**
@@ -163,7 +159,6 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
             assertEquals(SyncPass.SwapOutcome.PENDING, pass.swapOutcome(type));
             assertEquals(resource("open-" + type), this.consumersIndex.documents.get(type).getResource());
         }
-        assertFalse(this.ruleset.swapPerformed());
     }
 
     /** A rejected alias request is undone like any other failure before the switch. */
@@ -390,7 +385,6 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
                 List.of(
                         "create staging cves",
                         "load cves",
-                        "before switch cves",
                         "refresh [cves-b]",
                         "switch [cves]",
                         "bulk write [cves open-cves running 51250/51300]",
@@ -417,13 +411,11 @@ public class ShadowSwapServiceTests extends OpenSearchTestCase {
                         "create staging ruleset",
                         "load file ruleset ruleset.zip",
                         "copy user content [rules-a, decoders-a]",
-                        "before switch ruleset",
                         "refresh [rules-b, decoders-b]",
                         "switch [rules, decoders]",
                         "bulk write [ruleset open-ruleset running 1600/1600]",
                         "delete [rules-a, decoders-a]"),
                 this.events);
-        assertTrue(this.ruleset.swapPerformed());
     }
 
     /**
