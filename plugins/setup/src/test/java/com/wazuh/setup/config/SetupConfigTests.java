@@ -194,8 +194,7 @@ public class SetupConfigTests extends OpenSearchTestCase {
                 LuceneTestCase.expectThrows(
                         SetupConfigException.class,
                         () ->
-                                SetupConfig.load(
-                                        this.directory, TEMPLATES, POLICIES, NamedXContentRegistry.EMPTY));
+                                SetupConfig.load(this.directory, TEMPLATES, POLICIES, NamedXContentRegistry.EMPTY));
         Assert.assertEquals("[" + file + "] exists but is not a regular file", e.getMessage());
     }
 
