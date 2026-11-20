@@ -1,175 +1,96 @@
-name: "amazon-security-lake"
+name: "amazon-security-lake-integration"
+
+# Amazon Security Lake integration, with no AWS account: the moto server stands in for S3 (the
+# raw bucket that Logstash writes to, and the Security Lake bucket) and STS, the AWS Lambda
+# runtime interface emulator runs the function, and the s3-notifier stands in for the S3 event
+# notifications that invoke it.
+
+include:
+  - compose.wazuh-indexer.yml
 
 services:
-  events-generator:
-    image: wazuh/indexer-events-generator
-    build:
-      context: ../tools/events-generator
-    container_name: events-generator
-    depends_on:
-      wazuh.indexer:
-        condition: service_healthy
-    command: bash -c "python run.py -a wazuh.indexer"
-
-  wazuh.indexer:
-    image: opensearchproject/opensearch:${LEGACY_INDEXER_VERSION}
-    container_name: wazuh.indexer
-    depends_on:
-      wazuh-certs-generator:
-        condition: service_completed_successfully
-    hostname: wazuh.indexer
+  s3:
+    image: motoserver/moto:5.2.3
     ports:
-      - 9200:9200
-    environment:
-      - LEGACY_INDEXER_VERSION=${LEGACY_INDEXER_VERSION}
-      # - cluster.name=opensearch-cluster
-      - node.name=wazuh.indexer
-      - discovery.type=single-node
-      # - cluster.initial_cluster_manager_nodes=opensearch-node
-      - bootstrap.memory_lock=true
-      - "DISABLE_INSTALL_DEMO_CONFIG=true"
-      - plugins.security.ssl.http.enabled=true
-      - plugins.security.allow_default_init_securityindex=true
-      - plugins.security.ssl.http.pemcert_filepath=/usr/share/opensearch/config/wazuh.indexer.pem
-      - plugins.security.ssl.transport.pemcert_filepath=/usr/share/opensearch/config/wazuh.indexer.pem
-      - plugins.security.ssl.http.pemkey_filepath=/usr/share/opensearch/config/wazuh.indexer-key.pem
-      - plugins.security.ssl.transport.pemkey_filepath=/usr/share/opensearch/config/wazuh.indexer-key.pem
-      - plugins.security.ssl.http.pemtrustedcas_filepath=/usr/share/opensearch/config/root-ca.pem
-      - plugins.security.ssl.transport.pemtrustedcas_filepath=/usr/share/opensearch/config/root-ca.pem
-      - plugins.security.authcz.admin_dn="CN=wazuh.indexer,OU=Wazuh,O=Wazuh,L=California, C=US"
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
+      - 5000:5000
     healthcheck:
-      test: curl -sku admin:admin https://localhost:9200/_cat/health | grep -q docker-cluster
-      start_period: 10s
-      start_interval: 3s
-    volumes:
-      - data:/usr/share/opensearch/data
-      - ./certs/wazuh.indexer.pem:/usr/share/opensearch/config/wazuh.indexer.pem
-      - ./certs/wazuh.indexer-key.pem:/usr/share/opensearch/config/wazuh.indexer-key.pem
-      - ./certs/root-ca.pem:/usr/share/opensearch/config/root-ca.pem
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/moto-api/')"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
-  wazuh.dashboard:
-    image: opensearchproject/opensearch-dashboards:${LEGACY_INDEXER_VERSION}
-    container_name: wazuh.dashboard
-    depends_on:
-      - wazuh.indexer
-    hostname: wazuh.dashboard
-    ports:
-      - 5601:5601 # Map host port 5601 to container port 5601
-    expose:
-      - "5601" # Expose port 5601 for web access to OpenSearch Dashboards
-    volumes:
-      - ./certs/:/usr/share/opensearch-dashboards/config/certs/
-      - ./certs/wazuh.dashboard-key.pem:/usr/share/opensearch-dashboards/config/certs/opensearch.key
-      - ./certs/wazuh.dashboard.pem:/usr/share/opensearch-dashboards/config/certs/opensearch.pem
-      - ./certs/root-ca.pem:/usr/share/opensearch-dashboards/config/certs/root-ca.pem
+  lambda:
+    image: wazuh/indexer-security-lake-integration:lambda
+    build:
+      context: ../amazon-security-lake
     environment:
-      LEGACY_INDEXER_VERSION: ${LEGACY_INDEXER_VERSION}
-      OPENSEARCH_HOSTS: '["https://wazuh.indexer:9200"]' # Define the OpenSearch nodes that OpenSearch Dashboards will query
-      SERVER_SSL_ENABLED: "true"
-      SERVER_SSL_KEY: "/usr/share/opensearch-dashboards/config/certs/opensearch.key"
-      SERVER_SSL_CERTIFICATE: "/usr/share/opensearch-dashboards/config/certs/opensearch.pem"
-      OPENSEARCH_SSL_CERTIFICATEAUTHORITIES: "/usr/share/opensearch-dashboards/config/certs/root-ca.pem"
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_ENDPOINT: http://s3:5000
+      AWS_BUCKET: ${SECURITY_LAKE_BUCKET}
+      SOURCE_LOCATION: ${SECURITY_LAKE_SOURCE_LOCATION}
+      ACCOUNT_ID: ${SECURITY_LAKE_ACCOUNT_ID}
+      REGION: ${AWS_REGION}
+      S3_BUCKET_OCSF: ${S3_BUCKET_OCSF}
+    depends_on:
+      s3:
+        condition: service_healthy
+
+  s3-notifier:
+    build:
+      context: ../amazon-security-lake/dev
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      AWS_ENDPOINT: http://s3:5000
+      S3_BUCKET_RAW: ${S3_BUCKET_RAW}
+      BUCKETS: ${S3_BUCKET_RAW},${SECURITY_LAKE_BUCKET},${S3_BUCKET_OCSF}
+      LAMBDA_URL: http://lambda:8080/2015-03-31/functions/function/invocations
+      POLL_SECONDS: "10"
+    depends_on:
+      s3:
+        condition: service_healthy
+      lambda:
+        condition: service_started
 
   logstash:
     depends_on:
-      - wazuh.indexer
-    # image: wazuh/indexer-security-lake-integration
+      wazuh-indexer-setup:
+        condition: service_completed_successfully
+      s3-notifier:
+        condition: service_started
     image: logstash-oss:${LOGSTASH_OSS_VERSION}
     build:
       context: ../logstash
       args:
         - LOGSTASH_OSS_VERSION=${LOGSTASH_OSS_VERSION}
-    # container_name: wazuh.integration.security.lake
-    # hostname: wazuh.integration.security.lake
     environment:
-      LOG_LEVEL: trace
-      LOGSTASH_KEYSTORE_PASS: "SecretPassword"
+      LOG_LEVEL: info
       MONITORING_ENABLED: false
-      AWS_ACCESS_KEY_ID: "AKIAIOSFODNN7EXAMPLE"
-      AWS_SECRET_ACCESS_KEY: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-      AWS_REGION: "us-east-1"
-      S3_BUCKET_RAW: "wazuh-aws-security-lake-raw"
-      AWS_ENDPOINT: "http://s3.ninja:9000"
-    ports:
-      - "5000:5000/tcp"
-      - "5000:5000/udp"
-      - "5044:5044"
-      - "9600:9600"
+      QUEUE_TYPE: persisted
+      WAZUH_INDEXER_HOST: wazuh.indexer:9200
+      WAZUH_INDEXER_USERNAME: ${WAZUH_EXPORT_USERNAME}
+      WAZUH_INDEXER_PASSWORD: ${WAZUH_EXPORT_PASSWORD}
+      WAZUH_INDEXER_CA: /usr/share/logstash/certs/wazuh-indexer-ca.pem
+      # Amazon Security Lake receives findings only.
+      WAZUH_EXPORT_INDICES: ${SECURITY_LAKE_EXPORT_INDICES}
+      WAZUH_EXPORT_LOOKBACK: ${WAZUH_EXPORT_LOOKBACK}
+      WAZUH_EXPORT_DELAY: ${WAZUH_EXPORT_DELAY}
+      WAZUH_EXPORT_SCHEDULE: ${WAZUH_EXPORT_SCHEDULE}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      AWS_ENDPOINT: http://s3:5000
+      S3_BUCKET_RAW: ${S3_BUCKET_RAW}
+      S3_TIME_FILE: ${S3_TIME_FILE}
     volumes:
-      - ../amazon-security-lake/logstash/pipeline:/usr/share/logstash/pipeline
-      - ./certs/root-ca.pem:/usr/share/logstash/root-ca.pem
-
-  s3.ninja:
-    image: scireum/s3-ninja:latest
-    container_name: s3.ninja
-    hostname: s3.ninja
-    ports:
-      - "9444:9000"
-    volumes:
-      - s3-data:/home/sirius/data
-
-  aws.lambda:
-    image: wazuh/indexer-security-lake-integration:lambda
-    build:
-      context: ../amazon-security-lake
-    environment:
-      AWS_ACCESS_KEY_ID: "AKIAIOSFODNN7EXAMPLE"
-      AWS_SECRET_ACCESS_KEY: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-      REGION: "us-east-1"
-      AWS_BUCKET: "wazuh-aws-security-lake-parquet"
-      S3_BUCKET_OCSF: "wazuh-aws-security-lake-ocsf"
-      AWS_ENDPOINT: "http://s3.ninja:9000"
-      SOURCE_LOCATION: "wazuh"
-      ACCOUNT_ID: "111111111111"
-      IS_DEV: true
-      OCSF_CLASS: SECURITY_FINDING
-    volumes:
-      - ../amazon-security-lake/src:/var/task
-    ports:
-      - "9000:8080"
-
-  generate-certs-config:
-    image: alpine:latest
-    volumes:
-      - ./config:/config
-    command: |
-      sh -c "
-      echo '
-      nodes:
-        indexer:
-          - name: wazuh.indexer
-            ip: \"wazuh.indexer\"
-        server:
-          - name: wazuh.manager
-            ip: \"wazuh.manager\"
-        dashboard:
-          - name: wazuh.dashboard
-            ip: \"wazuh.dashboard\"
-      ' > /config/certs.yml
-      "
-
-  wazuh-certs-generator:
-    image: wazuh/wazuh-certs-generator:${WAZUH_CERTS_GENERATOR_VERSION}
-    hostname: wazuh-certs-generator
-    depends_on:
-      generate-certs-config:
-        condition: service_completed_successfully
-    container_name: wazuh-certs-generator
-    environment:
-      - WAZUH_CERTS_GENERATOR_VERSION=${WAZUH_CERTS_GENERATOR_VERSION}
-    entrypoint: sh -c "/entrypoint.sh; chown -R 1000:999 /certificates; chmod 740 /certificates; chmod 440 /certificates/*"
-    volumes:
-      - ./certs/:/certificates/
-      - ./config/certs.yml:/config/certs.yml
+      - ../logstash/pipeline/wazuh-indexer-input.conf:/usr/share/logstash/pipeline-wazuh/10-wazuh-indexer-input.conf:ro
+      - ../logstash/pipeline/wazuh-source.conf:/usr/share/logstash/pipeline-wazuh/20-wazuh-source.conf:ro
+      - ../amazon-security-lake/logstash/pipeline/indexer-to-s3.conf:/usr/share/logstash/pipeline-wazuh/40-indexer-to-s3.conf:ro
+      - ./certs/root-ca.pem:/usr/share/logstash/certs/wazuh-indexer-ca.pem:ro
+      - logstash-data:/usr/share/logstash/data
+    command: logstash -f "/usr/share/logstash/pipeline-wazuh/*.conf"
 
 volumes:
-  data:
-  s3-data:
+  logstash-data:

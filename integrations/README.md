@@ -7,9 +7,7 @@ them, through Logstash, to:
 - [Elasticsearch](./elastic/README.md)
 - [OpenSearch](./opensearch/README.md)
 - [Splunk](./splunk/README.md)
-
-The [Amazon Security Lake](./amazon-security-lake/README.md) integration has not been adapted to
-the data of Wazuh 5.x yet.
+- [Amazon Security Lake](./amazon-security-lake/README.md), findings only, as OCSF Detection Findings
 
 Documentation:
 
@@ -26,4 +24,4 @@ will be deprecated. They live in the 4.x branches of
 
 |                | Wazuh indexer | Logstash | OpenSearch | Elastic | Splunk |
 | -------------- | ------------- | -------- | ---------- | ------- | ------ |
-| Latest version | 5.0.0-rc1     | 8.19.23  | 3.9.0      | 9.5.4   | 10.6.0 |
+| Latest version | 5.0.0-rc1     | 9.5.6    | 3.9.0      | 9.5.4   | 10.6.0 |

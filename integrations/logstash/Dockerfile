@@ -8,17 +8,13 @@ USER logstash
 # https://github.com/elastic/logstash/issues/6600
 ARG LOGSTASH_INPUT_OPENSEARCH_VERSION=1.0.0
 ARG LOGSTASH_OUTPUT_OPENSEARCH_VERSION=2.1.1
-RUN LS_JAVA_OPTS="-Xms1024m -Xmx1024m" logstash-plugin install \
+RUN LS_JAVA_OPTS="-Xms2g -Xmx2g" logstash-plugin install \
       --version ${LOGSTASH_INPUT_OPENSEARCH_VERSION} logstash-input-opensearch && \
-    LS_JAVA_OPTS="-Xms1024m -Xmx1024m" logstash-plugin install \
+    LS_JAVA_OPTS="-Xms2g -Xmx2g" logstash-plugin install \
       --version ${LOGSTASH_OUTPUT_OPENSEARCH_VERSION} logstash-output-opensearch
 
-# Keystore with the credentials of the Amazon Security Lake pipeline, until that
-# integration is adapted to the 5.x data schema. The other pipelines read their
-# settings from the environment.
-ENV LOGSTASH_KEYSTORE_PASS="SecretPassword"
-COPY --chown=logstash:logstash ./setup.sh /usr/share/logstash/bin/setup.sh
-RUN bash /usr/share/logstash/bin/setup.sh
+# Every pipeline reads its settings, credentials included, from the environment or from a
+# Logstash keystore created by the deployment: the image holds no credentials.
 
 # The pipelines set ECS compatibility where they need it.
 RUN echo "pipeline.ecs_compatibility: disabled" >> /usr/share/logstash/config/logstash.yml
