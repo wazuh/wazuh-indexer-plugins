@@ -87,14 +87,6 @@ public abstract class AbstractConsumerService {
     private SnapshotServiceImpl snapshotServiceOverride;
 
     /**
-     * Set to {@code true} after a successful shadow swap, recording that a swap replaced this
-     * consumer's content. The ruleset's cleanup of what Security Analytics is left holding no longer
-     * hangs off it: an incremental deletion performs no swap and needs the same cleanup, so {@link
-     * ConsumerRulesetService} reconciles on every pass instead.
-     */
-    protected boolean shadowSwapPerformed;
-
-    /**
      * Set by {@link #requestImmediateRetry()} when a pass completed but did not leave the consumer in
      * the state it was meant to reach, so {@link #synchronize()} can ask the caller for one immediate
      * retry
@@ -221,13 +213,6 @@ public abstract class AbstractConsumerService {
             return false;
         }
     }
-
-    /**
-     * Hook called by {@link ShadowSwapService} just before the atomic alias swap. Subclasses can
-     * override this to capture pre-swap state (e.g., collect resource IDs that may become stale after
-     * the swap). The default implementation is a no-op.
-     */
-    protected void onBeforeAliasSwap() {}
 
     /**
      * Returns the post-synchronization phases that a change to this consumer's content leaves owed
@@ -1742,10 +1727,5 @@ public abstract class AbstractConsumerService {
                         : SnapshotServiceImpl.forStaging(
                                 this.getConsumerType(), stagingIndices, this.environment, new RegularUrlResolver());
         return snapshotService.initialize(snapshot, null) ? snapshotService.getMaxOffsetSeen() : -1;
-    }
-
-    /** Records that a swap replaced this consumer's content, see {@link #shadowSwapPerformed}. */
-    void markShadowSwapPerformed() {
-        this.shadowSwapPerformed = true;
     }
 }

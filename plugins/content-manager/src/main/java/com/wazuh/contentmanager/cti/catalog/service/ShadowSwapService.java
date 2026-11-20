@@ -314,10 +314,6 @@ public class ShadowSwapService {
                 }
             }
 
-            for (Candidate candidate : candidates) {
-                candidate.consumer.onBeforeAliasSwap();
-            }
-
             Map<String, String> aliasToStaging = new LinkedHashMap<>();
             Map<String, String> aliasToLive = new LinkedHashMap<>();
             for (Candidate candidate : candidates) {
@@ -334,10 +330,6 @@ public class ShadowSwapService {
             return this.rollBack(candidates, documentsChanged)
                     ? SwapResult.KEPT
                     : SwapResult.KEPT_UNRESTORED;
-        }
-
-        for (Candidate candidate : candidates) {
-            candidate.consumer.markShadowSwapPerformed();
         }
 
         // The new content is live. Until its offsets are recorded, the documents of the moving
