@@ -160,6 +160,83 @@ push(@{$nrconf{blacklist_mappings}}, qr(^/var/lib/wazuh-indexer/tmp/));
 
 The file is a configuration file of the package: upgrades keep local changes to it, removing the package keeps it, and purging the package deletes it.
 
+## Log levels
+
+Wazuh Indexer writes its log to `/var/log/wazuh-indexer/wazuh-cluster.log`. The file is named after `cluster.name`, which is `wazuh-cluster` by default. The default level of every logger is `INFO`.
+
+### Default log levels
+
+A few loggers write the same `INFO` lines every time an index is opened or its mapping is updated, and every time a detector's monitor runs. These lines say nothing the operator can act on, so `opensearch.yml` sets these loggers to `WARN`. Their warnings and errors are still written to the log.
+
+```yaml
+# Log levels.
+logger.org.opensearch.index.MergeSchedulerConfig: WARN
+logger.org.opensearch.plugins.PluginsService: WARN
+logger.org.opensearch.alerting.alerts.AlertIndices: WARN
+logger.org.opensearch.alerting.transport.TransportDocLevelMonitorFanOutAction: WARN
+logger.org.opensearch.alerting.transport.TransportExecuteWorkflowAction: WARN
+logger.org.opensearch.alerting.util.destinationmigration.DestinationMigrationCoordinator: WARN
+```
+
+| Logger | `INFO` lines it writes |
+|---|---|
+| `org.opensearch.index.MergeSchedulerConfig` | Merge scheduler settings, each time an index is opened or its mapping is updated |
+| `org.opensearch.plugins.PluginsService` | `PluginService:onIndexModule index:[...]`, for the same events |
+| `org.opensearch.alerting.alerts.AlertIndices` | Alert index checks, on monitor runs |
+| `org.opensearch.alerting.transport.TransportDocLevelMonitorFanOutAction` | Details of each document-level monitor run |
+| `org.opensearch.alerting.transport.TransportExecuteWorkflowAction` | Details of each workflow run |
+| `org.opensearch.alerting.util.destinationmigration.DestinationMigrationCoordinator` | Periodic notification destination migration checks |
+
+The Docker image sets the same levels in `/usr/share/wazuh-indexer/config/opensearch.yml`.
+
+### Changing a log level
+
+Log levels can be changed in two ways:
+
+- **At runtime**, through the cluster settings API. The change applies to every node at once and needs no restart.
+- **In `opensearch.yml`**, on each node. The change applies after a restart, and the level set there is the one a logger returns to when its runtime value is removed.
+
+To change a level at runtime, for example to see the `INFO` lines of `PluginsService` again:
+
+```console
+curl -k -u <INDEXER_USERNAME>:<INDEXER_PASSWORD> -X PUT "https://<INDEXER_IP_ADDRESS>:9200/_cluster/settings" -H 'Content-Type: application/json' -d '
+{
+  "persistent": {
+    "logger.org.opensearch.plugins.PluginsService": "INFO"
+  }
+}'
+```
+
+Where:
+
+- `persistent` keeps the level after a full cluster restart. Use `transient` instead for a level that only lasts until the cluster restarts.
+- `logger.<name>` is the logger to change. The name can be a class, such as `org.opensearch.plugins.PluginsService`, or a package, such as `org.opensearch.alerting`, which changes every logger under it.
+- The value is one of `OFF`, `FATAL`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE` or `ALL`.
+
+To remove the runtime value, set it to `null`. The logger returns to the level in `opensearch.yml`, or to `INFO` if `opensearch.yml` does not set one:
+
+```console
+curl -k -u <INDEXER_USERNAME>:<INDEXER_PASSWORD> -X PUT "https://<INDEXER_IP_ADDRESS>:9200/_cluster/settings" -H 'Content-Type: application/json' -d '
+{
+  "persistent": {
+    "logger.org.opensearch.plugins.PluginsService": null
+  }
+}'
+```
+
+To see the levels in effect:
+
+- `GET _cluster/settings` lists the levels set at runtime.
+- `GET _nodes/settings?filter_path=nodes.*.settings.logger` lists the levels set in each node's `opensearch.yml`. It does not show runtime changes.
+
+To change a level permanently on a node, edit the `logger.<name>` line in `/etc/wazuh-indexer/opensearch.yml`, or remove it to go back to `INFO`, and restart the service:
+
+```console
+systemctl restart wazuh-indexer
+```
+
+> **Warning**: In `opensearch.yml`, write the `OFF` level in quotes: `logger.<name>: "OFF"`. Unquoted, YAML reads `OFF` as the boolean `false`, and the node does not start. It logs `Unknown level constant [FALSE]`. The other levels need no quotes. The cluster settings API takes JSON, where the value is always a string.
+
 ## Related documentation
 
 - [Security settings](../security)
