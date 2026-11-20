@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.junit.After;
+import org.junit.Ignore;
 
 import java.io.IOException;
 import java.util.List;
@@ -44,10 +45,22 @@ import com.wazuh.contentmanager.utils.Constants;
  * content is written, the consumer's pending phases are set, and a sync pass pushes it across. Only
  * the detector is written by hand, because detector creation is off in this cluster.
  *
- * <p>The cluster cannot reach the CTI feed and ships no local ruleset snapshot, so a pass applies
- * no offsets. That is what makes the test deterministic: the pass is driven entirely by the pending
- * phases, and the reconciliation runs on it either way.
+ * <p><b>Not run by the suite.</b> It drives real sync passes, and the first one loads the whole CTI
+ * catalog, so it takes around ten minutes and needs the catalog to be reachable. That is past the
+ * twenty-minute cap the test framework puts on one suite, and it is more than a shared CI run
+ * should spend. Run it on its own:
+ *
+ * <pre>
+ * ./gradlew :wazuh-indexer-content-manager:integTest -PnumNodes=1 \
+ *     --tests "*StandardSpaceReconciliationIT*"
+ * </pre>
+ *
+ * <p>It is kept because it is the only thing that exercises the five searches against real indices
+ * and the real Security Analytics deletions, and it has already earned it: it caught the reads
+ * sorting on fields that a dynamically mapped index makes {@code text}.
  */
+@Ignore(
+        "Takes about ten minutes and needs the CTI catalog; run it on its own, see the class javadoc")
 public class StandardSpaceReconciliationIT extends ContentManagerRestTestCase {
 
     private static final String LOG_TYPES_INDEX = ".opensearch-sap-log-types-config";
@@ -61,8 +74,14 @@ public class StandardSpaceReconciliationIT extends ContentManagerRestTestCase {
     /** Removed from the content half way through, so Security Analytics is left holding it. */
     private static final String STALE_INTEGRATION = "it1818-stale-integration";
 
-    private static final String KEPT_RULE = "it1818-kept-rule";
-    private static final String STALE_RULE = "it1818-stale-rule";
+    /**
+     * Rule ids are UUIDs, as CTI's own are. Security Analytics compiles the whole document as Sigma
+     * and reads its {@code id} field as the rule identifier, so anything else is rejected with {@code
+     * SigmaIdentifierError} on the push.
+     */
+    private static final String KEPT_RULE = "1818a001-0000-4000-8000-000000000001";
+
+    private static final String STALE_RULE = "1818a002-0000-4000-8000-000000000002";
 
     /**
      * The Security Analytics log type name of each integration, which is its {@code metadata.title}
@@ -215,7 +234,11 @@ public class StandardSpaceReconciliationIT extends ContentManagerRestTestCase {
 
     /**
      * Indexes a standard rule. Its {@code logsource.product} has to name the integration that lists
-     * it, or the rules phase holds it back instead of sending it.
+     * it, or the rules phase holds it back instead of sending it. Security Analytics compiles the
+     * document as Sigma on the way in, so it also needs a {@code metadata.date}: without one the push
+     * fails with a {@code NullPointerException} out of {@code Rule}, not a validation error. It is
+     * written ISO because the content index maps that field as a {@code date}, and Sigma takes both
+     * that and {@code yyyy/MM/dd}.
      */
     private void indexRule(String id, String integrationTitle, String ruleTitle) throws IOException {
         // spotless:off
@@ -230,6 +253,7 @@ public class StandardSpaceReconciliationIT extends ContentManagerRestTestCase {
                       "title": "%s",
                       "description": "Fixture for #1818",
                       "author": "Tester",
+                      "date": "2026-11-19",
                       "references": ["https://wazuh.com"]
                     },
                     "logsource": {"product": "%s", "category": "%s"},
@@ -271,10 +295,17 @@ public class StandardSpaceReconciliationIT extends ContentManagerRestTestCase {
     }
 
     /**
-     * Indexes a detector the content manager would have created, whose id is its integration's. The
-     * detectors index may already exist from another test with a mapping of its own, so {@code
-     * detector.source} is added to it either way; without that field mapped the nested query the diff
-     * runs would match nothing and the test would pass for the wrong reason.
+     * Indexes a detector the content manager would have created, whose id is its integration's.
+     *
+     * <p>Three things it has to carry, each learned the hard way. A {@code schedule}, or Security
+     * Analytics fails the deletion while parsing it. Its rules under {@code pre_packaged_rules},
+     * which is where a standard detector really keeps them. And {@code detector_type} mapped {@code
+     * keyword}, as the real mapping has it: dynamically mapped it becomes {@code text}, and the
+     * {@code match} query that refuses to delete a log type with active detectors then cross-matches
+     * any other detector sharing a token with its name.
+     *
+     * <p>{@code detector.source} is added to the mapping for the same reason: without it the nested
+     * query the diff runs would match nothing and the test would pass without proving anything.
      */
     private void indexDetector(String integrationId) throws IOException {
         try {
@@ -293,13 +324,14 @@ public class StandardSpaceReconciliationIT extends ContentManagerRestTestCase {
                     "enabled": true,
                     "source": "standard",
                     "type": "detector",
-                    "detector_type": "it1818-kept",
+                    "detector_type": "%s",
                     "monitor_id": [],
+                    "schedule": {"period": {"interval": 5, "unit": "MINUTES"}},
                     "inputs": [{"detector_input": {
                         "description": "Fixture for #1818",
                         "indices": ["wazuh-events-v5-security"],
-                        "custom_rules": [{"id": "%s"}],
-                        "pre_packaged_rules": []
+                        "custom_rules": [],
+                        "pre_packaged_rules": [{"id": "%s"}]
                     }}],
                     "triggers": []
                   }
@@ -308,7 +340,7 @@ public class StandardSpaceReconciliationIT extends ContentManagerRestTestCase {
         this.makeRequest(
                 "PUT",
                 "/" + DETECTORS_INDEX + "/_doc/" + integrationId + "?refresh=true",
-                String.format(Locale.ROOT, detector, integrationId, KEPT_RULE));
+                String.format(Locale.ROOT, detector, integrationId, KEPT_LOG_TYPE, KEPT_RULE));
     }
 
     // spotless:off
@@ -322,6 +354,7 @@ public class StandardSpaceReconciliationIT extends ContentManagerRestTestCase {
                       "name": {"type": "text", "fields": {"keyword": {"type": "keyword"}}},
                       "enabled": {"type": "boolean"},
                       "source": {"type": "keyword"},
+                      "detector_type": {"type": "keyword"},
                       "inputs": {
                         "type": "nested",
                         "properties": {
@@ -341,7 +374,9 @@ public class StandardSpaceReconciliationIT extends ContentManagerRestTestCase {
             }""";
 
     private static final String DETECTOR_SOURCE_MAPPING = """
-            {"properties": {"detector": {"type": "nested", "properties": {"source": {"type": "keyword"}}}}}""";
+            {"properties": {"detector": {"type": "nested", "properties": {
+                "source": {"type": "keyword"},
+                "detector_type": {"type": "keyword"}}}}}""";
     // spotless:on
 
     // --- Driving a sync pass ------------------------------------------------------------------
@@ -349,13 +384,22 @@ public class StandardSpaceReconciliationIT extends ContentManagerRestTestCase {
     /**
      * Waits for the pass this test started to finish.
      *
-     * <p>Only called once a {@code POST /update} of ours has been accepted, so the consumer document
-     * exists by then: the pass writes it before loading anything. An absent document is therefore not
-     * "idle" here, which is the mistake that made this test race its own first pass.
+     * <p>The endpoint answers before the pass has written anything, so the status still reads {@code
+     * ready} from the previous one for a moment. Waiting for {@code ready} alone would therefore
+     * return immediately and let the next step fire a request the running pass rejects with 409. So
+     * this waits for the pass to be seen running first, and only tolerates never seeing it when the
+     * whole pass was shorter than the poll.
      *
      * @throws Exception on communication error, or if the pass never finishes.
      */
     private void awaitPassFinished() throws Exception {
+        try {
+            assertBusy(() -> assertEquals("running", this.consumerField("status")), 2, TimeUnit.MINUTES);
+        } catch (AssertionError neverSeenRunning) {
+            // A pass with nothing to do can finish between two polls. Fall through to the wait
+            // below, which is the one that matters.
+            logger.info("the pass was never observed running; it was probably a no-op");
+        }
         assertBusy(
                 () -> {
                     String status = this.consumerField("status");

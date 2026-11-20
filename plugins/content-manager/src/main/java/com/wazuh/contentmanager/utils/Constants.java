@@ -469,6 +469,9 @@ public class Constants {
                     + " lists resources is unknown. The change is rejected and the consumer stops at this"
                     + " offset rather than risk orphaning them.";
 
+    public static final String E_SAP_RECONCILE_UNREADABLE =
+            "%d content document(s) could not be read; the reconciliation would take them for content"
+                    + " that is no longer published and delete their Security Analytics counterparts.";
     public static final String E_SAP_RECONCILE_TRUNCATED =
             "Found %d documents in [%s], more than the %d one search returns; the reconciliation"
                     + " will not act on a partial read.";
@@ -483,15 +486,29 @@ public class Constants {
     public static final String D_LOG_SAP_RECONCILE_NO_CONTENT =
             "No standard integrations in the content indices; skipping the Security Analytics"
                     + " reconciliation rather than treating the space as emptied.";
+    public static final String W_LOG_SAP_RECONCILE_NO_CONTENT_RULES =
+            "No standard rules in the content indices while Security Analytics holds {}; skipping the"
+                    + " reconciliation rather than deleting them all and the detectors with them.";
+    public static final String D_LOG_SAP_RECONCILE_NO_SORT =
+            "[{}] cannot be paged on, falling back to a single capped read: {}";
     public static final String D_LOG_SAP_RECONCILE_NOTHING_STALE =
             "Security Analytics holds nothing the content no longer has.";
     public static final String I_LOG_SAP_RECONCILE_STALE =
-            "Deleting from Security Analytics content CTI no longer publishes: {} detector(s) left"
-                    + " without rules, {} rule(s) and {} integration(s).";
+            "Deleting from Security Analytics content CTI no longer publishes: {} detector(s) whose"
+                    + " rules are all gone, {} detector(s) no integration owns, {} rule(s) and {}"
+                    + " integration(s).";
     public static final String I_LOG_SAP_RECONCILE_DELETED =
             "Deleted {} detector(s), {} rule(s) and {} integration(s) from Security Analytics.";
     public static final String D_LOG_SAP_RECONCILE_DELETE_FAILED =
             "Could not delete {} [{}] from Security Analytics: {}";
+    public static final String E_LOG_SAP_RECONCILE_UNEXPECTED =
+            "Unexpected error reconciling the standard space with Security Analytics; the rest of the"
+                    + " pass continues: {}";
+    public static final String E_LOG_SAP_RECONCILE_STILL_IN_FLIGHT =
+            "{} deletion(s) of {} still running {} s after the timeout; the pass ends anyway and a"
+                    + " later one may delete the same resources while they run.";
+    public static final String D_LOG_SAP_INTEGRATION_HAD_NO_DETECTOR =
+            "Integration [{}] had no detector to delete; deleting the log type alone.";
     public static final String W_LOG_SAP_RECONCILE_TIMEOUT =
             "Timed out deleting {} from Security Analytics with {} still unanswered; they are"
                     + " retried on the next sync pass.";

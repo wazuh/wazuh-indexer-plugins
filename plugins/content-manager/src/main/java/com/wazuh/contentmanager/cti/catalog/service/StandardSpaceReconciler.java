@@ -23,6 +23,7 @@ import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.IndicesOptions;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
@@ -42,6 +43,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -104,6 +106,12 @@ class StandardSpaceReconciler {
      */
     private static final int MAX_PAGES = 200;
 
+    /**
+     * How long, past the deletion timeout, to keep waiting for deletions that are still running
+     * before the next kind starts. Same cap as the detector upserts use.
+     */
+    private static final long IN_FLIGHT_CAP_SECONDS = 300;
+
     private final Client client;
     private final SecurityAnalyticsService securityAnalyticsService;
 
@@ -136,19 +144,44 @@ class StandardSpaceReconciler {
     /**
      * What has to go, in the order it has to go in.
      *
-     * @param detectors detectors whose integration survives but whose rules CTI removed.
+     * <p>The two kinds of detector are kept apart only so the log can tell them apart: they are
+     * deleted the same way, but an operator reading "left without rules" about a detector that has
+     * rules goes looking for the wrong thing.
+     *
+     * @param rulelessDetectors detectors whose integration survives but whose rules CTI removed.
+     * @param ownerlessDetectors detectors no integration owns, on either side.
      * @param rules rules Security Analytics still holds and the content no longer has.
      * @param integrations integrations Security Analytics still holds and the content no longer has.
      */
-    record Plan(List<String> detectors, List<String> rules, List<String> integrations) {
+    record Plan(
+            List<String> rulelessDetectors,
+            List<String> ownerlessDetectors,
+            List<String> rules,
+            List<String> integrations) {
+
+        /** Both kinds together, which is how they are deleted. */
+        List<String> detectors() {
+            if (this.ownerlessDetectors.isEmpty()) {
+                return this.rulelessDetectors;
+            }
+            if (this.rulelessDetectors.isEmpty()) {
+                return this.ownerlessDetectors;
+            }
+            List<String> all = new ArrayList<>(this.rulelessDetectors);
+            all.addAll(this.ownerlessDetectors);
+            return all;
+        }
 
         boolean isEmpty() {
-            return this.detectors.isEmpty() && this.rules.isEmpty() && this.integrations.isEmpty();
+            return this.rulelessDetectors.isEmpty()
+                    && this.ownerlessDetectors.isEmpty()
+                    && this.rules.isEmpty()
+                    && this.integrations.isEmpty();
         }
 
         /** Every id the plan touches, for the "only report when the failures change" check. */
         Set<String> ids() {
-            Set<String> all = new TreeSet<>(this.detectors);
+            Set<String> all = new TreeSet<>(this.detectors());
             all.addAll(this.rules);
             all.addAll(this.integrations);
             return all;
@@ -197,6 +230,14 @@ class StandardSpaceReconciler {
             return Result.nothing();
         }
 
+        if (inventory.contentRules().isEmpty() && !inventory.sapRules().isEmpty()) {
+            // Standard rules do not all go at once in normal operation, and a half-restored
+            // index looks exactly the same from here. Deleting them would take every detector
+            // with them, because an integration whose rules are gone loses its own.
+            log.warn(Constants.W_LOG_SAP_RECONCILE_NO_CONTENT_RULES, inventory.sapRules().size());
+            return Result.nothing();
+        }
+
         if (inventory.contentIntegrations().isEmpty()) {
             // A cluster whose content has not loaded yet is indistinguishable from one whose content
             // was wiped, and the blast radius is the whole space, so the diff does not run. A wipe on
@@ -214,7 +255,8 @@ class StandardSpaceReconciler {
 
         log.info(
                 Constants.I_LOG_SAP_RECONCILE_STALE,
-                plan.detectors().size(),
+                plan.rulelessDetectors().size(),
+                plan.ownerlessDetectors().size(),
                 plan.rules().size(),
                 plan.integrations().size());
 
@@ -256,29 +298,67 @@ class StandardSpaceReconciler {
         // The trigger is "no rule it lists still exists in the content", not "no enabled rule": a
         // user who disables the last rule also leaves nothing to build, and their detector must
         // survive that. A disabled rule is still a document, so it keeps the detector out of here.
-        List<String> detectors =
+        List<String> ruleless =
                 inventory.sapDetectors().stream()
                         .filter(id -> inventory.contentIntegrations().containsKey(id))
-                        .filter(
-                                id ->
-                                        inventory.contentIntegrations().get(id).stream()
-                                                .noneMatch(rule -> inventory.contentRules().contains(rule)))
+                        .filter(id -> withoutRules(inventory, id))
                         .sorted()
                         .toList();
-
-        List<String> rules =
-                inventory.sapRules().stream()
-                        .filter(id -> !inventory.contentRules().contains(id))
-                        .sorted()
-                        .toList();
-
-        List<String> integrations =
-                inventory.sapIntegrations().stream()
+        List<String> ownerless =
+                inventory.sapDetectors().stream()
                         .filter(id -> !inventory.contentIntegrations().containsKey(id))
+                        .filter(id -> ownerless(inventory, id))
                         .sorted()
                         .toList();
 
-        return new Plan(detectors, rules, integrations);
+        return new Plan(ruleless, ownerless, rules(inventory), integrations(inventory));
+    }
+
+    /**
+     * Returns whether a detector whose integration is still published has lost every rule it was
+     * built from, which is the case the issue is about.
+     *
+     * @param inventory what both sides hold.
+     * @param id the detector id, which is its integration's.
+     * @return whether to delete it.
+     */
+    private static boolean withoutRules(Inventory inventory, String id) {
+        return inventory.contentIntegrations().get(id).stream()
+                .noneMatch(rule -> inventory.contentRules().contains(rule));
+    }
+
+    /**
+     * Returns whether nothing owns this detector on either side.
+     *
+     * <p>Neither the content nor Security Analytics has its integration, so {@code deleteIntegration}
+     * is never called for it and this is the only thing that can remove it. Reachable because {@code
+     * TransportDeleteDetectorAction} answers any failed read of a detector with {@code NOT_FOUND}, so
+     * a transient one looks like "there was no detector" and the log type goes without it.
+     *
+     * @param inventory what both sides hold.
+     * @param id the detector id, which is its integration's.
+     * @return whether to delete it.
+     */
+    private static boolean ownerless(Inventory inventory, String id) {
+        // An integration Security Analytics still holds is deleted whole, detector first, so
+        // planning its detector here too would delete it twice and fail the second time.
+        return !inventory.sapIntegrations().contains(id);
+    }
+
+    /** The rules Security Analytics holds and the content no longer has. */
+    private static List<String> rules(Inventory inventory) {
+        return inventory.sapRules().stream()
+                .filter(id -> !inventory.contentRules().contains(id))
+                .sorted()
+                .toList();
+    }
+
+    /** The integrations Security Analytics holds and the content no longer has. */
+    private static List<String> integrations(Inventory inventory) {
+        return inventory.sapIntegrations().stream()
+                .filter(id -> !inventory.contentIntegrations().containsKey(id))
+                .sorted()
+                .toList();
     }
 
     /**
@@ -294,6 +374,7 @@ class StandardSpaceReconciler {
      */
     Inventory read() {
         Map<String, List<String>> contentIntegrations = new HashMap<>();
+        AtomicInteger unreadable = new AtomicInteger();
         this.eachPage(
                 Constants.INDEX_INTEGRATIONS,
                 QueryBuilders.termQuery(Constants.Q_SPACE_NAME, Space.STANDARD.toString()),
@@ -302,9 +383,11 @@ class StandardSpaceReconciler {
                 IndicesOptions.strictExpandOpen(),
                 hit -> {
                     String id = documentField(hit, Constants.KEY_ID);
-                    if (id != null) {
-                        contentIntegrations.put(id, listedRules(hit));
+                    if (id == null) {
+                        unreadable.incrementAndGet();
+                        return;
                     }
+                    contentIntegrations.put(id, listedRules(hit));
                 });
 
         Set<String> contentRules = new LinkedHashSet<>();
@@ -316,16 +399,27 @@ class StandardSpaceReconciler {
                 IndicesOptions.strictExpandOpen(),
                 hit -> {
                     String id = documentField(hit, Constants.KEY_ID);
-                    if (id != null) {
-                        contentRules.add(id);
+                    if (id == null) {
+                        unreadable.incrementAndGet();
+                        return;
                     }
+                    contentRules.add(id);
                 });
 
+        if (unreadable.get() > 0) {
+            // On the content side an id that cannot be read is not a resource that is missing from
+            // the inventory, it is a resource whose Security Analytics counterpart would be deleted
+            // for it. Abstain, as everywhere else in this class.
+            throw new IllegalStateException(
+                    String.format(Locale.ROOT, Constants.E_SAP_RECONCILE_UNREADABLE, unreadable.get()));
+        }
+
         Set<String> sapIntegrations = new LinkedHashSet<>();
-        this.wholeIndex(
+        this.eachSapDocument(
                 LOG_TYPES_INDEX,
                 QueryBuilders.termQuery(LOG_TYPE_SPACE, Space.STANDARD.toString()),
                 new String[] {LOG_TYPE_DOCUMENT_ID},
+                LOG_TYPE_DOCUMENT_ID,
                 hit -> {
                     String id = flatField(hit, LOG_TYPE_DOCUMENT_ID);
                     if (id != null) {
@@ -334,10 +428,11 @@ class StandardSpaceReconciler {
                 });
 
         Set<String> sapRules = new LinkedHashSet<>();
-        this.wholeIndex(
+        this.eachSapDocument(
                 PRE_PACKAGED_RULES_INDEX,
                 QueryBuilders.termQuery(RULE_SPACE, Space.STANDARD.toString()),
                 new String[] {RULE_DOCUMENT_ID},
+                RULE_DOCUMENT_ID,
                 hit -> {
                     String id = ruleDocumentId(hit);
                     if (id != null) {
@@ -360,13 +455,45 @@ class StandardSpaceReconciler {
     }
 
     /**
+     * Reads every document a query matches on a Security Analytics index, paginated, falling back to
+     * one capped search where the index cannot be sorted on.
+     *
+     * <p>Security Analytics creates these indices from its own mappings, where the ids are {@code
+     * keyword} and can be paged on; measured on a real deployment, {@code document.id} and {@code
+     * rule.document.id} both sort. A deployment where one was auto-created from the first write
+     * instead gets dynamic mappings, its ids are {@code text}, and sorting fails every shard; that is
+     * also why the queries filter on {@code space.keyword} rather than {@code space}. Rather than
+     * pick one, this tries to page and falls back.
+     *
+     * @param index the index to read.
+     * @param query the query to match.
+     * @param source the source fields to fetch.
+     * @param sortField the id field to page on where it can be sorted.
+     * @param consumer receives every hit.
+     */
+    private void eachSapDocument(
+            String index,
+            QueryBuilder query,
+            String[] source,
+            String sortField,
+            Consumer<SearchHit> consumer) {
+        try {
+            this.eachPage(index, query, source, sortField, IndicesOptions.LENIENT_EXPAND_OPEN, consumer);
+            return;
+        } catch (IllegalStateException truncated) {
+            throw truncated;
+        } catch (Exception e) {
+            log.debug(Constants.D_LOG_SAP_RECONCILE_NO_SORT, index, e.getMessage());
+        }
+        this.wholeIndex(index, query, source, consumer);
+    }
+
+    /**
      * Reads every document a query matches on a Security Analytics index, in one search.
      *
-     * <p>Not paginated: {@code search_after} needs a sort, and these indices are auto-created from
-     * the first write with no template, so their string fields are {@code text} and sorting one fails
-     * every shard. Hence also {@code space.keyword} in the queries. A result that does not fit one
-     * search is reported as a failure rather than used in part, as {@code
-     * DetectorLookupService.findDetectorsUsingRules} does.
+     * <p>Used where the index cannot be paged on, and for the detectors, whose only unique id lives
+     * inside a nested object. A result that does not fit one search is reported as a failure rather
+     * than used in part, as {@code DetectorLookupService.findDetectorsUsingRules} does.
      *
      * @param index the index to read.
      * @param query the query to match.
@@ -393,7 +520,7 @@ class StandardSpaceReconciler {
                                 new SearchRequest(index)
                                         .source(builder)
                                         .indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN))
-                        .actionGet();
+                        .actionGet(readTimeout());
 
         TotalHits total = response.getHits().getTotalHits();
         if (total != null && total.value() > response.getHits().getHits().length) {
@@ -401,8 +528,8 @@ class StandardSpaceReconciler {
                     String.format(
                             Locale.ROOT,
                             Constants.E_SAP_RECONCILE_TRUNCATED,
-                            index,
                             total.value(),
+                            index,
                             Constants.MAX_RESULT_WINDOW));
         }
         for (SearchHit hit : response.getHits()) {
@@ -448,7 +575,7 @@ class StandardSpaceReconciler {
             SearchResponse response =
                     this.client
                             .search(new SearchRequest(index).source(builder).indicesOptions(options))
-                            .actionGet();
+                            .actionGet(readTimeout());
             SearchHit[] hits = response.getHits().getHits();
             for (SearchHit hit : hits) {
                 consumer.accept(hit);
@@ -461,6 +588,16 @@ class StandardSpaceReconciler {
         throw new IllegalStateException(
                 String.format(
                         Locale.ROOT, Constants.E_SAP_RECONCILE_PAGINATION_CAP, index, MAX_PAGES, PAGE_SIZE));
+    }
+
+    /**
+     * How long a read may block. The pass runs on a pooled thread and holds the catalog sync lock
+     * until it ends, so a search that never answers would keep both for good.
+     *
+     * @return the timeout for one search.
+     */
+    private static TimeValue readTimeout() {
+        return TimeValue.timeValueSeconds(PluginSettings.getInstance().getClientTimeout());
     }
 
     /** Reads a field of the content wrapper's inner {@code document} object. */
@@ -561,13 +698,25 @@ class StandardSpaceReconciler {
         if (ids.isEmpty()) {
             return 0;
         }
+        if (Thread.currentThread().isInterrupted()) {
+            // A kind that was interrupted leaves the flag set, and the await below would throw the
+            // moment it is reached -- after every deletion of this kind had already been started,
+            // with nobody waiting for it. Start none instead.
+            log.warn(Constants.W_LOG_SAP_RECONCILE_INTERRUPTED, kind);
+            failed.addAll(ids);
+            return 0;
+        }
         CountDownLatch latch = new CountDownLatch(ids.size());
         Set<String> mine = Collections.synchronizedSet(new LinkedHashSet<>());
+        Set<String> done = Collections.synchronizedSet(new LinkedHashSet<>());
         for (String id : ids) {
             deletion.start(
                     id,
                     ActionListener.wrap(
-                            response -> latch.countDown(),
+                            response -> {
+                                done.add(id);
+                                latch.countDown();
+                            },
                             e -> {
                                 mine.add(id);
                                 log.debug(Constants.D_LOG_SAP_RECONCILE_DELETE_FAILED, kind, id, e.getMessage());
@@ -578,21 +727,53 @@ class StandardSpaceReconciler {
             if (!latch.await(
                     PluginSettings.getInstance().getSaCleanupTimeoutSeconds(), TimeUnit.SECONDS)) {
                 log.warn(Constants.W_LOG_SAP_RECONCILE_TIMEOUT, kind, latch.getCount());
-                // Whatever has not answered yet is reported as pending rather than as deleted: the
-                // next pass finds it again if it really did not go.
+                // Whatever has not answered yet is reported as pending rather than as deleted:
+                // the next pass finds it again if it really did not go. The ones that did answer
+                // are left out, or the report would name resources that are already gone.
                 for (String id : ids) {
-                    if (!mine.contains(id)) {
+                    if (!done.contains(id)) {
                         mine.add(id);
                     }
                 }
+                this.awaitInFlight(latch, kind);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn(Constants.W_LOG_SAP_RECONCILE_INTERRUPTED, kind);
-            mine.addAll(ids);
+            for (String id : ids) {
+                if (!done.contains(id)) {
+                    mine.add(id);
+                }
+            }
         }
         failed.addAll(mine);
         return ids.size() - mine.size();
+    }
+
+    /**
+     * Waits, up to {@link #IN_FLIGHT_CAP_SECONDS}, for deletions that outlived the timeout.
+     *
+     * <p>The next kind must not start while these run: a log type is refused while a detector still
+     * reads it. Ending the pass with them in flight is worse, because that releases the catalog sync
+     * lock and the retry, or another node, reconciles the same ids on top of them. Same reasoning and
+     * the same cap as {@code ConsumerRulesetService.awaitInFlightDetectors}.
+     *
+     * @param latch the latch counting the deletions still running.
+     * @param kind what they are, for the logs.
+     */
+    private void awaitInFlight(CountDownLatch latch, String kind) {
+        try {
+            if (!latch.await(IN_FLIGHT_CAP_SECONDS, TimeUnit.SECONDS)) {
+                log.error(
+                        Constants.E_LOG_SAP_RECONCILE_STILL_IN_FLIGHT,
+                        latch.getCount(),
+                        kind,
+                        IN_FLIGHT_CAP_SECONDS);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn(Constants.W_LOG_SAP_RECONCILE_INTERRUPTED, kind);
+        }
     }
 
     @SuppressWarnings("unchecked")

@@ -293,6 +293,70 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
         Assert.assertTrue(plan.isEmpty());
     }
 
+    /**
+     * A detector nothing owns on either side has to be deleted here, because nothing else can.
+     *
+     * <p>Its integration is in neither the content nor Security Analytics, so {@code
+     * deleteIntegration} is never called for it. The state is reachable: {@code
+     * TransportDeleteDetectorAction} answers any failed read of a detector with {@code NOT_FOUND}, so
+     * a transient failure looks like "there was no detector" and the log type is deleted while the
+     * detector and its monitor keep running.
+     */
+    public void testPlan_detectorOwnedByNobody_isDeleted() {
+        StandardSpaceReconciler.Plan plan =
+                StandardSpaceReconciler.plan(
+                        inventory(
+                                Map.of("kept", List.of("rule-1")),
+                                Set.of("rule-1"),
+                                Set.of("kept"),
+                                Set.of("rule-1"),
+                                Set.of("kept", "orphan")));
+
+        Assert.assertEquals(List.of("orphan"), plan.detectors());
+        Assert.assertTrue(plan.integrations().isEmpty());
+        Assert.assertTrue(plan.rules().isEmpty());
+    }
+
+    /**
+     * The two kinds of detector are counted apart, because the log names them apart.
+     *
+     * <p>Measured on a real deployment: a detector nothing owned carried two live rules, and a single
+     * counter reported it as "left without rules", sending whoever read the line to look for an
+     * integration that had lost its rules and did not exist.
+     */
+    public void testPlan_tellsTheTwoKindsOfDetectorApart() {
+        StandardSpaceReconciler.Plan plan =
+                StandardSpaceReconciler.plan(
+                        inventory(
+                                // "dry" is still published but every rule it lists is gone; "orphan" is
+                                // owned by nobody, and the rule it carries is alive.
+                                Map.of("dry", List.of("gone-rule"), "kept", List.of("rule-1")),
+                                Set.of("rule-1"),
+                                Set.of("dry", "kept"),
+                                Set.of("rule-1"),
+                                Set.of("dry", "kept", "orphan")));
+
+        Assert.assertEquals(List.of("dry"), plan.rulelessDetectors());
+        Assert.assertEquals(List.of("orphan"), plan.ownerlessDetectors());
+        Assert.assertEquals(List.of("dry", "orphan"), plan.detectors());
+    }
+
+    /** With only one kind present, the other count is zero rather than absent. */
+    public void testPlan_countsZeroForTheKindThatIsNotThere() {
+        StandardSpaceReconciler.Plan soloSinReglas =
+                StandardSpaceReconciler.plan(
+                        inventory(
+                                Map.of("dry", List.of("gone-rule")),
+                                Set.of(),
+                                Set.of("dry"),
+                                Set.of(),
+                                Set.of("dry")));
+
+        Assert.assertEquals(List.of("dry"), soloSinReglas.rulelessDetectors());
+        Assert.assertTrue(soloSinReglas.ownerlessDetectors().isEmpty());
+        Assert.assertEquals(List.of("dry"), soloSinReglas.detectors());
+    }
+
     // --- The deletions ----------------------------------------------------------------------
 
     /**
@@ -307,7 +371,10 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
         StandardSpaceReconciler.Result result =
                 reconciler.apply(
                         new StandardSpaceReconciler.Plan(
-                                List.of("detector-1"), List.of("rule-1", "rule-2"), List.of("integration-1")));
+                                List.of("detector-1"),
+                                Collections.emptyList(),
+                                List.of("rule-1", "rule-2"),
+                                List.of("integration-1")));
 
         Assert.assertEquals(
                 List.of("detector:detector-1", "rule:rule-1", "rule:rule-2", "integration:integration-1"),
@@ -325,7 +392,10 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
 
         reconciler.apply(
                 new StandardSpaceReconciler.Plan(
-                        Collections.emptyList(), List.of("rule-1"), List.of("integration-1")));
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        List.of("rule-1"),
+                        List.of("integration-1")));
 
         verify(this.sapService).deleteRule(eq("rule-1"), eq(Space.STANDARD), any());
         verify(this.sapService).deleteIntegration(eq("integration-1"), eq(Space.STANDARD), any());
@@ -357,7 +427,10 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
         StandardSpaceReconciler.Result result =
                 reconciler.apply(
                         new StandardSpaceReconciler.Plan(
-                                Collections.emptyList(), List.of("rule-bad", "rule-ok"), Collections.emptyList()));
+                                Collections.emptyList(),
+                                Collections.emptyList(),
+                                List.of("rule-bad", "rule-ok"),
+                                Collections.emptyList()));
 
         Assert.assertEquals(Set.of("rule-bad"), result.pending());
         Assert.assertEquals("the other rule still went", 1, result.deletedRules());
@@ -380,11 +453,38 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
         StandardSpaceReconciler.Result result =
                 reconciler.apply(
                         new StandardSpaceReconciler.Plan(
-                                List.of("detector-bad"), List.of("rule-1"), List.of("integration-1")));
+                                List.of("detector-bad"),
+                                Collections.emptyList(),
+                                List.of("rule-1"),
+                                List.of("integration-1")));
 
         Assert.assertEquals(Set.of("detector-bad"), result.pending());
         Assert.assertEquals(1, result.deletedRules());
         Assert.assertEquals(1, result.deletedIntegrations());
+    }
+
+    /**
+     * A deletion that answered is not reported as pending when another one times out. Reporting it
+     * would name resources that are already gone, count them as not deleted, and ask for a retry that
+     * has nothing to do.
+     */
+    public void testApply_aTimeoutDoesNotReportTheOnesThatAnswered() {
+        stubDeletionsSucceeding();
+        // This one never answers: no response, no failure, so the latch never reaches zero.
+        doAnswer(invocation -> null).when(this.sapService).deleteRule(eq("rule-silent"), any(), any());
+        StandardSpaceReconciler reconciler = new StandardSpaceReconciler(this.client, this.sapService);
+
+        StandardSpaceReconciler.Result result =
+                reconciler.apply(
+                        new StandardSpaceReconciler.Plan(
+                                Collections.emptyList(),
+                                Collections.emptyList(),
+                                List.of("rule-ok", "rule-silent"),
+                                Collections.emptyList()));
+
+        Assert.assertEquals(
+                "only the one that never answered is pending", Set.of("rule-silent"), result.pending());
+        Assert.assertEquals("the other one did go", 1, result.deletedRules());
     }
 
     // --- The guards -------------------------------------------------------------------------
@@ -423,12 +523,15 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
     }
 
     /**
-     * An empty rule set with integrations present is a different matter: the content is demonstrably
-     * there, so CTI really did remove every rule and the diff has to act.
+     * An empty rule set is not trusted either, although the integrations are there.
+     *
+     * <p>Standard rules do not all disappear at once in normal operation, and a half-restored index
+     * looks exactly the same from here. Acting on it would delete every standard rule from Security
+     * Analytics and every detector with them, because an integration whose rules are all gone loses
+     * its detector. The reconciliation would rather leave the leftovers for a pass that can read a
+     * rule set.
      */
-    public void testReconcile_noContentRulesButIntegrationsPresent_stillDeletes() {
-        stubDeletionsSucceeding();
-
+    public void testReconcile_noContentRulesDeletesNothing() {
         StandardSpaceReconciler.Result result =
                 reconcilerReading(
                                 inventory(
@@ -439,10 +542,24 @@ public class StandardSpaceReconcilerTests extends OpenSearchTestCase {
                                         Set.of("integration-1")))
                         .reconcile();
 
-        Assert.assertEquals(1, result.deletedDetectors());
-        Assert.assertEquals(1, result.deletedRules());
-        Assert.assertEquals(0, result.deletedIntegrations());
-        Assert.assertEquals(List.of("detector:integration-1", "rule:rule-1"), this.calls);
+        Assert.assertFalse(result.deletedAnything());
+        verifyNoInteractions(this.sapService);
+    }
+
+    /** With nothing on the Security Analytics side either, there is simply nothing to do. */
+    public void testReconcile_noRulesOnEitherSideIsNotAFailure() {
+        StandardSpaceReconciler.Result result =
+                reconcilerReading(
+                                inventory(
+                                        Map.of("integration-1", Collections.emptyList()),
+                                        Collections.emptySet(),
+                                        Set.of("integration-1"),
+                                        Collections.emptySet(),
+                                        Collections.emptySet()))
+                        .reconcile();
+
+        Assert.assertFalse(result.deletedAnything());
+        Assert.assertTrue(result.pending().isEmpty());
     }
 
     /** Both sides agreeing costs nothing beyond the reads. */

@@ -23,7 +23,10 @@ import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.OpenSearchStatusException;
+import org.opensearch.action.ActionType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.rest.RestRequest.Method;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -38,14 +41,18 @@ import org.opensearch.transport.client.Client;
 import org.junit.After;
 import org.junit.Before;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Constants;
+import com.wazuh.securityanalytics.action.WDeleteDetectorAction;
+import com.wazuh.securityanalytics.action.WDeleteIntegrationAction;
 import com.wazuh.securityanalytics.action.WIndexDetectorRequest;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -553,4 +560,91 @@ public class SecurityAnalyticsServiceImplTests extends OpenSearchTestCase {
         this.service.upsertIntegration(doc, Space.DRAFT, Method.POST, listener);
         verify(listener).onResponse(null);
     }
+
+    // --- Deleting an integration that has no detector (wazuh-indexer-plugins#1818) -------------
+
+    /**
+     * Records which Security Analytics actions were executed, answering the detector deletion with
+     * {@code status} and every other action with success.
+     *
+     * @param status what the detector deletion answers, or {@code null} for success.
+     * @return the names of the actions executed, in order.
+     */
+    @SuppressWarnings("unchecked")
+    private List<String> executedWithDetectorDeleteAnswering(RestStatus status) {
+        List<String> executed = new ArrayList<>();
+        doAnswer(
+                        invocation -> {
+                            ActionType<?> action = invocation.getArgument(0);
+                            ActionListener<Object> listener = invocation.getArgument(2);
+                            executed.add(action.name());
+                            if (WDeleteDetectorAction.INSTANCE.name().equals(action.name())
+                                    && status != null) {
+                                listener.onFailure(
+                                        new OpenSearchStatusException("detector is not found", status));
+                            } else {
+                                listener.onResponse(null);
+                            }
+                            return null;
+                        })
+                .when(this.client)
+                .execute(any(ActionType.class), any(), any());
+        return executed;
+    }
+
+    /**
+     * Most standard integrations have no detector: one is only built from enabled rules, and an
+     * integration that lists none never gets one. Chaining the log type deletion behind a detector
+     * that was never there left those integrations impossible to delete, so the reconciliation would
+     * report them as pending on every pass and never converge.
+     */
+    public void testDeleteIntegration_withNoDetector_stillDeletesTheLogType() {
+        List<String> executed = executedWithDetectorDeleteAnswering(RestStatus.NOT_FOUND);
+        AtomicBoolean ok = new AtomicBoolean();
+
+        this.service.deleteIntegration(
+                "integration-1",
+                Space.STANDARD,
+                ActionListener.wrap(r -> ok.set(true), e -> ok.set(false)));
+
+        assertTrue("the deletion must be reported as done", ok.get());
+        assertEquals(
+                "the detector is tried first, then the log type",
+                List.of(WDeleteDetectorAction.INSTANCE.name(), WDeleteIntegrationAction.INSTANCE.name()),
+                executed);
+    }
+
+    /** A detector deletion that fails for any other reason still holds the log type back. */
+    public void testDeleteIntegration_detectorDeletionFailing_doesNotDeleteTheLogType() {
+        List<String> executed = executedWithDetectorDeleteAnswering(RestStatus.INTERNAL_SERVER_ERROR);
+        AtomicBoolean failed = new AtomicBoolean();
+
+        this.service.deleteIntegration(
+                "integration-1",
+                Space.STANDARD,
+                ActionListener.wrap(r -> failed.set(false), e -> failed.set(true)));
+
+        assertTrue("the failure must reach the caller", failed.get());
+        assertEquals(
+                "the log type must not be deleted behind a detector that failed",
+                List.of(WDeleteDetectorAction.INSTANCE.name()),
+                executed);
+    }
+
+    /** With a detector present, the order is unchanged: detector first, log type second. */
+    public void testDeleteIntegration_withDetector_deletesBothInOrder() {
+        List<String> executed = executedWithDetectorDeleteAnswering(null);
+        AtomicBoolean ok = new AtomicBoolean();
+
+        this.service.deleteIntegration(
+                "integration-1",
+                Space.STANDARD,
+                ActionListener.wrap(r -> ok.set(true), e -> ok.set(false)));
+
+        assertTrue(ok.get());
+        assertEquals(
+                List.of(WDeleteDetectorAction.INSTANCE.name(), WDeleteIntegrationAction.INSTANCE.name()),
+                executed);
+    }
+
 }

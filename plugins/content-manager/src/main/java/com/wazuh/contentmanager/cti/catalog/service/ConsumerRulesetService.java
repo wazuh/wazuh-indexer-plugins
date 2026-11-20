@@ -85,7 +85,7 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * The ids the last reconciliation could not delete. Kept so a failure that repeats every pass is
      * reported once rather than every hour: see {@link #reconcileStandardSpace()}.
      */
-    private Set<String> reportedReconcileFailures = Collections.emptySet();
+    private volatile Set<String> reportedReconcileFailures = Collections.emptySet();
 
     /**
      * Constructs a new UnifiedConsumerSynchronizer.
@@ -878,7 +878,16 @@ public class ConsumerRulesetService extends AbstractConsumerService {
      * immediate retry is asked for only when the set of failures changes.
      */
     private void reconcileStandardSpace() {
-        StandardSpaceReconciler.Result result = this.reconciler.reconcile();
+        StandardSpaceReconciler.Result result;
+        try {
+            result = this.reconciler.reconcile();
+        } catch (Exception e) {
+            // Like the three sync phases, which each catch their own: the space hash, the engine
+            // reload and the pending phases are written after this, and a pass that dies here would
+            // skip them and report itself as failed although the content sync went through.
+            log.error(Constants.E_LOG_SAP_RECONCILE_UNEXPECTED, e.getMessage(), e);
+            return;
+        }
 
         if (result.deletedAnything()) {
             log.info(
