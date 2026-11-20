@@ -125,6 +125,213 @@ DASHBOARDS = [
     ("overview/tsc/pinned-agent/tsc-pinned-agent-dashboard-tab.ndjson", compliance("tsc"), AGENT),
 ]
 
+# Titles and labels of the visualizations that the integrations change:
+# - the documents are findings: the titles and labels that call them events or alerts say
+#   findings. "Event" stays where it names a field of the event a finding carries (event type,
+#   event category);
+# - a visualization that shows only the N most frequent values of a field says "Top N" in its
+#   title, for the values the title names first. Fields with fewer values than N (outcome,
+#   status, severity, TLP) and tables of hundreds of rows show them all, and keep their titles.
+# Every change names the text it replaces: the conversion fails when the Wazuh dashboard changes
+# that text, so that its new version is reviewed. Untitled visualizations (shown without a title)
+# change the name of their saved object.
+TITLES = {
+    "agents-docker-top-5-actions": ("Top 5 events", "Top 5 actions"),
+    "agents-general-alerts-evolution-by-action": ("Findings evolution by action", "Top 5 actions over time"),
+    "aws_agent_events_by_bucket": ("Top actions over time (agent)", "Top 5 actions over time (agent)"),
+    "aws_agent_events_by_source": ("Events by source over time (agent)", "Top 5 sources over time (agent)"),
+    "aws_agent_geolocation_map": ("Top Source IPs and Actions (agent)", "Top 15 source IPs and their actions (agent)"),
+    "aws_overview_events_by_resource": ("Top actions over time", "Top 5 actions over time"),
+    "aws_overview_events_by_source": ("Events by source over time", "Top 5 sources over time"),
+    "aws_overview_top_accounts": ("Top AWS accounts (overview)", "Top 5 AWS accounts (overview)"),
+    "azure_agent_events_by_category": ("Events by category over time (agent)", "Top 10 event categories over time (agent)"),
+    "azure_agent_source_ip_by_activity": ("Top Source IPs by Activity (agent)", "Top 15 source IPs by activity (agent)"),
+    "azure_overview_events_by_category": ("Events by category over time (overview)", "Top 5 event categories over time (overview)"),
+    "azure_overview_source_ip_by_activity": ("Top Source IPs by Activity (overview)", "Top 15 source IPs by activity (overview)"),
+    "fedramp-agent-dashboard-requirements-by-agent": ("Requirements by agent", "Top 5 requirements by agent"),
+    "fedramp-agent-dashboard-requirements-evolution-time": ("Requirements evolution over time", "Top 10 requirements over time"),
+    "fedramp-overview-dashboard-common-requirements": ("Most common requirements", "Top 5 requirements"),
+    "fedramp-overview-dashboard-fedramp-requirements": ("Fedramp Requirements", "Top 10 FedRAMP requirements"),
+    "fedramp-pinned-agent-dashboard-fedramp-requirements": ("Fedramp Requirements", "Top 10 FedRAMP requirements"),
+    "fedramp-pinned-agent-dashboard-integration-distribution": ("Integration distribution", "Top 5 requirements by integration"),
+    "fedramp-pinned-agent-dashboard-requirements-evolution-time": ("Requirements evolution over time", "Top 10 requirements over time"),
+    "malware-detection-overview-enrichment-type": ("Enrichment types", "Top 8 enrichment types"),
+    "malware-detection-overview-last-seen-software-type": ("Last seen software types", "Top 5 software types by last seen date"),
+    "nis2-overview-dashboard-nis2-requirements": ("NIS2 requirements", "Top 10 NIS2 requirements"),
+    "nis2-overview-dashboard-requirements-by-agent": ("Requirements by agent", "Top 5 requirements by agent"),
+    "nis2-overview-dashboard-requirements-evolution-over-time": ("Requirements evolution over time", "Top 10 requirements over time"),
+    "nis2-overview-dashboard-top-10-agents-by-events-count": ("Top 10 agents by events count", "Top 10 agents by findings"),
+    "nis2-pinned-agent-dashboard-nis2-requirements": ("NIS2 requirements", "Top 10 NIS2 requirements"),
+    "nis2-pinned-agent-dashboard-nis2-requirements-over-time": ("NIS2 requirements over time", "Top 5 NIS2 requirements over time"),
+    "overview-cmmc-top-10-agents": ("Most active agents", "Top 10 agents"),
+    "overview-cmmc-top-10-requirements-over-time-by-agent": ("Requirements distribution by agent", "Requirements distribution of the top 5 agents"),
+    "overview-docker-top-5-events": ("Top 5 events", "Top 5 actions"),
+    "overview-hipaa-top-10-agents": ("Most active agents", "Top 10 agents"),
+    "overview-hipaa-top-10-requirements-over-time-by-agent": ("Requirements distribution by agent", "Requirements distribution of the top 5 agents"),
+    "wz-case-management-top-5-users": ("Top case creator by status", "Top 5 case creators by status"),
+    "wz-vis-agents-cmmc-bubbles": ("CMMC requirements", "Top 5 CMMC requirements"),
+    "wz-vis-agents-cmmc-distributed-by-level": ("Rule distribution", "Top 5 rules"),
+    "wz-vis-agents-cmmc-most-common": ("Most common requirements", "Top 5 requirements"),
+    "wz-vis-agents-cmmc-requirements-stacked-overtime": ("Requirements over time", "Top 5 requirements over time"),
+    "wz-vis-agents-docker-actions-over-time": ("Events occurred evolution", "Top 10 actions over time"),
+    "wz-vis-agents-docker-types-over-time": ("Resources usage over time", "Top 5 event categories over time"),
+    "wz-vis-agents-gcp-event-query-name": ("Top query events", "Top 5 DNS queries"),
+    "wz-vis-agents-gcp-events-over-time": ("GCP alerts evolution", "GCP findings over time"),
+    "wz-vis-agents-gcp-outcome": ("Event outcome count", "Findings by outcome"),
+    "wz-vis-agents-gdpr-requirements": ("GDPR requirements", "Top 10 GDPR requirements"),
+    "wz-vis-agents-gdpr-rule-level-distribution": ("Top categories", "Top 15 categories"),
+    "wz-vis-agents-github-alert-action-type-by-organization": ("Top audits by action type and organization",
+                                                               "Top 5 organizations and their top 3 actions"),
+    "wz-vis-agents-github-alerts-evolution-by-organization": ("Audits evolution by organization", "Top 5 organizations over time"),
+    "wz-vis-agents-github-users-with-more-alerts": ("Users with more audits", "Top 5 users by organization"),
+    "wz-vis-agents-hipaa-bubbles": ("HIPAA requirements", "Top 5 HIPAA requirements"),
+    "wz-vis-agents-hipaa-distributed-by-level": ("Integration distribution", "Top 5 requirements by integration"),
+    "wz-vis-agents-hipaa-most-common": ("Most common requirements", "Top 5 requirements"),
+    "wz-vis-agents-hipaa-requirements-stacked-overtime": ("Requirements over time", "Top 5 requirements over time"),
+    "wz-vis-agents-iso27001-requirements": ("ISO 27001 requirements", "Top 10 ISO 27001 requirements"),
+    "wz-vis-agents-iso27001-requirements-over-time": ("ISO 27001 requirements over time", "Top 5 ISO 27001 requirements over time"),
+    "wz-vis-agents-mitre-level-by-attack": ("Rule level by technique", "Rule level of the top 5 techniques"),
+    "wz-vis-agents-mitre-level-by-tactic": ("Rule level by tactic", "Rule level of the top 5 tactics"),
+    "wz-vis-agents-nist-171-requirement-by-level": ("Integration distribution", "Top 5 requirements by integration"),
+    "wz-vis-agents-nist-171-requirements-stacked-overtime": ("Requirements over time", "Top 5 requirements over time"),
+    "wz-vis-agents-nist-800-53-requirement-by-level": ("Integration distribution", "Top 5 requirements by integration"),
+    "wz-vis-agents-nist-800-53-requirements-stacked-overtime": ("Requirements over time", "Top 5 requirements over time"),
+    "wz-vis-agents-pci-requirements": ("PCI DSS requirements", "Top 10 PCI DSS requirements"),
+    "wz-vis-agents-pci-requirements-over-time": ("PCI requirements over time", "Top 5 PCI DSS requirements over time"),
+    "wz-vis-agents-tsc-requirements": ("TSC requirements", "Top 10 TSC requirements"),
+    "wz-vis-agents-tsc-rule-level-distribution": ("Top integrations", "Top 15 integrations"),
+    "wz-vis-gcp-events-over-time": ("GCP alerts evolution", "GCP findings over time"),
+    "wz-vis-gtsc-requirements": ("TSC requirements", "Top 10 TSC requirements"),
+    "wz-vis-iso27001-requirements": ("ISO 27001 requirements", "Top 10 ISO 27001 requirements"),
+    "wz-vis-overview-cmmc-heatmap": ("Findings volume by agent", "Findings volume of the top 5 agents"),
+    "wz-vis-overview-cmmc-tag-cloud": ("Most common requirements", "Top 5 requirements"),
+    "wz-vis-overview-cmmc-top-requirements-over-time": ("Requirements evolution over time", "Top 10 requirements over time"),
+    "wz-vis-overview-docker-events": ("Events", "Findings"),
+    "wz-vis-overview-docker-events-by-source-over-time": ("Events by source over time", "Top 5 event categories over time"),
+    "wz-vis-overview-gcp-alerts-evolution-by-authanswer": ("Events over time by outcome", "Findings over time by outcome"),
+    "wz-vis-overview-gcp-top-eventcategory-by-project-id": ("Event category by project ID", "Top 5 projects by event category"),
+    "wz-vis-overview-gcp-top-instances-by-responsecode": ("Top instances by response code", "Top 5 instances by response code"),
+    "wz-vis-overview-gcp-top-projectid-by-sourcetype": ("Top project ID by action", "Top 5 project IDs by action"),
+    "wz-vis-overview-gcp-top-resourcetype-by-project-id": ("Top projects by category", "Top 5 projects by event category"),
+    "wz-vis-overview-gdpr-agents": ("Top 10 agents by events number", "Top 10 agents by findings"),
+    "wz-vis-overview-gdpr-requirements": ("GDPR requirements", "Top 10 GDPR requirements"),
+    "wz-vis-overview-gdpr-requirements-agents": ("Last events", "Findings volume of the top 5 requirements"),
+    "wz-vis-overview-gdpr-requirements-by-agent": ("Requirements by agent", "Top 5 requirements by agent"),
+    "wz-vis-overview-gdpr-requirements-heatmap": ("Top requirements over time", "Top 5 requirements over time"),
+    "wz-vis-overview-github-alert-action-type-by-organization": ("Top audits by action type and organization",
+                                                                 "Top 5 organizations and their top 3 actions"),
+    "wz-vis-overview-github-alert-level-evolution": ("Audit level evolution", "Top 10 rule levels over time"),
+    "wz-vis-overview-github-alerts-evolution-by-organization": ("Audits evolution by organization", "Top 5 organizations over time"),
+    "wz-vis-overview-github-users-with-more-alerts": ("Users with more audits", "Top 5 users by organization"),
+    "wz-vis-overview-hipaa-heatmap": ("Requirements volume by agent", "Findings volume of the top 5 agents"),
+    "wz-vis-overview-hipaa-tag-cloud": ("Most common requirements", "Top 5 requirements"),
+    "wz-vis-overview-hipaa-top-requirements-over-time": ("Requirements evolution over time", "Top 10 requirements over time"),
+    "wz-vis-overview-iso27001-agents": ("Top 10 agents by events number", "Top 10 agents by findings"),
+    "wz-vis-overview-iso27001-requirements-agents-heatmap": ("Last events", "Findings volume of the top 5 requirements"),
+    "wz-vis-overview-iso27001-requirements-by-agent": ("Requirements by agent", "Top 5 requirements by agent"),
+    "wz-vis-overview-iso27001-requirements-over-time": ("Top requirements over time", "Top 5 requirements over time"),
+    "wz-vis-overview-mitre-alerts-evolution": ("Findings evolution over time", "Top 5 techniques over time"),
+    "wz-vis-overview-mitre-attacks-by-agent": ("Top techniques by agent", "Top 5 techniques by agent"),
+    "wz-vis-overview-mitre-attacks-by-technique": ("Top techniques", "Top 10 techniques"),
+    "wz-vis-overview-mitre-top-tactics": ("Top tactics", "Top 10 tactics"),
+    "wz-vis-overview-mitre-top-tactics-by-agent": ("Top tactics by agent", "Top 5 tactics by agent"),
+    "wz-vis-overview-nist-171-agents": ("Most active agents", "Top 10 agents"),
+    "wz-vis-overview-nist-171-requirements-agents-heatmap": ("Events volume by agent", "Findings volume of the top 5 agents"),
+    "wz-vis-overview-nist-171-requirements-by-agents": ("Requirements distribution by agent", "Requirements distribution of the top 5 agents"),
+    "wz-vis-overview-nist-800-53-agents": ("Most active agents", "Top 10 agents"),
+    "wz-vis-overview-nist-800-53-requirements-agents-heatmap": ("Events volume by agent", "Findings volume of the top 5 agents"),
+    "wz-vis-overview-nist-800-53-requirements-by-agents": ("Requirements distribution by agent", "Requirements distribution of the top 5 agents"),
+    "wz-vis-overview-office-alerts-evolution-by-user": ("Office 365 events over time", "Top 5 event types over time"),
+    "wz-vis-overview-office-alerts-evolution-by-userid": ("Alerts by user", "Top 5 users over time"),
+    "wz-vis-overview-office-ips-by-user": ("IP address by users", "Top 12 IP addresses by user"),
+    "wz-vis-overview-office-rule-level": ("Events by event type", "Top 12 event types over time"),
+    "wz-vis-overview-office-severity-by-user": ("Actions by user", "Top 12 actions by user"),
+    "wz-vis-overview-office-top-events": ("Top Event Actions", "Top 10 actions"),
+    "wz-vis-overview-office-top-operations": ("Top operations", "Top 5 operations"),
+    "wz-vis-overview-office-top-users": ("Top Office users", "Top 5 Office users"),
+    "wz-vis-overview-office-top-users-by-subscription": ("Top users by provider", "Top 5 users by provider"),
+    "wz-vis-overview-pci-dss-agents": ("Top 10 agents by events count", "Top 10 agents by findings"),
+    "wz-vis-overview-pci-dss-requirements-agents-heatmap": ("Last events", "Findings volume of the top 5 requirements"),
+    "wz-vis-overview-pci-dss-requirements-by-agent": ("Requirements by agent", "Top 5 requirements by agent"),
+    "wz-vis-overview-tsc-agents": ("Top 10 agents by events number", "Top 10 agents by findings"),
+    "wz-vis-overview-tsc-requirements-agents-heatmap": ("Last events", "Findings volume of the top 5 requirements"),
+    "wz-vis-overview-tsc-requirements-by-agent": ("Requirements by agent", "Top 5 requirements by agent"),
+    "wz-vis-overview-tsc-requirements-over-time": ("Top requirements over time", "Top 5 requirements over time"),
+}
+# Labels of the metrics, buckets and axes: {visualization: {label: new label}}.
+FINDINGS_TOTAL = {"Total events": "Total findings"}
+LABELS = {
+    "aws_agent_geolocation_map": {"Event Count": "Findings", "Top Actions": "Top 5 actions"},
+    "azure_agent_source_ip_by_activity": {"Event Count": "Findings", "Top Actions": "Top 5 actions"},
+    "azure_overview_source_ip_by_activity": {"Event Count": "Findings", "Top Actions": "Top 5 actions"},
+    "wz-vis-agents-docker-actions-over-time": {"Events": "Findings"},
+    "wz-vis-agents-nist-171-stats": FINDINGS_TOTAL,
+    "wz-vis-agents-nist-800-53-stats": FINDINGS_TOTAL,
+    "wz-vis-overview-hipaa-metrics": FINDINGS_TOTAL,
+    "wz-vis-overview-nist-171-metrics": FINDINGS_TOTAL,
+    "wz-vis-overview-nist-800-53-metrics": FINDINGS_TOTAL,
+    "wz-vis-overview-office-alerts-evolution-by-userid": {"Alerts": "Findings"},
+    "wz-vis-overview-office-metric-stats": {"Total Events": "Total findings"},
+}
+SOURCE_IPS_DESCRIPTION = ("Provided by Wazuh. Shows most active source IPs and their top event actions",
+                          "Provided by Wazuh. Shows most active source IPs and their top actions")
+DESCRIPTIONS = {
+    "azure_agent_source_ip_by_activity": SOURCE_IPS_DESCRIPTION,
+    "azure_overview_source_ip_by_activity": SOURCE_IPS_DESCRIPTION,
+}
+# Terms aggregations whose size the title states: {visualization: (field, size, title's size)}.
+SIZES = {
+    "wz-vis-overview-nist-171-requirements-over-time": ("wazuh.rule.compliance.nist_800_171", 8, 10),
+    "wz-vis-overview-nist-800-53-requirements-over-time": ("wazuh.rule.compliance.nist_800_53", 8, 10),
+}
+
+
+def changed(vid: str, what: str, current, expected, new):
+    if current != expected:
+        raise SystemExit(f"{vid}: the Wazuh dashboard changed its {what} to {current!r}, the integrations expect {expected!r}: "
+                         f"review the change to {new!r} in wazuh_dashboard.py")
+    return new
+
+
+def adapted(o: dict) -> dict:
+    """A visualization of the Wazuh dashboard, with the titles and labels of the integrations."""
+    vid = o["id"]
+    if not any(vid in table for table in (TITLES, LABELS, DESCRIPTIONS, SIZES)):
+        return o
+    o = json.loads(json.dumps(o))
+    attributes = o["attributes"]
+    state = json.loads(attributes["visState"])
+    if vid in TITLES:
+        old, new = TITLES[vid]
+        # An untitled visualization keeps no title: its saved object is named by its state.
+        state["title"] = changed(vid, "title", attributes["title"] or state.get("title"), old, new)
+        if attributes["title"]:
+            attributes["title"] = new
+    if vid in LABELS:
+        found = set()
+        params = state.get("params", {})
+        texts = ([agg.get("params", {}) for agg in state.get("aggs", [])] + [axis.get("title", {}) for axis in params.get("valueAxes", [])]
+                 + [series.get("data", {}) for series in params.get("seriesParams", [])])
+        for holder in texts:
+            for key in ("customLabel", "text", "label"):
+                if holder.get(key) in LABELS[vid]:
+                    found.add(holder[key])
+                    holder[key] = LABELS[vid][holder[key]]
+        for label in set(LABELS[vid]) - found:
+            changed(vid, "labels", None, label, LABELS[vid][label])
+    if vid in DESCRIPTIONS:
+        attributes["description"] = changed(vid, "description", attributes.get("description"), *DESCRIPTIONS[vid])
+    if vid in SIZES:
+        field, old, new = SIZES[vid]
+        terms = [agg for agg in state.get("aggs", []) if agg["type"] == "terms" and agg["params"].get("field") == field]
+        for agg in terms:
+            agg["params"]["size"] = changed(vid, f"size of {field}", agg["params"].get("size"), old, new)
+        if not terms:
+            changed(vid, f"terms of {field}", None, field, new)
+    attributes["visState"] = json.dumps(state)
+    return o
+
+
 # Index patterns of the Wazuh dashboard that the dashboards use: all of them hold findings.
 SOURCE_PATTERNS = ("wazuh-findings-v5*", "wazuh-findings-v5-cloud-services*")
 FILTER_INDEX_REF = "kibanaSavedObjectMeta.searchSourceJSON.filter[0].meta.index"
@@ -258,7 +465,10 @@ def resolved() -> tuple:
                 boards.append((path, o, spec, scope))
             elif o["type"] in ("visualization", "search"):
                 sources[o["id"]] = o
-    return boards, sources
+    stale = sorted(set().union(TITLES, LABELS, DESCRIPTIONS, SIZES) - set(sources))
+    if stale:
+        raise SystemExit(f"visualizations no longer in the Wazuh dashboard, remove them from wazuh_dashboard.py: {stale}")
+    return boards, {i: adapted(o) for i, o in sources.items()}
 
 
 def dashboards(pattern_id: str) -> list:

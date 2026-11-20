@@ -37,7 +37,7 @@
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "Top AWS accounts (overview)",
+      "name": "Top 5 AWS accounts (overview)",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"aws*\" | eval f1='cloud.account.id' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"cloud.account.id\", metric as \"Count\""
       }
@@ -58,14 +58,14 @@
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Events by source over time",
+      "name": "Top 5 sources over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"aws*\" | eval f1='event.provider' | timechart useother=f usenull=f limit=5 count by f1"
       }
     },
     "ds_06": {
       "type": "ds.search",
-      "name": "Top actions over time",
+      "name": "Top 5 actions over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"aws*\" | eval f1='event.action' | timechart useother=f usenull=f limit=5 count by f1"
       }
@@ -84,7 +84,7 @@
     },
     "viz_02": {
       "type": "splunk.pie",
-      "title": "Top AWS accounts (overview)",
+      "title": "Top 5 AWS accounts (overview)",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -114,7 +114,7 @@
     },
     "viz_05": {
       "type": "splunk.area",
-      "title": "Events by source over time",
+      "title": "Top 5 sources over time",
       "dataSources": {
         "primary": "ds_05"
       },
@@ -124,7 +124,7 @@
     },
     "viz_06": {
       "type": "splunk.area",
-      "title": "Top actions over time",
+      "title": "Top 5 actions over time",
       "dataSources": {
         "primary": "ds_06"
       },

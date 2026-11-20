@@ -88,7 +88,7 @@
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Audits evolution by organization",
+      "name": "Top 5 organizations over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"github\" \"wazuh.agent.name\"=$scope|s$ | eval f1='organization.name' | timechart useother=f usenull=f limit=5 count by f1"
       }
@@ -102,14 +102,14 @@
     },
     "ds_06": {
       "type": "ds.search",
-      "name": "Top audits by action type and organization",
+      "name": "Top 5 organizations and their top 3 actions",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"github\" \"wazuh.agent.name\"=$scope|s$ | eval f1='organization.name', f2='event.action' | stats count as metric by f1, f2 | sort - metric | head 15 | eval value=f1 . \" / \" . f2 | table value metric | rename value as \"organization.name / event.action\", metric as \"Count\""
       }
     },
     "ds_07": {
       "type": "ds.search",
-      "name": "Users with more audits",
+      "name": "Top 5 users by organization",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"github\" \"wazuh.agent.name\"=$scope|s$ | eval f1='organization.name', f2='user.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"organization.name\""
       }
@@ -148,7 +148,7 @@
     },
     "viz_04": {
       "type": "splunk.area",
-      "title": "Audits evolution by organization",
+      "title": "Top 5 organizations over time",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -166,7 +166,7 @@
     },
     "viz_06": {
       "type": "splunk.pie",
-      "title": "Top audits by action type and organization",
+      "title": "Top 5 organizations and their top 3 actions",
       "dataSources": {
         "primary": "ds_06"
       },
@@ -176,7 +176,7 @@
     },
     "viz_07": {
       "type": "splunk.line",
-      "title": "Users with more audits",
+      "title": "Top 5 users by organization",
       "dataSources": {
         "primary": "ds_07"
       },

@@ -30,35 +30,35 @@
   "dataSources": {
     "ds_01": {
       "type": "ds.search",
-      "name": "Top 10 agents by events number",
+      "name": "Top 10 agents by findings",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.gdpr{}\"=* | eval f1='wazuh.agent.name' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"wazuh.agent.name\", metric as \"Count\""
       }
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "GDPR requirements",
+      "name": "Top 10 GDPR requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.gdpr{}\"=* | eval f1='wazuh.rule.compliance.gdpr{}' | timechart useother=f usenull=f limit=10 count by f1"
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Top requirements over time",
+      "name": "Top 5 requirements over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.gdpr{}\"=* | eval f1='wazuh.rule.compliance.gdpr{}' | timechart useother=f usenull=f limit=5 count by f1"
       }
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Last events",
+      "name": "Findings volume of the top 5 requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.gdpr{}\"=* | eval f1='wazuh.rule.compliance.gdpr{}', f2='wazuh.agent.name' | stats count as metric by f1, f2 | sort - metric | head 25 | rename f1 as \"Requirements\", f2 as \"Agents\", metric as \"Count\""
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Requirements by agent",
+      "name": "Top 5 requirements by agent",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.gdpr{}\"=* | eval f1='wazuh.rule.compliance.gdpr{}', f2='wazuh.agent.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"GDPR Requirements\""
       }
@@ -67,7 +67,7 @@
   "visualizations": {
     "viz_01": {
       "type": "splunk.pie",
-      "title": "Top 10 agents by events number",
+      "title": "Top 10 agents by findings",
       "dataSources": {
         "primary": "ds_01"
       },
@@ -77,7 +77,7 @@
     },
     "viz_02": {
       "type": "splunk.line",
-      "title": "GDPR requirements",
+      "title": "Top 10 GDPR requirements",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -85,7 +85,7 @@
     },
     "viz_03": {
       "type": "splunk.area",
-      "title": "Top requirements over time",
+      "title": "Top 5 requirements over time",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -95,7 +95,7 @@
     },
     "viz_04": {
       "type": "splunk.punchcard",
-      "title": "Last events",
+      "title": "Findings volume of the top 5 requirements",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -103,7 +103,7 @@
     },
     "viz_05": {
       "type": "splunk.column",
-      "title": "Requirements by agent",
+      "title": "Top 5 requirements by agent",
       "dataSources": {
         "primary": "ds_05"
       },

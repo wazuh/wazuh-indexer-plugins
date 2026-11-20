@@ -88,14 +88,14 @@
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Integration distribution",
+      "name": "Top 5 requirements by integration",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_53{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.nist_800_53{}', f2='wazuh.integration.name' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"Requirement\""
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Requirements over time",
+      "name": "Top 5 requirements over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.nist_800_53{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.nist_800_53{}' | timechart useother=f usenull=f limit=5 count by f1"
       }
@@ -109,7 +109,7 @@
         "primary": "ds_01"
       },
       "options": {
-        "underLabel": "Total events"
+        "underLabel": "Total findings"
       }
     },
     "viz_02": {
@@ -134,7 +134,7 @@
     },
     "viz_04": {
       "type": "splunk.column",
-      "title": "Integration distribution",
+      "title": "Top 5 requirements by integration",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -144,7 +144,7 @@
     },
     "viz_05": {
       "type": "splunk.column",
-      "title": "Requirements over time",
+      "title": "Top 5 requirements over time",
       "dataSources": {
         "primary": "ds_05"
       },

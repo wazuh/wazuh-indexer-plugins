@@ -109,7 +109,7 @@
     },
     "ds_07": {
       "type": "ds.search",
-      "name": "Findings evolution by action",
+      "name": "Top 5 actions over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.agent.name\"=$scope|s$ | eval f1='event.action' | timechart useother=f usenull=f limit=5 count by f1"
       }
@@ -199,7 +199,7 @@
     },
     "viz_07": {
       "type": "splunk.column",
-      "title": "Findings evolution by action",
+      "title": "Top 5 actions over time",
       "dataSources": {
         "primary": "ds_07"
       },

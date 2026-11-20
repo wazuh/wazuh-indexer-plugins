@@ -67,7 +67,7 @@
     },
     "ds_01": {
       "type": "ds.search",
-      "name": "Requirements over time",
+      "name": "Top 5 requirements over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.cmmc{}' | timechart useother=f usenull=f limit=5 count by f1"
       }
@@ -81,21 +81,21 @@
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "CMMC requirements",
+      "name": "Top 5 CMMC requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.cmmc{}' | timechart useother=f usenull=f limit=5 count by f1"
       }
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Rule distribution",
+      "name": "Top 5 rules",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.title' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Rule\", metric as \"Count\""
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Most common requirements",
+      "name": "Top 5 requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.cmmc{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.cmmc{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"Requirement\", metric as \"Count\""
       }
@@ -104,7 +104,7 @@
   "visualizations": {
     "viz_01": {
       "type": "splunk.column",
-      "title": "Requirements over time",
+      "title": "Top 5 requirements over time",
       "dataSources": {
         "primary": "ds_01"
       },
@@ -124,7 +124,7 @@
     },
     "viz_03": {
       "type": "splunk.line",
-      "title": "CMMC requirements",
+      "title": "Top 5 CMMC requirements",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -132,7 +132,7 @@
     },
     "viz_04": {
       "type": "splunk.pie",
-      "title": "Rule distribution",
+      "title": "Top 5 rules",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -142,7 +142,7 @@
     },
     "viz_05": {
       "type": "splunk.bar",
-      "title": "Most common requirements",
+      "title": "Top 5 requirements",
       "dataSources": {
         "primary": "ds_05"
       },

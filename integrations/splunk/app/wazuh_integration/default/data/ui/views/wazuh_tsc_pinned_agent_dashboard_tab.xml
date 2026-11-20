@@ -88,14 +88,14 @@
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "TSC requirements",
+      "name": "Top 10 TSC requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.tsc{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.tsc{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"wazuh.rule.compliance.tsc\", metric as \"Count\""
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Top integrations",
+      "name": "Top 15 integrations",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.tsc{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.integration.name' | stats count as metric by f1 | sort - metric | head 15 | rename f1 as \"wazuh.integration.name\", metric as \"Count\""
       }
@@ -134,7 +134,7 @@
     },
     "viz_04": {
       "type": "splunk.column",
-      "title": "TSC requirements",
+      "title": "Top 10 TSC requirements",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -142,7 +142,7 @@
     },
     "viz_05": {
       "type": "splunk.pie",
-      "title": "Top integrations",
+      "title": "Top 15 integrations",
       "dataSources": {
         "primary": "ds_05"
       },

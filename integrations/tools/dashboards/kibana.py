@@ -206,10 +206,11 @@ def from_opensearch(o: dict) -> dict:
 
 events = Dashboard("events-overview", "Wazuh - Events overview", "Normalized events exported from the Wazuh indexer.")
 events.row(7, metric("Events", E, count("Events")), metric("Agents", E, unique("wazuh.agent.name", "Agents")),
-           metric("Integrations", E, unique("wazuh.integration.name", "Integrations")), metric("Failed outcomes", E, count("Events", 'event.outcome : "failure"')))
+           metric("Integrations", E, unique("wazuh.integration.name", "Integrations")),
+           metric("Failed outcomes", E, count("Failed outcomes", 'event.outcome : "failure"')))
 events.row(15, over_time("Events over time by category", E, "wazuh.integration.category", "Category", w=32), donut("Events by outcome", E, "event.outcome", "Outcome"))
-events.row(15, top_bars("Top integrations", E, "wazuh.integration.name", "Integration"), top_bars("Top agents", E, "wazuh.agent.name", "Agent"))
-events.row(16, table("Authentication failures by source", E, [("source.ip", "Source IP"), ("user.name", "User")],
+events.row(15, top_bars("Top 10 integrations", E, "wazuh.integration.name", "Integration"), top_bars("Top 10 agents", E, "wazuh.agent.name", "Agent"))
+events.row(16, table("Top 20 sources of authentication failures", E, [("source.ip", "Source IP"), ("user.name", "User")],
                      [("c", count("Events")), ("a", unique("wazuh.agent.name", "Agents"))], kql='event.category : "authentication" and event.outcome : "failure"'),
            table("Cloud activity", E, [("cloud.provider", "Provider"), ("cloud.account.id", "Account"), ("event.action", "Action")],
                  [("c", count("Events"))], kql='wazuh.integration.category : "cloud-services"'))

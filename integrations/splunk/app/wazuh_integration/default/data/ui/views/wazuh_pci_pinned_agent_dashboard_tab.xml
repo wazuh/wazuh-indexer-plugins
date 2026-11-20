@@ -88,14 +88,14 @@
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "PCI DSS requirements",
+      "name": "Top 10 PCI DSS requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.pci_dss{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.pci_dss{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"wazuh.rule.compliance.pci_dss\", metric as \"Count\""
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "PCI requirements over time",
+      "name": "Top 5 PCI DSS requirements over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.pci_dss{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.pci_dss{}' | timechart useother=f usenull=f limit=5 count by f1"
       }
@@ -134,7 +134,7 @@
     },
     "viz_04": {
       "type": "splunk.column",
-      "title": "PCI DSS requirements",
+      "title": "Top 10 PCI DSS requirements",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -142,7 +142,7 @@
     },
     "viz_05": {
       "type": "splunk.column",
-      "title": "PCI requirements over time",
+      "title": "Top 5 PCI DSS requirements over time",
       "dataSources": {
         "primary": "ds_05"
       },

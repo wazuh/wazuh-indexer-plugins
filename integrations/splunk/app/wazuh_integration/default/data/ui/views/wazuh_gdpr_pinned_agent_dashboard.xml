@@ -88,14 +88,14 @@
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "GDPR requirements",
+      "name": "Top 10 GDPR requirements",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.gdpr{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.rule.compliance.gdpr{}' | stats count as metric by f1 | sort - metric | head 5 | rename f1 as \"wazuh.rule.compliance.gdpr\", metric as \"Count\""
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Top categories",
+      "name": "Top 15 categories",
       "options": {
         "query": "`wazuh_findings` \"wazuh.rule.compliance.gdpr{}\"=* \"wazuh.agent.name\"=$scope|s$ | eval f1='wazuh.integration.category' | stats count as metric by f1 | sort - metric | head 15 | rename f1 as \"wazuh.integration.category\", metric as \"Count\""
       }
@@ -134,7 +134,7 @@
     },
     "viz_04": {
       "type": "splunk.column",
-      "title": "GDPR requirements",
+      "title": "Top 10 GDPR requirements",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -142,7 +142,7 @@
     },
     "viz_05": {
       "type": "splunk.pie",
-      "title": "Top categories",
+      "title": "Top 15 categories",
       "dataSources": {
         "primary": "ds_05"
       },

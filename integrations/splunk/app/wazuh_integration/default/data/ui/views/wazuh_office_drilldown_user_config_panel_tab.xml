@@ -81,7 +81,7 @@
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Top Event Actions",
+      "name": "Top 10 actions",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" \"user.name\"=$scope|s$ | eval f1='event.action' | stats count as metric by f1 | sort - metric | head 10 | rename f1 as \"event.action\", metric as \"Count\""
       }
@@ -95,7 +95,7 @@
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Office 365 events over time",
+      "name": "Top 5 event types over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" \"user.name\"=$scope|s$ | eval f1='event.type{}' | timechart span=1h useother=f usenull=f limit=5 count by f1"
       }
@@ -109,7 +109,7 @@
         "primary": "ds_01"
       },
       "options": {
-        "underLabel": "Total Events"
+        "underLabel": "Total findings"
       }
     },
     "viz_02": {
@@ -124,7 +124,7 @@
     },
     "viz_03": {
       "type": "splunk.pie",
-      "title": "Top Event Actions",
+      "title": "Top 10 actions",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -142,7 +142,7 @@
     },
     "viz_05": {
       "type": "splunk.line",
-      "title": "Office 365 events over time",
+      "title": "Top 5 event types over time",
       "dataSources": {
         "primary": "ds_05"
       },

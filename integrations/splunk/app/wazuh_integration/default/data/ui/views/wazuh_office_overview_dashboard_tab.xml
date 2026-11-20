@@ -30,21 +30,21 @@
   "dataSources": {
     "ds_01": {
       "type": "ds.search",
-      "name": "Events by event type",
+      "name": "Top 12 event types over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" | eval f1='event.type{}' | timechart span=3h useother=f usenull=f limit=12 count by f1"
       }
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "IP address by users",
+      "name": "Top 12 IP addresses by user",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" | eval f1='client.ip', f2='user.id' | chart count over f1 by f2 useother=f usenull=f limit=12 | addtotals fieldname=total | sort - total | head 12 | fields - total | rename f1 as \"IP\""
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Top users by provider",
+      "name": "Top 5 users by provider",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" | eval f1='event.provider', f2='user.id' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 10 | fields - total | rename f1 as \"event.provider\""
       }
@@ -58,7 +58,7 @@
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "Actions by user",
+      "name": "Top 12 actions by user",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"o365\" | eval f1='event.action', f2='user.id' | chart count over f1 by f2 useother=f usenull=f limit=12 | addtotals fieldname=total | sort - total | head 12 | fields - total | rename f1 as \"event.action\""
       }
@@ -74,7 +74,7 @@
   "visualizations": {
     "viz_01": {
       "type": "splunk.area",
-      "title": "Events by event type",
+      "title": "Top 12 event types over time",
       "dataSources": {
         "primary": "ds_01"
       },
@@ -84,7 +84,7 @@
     },
     "viz_02": {
       "type": "splunk.bar",
-      "title": "IP address by users",
+      "title": "Top 12 IP addresses by user",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -94,7 +94,7 @@
     },
     "viz_03": {
       "type": "splunk.column",
-      "title": "Top users by provider",
+      "title": "Top 5 users by provider",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -112,7 +112,7 @@
     },
     "viz_05": {
       "type": "splunk.column",
-      "title": "Actions by user",
+      "title": "Top 12 actions by user",
       "dataSources": {
         "primary": "ds_05"
       },

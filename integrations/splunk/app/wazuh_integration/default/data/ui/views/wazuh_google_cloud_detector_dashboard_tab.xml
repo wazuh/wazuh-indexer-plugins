@@ -30,35 +30,35 @@
   "dataSources": {
     "ds_01": {
       "type": "ds.search",
-      "name": "Events over time by outcome",
+      "name": "Findings over time by outcome",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" | eval f1='event.outcome' | timechart useother=f usenull=f limit=3 count by f1"
       }
     },
     "ds_02": {
       "type": "ds.search",
-      "name": "Top instances by response code",
+      "name": "Top 5 instances by response code",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" | eval f1='dns.response_code', f2='cloud.instance.id' | stats count as metric by f1, f2 | sort - metric | head 25 | eval value=f1 . \" / \" . f2 | table value metric | rename value as \"Response Code / Instance ID\", metric as \"Count\""
       }
     },
     "ds_03": {
       "type": "ds.search",
-      "name": "Top projects by category",
+      "name": "Top 5 projects by event category",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" | eval f1='cloud.project.id', f2='event.category{}' | chart count over f1 by f2 useother=f usenull=f limit=5 | addtotals fieldname=total | sort - total | head 5 | fields - total | rename f1 as \"Project ID\""
       }
     },
     "ds_04": {
       "type": "ds.search",
-      "name": "Top project ID by action",
+      "name": "Top 5 project IDs by action",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" | eval f1='cloud.region', f2='cloud.project.id', f3='event.action' | stats count as metric by f1, f2, f3 | sort - metric | head 50 | eval value=f1 . \" / \" . f2 . \" / \" . f3 | table value metric | rename value as \"Region / Project ID / Action\", metric as \"Count\""
       }
     },
     "ds_05": {
       "type": "ds.search",
-      "name": "GCP alerts evolution",
+      "name": "GCP findings over time",
       "options": {
         "query": "`wazuh_findings` \"wazuh.integration.name\"=\"gcp\" | timechart count as \"Count\""
       }
@@ -67,7 +67,7 @@
   "visualizations": {
     "viz_01": {
       "type": "splunk.area",
-      "title": "Events over time by outcome",
+      "title": "Findings over time by outcome",
       "dataSources": {
         "primary": "ds_01"
       },
@@ -77,7 +77,7 @@
     },
     "viz_02": {
       "type": "splunk.pie",
-      "title": "Top instances by response code",
+      "title": "Top 5 instances by response code",
       "dataSources": {
         "primary": "ds_02"
       },
@@ -87,7 +87,7 @@
     },
     "viz_03": {
       "type": "splunk.bar",
-      "title": "Top projects by category",
+      "title": "Top 5 projects by event category",
       "dataSources": {
         "primary": "ds_03"
       },
@@ -95,7 +95,7 @@
     },
     "viz_04": {
       "type": "splunk.pie",
-      "title": "Top project ID by action",
+      "title": "Top 5 project IDs by action",
       "dataSources": {
         "primary": "ds_04"
       },
@@ -105,7 +105,7 @@
     },
     "viz_05": {
       "type": "splunk.line",
-      "title": "GCP alerts evolution",
+      "title": "GCP findings over time",
       "dataSources": {
         "primary": "ds_05"
       },
